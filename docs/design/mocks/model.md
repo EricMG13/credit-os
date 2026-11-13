@@ -123,8 +123,10 @@ and table sizes were taken from the design system project's own source samples.
 
 One per figure, row or passage: each metric tile, each measure, each statement row, each row
 of a chart's table form, each chart, each finding, the bottom line, contrary evidence, what
-would change the view, and each limitation on Analysis. A control shows when its own row,
-tile or passage is hovered or focused, and all show under "Show sources".
+would change the view, each limitation (Analysis and Limitations), each fact in "What the
+model covers", each sentence in the parts list, and each case card (Forecast and Model). A
+control shows when its own row, tile or passage is hovered or focused, and all show under
+"Show sources".
 
 ## Fixed after the first render
 
@@ -132,9 +134,9 @@ tile or passage is hovered or focused, and all show under "Show sources".
 - Maturities: three-series groups use narrower bars and wider gaps, with the middle label one
   line higher, so no label meets a neighbouring bar or label.
 - Trace controls were one per card; they are now one per figure, row or passage, as above.
-
-Not given a trace control: the facts in "What the model covers", the parts list, the case
-cards, and the limitations on the Limitations page.
+- The facts, the parts list, the case cards and the limitations on the Limitations page had
+  no trace control; each now has one. In a case card it is a button inside the card's label,
+  at the lower right.
 
 ## Not verified
 
@@ -142,6 +144,9 @@ cards, and the limitations on the Limitations page.
   the Claude Design editor. Console messages were not captured.
 - The three fixes were checked in one render each (Forecast, Analysis and Model with "Show
   sources" on); hover and focus of a single trace control were not exercised.
+- The four added trace places were checked in one render each with "Show sources" on (the
+  top of Forecast and Model, Front page, Limitations). Whether pressing the control inside a
+  case card leaves the case unchanged was not exercised.
 - Table, Bars, the cash flow and balance sheet tabs, the downside case and "Show sources"
   were rendered once each through the harness; the key measures tab and the Table side of
   the charts on Forecast, Analysis and Portfolio fit were not looked at.
