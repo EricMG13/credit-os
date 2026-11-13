@@ -62,8 +62,38 @@ function dumpPage(browser, folder) {
 // Chrome logs page console output and security violations to stderr. A violation is reported
 // as "... violates the following Content Security Policy directive ..."; an uncaught page
 // error is logged as "Uncaught ...". Other stderr lines (GPU, updater, dbus) are ignored.
+// A stylesheet or script that Chrome refuses from file:// (for example a leftover crossorigin
+// attribute) is logged as "Access to CSS stylesheet at ... has been blocked by CORS policy".
 function problems(log) {
-  return ["Content Security Policy", "Uncaught"].filter((needle) => log.includes(needle));
+  return ["Content Security Policy", "Uncaught", "blocked by CORS policy"].filter((needle) =>
+    log.includes(needle),
+  );
+}
+
+// Every stylesheet and script the built index.html references, as paths inside the folder.
+// A file missing from the folder is not logged by Chrome from file://, so it is checked here.
+function referencedAssets(folder) {
+  const html = readFileSync(path.join(folder, "index.html"), "utf8");
+  const refs = [
+    ...[...html.matchAll(/<link\b[^>]*\brel="stylesheet"[^>]*>/g)].map(
+      (m) => /\bhref="([^"]*)"/.exec(m[0])?.[1],
+    ),
+    ...[...html.matchAll(/<script\b[^>]*>/g)].map((m) => /\bsrc="([^"]*)"/.exec(m[0])?.[1]),
+  ];
+  return { refs, html };
+}
+
+function checkAssets(folder) {
+  const { refs, html } = referencedAssets(folder);
+  const missing = refs.filter(
+    (ref) => ref === undefined || !existsSync(path.join(folder, ...ref.split("/"))),
+  );
+  const hasStyle = /<link\b[^>]*\brel="stylesheet"/.test(html);
+  const ok = hasStyle && refs.length > 0 && missing.length === 0;
+  console.log(`${ok ? "PASS" : "FAIL"} referenced assets exist: ${refs.length} found`);
+  if (!hasStyle) console.log("  index.html has no stylesheet link");
+  for (const ref of missing) console.log(`  missing or unreadable reference: ${String(ref)}`);
+  return ok;
 }
 
 function check(label, browser, folder, expected) {
@@ -98,7 +128,7 @@ try {
   cpSync(distDir, folder, { recursive: true });
   const dataFile = path.join(folder, "data.js");
   const original = readFileSync(dataFile, "utf8");
-  const results = [];
+  const results = [checkAssets(folder)];
   results.push(check("data.js present", browser, folder, "No runs yet"));
   rmSync(dataFile);
   results.push(check("data.js deleted", browser, folder, "Library data is missing"));

@@ -1,0 +1,3 @@
+# Checked out with LF on every platform so prettier --check passes on Windows runners.
+# The tree has no binary files; add a "-text" or "binary" line here before adding one.
+* text=auto eol=lf

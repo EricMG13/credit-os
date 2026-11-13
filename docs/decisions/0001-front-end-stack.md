@@ -23,7 +23,7 @@ these versions:
 | Package | Version |
 | :--- | :--- |
 | react, react-dom | 19.3.0 |
-| vite | 6.4.6 (see below) |
+| vite | 6.4.5 (see below) |
 | @vitejs/plugin-react | 5.2.0 |
 | tailwindcss, @tailwindcss/vite | 4.3.3 |
 | typescript | 5.9.3 |
@@ -48,9 +48,11 @@ phase 0B pinned the newest release of each at least 30 days old on 2026-11-13.
 `@vitest/coverage-v8` is the coverage provider the 80 percent line threshold needs, at the
 same version as vitest.
 
-`vite` 6.4.3 fails `npm audit --omit=dev` (high severity, fixed from 6.4.6), so phase 0B
-pins 6.4.6, released 2026-11-09, which is under 30 days old. It is the first release that
-passes the gate.
+`vite` 6.4.3 (released 2026-06-01) fails `npm audit --omit=dev` (high severity). 6.4.4
+(released 2026-10-06) fixed the high advisory. 6.4.5 (released 2026-10-21) has no advisories
+and passes `npm audit --omit=dev`; 6.4.6 (released 2026-11-09) also passes. Phase 0B pins
+6.4.5, the older of the two. It is under 30 days old on 2026-11-13, so the pin awaits the
+owner's confirmation.
 
 ## Constraints this decision carries
 
