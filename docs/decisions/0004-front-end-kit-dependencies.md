@@ -34,6 +34,29 @@ reviewed and gated like any other.
 - If Recharts fails the open-from-disk check, it is removed and charts are drawn as SVG
   written here; this record is then amended.
 
+## React Aria's runtime style element (coordinator's ruling, 2026-11-13; owner to confirm)
+
+Found by step D2a's open-from-disk check: `react-aria-components` 1.22.1's press handling
+adds a `<style id="react-aria-pressable-style">` element at runtime, which
+`style-src 'self'` blocks. Its code skips the injection when an element with that id
+already exists.
+
+Ruling: the content security policy is not changed. `web/index.html` carries an element with
+that id, and the one rule the library would inject
+(`[data-react-aria-pressable]{touch-action:pan-x pan-y pinch-zoom}`) ships in the project
+stylesheet. This relies on an internal guard of the pinned version, so:
+
+- a test fails if the id or the rule in the installed package changes, and the
+  open-from-disk check on the kit page stays the proof;
+- any upgrade of `react-aria-components` re-runs both before it is accepted.
+
+Known limit: a second injection in the library's scroll-lock code has no such guard. It runs
+only on mobile WebKit, not on Chrome or Edge, the work PC's browsers. An overlay opened on an
+iPhone or iPad would log a policy violation there.
+
+Rejected: adding a hash or nonce to `style-src` (a policy change to decision 0001, the
+owner's to make); dropping React Aria (overturns decision 0003, ruling 3).
+
 ## Not verified
 
 - No package here has been installed in `web/` or opened from disk under the content security
