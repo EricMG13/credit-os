@@ -31,6 +31,36 @@ Date: 2026-11-13. Decided by: owner.
 - The company name, tagline and wordmark stay out of the repository (the owner approved
   colours and logo; this narrower reading is the coordinator's caution).
 
+## Rulings at review 1 (owner, 2026-11-13)
+
+The owner accepted the coordinator's recommended defaults. Where the two step documents
+disagree, these govern.
+
+1. **Look.** Violet-tinted canvas `#F6F5FF`, Ultramarine primary button, Schibsted Grotesk and
+   Geist typefaces, the muted chart colours that pass 3:1, no dark mode.
+2. **Charts.** Recharts, with the kinds no source has (waterfall, dumbbell, range strip,
+   limits, scatter, pathway) composed inside it. It needs its own decision record at D2a and
+   must pass the open-from-disk check first.
+3. **One primitive library.** React Aria only. Shadcnblocks pieces are redrawn on it; Radix
+   and Base UI are not added.
+4. **React Bits.** Nothing is taken from it: its licence forbids redistribution and this
+   repository is public. Animations are written as CSS here.
+5. **Icons.** Through the npm package only; no icon file is committed.
+6. **Motion.** One-off transitions up to 200 ms; only live run state loops; no animated
+   numerals; all off under reduced motion.
+7. **Trace controls.** Shown on hover and keyboard focus, always on touch, with a page-level
+   "Show sources" switch.
+8. **Evidence.** Five tabs (Summary, Trace with calculations, Sources, Gaps, Record with
+   registers), nothing removed. The Model links to the run's Evidence instead of its own.
+9. **Signal.** A separate served page outside the open-from-disk rule and its gate. D1d mocks
+   every designed screen; the parts that need paid model calls are marked as needing a ruling.
+10. **Logo.** The predecessor's symbol file is committed; the wordmark is not.
+
+Also accepted, from the component map's questions: the table form of a chart is the other
+side of a Chart or Table toggle; limitations are open by default; Flowbite React, Ant Design,
+Preline and Uiverse are unused; contrary evidence moves into the two-sided board if the mocks
+cannot make the three alert-shaped components plainly different.
+
 ## Rules that stay unless the owner says otherwise
 
 These protect the reader and the build, not a look: audit material only on Evidence and the
