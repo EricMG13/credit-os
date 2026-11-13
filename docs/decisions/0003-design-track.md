@@ -74,6 +74,34 @@ Reading by the D0 session and the coordinator, not stated by the owner: the desi
 still supplies the colour values (fixed), typefaces, status shapes, gap states and motion;
 the source supplies the component's layout, sizes, radius and density. To confirm at review 2.
 
+## Rulings at review 2 (owner, 2026-11-13)
+
+The owner accepted the coordinator's defaults on the four mock sets. They refine the source
+look rule above.
+
+1. **Cards.** A design system card may hold a group of source components or a chart, as page
+   layout. A single source component is still not restyled.
+2. **Type.** Page titles and judgement prose (key findings, contrary evidence, what would
+   change the view) use the design system's sizes (36px title, 16px body). Every other source
+   component keeps its source's size.
+3. **Shadcnblocks.** Nothing is bought. Its named variants could not be read, so the mocks
+   copy public base components. shadcn/ui and Kibo UI are not approved sources: that look is
+   accepted for the mocks only, and the build takes those pieces from Untitled UI or HyperUI
+   where an equivalent exists.
+4. **Statement table.** No Trend sparkline column; the Bars view stays.
+5. **Charts and tiles follow the source.** Faint horizontal gridlines and the source's bar
+   corners; metric tiles are separate cards; "what would change the view" is the source toast
+   in the info status colours.
+6. **Bottom line.** A Navy band with white text.
+7. **New status sets.** Module state, change state, gap severity, file state and "awaiting
+   your approval" are added to the design system. "Delivered with gaps" and "Changed" do not
+   use the half-filled circle, which means under way.
+
+Open product questions, not ruled: what the run start Purpose step carries (pathway,
+complexity, effort); a warning modal after Submit; stopping and resuming a run; what a Signal
+reader may do and which reactions exist; the paid-call rulings for Signal; the Model's
+default period set.
+
 ## Rules that stay unless the owner says otherwise
 
 These protect the reader and the build, not a look: audit material only on Evidence and the
