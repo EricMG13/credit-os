@@ -18,41 +18,49 @@ nothing built is committed.
 ## Pins
 
 Taken from the owner's existing `caos-workbench/frontend`, which already passes its gates on
-these versions:
+these versions, except `vite` (raised, see below) and the three packages with a release date in
+the table (`@vitest/coverage-v8`, `knip`, `jscpd`), which that project does not pin:
 
-| Package | Version |
-| :--- | :--- |
-| react, react-dom | 19.3.0 |
-| vite | 6.4.5 (see below) |
-| @vitejs/plugin-react | 5.2.0 |
-| tailwindcss, @tailwindcss/vite | 4.3.3 |
-| typescript | 5.9.3 |
-| vitest | 4.1.11 |
-| @testing-library/react | 16.3.3 |
-| @testing-library/dom | 10.4.1 |
-| @testing-library/jest-dom | 7.0.1 |
-| jsdom | 27.4.0 |
-| eslint | 9.39.5 |
-| typescript-eslint | 8.70.0 |
-| eslint-plugin-react-hooks | 7.1.1 |
-| eslint-plugin-jsx-a11y | 6.10.2 |
-| prettier | 3.9.6 |
-| @types/react, @types/react-dom | 19.3.0 |
-| @types/node | 24.13.4 |
-| @vitest/coverage-v8 | 4.1.11 (released 2026-08-18) |
-| knip | 6.41.0 (released 2026-10-09) |
-| jscpd | 5.4.1 (released 2026-10-09) |
+| Package                        | Version                      |
+| :----------------------------- | :--------------------------- |
+| react, react-dom               | 19.3.0                       |
+| vite                           | 6.4.5 (see below)            |
+| @vitejs/plugin-react           | 5.2.0                        |
+| tailwindcss, @tailwindcss/vite | 4.3.3                        |
+| typescript                     | 5.9.3                        |
+| vitest                         | 4.1.11                       |
+| @testing-library/react         | 16.3.3                       |
+| @testing-library/dom           | 10.4.1                       |
+| @testing-library/jest-dom      | 7.0.1                        |
+| jsdom                          | 27.4.0                       |
+| eslint                         | 9.39.5                       |
+| typescript-eslint              | 8.70.0                       |
+| eslint-plugin-react-hooks      | 7.1.1                        |
+| eslint-plugin-jsx-a11y         | 6.10.2                       |
+| prettier                       | 3.9.6                        |
+| @types/react, @types/react-dom | 19.3.0                       |
+| @types/node                    | 24.13.4                      |
+| @vitest/coverage-v8            | 4.1.11 (released 2026-08-18) |
+| knip                           | 6.41.0 (released 2026-10-09) |
+| jscpd                          | 5.4.1 (released 2026-10-09)  |
 
 `knip` and `jscpd` (the unused-code and duplication gates) were not pinned in that project:
 phase 0B pinned the newest release of each at least 30 days old on 2026-11-13.
 `@vitest/coverage-v8` is the coverage provider the 80 percent line threshold needs, at the
 same version as vitest.
 
-`vite` 6.4.3 (released 2026-06-01) fails `npm audit --omit=dev` (high severity). 6.4.4
-(released 2026-10-06) fixed the high advisory. 6.4.5 (released 2026-10-21) has no advisories
-and passes `npm audit --omit=dev`; 6.4.6 (released 2026-11-09) also passes. Phase 0B pins
-6.4.5, the older of the two. It is under 30 days old on 2026-11-13, so the pin awaits the
-owner's confirmation.
+`caos-workbench/frontend` pins `vite` 6.4.3 (released 2026-06-01), which fails
+`npm audit --omit=dev` (high severity); this project does not use it. 6.4.4 (released
+2026-10-06) fixed the high advisory. 6.4.5 (released 2026-10-21) has no advisories and passes
+`npm audit --omit=dev`; 6.4.6 (released 2026-11-09) also passes. Phase 0B pins 6.4.5, the
+older of the two. It is under 30 days old on 2026-11-13, so the pin awaits the owner's
+confirmation.
+
+`web/package-lock.json` was rebuilt on 2026-11-13 so that every locked version was released
+on or before 2026-10-14 (at least 30 days earlier), with one exception: `vite` 6.4.5, for the
+reason above. The direct pins in the table are exact and unchanged by the rebuild. Nothing
+checks the age of a locked version at gate time: a release date is not in the lock and the
+check would need the network.
 
 ## Constraints this decision carries
 

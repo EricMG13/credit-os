@@ -9,6 +9,8 @@ import { pathToFileURL } from "node:url";
 import { assetProblems, referencedAssets } from "./assets.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
+// A hung browser must fail the run, not hold the CI job until the runner limit.
+const browserTimeoutMs = Number(process.env["CREDIT_OS_BROWSER_TIMEOUT_MS"] ?? 60000);
 
 function windowsCandidates() {
   const roots = [process.env["ProgramFiles"], process.env["ProgramFiles(x86)"]].filter(Boolean);
@@ -54,8 +56,17 @@ function dumpPage(browser, folder) {
     ...(process.env["CI"] ? ["--no-sandbox"] : []),
     url,
   ];
-  const run = spawnSync(browser, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-  rmSync(profile, { recursive: true, force: true });
+  const run = spawnSync(browser, args, {
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: browserTimeoutMs,
+    killSignal: "SIGKILL",
+  });
+  // Windows can hold profile files briefly after the browser exits, so removal retries.
+  rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  if (run.error?.code === "ETIMEDOUT") {
+    throw new Error(`the browser did not finish within ${browserTimeoutMs} ms and was killed`);
+  }
   if (run.error) throw run.error;
   return { dom: run.stdout, log: run.stderr };
 }
@@ -94,6 +105,29 @@ function check(label, browser, folder, expected) {
   return ok;
 }
 
+// Positive control for the violation detector. A copy of the built page gets an inline <style>
+// element, which the policy forbids, so the browser must log a violation. If it does not, the
+// browser's log never reaches this script and a green run on the real page proves nothing.
+function canary(browser, folder, scratch) {
+  const copy = path.join(scratch, "canary");
+  cpSync(folder, copy, { recursive: true });
+  const page = path.join(copy, "index.html");
+  const html = readFileSync(page, "utf8");
+  const marked = html.replace("</head>", "<style>body{color:red}</style></head>");
+  if (marked === html) throw new Error("the canary could not be added: no </head> in index.html");
+  writeFileSync(page, marked);
+  const { log } = dumpPage(browser, copy);
+  const ok = problems(log).includes("Content Security Policy");
+  console.log(`${ok ? "PASS" : "FAIL"} violation canary: an inline <style> must be reported`);
+  if (!ok) {
+    console.log(
+      "  the browser did not report the deliberate violation, so its logging cannot be trusted",
+    );
+    console.log(`  stderr:\n${log}`);
+  }
+  return ok;
+}
+
 const browser = findBrowser();
 if (!browser) {
   const reason = "no supported browser found (set CHROME_PATH, or install Chrome or Edge)";
@@ -126,6 +160,15 @@ try {
       "This library was written by a newer version",
     ),
   );
+  const populated = original.replace(
+    /issuers:\s*\[\s*\]/,
+    'issuers: [{ id: "tdg", name: "TransDigm" }]',
+  );
+  if (populated === original) throw new Error("data.js has no empty issuers list to fill");
+  writeFileSync(dataFile, populated);
+  results.push(check("data.js with one issuer", browser, folder, "TransDigm"));
+  writeFileSync(dataFile, original);
+  results.push(canary(browser, folder, work));
   allOk = results.every(Boolean);
 } finally {
   rmSync(work, { recursive: true, force: true });
