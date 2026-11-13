@@ -1,6 +1,6 @@
 # Design system
 
-Version 0.7, 2026-11-13, with the owner's rulings at reviews 1 and 2, the source-look
+Version 0.8, 2026-11-13, with the owner's rulings at reviews 1 and 2, the source-look
 instruction and the rules from the owner's own prompts applied (step D0 of the
 [design track plan](../superpowers/plans/2026-11-13-design-track.md);
 [decision 0003](../decisions/0003-design-track.md) governs).
@@ -487,7 +487,10 @@ Marks follow the source chart (review 2, ruling 5), read on the Untitled UI line
 charts page on 2026-11-13: horizontal gridlines only, solid, in `border-hairline`; bars up to
 32px wide (16px on a narrow screen) with 6px top corners; in a stack only the top segment is
 rounded; the 8 to 12px bars of a line-and-bar chart have 4px top corners; bar spacing, legend,
-tick text and height are the source's defaults. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
+tick text and height are the source's defaults. The source page draws stacked bars and
+line-and-bar charts, not bars side by side; where series are compared within a period the
+bars stay side by side, each with the 6px top corners (owner, 2026-11-13: "Keep side by
+side"). That keeps the empty "n.a." slot of a missing value, which a stack cannot show. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
 line, the dash and marker of the series table. A chart over periods puts the periods on the x-axis, oldest on the left. Labels, values
 and legends use text colours, never the series colour. Status colours are
 never used as a series. A missing value is never drawn at zero: the mark is left out and the
@@ -561,6 +564,11 @@ At review 2 (decision 0003, "Rulings at review 2"):
 - **New status sets:** module state, change state, gap severity, file state and approval are
   defined above; "Delivered with gaps" and "Changed" do not use the half-filled circle.
 
+After review 2 (owner, 2026-11-13, in the design system session; not yet in decision 0003):
+
+- **Bars compared within a period stay side by side,** each with the source's 6px top
+  corners, rather than the source's stack: "Keep side by side".
+
 ## Rules from the owner's prompts
 
 Rules the owner typed, found by reading the owner's prompts in this project's and the
@@ -609,9 +617,6 @@ review 1.
 - The Claude Design page is at version 0.7 and shows the review 2 sets, the two border
   tokens, the joined button group, separate metric cards, the Navy bottom line band and a chart
   with gridlines. Its bars have the source's 6px top corners.
-- The source page shows stacked bars and line-and-bar charts, not bars side by side. Giving
-  each bar of a side-by-side group the 6px top corners is a reading of the source, and the
-  Claude Design page draws its sample that way.
 - The shapes for the review 2 sets were chosen from the mocks' written proposals; the mock
   pages themselves were not opened. The sets were checked at 10px in one headless Chrome
   render of the Claude Design page only.
