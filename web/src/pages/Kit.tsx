@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { IconProps } from "@/utils/is-react-component";
 import { Button, styles } from "@/components/base/buttons/button";
+import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
 
 function label(slug: string): string {
   const words = slug.replace("-", " ");
@@ -56,6 +57,15 @@ export function Kit() {
           <Button isLoading>Loading</Button>
           <Button iconLeading={Plus}>Leading icon</Button>
           <Button iconTrailing={Plus}>Trailing icon</Button>
+        </Row>
+      </section>
+
+      <section className="mt-8 flex flex-col gap-4">
+        <h2 className="font-display text-h2 text-text-primary">Tooltip</h2>
+        <Row>
+          <Tooltip title="Tooltip title" description="Supporting text under the title.">
+            <TooltipTrigger className="text-small text-text-link">Tooltip trigger</TooltipTrigger>
+          </Tooltip>
         </Row>
       </section>
     </main>

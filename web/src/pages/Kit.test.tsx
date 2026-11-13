@@ -24,7 +24,7 @@ describe("Kit", () => {
   it("has the page heading and one heading per component", () => {
     render(<Kit />);
     expect(screen.getByRole("heading", { level: 1, name: "Component kit" })).toBeInTheDocument();
-    for (const name of ["Button"]) {
+    for (const name of ["Button", "Tooltip"]) {
       expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
     }
   });
@@ -56,5 +56,10 @@ describe("Kit", () => {
     );
     expect(screen.getByRole("button", { name: "Leading icon" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Trailing icon" })).toBeEnabled();
+  });
+
+  it("gives the tooltip trigger an accessible name", () => {
+    render(<Kit />);
+    expect(screen.getByRole("button", { name: "Tooltip trigger" })).toBeInTheDocument();
   });
 });
