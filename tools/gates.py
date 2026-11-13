@@ -31,7 +31,19 @@ GATES: tuple[Gate, ...] = (
     ("ruff check", ("uv", "run", "--locked", "ruff", "check", ".")),
     ("ruff format", ("uv", "run", "--locked", "ruff", "format", "--check", ".")),
     ("mypy", ("uv", "run", "--locked", "mypy", "src", "tools", "tests")),
-    ("pytest", ("uv", "run", "--locked", "pytest", "--cov=credit_os", "--cov-fail-under=80")),
+    (
+        "pytest",
+        (
+            "uv",
+            "run",
+            "--locked",
+            "pytest",
+            "-m",
+            "not live and not browser",
+            "--cov=credit_os",
+            "--cov-fail-under=80",
+        ),
+    ),
     ("uv lock", ("uv", "lock", "--check")),
     (
         "complexipy",

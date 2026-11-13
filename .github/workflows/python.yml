@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   gates:
     strategy:
@@ -35,5 +38,5 @@ jobs:
         env:
           BASE: ${{ github.base_ref }}
         run: |
-          n=$(git diff --numstat "origin/$BASE...HEAD" -- . ':!*.lock' ':!package-lock.json' ':!pnpm-lock.yaml' ':!Package.resolved')
+          n=$(git diff --numstat "origin/$BASE...HEAD" -- . ':!*.lock' ':(exclude,glob)**/package-lock.json' ':(exclude,glob)**/pnpm-lock.yaml' ':(exclude,glob)**/Package.resolved')
           echo "$n" | awk '{s+=$1+$2} END{print s " changed lines"; exit s>800}'

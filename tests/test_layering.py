@@ -73,7 +73,7 @@ def _file_violations(
 ) -> list[str]:
     out: list[str] = []
     package = pkg_parts[0]
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig"))):
         if isinstance(node, ast.Import | ast.ImportFrom):
             targets = _static_targets(node, pkg_parts)
         elif isinstance(node, ast.Call):
@@ -279,3 +279,9 @@ def test_files_in_an_unlisted_sub_package_only_report_the_sub_package(tmp_path: 
     found = violations(root, credit_os.LAYERS)
     assert len(found) == 1
     assert "sub-package extras" in found[0]
+
+
+def test_byte_order_mark_file_is_read(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {})
+    (root / credit_os.LAYERS[0] / "bom.py").write_bytes(b"\xef\xbb\xbfx = 1\n")
+    assert violations(root, credit_os.LAYERS) == []

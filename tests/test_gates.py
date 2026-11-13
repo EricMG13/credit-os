@@ -225,3 +225,8 @@ def test_main_missing_tool_exits_two(tmp_path: Path, monkeypatch: pytest.MonkeyP
     _suppression_tree(tmp_path, monkeypatch, "0")
     monkeypatch.setattr(gates, "GATES", (("ghost", ("no-such-program-xyz",)),))
     assert gates.main() == 2
+
+
+def test_pytest_gate_skips_live_and_browser_tests() -> None:
+    argv = dict(GATES)["pytest"]
+    assert argv[argv.index("-m") + 1] == "not live and not browser"
