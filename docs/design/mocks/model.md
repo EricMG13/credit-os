@@ -169,4 +169,12 @@ control shows when its own row, tile or passage is hovered or focused, and all s
 - Keyboard order and screen reader output were not tested.
 - The review 2 round was checked in one render each of Model, Analysis and States. The
   always-shown trace controls on touch are a `hover: none` rule that was not rendered on a
-  touch device. The sparkline's style rules remain in `mock.css`, unused.
+  touch device.
+- The sparkline's style rules were then removed from `mock.css`. Model and States rendered
+  pixel-identical to before; Analysis differed by 10 pixels of one grey level. The other four
+  pages were then re-rendered: the top of Forecast and the Front page match their earlier
+  screenshots apart from the "Show sources" switch caught mid-slide; Forecast in full and
+  Portfolio fit were looked at once and have no earlier screenshot to compare with.
+- Headless Chrome sometimes draws a page before the web fonts settle, which shifts line
+  breaks. The earlier Limitations screenshot was such a render, so its comparison proves
+  nothing; five new renders agree with each other and with the Front page's header.
