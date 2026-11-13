@@ -1,24 +1,26 @@
 # Run mocks
 
 Step D1c of the [design track plan](../../superpowers/plans/2026-11-13-design-track.md),
-drawn 2026-11-13 against [design system](../design-system.md) 0.6 and the
-[component map](../component-map.md) as merged at `9fef96e`.
-[Decision 0003](../../decisions/0003-design-track.md) governs, including "Source look".
+drawn 2026-11-13 and revised the same day to [design system](../design-system.md) 0.7 and the
+[component map](../component-map.md) as merged at `c620c79`.
+[Decision 0003](../../decisions/0003-design-track.md) governs, including "Source look" and its
+rulings at review 2, cited below as "review 2, ruling n".
 Nothing here is built; no file under `web/` was touched.
 
 **Claude Design project:** [Run mocks](https://claude.ai/design/p/3fb77bd2-6b91-490c-98d1-55d7a7dfe794)
 
 - [Run start](https://claude.ai/design/p/3fb77bd2-6b91-490c-98d1-55d7a7dfe794?file=Run+start.dc.html): 8 frames.
 - [Run activity](https://claude.ai/design/p/3fb77bd2-6b91-490c-98d1-55d7a7dfe794?file=Run+activity.dc.html): 11 frames.
-- `run.css`: the shared stylesheet. Tokens, status shapes and motion are copied from the
-  design system; each source component's block names its source and the sizes it copies.
+- `run.css`: the shared stylesheet. Tokens, status shapes, status sets and motion are copied
+  from the design system; each source component's block names its source and the sizes it
+  copies.
 
 Standalone Claude Design has announced that its tools stop working by 2026-12-14. The three
 files are plain HTML and CSS and can be exported from the project before then.
 
 Sample content is the public TransDigm case. File names, purposes, module names, times and
 amounts are illustrative. The logo is a striped placeholder; icons are outlined placeholder
-squares, because the icon set comes only through its npm package (ruling 5).
+squares, because the icon set comes only through its npm package (review 1, ruling 5).
 
 ## Screens and states drawn
 
@@ -27,7 +29,7 @@ squares, because the icon set comes only through its npm package (ruling 5).
 | Frame | Screen or state | Kit |
 | :--- | :--- | :--- |
 | 01 | Documents, no documents yet. Next is unavailable | I1, I2, S2 |
-| 02 | Documents with files: one uploading, three read, one rejected with its reason and "Replace file" | I2, R14, F4 |
+| 02 | Documents with files in all four file states: two read in full, one uploading, one read in part with its sentence, one unreadable with its reason and "Replace file" | I2, R14, F4 |
 | 03 | Purpose: three radio cards, one chosen, each stating what it runs | I3 |
 | 04 | Confirm: the summary awaiting the analyst's approval, grouped Issuer, Documents, Run, with one "n.a." | R2, S1 |
 | 05 | More context: optional free text | I8 |
@@ -61,7 +63,7 @@ names its cap; the mock draws the USD 20 cap of decision 0002 and assumes that r
 | 08 | Interrupted | Alert, the module that was running, the rest "Not run" |
 | 09 | Running, many modules (22) | Finished modules collapsed to one step with a count; three queued shown; the rest collapsed |
 | 10 | No run | Empty state with "Start a run" (S2) |
-| 11 | Activity cannot be read | Alert with "Try again", over a static skeleton (S4, S5) |
+| 11 | Activity cannot be read | "State not known" in place of the run-state badge; alert with "Try again", over a static skeleton (S4, S5) |
 
 Every frame with a run has the page heading (issuer, run-state badge, purpose and as-of
 labels), a summary of spend against the cap, modules finished of modules planned, and elapsed
@@ -72,6 +74,22 @@ together at the top of the page.
 Run states use the design system's shapes: Queued ring, Running half-filled circle, Finished
 filled circle, Failed diamond, Capped triangle, Rejected cross, Interrupted pause bars, each
 with its word.
+
+The other states use the design system 0.7 sets (review 2, ruling 7):
+
+| Set | Where | As drawn |
+| :--- | :--- | :--- |
+| File state | Run start, frame 02 | Uploading: half-filled circle, action. Read in full: filled circle, success. Read in part: triangle, warning. Unreadable: diamond, error, with the reason in the sentence beside it |
+| Approval | Run start, frame 04 | Awaiting your approval: half-filled circle, info |
+| Module state | Run activity, frames 04 to 06 and 08 | Not assessable: slashed circle, neutral. Not run, only in a run that has ended: ring, neutral |
+| Activity that cannot be read | Run activity, frame 11 | State not known: dashed ring in the gap colours, where the run-state badge would be |
+
+"Unreadable" is the one word for a file, whether it could not be read or was refused at run
+start; "Rejected" and the cross stay the run's. "Delivered with gaps" is not drawn on these
+screens.
+
+No trace control appears on either page. Where one appears elsewhere it is always shown on a
+touch device (design system, "Trace control").
 
 Motion, checked in the rendered page: the halo on the half-filled circle, the shimmer on a
 queued module and the spinner animate only inside frames 01, 02, 03 and 09 (the live ones).
@@ -106,15 +124,14 @@ Read 2026-11-13 from the live page and, where it is public, the component's sour
 
 ## Departures from the map and the design system, and why
 
-1. **Design system cards hold the page regions.** The step card, the readiness panel, the
-   summary and the two activity panels are design system cards, and source components sit
-   inside them. The map says a source component "is not wrapped in a card or tile of ours".
-   Here a card is read as page layout that holds several components, not as a restyle of
-   one. Without it the white inputs and lists sit straight on the canvas.
-2. **Page headings are page text, not the Untitled UI page header.** The map lists N4 for the
-   library only. The source header's title is 20px; the design system's `h1` (36px) is used
-   so the page stays "larger type". Issuer, state and labels follow N4's order.
-3. **Status shapes replace source glyphs.** In the file row (uploading, read, rejected), the
+1. **Design system cards hold the page regions.** Ruled, no longer a departure: a card may
+   hold a group of source components as page layout (review 2, ruling 1). The step card, the
+   readiness panel, the summary and the two activity panels are such cards; no single source
+   component is restyled.
+2. **Page titles use the design system's 36px `h1`.** Ruled, no longer a departure (review 2,
+   ruling 2). Every other source component keeps its source's size. Issuer, state and labels
+   follow N4's order.
+3. **Status shapes replace source glyphs.** In the file row (the four file states), the
    alert's outline icon, the modal's featured icon, the readiness group headers and the
    activity feed's avatar circle, the design system's shape stands where the source has an
    icon, a coloured dot or a photo.
@@ -130,19 +147,23 @@ Read 2026-11-13 from the live page and, where it is public, the component's sour
    and its own 36px buttons. Buttons are the design system's Untitled UI `md`.
 8. **The radio card's body has no price.** The source body shows a price line; here it holds
    the description and a small label with the module count.
-9. **New states that are in no design system set.** "Awaiting your approval" (half-filled
-   circle, info) on Confirm; "Read" (filled circle), "Uploading" (half-filled circle) and
-    "Rejected" (diamond, error, not the run state's cross) on a file; "Not run" (ring,
-   neutral) for a module in a run that has ended; "State not known" (ring, neutral) when the
-   activity cannot be read. Shapes were taken by meaning from the ten. "Not run" and "Queued"
-   share the ring and never appear in one list: queued exists only in a live run.
-10. **A module that fails inside a run reads "Not assessable"**, the map's blocked-module
-    form, with its sentence. The word "Failed" and the diamond are kept for the run.
-11. **Source greys map to four brand values.** Control edges use `border-control`
-    `#7F848D`; container hairlines use `border-hairline` `#E8E9EB`; the source's stronger
-    container border (alert, featured icon, file icon) uses Neutral L6 `#D1D4D8`, a brand
-    value that has no token yet. The activity feed's connector dots use Neutral L4
-    `#BBBEC4`. The modal overlay is Navy at 70 percent.
+9. **File, approval, module and unreadable-activity states.** Ruled, no longer a departure:
+   they are design system 0.7 sets (review 2, ruling 7) and the mocks now draw them as the
+   table under "Run activity" lists. Against the first draft: "Read" became "Read in full",
+   "Read in part" was added, a file's "Rejected" became "Unreadable", "Uploading" took the
+   action colour, and "State not known" moved from the plain ring to the dashed ring in the
+   gap colours.
+10. **A module that fails inside a run reads "Not assessable"**, as design system 0.7 now
+    states, with its sentence. The word "Failed" and the diamond are kept for the run. Still
+    outside the module state set: a module in a live run carries the run-state words
+    (Queued, Running, Finished), and the module that was running when a run was interrupted
+    carries "Interrupted" (question 18).
+11. **Source greys map to four tokens.** No longer a departure: control edges use
+    `border-control` `#7F848D`; container hairlines use `border-hairline` `#E8E9EB`; the
+    source's stronger container border (alert, featured icon, file icon) uses
+    `border-container` `#D1D4D8`; the activity feed's connector dots use `connector`
+    `#BBBEC4`. Both are design system 0.7 tokens and the stylesheet names them. The modal
+    overlay is Navy at 70 percent.
 12. **Many modules collapse on the run page.** The map's rule for many modules is written for
     the library (R7). On Run activity the finished modules collapse to one step and the
     queued ones beyond the next three collapse to another, each with a count the run data
@@ -158,10 +179,11 @@ Read 2026-11-13 from the live page and, where it is public, the component's sour
 
 ## Questions for the owner
 
-1. Is a design system card the right container for a group of source components (departure
-   1), or should source components sit on the canvas with no card?
-2. Page titles: the design system's 36px heading, or the Untitled UI page header at its own
-   20px (departure 2)?
+Questions 1, 2, 13 and 15 were ruled at review 2 and keep their numbers. The rest are open;
+decision 0003 names 3, 6, 7 and 8 as open product questions.
+
+1. Ruled: a design system card may hold a group of source components (review 2, ruling 1).
+2. Ruled: page titles use the design system's 36px `h1` (review 2, ruling 2).
 3. Purpose: are the three purposes and what each runs right? The owner's earlier prompts name
    a pathway chosen first, a complexity (basic, standard, advanced) and an effort (Fast,
    Balanced, High). Do those belong on this step, and if so as radio cards or as selects?
@@ -183,14 +205,19 @@ Read 2026-11-13 from the live page and, where it is public, the component's sour
     module and let the panel scroll?
 12. A module that fails inside a run: "Not assessable" (as drawn), or its own "Failed" badge
     on the module?
-13. The new states in departure 9: confirm the shapes, so the design system can list them as
-    sets.
+13. Ruled: the states are design system 0.7 sets (review 2, ruling 7), applied as listed
+    above.
 14. Should the marker and the badge both show on a progress step (departure 4), or only one?
-15. Neutral L6 `#D1D4D8` and L4 `#BBBEC4` (departure 11): add them as tokens, or map the
-    source's stronger border to an existing one?
+15. Ruled: `border-container` and `connector` are design system 0.7 tokens.
 16. Elapsed time and cost per module are shown on Run activity. Is cost per module wanted
     there, or only the run total?
 17. Does Run activity list earlier runs, or only the current one? The mock shows one run.
+18. Which words does a module carry while its run is live, and when the run is interrupted
+    mid-module? The module state set has Delivered, Delivered with gaps, Not assessable and
+    Not run. The mock uses the run-state words Queued, Running and Finished for a live
+    module, and "Interrupted" for the module that was running (departure 10).
+19. Does a file read in part block Next? The mock lets the run go on and blocks only on an
+    unreadable file.
 
 ## Not verified
 
@@ -203,13 +230,21 @@ Read 2026-11-13 from the live page and, where it is public, the component's sour
   icon card, alerts, activity feeds, progress steps and page headers are not in its public
   repository; their values come from the live pages only. The progress step `md` size was
   not seen. shadcnblocks' stepper and list are behind its paid tier; values come from the
-  rendered page, and its completed-step look was read from a sibling example.
+  rendered page, and its completed-step look was read from a sibling example. Nothing is
+  bought, and the build takes I1 and R6 from Untitled UI or HyperUI where an equivalent
+  exists (review 2, ruling 3). No equivalent was
+  looked for here.
+- The 0.7 revision was checked in the same browser at 1440 wide: the four file states and
+  "State not known" by computed colour, border and word, and one look at frames 02 and 11.
+  The "Read in part" and "Unreadable" rows of frame 02 were checked by computed style, not
+  seen in a screenshot. The other frames were not looked at again.
 - Reduced motion was checked by reading the stylesheet, not by switching the setting.
 - Contrast was not recomputed. Every text and mark colour is a design system pair, except
-  the placeholder icons (drawn at 70 percent opacity) and the two neutral values in
-  departure 11, which are decorative.
-- No screen was tested with an analyst. Purposes, readiness items, rejection reasons, module
-  names, amounts and times are invented for the mock and are not the system's.
+  the placeholder icons (drawn at 70 percent opacity) and the `border-container` and
+  `connector` tokens, which the design system lists as decorative.
+- No screen was tested with an analyst. Purposes, readiness items, file and rejection
+  reasons, module names, amounts and times are invented for the mock and are not the
+  system's.
 - Hover, focus, pressed and drag-over states are not drawn. No keyboard order was checked.
 - Whether delivery or the store can supply each value shown (per-module cost and duration,
   counts for collapsed groups, readiness items) was not checked against `src/`.
