@@ -59,8 +59,10 @@ written in the step's plan. A phase starts when the steps it depends on are merg
 **May run as parallel sub-sessions** (disjoint files, neither needs the other's result):
 0A with 0B; 1A with 1C with 1D; 2A with 2B; 3A with 3B. Everything else is sequential.
 
-Signal is not in this roadmap. It is unmerged in the predecessor and gets its own plan once
-phase 4 is done.
+Signal's back end is not in this roadmap. It is unmerged in the predecessor and gets its own
+plan once phase 4 is done. Its screens, and the design of every page in phases 4 and 5, belong
+to the [design track](2026-11-13-design-track.md) (decision 0003): those page steps build to
+its mocks and component kit.
 
 ## Rules for every step
 
