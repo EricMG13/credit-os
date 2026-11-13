@@ -119,16 +119,29 @@ and table sizes were taken from the design system project's own source samples.
 8. Period set: the mock shows FY, LTM and forecast years. Your list also names quarters, YTD
    and prior-year YTD, prior LTM and pro forma. Which belong on the Model page by default?
 
-## Known defects in the mock
+## Trace controls
 
-- EBITDA by case: the downside labels sit close to their markers.
-- Maturities: value labels are tight where three bars of similar height stand together.
-- Trace controls appear on hover of their card, not of the single figure.
+One per figure, row or passage: each metric tile, each measure, each statement row, each row
+of a chart's table form, each chart, each finding, the bottom line, contrary evidence, what
+would change the view, and each limitation on Analysis. A control shows when its own row,
+tile or passage is hovered or focused, and all show under "Show sources".
+
+## Fixed after the first render
+
+- EBITDA by case: the downside labels now sit clear below their markers.
+- Maturities: three-series groups use narrower bars and wider gaps, with the middle label one
+  line higher, so no label meets a neighbouring bar or label.
+- Trace controls were one per card; they are now one per figure, row or passage, as above.
+
+Not given a trace control: the facts in "What the model covers", the parts list, the case
+cards, and the limitations on the Limitations page.
 
 ## Not verified
 
 - Rendered in headless Chrome at 1440px wide only; not in Edge, not at narrow widths, not in
   the Claude Design editor. Console messages were not captured.
+- The three fixes were checked in one render each (Forecast, Analysis and Model with "Show
+  sources" on); hover and focus of a single trace control were not exercised.
 - Table, Bars, the cash flow and balance sheet tabs, the downside case and "Show sources"
   were rendered once each through the harness; the key measures tab and the Table side of
   the charts on Forecast, Analysis and Portfolio fit were not looked at.
