@@ -99,8 +99,9 @@ look rule above.
 
 8. **Compared bars (owner, in the design system session, after review 2).** Bars that compare
    series within a period stay side by side, each with the source's 6px top corners, rather
-   than the stack the source page draws. The owner's words as that session reports them:
-   "Keep side by side".
+   than the stack the source page draws. Asked "Should the sample chart become a stacked
+   bar, as the source page draws it?", the owner chose the option "Keep side by side", then
+   typed "record it as my ruling".
 
 Open product questions, not ruled: what the run start Purpose step carries (pathway,
 complexity, effort); a warning modal after Submit; stopping and resuming a run; what a Signal
