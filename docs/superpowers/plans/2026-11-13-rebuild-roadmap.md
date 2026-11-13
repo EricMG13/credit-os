@@ -8,8 +8,9 @@ code as it then stands.
 issuer library) rebuilt as one layered Python package and one React front end, running
 unchanged on the work PC.
 
-**Source for ports:** `EricMG13/RBOT-HTML` at `origin/main` `8e3954a`, read-only. Paths below
-are in that repository.
+**Source for ports:** `EricMG13/RBOT-HTML`, read-only, baseline `origin/main` `8e3954a`. Paths
+below are in that repository. It keeps changing; `docs/legacy/ports.md` tracks each ported
+path and the legacy commit it was last adapted from.
 
 ## What is ported and what is left behind
 

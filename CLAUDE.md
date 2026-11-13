@@ -70,3 +70,6 @@ docs/superpowers/plans/  the roadmap and one plan per phase
 - Component and animation sources are limited to the eight sites in global §6; read the
   live page before using one.
 - Keep one verification record, `VERIFICATION.md`, written only by the coordinator.
+- Legacy `main` keeps moving. `docs/legacy/ports.md` maps each legacy path to its target here
+  and the legacy commit it was last adapted from. The coordinator checks it before writing a
+  phase plan and before that phase's PR merges, and is the only one who edits it.
