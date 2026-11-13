@@ -30,6 +30,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), classicScriptTags()],
   build: {
     outDir: "dist",
+    // Vite inlines assets under 4 kB as data: URLs, which the policy's img-src 'self' blocks.
+    assetsInlineLimit: 0,
     modulePreload: false,
     cssCodeSplit: false,
     rollupOptions: {

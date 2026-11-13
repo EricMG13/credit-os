@@ -25,7 +25,8 @@ describe("App", () => {
   });
 
   it("says when the data is from a newer version", () => {
-    render(<App result={{ kind: "newer", schema: "credit-os-data/2" }} />);
+    const { container } = render(<App result={{ kind: "newer", schema: "credit-os-data/2" }} />);
     expect(screen.getByText("This library was written by a newer version")).toBeInTheDocument();
+    expect(container.textContent).toBe("This library was written by a newer version");
   });
 });
