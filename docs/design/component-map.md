@@ -76,7 +76,7 @@ Reading the pages overturned assumptions carried from the predecessor's map:
 | :--- | :--- | :--- | :--- | :--- |
 | P1 | The bottom line | Inset banner, not dismissible: lead sentence in the largest type, the rest below | SB [Banner](https://www.shadcnblocks.com/components/banner) (Inset), built on React Aria | The decision in one glance, before any figure |
 | P2 | Key findings; a digest's numbered points | Numbered list panel: bold lead, body, trace control | SB [List Panel](https://www.shadcnblocks.com/components/list-panel) (Numbered), built on React Aria | Ordered and scannable; the number gives committee members something to cite |
-| P3 | Contrary evidence | Warning-toned alert with a status shape, title and text, never dismissible | SB [Alert](https://www.shadcnblocks.com/components/alert), built on React Aria | The case against must look different from the case for, and cannot be scrolled past as body text |
+| P3 | Contrary evidence | Warning-toned alert with the warning triangle, title and text, never dismissible | SB [Alert](https://www.shadcnblocks.com/components/alert), built on React Aria | The case against must look different from the case for, and cannot be scrolled past as body text |
 | P4 | What would change the view | Standout callout, static | HUI [Toasts](https://www.hyperui.dev/components/application/toasts) (Standout, repurposed) | The trigger for changing their mind is the one passage they return to |
 | P5 | Limitations | Collapsible card, open by default, with a count and a link to the gaps in Evidence | SB [Collapsible](https://www.shadcnblocks.com/components/collapsible) (Card), built on React Aria | Qualifications stay exact and in view; the count tells them how qualified the view is |
 | P7 | A one-line note written by a model (needs ruling) | Announcement: an "AI" label badge and one line | SB [Announcement](https://www.shadcnblocks.com/components/announcement), built on React Aria | The reader must never take a model's line for a colleague's or a module's |
@@ -100,10 +100,10 @@ Reading the pages overturned assumptions carried from the predecessor's map:
 | :--- | :--- | :--- | :--- | :--- |
 | R1 | A financial statement | Table with a sticky first column and an in-row sparkline; Bars or Figures toggle (N6) | HUI [Tables](https://www.hyperui.dev/components/application/tables) (Sticky first column) with F5 | A statement is a table by nature; the bars make it scannable without dropping a figure |
 | R2 | Facts with a label | Details list, grouped by category | HUI [Details Lists](https://www.hyperui.dev/components/application/details-list) | Label and value pairs read faster than a three-column table |
-| R3 | Questions and their answers | Accordion on native `details`, an answer-state badge on each row | HUI [Accordions](https://www.hyperui.dev/components/application/accordions) | The reader opens only the question they care about; the badge shows which were answered |
-| R4 | Events with dates | Timeline, vertical, with the date on every entry and past, next and later marked by status shape | HUI [Timelines](https://www.hyperui.dev/components/application/timelines) (Vertical) | Past, next and later is how a watch date is used |
+| R3 | Questions and their answers | Accordion on native `details`, an answer-state badge on each row: answered the filled circle, partly answered the half-filled circle, not answered the ring | HUI [Accordions](https://www.hyperui.dev/components/application/accordions) | The reader opens only the question they care about; the badge shows which were answered |
+| R4 | Events with dates | Timeline, vertical, with the date on every entry; past is the filled circle, next the half-filled circle, later the ring | HUI [Timelines](https://www.hyperui.dev/components/application/timelines) (Vertical) | Past, next and later is how a watch date is used |
 | R5 | Cause and effect | Step chain with title and description per step | HUI [Steps](https://www.hyperui.dev/components/application/steps) (grouped, title and description) | A pathway reads as a sequence; the relationship is the step text |
-| R6 | Status of each item in a list | Status list in groups, one group per state with a count; read-only, no drag | SB [List](https://www.shadcnblocks.com/components/list) (Groups), built on React Aria | What is not met is one group at the top, not a column of words to scan |
+| R6 | Status of each item in a list | Status list in groups, one group per state with a count; met is the filled circle, not met the triangle; read-only, no drag | SB [List](https://www.shadcnblocks.com/components/list) (Groups), built on React Aria | What is not met is one group at the top, not a column of words to scan |
 | R7 | One module's state and lead sentence | Item: icon media, title, lead sentence, a trailing status badge, in an item group | SB [Item](https://www.shadcnblocks.com/components/item), built on React Aria | Each module is one line; a repeated state collapses to one item with a count |
 | R8 | An indicator to watch | Ticker row, static: indicator, threshold, leading or lagging icon | SB [Ticker](https://www.shadcnblocks.com/components/ticker), built on React Aria, with no live update | A watch list is a list of levels; the icon replaces the words "leading" and "lagging" |
 | R9 | The named cases | Choice cards: one per case with its assumption and what it leaves out; choosing one sets the case every chart on the page shows | SB [Choicebox](https://www.shadcnblocks.com/components/choicebox), built on React Aria | The definitions double as the case switch, so the reader always knows which case they are looking at |
@@ -192,7 +192,7 @@ A missing value in a chart is never drawn as zero:
 
 | ID | Kind of information | Component | Source (read) | Why it fits the reader |
 | :--- | :--- | :--- | :--- | :--- |
-| S1 | A state (of a run, a module, a source) | Status badge: a fixed shape, a colour and a word, always all three. Running is the pulsing filled circle. Queued is the neutral ring, with the CSS shimmer where its result will appear | DS status shapes on UUI Badges | Fixes the predecessor's colour-only fills; the shape survives grayscale |
+| S1 | A state (of a run, a module, a source) | Status badge: a fixed shape, a colour and a word, always all three. Running is the half-filled circle, with a pulsing halo only while the run is live. Queued is the neutral ring, with the CSS shimmer where its result will appear | DS status shapes on UUI Badges | Fixes the predecessor's colour-only fills; the shape survives grayscale |
 | S2 | Nothing here yet, and what to do | Empty state: featured icon, title, text, one action | UUI [Empty states](https://www.untitledui.com/react/components/empty-states) | A blank page reads as broken; the reason reads as honest |
 | S3 | A gap as a block: content or a chart not established for this run | Hatched dashed gap panel with the words and the module's stated reason | DS gap panel | Never an error colour: a gap is a fact about the run, shown where the content would have been |
 | S4 | The system telling the reader something that changes what they do next (run started, cannot reach the service, run capped, run rejected) | Alert, floating, tone by severity, with an action | UUI [Alerts](https://www.untitledui.com/react/components/alerts) | Says what happened and what to do next |
@@ -272,7 +272,7 @@ and keyboard focus, always on touch, with a page-level "Show sources" switch (ru
 | Run start | Start | I4 |
 | Run started panel | What will run and its cap | S4 (info tone) with F4 |
 | Readiness side panel | Readiness items; the cap | R6; F4 |
-| Run activity | Module progress; the running module; a queued module; a live run before its first module reports | I5; S1 (pulsing circle); S1 (ring, with the shimmer); S7 |
+| Run activity | Module progress; the running module; a queued module; a live run before its first module reports | I5; S1 (half-filled circle, pulsing while live); S1 (ring, with the shimmer); S7 |
 | Run activity | Activity lines; spend against the cap | R11; F4 |
 | Run activity | No run, or the activity cannot be read | S2; S4 |
 
@@ -339,7 +339,15 @@ Parts that need paid model calls are marked "needs ruling".
 
 ## 5. States
 
-Appearance is the design system's; this table says which component carries each state.
+Appearance is the design system's; this table says which component carries each state. Its
+rule for shapes: within one set of states shown together (a list, table, legend or strip)
+every state has its own shape, and no two differ by colour or word alone; a shape recurs only
+across sets, with the same meaning. The sets it defines are status, run states, Signal source
+states, dated records, answer state, met or not met, and freshness.
+
+One set is not yet in the design system: a module's state on R7 (on Overview, and the change
+state per module on Changes). It takes shapes from the design system's ten by meaning, each
+state distinct within the set; the design system fixes them before the D1a mocks.
 
 | State | Kit | Notes |
 | :--- | :--- | :--- |
@@ -352,18 +360,18 @@ Appearance is the design system's; this table says which component carries each 
 | Long text | Passages (P1 to P4) and findings show in full and wrap; a long record cell wraps inside its row; nothing is cut with an ellipsis. Only P5 collapses, after a set number of lines, and prints open | Never truncates a qualification |
 | Many modules | R7 collapses a repeated state to one item with a count that delivery wrote; N3 scrolls | |
 | Run queued | S1, neutral ring, with the CSS shimmer where its result will appear | Loops only while the run is live |
-| Run running | S1, pulsing filled circle | Loops only while the run is live |
-| Run finished | S1 | |
-| Run failed, capped, rejected, interrupted | S1 in the design system's shapes (diamond, triangle, cross, pause bars), each with its word, and S4 saying what happened and what to do | |
+| Run running | S1, half-filled circle with a pulsing halo | The halo loops only while the run is live; with motion off the half-filled shape still differs from Finished |
+| Run finished | S1, filled circle | |
+| Run failed, capped, rejected, interrupted | S1: failed is the diamond, capped the triangle, rejected the cross, interrupted the pause bars, each with its word, and S4 saying what happened and what to do | |
 | Signal: no display name yet | The name dialog opens; the name chip (R19) reads "Set your name" | |
 | Signal: reader or writer | A reader sees no write control at all (none is drawn disabled); the role sits under the name in R19 | |
 | Signal: nothing followed, nothing saved, no approved source, no story yet, no story of the chosen kind, no search match | S2, one text each; "nothing followed" lists topics to follow | |
 | Signal: loading; cannot reach the service | S5 (static, no spinner); S4 with Retry | |
-| Signal: sources not checked yet | The freshness line (S1) in its neutral shape with those words | |
+| Signal: sources checked; sources not checked yet | The freshness line (S1): checked is the filled circle, not checked yet the neutral ring, each with its words | |
 | Signal: new stories waiting | S8 | |
 | Signal: older stories exist | "Show older" button under the list | |
 | Signal: a story with no link or no time | R18 with a plain-text headline and no Open source action; the time is left out, not shown as "n.a." | |
-| Signal: a source proposed, approved, paused, healthy, quiet or failing | S1 in the design system's shape for each meaning, each with its own word, in the sources table; failing shows its reason | Two states may share a shape and differ by colour and word |
+| Signal: a source proposed, approved, paused, healthy, quiet or failing | S1 in the sources table, six shapes for six states: proposed the half-filled circle, approved the square, healthy the filled circle, quiet the ring, paused the pause bars, failing the diamond, each with its word; failing shows its reason | Within one set of states shown together every state has its own shape; a shape recurs only across sets |
 | Signal: AI off or at its cap | S4 in settings; story cards carry no AI line; digests show as paused | |
 | Signal: a digest with nothing material to report | The digest card with one sentence and no numbered list | No model call is made for it |
 | Signal: an unread digest | The dot badge (atom) on its channel item (N1) and on the digest card | |
@@ -451,8 +459,10 @@ Other fragile choices to test in the mocks and at D2a:
   as reported.
 - Kinds of information were derived from the inventory and the predecessor's map, not from
   every run; a shape not listed falls to R2.
-- The design system this map was checked against is version 0.3 on its own branch (in review),
+- The design system this map was checked against is version 0.4 on its own branch (in review),
   read for its status, gap, run-state, badge, skeleton, tabs and motion sections, not line by
   line; it may change before it merges.
+- The shapes for a module's state on R7 are not in the design system's sets; none is named
+  here.
 - The "source look" reading (what the design system supplies and what the source supplies) is
   the coordinator's and is to be confirmed at review 2.
