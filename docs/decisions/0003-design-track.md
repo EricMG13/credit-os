@@ -8,8 +8,9 @@ Date: 2026-11-13. Decided by: owner.
    start and run status, and Signal.
 2. The style is modern product design: airy, larger type, rounded, calm. Not the dense look
    of an enterprise business application.
-3. Colours and logo are fixed by the brand guide ([brand tokens](../design/brand-tokens.md)).
-   Every other existing design rule may change.
+3. The brand guide is a reference, not a rule. Only its colour values and the logo are fixed
+   ([brand tokens](../design/brand-tokens.md)). Its type, grid, usage and chart guidance, and
+   every other existing design rule, may change.
 4. Mocks and the design system are made in Claude Design, then built in React.
 5. Brand colours and the logo symbol may be committed to this public repository.
 6. Components come only from the eight approved sources
@@ -25,8 +26,8 @@ Date: 2026-11-13. Decided by: owner.
 
 - Base layer Untitled UI React, motion from React Bits, static pieces from HyperUI; Ant Design
   and Preline not used. Depends on the Untitled UI licence check.
-- Headlines in Inter until Sharp Grotesk files and a licence are supplied; the font is
-  commercial and is not committed.
+- The design system chooses its own typefaces. The guide's headline font is commercial and is
+  not committed; the guide does not bind the choice.
 - The company name, tagline and wordmark stay out of the repository (the owner approved
   colours and logo; this narrower reading is the coordinator's caution).
 

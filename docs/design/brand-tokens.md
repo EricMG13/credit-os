@@ -1,8 +1,9 @@
 # Brand tokens
 
 Transcribed on 2026-11-13 from the owner's brand guide (screenshots, not in this repository).
-Colours and logo are fixed. Everything else on this page is a starting point the design
-track may change (decision 0003). The company's name, tagline and product marks are kept out
+The brand guide is a reference, not a rule (owner, 2026-11-13). Only the colour values and
+the logo are fixed. How the colours are used, and everything else on this page (type, grid,
+usage and chart guidance), is the guide's suggestion; the design track decides (decision 0003). The company's name, tagline and product marks are kept out
 of this repository.
 
 ## Colour
@@ -62,7 +63,7 @@ Light steps, L1 nearest the base to L9 lightest:
 
 Neutral base is `#8D939D`; it is the only grey.
 
-### Rules the guide states
+### What the guide suggests (not binding)
 
 - Primary is always the main scheme. Navy is the anchor for content-dense pages.
 - Secondary colours pair with Navy: two secondary, or one secondary plus one tertiary.
@@ -86,16 +87,15 @@ logo on inner pages, Ultramarine on covers. The guide set has no clear-space, mi
 misuse page. The only vector file to hand is the predecessor's `brand/symbol.svg` (symbol
 only); the wordmark carries the company name and is not committed.
 
-## Type
+## Type (the guide's suggestion; the design system chooses)
 
 - Headlines: Sharp Grotesk Bold 14, leading 95 percent, letterspacing -1.5 percent, sentence
-  case with punctuation. It is a commercial font: its files are not committed here. Until the
-  owner supplies a licence and files outside the repository, headlines use Inter.
+  case with punctuation. It is a commercial font: its files are not committed here.
 - Subtitles, body, captions: Inter (Light, Regular, Medium), leading 140 percent.
 - Fallback: Arial. Regional: Noto Sans.
 - Sentence case everywhere, with the guide's exceptions (acronyms, names, navigation items).
 
-## Space and surface
+## Space and surface (the guide's suggestion)
 
 - 4 unit grid: every margin, padding and line step is a multiple of 4.
 - Light grey panels (Neutral L9 `#F4F4F5`) on white, hairline rules, no shadows stated,

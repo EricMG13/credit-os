@@ -13,10 +13,11 @@ code. The owner reviews after D0 and after D1; nothing is built in React before 
 
 ## Global constraints
 
-- Colours and logo exactly as in the brand tokens. No company name, tagline or wordmark in the
-  repository or in a mock's committed export.
-- Modern product style: airy, larger type, rounded, calm. Navy, White and Ultramarine carry
-  every screen; tertiary colours for data and states only.
+- Colour values and logo exactly as in the brand tokens. The rest of the brand guide is a
+  reference, not a rule: which colours lead, the typefaces, spacing and chart style are the
+  design system's choice. No company name, tagline or wordmark in the repository or in a
+  mock's committed export.
+- Modern product style: airy, larger type, rounded, calm.
 - Components only from the eight approved sources; read the live page before using one.
 - Persona: a portfolio manager or credit committee member who has not read the sources.
   Judgement first. Audit material only on Evidence and the trace drawer.
