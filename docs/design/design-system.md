@@ -1,7 +1,12 @@
 # Design system
 
-Version 0.1, 2026-11-13, for the owner's first review (step D0 of the
-[design track plan](../superpowers/plans/2026-11-13-design-track.md)).
+Version 0.2, 2026-11-13, with the owner's rulings at review 1 applied (step D0 of the
+[design track plan](../superpowers/plans/2026-11-13-design-track.md);
+[decision 0003](../decisions/0003-design-track.md) governs).
+
+This page owns the tokens, the status shapes, how a gap, a withheld value and a blocked module
+look, and motion. Which component presents which kind of information is owned by the
+[component map](component-map.md).
 
 **Rendered system:** [Claude Design project](https://claude.ai/design/p/9cd0f670-7c22-43e5-b09b-ace684186879?file=Design+System.dc.html).
 Standalone Claude Design has announced that its tools stop working by 2026-12-14, so this page
@@ -14,7 +19,8 @@ holds every value the build needs.
 - **One accent.** Navy carries text; Ultramarine is the only action colour.
 - **Colour never works alone.** Every status has its own shape and a word, so it survives
   grayscale and colour blindness.
-- **Motion means a run is live.** Nothing else moves.
+- **Motion means a run is live.** Only live run state loops; everything else is a single
+  short transition or none.
 
 Every colour below is a hex from the [brand tokens](brand-tokens.md); none is invented. Token
 names are the names step D2a gives the Tailwind `@theme` variables.
@@ -64,7 +70,7 @@ Hover on a neutral surface (table row, navigation item, secondary button) is `su
 | `border-subtle` | `#E3E1FF` | Violet L7 | Card and tile edge (decorative) |
 | `border-hairline` | `#E8E9EB` | Neutral L8 | Row dividers (decorative) |
 | `border-control` | `#7F848D` | Neutral D1 | Inputs, checkboxes, secondary button, chart baseline |
-| `border-gap` | `#B5AEFF` | Violet L2 | Dashed edge of a gap state |
+| `border-gap` | `#827BCC` | Violet D2 | Dashed edge of a gap state (3.71:1 on white) |
 | `border-strong` | `#000533` | Navy | Rare emphasis |
 
 ### Status
@@ -86,10 +92,11 @@ A gap is not an error and never wears a status colour.
 
 | State | Wording | Drawn as |
 | :--- | :--- | :--- |
-| Gap | "Not established for this run" | Violet text `#514D80` (Violet D5), dashed `#B5AEFF` edge, dashed ring. As a block: a card-width panel with a diagonal white and `#F6F5FF` hatch |
-| Blocked module | "Not assessable" | Neutral badge (`#474A4F` on `#F4F4F5`) with a slashed circle, plus one sentence saying why |
+| Gap | "Not established for this run" | A hatched dashed panel: diagonal white and `#F6F5FF` hatch, 1px dashed `#827BCC` edge, violet text `#514D80` (Violet D5), dashed ring. The inline badge form (same text, edge and ring) appears only in a table cell or on a chart |
+| Blocked module | "Not assessable" | Neutral badge (`#474A4F` on `#F4F4F5`) with a slashed circle, always with one sentence saying why |
 | Missing figure | "n.a." | The text itself in `text-tertiary`, right-aligned like a number. Never 0, never a badge |
-| Withheld value | "Withheld" | A short neutral striped bar where the figure would be, and a neutral badge |
+| Missing value in a chart | "n.a." | No mark is drawn. A bar slot stays empty with "n.a." in `text-tertiary` on the baseline; a line breaks and is not joined across the gap. Never drawn at zero |
+| Withheld value | "Withheld" | A short neutral striped bar where the figure would be, with a neutral badge |
 | No runs yet, no earlier run | A sentence and, where one exists, the next action | Centred empty state with a 48px featured icon |
 
 ### Run states
@@ -101,8 +108,11 @@ A gap is not an error and never wears a status colour.
 | Finished | Success | Filled circle |
 | Failed | Error | Diamond |
 | Capped | Warning | Triangle |
-| Rejected | Neutral | Slashed circle |
+| Rejected | Neutral | Cross |
 | Interrupted | Warning | Pause bars |
+
+The slashed circle belongs to "Not assessable" alone. Running is the CSS pulsing dot and queued
+is the CSS shimmer (see Motion).
 
 ## Contrast
 
@@ -141,7 +151,14 @@ text, interface marks and focus indicators need 3:1.
 | Control border on subtle | `#7F848D` | `#F4F4F5` | 3.42 | 3 | Pass |
 | Focus ring on card | `#001AFF` | `#FFFFFF` | 8.10 | 3 | Pass |
 | Focus ring on inverse | `#4AD4FF` | `#000533` | 11.36 | 3 | Pass |
+| Success mark on fill | `#0F8048` | `#E8FFF4` | 4.77 | 3 | Pass |
 | Warning mark on fill | `#997700` | `#FFF9E5` | 3.99 | 3 | Pass |
+| Error mark on fill | `#A54C48` | `#FDF0F0` | 5.07 | 3 | Pass |
+| Info mark on fill | `#2C7F99` | `#EDFBFF` | 4.31 | 3 | Pass |
+| Gap edge on card | `#827BCC` | `#FFFFFF` | 3.71 | 3 | Pass |
+| Gap edge on canvas | `#827BCC` | `#F6F5FF` | 3.44 | 3 | Pass |
+
+The gap edge was Violet L2 (2.01:1 on white) in version 0.1 and is now Violet D2.
 
 Deliberately outside the table:
 
@@ -211,21 +228,27 @@ only for a gap.
 
 ## Icons
 
-- Set: Untitled UI Icons (line style), from the `@untitledui/icons` package the base components
-  already import. Source: <https://www.untitledui.com/free-icons>.
+- Set: Untitled UI Icons (line style), used only through the `@untitledui/icons` npm package
+  the base components already import. No icon file is committed (ruling 5). Source:
+  <https://www.untitledui.com/free-icons>.
 - Sizes: 16 inside badges, 20 beside text, 24 standalone, 48 as a featured icon in an empty
   state.
 - Icons inherit the text colour. An icon never stands without a label, except the trace
   control, which carries an accessible name.
-- The seven status shapes (circle, triangle, diamond, ring, dashed ring, slashed circle, pause
-  bars) are part of this system and are drawn in CSS; they are not taken from the icon set.
-- The Claude Design page draws icons and the logo symbol as placeholders: no icon file and no
-  logo file is in this repository yet.
+- The eight status shapes (circle, triangle, diamond, ring, dashed ring, slashed circle, cross,
+  pause bars) are part of this system and are drawn in CSS; they are not taken from the icon
+  set.
+- The Claude Design page draws icons and the logo symbol as placeholders. The predecessor's
+  symbol file is committed at step D2a (ruling 10); the wordmark is not.
 
 ## Components
 
-Each row names the source page it is built from. Pages were read live on 2026-11-13.
-"UUI" is Untitled UI React (MIT, copied in with `npx untitledui@latest add <name>`).
+This table fixes how each base component looks: its variants, sizes and states on these
+tokens, and the live page it is built from (read 2026-11-13). Which component presents which
+kind of information (metrics, facts, dated records, activity, statements and the rest) is the
+[component map](component-map.md)'s; it is not restated here. "UUI" is Untitled UI React (MIT,
+copied in with `npx untitledui@latest add <name>`), built on React Aria, the one primitive
+library (ruling 3).
 
 | Component | Variants and states in this system | Source |
 | :--- | :--- | :--- |
@@ -233,45 +256,47 @@ Each row names the source page it is built from. Pages were read live on 2026-11
 | Input | Label, hint, error with message, disabled; 48 high | UUI <https://www.untitledui.com/react/components/inputs> |
 | Select | Default, focus, disabled, invalid | UUI <https://www.untitledui.com/react/components/select> |
 | Checkbox | Off, on, indeterminate, disabled | UUI <https://www.untitledui.com/react/components/checkboxes> |
-| File upload | Drop zone; per-file progress, complete, failed with retry (run start, Documents step) | UUI <https://www.untitledui.com/react/components/file-uploaders> |
-| Tabs | `underline` for the pages of a run; `button-minimal` as the pill switch between a chart and its table | UUI <https://www.untitledui.com/react/components/tabs> |
-| Sidebar navigation | `Simple`, light, four areas (Library, Model, Runs, Signal) | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
-| Header navigation | `Simple`, only where a page has no sidebar | UUI <https://www.untitledui.com/react/components/header-navigations> |
-| Breadcrumb | `text`, issuer then run | UUI <https://www.untitledui.com/react/components/breadcrumbs> |
-| Card and tile | Card (radius 28, padding 32) and tile (radius 20, padding 24), written here; the UUI card headers are a paid example and are not used | This system |
-| Metric tile | Label, figure, change line with a shape; "n.a." form | UUI `MetricsSimple` <https://www.untitledui.com/react/components/metrics>, layout checked against HyperUI stats <https://www.hyperui.dev/components/application/stats> |
-| Table | Divider-line style, `md` rows, sortable heads, row hover, one trace control per row | UUI <https://www.untitledui.com/react/components/tables> |
-| Details list | Label and value pairs for facts | HyperUI <https://www.hyperui.dev/components/application/details-list> |
-| Badge | `pill-color` with a leading shape; success, warning, error, info, neutral, action, gap | UUI <https://www.untitledui.com/react/components/badges> |
+| File upload | Drop zone; per-file progress, complete, failed with retry | UUI <https://www.untitledui.com/react/components/file-uploaders> |
+| Tabs | `underline`, selected in Ultramarine with a 2px underline | UUI <https://www.untitledui.com/react/components/tabs> |
+| Chart or Table toggle | Button group, single selection; the selected item is a white pill on `surface-subtle` | UUI <https://www.untitledui.com/react/components/button-groups> |
+| Sidebar navigation | `Simple`, light; selected item `surface-selected` with Ultramarine text, hover `surface-subtle` | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
+| Header navigation | `Simple` | UUI <https://www.untitledui.com/react/components/header-navigations> |
+| Breadcrumb | `text` | UUI <https://www.untitledui.com/react/components/breadcrumbs> |
+| Card and tile | Card (radius 28, padding 32, `shadow-1`) and tile (radius 20, padding 24), written here on the tokens | This system |
+| Table | Divider-line style, `md` rows, sortable heads, row hover `surface-subtle`, figures right-aligned | UUI <https://www.untitledui.com/react/components/tables> |
+| Badge | `pill-color` with a leading status shape; success, warning, error, info, neutral, action, gap | UUI <https://www.untitledui.com/react/components/badges> |
 | Alert | Floating; info, warning, error, success | UUI <https://www.untitledui.com/react/components/alerts> |
 | Empty state | Featured icon, title, one sentence, optional action | UUI <https://www.untitledui.com/react/components/empty-states> |
-| Gap panel | Hatched dashed panel for "Not established for this run" | This system (static markup in the manner of HyperUI <https://www.hyperui.dev/components/application/empty-states>) |
-| Trace drawer | Slide-out with header, scrolling body, pinned footer | UUI `SlideoutMenu` <https://www.untitledui.com/react/components/drawers> |
-| Tooltip | Default with supporting text | UUI <https://www.untitledui.com/react/components/tooltips> |
-| Progress steps | `IconsWithText`, numbered, for the five run start steps | UUI <https://www.untitledui.com/react/components/progress-steps> |
-| Progress bar | Run progress and spend against the cap | UUI <https://www.untitledui.com/react/components/progress-indicators> |
-| Loading indicator | `line-simple` spinner; three-dot pulse for an inline wait | UUI <https://www.untitledui.com/react/components/loading-indicators>, HyperUI <https://www.hyperui.dev/components/application/loaders> |
-| Activity feed | `Connected`, for run activity | UUI <https://www.untitledui.com/react/components/activity-feeds> |
+| Gap panel | Hatched dashed panel for "Not established for this run" | This system |
+| Withheld value | Striped bar with a neutral badge | This system |
+| Blocked module | Neutral badge with a slashed circle and its sentence | This system |
+| Drawer | Slide-out with header, scrolling body, pinned footer; `shadow-3`, radius 28 | UUI `SlideoutMenu` <https://www.untitledui.com/react/components/drawers> |
+| Tooltip | Default with supporting text, on `surface-inverse` | UUI <https://www.untitledui.com/react/components/tooltips> |
+| Progress steps | `IconsWithText`, numbered | UUI <https://www.untitledui.com/react/components/progress-steps> |
+| Progress bar | 8px track `action-subtle`, fill `action` | UUI <https://www.untitledui.com/react/components/progress-indicators> |
+| Loading indicator | `line-simple` spinner | UUI <https://www.untitledui.com/react/components/loading-indicators> |
 | Timeline | Vertical, for dated records | HyperUI <https://www.hyperui.dev/components/application/timelines> |
-| Featured icon | `light` theme, 48, in empty states | UUI <https://www.untitledui.com/react/components/featured-icons> |
-| Count-up figure | Spend and elapsed time on a live run | React Bits <https://reactbits.dev/text-animations/count-up> |
-| Entering list row | New activity entry | React Bits <https://reactbits.dev/components/animated-list> |
+| Featured icon | `light` theme, 48 | UUI <https://www.untitledui.com/react/components/featured-icons> |
+
+Agreed with the component map: status shapes are the CSS shapes above; running is the CSS
+pulsing dot; queued is the CSS shimmer; a gap is the hatched dashed panel; withheld is the
+striped bar with a neutral badge; a blocked module is a neutral badge with its sentence; the
+card is written here; dated records use the HyperUI timeline; the Chart or Table toggle is the
+Untitled UI button group.
 
 What the live pages showed that the build must plan for:
 
 - **Dependencies.** UUI's manual install lists five packages, not one: `react-aria-components`,
   `tailwindcss-react-aria-components`, `tailwind-merge`, `tailwindcss-animate` and
-  `@untitledui/icons`. Select adds `react-stately`; the activity feed adds
-  `@untitledui/file-icons`. Each needs a decision record.
+  `@untitledui/icons`. Select adds `react-stately`. Each needs a decision record.
 - **Theme.** UUI reads `--color-brand-50` to `--color-brand-950` and `--font-body`,
   `--font-display`, `--font-mono` from a `theme.css` `@theme` block. This system maps onto
   those: the Ultramarine steps fill the brand scale, and the three families fill the fonts.
-- **Licences.** UUI React and HyperUI are MIT. React Bits is MIT with a Commons Clause that
-  forbids redistributing the components themselves. The Untitled UI icon licence forbids
-  distributing the icons. Both matter for a public repository (see "For the owner's ruling").
-- **Charts.** UUI's charts are built on Recharts; HyperUI's load Chart.js from a CDN, which the
-  content security policy forbids. No chart source is adopted here; the chart rules below are
-  library-neutral.
+- **Shadcnblocks.** Its pages are layout references only: a piece taken from one is redrawn on
+  React Aria with these tokens, as the component map lists. Radix and Base UI are not added.
+- **React Bits.** Nothing is taken from it (ruling 4). Every animation here is CSS.
+- **Charts.** Recharts (ruling 2), with its own decision record at D2a after it passes the
+  open-from-disk check. The chart rules below apply to it.
 
 ## Chart palette
 
@@ -280,13 +305,15 @@ out; a seventh series folds into Other.
 
 | Slot | Colour | Hex | Contrast on white | Gray value (0 to 255) | Line style |
 | :--- | :--- | :--- | ---: | ---: | :--- |
-| 1 | Ultramarine | `#001AFF` | 8.10 | 80 | Solid, circle marker |
-| 2 | Violet D2 | `#827BCC` | 3.71 | 133 | Dashed, square marker |
-| 3 | Reef D4 | `#994A34` | 6.21 | 97 | Solid, triangle marker |
-| 4 | Orange D3 | `#B28B00` | 3.19 | 144 | Dotted, diamond marker |
-| 5 | Green D5 | `#0F8048` | 5.00 | 111 | Solid, ring marker |
-| 6 | Yellow D4 | `#8C9900` | 3.15 | 145 | Dash-dot, cross marker |
+| 1 | Ultramarine | `#001AFF` | 8.10 | 44 | Solid, circle marker |
+| 2 | Violet D2 | `#827BCC` | 3.71 | 134 | Dashed, square marker |
+| 3 | Reef D4 | `#994A34` | 6.21 | 95 | Solid, triangle marker |
+| 4 | Orange D3 | `#B28B00` | 3.19 | 135 | Dotted, diamond marker |
+| 5 | Green D5 | `#0F8048` | 5.00 | 88 | Solid, ring marker |
+| 6 | Yellow D4 | `#8C9900` | 3.15 | 132 | Dash-dot, cross marker |
 | Other | Neutral D1 | `#7F848D` | 3.76 | 132 | Solid, no marker |
+
+Gray value is Rec. 601 luma on the 8-bit sRGB values: 0.299 R + 0.587 G + 0.114 B, rounded.
 
 How it was tested (palette validator, light mode, white surface, exit 0):
 
@@ -297,10 +324,12 @@ How it was tested (palette validator, light mode, white surface, exit 0):
   neighbouring pair is ΔE 15.3 (floor 15).
 - Slots 1 to 3 also pass with every pair compared (worst ΔE 15.6), so a scatter or a small
   multiple uses at most three series.
-- Grayscale: neighbours alternate dark and light (80, 133, 97, 144, 111, 145). Slots 2, 4, 6
-  and Other are close to each other in gray, so colour is never the only cue: lines carry the
-  dash and marker above, at most four series are labelled directly, a legend is always
-  present for two or more series, and every chart has its table form.
+- Grayscale: neighbours alternate dark and light (44, 134, 95, 135, 88, 132), and every
+  neighbouring pair differs by at least 39 gray levels. Slots 2, 4, 6 and Other sit within 3
+  levels of each other, and slots 3 and 5 within 7, so two series that are not neighbours can
+  look alike in gray. Colour is therefore never the only cue: lines carry the dash and marker
+  above, at most four series are labelled directly, a legend is always present for two or more
+  series, and every chart has its table form on the other side of the Chart or Table toggle.
 
 Other scales:
 
@@ -312,23 +341,25 @@ Other scales:
 Marks: bars with 4px rounded tops and a 2px gap between neighbours; 2px lines; markers 8px or
 more; one y-axis, never two; a 1px `border-control` baseline, no gridlines beyond a faint zero
 line. Labels, values and legends use text colours, never the series colour. Status colours are
-never used as a series.
+never used as a series. A missing value is never drawn at zero: the mark is left out and the
+slot reads "n.a." (see Gap states).
 
 ## Motion
 
-Motion appears only while a run is live, and stops under `prefers-reduced-motion`.
+Three rules (ruling 6): only live run state loops; anything else is a one-off transition of at
+most 200 ms; numerals never animate. All of it is off under `prefers-reduced-motion`. Every
+animation is CSS in the stylesheet; none needs script or a library.
 
-| Where | What moves | Timing |
-| :--- | :--- | :--- |
-| Running badge | The state dot pulses a fading Ultramarine halo | 1.6s, ease-in-out, repeating |
-| Run progress bar | The fill eases to each new value | 320ms, `cubic-bezier(.2,0,0,1)` |
-| Spend and elapsed time | The figure counts up to the new value | 320ms |
-| Queued module | A slow shimmer where its result will appear | 1.8s, linear, repeating |
-| Activity feed | A new entry rises 8px and fades in, once | 320ms, `cubic-bezier(.2,0,0,1)` |
+| Kind | Where | What moves | Timing |
+| :--- | :--- | :--- | :--- |
+| Loop, live run only | Running badge | The state dot pulses a fading Ultramarine halo | 1.6s, ease-in-out, repeating |
+| Loop, live run only | Queued module | A slow shimmer where its result will appear | 1.8s, linear, repeating |
+| One-off | Run progress bar | The fill eases to each new value | 200ms, `cubic-bezier(.2,0,0,1)` |
+| One-off | Activity feed | A new entry rises 8px and fades in | 200ms, `cubic-bezier(.2,0,0,1)` |
+| One-off | Drawer, tabs, accordion | Opens, switches or expands | Up to 200ms, `cubic-bezier(.2,0,0,1)` |
 
-Hover, focus, tabs, drawers and page changes switch state without animation. The four CSS
-animations above are plain keyframes and transitions in the stylesheet; only the count-up needs
-script.
+Spend, elapsed time and every other figure change to the new value with no animation. Hover
+and focus change state at once.
 
 ## Where this departs from the brand guide
 
@@ -347,38 +378,32 @@ script.
 Kept from the guide: the 4-unit grid, sentence case, Navy as the anchor, Ultramarine for
 action, content before ornament.
 
-## For the owner's ruling
+## Rulings
 
-1. **Canvas colour.** Violet-tinted `#F6F5FF` (proposed) or neutral `#F4F4F5`.
-2. **Typefaces.** Schibsted Grotesk, Geist and Geist Mono.
-3. **Primary button.** Ultramarine (proposed) or Navy with Ultramarine kept for links and
-   selection.
-4. **Chart colours.** The muted dark steps above pass 3:1 on their own. The brighter base hues
-   look livelier but fall below 3:1 and would lean on labels and the table form.
-5. **Motion.** As strict as written (no hover or drawer transitions), or allow short
-   state-feedback transitions of 150ms or less.
-6. **React Bits in a public repository.** Its licence forbids redistributing the components.
-   Proposed: write the pulse, shimmer, progress and entry animations as CSS in this repository
-   and take at most the count-up from React Bits, or write that too.
-7. **Icons in a public repository.** The icon licence forbids distributing the icons. Proposed:
-   use them only through the npm package, never as committed SVG files.
-8. **New dependencies.** Five packages for the base layer rather than the one expected, each
-   needing a decision record.
-9. **Chart implementation.** Hand-built SVG to these rules (no dependency), or Recharts with a
-   decision record.
-10. **Dark mode.** Not designed. Say if it is wanted.
-11. **Logo symbol.** Shown as a placeholder; the symbol file is not in this repository.
+The owner ruled on this system at review 1; [decision 0003](../decisions/0003-design-track.md)
+("Rulings at review 1") is the record and governs. As applied here:
+
+- **Accepted as proposed:** the violet canvas `#F6F5FF`, the Ultramarine primary button,
+  Schibsted Grotesk with Geist and Geist Mono, and the muted chart colours that pass 3:1.
+- **No dark mode.**
+- **Charts** are built with Recharts; its decision record is written at D2a.
+- **One primitive library:** React Aria. No Radix, no Base UI.
+- **React Bits:** nothing is taken from it; count-up is removed and no numeral animates.
+- **Icons** come through the npm package only.
+- **Motion:** one-off transitions up to 200 ms, loops for live run state only, all off under
+  reduced motion.
+- **Logo:** the predecessor's symbol file is committed at D2a.
 
 ## Not verified
 
 - Read live but not built: no component here has been installed in `web/` or opened from disk
   under the content security policy.
-- React Bits pages do not state dependencies; whether count-up and animated list need the
-  `motion` package was not confirmed from the page.
 - Untitled UI's full licence agreement was not read beyond the repository licence files; which
   components sit behind its paid tier is known only where a page said so (card headers).
-- Uiverse, Flowbite React, Preline, Ant Design and shadcnblocks were not read for this step;
-  nothing here depends on them.
+- Shadcnblocks pages are layout references listed in the component map; none was read for
+  this page. Flowbite React, Ant Design, Preline and Uiverse are unused (decision 0003).
+- Recharts has not been installed or opened from disk; whether it can draw the dash, marker
+  and missing-value rules above is untested.
 - The Claude Design page was rendered in headless Chrome at 1440px wide only, with no console
   errors; it was not checked at narrow widths, in Edge, or in the Claude Design editor.
 - Tabular numerals in Geist were seen in the render, not tested glyph by glyph. The fonts were
