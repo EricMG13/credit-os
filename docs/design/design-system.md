@@ -483,9 +483,11 @@ Other scales:
 | Magnitude (one hue, light to dark) | `#99A3FF`, `#6676FF`, `#3348FF`, `#001AFF`, `#0012B2` |
 | Above and below a baseline | `#994A34`, `#E5704D`, `#DDDFE2` (neutral midpoint), `#6676FF`, `#001AFF` |
 
-Marks follow the source chart (review 2, ruling 5): faint horizontal gridlines in
-`border-hairline`, the source's bar corners and bar spacing, and its legend, tick text and
-height. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
+Marks follow the source chart (review 2, ruling 5), read on the Untitled UI line and bar
+charts page on 2026-11-13: horizontal gridlines only, solid, in `border-hairline`; bars up to
+32px wide (16px on a narrow screen) with 6px top corners; in a stack only the top segment is
+rounded; the 8 to 12px bars of a line-and-bar chart have 4px top corners; bar spacing, legend,
+tick text and height are the source's defaults. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
 line, the dash and marker of the series table. A chart over periods puts the periods on the x-axis, oldest on the left. Labels, values
 and legends use text colours, never the series colour. Status colours are
 never used as a series. A missing value is never drawn at zero: the mark is left out and the
@@ -604,20 +606,25 @@ review 1.
   only.
 - The states named in the Answer state, Met or not met and Freshness sets are this page's
   reading of the map's rows; the map does not list their names.
-- The Claude Design page is at version 0.5. It does not show the sets added at review 2, the
-  two new border tokens, the joined button group, or charts with gridlines and the source's
-  bar corners; its chart still has 4px bar tops and no gridlines.
+- The Claude Design page is at version 0.7 and shows the review 2 sets, the two border
+  tokens, the joined button group, separate metric cards, the Navy bottom line band and a chart
+  with gridlines. Its bars have the source's 6px top corners.
+- The source page shows stacked bars and line-and-bar charts, not bars side by side. Giving
+  each bar of a side-by-side group the 6px top corners is a reading of the source, and the
+  Claude Design page draws its sample that way.
 - The shapes for the review 2 sets were chosen from the mocks' written proposals; the mock
-  pages themselves were not opened, and no set was drawn or checked at 10px in its new colour
-  (the triangle in the action colours, the dashed ring as a module state).
+  pages themselves were not opened. The sets were checked at 10px in one headless Chrome
+  render of the Claude Design page only.
 - The Untitled UI metrics page answered HTTP 200 on 2026-11-13; its content was not read in
-  this round. It was rendered in headless Chrome at 1440px wide
-  from a local copy that is byte-identical to the uploaded file, with no console messages; it
-  was not checked at narrow widths, in Edge, or in the Claude Design editor.
+  this round, so the metric card on the Claude Design page (30px figure, 12px radius) follows
+  the library mock's description of it.
+- The Claude Design page was rendered in headless Chrome at 1440px wide from a local copy that
+  is byte-identical to the uploaded file, with no console messages; it was not checked at
+  narrow widths, in Edge, or in the Claude Design editor.
 - The page's source component samples (button, input, tabs, badge, table, navigation) are
   drawings at the sizes, radius and shadow read on the Untitled UI pages on 2026-11-13. They
-  were not compared pixel by pixel with those pages, and the Chart or Table toggle, checkbox
-  and switch were not redrawn.
+  were not compared pixel by pixel with those pages, and the checkbox and switch were not
+  redrawn.
 - The owner's rules were read from the typed prompts in the session transcripts on this
   machine for this project and its predecessors (452 messages). A prompt in a session not
   stored there was not read, and each rule's wording here is a reading of the owner's words.
