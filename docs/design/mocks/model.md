@@ -150,6 +150,14 @@ control shows when its own row, tile or passage is hovered or focused, and all s
   no trace control; each now has one. In a case card it is a button inside the card's label,
   at the lower right.
 
+## Known defect
+
+Three table forms are wider than their half-width card at 1440px, so their last columns and
+the row trace controls sit off to the right behind a horizontal scroll, with nothing to show
+that more is there: interest cover and EBITDA by case on Forecast (FY26E and FY27E), and
+"Where the issuer sits in the portfolio" on Portfolio fit (the issuer's own column). The
+other six table forms fit.
+
 ## Not verified
 
 - Rendered in headless Chrome at 1440px wide only; not in Edge, not at narrow widths, not in
@@ -161,7 +169,9 @@ control shows when its own row, tile or passage is hovered or focused, and all s
   case card leaves the case unchanged was not exercised.
 - Table, Bars, the cash flow and balance sheet tabs, the downside case and "Show sources"
   were rendered once each through the harness; the key measures tab and the Table side of
-  the charts on Forecast, Analysis and Portfolio fit were not looked at.
+  the charts on Forecast, Analysis and Portfolio fit were not looked at at first. The Table
+  side of all nine charts on those three pages was later rendered once, with "Show sources"
+  on; the key measures tab is still not looked at.
 - Source pages were read by screenshot and, for Untitled UI and HyperUI, by their class
   names; no pixel comparison was made. Shadcnblocks sizes are read by eye.
 - Whether Recharts can draw these forms, dashes, markers and missing-value rules is untested.
