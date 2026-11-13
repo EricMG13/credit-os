@@ -1,6 +1,6 @@
 # Design system
 
-Version 0.5, 2026-11-13, with the owner's rulings at review 1, the source-look instruction and
+Version 0.6, 2026-11-13, with the owner's rulings at review 1, the source-look instruction and
 the rules from the owner's own prompts applied (step D0 of the
 [design track plan](../superpowers/plans/2026-11-13-design-track.md);
 [decision 0003](../decisions/0003-design-track.md) governs).
@@ -294,7 +294,7 @@ Shadcnblocks piece redrawn on React Aria, which is redrawn to look like its sour
 | Chart or Table toggle | Button group, single selection; the selected item is a white pill on `surface-subtle` | UUI <https://www.untitledui.com/react/components/button-groups> |
 | Sidebar navigation | Light, in the variant the map names; selected item `surface-selected` with Ultramarine text and icon, hover `surface-subtle`, counts as neutral count badges | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
 | Card and tile | Card (`radius-lg`, padding 32, `shadow-1`) and tile (`radius-md`, padding 24), written here on the tokens | This system |
-| Table | Divider-line style; `md` rows on findings pages and `sm` rows for the dense audit tables on Evidence; sortable heads; row hover `surface-subtle`; figures right-aligned with tabular numerals. The same colours and alignment apply to a HyperUI table | UUI <https://www.untitledui.com/react/components/tables> |
+| Table | Divider-line style; `md` rows on findings pages and `sm` rows for the dense audit tables on Evidence and the source rows in Signal settings; sortable heads; row hover `surface-subtle`; figures right-aligned with tabular numerals. The same colours and alignment apply to a HyperUI table | UUI <https://www.untitledui.com/react/components/tables> |
 | Badge | `pill-color`; forms listed under "Badge forms" below | UUI <https://www.untitledui.com/react/components/badges> |
 | Alert | Floating or inline; info, warning, error, success, each with its status shape | UUI <https://www.untitledui.com/react/components/alerts> |
 | Empty state | Featured icon, title, one sentence, optional action | UUI <https://www.untitledui.com/react/components/empty-states> |
@@ -310,10 +310,8 @@ Shadcnblocks piece redrawn on React Aria, which is redrawn to look like its sour
 | Timeline | Vertical, for dated records | HyperUI <https://www.hyperui.dev/components/application/timelines> |
 | Featured icon | `light` theme, the source's size | UUI <https://www.untitledui.com/react/components/featured-icons> |
 
-A source component the map names that has no row here (modal, radio cards, text area, toggle,
-metric tile, avatar and avatar group, page header, filter bar, command menu, activity feed,
-tree view, messaging, tags, badge group, toast, stepper, half-circle progress, the HyperUI
-vertical menu, collapsible, list, item, Gantt) follows the same rule with these colours.
+A component the map names that has no row here keeps its source's look unchanged, in this
+system's colours and typefaces.
 
 **Badge forms.** Five, so that a state never looks like a label:
 
@@ -353,8 +351,12 @@ Within a set every state has a different shape; no two states differ by colour o
 | Met or not met | Met: filled circle, success. Not met: triangle, warning |
 | Freshness | Checked: filled circle, success. Not checked yet: ring, neutral |
 
-A shape recurs across sets with the same meaning: the half-filled circle is Running, Proposed,
-Next and Partly answered; the ring is Queued, Quiet, Later, Not answered and Not checked yet.
+A shape recurs across sets with the same meaning: the filled circle is Success, Finished,
+Healthy, Past, Answered, Met and Checked; the half-filled circle is Running, Proposed, Next and
+Partly answered; the ring is Info, Queued, Quiet, Later, Not answered and Not checked yet; the
+triangle is Warning, Capped and Not met; the diamond is Error, Failed and Failing; the pause
+bars are Interrupted and Paused. Two states that share a shape never appear in one list
+together.
 Two sets never share one list, table or legend, so those states never sit side by side; where
 two sets are on the same page (a run-state badge in the page header above a timeline), the
 word and the position tell them apart. A set the map adds later takes shapes from the first
@@ -375,8 +377,10 @@ What the live pages showed that the build must plan for:
 - **Theme.** UUI reads `--color-brand-50` to `--color-brand-950` and `--font-body`,
   `--font-display`, `--font-mono` from a `theme.css` `@theme` block. This system maps onto
   those: the Ultramarine steps fill the brand scale, and the three families fill the fonts.
-- **Shadcnblocks.** Its pages are layout references only: a piece taken from one is redrawn on
-  React Aria with these tokens, as the component map lists. Radix and Base UI are not added.
+- **Shadcnblocks.** A component taken from one of its pages copies that page's look, built on
+  React Aria in place of Radix or Base UI, as the component map lists. This system supplies
+  only its colour values, typefaces, status shapes, gap states and motion. Radix and Base UI
+  are not added.
 - **React Bits.** Nothing is taken from it (ruling 4). Every animation here is CSS.
 - **Charts.** Recharts (ruling 2), with its own decision record at D2a after it passes the
   open-from-disk check. The chart rules below apply to it.
@@ -520,15 +524,17 @@ review 1.
   under the content security policy.
 - Untitled UI's full licence agreement was not read beyond the repository licence files; which
   components sit behind its paid tier is known only where a page said so (card headers).
-- Shadcnblocks pages are layout references listed in the component map; none was read for
-  this page. Flowbite React, Ant Design, Preline and Uiverse are unused (decision 0003).
+- Shadcnblocks pages are the source of the look for the components the map takes from them;
+  none was read for this page. Flowbite React, Ant Design, Preline and Uiverse are unused
+  (decision 0003).
 - Recharts has not been installed or opened from disk; whether it can draw the dash, marker
   and missing-value rules above is untested.
 - The half-filled circle and the square were checked at 10px in one headless Chrome render
   only.
 - The states named in the Answer state, Met or not met and Freshness sets are this page's
   reading of the map's rows; the map does not list their names.
-- The Claude Design page is at version 0.5. It was rendered in headless Chrome at 1440px wide
+- The Claude Design page is at version 0.5; 0.6 changed wording in this file only, nothing the
+  page draws. It was rendered in headless Chrome at 1440px wide
   from a local copy that is byte-identical to the uploaded file, with no console messages; it
   was not checked at narrow widths, in Edge, or in the Claude Design editor.
 - The page's source component samples (button, input, tabs, badge, table, navigation) are
