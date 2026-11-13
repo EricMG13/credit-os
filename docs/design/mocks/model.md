@@ -153,11 +153,19 @@ control shows when its own row, tile or passage is hovered or focused, and all s
   columns, and a row label may wrap. Maturities (Model) takes the whole row for the same
   reason. A card that changes width when the reader picks Table is a departure the owner has
   not seen.
+- Statements, Bars view: period columns had different widths, so the same value drew bars
+  of different lengths in different columns. The period columns now share one width and the
+  label column takes the rest. On the cash flow tab the FY25E column is still wider, because
+  it holds the withheld value.
 - The facts, the parts list, the case cards and the limitations on the Limitations page had
   no trace control; each now has one. In a case card it is a button inside the card's label,
   at the lower right.
 
 ## Not verified
+
+- After the equal-column fix, the four statement tabs were rendered once each at 1440px
+  (income statement, balance sheet and key measures in Bars, cash flow in Figures) and fit
+  their card. Bar lengths were judged by eye, not measured.
 
 - Rendered in headless Chrome at 1440px wide only; not in Edge, not at narrow widths, not in
   the Claude Design editor. Console messages were not captured.
@@ -170,7 +178,8 @@ control shows when its own row, tile or passage is hovered or focused, and all s
   were rendered once each through the harness; the key measures tab and the Table side of
   the charts on Forecast, Analysis and Portfolio fit were not looked at at first. The Table
   side of all nine charts on those three pages was later rendered once, with "Show sources"
-  on; the key measures tab is still not looked at.
+  on. The key measures tab was later rendered in Figures (base case) and in Bars (downside
+  case): six rows, "n.a." in the three missing cells, no bar under a missing cell.
 - After the table-width fix, all fifteen table forms on Forecast, Analysis, Model and
   Portfolio fit were rendered once at 1440px, all switched to Table together, and fit.
   One table switched alone was rendered for interest cover only. Narrower widths were not
