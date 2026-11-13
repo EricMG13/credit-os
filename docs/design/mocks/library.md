@@ -102,9 +102,9 @@ No animation loops on any screen. The running badge is the half-filled circle wi
    - File read (Evidence Sources): Read in full, filled circle. Read in part, triangle. Not
      readable, diamond.
 2. **Source look against "larger type".** Answered by the owner on 2026-11-13: 16px body for
-   findings (departure 8). Still open: whether that also covers contrary evidence and the
-   callout, as drawn, and whether module items (R7) and limitations (P5) stay at 14px. The
-   ruling is not yet in decision 0003.
+   findings (departure 8), and module items (R7) and limitations (P5) keep their source's 14px
+   ("Keep 14px"). Still open: whether 16px also covers contrary evidence and the callout, as
+   drawn. Neither ruling is in decision 0003 yet.
 3. **Shadcnblocks.** Its named variants cannot be read without a paid account. Accept the
    public base components as the look, buy access, or move those rows to a source that can be
    read?
