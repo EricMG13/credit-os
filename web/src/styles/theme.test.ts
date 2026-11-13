@@ -5,19 +5,25 @@ import { describe, expect, it } from "vitest";
 const here = import.meta.dirname;
 const webRoot = path.resolve(here, "..", "..");
 const docs = path.resolve(webRoot, "..", "docs", "design");
-const designSystem = readFileSync(path.join(docs, "design-system.md"), "utf8");
-const brandTokens = readFileSync(path.join(docs, "brand-tokens.md"), "utf8");
+// A checkout on Windows may carry CRLF line endings; the parsers below expect LF.
+const lf = (text: string): string => text.replace(/\r\n/g, "\n");
+const designSystem = lf(readFileSync(path.join(docs, "design-system.md"), "utf8"));
+const brandTokens = lf(readFileSync(path.join(docs, "brand-tokens.md"), "utf8"));
 const themePath = path.join(here, "theme.css");
-const theme = existsSync(themePath) ? readFileSync(themePath, "utf8") : "";
+const theme = existsSync(themePath) ? lf(readFileSync(themePath, "utf8")) : "";
 
 const HEX = /#[0-9A-Fa-f]{6}\b/g;
 
-function section(title: string, level: "##" | "###"): string {
-  const start = designSystem.indexOf(`\n${level} ${title}\n`);
+function sectionOf(text: string, title: string, level: "##" | "###"): string {
+  const start = text.indexOf(`\n${level} ${title}\n`);
   if (start < 0) throw new Error(`no section ${title}`);
-  const rest = designSystem.slice(start + 1);
+  const rest = text.slice(start + 1);
   const next = rest.slice(level.length + 1).search(/\n##+ /);
   return next < 0 ? rest : rest.slice(0, next + level.length + 1);
+}
+
+function section(title: string, level: "##" | "###"): string {
+  return sectionOf(designSystem, title, level);
 }
 
 function declared(name: string): string | undefined {
@@ -43,6 +49,18 @@ function walk(dir: string): string[] {
 }
 
 describe("theme.css", () => {
+  it("reads sections the same from text with CRLF line endings", () => {
+    const crlf = designSystem.replace(/\n/g, "\r\n");
+    for (const [title, level] of [
+      ["Surface", "###"],
+      ["Status", "###"],
+      ["Gap states", "###"],
+      ["Space, radius, elevation, borders", "##"],
+    ] as const) {
+      expect(sectionOf(lf(crlf), title, level), title).toBe(section(title, level));
+    }
+  });
+
   it("exists", () => {
     expect(existsSync(themePath), "theme.css not found").toBe(true);
   });
