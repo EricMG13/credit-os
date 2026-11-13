@@ -1,7 +1,7 @@
 # Library mocks
 
 Step D1a of the [design track plan](../../superpowers/plans/2026-11-13-design-track.md), drawn
-2026-11-13 against [design system](../design-system.md) 0.6, the
+2026-11-13 against [design system](../design-system.md) 0.7, the
 [component map](../component-map.md) and [decision 0003](../../decisions/0003-design-track.md)
 (rulings of review 1, "Source look" and review 2). Revised after review 2. Nothing here is built.
 
@@ -31,7 +31,8 @@ and all icons are placeholder shapes.
 | States | [States](https://claude.ai/design/p/9c6141ea-840e-45bd-8b0e-84b5f181cf34?file=States.dc.html) | S2, S5, R7, N8, blocked module |
 
 Shared files in the project: `ds.css` (the design system's tokens and its own pieces), `src.css`
-(source components at their source's sizes), `x.css` (issuer card and composed charts), and the
+(source components at their source's sizes), `x.css` (issuer card and composed charts), `status.css` (the gap colours for
+"Delivered with gaps"), and the
 parts `Rail`, `RunHead`, `ModNav`, `EvTabs`.
 
 ## States drawn
@@ -75,7 +76,8 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
    them (decision 0003, review 2 ruling 5); the joined strip is gone. The figure is the
    source's 30px, not the system's 40px `metric`.
 5. **Charts follow the source look** (review 2 rulings 1 and 5). Each chart sits on a card.
-   Bar charts carry faint horizontal gridlines with a value axis and the source's rounded bar
+   Bar charts carry faint horizontal gridlines, value tick labels and no axis line (a hairline
+   marks the baseline), and the source's rounded bar
    tops (6px); the legend, tick text and height are Untitled UI's. The statement table has no
    Trend sparkline column (ruling 4); its Bars view stays as a toggle and is not drawn.
 6. **N5 filter bar.** The source has no applied-count badge. The mock shows the chosen value in
@@ -86,13 +88,17 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
 8. **Source text sizes.** The owner ruled in the D1a session on 2026-11-13: "Use 16px body for
    findings". Key findings (P2), contrary evidence (P3) and what would change the view (P4) are
    set in the system's 16 / 26 body, with a 600-weight lead; their layout, radius, border and
-   padding stay the source's. This is now decision 0003, review 2 ruling 2. R7 and P5 keep
+   padding stay the source's. This is now decision 0003, review 2 ruling 2. Module items (R7) and limitations (P5) keep
    their source's 14px.
-9. **Status shapes for sets the system does not define: pending.** Module state, change
-   state, gap severity and file state are drawn with this session's first proposal and are
-   not final. Review 2 ruled that "Delivered with gaps" and "Changed" must not be the
-   half-filled circle; the design system is defining the four sets. The mocks keep the old
-   shapes until that table arrives and will then be redrawn from it (question 1).
+9. **Status shapes.** None: the four sets added in design system 0.7 are applied as written.
+   Module state (Overview, the navigator, the module page header, module timings, States):
+   Delivered, filled circle, success; Delivered with gaps, dashed ring, gap colours; Not
+   assessable, slashed circle, neutral. "Not run" is not drawn: no ended run in the mocks has
+   one. Change state (Changes): Changed, triangle, action; Unchanged, square, neutral; Not
+   assessable, slashed circle, neutral. Gap severity (Evidence Gaps): High, diamond, error;
+   Medium, triangle, warning; Low, ring, neutral. File state (Evidence Sources): Read in full,
+   filled circle, success; Read in part, triangle, warning; Unreadable, diamond, error, with
+   the reason in the sentence beside it. "Uploading" belongs to the run start page.
 10. **Table forms.** One Table side is drawn per page that has a chart: maturities (Module
     data), the risk matrix (Module prose), Cards, Chart or Table (Changes) and module timings
     (Evidence Record). Both sides are stacked in the mock so they can be reviewed; the product
@@ -112,26 +118,20 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
 
 ## Questions for the owner
 
-1. **Status shapes: pending.** The design system session is defining module state, change
-   state, gap severity and file state; the mocks apply its table when it arrives (departure
-   9). As drawn today, not final: module state is filled circle, half-filled circle, slashed
-   circle; change state is half-filled circle, square, slashed circle; gap severity is
-   diamond, triangle, ring; file state is filled circle, triangle, diamond.
-2. **Source look against "larger type".** Closed by decision 0003, review 2 ruling 2, and
-   "Keep 14px" for R7 and P5.
-3. **Shadcnblocks.** Closed by review 2 ruling 3 (departure 13).
-4. **Three alert shapes (map Q13).** P3 is a warning-tinted bordered box and P4 is now the
+1. **Source look against "larger type".** Closed by decision 0003, review 2 ruling 2, and
+   "Keep 14px" for module items (R7) and limitations (P5).
+2. **Shadcnblocks.** Closed by review 2 ruling 3 (departure 13).
+3. **Three alert shapes (map Q13).** P3 is a warning-tinted bordered box and P4 is now the
    info-coloured toast; the library has no S4.
-5. **Statement trend column.** Closed by review 2 ruling 4: removed.
-6. **A run in progress on Library home.** The card shows the latest finished run with a Running
+4. **Statement trend column.** Closed by review 2 ruling 4: removed.
+5. **A run in progress on Library home.** The card shows the latest finished run with a Running
    badge and a sentence naming both dates. Is that right, or should the running run lead?
-7. **Capped, failed and rejected runs.** History says nothing from a failed run is shown and
+6. **Capped, failed and rejected runs.** History says nothing from a failed run is shown and
    that a capped run's delivered modules can be read. Is that the intended behaviour?
-8. **Evidence downloads.** "Download handoffs" is on Evidence Summary and "Download all" on the
+7. **Evidence downloads.** "Download handoffs" is on Evidence Summary and "Download all" on the
    registers. Is Summary the right place?
-9. **Module "Delivered with gaps".** A new state word. Keep it, or show only Delivered and let
-   the limitations count carry it?
-10. **Dumbbell scales.** Each row has its own scale, so line lengths cannot be compared across
+8. **Module "Delivered with gaps".** Closed: design system 0.7 lists it in the module-state set.
+9. **Dumbbell scales.** Each row has its own scale, so line lengths cannot be compared across
     rows. Acceptable, or drop the Chart side on Changes?
 
 ## Not verified
@@ -147,12 +147,12 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
 - Contrast was not re-measured on the mock. The white-on-Navy banner and the heat grid labels
   use pairs in the design system's table; the banner's small label (`#CCD1FF` on Navy) and the
   trace control's tertiary icon on a hairline edge were not computed.
-- The runtime logs "never resolved" for a list inside a table body on Evidence Trace; the
-  rows render. After the review 2 redraw the console was read only for Library home, Report
-  history, Evidence Summary, Trace, Sources and Gaps, and the trace drawer; that was the only
-  message.
-- All thirteen screens were re-rendered after the review 2 redraw and looked at once each at
-  1440px. The trace drawer's dimmed backdrop is a cut-down Overview, not the full page.
+- All thirteen screens were re-rendered after the design system 0.7 status sets were applied,
+  and looked at once each at 1440px. The only console message is "never resolved" for a list
+  inside a table body on Evidence Trace; the rows render. The trace drawer's dimmed backdrop
+  is a cut-down Overview, not the full page.
+- The dashed ring for "Delivered with gaps" is 8 to 10px and faint at that size; its contrast
+  and legibility were not measured.
 - No repository gate applies to this change: it is one Markdown file under `docs/`, and
   neither `tools/gates.py` nor the web gates were run.
 - The always-shown trace control on touch is a CSS rule (`hover: none`); it was not seen on a
