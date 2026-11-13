@@ -1,5 +1,7 @@
 """Run every gate over the whole repository. Exit 0 pass, 1 a gate failed, 2 a tool is missing."""
 
+import re
+import shutil
 import subprocess
 import sys
 import tokenize
@@ -10,7 +12,19 @@ Gate = tuple[str, tuple[str, ...]]
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "tools" / "suppressions-baseline.txt"
 AUDIT_REQUIREMENTS = ROOT / ".venv" / "audit-requirements.txt"
-SUPPRESSION_MARKERS = ("noqa", "type: ignore", "nosec", "pragma: no cover")
+VENV_BIN = ROOT / ".venv" / ("Scripts" if sys.platform == "win32" else "bin")
+UV_RUN_PREFIX = ("uv", "run", "--locked")
+# One pattern per suppression the pinned tools honour, matched in comments only and ignoring case.
+SUPPRESSION_PATTERNS = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\bnoqa\b",
+        r"\btype:\s*ignore",
+        r"\bnosec\b",
+        r"\bpragma:?\s*no\s*cover",
+        r"\bmypy:\s*ignore-errors",
+    )
+)
 SUPPRESSION_ROOTS = ("src", "tools", "tests")
 
 GATES: tuple[Gate, ...] = (
@@ -37,11 +51,14 @@ GATES: tuple[Gate, ...] = (
 
 def count_suppressions(root: Path) -> int:
     total = 0
-    for path in root.rglob("*.py"):
-        with path.open("rb") as handle:
-            for token in tokenize.tokenize(handle.readline):
-                if token.type == tokenize.COMMENT:
-                    total += sum(1 for marker in SUPPRESSION_MARKERS if marker in token.string)
+    for pattern in ("*.py", "*.pyi"):
+        for path in root.rglob(pattern):
+            with path.open("rb") as handle:
+                for token in tokenize.tokenize(handle.readline):
+                    if token.type == tokenize.COMMENT:
+                        total += sum(
+                            1 for rule in SUPPRESSION_PATTERNS if rule.search(token.string)
+                        )
     return total
 
 
@@ -52,14 +69,28 @@ def _suppression_gate() -> int:
     return 0 if found <= baseline else 1
 
 
+def _missing_behind_uv(argv: tuple[str, ...]) -> str | None:
+    """The tool a `uv run` gate names when it is not installed in the project environment."""
+    if argv[: len(UV_RUN_PREFIX)] != UV_RUN_PREFIX or len(argv) <= len(UV_RUN_PREFIX):
+        return None
+    tool = argv[len(UV_RUN_PREFIX)]
+    return None if shutil.which(tool, path=str(VENV_BIN)) else tool
+
+
 def run(gates: tuple[Gate, ...]) -> int:
+    if not gates:
+        raise ValueError("no gates to run")
     failed = False
     for name, argv in gates:
         print(f"== {name}", flush=True)
+        missing = _missing_behind_uv(argv)
+        if missing:
+            print(f"gate tool not found: {missing} (gate: {name})")
+            return 2
         try:
             code = subprocess.run(argv, check=False, cwd=ROOT).returncode
-        except FileNotFoundError:
-            print(f"gate tool not found: {argv[0]} (gate: {name})")
+        except OSError as error:
+            print(f"gate tool could not be started: {argv[0]} (gate: {name}): {error}")
             return 2
         print(f"-- {name}: {'ok' if code == 0 else f'FAILED ({code})'}", flush=True)
         failed = failed or code != 0
