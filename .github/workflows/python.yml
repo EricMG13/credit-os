@@ -19,7 +19,7 @@ jobs:
           version: "0.12.5"
           python-version: "3.12"
       - run: uv sync --locked
-      - run: uv run python tools/gates.py
+      - run: uv run --locked python tools/gates.py
 
   review:
     if: github.event_name == 'pull_request'

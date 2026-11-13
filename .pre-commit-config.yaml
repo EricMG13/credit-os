@@ -7,6 +7,6 @@ repos:
     hooks:
       - id: gates
         name: gates
-        entry: uv run python tools/gates.py
+        entry: uv run --locked python tools/gates.py
         language: system
         pass_filenames: false

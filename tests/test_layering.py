@@ -13,6 +13,10 @@ def violations(root: Path, layers: tuple[str, ...]) -> list[str]:
     for path in sorted(root.rglob("*.py")):
         rel = path.relative_to(root)
         if len(rel.parts) < 2:
+            if rel.name != "__init__.py":
+                out.append(
+                    f"{path}: module {rel.name} sits in the package root, outside every layer"
+                )
             continue
         layer = rel.parts[0]
         if layer not in layers:
@@ -27,15 +31,19 @@ def violations(root: Path, layers: tuple[str, ...]) -> list[str]:
             else:
                 if node.level:
                     base = pkg_parts[: len(pkg_parts) - (node.level - 1)]
-                    targets = [".".join([*base, *([node.module] if node.module else [])])]
-                elif node.module:
-                    targets = [node.module]
+                    module = ".".join([*base, *([node.module] if node.module else [])])
+                else:
+                    module = node.module or ""
+                if module:
+                    targets = [module, *(f"{module}.{alias.name}" for alias in node.names)]
+            later: set[str] = set()
             for target in targets:
                 parts = target.split(".")
                 if len(parts) < 2 or parts[0] != package or parts[1] not in layers:
                     continue
                 if layers.index(parts[1]) > layers.index(layer):
-                    out.append(f"{path}:{node.lineno} {layer} imports {parts[1]}")
+                    later.add(parts[1])
+            out.extend(f"{path}:{node.lineno} {layer} imports {name}" for name in sorted(later))
     return out
 
 
@@ -78,3 +86,43 @@ def test_unlisted_subpackage(tmp_path: Path) -> None:
 
 def test_repo_has_no_violations() -> None:
     assert violations(Path("src/credit_os"), credit_os.LAYERS) == []
+
+
+def test_relative_bare_package_import_of_later_layer(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"handoff/a.py": "from .. import delivery\n"})
+    found = violations(root, credit_os.LAYERS)
+    assert len(found) == 1
+    assert "handoff" in found[0] and "delivery" in found[0]
+
+
+def test_absolute_bare_package_import_of_later_layer(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"handoff/a.py": "from credit_os import delivery\n"})
+    found = violations(root, credit_os.LAYERS)
+    assert len(found) == 1
+    assert "handoff" in found[0] and "delivery" in found[0]
+
+
+def test_bare_package_import_of_earlier_layer_allowed(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"delivery/a.py": "from credit_os import handoff\n"})
+    assert violations(root, credit_os.LAYERS) == []
+
+
+def test_nested_relative_import_resolves_from_its_own_directory(tmp_path: Path) -> None:
+    root = _tree(
+        tmp_path,
+        {
+            "handoff/sub/a.py": "from ...delivery import x\n",
+            "handoff/sub/b.py": "from ... import delivery\n",
+            "handoff/sub/c.py": "from .. import sources\n",
+        },
+    )
+    found = violations(root, credit_os.LAYERS)
+    assert len(found) == 2
+    assert all("handoff" in item and "delivery" in item for item in found)
+
+
+def test_root_module_other_than_init_is_reported(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"extras.py": "x = 1\n"})
+    found = violations(root, credit_os.LAYERS)
+    assert len(found) == 1
+    assert "extras.py" in found[0]

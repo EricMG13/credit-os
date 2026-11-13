@@ -14,18 +14,24 @@ SUPPRESSION_MARKERS = ("noqa", "type: ignore", "nosec", "pragma: no cover")
 SUPPRESSION_ROOTS = ("src", "tools", "tests")
 
 GATES: tuple[Gate, ...] = (
-    ("ruff check", ("uv", "run", "ruff", "check", ".")),
-    ("ruff format", ("uv", "run", "ruff", "format", "--check", ".")),
-    ("mypy", ("uv", "run", "mypy", "src", "tools", "tests")),
-    ("pytest", ("uv", "run", "pytest", "--cov=credit_os", "--cov-fail-under=80")),
+    ("ruff check", ("uv", "run", "--locked", "ruff", "check", ".")),
+    ("ruff format", ("uv", "run", "--locked", "ruff", "format", "--check", ".")),
+    ("mypy", ("uv", "run", "--locked", "mypy", "src", "tools", "tests")),
+    ("pytest", ("uv", "run", "--locked", "pytest", "--cov=credit_os", "--cov-fail-under=80")),
     ("uv lock", ("uv", "lock", "--check")),
-    ("complexipy", ("uv", "run", "complexipy", "src", "--max-complexity-allowed", "15")),
-    ("bandit", ("uv", "run", "bandit", "-r", "src", "-q")),
+    (
+        "complexipy",
+        ("uv", "run", "--locked", "complexipy", "src", "--max-complexity-allowed", "15"),
+    ),
+    ("bandit", ("uv", "run", "--locked", "bandit", "-r", "src", "-q")),
     (
         "pip-audit export",
         ("uv", "export", "--locked", "--no-emit-project", "-q", "-o", str(AUDIT_REQUIREMENTS)),
     ),
-    ("pip-audit", ("uv", "run", "pip-audit", "--strict", "-r", str(AUDIT_REQUIREMENTS))),
+    (
+        "pip-audit",
+        ("uv", "run", "--locked", "pip-audit", "--strict", "-r", str(AUDIT_REQUIREMENTS)),
+    ),
 )
 
 
