@@ -1,6 +1,10 @@
 import type { LoadResult } from "./data";
+import { Kit } from "./pages/Kit";
+import { useHashRoute } from "./route";
 
 export function App({ result }: { result: LoadResult }) {
+  const route = useHashRoute();
+  if (route === "/kit") return <Kit />;
   switch (result.kind) {
     case "missing":
       return <p className="p-6 text-text-secondary">Library data is missing</p>;

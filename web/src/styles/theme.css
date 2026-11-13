@@ -133,6 +133,55 @@
   --text-mono--line-height: 20px;
   --text-mono--font-weight: 400;
   --text-mono--letter-spacing: 0em;
+
+  /* Source semantic tokens: the names the copied Untitled UI classes use, each mapped to a
+     design-system token (or a brand-tokens.md step where no role fits) */
+  --color-bg-primary: var(--color-surface-card);
+  --color-bg-primary_hover: var(--color-surface-subtle);
+  --color-bg-brand-solid: var(--color-action);
+  --color-bg-brand-solid_hover: var(--color-action-hover);
+  --color-bg-error-solid: var(--color-error-text);
+  --color-bg-error-solid_hover: #763734;
+  --color-text-secondary_hover: var(--color-text-primary);
+  --color-text-tertiary_hover: var(--color-text-secondary);
+  --color-fg-quaternary: var(--color-text-tertiary);
+  --color-fg-quaternary_hover: var(--color-text-secondary);
+  --color-border-primary: var(--color-border-control);
+  --color-border-brand: var(--color-focus);
+  --color-border-error: var(--color-error-mark);
+
+  --background-color-primary: var(--color-bg-primary);
+  --background-color-primary_hover: var(--color-bg-primary_hover);
+  --background-color-brand-solid: var(--color-bg-brand-solid);
+  --background-color-brand-solid_hover: var(--color-bg-brand-solid_hover);
+  --background-color-error-solid: var(--color-bg-error-solid);
+  --background-color-error-solid_hover: var(--color-bg-error-solid_hover);
+  --text-color-secondary: var(--color-text-secondary);
+  --text-color-secondary_hover: var(--color-text-secondary_hover);
+  --text-color-tertiary: var(--color-text-tertiary);
+  --text-color-tertiary_hover: var(--color-text-tertiary_hover);
+  --text-color-fg-quaternary: var(--color-fg-quaternary);
+  --text-color-fg-quaternary_hover: var(--color-fg-quaternary_hover);
+  --ring-color-primary: var(--color-border-primary);
+  --outline-color-brand: var(--color-border-brand);
+  --outline-color-error: var(--color-border-error);
+
+  /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
+  --text-sm: calc(var(--spacing) * 3.5);
+  --text-sm--line-height: calc(var(--spacing) * 5);
+  --text-md: calc(var(--spacing) * 4);
+  --text-md--line-height: calc(var(--spacing) * 6);
+  --radius-lg: 0.5rem;
+  --shadow-xs: 0px 1px 2px rgb(0 5 51 / 0.05);
+  --shadow-skeuomorphic:
+    0px 0px 0px 1px rgb(0 5 51 / 0.18) inset, 0px -2px 0px 0px rgb(0 5 51 / 0.05) inset;
+  --shadow-xs-skeuomorphic: var(--shadow-skeuomorphic), var(--shadow-xs);
+}
+
+@utility transition-inherit-all {
+  transition-property: inherit;
+  transition-duration: inherit;
+  transition-timing-function: inherit;
 }
 
 @font-face {

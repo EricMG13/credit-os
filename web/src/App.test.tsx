@@ -2,6 +2,17 @@ import { render, screen } from "@testing-library/react";
 import { App } from "./App";
 
 describe("App", () => {
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  it("shows the component kit at #/kit, whatever the library data", () => {
+    window.location.hash = "#/kit";
+    render(<App result={{ kind: "missing" }} />);
+    expect(screen.getByRole("heading", { level: 1, name: "Component kit" })).toBeInTheDocument();
+    expect(screen.queryByText("Library data is missing")).toBeNull();
+  });
+
   it("says so when there are no runs", () => {
     render(<App result={{ kind: "ok", data: { schema: "credit-os-data/1", issuers: [] } }} />);
     expect(screen.getByText("No runs yet")).toBeInTheDocument();
