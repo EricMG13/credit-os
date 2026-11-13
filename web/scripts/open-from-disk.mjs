@@ -6,7 +6,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { assetProblems, referencedAssets } from "./assets.mjs";
+import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 // A hung browser must fail the run, not hold the CI job until the runner limit.
@@ -92,6 +92,14 @@ function checkAssets(folder) {
   return ok;
 }
 
+function checkStyleUrls(folder) {
+  const problems = fontProblems(folder);
+  const ok = problems.length === 0;
+  console.log(`${ok ? "PASS" : "FAIL"} every url() in the stylesheet is relative and exists`);
+  for (const problem of problems) console.log(`  ${problem}`);
+  return ok;
+}
+
 function check(label, browser, folder, expected) {
   const { dom, log } = dumpPage(browser, folder);
   const found = problems(log);
@@ -147,7 +155,7 @@ try {
   cpSync(distDir, folder, { recursive: true });
   const dataFile = path.join(folder, "data.js");
   const original = readFileSync(dataFile, "utf8");
-  const results = [checkAssets(folder)];
+  const results = [checkAssets(folder), checkStyleUrls(folder)];
   results.push(check("data.js present", browser, folder, "No runs yet"));
   rmSync(dataFile);
   results.push(check("data.js deleted", browser, folder, "Library data is missing"));

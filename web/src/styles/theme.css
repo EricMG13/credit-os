@@ -1,0 +1,199 @@
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+
+  /* Surface */
+  --color-surface-canvas: #f6f5ff;
+  --color-surface-card: #ffffff;
+  --color-surface-subtle: #f4f4f5;
+  --color-surface-selected: #e5e8ff;
+  --color-surface-inverse: #000533;
+
+  /* Text */
+  --color-text-primary: #000533;
+  --color-text-secondary: #474a4f;
+  --color-text-tertiary: #63676e;
+  --color-text-disabled: #a4a9b1;
+  --color-text-on-action: #ffffff;
+  --color-text-link: #001aff;
+
+  /* Action, hover and focus */
+  --color-action: #001aff;
+  --color-action-hover: #0015cc;
+  --color-action-pressed: #001099;
+  --color-action-subtle: #e5e8ff;
+  --color-action-subtle-hover: #ccd1ff;
+  --color-action-disabled: #e8e9eb;
+  --color-focus: #001aff;
+  --color-focus-inverse: #4ad4ff;
+
+  /* Border */
+  --color-border-subtle: #e3e1ff;
+  --color-border-hairline: #e8e9eb;
+  --color-border-control: #7f848d;
+  --color-border-container: #d1d4d8;
+  --color-connector: #bbbec4;
+  --color-border-gap: #827bcc;
+  --color-border-strong: #000533;
+
+  /* Status */
+  --color-success-text: #0c6639;
+  --color-success-fill: #e8fff4;
+  --color-success-edge: #a5ffd2;
+  --color-success-mark: #0f8048;
+  --color-warning-text: #664f00;
+  --color-warning-fill: #fff9e5;
+  --color-warning-edge: #ffe899;
+  --color-warning-mark: #997700;
+  --color-error-text: #8e413e;
+  --color-error-fill: #fdf0f0;
+  --color-error-edge: #f7c5c2;
+  --color-error-mark: #a54c48;
+  --color-info-text: #1e5566;
+  --color-info-fill: #edfbff;
+  --color-info-edge: #b7eeff;
+  --color-info-mark: #2c7f99;
+
+  /* Gap */
+  --color-gap-text: #514d80;
+
+  /* Ultramarine: 50 = L9, 100 = L8, 200 = L7, 300 = L5, 400 = L3, 500 = L1, 600 = base,
+     700 = D2, 800 = D4, 900 = D6, 950 = D8 */
+  --color-brand-50: #e5e8ff;
+  --color-brand-100: #ccd1ff;
+  --color-brand-200: #b2baff;
+  --color-brand-300: #808cff;
+  --color-brand-400: #4d5fff;
+  --color-brand-500: #1a31ff;
+  --color-brand-600: #001aff;
+  --color-brand-700: #0015cc;
+  --color-brand-800: #001099;
+  --color-brand-900: #000a66;
+  --color-brand-950: #000533;
+
+  /* Fonts */
+  --font-display: "Schibsted Grotesk", system-ui, sans-serif;
+  --font-body: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* Radius, for pieces written here (the source scale rounded-* is unchanged) */
+  --radius-ds-xs: 6px;
+  --radius-ds-sm: 12px;
+  --radius-ds-md: 20px;
+  --radius-ds-lg: 28px;
+  --radius-ds-full: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(0, 5, 51, 0.06);
+  --shadow-2: 0 6px 16px rgba(0, 5, 51, 0.08), 0 1px 2px rgba(0, 5, 51, 0.04);
+
+  /* Type scale */
+  --text-display: 48px;
+  --text-display--line-height: 52px;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 36px;
+  --text-h1--line-height: 42px;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: 28px;
+  --text-h2--line-height: 34px;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h3: 22px;
+  --text-h3--line-height: 30px;
+  --text-h3--font-weight: 600;
+  --text-h3--letter-spacing: -0.01em;
+  --text-h4: 18px;
+  --text-h4--line-height: 26px;
+  --text-h4--font-weight: 600;
+  --text-h4--letter-spacing: 0em;
+  --text-lead: 20px;
+  --text-lead--line-height: 32px;
+  --text-lead--font-weight: 400;
+  --text-lead--letter-spacing: 0em;
+  --text-body: 16px;
+  --text-body--line-height: 26px;
+  --text-body--font-weight: 400;
+  --text-body--letter-spacing: 0em;
+  --text-small: 14px;
+  --text-small--line-height: 22px;
+  --text-small--font-weight: 400;
+  --text-small--letter-spacing: 0em;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-caption--font-weight: 500;
+  --text-caption--letter-spacing: 0em;
+  --text-metric: 40px;
+  --text-metric--line-height: 44px;
+  --text-metric--font-weight: 600;
+  --text-metric--letter-spacing: -0.02em;
+  --text-mono: 13px;
+  --text-mono--line-height: 20px;
+  --text-mono--font-weight: 400;
+  --text-mono--letter-spacing: 0em;
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/SchibstedGrotesk-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/SchibstedGrotesk-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Geist-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Geist-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Geist-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/GeistMono-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/GeistMono-Medium.woff2") format("woff2");
+}
+
+html,
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-surface-canvas);
+  color: var(--color-text-primary);
+}
