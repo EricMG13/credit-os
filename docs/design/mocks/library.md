@@ -77,8 +77,11 @@ No animation loops on any screen. The running badge is the half-filled circle wi
 7. **Modules navigator.** N3 is one vertical menu with two groups: the sections of this page,
    then the modules in this run with their state shape. This carries the owner's rule that the
    Modules navigator is always visible; the map lists only the section index.
-8. **Source text sizes.** P2, P3, P4, R7 and P5 keep their source's 14px text, as the source-look
-   rule says. Beside 16 to 20px page text the findings read small (see question 2).
+8. **Source text sizes.** The owner ruled in the D1a session on 2026-11-13: "Use 16px body for
+   findings". Key findings (P2), contrary evidence (P3) and what would change the view (P4) are
+   set in the system's 16 / 26 body, with a 600-weight lead; their layout, radius, border and
+   padding stay the source's. Applying it to P3 and P4 as well as P2 is this session's reading
+   of question 2 as it was put. R7 and P5 keep their source's 14px.
 9. **Status shapes for sets the system does not define.** Module state, change state, gap
    severity and how much of a file was read are drawn with proposed shapes (question 1).
 10. **Table forms are not drawn.** Each chart has its Chart or Table toggle; the Table side,
@@ -98,9 +101,10 @@ No animation loops on any screen. The running badge is the half-filled circle wi
    - Gap severity (Evidence): High, diamond. Medium, triangle. Low, ring.
    - File read (Evidence Sources): Read in full, filled circle. Read in part, triangle. Not
      readable, diamond.
-2. **Source look against "larger type".** Findings, contrary evidence and the callout are 14px
-   because their sources are. Keep the source's size, or set judgement passages in the
-   system's 16px body?
+2. **Source look against "larger type".** Answered by the owner on 2026-11-13: 16px body for
+   findings (departure 8). Still open: whether that also covers contrary evidence and the
+   callout, as drawn, and whether module items (R7) and limitations (P5) stay at 14px. The
+   ruling is not yet in decision 0003.
 3. **Shadcnblocks.** Its named variants cannot be read without a paid account. Accept the
    public base components as the look, buy access, or move those rows to a source that can be
    read?
