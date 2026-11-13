@@ -96,6 +96,10 @@ a comment edited or removed; a thread archived.
 
 ## Rules carried over (decision 0003 lists which may change)
 
+Changed since by decision 0003's rulings: Evidence has five tabs and the Model links to the
+run's Evidence (ruling 8); short one-off transitions are allowed (ruling 6); trace controls
+show on hover and focus (ruling 7). The lists on this page describe the predecessor.
+
 - Audit material appears only on Evidence and in the trace drawer.
 - One trace control per paragraph, row or figure.
 - Text written for another module is drawn nowhere.

@@ -3,6 +3,37 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-13 Design track: design system and component map (steps D0 and D0b)
+
+**Scope.** Documents and a Claude Design project only. No component was installed, built or
+opened from disk; no mock of a screen exists yet.
+
+**Merged.** `main` at `40509b5`: #4 component map and Signal's screens (`e052a32`), #5 design
+system (`40509b5`). CI green on `ubuntu-latest` and `windows-latest` for both.
+
+**Rulings.** The owner's ten rulings at review 1 are in decision 0003; the brand guide is a
+reference, only its colour values and the logo are fixed.
+
+**Review.** Batched docs review, `mx-feature`: 6 Medium (the two documents disagreed on
+sources, motion and gap states; Signal states and five chart kinds unmapped; components shared
+across kinds), fixed in one round each and re-reviewed as resolved. Probes, exit 0 at the
+merged tips: every colour is a brand hex; all contrast ratios and gray values recompute;
+every screen, state, record shape and chart kind is mapped; no name, credential or served URL.
+
+**Ledger.**
+- `D0 agent=sub-session fix-rounds=1 gates-first-pass=n/a`
+- `D0b agent=sub-session fix-rounds=1 gates-first-pass=n/a`
+
+**Parked Low findings.** Signal's source states name six shapes the design system does not
+define; the design system links the Claude Design project by id.
+
+**Not verified.**
+- Whether Recharts, Untitled UI React or any adopted component passes the content security
+  policy; licences and paid tiers were not read from licence texts.
+- The review probes were session scratch files and are not in the repository.
+- Colour-blind separation was simulated, not tested with readers.
+- The D0 session's statement that standalone Claude Design stops working by 2026-12-14.
+
 ## 2026-11-13 Phase 0: skeletons and gates (steps 0A and 0B)
 
 **Scope.** Scaffolding only: an empty layered Python package and a React page that draws a
