@@ -24,7 +24,7 @@ merges. A row not yet ported sits at the baseline pin with nothing pending.
 | :--- | :--- | :--- | :--- | :--- |
 | `src/deploy_workflow/docx_text.py`, `html_text.py`, `pdf_headers.py`, `inline_xbrl.py`, `src/deploy_vii/preparation.py`, `contracts.py`, `readiness.py` | `sources/` | 1D | `8e3954a` | none |
 | `src/deploy_workflow/handoff_delivery.py`, `markdown_delivery.py`, `run_scopes.py`, `src/deploy_vii/bindings/shipped.py`, `display.py`, `report_view.py` | `handoff/` | 1A | `8e3954a` | none |
-| `tests/fixtures/sol_medium_run_2026_11_09` (two fragments only; the full answer key is an open owner question) | `tests/fixtures/` | 1A | `8e3954a` | none |
+| `tests/fixtures/sol_medium_run_2026_11_09` (two fragments), `apps/issuer-library/fixtures/synthetic-new-format`; the full answer key is the retained run named in decision 0002, which is not in the legacy repository | `tests/fixtures/` | 1A | `8e3954a` | none |
 | `src/deploy_vii/model`, `src/deploy_workflow/model_handoff_delivery.py`, `owners/cpos_forecast.py`, `owners/cp2g.py` (the forecast arithmetic, `cp2g.forecast`), `owners/cpos_periods.py`, `owners/cpos_facilities.py` | `model/` | 1B | `8e3954a` | none |
 | `src/deploy_workflow/model/handoff.py`, `loop.py`, `copilot.py`, `copilot_adapter.py`, `adapter.py`, `record.py`, `redact.py`, `reply_classes.py`, `turn.py`, `model_testing/configs.py`, `src/deploy_vii/live/schema.py`, `live/prompts.py`, `live/tools.py`, `execution.py` | `provider/` | 1C | `8e3954a` | none |
 | `src/deploy_workflow/run_events.py`, `library_index.py`, `reader_summary.py`, `platform_io.py` | `store/` | 2A | `8e3954a` | none |

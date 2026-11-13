@@ -63,3 +63,4 @@ apps/issuer-library/credit_os/web
 docs/templates/context-form.html
 docs/rulings
 tests/fixtures/sol_medium_run_2026_11_09
+apps/issuer-library/fixtures/synthetic-new-format

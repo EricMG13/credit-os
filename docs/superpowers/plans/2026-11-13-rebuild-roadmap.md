@@ -38,8 +38,8 @@ written in the step's plan. A phase starts when the steps it depends on are merg
 | :--- | :--- | :--- | :--- | :--- |
 | 0 | 0A | Python package skeleton, gates, layering test, CI on Windows and Linux | repo | none |
 | 0 | 0B | React application skeleton, gates, `file://` browser proof, CI | `web/` | none |
-| 0 | 0C | Python duplication gate in `tools/gates.py` (out of the web script); `pypdf` and `github-copilot-sdk` added to the lock; decision record for the Python gate tools; build backend pinned | repo | 0A, 0B |
-| 1 | 1A | One handoff parser to a typed document, proved on a full retained run's handoffs | `handoff/` | 0C |
+| 0 | 0C | Python duplication gate in `tools/gates.py` (out of the web script); `pypdf` and `github-copilot-sdk` added to the lock; decision record for the Python gate tools; build backend pinned; the open-from-disk check also run in Edge on Windows CI | repo | 0A, 0B |
+| 1 | 1A | One handoff parser to a typed document, proved on the 20 handoffs of the retained TransDigm run (decision 0002) and the predecessor's synthetic new-format fixtures | `handoff/` | 0C |
 | 1 | 1C | Provider interface, canned adapter, Copilot adapter (SDK 1.0.8, model `gpt-6-sol`) | `provider/` | 0C |
 | 1 | 1D | Source pinning and page reading (PDF, docx, HTML, xlsx, csv) | `sources/` | 0C |
 | 1 | 1B | Decimal kernel and forecast, each formula tested against independently worked values | `model/` | 1A |
@@ -88,24 +88,14 @@ phase 4 is done.
   needs a record. Steps 1A (Markdown table parsing) and 2A (SQLite run store) record their own
   search in their plans.
 
-## Open questions for the owner
+## Owner decisions
 
-1. **Packages outside the work PC record.** The record lists pydantic, pypdf, openpyxl, the
-   Copilot SDK, pytest, ruff and mypy. This project also uses `pytest-cov`, `hypothesis`,
-   `complexipy`, `bandit`, `pip-audit`, the `hatchling` build backend, Node 24 and the whole
-   npm tree in decision 0001. Can the work PC install all of them?
-2. **Vite 6.4.5** (released 2026-10-21, under the 30-day rule): confirm, because 6.4.3 and
-   6.4.4 fail `npm audit`.
-3. **The 1A answer key.** Legacy `main` tracks only two handoff fragments (60 lines). Name one
-   retained run of a public issuer whose full handoffs can be committed here as the frozen
-   answer key.
-4. **The run cap.** A standing ruling caps a run-start Submit at USD 20. Keep it for the
-   Copilot route (port `budget.py` and the Copilot pricing rows), or replace it with a
-   different bound?
-5. **The model.** The work PC record says `gpt-6-sol`; legacy defines `copilot-sol-medium` as
-   `gpt-6.1-sol`. Which is right for the work PC?
-6. Is an Edge or Chrome browser available on the work PC for the `file://` check in 7A?
-7. May the work PC run a localhost page (step 5C), or must run start stay a command?
+All seven questions this roadmap raised were answered on 2026-11-13; see
+`docs/decisions/0002-owner-answers-2026-11-13.md`. In short: packages outside the work PC
+record are allowed, preferring established packages and older releases; pins are the target
+and the work PC's copy may adapt a version; the 1A answer key is the retained TransDigm run
+`cpos-tdg-sol-medium-all-001`; the USD 20 run cap stays; the model is `gpt-6-sol`; Chrome and
+Edge are both available; a localhost page is allowed.
 
 ## Not verified
 
@@ -125,4 +115,4 @@ phase 4 is done.
 - The port map tracks direct imports, and `Adapted to` no longer moves past a deferred change.
 - Steps are PR sequences within the line cap; parallel pairs are listed explicitly; 1B waits
   for 1A; the Changes page follows the comparison; step 0C and step 4X are new.
-- The run cap, the model id and the packages outside the work PC record are open questions.
+- The run cap, the model id and the packages outside the work PC record were open questions; the owner has since answered them (decision 0002).

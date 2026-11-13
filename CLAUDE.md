@@ -25,8 +25,13 @@ and in the trace control, never in narrative sentences.
 | Model route | GitHub Copilot CLI 1.0.108, model `gpt-6-sol`, config `copilot-sol-medium` |
 | Front end | Node 24, React 19.3.0, Vite 6.4.3, Tailwind 4.3.3, TypeScript 5.9.3 |
 | OS | Windows (work PC) and macOS (development); CI runs both Windows and Linux |
+| Browsers | Chrome and Edge, both on the work PC |
+| Run cap | USD 20 per run (decision 0002) |
 
-One lockfile per stack. No per-machine adaptation: what CI passes is what runs at work.
+One lockfile per stack. The aim is that what CI passes is what runs at work. Where the work PC
+cannot install a pinned version, its copy uses the nearest it can and the difference is
+reported back so the pin here follows (decision 0002). Prefer established packages and older
+releases over the newest.
 
 ## Layout
 
