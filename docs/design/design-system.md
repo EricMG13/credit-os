@@ -1,7 +1,7 @@
 # Design system
 
-Version 0.4, 2026-11-13, with the owner's rulings at review 1 and the source-look instruction
-applied (step D0 of the
+Version 0.5, 2026-11-13, with the owner's rulings at review 1, the source-look instruction and
+the rules from the owner's own prompts applied (step D0 of the
 [design track plan](../superpowers/plans/2026-11-13-design-track.md);
 [decision 0003](../decisions/0003-design-track.md) governs).
 
@@ -425,7 +425,8 @@ Other scales:
 
 Marks: bars with 4px rounded tops and a 2px gap between neighbours; 2px lines; markers 8px or
 more; one y-axis, never two; a 1px `border-control` baseline, no gridlines beyond a faint zero
-line. Labels, values and legends use text colours, never the series colour. Status colours are
+line. A chart over periods puts the periods on the x-axis, oldest on the left. Labels, values
+and legends use text colours, never the series colour. Status colours are
 never used as a series. A missing value is never drawn at zero: the mark is left out and the
 slot reads "n.a." (see Gap states).
 
@@ -455,7 +456,7 @@ and focus change state at once.
 | White page with light grey panels | Faint violet canvas (`#F6F5FF`) with white cards | A tinted ground lets white cards carry the content without heavy borders; it reads calmer than grey |
 | Sharp Grotesk Bold headlines, Inter text | Schibsted Grotesk headings, Geist text, Geist Mono for evidence | The headline font is commercial and cannot be committed; Geist has tabular numerals and a matching mono |
 | Headline leading 95 percent, small body sizes | Leading 108 to 117 percent on headings; body 16 / 26 | Long analytical titles wrap to two lines; the reader reads prose, so the type is larger |
-| No shadows stated | Three soft Navy shadows | Drawers and menus need to sit above the page |
+| No shadows stated | Two soft Navy shadows | A card and a chart tooltip need to sit above the page |
 | Rounded tiles, radius undefined | Radii 6, 12, 20, 28 and full | The owner's "rounded" |
 | Secondary colours paired with Navy as accents | Secondaries appear only as tints (L steps) and dark steps (D steps), never at full strength in the interface | At full strength none passes 3:1 on white |
 | Tertiary used sparingly | Tertiary steps supply all secondary text, borders, status and chart colours | They are the only brand values that pass contrast |
@@ -483,6 +484,36 @@ The owner ruled on this system at review 1; [decision 0003](../decisions/0003-de
 - **Source look:** source components copy their source page's design; the split between what
   the source and this system supply is a reading to confirm at review 2.
 
+## Rules from the owner's prompts
+
+Rules the owner typed, found by reading the owner's prompts in this project's and the
+predecessor's sessions on 2026-11-13. "Held in" names where the rule is written down; "nowhere
+yet" means no file on `main` states it and the coordinator is told.
+
+| Rule | Owner's words | Date | Held in |
+| :--- | :--- | :--- | :--- |
+| Findings show outcomes and links; backend and audit material is always findable but never sits among the analysis | "focused on presenting outcome and links ... anything that looks backend & audit relevant" | 2026-11-13 | Screen inventory; this file (Geist Mono and identifiers on Evidence and in the trace drawer only) |
+| A handoff is a database: not everything in it is shown | "the handoff are to be used similarly to a database, not everything needs to be shown" | 2026-11-13 | `CLAUDE.md` (delivery selects) |
+| One design is not repeated for a grouping of different information | "do not overuse a design for same grouping" | 2026-11-13 | Component map |
+| No flat tables | "do not use flat boring tables" | 2026-11-13 | Component map; screen inventory (known defect) |
+| No table identifiers on screen | "no table IDs" | 2026-11-13 | Nowhere yet |
+| Nothing written for another module is displayed | "do not display anything also considered intermodule communication" | 2026-11-13 | Screen inventory |
+| Presentation is chosen for the reader: what, how and why | "Always consider user persona regarding what, how and why" | 2026-11-13 | `CLAUDE.md` (Reader); design track plan |
+| No module codes or method step identifiers on screen; the module's name instead, in the model's file navigator too | "Remove all cp-IDs and methodology step IDs from user facing screens" | 2026-11-10, 2026-11-12 | Screen inventory (module codes); step identifiers nowhere yet |
+| A chart over periods has the periods on the x-axis | "Charts with periods should be transposed, with period on the x axis" | 2026-11-10 | This file (Chart palette, marks) |
+| A chart is drawn as a chart, not inside a table | "why charts in tables when they should be charts" | 2026-11-12 | Nowhere yet. The map's statement table (R1) carries an in-row sparkline (F5); whether that breaks this rule is the owner's to say at review 2 |
+| A sentence leads to its sources by a control or highlighted text, never by a citation in the prose | "clickable chips or highlighted text"; "citations within the credit narrative" named as a defect | 2026-11-12, 2026-11-11 | `CLAUDE.md` (Reader); ruling 7 (trace control) |
+| The prose reads as a credit analyst's judgement, not restated data | "very robotic and more focused on data collection and restatement" | 2026-11-11 | `CLAUDE.md` (Reader) |
+| Nothing on screen that does not help the reader | "remove anything not complimentary to UX" | 2026-11-10 | Component map |
+| The look is modern product design, not enterprise business software; only colours and logo are fixed | "modern ux/ui and not enterprise business solutions style"; "The brand guide is not a rule" | 2026-11-13 | Decision 0003; this file |
+| A source component copies its source's design | "even if you use them copy the design" | 2026-11-13 | Decision 0003; this file |
+| A component's live page is read before it is used | "always check live" | 2026-11-12 | `CLAUDE.md` |
+| The library's sections: Overview (key findings, no module navigator), Changes ("what has changed since the last time I looked"), Modules (all findings, one design language, navigator always visible and listing only modules that ran), Forecast, Evidence (handoffs to download, source files used), and the issuer's report history | Prompts of 2026-11-11 | 2026-11-11 | `CLAUDE.md`; screen inventory; "only modules that ran" and handoff download nowhere yet |
+| A new run on an issuer starts from its report page; the run start page opens from the library by its icon | "starting a new run on an issuer from their report page" | 2026-11-11, 2026-11-12 | Nowhere yet |
+
+"Stick to current font" (2026-11-12) was replaced by the typefaces the owner accepted at
+review 1.
+
 ## Not verified
 
 - Read live but not built: no component here has been installed in `web/` or opened from disk
@@ -493,14 +524,20 @@ The owner ruled on this system at review 1; [decision 0003](../decisions/0003-de
   this page. Flowbite React, Ant Design, Preline and Uiverse are unused (decision 0003).
 - Recharts has not been installed or opened from disk; whether it can draw the dash, marker
   and missing-value rules above is untested.
-- The Claude Design page is at version 0.2: it shows hand-styled component samples, eight
-  status shapes and Running as a filled circle. It has not been redrawn to the source look or
-  to the ten shapes of this version.
-- The half-filled circle and the square have not been drawn or checked at 10px.
+- The half-filled circle and the square were checked at 10px in one headless Chrome render
+  only.
 - The states named in the Answer state, Met or not met and Freshness sets are this page's
   reading of the map's rows; the map does not list their names.
-- The Claude Design page was rendered in headless Chrome at 1440px wide only, with no console
-  errors; it was not checked at narrow widths, in Edge, or in the Claude Design editor.
+- The Claude Design page is at version 0.5. It was rendered in headless Chrome at 1440px wide
+  from a local copy that is byte-identical to the uploaded file, with no console messages; it
+  was not checked at narrow widths, in Edge, or in the Claude Design editor.
+- The page's source component samples (button, input, tabs, badge, table, navigation) are
+  drawings at the sizes, radius and shadow read on the Untitled UI pages on 2026-11-13. They
+  were not compared pixel by pixel with those pages, and the Chart or Table toggle, checkbox
+  and switch were not redrawn.
+- The owner's rules were read from the typed prompts in the session transcripts on this
+  machine for this project and its predecessors (452 messages). A prompt in a session not
+  stored there was not read, and each rule's wording here is a reading of the owner's words.
 - Tabular numerals in Geist were seen in the render, not tested glyph by glyph. The fonts were
   loaded from Google Fonts for the mock; the files to commit have not been downloaded.
 - Colour-blind separation was simulated (Machado 2009), not tested with readers. Tritanopia was
