@@ -1,6 +1,7 @@
 # Design system
 
-Version 0.2, 2026-11-13, with the owner's rulings at review 1 applied (step D0 of the
+Version 0.3, 2026-11-13, with the owner's rulings at review 1 and the source-look instruction
+applied (step D0 of the
 [design track plan](../superpowers/plans/2026-11-13-design-track.md);
 [decision 0003](../decisions/0003-design-track.md) governs).
 
@@ -204,16 +205,18 @@ right-aligned with tabular numerals. Nothing is set below 13px.
 
 **Spacing** (base 4): 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96.
 Page gutter 32, card padding 32, tile padding 24, gap between cards 24, gap between sections 64.
-Controls are 44 high (buttons) and 48 high (inputs); small buttons are 36 and are not used for
-a primary action.
+Buttons, inputs and other source components keep their source's own sizes (see "Source look"
+under Components).
 
 | Radius token | Value | Use |
 | :--- | :--- | :--- |
-| `radius-xs` | 6px | Checkbox, skeleton line |
-| `radius-sm` | 12px | Buttons, inputs, navigation items |
+| `radius-xs` | 6px | Skeleton block |
+| `radius-sm` | 12px | Small pieces written here (trace control hit area, chart tooltip) |
 | `radius-md` | 20px | Tiles, gap panels |
-| `radius-lg` | 28px | Cards, drawers, modals |
-| `radius-full` | 999px | Badges, switches, pill tabs, progress track |
+| `radius-lg` | 28px | Cards |
+| `radius-full` | 999px | Status shapes, gap badge, withheld bar |
+
+Source components keep their source's own radius (see "Source look" under Components).
 
 | Elevation token | Value | Use |
 | :--- | :--- | :--- |
@@ -250,33 +253,73 @@ kind of information (metrics, facts, dated records, activity, statements and the
 copied in with `npx untitledui@latest add <name>`), built on React Aria, the one primitive
 library (ruling 3).
 
+**Source look (owner, 2026-11-13).** A component taken from an approved source copies that
+source page's visual design closely: its layout, proportions, spacing, sizes, radius, shadow
+and states stay as the live page shows them. It is not restyled. This system supplies only
+what the owner fixed or accepted: the colour tokens (through the source's own theme variables),
+the typefaces, the status shapes, the gap, withheld and blocked states, and motion. Where a
+size or radius on this page differs from the source's own, the source wins for that component;
+the spacing, radius and elevation tokens above govern the pieces written here (card, tile, gap
+panel, withheld bar, status shapes) and page layout. This applies equally to a Shadcnblocks
+piece redrawn on React Aria: it is redrawn to look like its source page. The instruction was
+given in the D0 session and is not yet in decision 0003.
+
 | Component | Variants and states in this system | Source |
 | :--- | :--- | :--- |
-| Button | Primary, secondary, tertiary, destructive; sizes 36, 44, 52; hover, pressed, focus, disabled, loading | UUI <https://www.untitledui.com/react/components/buttons> |
-| Input | Label, hint, error with message, disabled; 48 high | UUI <https://www.untitledui.com/react/components/inputs> |
+| Button | `primary`, `secondary`, `tertiary`, `primary-destructive`; the source's sizes (`sm` to `xl`; `md` by default here); hover, pressed, focus, disabled, loading | UUI <https://www.untitledui.com/react/components/buttons> |
+| Input | Label, hint, error with message, disabled; the source's `md` size | UUI <https://www.untitledui.com/react/components/inputs> |
 | Select | Default, focus, disabled, invalid | UUI <https://www.untitledui.com/react/components/select> |
-| Checkbox | Off, on, indeterminate, disabled | UUI <https://www.untitledui.com/react/components/checkboxes> |
 | File upload | Drop zone; per-file progress, complete, failed with retry | UUI <https://www.untitledui.com/react/components/file-uploaders> |
-| Tabs | `underline`, selected in Ultramarine with a 2px underline | UUI <https://www.untitledui.com/react/components/tabs> |
+| Tabs | Selected in Ultramarine with a 2px line (underline when horizontal, side line when vertical); count badge neutral | UUI <https://www.untitledui.com/react/components/tabs> |
 | Chart or Table toggle | Button group, single selection; the selected item is a white pill on `surface-subtle` | UUI <https://www.untitledui.com/react/components/button-groups> |
-| Sidebar navigation | `Simple`, light; selected item `surface-selected` with Ultramarine text, hover `surface-subtle` | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
-| Header navigation | `Simple` | UUI <https://www.untitledui.com/react/components/header-navigations> |
-| Breadcrumb | `text` | UUI <https://www.untitledui.com/react/components/breadcrumbs> |
+| Sidebar navigation | Light, in the variant the map names; selected item `surface-selected` with Ultramarine text and icon, hover `surface-subtle`, counts as neutral count badges | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
 | Card and tile | Card (radius 28, padding 32, `shadow-1`) and tile (radius 20, padding 24), written here on the tokens | This system |
-| Table | Divider-line style, `md` rows, sortable heads, row hover `surface-subtle`, figures right-aligned | UUI <https://www.untitledui.com/react/components/tables> |
-| Badge | `pill-color` with a leading status shape; success, warning, error, info, neutral, action, gap | UUI <https://www.untitledui.com/react/components/badges> |
-| Alert | Floating; info, warning, error, success | UUI <https://www.untitledui.com/react/components/alerts> |
+| Table | Divider-line style; `md` rows on findings pages and `sm` rows for the dense audit tables on Evidence; sortable heads; row hover `surface-subtle`; figures right-aligned with tabular numerals. The same colours and alignment apply to a HyperUI table | UUI <https://www.untitledui.com/react/components/tables> |
+| Badge | `pill-color`; forms listed under "Badge forms" below | UUI <https://www.untitledui.com/react/components/badges> |
+| Alert | Floating or inline; info, warning, error, success, each with its status shape | UUI <https://www.untitledui.com/react/components/alerts> |
 | Empty state | Featured icon, title, one sentence, optional action | UUI <https://www.untitledui.com/react/components/empty-states> |
 | Gap panel | Hatched dashed panel for "Not established for this run" | This system |
 | Withheld value | Striped bar with a neutral badge | This system |
 | Blocked module | Neutral badge with a slashed circle and its sentence | This system |
-| Drawer | Slide-out with header, scrolling body, pinned footer; `shadow-3`, radius 28 | UUI `SlideoutMenu` <https://www.untitledui.com/react/components/drawers> |
+| Drawer | Slide-out with header, scrolling body, pinned footer; the source's own shadow and radius | UUI `SlideoutMenu` <https://www.untitledui.com/react/components/drawers> |
 | Tooltip | Default with supporting text, on `surface-inverse` | UUI <https://www.untitledui.com/react/components/tooltips> |
-| Progress steps | `IconsWithText`, numbered | UUI <https://www.untitledui.com/react/components/progress-steps> |
-| Progress bar | 8px track `action-subtle`, fill `action` | UUI <https://www.untitledui.com/react/components/progress-indicators> |
-| Loading indicator | `line-simple` spinner | UUI <https://www.untitledui.com/react/components/loading-indicators> |
+| Progress steps | `IconsWithText` with the `number` marker; complete, current, incomplete | UUI <https://www.untitledui.com/react/components/progress-steps> |
+| Progress bar | The source's track (8px by default) in `action-subtle`, fill `action` | UUI <https://www.untitledui.com/react/components/progress-indicators> |
+| Loading indicator | `line-simple` spinner, on a run page while a run is live only (see Motion) |
+| Skeleton | Static blocks in `surface-subtle`, `radius-xs`, in the shape of what will arrive; no animation | This system | UUI <https://www.untitledui.com/react/components/loading-indicators> |
 | Timeline | Vertical, for dated records | HyperUI <https://www.hyperui.dev/components/application/timelines> |
 | Featured icon | `light` theme, 48 | UUI <https://www.untitledui.com/react/components/featured-icons> |
+
+A component the map names that has no row here (modal, radio cards, text area, toggle, metric
+tile, avatar, page header, filter bar, command menu, activity feed, tree view, messaging, tags,
+badge group, toast, stepper, half-circle progress) follows "Source look" with these tokens.
+
+**Badge forms.** Five, so that a state never looks like a label:
+
+| Form | Looks like | Used for |
+| :--- | :--- | :--- |
+| Status badge | Leading status shape, word, status colour | A state, and nothing else |
+| Label badge | Word only, neutral (`text-secondary` on `surface-subtle`) | Pathway, kind, qualifier, "AI" |
+| Count badge | Number only, neutral | Counts on tabs and navigation items |
+| Dot badge | 8px `action` dot | Unread |
+| Trace control | Icon only, with an accessible name and tooltip | One per paragraph, row or figure |
+
+**Shapes for other states.** A state the map names that is not a run state takes the shape of
+its meaning, always with its word:
+
+| Meaning | Shape | Colour family |
+| :--- | :--- | :--- |
+| Good, done, healthy, met, answered | Filled circle | Success |
+| Needs attention, thin, not met | Triangle | Warning |
+| Failed, failing, breached | Diamond | Error |
+| Changed, restated, next | Ring | Info |
+| Not started, waiting, later, proposed, quiet, not checked | Ring | Neutral |
+| Approved, past | Filled circle | Neutral |
+| Paused, held | Pause bars | Neutral |
+| Refused, removed | Cross | Neutral |
+
+Two states in one list can share a shape and differ by colour and word (for example approved
+and healthy); the word is what tells them apart, and the mocks test whether that is enough.
 
 Agreed with the component map: status shapes are the CSS shapes above; running is the CSS
 pulsing dot; queued is the CSS shimmer; a gap is the hatched dashed panel; withheld is the
@@ -331,6 +374,8 @@ How it was tested (palette validator, light mode, white surface, exit 0):
   above, at most four series are labelled directly, a legend is always present for two or more
   series, and every chart has its table form on the other side of the Chart or Table toggle.
 
+A heat grid uses the magnitude scale below; an empty cell stays `surface-card`.
+
 Other scales:
 
 | Job | Steps |
@@ -354,11 +399,13 @@ animation is CSS in the stylesheet; none needs script or a library.
 | :--- | :--- | :--- | :--- |
 | Loop, live run only | Running badge | The state dot pulses a fading Ultramarine halo | 1.6s, ease-in-out, repeating |
 | Loop, live run only | Queued module | A slow shimmer where its result will appear | 1.8s, linear, repeating |
+| Loop, live run only | Spinner | Rotates while a run is live and no step count exists | The source's timing |
 | One-off | Run progress bar | The fill eases to each new value | 200ms, `cubic-bezier(.2,0,0,1)` |
 | One-off | Activity feed | A new entry rises 8px and fades in | 200ms, `cubic-bezier(.2,0,0,1)` |
 | One-off | Drawer, tabs, accordion | Opens, switches or expands | Up to 200ms, `cubic-bezier(.2,0,0,1)` |
 
-Spend, elapsed time and every other figure change to the new value with no animation. Hover
+Loading anywhere else is the static skeleton, never a spinner: a list that is still loading
+is not live run state. Spend, elapsed time and every other figure change to the new value with no animation. Hover
 and focus change state at once.
 
 ## Where this departs from the brand guide
