@@ -147,11 +147,12 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
 - Contrast was not re-measured on the mock. The white-on-Navy banner and the heat grid labels
   use pairs in the design system's table; the banner's small label (`#CCD1FF` on Navy) and the
   trace control's tertiary icon on a hairline edge were not computed.
-- The runtime logged "never resolved" for a list inside a table body on Evidence Trace; the
-  rows render. The console was not re-read after the review 2 redraw.
-- After the review 2 redraw only Overview, Changes, Module prose, Module data, Evidence Record
-  and States were re-rendered. Library home, Report history, the other Evidence tabs and the
-  trace drawer were not re-rendered, though the shared `x.css` changed.
+- The runtime logs "never resolved" for a list inside a table body on Evidence Trace; the
+  rows render. After the review 2 redraw the console was read only for Library home, Report
+  history, Evidence Summary, Trace, Sources and Gaps, and the trace drawer; that was the only
+  message.
+- All thirteen screens were re-rendered after the review 2 redraw and looked at once each at
+  1440px. The trace drawer's dimmed backdrop is a cut-down Overview, not the full page.
 - No repository gate applies to this change: it is one Markdown file under `docs/`, and
   neither `tools/gates.py` nor the web gates were run.
 - The always-shown trace control on touch is a CSS rule (`hover: none`); it was not seen on a
