@@ -483,9 +483,11 @@ Other scales:
 | Magnitude (one hue, light to dark) | `#99A3FF`, `#6676FF`, `#3348FF`, `#001AFF`, `#0012B2` |
 | Above and below a baseline | `#994A34`, `#E5704D`, `#DDDFE2` (neutral midpoint), `#6676FF`, `#001AFF` |
 
-Marks follow the source chart (review 2, ruling 5): faint horizontal gridlines in
-`border-hairline`, the source's bar corners and bar spacing, and its legend, tick text and
-height. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
+Marks follow the source chart (review 2, ruling 5), read on the Untitled UI line and bar
+charts page on 2026-11-13: horizontal gridlines only, solid, in `border-hairline`; bars up to
+32px wide (16px on a narrow screen) with 6px top corners; in a stack only the top segment is
+rounded; the 8 to 12px bars of a line-and-bar chart have 4px top corners; bar spacing, legend,
+tick text and height are the source's defaults. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
 line, the dash and marker of the series table. A chart over periods puts the periods on the x-axis, oldest on the left. Labels, values
 and legends use text colours, never the series colour. Status colours are
 never used as a series. A missing value is never drawn at zero: the mark is left out and the
@@ -606,7 +608,10 @@ review 1.
   reading of the map's rows; the map does not list their names.
 - The Claude Design page is at version 0.7 and shows the review 2 sets, the two border
   tokens, the joined button group, separate metric cards, the Navy bottom line band and a chart
-  with gridlines. Its bar corners are a placeholder: the source chart's corners were not read.
+  with gridlines. Its bars have the source's 6px top corners.
+- The source page shows stacked bars and line-and-bar charts, not bars side by side. Giving
+  each bar of a side-by-side group the 6px top corners is a reading of the source, and the
+  Claude Design page draws its sample that way.
 - The shapes for the review 2 sets were chosen from the mocks' written proposals; the mock
   pages themselves were not opened. The sets were checked at 10px in one headless Chrome
   render of the Claude Design page only.
