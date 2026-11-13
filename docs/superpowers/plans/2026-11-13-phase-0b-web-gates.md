@@ -14,7 +14,7 @@
 
 - Package versions are exactly those in decision 0001. `knip` and `jscpd`: pin the newest release of each at least 30 days old, and add both to the table in decision 0001 (the only `docs/` edit this step makes).
 - `package.json`: `"private": true`, `"type": "module"`, `"engines": { "node": ">=24" }`. Exact versions, no `^` or `~`. Commit `package-lock.json`; install with `npm ci`.
-- Content security policy, as a `<meta>` in `index.html`, exactly: `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'`.
+- Content security policy, as a `<meta>` in `index.html`, exactly: `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'`.
 - No inline `<script>` or `<style>`, no `style=""` attribute written by code, no `fetch`, no CDN, no web font from a network.
 - The front end computes no figure: no arithmetic on data values anywhere in `web/src`.
 - Vite `base: "./"`. Build output goes to `web/dist` and is not committed.

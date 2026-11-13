@@ -57,8 +57,9 @@ owner's confirmation.
 ## Constraints this decision carries
 
 - The built library opens from `file://` under a content security policy of
-  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'`.
-  No runtime style injection, no CDN, no fetch.
+  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'`.
+  No runtime style injection, no CDN, no fetch. `frame-src` and `data:` images, which the
+  predecessor allowed, are left out on purpose until a page needs them.
 - Component sources that inject styles at runtime are ruled out unless shown to work under
   that policy.
 - Not adopted now: a router, a chart library, a state library, Playwright. Each needs its own

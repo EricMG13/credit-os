@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { assetProblems, referencedAssets } from "./assets.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 
@@ -70,29 +71,13 @@ function problems(log) {
   );
 }
 
-// Every stylesheet and script the built index.html references, as paths inside the folder.
-// A file missing from the folder is not logged by Chrome from file://, so it is checked here.
-function referencedAssets(folder) {
-  const html = readFileSync(path.join(folder, "index.html"), "utf8");
-  const refs = [
-    ...[...html.matchAll(/<link\b[^>]*\brel="stylesheet"[^>]*>/g)].map(
-      (m) => /\bhref="([^"]*)"/.exec(m[0])?.[1],
-    ),
-    ...[...html.matchAll(/<script\b[^>]*>/g)].map((m) => /\bsrc="([^"]*)"/.exec(m[0])?.[1]),
-  ];
-  return { refs, html };
-}
-
 function checkAssets(folder) {
-  const { refs, html } = referencedAssets(folder);
-  const missing = refs.filter(
-    (ref) => ref === undefined || !existsSync(path.join(folder, ...ref.split("/"))),
+  const problems = assetProblems(folder);
+  const ok = problems.length === 0;
+  console.log(
+    `${ok ? "PASS" : "FAIL"} referenced assets are sound: ${referencedAssets(folder).assets.length} found`,
   );
-  const hasStyle = /<link\b[^>]*\brel="stylesheet"/.test(html);
-  const ok = hasStyle && refs.length > 0 && missing.length === 0;
-  console.log(`${ok ? "PASS" : "FAIL"} referenced assets exist: ${refs.length} found`);
-  if (!hasStyle) console.log("  index.html has no stylesheet link");
-  for (const ref of missing) console.log(`  missing or unreadable reference: ${String(ref)}`);
+  for (const problem of problems) console.log(`  ${problem}`);
   return ok;
 }
 
