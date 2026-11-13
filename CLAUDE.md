@@ -23,7 +23,7 @@ and in the trace control, never in narrative sentences.
 | Runtime | pydantic 2.13.4, pypdf 6.21.2, github-copilot-sdk 1.0.8 (openpyxl 3.1.5 is on the work PC but unused: xlsx is read with the standard library) |
 | Dev | pytest 9.1.1, ruff 0.16.8, mypy 1.18.1 |
 | Model route | GitHub Copilot CLI 1.0.108, model `gpt-6-sol`, config `copilot-sol-medium` |
-| Front end | Node 24, React 19.3.0, Vite 6.4.3, Tailwind 4.3.3, TypeScript 5.9.3 |
+| Front end | Node 24, React 19.3.0, Vite 6.4.5, Tailwind 4.3.3, TypeScript 5.9.3 |
 | OS | Windows (work PC) and macOS (development); CI runs both Windows and Linux |
 | Browsers | Chrome and Edge, both on the work PC |
 | Run cap | USD 20 per run (decision 0002) |
