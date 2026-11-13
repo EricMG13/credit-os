@@ -23,7 +23,7 @@ these versions:
 | Package | Version |
 | :--- | :--- |
 | react, react-dom | 19.3.0 |
-| vite | 6.4.3 |
+| vite | 6.4.6 (see below) |
 | @vitejs/plugin-react | 5.2.0 |
 | tailwindcss, @tailwindcss/vite | 4.3.3 |
 | typescript | 5.9.3 |
@@ -39,9 +39,18 @@ these versions:
 | prettier | 3.9.6 |
 | @types/react, @types/react-dom | 19.3.0 |
 | @types/node | 24.13.4 |
+| @vitest/coverage-v8 | 4.1.11 (released 2026-08-18) |
+| knip | 6.41.0 (released 2026-10-09) |
+| jscpd | 5.4.1 (released 2026-10-09) |
 
-`knip` and `jscpd` (the unused-code and duplication gates) are not pinned in that project:
-phase 0B pins the newest release of each at least 30 days old and adds them to this table.
+`knip` and `jscpd` (the unused-code and duplication gates) were not pinned in that project:
+phase 0B pinned the newest release of each at least 30 days old on 2026-11-13.
+`@vitest/coverage-v8` is the coverage provider the 80 percent line threshold needs, at the
+same version as vitest.
+
+`vite` 6.4.3 fails `npm audit --omit=dev` (high severity, fixed from 6.4.6), so phase 0B
+pins 6.4.6, released 2026-11-09, which is under 30 days old. It is the first release that
+passes the gate.
 
 ## Constraints this decision carries
 

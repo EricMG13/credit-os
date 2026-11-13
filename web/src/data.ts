@@ -1,12 +1,10 @@
-export type LibraryData = {
+type LibraryData = {
   schema: "credit-os-data/1";
   issuers: readonly { id: string; name: string }[];
 };
 
 export type LoadResult =
-  | { kind: "ok"; data: LibraryData }
-  | { kind: "missing" }
-  | { kind: "newer"; schema: string };
+  { kind: "ok"; data: LibraryData } | { kind: "missing" } | { kind: "newer"; schema: string };
 
 declare global {
   interface Window {
