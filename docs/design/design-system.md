@@ -1,7 +1,7 @@
 # Design system
 
-Version 0.6, 2026-11-13, with the owner's rulings at review 1, the source-look instruction and
-the rules from the owner's own prompts applied (step D0 of the
+Version 0.7, 2026-11-13, with the owner's rulings at reviews 1 and 2, the source-look
+instruction and the rules from the owner's own prompts applied (step D0 of the
 [design track plan](../superpowers/plans/2026-11-13-design-track.md);
 [decision 0003](../decisions/0003-design-track.md) governs).
 
@@ -31,7 +31,8 @@ names are the names step D2a gives the Tailwind `@theme` variables.
 
 [Decision 0003](../decisions/0003-design-track.md) ("Source look"): where a component is taken
 from an approved source, its source page's visual design is reproduced closely rather than
-restyled. This file follows the decision's reading of that, which is to be confirmed at
+restyled. The owner confirmed the split below at review 2 and refined it (decision 0003,
+"Rulings at review 2"):
 review 2:
 
 - **This system supplies, everywhere:** the colour values, the typefaces, the status shapes,
@@ -40,8 +41,15 @@ review 2:
   sizes), radius, border widths, shadow and density, as its live page shows them.
 - **Every size, radius, border width, shadow, icon size and density value in this file applies
   only to pieces written here** (card, tile, gap panel, gap badge, withheld bar, status shapes,
-  skeleton, trace control, chart marks) **and to page layout and page text.** It never
+  skeleton, trace control) **and to page layout and page text.** It never
   overrides a source component.
+- **A card is page layout.** A card written here may hold a group of source components or a
+  chart. A single source component is still not restyled.
+- **Page titles and judgement prose use this system's sizes:** the page title is `h1` (36px)
+  and key findings, contrary evidence and what would change the view are `body` (16px). Every
+  other source component keeps its source's size.
+- **Charts and metric tiles follow the source:** faint horizontal gridlines, the source's bar
+  corners, and each metric on its own card.
 
 ## Colour roles
 
@@ -53,7 +61,7 @@ review 2:
 | `surface-card` | `#FFFFFF` | White | Cards, tiles, inputs, drawers |
 | `surface-subtle` | `#F4F4F5` | Neutral L9 | Row and item hover, disabled field, switch track |
 | `surface-selected` | `#E5E8FF` | Ultramarine L9 | Selected navigation item, subtle action fill |
-| `surface-inverse` | `#000533` | Navy | Tooltip; reserved for an inverse band |
+| `surface-inverse` | `#000533` | Navy | Tooltip; the bottom line band, with white text (review 2, ruling 6) |
 
 ### Text
 
@@ -88,6 +96,8 @@ Hover on a neutral surface (table row, navigation item, secondary button) is `su
 | `border-subtle` | `#E3E1FF` | Violet L7 | Card and tile edge (decorative) |
 | `border-hairline` | `#E8E9EB` | Neutral L8 | Row dividers (decorative) |
 | `border-control` | `#7F848D` | Neutral D1 | Edge colour of inputs and the secondary button; chart baseline |
+| `border-container` | `#D1D4D8` | Neutral L6 | A source's stronger container border: alert, featured icon, file icon (decorative) |
+| `connector` | `#BBBEC4` | Neutral L4 | Connector dots and lines between entries of an activity feed or timeline (decorative) |
 | `border-gap` | `#827BCC` | Violet D2 | Dashed edge of a gap state (3.71:1 on white) |
 | `border-strong` | `#000533` | Navy | Rare emphasis |
 
@@ -106,7 +116,9 @@ The destructive button is white on Error text colour `#8E413E`.
 
 ### Gap states
 
-A gap is not an error and never wears a status colour.
+A gap is not an error and never wears a status colour. The one place a status colour sits
+beside a gap is the severity rating in the Evidence gap register (see the Gap severity set):
+it rates how much the gap matters, and the gap itself keeps its own form.
 
 | State | Wording | Drawn as |
 | :--- | :--- | :--- |
@@ -182,6 +194,10 @@ text, interface marks and focus indicators need 3:1.
 | Heat grid label on step 3 | `#FFFFFF` | `#3348FF` | 5.98 | 4.5 | AA |
 | Heat grid label on step 4 | `#FFFFFF` | `#001AFF` | 8.10 | 4.5 | AAA |
 | Heat grid label on step 5 | `#FFFFFF` | `#0012B2` | 12.14 | 4.5 | AAA |
+| Container border on card | `#D1D4D8` | `#FFFFFF` | 1.49 | none | Decorative |
+| Container border on canvas | `#D1D4D8` | `#F6F5FF` | 1.38 | none | Decorative |
+| Connector on card | `#BBBEC4` | `#FFFFFF` | 1.86 | none | Decorative |
+| Connector on canvas | `#BBBEC4` | `#F6F5FF` | 1.72 | none | Decorative |
 
 The gap edge was Violet L2 (2.01:1 on white) in version 0.1 and is now Violet D2. A heat grid
 cell label is Navy on the two lightest steps of the magnitude scale and white on the three
@@ -191,7 +207,9 @@ Deliberately outside the table:
 
 - `text-disabled` `#A4A9B1` on white is 2.36:1. WCAG exempts inactive controls; it is used for
   nothing else.
-- `border-subtle` and `border-hairline` are decorative (1.3:1). No meaning depends on them.
+- `border-subtle` and `border-hairline` are decorative (1.3:1), as are `border-container` and
+  `connector` in the last four rows of the table. No meaning depends on any of them: a
+  container's edge and a connector only group what the text and the status shape already say.
 - The seven bright secondaries (Green `#1EFF8F`, Yellow `#EAFF00`, Gold `#FFE900`, Cyan
   `#4AD4FF`, Orange `#FFC600`, Violet `#A29AFF`, Reef `#FF7C56`) are all below 3:1 on white.
   They are never text or thin lines on a light surface. Cyan is used once, as the focus ring
@@ -224,8 +242,11 @@ Fallback stack: `system-ui, sans-serif`; `ui-monospace, monospace` for mono.
 | `metric` | 40 / 44 | 600 | Geist, tabular | -0.02em | Headline figure on a metric tile |
 | `mono` | 13 / 20 | 400 | Geist Mono | 0 | Evidence identifiers |
 
-The scale sets page text and the pieces written here. Text inside a source component (a table
-cell, a badge, a button, a hint) keeps the source's own sizes, in these families.
+The scale sets page text and the pieces written here. A page title is `h1` even inside a
+source's page header, and judgement prose (key findings, contrary evidence, what would change
+the view) is `body` even inside a source component (review 2, ruling 2). Any other text inside
+a source component (a table cell, a badge, a button, a hint, a module item, a limitation)
+keeps the source's own sizes, in these families.
 
 Sentence case everywhere. Prose columns are capped near 72 characters. Figures in tables are
 right-aligned with tabular numerals. Nothing written here is set below 13px.
@@ -291,9 +312,9 @@ Shadcnblocks piece redrawn on React Aria, which is redrawn to look like its sour
 | Select | Default, focus, disabled, invalid | UUI <https://www.untitledui.com/react/components/select> |
 | File upload | Drop zone; per-file progress, complete, failed with retry | UUI <https://www.untitledui.com/react/components/file-uploaders> |
 | Tabs | Selected in Ultramarine with a 2px line (underline when horizontal, side line when vertical); count badge neutral | UUI <https://www.untitledui.com/react/components/tabs> |
-| Chart or Table toggle | Button group, single selection; the selected item is a white pill on `surface-subtle` | UUI <https://www.untitledui.com/react/components/button-groups> |
+| Chart or Table toggle | The source's joined button group, single selection, with the selected segment as the source shows it, in these colours | UUI <https://www.untitledui.com/react/components/button-groups> |
 | Sidebar navigation | Light, in the variant the map names; selected item `surface-selected` with Ultramarine text and icon, hover `surface-subtle`, counts as neutral count badges | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
-| Card and tile | Card (`radius-lg`, padding 32, `shadow-1`) and tile (`radius-md`, padding 24), written here on the tokens | This system |
+| Card and tile | Card (`radius-lg`, padding 32, `shadow-1`) and tile (`radius-md`, padding 24), written here on the tokens. A card may hold a group of source components or a chart. A metric is the source's metric card, one card per metric, never a joined strip | This system; metric card UUI <https://www.untitledui.com/react/components/metrics> |
 | Table | Divider-line style; `md` rows on findings pages and `sm` rows for the dense audit tables on Evidence and the source rows in Signal settings; sortable heads; row hover `surface-subtle`; figures right-aligned with tabular numerals. The same colours and alignment apply to a HyperUI table | UUI <https://www.untitledui.com/react/components/tables> |
 | Badge | `pill-color`; forms listed under "Badge forms" below | UUI <https://www.untitledui.com/react/components/badges> |
 | Alert | Floating or inline; info, warning, error, success, each with its status shape | UUI <https://www.untitledui.com/react/components/alerts> |
@@ -321,7 +342,7 @@ system's colours and typefaces.
 | Label badge | Word only, neutral (`text-secondary` on `surface-subtle`) | Pathway, kind, qualifier, "AI" |
 | Count badge | Number only, neutral | Counts on tabs and navigation items |
 | Dot badge | 8px `action` dot | Unread |
-| Trace control | Icon only, with an accessible name and tooltip | One per paragraph, row or figure |
+| Trace control | Icon only, with an accessible name and tooltip; shown on hover and focus, and always shown on a touch device | One per paragraph, row or figure |
 
 **Status shapes.** Ten shapes, each with one meaning:
 
@@ -331,12 +352,12 @@ system's colours and typefaces.
 | Half-filled circle | Under way, pending |
 | Ring | Not started, idle; in the status set, a note |
 | Square | Settled, approved |
-| Triangle | Caution |
+| Triangle | Caution; something to look at |
 | Diamond | Problem |
 | Cross | Rejected |
 | Pause bars | Paused, interrupted |
-| Slashed circle | "Not assessable", and nothing else |
-| Dashed ring | A gap, and nothing else |
+| Slashed circle | "Not assessable", and nothing else (a blocked module, in every set that lists modules) |
+| Dashed ring | A gap, and nothing else: something this run did not establish |
 
 A set is a group of states that can appear together in one list, table, legend or strip.
 Within a set every state has a different shape; no two states differ by colour or word alone.
@@ -350,13 +371,46 @@ Within a set every state has a different shape; no two states differ by colour o
 | Answer state | Answered: filled circle, success. Partly answered: half-filled circle, info. Not answered: ring, neutral |
 | Met or not met | Met: filled circle, success. Not met: triangle, warning |
 | Freshness | Checked: filled circle, success. Not checked yet: ring, neutral |
+| Module state | Delivered: filled circle, success. Delivered with gaps: dashed ring, gap colours. Not assessable: slashed circle, neutral. Not run (only in a run that has ended): ring, neutral |
+| Change state | Changed: triangle, action. Unchanged: square, neutral. Not assessable: slashed circle, neutral |
+| Gap severity | High: diamond, error. Medium: triangle, warning. Low: ring, neutral |
+| File state | Uploading: half-filled circle, action. Read in full: filled circle, success. Read in part: triangle, warning. Unreadable: diamond, error |
+| Approval | Awaiting your approval: half-filled circle, info |
+| Activity that cannot be read | State not known: dashed ring, gap colours |
 
 A shape recurs across sets with the same meaning: the filled circle is Success, Finished,
-Healthy, Past, Answered, Met and Checked; the half-filled circle is Running, Proposed, Next and
-Partly answered; the ring is Info, Queued, Quiet, Later, Not answered and Not checked yet; the
-triangle is Warning, Capped and Not met; the diamond is Error, Failed and Failing; the pause
-bars are Interrupted and Paused. Two states that share a shape never appear in one list
-together.
+Healthy, Past, Answered, Met, Checked, Delivered and Read in full; the half-filled circle is
+Running, Proposed, Next, Partly answered, Uploading and Awaiting your approval; the ring is
+Info, Queued, Quiet, Later, Not answered, Not checked yet, Low and Not run; the triangle is
+Warning, Capped, Not met, Medium, Read in part and Changed; the diamond is Error, Failed,
+Failing, High and Unreadable; the square is Approved and Unchanged; the pause bars are
+Interrupted and Paused; the dashed ring is a gap, Delivered with gaps and State not known. Two
+states that share a shape never appear in one list together.
+
+The sets added at review 2 (ruling 7), and why each shape:
+
+- **Module state and change state sit together on the Changes page,** so across the two sets
+  no shape has two meanings: filled circle, dashed ring and ring belong to module state only,
+  triangle and square to change state only, and the slashed circle is "Not assessable" in
+  both.
+- **"Delivered with gaps" is the dashed ring in the gap colours** (`#514D80` text, dashed
+  `#827BCC` edge, white fill), because what it reports is gaps. It is not the half-filled
+  circle, which means under way, and not a warning.
+- **"Changed" is the triangle in the action colours** (`#001AFF` on `#E5E8FF`): something to
+  look at, not something wrong, so it does not wear the warning colour. Its shape differs from
+  Unchanged and Not assessable, so the colour is never the only cue.
+- **"Unreadable" is one state with one word** for a file that could not be read or was
+  rejected at run start; the sentence beside it says which. It is the diamond, not the run
+  state's cross.
+- **A module that fails inside a run reads "Not assessable"** with its sentence; "Failed" and
+  the diamond on a run page stay the run's.
+- **"Not run" and "Queued" share the ring** and never meet: Queued exists only in a live run,
+  Not run only in one that has ended.
+- **"State not known"** stands where the run state badge would be when the activity cannot be
+  read. It is a gap, so it takes the gap's shape, and is never listed beside a module's
+  "Delivered with gaps".
+- **Gap severity** is shown only in the Evidence gap register, beside the gap, never in place
+  of the gap's own form.
 Two sets never share one list, table or legend, so those states never sit side by side; where
 two sets are on the same page (a run-state badge in the page header above a timeline), the
 word and the position tell them apart. A set the map adds later takes shapes from the first
@@ -367,7 +421,7 @@ pulsing shape (a half-filled circle, so it differs from Finished with motion off
 the CSS shimmer; a gap is the hatched dashed panel; withheld is the
 striped bar with a neutral badge; a blocked module is a neutral badge with its sentence; the
 card is written here; dated records use the HyperUI timeline; the Chart or Table toggle is the
-Untitled UI button group.
+Untitled UI joined button group.
 
 What the live pages showed that the build must plan for:
 
@@ -377,10 +431,12 @@ What the live pages showed that the build must plan for:
 - **Theme.** UUI reads `--color-brand-50` to `--color-brand-950` and `--font-body`,
   `--font-display`, `--font-mono` from a `theme.css` `@theme` block. This system maps onto
   those: the Ultramarine steps fill the brand scale, and the three families fill the fonts.
-- **Shadcnblocks.** A component taken from one of its pages copies that page's look, built on
-  React Aria in place of Radix or Base UI, as the component map lists. This system supplies
-  only its colour values, typefaces, status shapes, gap states and motion. Radix and Base UI
-  are not added.
+- **Shadcnblocks.** Nothing is bought, and its named variants could not be read (review 2,
+  ruling 3). The build takes those pieces from Untitled UI or HyperUI where an equivalent
+  exists; where none does, the piece copies the Shadcnblocks page's look, built on React Aria
+  in place of Radix or Base UI. shadcn/ui and Kibo UI are not approved sources: their look was
+  accepted for the mocks only. This system supplies only its colour values, typefaces, status
+  shapes, gap states and motion.
 - **React Bits.** Nothing is taken from it (ruling 4). Every animation here is CSS.
 - **Charts.** Recharts (ruling 2), with its own decision record at D2a after it passes the
   open-from-disk check. The chart rules below apply to it.
@@ -427,9 +483,10 @@ Other scales:
 | Magnitude (one hue, light to dark) | `#99A3FF`, `#6676FF`, `#3348FF`, `#001AFF`, `#0012B2` |
 | Above and below a baseline | `#994A34`, `#E5704D`, `#DDDFE2` (neutral midpoint), `#6676FF`, `#001AFF` |
 
-Marks: bars with 4px rounded tops and a 2px gap between neighbours; 2px lines; markers 8px or
-more; one y-axis, never two; a 1px `border-control` baseline, no gridlines beyond a faint zero
-line. A chart over periods puts the periods on the x-axis, oldest on the left. Labels, values
+Marks follow the source chart (review 2, ruling 5): faint horizontal gridlines in
+`border-hairline`, the source's bar corners and bar spacing, and its legend, tick text and
+height. This system adds: one y-axis, never two; a 1px `border-control` baseline; and, on a
+line, the dash and marker of the series table. A chart over periods puts the periods on the x-axis, oldest on the left. Labels, values
 and legends use text colours, never the series colour. Status colours are
 never used as a series. A missing value is never drawn at zero: the mark is left out and the
 slot reads "n.a." (see Gap states).
@@ -465,7 +522,7 @@ and focus change state at once.
 | Secondary colours paired with Navy as accents | Secondaries appear only as tints (L steps) and dark steps (D steps), never at full strength in the interface | At full strength none passes 3:1 on white |
 | Tertiary used sparingly | Tertiary steps supply all secondary text, borders, status and chart colours | They are the only brand values that pass contrast |
 | Chart series seen as Ultramarine, Green, Yellow, Violet, dark teal, Reef | Ultramarine, Violet D2, Reef D4, Orange D3, Green D5, Yellow D4 | Neon Green and Yellow fail 3:1; every dark Cyan step falls below the chroma floor and reads as grey; the order was searched for colour-blind separation |
-| Flat fills, no gridlines | Kept, plus 4px rounded bar tops and a faint zero line | Softer marks match the rest of the system; a zero line is needed for bridges |
+| Flat fills, no gridlines | Flat fills kept; faint horizontal gridlines and the source chart's bar corners | Charts follow their source (review 2, ruling 5) |
 
 Kept from the guide: the 4-unit grid, sentence case, Navy as the anchor, Ultramarine for
 action, content before ornament.
@@ -485,8 +542,22 @@ The owner ruled on this system at review 1; [decision 0003](../decisions/0003-de
 - **Motion:** one-off transitions up to 200 ms, loops for live run state only, all off under
   reduced motion.
 - **Logo:** the predecessor's symbol file is committed at D2a.
-- **Source look:** source components copy their source page's design; the split between what
-  the source and this system supply is a reading to confirm at review 2.
+- **Source look:** source components copy their source page's design.
+
+At review 2 (decision 0003, "Rulings at review 2"):
+
+- **Cards:** a card may hold a group of source components or a chart, as page layout.
+- **Type:** page titles (36px) and judgement prose (16px) use this system's sizes; every other
+  source component keeps its own.
+- **Shadcnblocks:** nothing is bought; the build uses Untitled UI or HyperUI where an
+  equivalent exists.
+- **Statement table:** no Trend sparkline column.
+- **Charts and tiles follow the source:** faint horizontal gridlines, the source's bar
+  corners, separate metric cards; "what would change the view" is the source toast in the
+  info status colours.
+- **Bottom line:** a Navy band with white text.
+- **New status sets:** module state, change state, gap severity, file state and approval are
+  defined above; "Delivered with gaps" and "Changed" do not use the half-filled circle.
 
 ## Rules from the owner's prompts
 
@@ -505,7 +576,7 @@ yet" means no file on `main` states it and the coordinator is told.
 | Presentation is chosen for the reader: what, how and why | "Always consider user persona regarding what, how and why" | 2026-11-13 | `CLAUDE.md` (Reader); design track plan |
 | No module codes or method step identifiers on screen; the module's name instead, in the model's file navigator too | "Remove all cp-IDs and methodology step IDs from user facing screens" | 2026-11-10, 2026-11-12 | Screen inventory (module codes); step identifiers nowhere yet |
 | A chart over periods has the periods on the x-axis | "Charts with periods should be transposed, with period on the x axis" | 2026-11-10 | This file (Chart palette, marks) |
-| A chart is drawn as a chart, not inside a table | "why charts in tables when they should be charts" | 2026-11-12 | Nowhere yet. The map's statement table (R1) carries an in-row sparkline (F5); whether that breaks this rule is the owner's to say at review 2 |
+| A chart is drawn as a chart, not inside a table | "why charts in tables when they should be charts" | 2026-11-12 | Decision 0003, review 2, ruling 4: the statement table has no Trend sparkline column; the Bars view stays |
 | A sentence leads to its sources by a control or highlighted text, never by a citation in the prose | "clickable chips or highlighted text"; "citations within the credit narrative" named as a defect | 2026-11-12, 2026-11-11 | `CLAUDE.md` (Reader); ruling 7 (trace control) |
 | The prose reads as a credit analyst's judgement, not restated data | "very robotic and more focused on data collection and restatement" | 2026-11-11 | `CLAUDE.md` (Reader) |
 | Nothing on screen that does not help the reader | "remove anything not complimentary to UX" | 2026-11-10 | Component map |
@@ -533,8 +604,14 @@ review 1.
   only.
 - The states named in the Answer state, Met or not met and Freshness sets are this page's
   reading of the map's rows; the map does not list their names.
-- The Claude Design page is at version 0.5; 0.6 changed wording in this file only, nothing the
-  page draws. It was rendered in headless Chrome at 1440px wide
+- The Claude Design page is at version 0.5. It does not show the sets added at review 2, the
+  two new border tokens, the joined button group, or charts with gridlines and the source's
+  bar corners; its chart still has 4px bar tops and no gridlines.
+- The shapes for the review 2 sets were chosen from the mocks' written proposals; the mock
+  pages themselves were not opened, and no set was drawn or checked at 10px in its new colour
+  (the triangle in the action colours, the dashed ring as a module state).
+- The Untitled UI metrics page answered HTTP 200 on 2026-11-13; its content was not read in
+  this round. It was rendered in headless Chrome at 1440px wide
   from a local copy that is byte-identical to the uploaded file, with no console messages; it
   was not checked at narrow widths, in Edge, or in the Claude Design editor.
 - The page's source component samples (button, input, tabs, badge, table, navigation) are
