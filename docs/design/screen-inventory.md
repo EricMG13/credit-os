@@ -107,7 +107,7 @@ a comment edited or removed; a thread archived.
   comment; no article body is shown; feed and comment text is plain text; opening or
   refreshing a page makes no model call. Signal is served by its own local service and polls
   it, so it does not open from `file://`
-  ([component map](component-map.md), question 9).
+  (decision 0003, ruling 9).
 
 ## Known defects in the predecessor's screens
 
