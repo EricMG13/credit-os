@@ -3,6 +3,38 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-13 Design track: mocks (steps D1a to D1d) and design system 0.7
+
+**Scope.** Mocks drawn in Claude Design and one record per screen group under
+`docs/design/mocks/`. Nothing is built in React. Every mock was rendered at 1440px in one
+browser only; no narrow width, Edge, keyboard or screen-reader check.
+
+**Merged.** #8 run (`e6f8b1e`, merged by the owner's instruction in that session), #12 design
+system 0.7 with the new status sets, #9 Model and Forecast, #10 Signal, #11 library, #13 run
+revised to 0.7. CI green on both runners for each.
+
+**Rulings.** The owner's review 2 rulings are in decision 0003. Six product questions are
+listed there as open.
+
+**Review.** Batched docs review of the four records, `mx-feature`: library not a pass
+(5 Medium: an unapproved look source, a shape with two meanings, and three places where the
+library and Model mocks disagreed); run, Model and Signal passed. After the rulings, #12, #9
+and #11 were reviewed again: pass, no High or Medium. The status shapes in #11 and #13 were
+checked by the coordinator by reading the records against the design system's tables.
+
+**Ledger.**
+- `D1a agent=sub-session fix-rounds=2 gates-first-pass=n/a`
+- `D1b agent=sub-session fix-rounds=1 gates-first-pass=n/a`
+- `D1c agent=sub-session fix-rounds=1 gates-first-pass=n/a`
+- `D1d agent=sub-session fix-rounds=0 gates-first-pass=n/a`
+
+**Not verified.**
+- The mocks themselves were not opened by a reviewer; reviews read the records.
+- Source sizes were read from class names and pages, not compared side by side.
+- The library mock's Shadcnblocks rows copy shadcn/ui and Kibo UI base components, accepted
+  for the mocks only (review 2, ruling 3).
+- Whether Recharts can draw the chart forms the mocks show.
+
 ## 2026-11-13 Design track: design system and component map (steps D0 and D0b)
 
 **Scope.** Documents and a Claude Design project only. No component was installed, built or
