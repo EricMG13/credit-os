@@ -93,8 +93,8 @@ Read live on 2026-11-13 and copied for layout, sizes, radius and density, in the
 system's colours and typefaces: Untitled UI metrics (simple), button groups, page headers,
 tabs, line and bar charts; HyperUI vertical menu (icon, left border), toasts (standout),
 tables (sticky first column), details list; shadcnblocks banner (inset), list panel
-(numbered), alert (warning), collapsible (card), stat (delta), choicebox, item, chart (bar multiple, bar stacked, bar horizontal, target line). Badge, tab, button
-and table sizes were taken from the design system project's own source samples.
+(numbered), alert (warning), collapsible (card), stat (delta), choicebox, item, chart (bar multiple, bar
+stacked, bar horizontal, target line). Badge, tab, button and table sizes were taken from the design system project's own source samples.
 
 ## Departures
 
