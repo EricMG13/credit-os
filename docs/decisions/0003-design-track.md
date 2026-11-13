@@ -97,6 +97,11 @@ look rule above.
    your approval" are added to the design system. "Delivered with gaps" and "Changed" do not
    use the half-filled circle, which means under way.
 
+8. **Compared bars (owner, in the design system session, after review 2).** Bars that compare
+   series within a period stay side by side, each with the source's 6px top corners, rather
+   than the stack the source page draws. The owner's words as that session reports them:
+   "Keep side by side".
+
 Open product questions, not ruled: what the run start Purpose step carries (pathway,
 complexity, effort); a warning modal after Submit; stopping and resuming a run; what a Signal
 reader may do and which reactions exist; the paid-call rulings for Signal; the Model's
