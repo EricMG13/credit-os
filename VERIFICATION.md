@@ -20,12 +20,21 @@ across kinds), fixed in one round each and re-reviewed as resolved. Probes, exit
 merged tips: every colour is a brand hex; all contrast ratios and gray values recompute;
 every screen, state, record shape and chart kind is mapped; no name, credential or served URL.
 
-**Ledger.**
-- `D0 agent=sub-session fix-rounds=1 gates-first-pass=n/a`
-- `D0b agent=sub-session fix-rounds=1 gates-first-pass=n/a`
+**Follow-up, same day.** `main` at `4fea09f`: #6 design system 0.6 (`e5ac316`) and #7
+component map fixes (`4fea09f`), CI green on both runners. The owner's source-look rule (a
+component from an approved source copies that page's look) is in decision 0003. An audit of
+the merged map by the D0 session found 10 Medium defects, fixed in #7. The docs review of #6
+found 3 Medium (source look contradicted in the file, a malformed table, states sharing a
+shape); the re-review left 1 Medium in each PR (leftover "layout reference" wording; Running
+drawn like Finished), fixed and checked by the coordinator by reading the changed lines.
 
-**Parked Low findings.** Signal's source states name six shapes the design system does not
-define; the design system links the Claude Design project by id.
+**Ledger.**
+- `D0 agent=sub-session fix-rounds=3 gates-first-pass=n/a`
+- `D0b agent=sub-session fix-rounds=3 gates-first-pass=n/a`
+
+**Parked Low findings.** The design system defines no shapes for a module's state on the
+Overview tiles; it links the Claude Design project by id; the Claude Design page still shows
+the earlier hand-styled samples, not the source look.
 
 **Not verified.**
 - Whether Recharts, Untitled UI React or any adopted component passes the content security
