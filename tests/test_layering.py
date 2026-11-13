@@ -19,10 +19,12 @@ def violations(root: Path, layers: tuple[str, ...]) -> list[str]:
             continue
         pkg_parts = [package, *rel.parts[:-1]]
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Import | ast.ImportFrom):
+                continue
             targets: list[str] = []
             if isinstance(node, ast.Import):
                 targets = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom):
+            else:
                 if node.level:
                     base = pkg_parts[: len(pkg_parts) - (node.level - 1)]
                     targets = [".".join([*base, *([node.module] if node.module else [])])]

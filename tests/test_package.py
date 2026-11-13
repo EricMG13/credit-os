@@ -9,7 +9,14 @@ def test_version() -> None:
 
 def test_every_layer_imports() -> None:
     assert credit_os.LAYERS == (
-        "sources", "handoff", "model", "provider", "store", "checks", "orchestrator", "delivery",
+        "sources",
+        "handoff",
+        "model",
+        "provider",
+        "store",
+        "checks",
+        "orchestrator",
+        "delivery",
     )
     for name in credit_os.LAYERS:
         importlib.import_module(f"credit_os.{name}")

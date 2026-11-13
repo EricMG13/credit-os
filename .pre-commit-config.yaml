@@ -1,0 +1,12 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: gates
+        name: gates
+        entry: uv run python tools/gates.py
+        language: system
+        pass_filenames: false
