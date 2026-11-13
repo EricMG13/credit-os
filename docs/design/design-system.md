@@ -1,6 +1,6 @@
 # Design system
 
-Version 0.3, 2026-11-13, with the owner's rulings at review 1 and the source-look instruction
+Version 0.4, 2026-11-13, with the owner's rulings at review 1 and the source-look instruction
 applied (step D0 of the
 [design track plan](../superpowers/plans/2026-11-13-design-track.md);
 [decision 0003](../decisions/0003-design-track.md) governs).
@@ -18,13 +18,30 @@ holds every value the build needs.
 - **Judgement first, on a calm page.** White rounded cards on a faint violet canvas, large
   type, generous space.
 - **One accent.** Navy carries text; Ultramarine is the only action colour.
-- **Colour never works alone.** Every status has its own shape and a word, so it survives
-  grayscale and colour blindness.
+- **Colour never works alone.** Every state carries a shape and a word, and within any set of
+  states shown together each state has its own shape, so it survives grayscale and colour
+  blindness.
 - **Motion means a run is live.** Only live run state loops; everything else is a single
   short transition or none.
 
 Every colour below is a hex from the [brand tokens](brand-tokens.md); none is invented. Token
 names are the names step D2a gives the Tailwind `@theme` variables.
+
+## What this system supplies, and what a source supplies
+
+[Decision 0003](../decisions/0003-design-track.md) ("Source look"): where a component is taken
+from an approved source, its source page's visual design is reproduced closely rather than
+restyled. This file follows the decision's reading of that, which is to be confirmed at
+review 2:
+
+- **This system supplies, everywhere:** the colour values, the typefaces, the status shapes,
+  the gap, withheld and blocked states, motion, and the focus colour.
+- **The source supplies, for its own component:** layout, sizes (including text and icon
+  sizes), radius, border widths, shadow and density, as its live page shows them.
+- **Every size, radius, border width, shadow, icon size and density value in this file applies
+  only to pieces written here** (card, tile, gap panel, gap badge, withheld bar, status shapes,
+  skeleton, trace control, chart marks) **and to page layout and page text.** It never
+  overrides a source component.
 
 ## Colour roles
 
@@ -59,8 +76,8 @@ names are the names step D2a gives the Tailwind `@theme` variables.
 | `action-subtle` | `#E5E8FF` | Ultramarine L9 | Tertiary button hover, running badge fill |
 | `action-subtle-hover` | `#CCD1FF` | Ultramarine L8 | Running badge edge |
 | `action-disabled` | `#E8E9EB` | Neutral L8 | Disabled button fill |
-| `focus` | `#001AFF` | Ultramarine | 2px ring, 2px offset, on light surfaces |
-| `focus-inverse` | `#4AD4FF` | Cyan | The same ring on Navy |
+| `focus` | `#001AFF` | Ultramarine | Focus ring colour on light surfaces. Pieces written here draw it 2px wide with a 2px offset; a source component keeps its own ring width |
+| `focus-inverse` | `#4AD4FF` | Cyan | Focus ring colour on Navy |
 
 Hover on a neutral surface (table row, navigation item, secondary button) is `surface-subtle`.
 
@@ -70,7 +87,7 @@ Hover on a neutral surface (table row, navigation item, secondary button) is `su
 | :--- | :--- | :--- | :--- |
 | `border-subtle` | `#E3E1FF` | Violet L7 | Card and tile edge (decorative) |
 | `border-hairline` | `#E8E9EB` | Neutral L8 | Row dividers (decorative) |
-| `border-control` | `#7F848D` | Neutral D1 | Inputs, checkboxes, secondary button, chart baseline |
+| `border-control` | `#7F848D` | Neutral D1 | Edge colour of inputs and the secondary button; chart baseline |
 | `border-gap` | `#827BCC` | Violet D2 | Dashed edge of a gap state (3.71:1 on white) |
 | `border-strong` | `#000533` | Navy | Rare emphasis |
 
@@ -98,22 +115,24 @@ A gap is not an error and never wears a status colour.
 | Missing figure | "n.a." | The text itself in `text-tertiary`, right-aligned like a number. Never 0, never a badge |
 | Missing value in a chart | "n.a." | No mark is drawn. A bar slot stays empty with "n.a." in `text-tertiary` on the baseline; a line breaks and is not joined across the gap. Never drawn at zero |
 | Withheld value | "Withheld" | A short neutral striped bar where the figure would be, with a neutral badge |
-| No runs yet, no earlier run | A sentence and, where one exists, the next action | Centred empty state with a 48px featured icon |
+| No runs yet, no earlier run | A sentence and, where one exists, the next action | The source's empty state with its featured icon |
 
 ### Run states
 
 | State | Colour family | Shape |
 | :--- | :--- | :--- |
 | Queued | Neutral | Ring |
-| Running | Action (`#001AFF` on `#E5E8FF`) | Pulsing filled circle |
+| Running | Action (`#001AFF` on `#E5E8FF`) | Half-filled circle, with a pulsing halo while live |
 | Finished | Success | Filled circle |
 | Failed | Error | Diamond |
 | Capped | Warning | Triangle |
 | Rejected | Neutral | Cross |
 | Interrupted | Warning | Pause bars |
 
-The slashed circle belongs to "Not assessable" alone. Running is the CSS pulsing dot and queued
-is the CSS shimmer (see Motion).
+Seven states, seven shapes. Running and Finished differ by shape, so they still differ when the
+pulse is off under reduced motion. A queued module also shows the CSS shimmer where its result
+will appear (see Motion). The slashed circle belongs to "Not assessable" alone and the dashed
+ring to a gap alone.
 
 ## Contrast
 
@@ -158,8 +177,15 @@ text, interface marks and focus indicators need 3:1.
 | Info mark on fill | `#2C7F99` | `#EDFBFF` | 4.31 | 3 | Pass |
 | Gap edge on card | `#827BCC` | `#FFFFFF` | 3.71 | 3 | Pass |
 | Gap edge on canvas | `#827BCC` | `#F6F5FF` | 3.44 | 3 | Pass |
+| Heat grid label on step 1 | `#000533` | `#99A3FF` | 8.45 | 4.5 | AAA |
+| Heat grid label on step 2 | `#000533` | `#6676FF` | 5.24 | 4.5 | AA |
+| Heat grid label on step 3 | `#FFFFFF` | `#3348FF` | 5.98 | 4.5 | AA |
+| Heat grid label on step 4 | `#FFFFFF` | `#001AFF` | 8.10 | 4.5 | AAA |
+| Heat grid label on step 5 | `#FFFFFF` | `#0012B2` | 12.14 | 4.5 | AAA |
 
-The gap edge was Violet L2 (2.01:1 on white) in version 0.1 and is now Violet D2.
+The gap edge was Violet L2 (2.01:1 on white) in version 0.1 and is now Violet D2. A heat grid
+cell label is Navy on the two lightest steps of the magnitude scale and white on the three
+darkest; white on step 2 would be 3.75:1 and is not used.
 
 Deliberately outside the table:
 
@@ -193,20 +219,23 @@ Fallback stack: `system-ui, sans-serif`; `ui-monospace, monospace` for mono.
 | `h4` | 18 / 26 | 600 | Geist | 0 | Sub-section, tile title |
 | `lead` | 20 / 32 | 400 | Geist | 0 | Verdict and opening paragraph |
 | `body` | 16 / 26 | 400 | Geist | 0 | Prose |
-| `small` | 14 / 22 | 400 | Geist | 0 | Table cells, hints, notes |
-| `caption` | 13 / 18 | 500 | Geist | 0 | Column headers, labels above a figure, badges |
+| `small` | 14 / 22 | 400 | Geist | 0 | Supporting notes; text in pieces written here |
+| `caption` | 13 / 18 | 500 | Geist | 0 | Labels above a figure; the gap badge |
 | `metric` | 40 / 44 | 600 | Geist, tabular | -0.02em | Headline figure on a metric tile |
 | `mono` | 13 / 20 | 400 | Geist Mono | 0 | Evidence identifiers |
 
+The scale sets page text and the pieces written here. Text inside a source component (a table
+cell, a badge, a button, a hint) keeps the source's own sizes, in these families.
+
 Sentence case everywhere. Prose columns are capped near 72 characters. Figures in tables are
-right-aligned with tabular numerals. Nothing is set below 13px.
+right-aligned with tabular numerals. Nothing written here is set below 13px.
 
 ## Space, radius, elevation, borders
 
 **Spacing** (base 4): 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96.
 Page gutter 32, card padding 32, tile padding 24, gap between cards 24, gap between sections 64.
-Buttons, inputs and other source components keep their source's own sizes (see "Source look"
-under Components).
+These, and the radius, elevation and border values below, are for pieces written here and for
+page layout only (see "What this system supplies").
 
 | Radius token | Value | Use |
 | :--- | :--- | :--- |
@@ -216,53 +245,44 @@ under Components).
 | `radius-lg` | 28px | Cards |
 | `radius-full` | 999px | Status shapes, gap badge, withheld bar |
 
-Source components keep their source's own radius (see "Source look" under Components).
-
 | Elevation token | Value | Use |
 | :--- | :--- | :--- |
 | `shadow-1` | `0 1px 2px rgba(0,5,51,.06)` | Card at rest |
-| `shadow-2` | `0 6px 16px rgba(0,5,51,.08), 0 1px 2px rgba(0,5,51,.04)` | Menu, popover |
-| `shadow-3` | `0 20px 48px rgba(0,5,51,.16)` | Trace drawer, modal |
+| `shadow-2` | `0 6px 16px rgba(0,5,51,.08), 0 1px 2px rgba(0,5,51,.04)` | Chart tooltip |
 
-Shadows are Navy at low alpha. Depth separates layers and never decorates.
+Shadows are Navy at low alpha. Depth separates layers and never decorates. A source drawer,
+modal or menu keeps its source's own shadow.
 
-**Borders:** 1px everywhere; 2px only for the focus ring and the selected tab underline; dashed
-only for a gap.
+**Borders** on pieces written here: 1px; 2px for the focus ring; dashed only for a gap. A
+source component keeps its own border widths in this system's border colours.
 
 ## Icons
 
 - Set: Untitled UI Icons (line style), used only through the `@untitledui/icons` npm package
   the base components already import. No icon file is committed (ruling 5). Source:
   <https://www.untitledui.com/free-icons>.
-- Sizes: 16 inside badges, 20 beside text, 24 standalone, 48 as a featured icon in an empty
-  state.
+- Sizes: an icon inside a source component keeps the source's size. In pieces written here,
+  16 beside `small` text and 20 beside `body` text.
 - Icons inherit the text colour. An icon never stands without a label, except the trace
   control, which carries an accessible name.
-- The eight status shapes (circle, triangle, diamond, ring, dashed ring, slashed circle, cross,
-  pause bars) are part of this system and are drawn in CSS; they are not taken from the icon
-  set.
+- The ten status shapes (filled circle, half-filled circle, ring, dashed ring, slashed circle,
+  triangle, diamond, square, cross, pause bars) are part of this system and are drawn in CSS,
+  10px; they are not taken from the icon set.
 - The Claude Design page draws icons and the logo symbol as placeholders. The predecessor's
   symbol file is committed at step D2a (ruling 10); the wordmark is not.
 
 ## Components
 
-This table fixes how each base component looks: its variants, sizes and states on these
-tokens, and the live page it is built from (read 2026-11-13). Which component presents which
+This table names, for each base component, the variants and states this system uses, the
+colours they take, and the live page it is built from (read 2026-11-13). Which component presents which
 kind of information (metrics, facts, dated records, activity, statements and the rest) is the
 [component map](component-map.md)'s; it is not restated here. "UUI" is Untitled UI React (MIT,
 copied in with `npx untitledui@latest add <name>`), built on React Aria, the one primitive
 library (ruling 3).
 
-**Source look (owner, 2026-11-13).** A component taken from an approved source copies that
-source page's visual design closely: its layout, proportions, spacing, sizes, radius, shadow
-and states stay as the live page shows them. It is not restyled. This system supplies only
-what the owner fixed or accepted: the colour tokens (through the source's own theme variables),
-the typefaces, the status shapes, the gap, withheld and blocked states, and motion. Where a
-size or radius on this page differs from the source's own, the source wins for that component;
-the spacing, radius and elevation tokens above govern the pieces written here (card, tile, gap
-panel, withheld bar, status shapes) and page layout. This applies equally to a Shadcnblocks
-piece redrawn on React Aria: it is redrawn to look like its source page. The instruction was
-given in the D0 session and is not yet in decision 0003.
+Every source component follows the source-look rule in "What this system supplies" above: its
+design is its source page's, in this system's colours and typefaces. That holds equally for a
+Shadcnblocks piece redrawn on React Aria, which is redrawn to look like its source page.
 
 | Component | Variants and states in this system | Source |
 | :--- | :--- | :--- |
@@ -273,7 +293,7 @@ given in the D0 session and is not yet in decision 0003.
 | Tabs | Selected in Ultramarine with a 2px line (underline when horizontal, side line when vertical); count badge neutral | UUI <https://www.untitledui.com/react/components/tabs> |
 | Chart or Table toggle | Button group, single selection; the selected item is a white pill on `surface-subtle` | UUI <https://www.untitledui.com/react/components/button-groups> |
 | Sidebar navigation | Light, in the variant the map names; selected item `surface-selected` with Ultramarine text and icon, hover `surface-subtle`, counts as neutral count badges | UUI <https://www.untitledui.com/react/components/sidebar-navigations> |
-| Card and tile | Card (radius 28, padding 32, `shadow-1`) and tile (radius 20, padding 24), written here on the tokens | This system |
+| Card and tile | Card (`radius-lg`, padding 32, `shadow-1`) and tile (`radius-md`, padding 24), written here on the tokens | This system |
 | Table | Divider-line style; `md` rows on findings pages and `sm` rows for the dense audit tables on Evidence; sortable heads; row hover `surface-subtle`; figures right-aligned with tabular numerals. The same colours and alignment apply to a HyperUI table | UUI <https://www.untitledui.com/react/components/tables> |
 | Badge | `pill-color`; forms listed under "Badge forms" below | UUI <https://www.untitledui.com/react/components/badges> |
 | Alert | Floating or inline; info, warning, error, success, each with its status shape | UUI <https://www.untitledui.com/react/components/alerts> |
@@ -285,14 +305,15 @@ given in the D0 session and is not yet in decision 0003.
 | Tooltip | Default with supporting text, on `surface-inverse` | UUI <https://www.untitledui.com/react/components/tooltips> |
 | Progress steps | `IconsWithText` with the `number` marker; complete, current, incomplete | UUI <https://www.untitledui.com/react/components/progress-steps> |
 | Progress bar | The source's track (8px by default) in `action-subtle`, fill `action` | UUI <https://www.untitledui.com/react/components/progress-indicators> |
-| Loading indicator | `line-simple` spinner, on a run page while a run is live only (see Motion) |
-| Skeleton | Static blocks in `surface-subtle`, `radius-xs`, in the shape of what will arrive; no animation | This system | UUI <https://www.untitledui.com/react/components/loading-indicators> |
+| Loading indicator | `line-simple` spinner, on a run page while a run is live only (see Motion) | UUI <https://www.untitledui.com/react/components/loading-indicators> |
+| Skeleton | Static blocks in `surface-subtle`, `radius-xs`, in the shape of what will arrive; no animation | This system |
 | Timeline | Vertical, for dated records | HyperUI <https://www.hyperui.dev/components/application/timelines> |
-| Featured icon | `light` theme, 48 | UUI <https://www.untitledui.com/react/components/featured-icons> |
+| Featured icon | `light` theme, the source's size | UUI <https://www.untitledui.com/react/components/featured-icons> |
 
-A component the map names that has no row here (modal, radio cards, text area, toggle, metric
-tile, avatar, page header, filter bar, command menu, activity feed, tree view, messaging, tags,
-badge group, toast, stepper, half-circle progress) follows "Source look" with these tokens.
+A source component the map names that has no row here (modal, radio cards, text area, toggle,
+metric tile, avatar and avatar group, page header, filter bar, command menu, activity feed,
+tree view, messaging, tags, badge group, toast, stepper, half-circle progress, the HyperUI
+vertical menu, collapsible, list, item, Gantt) follows the same rule with these colours.
 
 **Badge forms.** Five, so that a state never looks like a label:
 
@@ -304,25 +325,44 @@ badge group, toast, stepper, half-circle progress) follows "Source look" with th
 | Dot badge | 8px `action` dot | Unread |
 | Trace control | Icon only, with an accessible name and tooltip | One per paragraph, row or figure |
 
-**Shapes for other states.** A state the map names that is not a run state takes the shape of
-its meaning, always with its word:
+**Status shapes.** Ten shapes, each with one meaning:
 
-| Meaning | Shape | Colour family |
-| :--- | :--- | :--- |
-| Good, done, healthy, met, answered | Filled circle | Success |
-| Needs attention, thin, not met | Triangle | Warning |
-| Failed, failing, breached | Diamond | Error |
-| Changed, restated, next | Ring | Info |
-| Not started, waiting, later, proposed, quiet, not checked | Ring | Neutral |
-| Approved, past | Filled circle | Neutral |
-| Paused, held | Pause bars | Neutral |
-| Refused, removed | Cross | Neutral |
+| Shape | Meaning |
+| :--- | :--- |
+| Filled circle | Complete, good |
+| Half-filled circle | Under way, pending |
+| Ring | Not started, idle; in the status set, a note |
+| Square | Settled, approved |
+| Triangle | Caution |
+| Diamond | Problem |
+| Cross | Rejected |
+| Pause bars | Paused, interrupted |
+| Slashed circle | "Not assessable", and nothing else |
+| Dashed ring | A gap, and nothing else |
 
-Two states in one list can share a shape and differ by colour and word (for example approved
-and healthy); the word is what tells them apart, and the mocks test whether that is enough.
+A set is a group of states that can appear together in one list, table, legend or strip.
+Within a set every state has a different shape; no two states differ by colour or word alone.
+
+| Set | State, shape and colour family |
+| :--- | :--- |
+| Status | Success: filled circle. Warning: triangle. Error: diamond. Info: ring |
+| Run states | Queued: ring, neutral. Running: half-filled circle, action. Finished: filled circle, success. Failed: diamond, error. Capped: triangle, warning. Rejected: cross, neutral. Interrupted: pause bars, warning |
+| Signal source states | Proposed: half-filled circle, info. Approved: square, neutral. Healthy: filled circle, success. Quiet: ring, neutral. Paused: pause bars, neutral. Failing: diamond, error |
+| Dated records | Past: filled circle, neutral. Next: half-filled circle, action. Later: ring, neutral |
+| Answer state | Answered: filled circle, success. Partly answered: half-filled circle, info. Not answered: ring, neutral |
+| Met or not met | Met: filled circle, success. Not met: triangle, warning |
+| Freshness | Checked: filled circle, success. Not checked yet: ring, neutral |
+
+A shape recurs across sets with the same meaning: the half-filled circle is Running, Proposed,
+Next and Partly answered; the ring is Queued, Quiet, Later, Not answered and Not checked yet.
+Two sets never share one list, table or legend, so those states never sit side by side; where
+two sets are on the same page (a run-state badge in the page header above a timeline), the
+word and the position tell them apart. A set the map adds later takes shapes from the first
+table by meaning and keeps them distinct within the set.
 
 Agreed with the component map: status shapes are the CSS shapes above; running is the CSS
-pulsing dot; queued is the CSS shimmer; a gap is the hatched dashed panel; withheld is the
+pulsing shape (a half-filled circle, so it differs from Finished with motion off); queued is
+the CSS shimmer; a gap is the hatched dashed panel; withheld is the
 striped bar with a neutral badge; a blocked module is a neutral badge with its sentence; the
 card is written here; dated records use the HyperUI timeline; the Chart or Table toggle is the
 Untitled UI button group.
@@ -397,7 +437,7 @@ animation is CSS in the stylesheet; none needs script or a library.
 
 | Kind | Where | What moves | Timing |
 | :--- | :--- | :--- | :--- |
-| Loop, live run only | Running badge | The state dot pulses a fading Ultramarine halo | 1.6s, ease-in-out, repeating |
+| Loop, live run only | Running badge | The half-filled circle pulses a fading Ultramarine halo | 1.6s, ease-in-out, repeating |
 | Loop, live run only | Queued module | A slow shimmer where its result will appear | 1.8s, linear, repeating |
 | Loop, live run only | Spinner | Rotates while a run is live and no step count exists | The source's timing |
 | One-off | Run progress bar | The fill eases to each new value | 200ms, `cubic-bezier(.2,0,0,1)` |
@@ -440,6 +480,8 @@ The owner ruled on this system at review 1; [decision 0003](../decisions/0003-de
 - **Motion:** one-off transitions up to 200 ms, loops for live run state only, all off under
   reduced motion.
 - **Logo:** the predecessor's symbol file is committed at D2a.
+- **Source look:** source components copy their source page's design; the split between what
+  the source and this system supply is a reading to confirm at review 2.
 
 ## Not verified
 
@@ -451,6 +493,12 @@ The owner ruled on this system at review 1; [decision 0003](../decisions/0003-de
   this page. Flowbite React, Ant Design, Preline and Uiverse are unused (decision 0003).
 - Recharts has not been installed or opened from disk; whether it can draw the dash, marker
   and missing-value rules above is untested.
+- The Claude Design page is at version 0.2: it shows hand-styled component samples, eight
+  status shapes and Running as a filled circle. It has not been redrawn to the source look or
+  to the ten shapes of this version.
+- The half-filled circle and the square have not been drawn or checked at 10px.
+- The states named in the Answer state, Met or not met and Freshness sets are this page's
+  reading of the map's rows; the map does not list their names.
 - The Claude Design page was rendered in headless Chrome at 1440px wide only, with no console
   errors; it was not checked at narrow widths, in Edge, or in the Claude Design editor.
 - Tabular numerals in Geist were seen in the render, not tested glyph by glyph. The fonts were
