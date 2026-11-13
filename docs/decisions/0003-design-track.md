@@ -61,6 +61,19 @@ side of a Chart or Table toggle; limitations are open by default; Flowbite React
 Preline and Uiverse are unused; contrary evidence moves into the two-sided board if the mocks
 cannot make the three alert-shaped components plainly different.
 
+A chart library may compute scales and positions from the values it is given (component
+map question 2, accepted with the others); no figure shown as text is computed on the page.
+
+## Source look (owner, 2026-11-13, given in the D0 session)
+
+The owner typed: "even if you use them copy the design". Asked what it referred to, the owner
+chose the option "Source look": where a component is taken from an approved source, its
+source page's visual design is reproduced closely rather than restyled.
+
+Reading by the D0 session and the coordinator, not stated by the owner: the design system
+still supplies the colour values (fixed), typefaces, status shapes, gap states and motion;
+the source supplies the component's layout, sizes, radius and density. To confirm at review 2.
+
 ## Rules that stay unless the owner says otherwise
 
 These protect the reader and the build, not a look: audit material only on Evidence and the
