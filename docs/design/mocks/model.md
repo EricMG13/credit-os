@@ -171,7 +171,7 @@ control shows when its own row, tile or passage is hovered or focused, and all s
   the charts on Forecast, Analysis and Portfolio fit were not looked at at first. The Table
   side of all nine charts on those three pages was later rendered once, with "Show sources"
   on; the key measures tab is still not looked at.
-- After the table-width fix, all sixteen table forms on Forecast, Analysis, Model and
+- After the table-width fix, all fifteen table forms on Forecast, Analysis, Model and
   Portfolio fit were rendered once at 1440px, all switched to Table together, and fit.
   One table switched alone was rendered for interest cover only. Narrower widths were not
   rendered.
