@@ -172,4 +172,9 @@ control shows when its own row, tile or passage is hovered or focused, and all s
   touch device.
 - The sparkline's style rules were then removed from `mock.css`. Model and States rendered
   pixel-identical to before; Analysis differed by 10 pixels of one grey level. The other four
-  pages were not re-rendered.
+  pages were then re-rendered: the top of Forecast and the Front page match their earlier
+  screenshots apart from the "Show sources" switch caught mid-slide; Forecast in full and
+  Portfolio fit were looked at once and have no earlier screenshot to compare with.
+- Headless Chrome sometimes draws a page before the web fonts settle, which shifts line
+  breaks. The earlier Limitations screenshot was such a render, so its comparison proves
+  nothing; five new renders agree with each other and with the Front page's header.
