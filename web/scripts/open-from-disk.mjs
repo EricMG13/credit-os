@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
+import { classProblems } from "./classes.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 // A hung browser must fail the run, not hold the CI job until the runner limit.
@@ -43,9 +44,9 @@ function findBrowser() {
   return undefined;
 }
 
-function dumpPage(browser, folder) {
+function dumpPage(browser, folder, hash = "") {
   const profile = mkdtempSync(path.join(tmpdir(), "credit-os-profile-"));
-  const url = pathToFileURL(path.join(folder, "index.html")).href;
+  const url = pathToFileURL(path.join(folder, "index.html")).href + hash;
   const args = [
     "--headless=new",
     "--dump-dom",
@@ -100,14 +101,34 @@ function checkStyleUrls(folder) {
   return ok;
 }
 
-function check(label, browser, folder, expected) {
-  const { dom, log } = dumpPage(browser, folder);
+// Strings in the source that look like colour, shadow, radius or size classes but are not.
+// Each entry carries its reason. Empty today.
+const NOT_CLASSES = [];
+
+// A class with no rule in the built stylesheet draws nothing, because the default palette is off.
+function checkClasses(folder) {
+  const css = referencedAssets(folder)
+    .assets.filter(({ kind, ref }) => kind === "stylesheet" && ref !== undefined)
+    .map(({ ref }) => readFileSync(path.join(folder, ...ref.split("/")), "utf8"))
+    .join("\n");
+  const srcDir = path.resolve(import.meta.dirname, "..", "src");
+  const problems = classProblems(srcDir, css, NOT_CLASSES);
+  const ok = problems.length === 0;
+  console.log(`${ok ? "PASS" : "FAIL"} every colour, shadow, radius and size class has a rule`);
+  for (const problem of problems) console.log(`  ${problem}`);
+  return ok;
+}
+
+function check(label, browser, folder, expected, hash = "", forbidden = []) {
+  const { dom, log } = dumpPage(browser, folder, hash);
   const found = problems(log);
-  const ok = dom.includes(expected) && found.length === 0;
+  const present = forbidden.filter((text) => dom.includes(text));
+  const ok = dom.includes(expected) && found.length === 0 && present.length === 0;
   console.log(`${ok ? "PASS" : "FAIL"} ${label}: expects "${expected}"`);
   if (!ok) {
     if (!dom.includes(expected)) console.log(`  the page text did not contain it`);
     for (const needle of found) console.log(`  stderr contains "${needle}"`);
+    for (const text of present) console.log(`  the live DOM contains "${text}"`);
     console.log(`  stderr:\n${log}\n  dom:\n${dom}`);
   }
   return ok;
@@ -155,7 +176,7 @@ try {
   cpSync(distDir, folder, { recursive: true });
   const dataFile = path.join(folder, "data.js");
   const original = readFileSync(dataFile, "utf8");
-  const results = [checkAssets(folder), checkStyleUrls(folder)];
+  const results = [checkAssets(folder), checkStyleUrls(folder), checkClasses(folder)];
   results.push(check("data.js present", browser, folder, "No runs yet"));
   rmSync(dataFile);
   results.push(check("data.js deleted", browser, folder, "Library data is missing"));

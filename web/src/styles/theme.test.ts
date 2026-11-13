@@ -12,7 +12,8 @@ const brandTokens = lf(readFileSync(path.join(docs, "brand-tokens.md"), "utf8"))
 const themePath = path.join(here, "theme.css");
 const theme = existsSync(themePath) ? lf(readFileSync(themePath, "utf8")) : "";
 
-const HEX = /#[0-9A-Fa-f]{6}\b/g;
+// 8-, 6-, 4- and 3-digit hex colours; the longest alternatives come first.
+const HEX = /#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})\b/g;
 
 function sectionOf(text: string, title: string, level: "##" | "###"): string {
   const start = text.indexOf(`\n${level} ${title}\n`);
@@ -40,6 +41,13 @@ function plain(css: string | undefined): string {
   return need(css, "value")
     .replace(/\s/g, "")
     .replace(/(?<!\d)0\./g, ".");
+}
+
+// A letter-spacing as value and unit; a bare 0 equals 0em.
+function tracking(value: string | undefined, unit?: string): string {
+  const m = /^(-?[\d.]+)(em|px)?$/.exec(need(value, "tracking"));
+  const number = Number.parseFloat(need(m?.[1], "tracking number"));
+  return number === 0 ? "0" : `${String(number)}${m?.[2] ?? unit ?? ""}`;
 }
 
 function walk(dir: string): string[] {
@@ -107,11 +115,15 @@ describe("theme.css", () => {
 
   it("defines the radius, shadow and type tokens from the design system", () => {
     const space = section("Space, radius, elevation, borders", "##");
-    for (const m of space.matchAll(/\|\s*`radius-(xs|sm|md|lg|full)`\s*\|\s*([0-9]+px)/g)) {
+    const radii = [...space.matchAll(/\|\s*`radius-(xs|sm|md|lg|full)`\s*\|\s*([0-9]+px)/g)];
+    expect(radii).toHaveLength(5);
+    for (const m of radii) {
       const size = need(m[1], "radius");
       expect(declared(`radius-ds-${size}`), size).toBe(m[2]);
     }
-    for (const m of space.matchAll(/\|\s*`shadow-([12])`\s*\|\s*`([^`]+)`/g)) {
+    const shadows = [...space.matchAll(/\|\s*`shadow-([12])`\s*\|\s*`([^`]+)`/g)];
+    expect(shadows).toHaveLength(2);
+    for (const m of shadows) {
       const n = need(m[1], "shadow");
       expect(plain(declared(`shadow-${n}`)), `shadow-${n}`).toBe(plain(m[2]));
     }
@@ -127,13 +139,11 @@ describe("theme.css", () => {
       const size = need(row[2], "size");
       const line = need(row[3], "line");
       const weight = need(row[4], "weight");
-      const track = need(row[5], "tracking");
+      const track = tracking(row[5], row[6]);
       expect(declared(`text-${name}`), name).toBe(`${size}px`);
       expect(declared(`text-${name}--line-height`), name).toBe(`${line}px`);
       expect(declared(`text-${name}--font-weight`), name).toBe(weight);
-      expect(Number.parseFloat(declared(`text-${name}--letter-spacing`) ?? "x"), name).toBe(
-        Number.parseFloat(track),
-      );
+      expect(tracking(declared(`text-${name}--letter-spacing`)), name).toBe(track);
     }
   });
 
@@ -163,7 +173,7 @@ describe("theme.css", () => {
   it("is the only file under web/src with a hex colour", () => {
     const offenders = walk(path.resolve(webRoot, "src"))
       .filter((f) => path.relative(here, f) !== "theme.css")
-      .filter((f) => /#[0-9A-Fa-f]{6}\b/.test(readFileSync(f, "utf8")))
+      .filter((f) => new RegExp(HEX.source).test(readFileSync(f, "utf8")))
       .map((f) => path.relative(webRoot, f));
     expect(offenders).toEqual([]);
   });
