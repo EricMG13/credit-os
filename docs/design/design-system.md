@@ -604,20 +604,22 @@ review 1.
   only.
 - The states named in the Answer state, Met or not met and Freshness sets are this page's
   reading of the map's rows; the map does not list their names.
-- The Claude Design page is at version 0.5. It does not show the sets added at review 2, the
-  two new border tokens, the joined button group, or charts with gridlines and the source's
-  bar corners; its chart still has 4px bar tops and no gridlines.
+- The Claude Design page is at version 0.7 and shows the review 2 sets, the two border
+  tokens, the joined button group, separate metric cards, the Navy bottom line band and a chart
+  with gridlines. Its bar corners are a placeholder: the source chart's corners were not read.
 - The shapes for the review 2 sets were chosen from the mocks' written proposals; the mock
-  pages themselves were not opened, and no set was drawn or checked at 10px in its new colour
-  (the triangle in the action colours, the dashed ring as a module state).
+  pages themselves were not opened. The sets were checked at 10px in one headless Chrome
+  render of the Claude Design page only.
 - The Untitled UI metrics page answered HTTP 200 on 2026-11-13; its content was not read in
-  this round. It was rendered in headless Chrome at 1440px wide
-  from a local copy that is byte-identical to the uploaded file, with no console messages; it
-  was not checked at narrow widths, in Edge, or in the Claude Design editor.
+  this round, so the metric card on the Claude Design page (30px figure, 12px radius) follows
+  the library mock's description of it.
+- The Claude Design page was rendered in headless Chrome at 1440px wide from a local copy that
+  is byte-identical to the uploaded file, with no console messages; it was not checked at
+  narrow widths, in Edge, or in the Claude Design editor.
 - The page's source component samples (button, input, tabs, badge, table, navigation) are
   drawings at the sizes, radius and shadow read on the Untitled UI pages on 2026-11-13. They
-  were not compared pixel by pixel with those pages, and the Chart or Table toggle, checkbox
-  and switch were not redrawn.
+  were not compared pixel by pixel with those pages, and the checkbox and switch were not
+  redrawn.
 - The owner's rules were read from the typed prompts in the session transcripts on this
   machine for this project and its predecessors (452 messages). A prompt in a session not
   stored there was not read, and each rule's wording here is a reading of the owner's words.
