@@ -201,7 +201,7 @@ figure.
 | Run start | Documents | I2 |
 | Run start | Purpose | I3 |
 | Run start | Confirm: the summary to approve | R2 |
-| Run start | More context | Text area from the base layer (UUI Textareas; listed in the index, page not opened) |
+| Run start | More context | UUI [Textareas](https://www.untitledui.com/react/components/textareas) |
 | Run start | Start | I4 |
 | Run started panel | What will run and its cap | S4 (success) with F4 |
 | Readiness side panel | Readiness items; the cap | R6; F4 |
@@ -230,9 +230,9 @@ figure.
 | Settings | Section list | N2 (vertical) |
 | Settings | Groups: members, visibility | R7; R15; I3 |
 | Settings | Sources: kind, state, health | R13 with S1 and F5 |
-| Settings | Thread rules; notifications | Toggle rows from the base layer (UUI Toggles; listed in the index, page not opened) |
+| Settings | Thread rules; notifications | UUI [Toggles](https://www.untitledui.com/react/components/toggles), one row per rule |
 | Settings | Topics | R2 with tags |
-| Settings | Digest form | I3 for schedule and length; base-layer inputs |
+| Settings | Digest form | I3 for schedule and length; UUI [Inputs](https://www.untitledui.com/react/components/inputs) |
 | Settings | AI spend against the cap | F4 |
 
 ## 4. Record shapes (17)
@@ -278,10 +278,11 @@ figure.
 | Signal: AI off or at its cap | S4 in settings; cards simply carry no AI line | |
 | Signal: comment edited, comment removed, thread archived | Inline text marks inside I8 | |
 
-## 6. Questions for the owner
+## 6. Questions for the owner, and the rulings
 
 Each is a place where a rule in the inventory, or a limit of the sources, pulls against the
-better design. The recommendation is the coordinator-facing default if the owner says nothing.
+better design. The owner ruled on 2026-11-13: the recommended default stands on all 13. The
+table after the list states each ruling; the coordinator copies them into decision 0003.
 
 1. **Charts need a library or hand drawing.** The only usable charts in the eight sources are
    Recharts (a new dependency needing a decision record). Five chart kinds (waterfall, dumbbell,
@@ -326,19 +327,39 @@ better design. The recommendation is the coordinator-facing default if the owner
     an anatomy. If the mocks cannot make them plainly different, should contrary evidence move
     into the two-sided board (P6) on module pages?
 
+| # | Ruling (owner, 2026-11-13) |
+| :--- | :--- |
+| 1 | Adopt Recharts through UUI `charts-base` (needs a decision record); compose the missing chart forms and the pathway diagram in its frame. |
+| 2 | Chart positions may be computed from given values. No animated numerals; RB Count Up is not used. |
+| 3 | One-off transitions up to 200 ms are allowed. Only live run state loops. All motion off under reduced motion. |
+| 4 | The trace control shows on hover and keyboard focus, always on touch, with a page-level "Show sources" switch. |
+| 5 | A plain table appears on a findings page only behind the Chart or Table toggle, and for statements. |
+| 6 | Evidence has five tabs: Summary, Trace (calculations as the expanded row), Sources, Gaps, Record (with registers). |
+| 7 | The Model links to the run's Evidence filtered to the model, and shows limitations as P5. |
+| 8 | Limitations are open by default. |
+| 9 | No default was written. Read as the map already draws it: Signal is a separate served page outside the open-from-disk rule and its gate. The owner should confirm. |
+| 10 | D1d mocks every designed Signal screen; AI parts are marked "needs ruling". |
+| 11 | No default was written. Read as the map already draws it: SB components are used as built, so Radix or Base UI sits beside React Aria and needs a decision record. The owner should confirm. |
+| 12 | Flowbite React, Ant Design, Preline and Uiverse stay unused. |
+| 13 | The three alert-shaped components stay as mapped; if the D1 mocks cannot make them plainly different, contrary evidence moves into P6 on module pages. |
+
+Effect on the tables above: ruling 6 folds R12 into the Trace tab's expanded row and the
+registers into the Record tab; the inventory's seven Evidence tabs become five.
+
 ## 7. Not read, and fragile choices
 
 Not read:
 
-- Flowbite React: only its Timeline page opened, after a browser check; other pages returned
-  429. Not used.
+- Flowbite React: its Timeline, Drawer and Accordion pages were read in a browser, after its
+  browser check (fetches return 429). It is one npm package. Not used.
 - Uiverse loaders: the page lists 1,218 CSS and Tailwind loaders by author with no names; no
   loader's code was opened. Not used; S7 is the stand-in.
-- Preline: `preline.co/blocks` returns 404; `preline.co/examples.html` and five block pages
-  under `/blocks/data-display/` were read. Not used.
+- Preline: `preline.co/blocks` returns 404 in a browser too; `preline.co/examples.html` and
+  five block pages under `/blocks/data-display/` were read. Not used.
 - Ant Design grid: read (24 columns, six breakpoints). Not used; Tailwind's grid covers layout.
-- UUI Textareas, Toggles, Inputs, Buttons, Tags, Select and Card headers: named in the index
-  page, their own pages not opened.
+- UUI Textareas, Toggles, Inputs, Buttons, Tags and Select were read in a browser on the second
+  pass: each is marked free and is built on React Aria. UUI Card headers are a paid example
+  and are not used.
 - React Bits pages state no props, dependencies or licence; those need the source on GitHub.
 
 Fragile choices to test in the mocks and at D2a:
