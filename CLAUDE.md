@@ -20,13 +20,18 @@ and in the trace control, never in narrative sentences.
 | :--- | :--- |
 | Python | `>=3.12,<3.13` |
 | uv | `>=0.12.5,<0.13` |
-| Runtime | pydantic 2.13.4, pypdf 6.21.2, github-copilot-sdk 1.0.8 |
+| Runtime | pydantic 2.13.4, pypdf 6.21.2, github-copilot-sdk 1.0.8 (openpyxl 3.1.5 is on the work PC but unused: xlsx is read with the standard library) |
 | Dev | pytest 9.1.1, ruff 0.16.8, mypy 1.18.1 |
-| Model route | GitHub Copilot CLI, config `copilot-sol-medium` |
-| Front end | Node 24, React 19.3.0, Vite 6.4.3, Tailwind 4.3.3, TypeScript 5.9.3 |
+| Model route | GitHub Copilot CLI 1.0.108, model `gpt-6-sol`, config `copilot-sol-medium` |
+| Front end | Node 24, React 19.3.0, Vite 6.4.5, Tailwind 4.3.3, TypeScript 5.9.3 |
 | OS | Windows (work PC) and macOS (development); CI runs both Windows and Linux |
+| Browsers | Chrome and Edge, both on the work PC |
+| Run cap | USD 20 per run (decision 0002) |
 
-One lockfile per stack. No per-machine adaptation: what CI passes is what runs at work.
+One lockfile per stack. The aim is that what CI passes is what runs at work. Where the work PC
+cannot install a pinned version, its copy uses the nearest it can and the difference is
+reported back so the pin here follows (decision 0002). Prefer established packages and older
+releases over the newest.
 
 ## Layout
 
@@ -65,8 +70,13 @@ docs/superpowers/plans/  the roadmap and one plan per phase
 
 - Global rules §1 (sub-agent-driven development), §3 (gates), §6 (design) and §7
   (coordinator sessions, pre-merge review) apply as written.
-- `uv run python tools/gates.py` and `npm --prefix web run gates` are the gates. Both exit 0
-  before a task is done; CI runs the same two commands.
+- `uv run --locked python tools/gates.py` and `npm --prefix web run gates` are the gates. Both
+  exit 0 before a task is done; CI runs the same two commands. Always launch the first with
+  `--locked`: a plain `uv run` re-locks silently before the gates start.
+- Committed fixtures and retained responses come only from public or synthetic cases; this
+  repository is public.
+- An analyst's Submit on the run start page may start a paid run only under an owner ruling
+  recorded in `docs/decisions/` that names its cap.
 - Component and animation sources are limited to the eight sites in global §6; read the
   live page before using one.
 - Keep one verification record, `VERIFICATION.md`, written only by the coordinator.
