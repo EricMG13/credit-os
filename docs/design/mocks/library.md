@@ -134,6 +134,11 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
 9. **Dumbbell scales.** Each row has its own scale, so line lengths cannot be compared across
     rows. Acceptable, or drop the Chart side on Changes?
 
+10. **Dashed ring too faint at 10px.** The shape is the design system's and is also the gap
+    badge's. Measured, 1x: the current 10px ring with a 1.5px edge has 9 pixels at 3:1 or
+    more; 2px dashed has 30 at 10px, 33 at 12px and 42 at 14px; 2px dotted at 12px has 23.
+    Proposed for the design system: a 2px dashed edge at 12px. Not applied to the mocks.
+
 ## Not verified
 
 - Rendered in headless Chrome at 1440px wide only; not checked at narrow widths, in Edge, in
@@ -151,8 +156,12 @@ maturity). Module timings, run codes, hashes and registers are on Evidence Recor
   and looked at once each at 1440px. The only console message is "never resolved" for a list
   inside a table body on Evidence Trace; the rows render. The trace drawer's dimmed backdrop
   is a cut-down Overview, not the full page.
-- The dashed ring for "Delivered with gaps" is 8 to 10px and faint at that size; its contrast
-  and legibility were not measured.
+- The dashed ring was measured on the rendered screenshots (headless Chrome, 1440px, 1x). It
+  is 10px with a 1.5px dashed edge. Its colour passes on every surface it sits on (`#514D80`:
+  7.7:1 on white, 7.1:1 on the canvas, 6.4:1 on the selected navigator row). As drawn it does
+  not: 7 to 9 of its 31 inked pixels reach 3:1 and the median inked pixel is about 1.55:1,
+  against 70 of 88 for the filled circle and 32 of 60 for the slashed circle beside it. A 2x
+  display and a real person's reading were not tested (question 10).
 - No repository gate applies to this change: it is one Markdown file under `docs/`, and
   neither `tools/gates.py` nor the web gates were run.
 - The always-shown trace control on touch is a CSS rule (`hover: none`); it was not seen on a
