@@ -3,8 +3,8 @@
 Step D1b of the [design track plan](../../superpowers/plans/2026-11-13-design-track.md),
 drawn 2026-11-13 against [design system](../design-system.md) 0.6, the
 [component map](../component-map.md) as merged at `9fef96e`, and
-[decision 0003](../../decisions/0003-design-track.md) including "Source look". Nothing here
-is built in React.
+[decision 0003](../../decisions/0003-design-track.md) including "Source look", and revised to
+its review 2 rulings (`origin/main` `e3897a1`). Nothing here is built in React.
 
 **Mock project:** [Claude Design project](https://claude.ai/design/p/d971501e-80a2-4b17-ab8f-7011bb867f0e?file=Forecast.dc.html).
 Standalone Claude Design has announced that its tools stop working by 2026-12-14.
@@ -55,8 +55,8 @@ Each has a working Chart or Table toggle and a missing value drawn by the map's 
 | Limits | C13 | Portfolio fit: exposure against limits | No limit: bar with "limit n.a." and no tick; no exposure: no bar, "n.a.", the tick stays |
 | Pair tile | C15 | Portfolio fit: agency ratings | None in the sample |
 
-Also drawn: the statement table (R1) with its in-row sparkline (F5), which breaks at a
-missing period.
+Also drawn: the statement table (R1). It has no Trend sparkline column (review 2, ruling 4);
+its Bars view stays.
 
 ## States
 
@@ -72,14 +72,28 @@ missing period.
 
 No looping animation is on any screen.
 
+Inventory states that do not apply here, and are not drawn: "no runs yet" and "no earlier run
+to compare" (the Model and Forecast exist only inside one run and compare nothing with an
+earlier one; that belongs to the library home and Changes), and "many modules" (these screens
+list no modules). Long text is not drawn as a state of its own: prose is capped at 72 to 90
+characters a line and wraps, and table labels do not wrap.
+
+## Type
+
+- Page title: the design system's `h1`, 36 / 42, weight 700, inside the Untitled UI page
+  header layout, as the run and library mocks use (review 2, ruling 2).
+- Bottom line lead: the design system's `h3`, 22 / 30, weight 600, as the library mock does.
+- Judgement prose (key findings, contrary evidence, what would change the view): the design
+  system's `body`, 16 / 26. It was the source's 14px before this round.
+- Every other source component keeps its source's size (ruling 2).
+
 ## Source look
 
 Read live on 2026-11-13 and copied for layout, sizes, radius and density, in the design
 system's colours and typefaces: Untitled UI metrics (simple), button groups, page headers,
 tabs, line and bar charts; HyperUI vertical menu (icon, left border), toasts (standout),
 tables (sticky first column), details list; shadcnblocks banner (inset), list panel
-(numbered), alert (warning), collapsible (card), stat (delta), choicebox, item, sparkline
-(line), chart (bar multiple, bar stacked, bar horizontal, target line). Badge, tab, button
+(numbered), alert (warning), collapsible (card), stat (delta), choicebox, item, chart (bar multiple, bar stacked, bar horizontal, target line). Badge, tab, button
 and table sizes were taken from the design system project's own source samples.
 
 ## Departures
@@ -88,36 +102,34 @@ and table sizes were taken from the design system project's own source samples.
 | :--- | :--- | :--- |
 | Map 3.2 | Bullet and dumbbell are on Analysis, scatter and a second range strip on Portfolio fit, recovery on Model | The brief asks for all thirteen kinds on these screens; the map places only nine here |
 | Map 3.2 | A "States" board is added | One place to review the states; it is not a product screen |
-| Design system, toggle row | Chart or Table is the Untitled UI joined button group, 40 high, the selected item filled `surface-subtle` | Source look; the design system row describes a white pill on a subtle track |
-| Design system, chart marks | Charts carry four faint horizontal gridlines, no axis line, 6px bar corners, legend beside or under the plot | Source look (Untitled UI and shadcnblocks charts); the design system says no gridlines beyond a zero line and 4px tops |
-| Map F1 | Metric tiles are separate cards in a grid, not a joined strip | The source's simple metric is a separate card |
-| Map 2.5, frame | Charts, the statement table, the details list and stats sit in a design system card; components that bring their own container (metrics, banner, list rows, alert, toast, collapsible, choicebox, item) sit on the canvas | The map forbids wrapping a source component in a card of ours; a chart has no container of its own |
-| Map P1 | The bottom line is a Navy band with white text | The source's inset banner is a dark filled bar; `surface-inverse` is the system's only inverse colour |
-| Map P4 | "What would change the view" uses the info status colours | The source toast is blue-tinted; info is the nearest status |
+| Design system, toggle row | Chart or Table is the Untitled UI joined button group, 40 high, the selected item filled `surface-subtle` | Source look, confirmed at review 2 (ruling 2: a source component keeps its source's size) |
+| Design system, chart marks | Charts carry four faint horizontal gridlines, no axis line, 6px bar corners, legend beside or under the plot | Review 2, ruling 5 |
+| Map F1 | Metric tiles are separate cards in a grid, not a joined strip | Review 2, ruling 5 |
+| Map 2.5, frame | Charts, the statement table, the details list and stats sit in a design system card; components that bring their own container (metrics, banner, list rows, alert, toast, collapsible, choicebox, item) sit on the canvas | Review 2, ruling 1: a card may hold a chart or a group of source components, as page layout |
+| Map P1 | The bottom line is a Navy band with white text | Review 2, ruling 6 |
+| Map P4 | "What would change the view" uses the info status colours | Review 2, ruling 5 |
 | Map F2 | The delta line is neutral text with an arrow, not green or red | Whether a rise is good depends on the measure; colour alone was a defect in the predecessor |
 | Map C13 | Limits are vertical columns, each on its own scale, with a horizontal dashed tick | Keeps limits visibly different from the bullet's horizontal bars; limits differ by a factor of ten |
 | Map C10 | Increases and decreases use the design system's above and below baseline colours, with signed labels | The series palette has no direction |
 | Map N1 | The rail shows four placeholder icons with tooltips | Icons come from the npm package at build time |
-| Design system, type | Table cells are 16px (HyperUI's size); header notes and chart ticks are 12px | Source sizes |
+| Design system, type | Table cells are 16px (HyperUI's size); header notes and chart ticks are 12px | Source sizes (review 2, ruling 2) |
+| Map R1 | The statement table has no in-row sparkline | Review 2, ruling 4 |
 
 ## Questions for the owner
 
-1. The statement table keeps an in-row sparkline (map R1). Your rule "why charts in tables
-   when they should be charts" may forbid it. Keep the Trend column, or drop it and rely on
-   Bars?
-2. Is a design system card around a chart or a statement acceptable under "source look", or
-   should those sit bare on the canvas as well?
-3. The bottom line as a Navy band: keep the source's dark banner, or a light one?
-4. Bullet, dumbbell, scatter and recovery are not placed on the Model by the map. Keep them
+Settled at review 2 and removed from this list: the Trend column (ruling 4), a card around a
+chart or statement (ruling 1), the Navy bottom line (ruling 6), and the 40-high button group
+(ruling 2).
+
+1. Bullet, dumbbell, scatter and recovery are not placed on the Model by the map. Keep them
    where the mock puts them, or leave them to the library's module pages only?
-5. Limits on separate scales read cleanly but the bars cannot be compared with each other.
+2. Limits on separate scales read cleanly but the bars cannot be compared with each other.
    Acceptable, or one shared scale?
-6. Should the Chart or Table toggle be the source's 40-high button group on every chart, or
-   a smaller size?
-7. Forecast repeats the case cards that the Model page has. Should Forecast link to the
+3. Forecast repeats the case cards that the Model page has. Should Forecast link to the
    Model for the statements, as drawn, or carry a summary statement of its own?
-8. Period set: the mock shows FY, LTM and forecast years. Your list also names quarters, YTD
+4. Period set: the mock shows FY, LTM and forecast years. Your list also names quarters, YTD
    and prior-year YTD, prior LTM and pro forma. Which belong on the Model page by default?
+   (Listed in decision 0003 as open, not ruled.)
 
 ## Trace controls
 
@@ -126,7 +138,7 @@ of a chart's table form, each chart, each finding, the bottom line, contrary evi
 would change the view, each limitation (Analysis and Limitations), each fact in "What the
 model covers", each sentence in the parts list, and each case card (Forecast and Model). A
 control shows when its own row, tile or passage is hovered or focused, and all show under
-"Show sources".
+"Show sources". On a touch device (no hover) every control is always shown.
 
 ## Fixed after the first render
 
@@ -155,3 +167,6 @@ control shows when its own row, tile or passage is hovered or focused, and all s
 - Whether Recharts can draw these forms, dashes, markers and missing-value rules is untested.
 - Contrast of the two baseline colours (`#6676FF`, `#E5704D`) as bar fills was not computed.
 - Keyboard order and screen reader output were not tested.
+- The review 2 round was checked in one render each of Model, Analysis and States. The
+  always-shown trace controls on touch are a `hover: none` rule that was not rendered on a
+  touch device. The sparkline's style rules remain in `mock.css`, unused.
