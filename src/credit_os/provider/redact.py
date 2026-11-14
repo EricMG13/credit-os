@@ -292,31 +292,60 @@ def _case_forms(char: str) -> tuple[str, ...]:
     return tuple(form for block in _code_points() for form in pattern.findall(block))
 
 
+def _encodings(form: str) -> tuple[set[str], set[str]]:
+    """The escaped and the plain (percent-encoded) spellings of one character."""
+    escaped = {_escapes("u", _units(ord(form)), 4)}
+    data = form.encode("utf-8", "surrogatepass")
+    escaped |= {_escapes("x", data, 2), _escapes("u", data, 4)}
+    if ord(form) < 0x100:
+        escaped.add(_escapes("x", [ord(form)], 2))
+    return escaped, {"".join(rf"{_PERCENT}{b:02x}" for b in data)}
+
+
+def _unit(char: str, lead: str, taken: bool) -> str:
+    """One character of a form: its literal, escaped and percent spellings."""
+    escaped, plain = _encodings(char)
+    body = "(?:" + "|".join(_longest_first(escaped)) + ")"
+    if taken:  # the separator run took some of the escape's backslashes; a literal is not found here
+        return r"\\{0,8}+" + body
+    return "(?:" + "|".join([lead + body, *_longest_first({re.escape(char), *plain})]) + ")"
+
+
+def _sequences(char: str) -> list[str]:
+    """Each case form of ``char`` that is more than one character in NFD or NFC: those sequences,
+    longer first (a sequence that is a prefix of another is tried after it)."""
+    found = {
+        n
+        for form in _case_forms(char)
+        for n in (unicodedata.normalize("NFD", form), unicodedata.normalize("NFC", form))
+        if len(n) > 1
+    }
+    return sorted(found, key=lambda n: (-len(n), n))
+
+
 def _char_pattern(char: str, after_separator: bool, taken: bool = False) -> str:
     """One character: as written, and each case form of it (every letter ``re.IGNORECASE`` holds the
     same, itself included) as
     ``\\uXXXX`` (a surrogate pair above U+FFFF), ``\\xXX`` (below U+0100), its UTF-8 bytes as
-    ``\\xHH`` or ``\\u00HH``, and percent-encoded. The literal is one alternative: the pattern
+    ``\\xHH`` or ``\\u00HH``, and percent-encoded; and each such form's NFD and NFC sequence, each
+    of its characters written the same ways. The literal is one alternative: the pattern
     ignores case, and two alternatives for one text would let a failing match retry both."""
     plain = {re.escape(char)}
     escaped: set[str] = set()
     for form in _case_forms(char):
-        data = form.encode("utf-8", "surrogatepass")
-        escaped |= {_escapes("u", _units(ord(form)), 4), _escapes("x", data, 2)}
-        escaped.add(_escapes("u", data, 4))
-        plain.add("".join(rf"{_PERCENT}{b:02x}" for b in data))
-        if ord(form) < 0x100:
-            escaped.add(_escapes("x", [ord(form)], 2))
+        more_escaped, more_plain = _encodings(form)
+        escaped |= more_escaped
+        plain |= more_plain
     lead = rf"(?:{_ESCAPE}|{_SHARED})" if after_separator else rf"{_ESCAPE}"
-    if (
-        taken
-    ):  # the separator run took some of the escape's backslashes; a literal is not found here
-        return r"\\{0,8}+(?:" + "|".join(_longest_first(escaped)) + ")"
-    return (
-        "(?:"
-        + "|".join([lead + "(?:" + "|".join(_longest_first(escaped)) + ")", *_longest_first(plain)])
-        + ")"
-    )
+    sequences = [
+        _unit(seq[0], lead, taken) + "".join(_unit(c, _ESCAPE, False) for c in seq[1:])
+        for seq in _sequences(char)
+    ]
+    body = "(?:" + "|".join(_longest_first(escaped)) + ")"
+    if taken:
+        return "(?:" + "|".join([*sequences, r"\\{0,8}+" + body]) + ")"
+    singles = [lead + body, *_longest_first(plain)]
+    return "(?:" + "|".join([*sequences, *singles]) + ")"
 
 
 _SEPARATOR_TOKEN = re.compile(r"%(?:25){0,2}(?:2f|5c)", re.IGNORECASE)
