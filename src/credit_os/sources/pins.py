@@ -57,10 +57,11 @@ def _segment_reason(segment: str) -> str | None:
         or segment.endswith(".")
     ):
         return "segment starts or ends with a space or ends with a dot"
-    if (
-        PureWindowsPath(segment).is_reserved()
-        or segment.split(".")[0].rstrip(" ").upper() == "CLOCK$"
-    ):
+    if PureWindowsPath(segment).is_reserved() or segment.split(".")[0].rstrip(" ").upper() in {
+        "CLOCK$",
+        "COM0",
+        "LPT0",
+    }:
         return "reserved device name"
     if len(segment.encode("utf-8")) > _MAX_SEGMENT_BYTES:
         return "segment longer than 255 bytes"

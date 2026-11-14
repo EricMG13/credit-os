@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import credit_os.sources.files as files_module
 from credit_os.sources.errors import SourceChanged, SourceRefused, SourceTooLarge, SourceUnreadable
 from credit_os.sources.files import MAX_BYTES, read_capped, read_pinned, source_path
 from credit_os.sources.pins import SourceKind, SourcePin
@@ -127,12 +128,53 @@ def test_read_capped_fifo(tmp_path: Path) -> None:
 
 
 def test_read_capped_symlink(folder: Path, tmp_path_factory: pytest.TempPathFactory) -> None:
-    if not hasattr(os, "O_NOFOLLOW"):
-        pytest.skip("os.O_NOFOLLOW is not available on this platform")
     link = tmp_path_factory.mktemp("links") / "link.txt"
     _symlink(link, folder / "readme.txt")
-    with pytest.raises(SourceUnreadable):
+    with pytest.raises(SourceUnreadable) as caught:
         read_capped(link)
+    if not hasattr(os, "O_NOFOLLOW"):
+        assert str(caught.value) == f"{link}: is a symbolic link"
+
+
+def _without_nofollow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(files_module, "_HAS_NOFOLLOW", 0)
+    monkeypatch.setattr(files_module, "_OPEN_FLAGS", os.O_RDONLY | getattr(os, "O_BINARY", 0))
+
+
+def test_read_capped_link_refused_without_nofollow(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _without_nofollow(monkeypatch)
+    link = folder / "link.txt"
+    _symlink(link, folder / "readme.txt")
+    outer = folder / "outer.txt"
+    _symlink(outer, link)
+    for refused in (link, outer):
+        with pytest.raises(SourceUnreadable) as caught:
+            read_capped(refused)
+        assert str(caught.value) == f"{refused}: is a symbolic link"
+    assert read_capped(folder / "readme.txt") == b"Synthetic note.\n"
+    missing = folder / "missing.txt"
+    with pytest.raises(SourceUnreadable) as absent:
+        read_capped(missing)
+    assert str(absent.value) == f"{missing}: cannot open ({os.strerror(errno.ENOENT)})"
+
+
+def test_read_capped_link_test_oserror_is_typed(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _without_nofollow(monkeypatch)
+    failure = OSError(errno.EACCES, "synthetic")
+
+    def fail(self: Path) -> bool:
+        raise failure
+
+    monkeypatch.setattr(Path, "is_symlink", fail)
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot open (synthetic)"
+    assert caught.value.__cause__ is failure
 
 
 def test_source_path_nested(folder: Path) -> None:
@@ -613,3 +655,15 @@ def test_junction_refused(folder: Path) -> None:
         with pytest.raises(SourceRefused) as caught:
             source_path(folder, "joined/filing.html")
         assert str(caught.value) == "joined/filing.html: " + LINK
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="junctions exist only on Windows")
+def test_read_capped_junction_refused(folder: Path) -> None:
+    if sys.platform == "win32":
+        import _winapi
+
+        _winapi.CreateJunction(str(folder / "notes"), str(folder / "joined"))
+        assert (folder / "joined").is_junction()
+        with pytest.raises(SourceUnreadable) as caught:
+            read_capped(folder / "joined")
+        assert str(caught.value) == f"{folder / 'joined'}: is a symbolic link"
