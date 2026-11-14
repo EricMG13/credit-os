@@ -12,6 +12,7 @@ Gate = tuple[str, tuple[str, ...]]
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "tools" / "suppressions-baseline.txt"
 AUDIT_REQUIREMENTS = ROOT / ".venv" / "audit-requirements.txt"
+JSCPD = ROOT / "web" / "node_modules" / "jscpd" / "run-jscpd.js"
 VENV_BIN = ROOT / ".venv" / ("Scripts" if sys.platform == "win32" else "bin")
 UV_RUN_PREFIX = ("uv", "run", "--locked")
 # One pattern per suppression the pinned tools honour, matched in comments only and ignoring case.
@@ -58,6 +59,7 @@ GATES: tuple[Gate, ...] = (
         "pip-audit",
         ("uv", "run", "--locked", "pip-audit", "--strict", "-r", str(AUDIT_REQUIREMENTS)),
     ),
+    ("duplication", ("node", str(JSCPD), "--threshold", "3", str(ROOT / "src"))),
 )
 
 
@@ -98,6 +100,9 @@ def run(gates: tuple[Gate, ...]) -> int:
         missing = _missing_behind_uv(argv)
         if missing:
             print(f"gate tool not found: {missing} (gate: {name})")
+            return 2
+        if str(JSCPD) in argv and not JSCPD.is_file():
+            print(f"gate tool not found: jscpd, run npm ci in web/ (gate: {name})")
             return 2
         try:
             code = subprocess.run(argv, check=False, cwd=ROOT).returncode

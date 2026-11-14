@@ -1,3 +1,5 @@
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -108,6 +110,7 @@ def test_real_gate_set_is_pinned() -> None:
         "bandit",
         "pip-audit export",
         "pip-audit",
+        "duplication",
     ]
 
 
@@ -230,3 +233,56 @@ def test_main_missing_tool_exits_two(tmp_path: Path, monkeypatch: pytest.MonkeyP
 def test_pytest_gate_skips_live_and_browser_tests() -> None:
     argv = dict(GATES)["pytest"]
     assert argv[argv.index("-m") + 1] == "not live and not browser"
+
+
+JSCPD = gates.ROOT / "web" / "node_modules" / "jscpd" / "run-jscpd.js"
+
+
+def test_duplication_gate_arguments_are_pinned() -> None:
+    assert dict(GATES)["duplication"] == (
+        "node",
+        str((gates.ROOT / "web" / "node_modules" / "jscpd" / "run-jscpd.js").resolve()),
+        "--threshold",
+        "3",
+        str((gates.ROOT / "src").resolve()),
+    )
+
+
+def test_missing_jscpd_exits_two(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    absent = tmp_path / "run-jscpd.js"
+    gate = ("duplication", ("node", str(absent), "--threshold", "3", str(tmp_path)))
+    monkeypatch.setattr(gates, "JSCPD", absent)
+    assert run((gate,)) == 2
+    out = capsys.readouterr().out
+    assert "jscpd" in out and "npm ci" in out and "web/" in out
+
+
+def test_missing_node_exits_two(capsys: pytest.CaptureFixture[str]) -> None:
+    gate = ("duplication", ("node-no-such-xyz", str(JSCPD), "--threshold", "3"))
+    assert run((gate,)) == 2
+    assert "node-no-such-xyz" in capsys.readouterr().out
+
+
+def _jscpd_exit(folder: Path) -> int:
+    argv = (*dict(GATES)["duplication"][:-1], str(folder))
+    assert shutil.which("node"), "node is required for the duplication canary"
+    assert JSCPD.is_file(), "jscpd is required: run npm ci in web/"
+    return subprocess.run(argv, check=False, cwd=folder, capture_output=True).returncode
+
+
+def test_duplication_canary_flags_copied_code_and_passes_unlike_code(tmp_path: Path) -> None:
+    body = "".join(f"value_{n} = compute({n}) + offset_{n} * {n + 7}\n" for n in range(60))
+    twins = tmp_path / "twins"
+    twins.mkdir()
+    (twins / "one.py").write_text(body)
+    (twins / "two.py").write_text(body)
+    unlike = tmp_path / "unlike"
+    unlike.mkdir()
+    (unlike / "one.py").write_text(body)
+    (unlike / "two.py").write_text(
+        "".join(f"def f{n}(x):\n    return x - {n * 13}\n" for n in range(40))
+    )
+    assert _jscpd_exit(twins) != 0
+    assert _jscpd_exit(unlike) == 0
