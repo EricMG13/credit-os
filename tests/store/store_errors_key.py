@@ -45,3 +45,8 @@ ERROR_CLASS_BY_CODE: tuple[tuple[int | None, str], ...] = (
     (14, "StoreUnusable"),  # SQLITE_CANTOPEN
     (None, "StoreUnusable"),  # raised by the sqlite3 module itself, with no result code
 )
+
+# A value bound into a statement that then fails must not appear in the store error's message
+# (the message is SQLite's own text). One real failure per kind, each binding this value.
+BOUND_VALUE = "zz-distinct-7731"
+VALUE_FREE_FAILURES: tuple[str, ...] = ("unique", "check", "not null", "foreign key", "datatype")
