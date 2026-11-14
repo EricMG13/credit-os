@@ -1,10 +1,7 @@
 """A `Model` that replays replies from one JSON Lines recording, for tests and replays.
 
-One line per call: `{"exchange_id": str, "call_index": int, "reply": {...}}`. A request with no
-reply recorded raises `RecordingMissing`; a default reply is never built. A decimal in the
-recording is read as text or as `Decimal`, never as a float, and a count not reported stays
-`None`.
-"""
+A request with no recorded reply raises `RecordingMissing`; a default reply is never built.
+A decimal is read as text or `Decimal`, never a float; a count not reported stays `None`."""
 
 import json
 from collections.abc import Mapping
