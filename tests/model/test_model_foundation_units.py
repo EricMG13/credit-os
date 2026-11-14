@@ -129,3 +129,39 @@ def test_the_foundation_text_holds_labels_columns_cells_and_list_items_in_order(
 def test_the_new_refusal_kinds_follow_cell() -> None:
     kinds = [kind.value for kind in RefusalKind]
     assert kinds[-3:] == ["cell", "unit", "currency"]
+
+
+_CALC = "Net debt is Total Debt less Cash & Equivalents.\n"
+
+
+def _with_table(table: str, ops: list[Any]) -> dict[str, Any]:
+    return {"edits": [[_CALC, f"{_CALC}\n{table}"]], "ops": ops}
+
+
+def _unit_message(what: str, cell: str, row: str = "Revenue check") -> list[str]:
+    text = (
+        f"base revenue: row `{row}` states its {what} as `{cell}`, not the block's unit "
+        "(USD millions, scale 1); state a reason instead of an amount"
+    )
+    return ["unit", "base revenue", text]
+
+
+def test_a_named_column_header_in_the_other_unit_is_called_a_column_header() -> None:
+    table = "| Line item | Cash USD thousands |\n| --- | --- |\n| Revenue check | 1,456 |\n"
+    ops = [
+        [["base", "revenue", "row"], "Revenue check"],
+        [["base", "revenue", "period"], None],
+        [["base", "revenue", "column"], "Cash USD thousands"],
+    ]
+    want = _unit_message("column header", "Cash USD thousands")
+    assert _outcome(_with_table(table, ops)) == want
+
+
+def test_a_cell_in_the_unit_column_does_not_hide_another_cell_in_the_other_unit() -> None:
+    table = (
+        "| Line item | FY2024 | Unit | Note |\n| --- | --- | --- | --- |\n"
+        "| Revenue check | 1,456 | USD millions | in thousands |\n"
+    )
+    ops = [[["base", "revenue", "row"], "Revenue check"]]
+    assert _outcome(_with_table(table, ops)) is None
+
