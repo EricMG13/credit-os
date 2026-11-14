@@ -26,7 +26,7 @@ _MAGNITUDES = ("interest", "taxes", "capex")
 _SHOWN = 5
 
 _NOT_AFTER = r"(?![A-Za-z])"
-_CODE = r"(?<![A-Za-z])(?:US\$|USD|EUR|GBP|[$€£])"
+_CODE = r"(?:(?<![A-Za-z])(?:US\$|USD|EUR|GBP)|[$€£])"
 _AFTER = r"(?:US\$|[$€£])"
 _ZEROS = r"000s?"
 _WORDS = {
