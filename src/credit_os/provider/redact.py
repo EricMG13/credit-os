@@ -302,25 +302,24 @@ def _form_patterns(form: str, after_separator: bool) -> list[str]:
         for width in (3, 5, 7):
             if _SEPARATOR_TOKEN.fullmatch(form[:width]):
                 rest = "".join(_char_pattern(c, False) for c in form[width:])
-                found.append(rf"{_token_lookbehinds(form[:width])}{rest}")
+                found.append(rf"{_token_lookbehinds(form[:width], range(9))}{rest}")
                 found.append(
-                    _token_lookbehinds(form[:width], 8)
+                    _token_lookbehinds(form[:width], range(1, 9))
                     + "".join(_char_pattern(c, False, i == 0) for i, c in enumerate(form[width:]))
                 )
     return found
 
 
-def _token_lookbehinds(token: str, backslashes: int = 0) -> str:
+def _token_lookbehinds(token: str, counts: range = range(1)) -> str:
     """Zero-width lookbehinds for a separator ``token`` as written and with its leading percent
     encoded once and twice (``%5c`` as ``%255c``, ``%25255c``), each only where the separator run
-    still takes it as one token. With ``backslashes`` the token is followed by 1 to that many
-    backslashes (one fixed-width lookbehind each: ``re`` has no variable-width one)."""
+    still takes it as one token. With ``counts`` the token is followed by that many backslashes (one fixed-width
+    lookbehind each: ``re`` has no variable-width one); the run may have ended among them."""
     seen = [token]
     for depth in (1, 2):
         encoded = "%" + "25" * depth + token[1:]
         if _SEPARATOR_TOKEN.fullmatch(encoded):
             seen.append(encoded)
-    counts = range(1, backslashes + 1) if backslashes else (0,)
     return (
         "(?:"
         + "|".join(rf"(?<={re.escape(t)}{chr(92) * 2 * k})" for t in seen for k in counts)
