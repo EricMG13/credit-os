@@ -149,7 +149,7 @@ describe("Evidence, Summary", () => {
     const tiles = within(screen.getByRole("region", { name: "Counts" })).getAllByRole("listitem");
     expect(tiles.map((t) => t.textContent)).toEqual([
       "Source files97 read in full, 1 read in part, 1 unreadable",
-      "Calculations148Each one traceable to its inputs",
+      "Calculations60Each one traceable to its inputs",
       "Gaps72 high, 3 medium, 2 low",
     ]);
     expect(within(screen.getByRole("region", { name: "Counts" })).queryByRole("button")).toBeNull();
