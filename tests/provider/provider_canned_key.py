@@ -176,6 +176,23 @@ _ERR: dict[str, Any] = {
 }
 _COMPACTION: dict[str, Any] = {"usage": dict(_USAGE_3), "billed_usd": "0.0240831"}
 _CALL = {"call_id": "c", "name": "n", "arguments": {}}
+# A charge is read only from plain ASCII digits with an optional fraction: no sign, space,
+# underscore, exponent, leading zero or other digit script, and never from a JSON number.
+_BAD_CHARGES = (
+    "1_0",
+    " 1 ",
+    "1E+3",
+    "+1",
+    "-0",
+    "01",
+    "\u0661",
+    "\uff11",
+    "1.",
+    ".5",
+    "1\n",
+    "",
+    1,
+)
 
 
 def _line(reply: object, exchange_id: object = "e", call_index: object = 0) -> dict[str, Any]:
@@ -238,6 +255,13 @@ CANNED_BAD_LINES: tuple[dict[str, Any] | str, ...] = (
     _line({**_OK, "compactions": [{**_COMPACTION, "usage": {**_USAGE_3, "input_tokens": -1}}]}),
     _line({**_OK, "compactions": [{**_COMPACTION, "usage": {"input_tokens": 1}}]}),
     _line({**_ERR, "kind": "not_sent", "usage": None, "compactions": [_COMPACTION]}),
+    *(_line({**_OK, "billed_usd": bad}) for bad in _BAD_CHARGES),
+    *(_line({**_OK, "compactions": [{**_COMPACTION, "billed_usd": bad}]}) for bad in _BAD_CHARGES),
+    _line({**_OK, "turn": {**_OK_TURN, "tool_calls": [{**_CALL, "bad_arguments": None}]}}),
+    # a number too large to read is a refused line, not another exception
+    _line({**_ERR, "usage": {**_USAGE_3, "input_tokens": 10**18}}),
+    '{"exchange_id":"e","call_index":0,"reply":{"x":1e9999999999999999999999999}}',
+    '{"exchange_id":"e","call_index":' + "1" * 4301 + ',"reply":null}',
     '{"exchange_id":"e","exchange_id":"e","call_index":0,"reply":null}',
     (
         '{"exchange_id":"e","call_index":0,"reply":{"kind":"not_sent","turn":null,'
@@ -260,6 +284,8 @@ CANNED_GOOD_LINES: tuple[dict[str, Any], ...] = (
     _line({**_OK, "compactions": [_COMPACTION, {**_COMPACTION, "billed_usd": None}]}),
     _line({**_ERR, "compactions": [_COMPACTION]}),
     _line({**_ERR, "kind": "sent_unknown", "usage": None, "compactions": [_COMPACTION]}),
+    _line({**_ERR, "billed_usd": "0"}),
+    _line({**_ERR, "billed_usd": "10.50", "usage": {**_USAGE_3, "input_tokens": 10**18 - 1}}),
 )
 
 # Two lines with the same (exchange_id, call_index): refused, naming "line 2".
