@@ -31,6 +31,7 @@ H1 = "C:\\Users\\M\u00e9lanie"  # under Users: the net sees its head too
 H2 = "D:\\Profiles\\M\u00e9lanie"  # outside Users: only the known path finds it
 _MUL = "C:\\Users\\M\u00fcller"
 _RT = "/opt/acme/bin/copilot"
+_ELISE = "D:\\Profiles\\\u00c9lise"
 
 # (exact values, known paths, text, expected message)
 MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
@@ -106,6 +107,24 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     (("lanieQ7",), (H2,), "D:\\Profiles\\M\u00e9lanieQ7x", "<home>x"),
     (("Q7Q7Q7",), (H2,), "D:\\Profiles\\M\u00e9lanieQ7Q7Q7", "<home>[redacted]"),
     ((), (), "bad " + _GH + " in C:\\Users\\bob\\x", "bad [redacted] in <home>\\x"),
+    # --- review round 1: case applies before the encoding (owner and coordinator, 2026-11-14)
+    (
+        (),
+        (_ELISE,),
+        "open d:" + B * 2 + "profiles" + B * 2 + "\\u00e9lise" + B + "x",
+        "open <home>\\x",
+    ),
+    ((), (_ELISE,), "open d:" + B * 2 + "profiles" + B * 2 + "\\xe9lise\\x", "open <home>\\x"),
+    ((), (_ELISE,), "open d:" + B * 2 + "profiles" + B * 2 + "\\xc3\\xa9lise\\x", "open <home>\\x"),
+    ((), (_ELISE,), "open d%3A%5Cprofiles%5C%C3%A9lise\\x", "open <home>\\x"),
+    ((), (H2,), "D:" + B * 2 + "PROFILES" + B * 2 + "M\\u00c9LANIE", "<home>"),
+    ((), ("C:\\Users\\\u00c9lodie",), "c%3A%5Cusers%5C%C3%A9lodie", "<home>"),
+    # --- review round 1: NFC and NFD of the whole name; UTF-8 bytes as \\uXXXX; padding inside
+    ((), ("D:\\Profiles\\\uf900ab",), "x D:\\Profiles\\\uf900ab\\y", "x <home>\\y"),
+    ((), ("D:\\Profiles\\\uf900ab",), "x D:\\Profiles\\\u8c48ab", "x <home>"),
+    ((), ("D:\\Profiles\\F\u00e9\u0329mi",), "D:\\Profiles\\Fe\u0329\u0301mi\\x", "<home>\\x"),
+    ((), (H2,), "D:" + B * 2 + "Profiles" + B * 2 + "M\\u00c3\\u00a9lanie", "<home>"),
+    ((), ("D:/Profiles/Jane/ /",), "D:\\Profiles\\Jane\\x", "<home>\\x"),
     # --- not guaranteed: pinned as the net alone gives it
     ((), (H2,), "C:\\Users\\bob\\x", "<home>\\x"),
     ((), (H2,), "D:\\Profiles\\bob\\x", "D:\\Profiles\\bob\\x"),
@@ -119,7 +138,15 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
 )
 
 # Known paths with no folder name: Redactor(known_paths=(p,)) raises ValueError.
-REFUSED: tuple[str, ...] = ("", "/", "C:\\", " / ", "\\\\")
+REFUSED: tuple[str, ...] = (
+    "",
+    "/",
+    "C:\\",
+    " / ",
+    "\\\\",
+    "\\\\?\\",
+    "\\\\?\\C:\\",
+)  # a long-path prefix is no folder
 
 # The frozen net, two rows the whole-branch review of #187 found no test held (`_nested_spans`
 # mutants 12 and 21): (text, home_paths(text)).
@@ -172,6 +199,35 @@ TIMING: tuple[tuple[str, str], ...] = (
     ("percents", "%25" * 33_000),
     ("a matched head then a separator run", "D:\\Profiles" + B * 99_000),
     ("the known path repeated", (H2 + " ") * 4_500),
+)
+
+
+def _near_miss(folders: tuple[str, ...], run: int) -> str:
+    """Each folder after the first starts with its first character as a \\x escape after a run of
+    backslashes, and the last character is wrong: every split of a run is tried if parsing is not
+    linear (task review round 1, M1)."""
+    rest = "".join(B * run + f"x{ord(f[0]):02x}" + f[1:] for f in folders[1:])
+    return ("C:" + B * run + folders[0] + rest)[:-1] + "Q"
+
+
+_EIGHT = tuple(c * 3 for c in "abcdefgh")
+_DEEP = "C:\\" + "\\".join(_EIGHT)  # an 8-folder known path
+_RT_WIN = "C:\\Users\\jane\\AppData\\Local\\Programs\\copilot\\bin\\copilot.exe"
+# message() is linear in the text for fixed known paths (coordinator, 2026-11-14): (label, known
+# paths, text), each at most SECONDS. Inputs at most 10^5 characters.
+TIMING_PATHS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("near-miss, 8 folders, once", (_DEEP,), _near_miss(_EIGHT, 16)),
+    ("near-miss, 8 folders, repeated", (_DEEP,), (_near_miss(_EIGHT, 16) * 600)[:100_000]),
+    (
+        "near-miss, runtime path, repeated",
+        (_RT_WIN,),
+        (_near_miss(tuple(_RT_WIN.split("\\")[1:]), 8) * 400)[:100_000],
+    ),
+    (
+        "backslashes, UNC and POSIX non-ASCII",
+        ("\\\\srv\\\u00e9share\\Users\\bob", "/home/j\u00f6rg"),
+        B * 100_000,
+    ),
 )
 
 
@@ -230,6 +286,10 @@ CHAINS: tuple[tuple[str, ...], ...] = (
     ("json", "swapcase"),
     ("quote", "swapcase"),
     ("utf8", "swapcase"),
+    ("swapcase", "json"),
+    ("swapcase", "ascii"),
+    ("swapcase", "utf8"),
+    ("swapcase", "quote"),
 )
 # Folder-name characters for generated paths: every one keeps its length under swapcase.
 NAME_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._- \u00e9\u00fc\u00f1\u00f8\u00c9\u00dc\u5f20\u4f1f"
