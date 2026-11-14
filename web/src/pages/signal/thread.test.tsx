@@ -433,3 +433,45 @@ describe("the thread panel across groups", () => {
     expect(other?.getAttribute("aria-pressed")).toBe(before);
   });
 });
+
+describe("the thread panel with a separator inside ids", () => {
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  function colliding(): unknown {
+    const copy = structuredClone(fixture.slice) as { scenes: { snapshot: unknown }[] };
+    const first = copy.scenes[0];
+    if (first === undefined) throw new Error("the fixture has a first scene");
+    const text = JSON.stringify(first.snapshot)
+      .replaceAll('"shipping-desk"', '"leveraged-credit/a"')
+      .replaceAll('"corvane-thread"', '"a/b"');
+    const snap = JSON.parse(text) as {
+      threads: { id: string; groupId: string }[];
+      groups: { id: string; threads: { id: string }[] }[];
+    };
+    const thread = snap.threads.find((t) => t.id === "a/b" && t.groupId === "leveraged-credit");
+    const item = snap.groups[0]?.threads.find((t) => t.id === "a/b");
+    const other = snap.groups.find((g) => g.id === "leveraged-credit/a");
+    if (thread === undefined || item === undefined || other === undefined)
+      throw new Error("the renamed fixture has both groups and the thread");
+    snap.threads.push({ ...structuredClone(thread), groupId: "leveraged-credit/a", id: "b" });
+    other.threads.push({ ...structuredClone(item), id: "b" });
+    first.snapshot = snap;
+    return copy;
+  }
+
+  it("does not carry a posted comment between (leveraged-credit, a/b) and (leveraged-credit/a, b)", async () => {
+    show("/signal/main/group/leveraged-credit/thread/a%2Fb", colliding());
+    type("Checked the filing.");
+    send();
+    expect(within(panel()).getByText("Checked the filing.")).toBeInTheDocument();
+    window.location.hash = "#/signal/main/group/leveraged-credit%2Fa/thread/b";
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Shipping desk", hidden: true }),
+      ).toBeInTheDocument();
+    });
+    expect(within(panel()).queryByText("Checked the filing.")).toBeNull();
+  });
+});

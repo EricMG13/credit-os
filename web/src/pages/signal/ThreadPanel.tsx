@@ -282,7 +282,7 @@ export function ThreadPanel({
       </header>
       {thread === null ? null : (
         <Conversation
-          key={`${thread.groupId}/${thread.id}`}
+          key={JSON.stringify([thread.groupId, thread.id])}
           thread={thread}
           story={story}
           writer={writer}

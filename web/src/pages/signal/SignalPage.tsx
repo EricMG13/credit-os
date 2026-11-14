@@ -230,7 +230,7 @@ function Body({
         current: { kind: "group", id },
         body: (
           <>
-            <GroupPage scene={scene} group={group} writer={writer} />
+            <GroupPage key={group.id} scene={scene} group={group} writer={writer} />
             {thread === undefined ? null : (
               <ThreadPanel scene={scene} group={group} thread={thread} writer={writer} />
             )}
