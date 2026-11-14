@@ -101,6 +101,20 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   interpreter's Unicode table.
 - **Length.** A segment is at most 255 bytes in UTF-8 and a whole name at most 1,024 bytes;
   a longer one is refused before any file system call.
+- **Order and wording (#61).** Characters first, then the whole-name length, then per segment:
+  empty or dot, edge space or trailing dot, reserved device name, segment length. A leading
+  ASCII space is refused (it is `Zs`).
+- **Echo bound (#61).** Every message that echoes a name shows its first 120 characters, then
+  `…`; a path is shown whole. A deep name can lose its file part: accepted.
+- **Ruled for the capped read (#59, not yet in `main`).** `source_path` refuses a name that
+  is, or passes through, a symbolic link or a Windows junction, even inside the source folder;
+  each component below the resolved folder is tested. A failure of that test is refused, not
+  raised untyped. A link swapped in between the check and the open is not closed by this; the
+  pin's size and hash guard the content.
+- **Ruled for PR 1c, not yet in `main`.** `COM0` and `LPT0` are refused as reserved device
+  names (Microsoft lists them; CPython 3.12's table does not).
+- **For the first layer that loads pin records (store).** pydantic's `errors()` and `json()`
+  carry the whole refused name; that layer bounds it before it prints one.
 - **Kind.** The pin checks the first bytes only. Each reader proves the structure of its kind
   and raises "unreadable" when it does not hold: a zip that is not a docx, an xlsx offered as a
   docx, OLE or executable bytes offered as text or csv. The NUL refusal covers HTML as well as
@@ -126,7 +140,8 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 | PR | Delivers |
 | :--- | :--- |
 | 1 | Errors, `SourcePin`, name and kind rules (#41) |
-| 1b | The amended name rules; capped read and path resolution (`files.py`); two PRs if together they pass 800 lines |
+| 1b-names (#61) | The amended name rules and the bounded name echo |
+| 1b (#59) | Capped read, path resolution and the symbolic-link refusal (`files.py`) |
 | 1c | Folder walk |
 | 2 | Text, csv and HTML readers |
 | 3 | Zip and XML guards; xlsx reader |
