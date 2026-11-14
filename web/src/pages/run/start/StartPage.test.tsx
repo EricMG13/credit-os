@@ -190,6 +190,10 @@ describe.each(FRAMES)("Run start, draft $id", (f) => {
 
   it("names no module, step id, hash or file path", () => {
     expect(document.body.textContent).not.toMatch(/CP-\d/);
+    // no hash (a hex run or a sha256 label), no file path (drive or absolute), no route text
+    expect(document.body.textContent).not.toMatch(
+      /sha256:|\b[0-9a-f]{12,}\b|\b[A-Za-z]:\\|\/Users\/|#\/run/,
+    );
     const trail = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(within(trail).getByRole("link", { name: "Library" })).toHaveAttribute("href", "#/");
     expect(trail).toHaveTextContent("Library / TransDigm Group / New run");

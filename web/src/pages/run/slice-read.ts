@@ -22,6 +22,11 @@ export function fileName(o: Obj, key: string, path: string): string {
   const v = o[key];
   return typeof v === "string" ? v : fail(`${path}.${key}`, "a string");
 }
+// A label the page draws: a string with something in it.
+export function text(o: Obj, key: string, path: string): string {
+  const v = str(o, key, path);
+  return v === "" ? fail(`${path}.${key}`, "a non-empty string") : v;
+}
 export function strOrNull(o: Obj, key: string, path: string): string | null {
   const v = o[key];
   if (v === null) return v;

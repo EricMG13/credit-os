@@ -13,6 +13,7 @@ import {
   str,
   strOrNull,
   strings,
+  text,
 } from "./slice-read";
 
 const RUN_STATES = [
@@ -73,7 +74,7 @@ export type ActivityRecord =
 
 const link = (v: unknown, path: string): Link => {
   const o = obj(v, path);
-  const label = str(o, "label", path);
+  const label = text(o, "label", path);
   const href = str(o, "href", path);
   if (!href.startsWith("#/")) fail(`${path}.href`, 'an address starting with "#/"');
   return { label, href };
@@ -141,7 +142,7 @@ const stepOf =
       kind: "group",
       title: str(o, "title", path),
       state: wordFor(state)(o, path),
-      showAll: str(o, "showAll", path),
+      showAll: text(o, "showAll", path),
       modules: members,
     };
   };

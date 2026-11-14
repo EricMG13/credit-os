@@ -13,6 +13,8 @@ import {
   str,
   strOrNull,
   strings,
+  text,
+  nonEmpty,
 } from "./slice-read";
 
 export type Row = { label: string; value: string | null }; // null draws "n.a."
@@ -57,6 +59,15 @@ const items = (v: unknown, path: string): Items => {
   const o = obj(v, path);
   return { count: str(o, "count", path), items: strings(o, "items", path) };
 };
+// What is not met: the items are empty exactly when the count text is "0" (no counting here).
+const unmet = (v: unknown, path: string): Items => {
+  const r = items(v, path);
+  if (r.count === "0" && r.items.length > 0)
+    fail(`${path}.items`, 'an empty list when the count is "0"');
+  if (r.count !== "0" && r.items.length === 0)
+    fail(`${path}.items`, 'a non-empty list unless the count is "0"');
+  return r;
+};
 const file = (v: unknown, path: string): StartFile => {
   const o = obj(v, path);
   return {
@@ -81,7 +92,7 @@ const readiness = (v: unknown, path: string): Readiness => {
   const o = obj(v, path);
   return {
     line: str(o, "line", path),
-    notMet: items(o.notMet, `${path}.notMet`),
+    notMet: unmet(o.notMet, `${path}.notMet`),
     met: items(o.met, `${path}.met`),
     cap: bar(o.cap, `${path}.cap`),
   };
@@ -101,11 +112,11 @@ export function draft(v: unknown, path: string): StartDraft {
   const o = obj(v, path);
   const base: DraftBase = {
     id: id(o, "id", path),
-    issuer: str(o, "issuer", path),
+    issuer: text(o, "issuer", path),
     position: str(o, "position", path),
     previous: idOrNull(o, "previous", path),
     next: idOrNull(o, "next", path),
-    nextLabel: str(o, "nextLabel", path),
+    nextLabel: text(o, "nextLabel", path),
     nextBlocked: strOrNull(o, "nextBlocked", path),
     readiness: readiness(o.readiness, `${path}.readiness`),
   };
@@ -116,7 +127,7 @@ export function draft(v: unknown, path: string): StartDraft {
     case "documents":
       return { ...base, step: "documents", files: list(o, "files", path, file) };
     case "purpose": {
-      const purposes = list(o, "purposes", path, purpose);
+      const purposes = nonEmpty(list(o, "purposes", path, purpose), `${path}.purposes`);
       const seen = new Set<string>();
       purposes.forEach((p, i) => {
         if (seen.has(p.id))
@@ -134,7 +145,7 @@ export function draft(v: unknown, path: string): StartDraft {
         const go = obj(g, p);
         return { name: str(go, "name", p), rows: list(go, "rows", p, row) };
       };
-      const groups = list(o, "groups", path, group);
+      const groups = nonEmpty(list(o, "groups", path, group), `${path}.groups`);
       const names = new Set<string>();
       groups.forEach((g, i) => {
         if (names.has(g.name))
