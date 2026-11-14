@@ -11,7 +11,8 @@ import { RunFrame } from "./parts/RunFrame";
 
 /**
  * A tab whose content is delivered per module draws the module filter at the heading's right. The
- * filter is state of the tab: the caller keys this by the tab, so each starts at "All".
+ * filter is state of the tab: the caller keys this by the tab and the item the address names, so each
+ * starts at "All" and an item address always draws its row.
  */
 function FilteredTab({
   run,
@@ -66,7 +67,12 @@ export function Evidence({
             );
           case "trace":
             return (
-              <FilteredTab key="trace" run={loaded} issuer={issuerId} current="trace">
+              <FilteredTab
+                key={`trace/${item ?? ""}`}
+                run={loaded}
+                issuer={issuerId}
+                current="trace"
+              >
                 {(chosen, clear) => (
                   <EvidenceTrace
                     key={item ?? ""}
@@ -81,7 +87,7 @@ export function Evidence({
             );
           case "gaps":
             return (
-              <FilteredTab key="gaps" run={loaded} issuer={issuerId} current="gaps">
+              <FilteredTab key={`gaps/${item ?? ""}`} run={loaded} issuer={issuerId} current="gaps">
                 {(chosen, clear) => (
                   <EvidenceGaps
                     key={item ?? ""}

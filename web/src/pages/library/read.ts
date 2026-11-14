@@ -15,6 +15,7 @@ import type {
   DeliveredBody,
   Download,
   Evidence,
+  FiveHeads,
   FileState,
   GapForm,
   GapRow,
@@ -1690,6 +1691,11 @@ function readHeads(o: Rec, key: string, path: string, width: number | null): str
   return heads;
 }
 
+/** Exactly five non-empty heads: the length is checked, so the tuple type holds. */
+function readFive(o: Rec, key: string, path: string): FiveHeads {
+  return readHeads(o, key, path, 5) as unknown as FiveHeads;
+}
+
 /** A module's span: the module is one the run holds and the state is that module's own. */
 function readTiming(value: unknown, path: string, states: ReadonlyMap<string, ModuleState>) {
   const r = rec(value, path);
@@ -1769,7 +1775,7 @@ function readRunRecord(value: unknown, path: string, modules: readonly Module[])
     timings: {
       title: named(timings, "title", timingsPath),
       note: named(timings, "note", timingsPath),
-      columns: readHeads(timings, "columns", timingsPath, 5),
+      columns: readFive(timings, "columns", timingsPath),
       rows: spans,
       emptyText,
     },
@@ -1809,7 +1815,7 @@ function readRunRecord(value: unknown, path: string, modules: readonly Module[])
       title: named(registers, "title", registersPath),
       count: countsRows(registers, "count", registersPath, registerRows.length),
       note: named(registers, "note", registersPath),
-      columns: readHeads(registers, "columns", registersPath, 5),
+      columns: readFive(registers, "columns", registersPath),
       downloadAll: readDownload(own(registers, "downloadAll"), child(registersPath, "downloadAll")),
       rows: registerRows,
     },

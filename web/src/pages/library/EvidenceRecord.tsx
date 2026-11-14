@@ -48,7 +48,7 @@ function Timings({ timings }: { timings: RunRecord["timings"] }) {
       label={timings.title}
       size="text-h3"
       trace={null}
-      head={[module ?? "", started ?? "", accepted ?? "", took ?? ""]}
+      head={[module, started, accepted, took]}
       endHeading={state}
       rows={timings.rows.map((row) => ({
         label: row.module,
@@ -75,11 +75,13 @@ function Registers({ registers }: { registers: RunRecord["registers"] }) {
         name={registers.title}
         head={
           <>
-            <SortHead column="name" label={name ?? ""} sort={sort} onSort={onSort} />
-            <PlainHead>{writtenBy ?? ""}</PlainHead>
-            <PlainHead>{rows ?? ""}</PlainHead>
-            <PlainHead>{file ?? ""}</PlainHead>
-            <PlainHead srOnly>{open ?? ""}</PlainHead>
+            <SortHead column="name" label={name} sort={sort} onSort={onSort} />
+            <PlainHead>{writtenBy}</PlainHead>
+            <PlainHead align="right">{rows}</PlainHead>
+            <PlainHead>{file}</PlainHead>
+            <PlainHead srOnly align="right">
+              {open}
+            </PlainHead>
           </>
         }
       >
@@ -93,11 +95,11 @@ function Registers({ registers }: { registers: RunRecord["registers"] }) {
                 {row.name}
               </th>
               <td className={REGISTER_CELL}>{row.writtenBy}</td>
-              <td className={`${REGISTER_CELL} tabular-nums`}>{row.rows}</td>
+              <td className={`${REGISTER_CELL} text-right tabular-nums`}>{row.rows}</td>
               <td className={`${REGISTER_CELL} font-mono`}>{row.file}</td>
-              <td className={REGISTER_CELL}>
+              <td className={`${REGISTER_CELL} text-right`}>
                 <DownloadButton
-                  download={{ label: open ?? "", href: row.href, reason: row.reason }}
+                  download={{ label: open, href: row.href, reason: row.reason }}
                   color="link-color"
                   open
                 />
