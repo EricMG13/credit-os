@@ -518,6 +518,19 @@ def test_listing_failure_without_strerror(tmp_path: Path, monkeypatch: pytest.Mo
     assert _refusal(tmp_path, SourceUnreadable) == f"{tmp_path}: cannot list (text)"
 
 
+def test_listing_failure_without_any_text(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    failure = OSError()
+
+    def fail(path: object) -> object:
+        raise failure
+
+    monkeypatch.setattr(os, "scandir", fail)
+    with pytest.raises(SourceUnreadable) as caught:
+        pin_folder(tmp_path)
+    assert str(caught.value) == f"{tmp_path}: cannot list (OSError)"
+    assert caught.value.__cause__ is failure
+
+
 _ENTRY_FAILURE = OSError(errno.EACCES, "synthetic")
 
 
