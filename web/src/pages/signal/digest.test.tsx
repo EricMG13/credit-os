@@ -45,9 +45,9 @@ const headings = (level: number) =>
 
 const WEEKLY = "Leveraged credit: the week to 13 November";
 const EARLIER = "Leveraged credit: the week to 6 November";
-const NOTHING_TITLE = "Rating actions: 11 November";
+const NOTHING_TITLE = "Rating actions: 13 November";
 const NOTHING_SENTENCE =
-  "No rating action reached this digest's sources on 11 November. The next digest is due on Thu 12 Nov.";
+  "No rating action reached this digest's sources on 13 November. The next digest is due on Mon 16 Nov.";
 const PAUSED =
   "No new digest is written while AI is off or at its cap. Earlier digests stay readable.";
 
@@ -236,7 +236,7 @@ describe("a digest with nothing material (frame 3)", () => {
     expect(headings(1)).toEqual([NOTHING_TITLE]);
     const h1 = page().getByRole("heading", { level: 1 });
     expect((h1.previousElementSibling as HTMLElement).textContent).toBe(
-      "DigestDaily ratingsWed 11 Nov",
+      "DigestDaily ratingsFri 13 Nov 2026",
     );
     expect(headings(2)).toEqual(["Nothing material to report", "Earlier digests"]);
     expect(page().getByText(NOTHING_SENTENCE)).toBeInTheDocument();
@@ -247,7 +247,11 @@ describe("a digest with nothing material (frame 3)", () => {
   it("draws no numbered list for it", () => {
     show("/signal/ai-on/digest/daily-ratings");
     expect(page().queryByRole("list", { name: /Stories behind/ })).not.toBeInTheDocument();
-    expect(page().queryByRole("listitem", { name: /^1/ })).not.toBeInTheDocument();
+    expect(
+      page()
+        .queryAllByRole("listitem")
+        .filter((li) => /^\d/.test(li.textContent)),
+    ).toEqual([]);
   });
 
   it("moves focus to the Earlier digests heading from See earlier digests, leaving the hash alone", () => {
@@ -268,7 +272,7 @@ describe("a digest with nothing material (frame 3)", () => {
           {
             id: "11-nov",
             title: NOTHING_TITLE,
-            date: "Wed 11 Nov",
+            date: "Fri 13 Nov 2026",
             ai: false,
             summary: null,
             nothing: NOTHING_SENTENCE,
@@ -308,6 +312,12 @@ describe("a paused digest (frame 4)", () => {
       "#/signal/main/settings/ai",
     );
     expect(page().getByText("Paused")).toBeInTheDocument();
+  });
+
+  it("offers a writer the AI and cost link and a reader none", () => {
+    show("/signal/reader/digest/weekly-brief");
+    expect(page().getByText("AI is off.")).toBeInTheDocument();
+    expect(page().queryByRole("link", { name: /AI and cost/ })).not.toBeInTheDocument();
   });
 
   it("draws every issue as a row under Earlier digests, with its own summary and no points", () => {

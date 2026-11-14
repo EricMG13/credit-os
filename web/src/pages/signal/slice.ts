@@ -765,6 +765,27 @@ function repeatAt(ids: string[]): number {
   return ids.findIndex((id) => (seen.has(id) ? true : (seen.add(id), false)));
 }
 
+/**
+ * Only the newest issue of a running digest is drawn with its points; any other issue is a row and
+ * would drop them. Points are model text, so their issue is marked AI; a running digest's newest issue
+ * has points or says nothing was material.
+ */
+function issuesProblem(digest: SignalDigest, path: string): string | null {
+  for (const [j, issue] of digest.issues.entries()) {
+    const at = `${path}[${String(j)}]`;
+    const rowOnly = digest.paused !== null || j > 0;
+    if (rowOnly && issue.points.length > 0) {
+      return `${at}.points: expected no points on an issue drawn only as a row`;
+    }
+    if (issue.points.length > 0 && !issue.ai)
+      return `${at}.ai: expected true on an issue with points`;
+    if (!rowOnly && issue.points.length === 0 && issue.nothing === null) {
+      return `${at}.points: expected points or a nothing-material sentence on the newest issue of a running digest`;
+    }
+  }
+  return null;
+}
+
 /** Digests and issues have unique ids; the channel list and the digests name the same ones, in both directions; each feed card names an issue of its digest. */
 function digestProblem(snap: SignalSnapshot, path: string): string | null {
   const { digests, channels: lists } = snap;
@@ -796,6 +817,10 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
       return `${at(i)}.paused: expected null, as the channel list marks the digest not paused`;
     }
   }
+  for (const [i, one] of digests.entries()) {
+    const found = issuesProblem(one, `${at(i)}.issues`);
+    if (found !== null) return found;
+  }
   for (const [i, card] of snap.feed.digests.entries()) {
     const where = `${path}.feed.digests[${String(i)}]`;
     const named = digests.find((d) => d.id === card.digestId);
@@ -804,6 +829,12 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
     }
     if (!named.issues.some((issue) => issue.id === card.issueId)) {
       return `${where}.issueId: expected the id of an issue of the digest the card names`;
+    }
+    if (card.digestName !== named.name) {
+      return `${where}.digestName: expected the name of the digest the card names`;
+    }
+    if (card.monogram !== named.monogram) {
+      return `${where}.monogram: expected the monogram of the digest the card names`;
     }
   }
   return null;

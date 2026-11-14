@@ -139,9 +139,12 @@ function Row({ digest, issue }: { digest: SignalDigest; issue: SignalDigestIssue
 export function DigestPage({
   scene,
   digest,
+  writer,
   none,
 }: {
   scene: SignalScene;
+  /** A reader's Settings holds Topics and Notifications only (ruling 18), so only a writer is sent to AI and cost. */
+  writer: boolean;
   digest: SignalDigest;
   none: ReactNode;
 }) {
@@ -179,12 +182,14 @@ export function DigestPage({
             tone="info"
             title={digest.paused}
             action={
-              <a
-                href={sceneHref(scene, "settings/ai")}
-                className={`text-sm font-semibold text-text-link ${FOCUS}`}
-              >
-                Open AI and cost
-              </a>
+              writer ? (
+                <a
+                  href={sceneHref(scene, "settings/ai")}
+                  className={`text-sm font-semibold text-text-link ${FOCUS}`}
+                >
+                  Open AI and cost
+                </a>
+              ) : undefined
             }
           />
         </div>

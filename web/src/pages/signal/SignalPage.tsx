@@ -253,7 +253,14 @@ function Body({
       }
       return {
         current: { kind: "digest", id },
-        body: <DigestPage scene={scene} digest={digest} none={<Empty title="No digest yet" />} />,
+        body: (
+          <DigestPage
+            scene={scene}
+            digest={digest}
+            writer={writer}
+            none={<Empty title="No digest yet" />}
+          />
+        ),
       };
     }
     case "settings":

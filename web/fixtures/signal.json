@@ -1203,12 +1203,12 @@
               "paused": null,
               "issues": [
                 {
-                  "id": "11-nov",
-                  "title": "Rating actions: 11 November",
-                  "date": "Wed 11 Nov",
+                  "id": "13-nov",
+                  "title": "Rating actions: 13 November",
+                  "date": "Fri 13 Nov 2026",
                   "ai": false,
                   "summary": null,
-                  "nothing": "No rating action reached this digest's sources on 11 November. The next digest is due on Thu 12 Nov.",
+                  "nothing": "No rating action reached this digest's sources on 13 November. The next digest is due on Mon 16 Nov.",
                   "points": []
                 },
                 {
@@ -1218,6 +1218,15 @@
                   "ai": true,
                   "summary": "2 points from 7 stories",
                   "nothing": null,
+                  "points": []
+                },
+                {
+                  "id": "11-nov",
+                  "title": "Rating actions: 11 November",
+                  "date": "Wed 11 Nov",
+                  "ai": false,
+                  "summary": null,
+                  "nothing": "No rating action reached this digest's sources on 11 November.",
                   "points": []
                 }
               ]

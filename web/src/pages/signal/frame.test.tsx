@@ -34,7 +34,7 @@ const DIGEST_TITLES: Record<string, string> = {
   "main/weekly-brief": "Weekly brief",
   "main/daily-ratings": "Daily ratings",
   "ai-on/weekly-brief": "Leveraged credit: the week to 13 November",
-  "ai-on/daily-ratings": "Rating actions: 11 November",
+  "ai-on/daily-ratings": "Rating actions: 13 November",
 };
 
 /** A topic page's h1 is the topic's name as the channel list gives it. */
