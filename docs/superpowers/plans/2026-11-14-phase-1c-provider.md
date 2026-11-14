@@ -163,7 +163,7 @@ The parser (PR 2b, #102), `provider/events.py`:
   `model.call_failure`, so the two routing refusals are read from a failed call. A call routed
   elsewhere that succeeds first time gives no signal.
 
-Ruled for PR 3 (not yet in `main`):
+Ruled for PR 3 (not yet in `main`); see also the pre-flight rulings after this list:
 - **Which compaction a completed one replaces** is the driver's rule: it links only when
   exactly one delivered start is unpaired, and only to an unfinished compaction delivered on an
   earlier reply. With two or more unpaired starts, in the same reply, or onto a done entry,
@@ -175,13 +175,35 @@ Ruled for PR 3 (not yet in `main`):
   charge as read; what `close()` returns is attributed to the run by the orchestrator.
 - The driver hands `data` to the parser always as an object, reads an abort only from
   `session.idle`, and gives the parser one model turn per list.
-- PR 3's driver also gives the home directory and the runtime path to the
-  redactor as exact values; that alone is not enough.
+- Paths are redacted by the driver, not by the parser's redactor (an exact value in `raw`
+  makes a reply `KeyReflected`, and every turn carries the working directory): the parser's
+  redactor gets token values only; a second one, with the home directory and runtime path in
+  slash and case variants and `home_paths`, is applied to `message` and to `raw` before the
+  `Reply` is built. The unredacted `raw` never leaves the driver; if it cannot be decoded or
+  re-encoded it becomes the fixed redacted placeholder.
+- `close()` reads what is queued without waiting, bounded at 5 seconds on an injected clock.
+  When the bound is hit, the list cannot be read, or a leftover event carries usage or a
+  charge, it returns what was pending plus one `Compaction`: `failed`, no counts, charge
+  `None`, `event_id` the literal `driver:close-unread`. The predecessor returned `()`.
+- A compaction whose `event_id` would reflect a key leaves as `failed`, no counts, id
+  `driver:withheld-<n>`; a link that would name it is `None`.
+- An untyped event's payload passes unchanged (the parser answers `UnparsableReply`). An
+  event with `agentId` passes unchanged, figures kept, the reply not ok with class
+  `SubAgentEvent`; the predecessor dropped it.
+- PR 3 is a text turn at call index 0; it refuses tools and later call indexes with their own
+  class until PR 3b, which lands before PR 4. The driver is synchronous over a seam with a
+  fake clock and no threads; the event-loop bridge is PR 4. Dropped from the predecessor, each
+  listed in the PR body: a second usage event ending the call, `numToolCalls`,
+  `MaxOutputTooLarge`, the `gh` login. A failed release is logged and not raised.
 
-Ruled for PR 2c (not yet in `main`), before the driver:
-- **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
-  Windows user name that has a space or `'()` in it. Fixed in `redact.py`, test first, with
-  the reviewer's probe as the answer key.
+PR 2c (#147), before the driver:
+- **Home directory (open Medium M2 of #36's security review), not in #147:** `home_paths`
+  leaves part of a Windows user name that has a space or `'()` in it. Three fix rounds failed
+  review; the rewrite is PR 2d (#171), one further round authorised by the owner: the
+  redactor fails closed (where a separator does not decide the end of a name it redacts to
+  the end of the string or line), and a backslash inside a POSIX name takes the rest of the
+  line. Not closed by 2d: a written-out escape after a Windows prefix; home forms it does not
+  recognise.
 - **Exact redaction values in JSON.** A value that JSON escapes (non-ASCII, a quote, a
   backslash, so any Windows path) is also matched in its escaped forms; today it can leave in
   `raw` inside a tool argument. No driver calls the parser before this lands.
@@ -207,7 +229,8 @@ Ruled for PR 2c (not yet in `main`), before the driver:
 | 1b | Canned adapter, with `Compaction` and `Reply.compactions` |
 | 2 (#63) | Compaction outcome, identity and replacement link; `close()` returns compactions; float tool arguments |
 | 2b (#102) | Pure Copilot event parser and cost reading (`reply_from_events`) |
-| 2c | `redact.py`: the home-directory fix (M2) and JSON-escaped exact values; compactions from events (2d if together they pass 800 lines) |
+| 2c (#147) | `redact.py`: JSON-escaped exact values; compactions from events |
+| 2d (#171) | `redact.py`: the home-directory fix (M2) |
 | 3 | Session driver against a fake client: one turn, errors, timeouts |
 | 3b | Tool-call turns (handlers parked until the next request), if 3 would pass 800 lines |
 | 4 | The SDK 1.0.8 binding, the `copilot-sol-medium` configuration, the `live`-marked check |

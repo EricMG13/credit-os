@@ -192,8 +192,17 @@ Written by the controller before each task from invented values only. No databas
 | 4 | The resume read; the per-method rollback test, the kill test, threads and two processes |
 | 5 | Migration 3 (deliveries); admission and its refusals; the admitted list |
 
-PR 1 is split to hold the 800-line cap: 1a the errors, the codecs and the SQLite version
-check; 1b the rest of PR 1's row.
+PR 1 is split to hold the 800-line cap: 1a (#162) the errors, the SQLite error mapping and
+the CI version print; 1b the codecs; 1c `open_store`, `open_reader` and the migration runner.
+
+Ruled by the controller in PR 1 and confirmed: a SQLite error maps by primary result code (5
+and 6 busy; 19 conflict; 11 and 26 corrupt; anything else unusable); an error message never
+contains the refused value, and PR 1c shows that SQLite's own constraint message carries no
+stored value or reduces it to the code's name; time accepts an `int` epoch (never a bool or
+float); detail integers fit 64 signed bits; money text is at most 64 characters and refused
+before formatting beyond 64 digits or an exponent outside -62 to 63; an existing folder or
+file keeps its mode; the folder is absolute; the reader refuses a WAL file. The first layer
+that stores a `SourceError` keeps its notes and decides the form of the path in its message.
 
 ## How it runs
 

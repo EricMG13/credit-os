@@ -172,8 +172,9 @@ its files are written data and count toward the cap.
    debt 0.4. With decline 0.2, increase 0.5: EBITDA 240; interest 45; leverage 2.1875; cover 16/3.
 3. **Ratios.** Keys use terminating quotients, compared exactly. The rounding rule is proved on
    written-out cases (1/3, 2/3, 16/3 to 38 significant digits) and by a `Fraction` bound.
-4. **Legacy cases, adapted.** The legacy tests' synthetic inline tables and case list are
-   inputs; each expected value is worked again by the controller.
+4. **Legacy cases, adapted.** The legacy tests' cases give the shapes to cover, not the
+   figures: their inline tables are not all synthetic (some carry a public case's run), so
+   every operand and expected value is invented and worked by the controller (ruling 9).
 5. **Properties** (`hypothesis`, `Fraction` as the oracle): sums in any order; difference and
    product exact or refused; ratio within half a unit of the 38th digit; zero shock equals base;
    each year opens at the prior close; scale 1000 equals the same block in millions; a schedule
@@ -198,6 +199,17 @@ its files are written data and count toward the cap.
 | 11 | Year to date, prior year to date, LTM and prior LTM with date checks; limits; end to end |
 
 A PR that would pass 800 lines is split, not trimmed of tests; PRs 9 to 11 are the likeliest.
+PR 1 is split: 1 (#163) the value type; 1b the arithmetic.
+
+Ruled by the controller in PR 1 and confirmed: a missing operand is returned unchanged, the
+first in operand order; refusals are `decimal.Inexact` (more than 38 significant digits),
+`Overflow` and `Underflow` (adjusted exponent outside -100 to 100), and both of the last two
+are subclasses of `Inexact`; a sum or product is exact on its result whatever the order; a
+value is stored in one form, zero as 0 and trailing zeros dropped, while `amount_text` prints
+the scale it is given; a context is built per call; operand text is an optional minus, digits
+and an optional point with digits, at most 38 digits and 64 characters, of type `str` exactly;
+the kernel sets no operand-count limit (the calculate tool's is 3A's); `total` and `product`
+take a list or tuple; `beyond_rounding` compares exactly and never refuses for size.
 
 ## How it runs
 

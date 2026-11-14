@@ -181,8 +181,20 @@ Written by the controller before each task, by reading, never by running a check
 | 6 | Confidence inputs and score (sensitive); `check_handoff` and the key over all fixtures |
 
 None of the six imports `model/`. A PR that would pass 800 lines is split, not trimmed of tests.
-PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b the structure
-checks and `check_handoff`.
+PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b (#170) the
+structure checks and `check_handoff`. PR 4 will be split: the reader with the no-float test,
+then `figure.form`.
+
+Ruled by the controller in PR 1 and confirmed: `Finding` has a 1-based `column`, used for
+ordering only; `CHECKS` is closed at 32 ids; `check_handoff` starts in PR 1b and later PRs add
+steps; passage text leaves out typed data sections and what is under them; `quoted` and
+`reason` have control, format and line-separator characters replaced by a space, so a message
+is one line; the context's mappings are read-only copies; a tag pairs with the nearest
+preceding heading register of its id whose section holds it and that has no tag yet, and two
+tags on one line are two registers; an empty required register id is always missing; an
+unclosed fence in a passage gives both findings. PR 2 puts a word boundary before the
+snake-case pattern, with a committed test that it matches what the plan's pattern matches.
+For 3A: a finding's `quoted` is sent as data, not inside the message's quotes.
 
 ## How it runs
 
