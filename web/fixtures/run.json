@@ -1,1 +1,296 @@
-{}
+{
+  "slice": {
+    "drafts": [
+      {
+        "id": "no-documents",
+        "issuer": "TransDigm Group",
+        "position": "Step 1 of 5",
+        "previous": null,
+        "next": "purpose",
+        "nextLabel": "Next",
+        "nextBlocked": "Add at least one document to continue.",
+        "readiness": {
+          "line": "What still has to be true before the run can start.",
+          "notMet": {
+            "count": "4",
+            "items": [
+              "At least one document added",
+              "Every document can be read",
+              "Purpose chosen",
+              "Summary approved"
+            ]
+          },
+          "met": { "count": "2", "items": ["Model service reachable", "Spending cap set"] },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "documents",
+        "files": []
+      },
+      {
+        "id": "documents",
+        "issuer": "TransDigm Group",
+        "position": "Step 1 of 5",
+        "previous": null,
+        "next": "purpose",
+        "nextLabel": "Next",
+        "nextBlocked": "Replace or remove the unreadable file to continue.",
+        "readiness": {
+          "line": "What still has to be true before the run can start.",
+          "notMet": {
+            "count": "3",
+            "items": ["Every document can be read", "Purpose chosen", "Summary approved"]
+          },
+          "met": {
+            "count": "3",
+            "items": ["At least one document added", "Model service reachable", "Spending cap set"]
+          },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "documents",
+        "files": [
+          {
+            "name": "TransDigm Group annual report FY2025.pdf",
+            "kind": "PDF",
+            "size": "4.8 MB",
+            "state": "Read in full",
+            "progress": { "label": "100%", "value": 100, "max": 100 },
+            "reason": null
+          },
+          {
+            "name": "TransDigm Group quarterly report Q3 FY2026.pdf",
+            "kind": "PDF",
+            "size": "2.1 MB",
+            "state": "Read in full",
+            "progress": { "label": "100%", "value": 100, "max": 100 },
+            "reason": null
+          },
+          {
+            "name": "Credit agreement, latest amendment.pdf",
+            "kind": "PDF",
+            "size": "1.3 MB",
+            "state": "Uploading",
+            "progress": { "label": "62%", "value": 62, "max": 100 },
+            "reason": null
+          },
+          {
+            "name": "Segment data FY2021 to FY2025.xlsx",
+            "kind": "XLSX",
+            "size": "310 KB",
+            "state": "Read in part",
+            "progress": null,
+            "reason": "Two of five sheets were read. The other three hold charts only, with no figures to read."
+          },
+          {
+            "name": "Investor presentation, scanned.pdf",
+            "kind": "PDF",
+            "size": "18.4 MB",
+            "state": "Unreadable",
+            "progress": null,
+            "reason": "This PDF is a scan with no readable text, so the run cannot read it. Replace it with a text version, or remove it to continue."
+          }
+        ]
+      },
+      {
+        "id": "purpose",
+        "issuer": "TransDigm Group",
+        "position": "Step 2 of 5",
+        "previous": "documents",
+        "next": "confirm",
+        "nextLabel": "Next",
+        "nextBlocked": null,
+        "readiness": {
+          "line": "What still has to be true before the run can start.",
+          "notMet": { "count": "1", "items": ["Summary approved"] },
+          "met": {
+            "count": "5",
+            "items": [
+              "At least one document added",
+              "Every document can be read",
+              "Purpose chosen",
+              "Model service reachable",
+              "Spending cap set"
+            ]
+          },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "purpose",
+        "chosen": "full-review",
+        "purposes": [
+          {
+            "id": "full-review",
+            "title": "Full credit review",
+            "description": "Every module runs: business, financials, capital structure, liquidity, covenants, peers, forecast and recovery. The fullest library, and the most spend.",
+            "modules": "13 modules"
+          },
+          {
+            "id": "earnings-update",
+            "title": "Earnings update",
+            "description": "Reads the latest results against the last run and updates financials, liquidity and the forecast. Needs an earlier run on this issuer.",
+            "modules": "5 modules"
+          },
+          {
+            "id": "event-review",
+            "title": "Event review",
+            "description": "Looks at one event, such as a refinancing, an acquisition or a rating action, and what it changes.",
+            "modules": "4 modules"
+          }
+        ]
+      },
+      {
+        "id": "confirm",
+        "issuer": "TransDigm Group",
+        "position": "Step 3 of 5",
+        "previous": "purpose",
+        "next": "context",
+        "nextLabel": "Approve summary",
+        "nextBlocked": null,
+        "readiness": {
+          "line": "What still has to be true before the run can start.",
+          "notMet": { "count": "1", "items": ["Summary approved"] },
+          "met": {
+            "count": "5",
+            "items": [
+              "At least one document added",
+              "Every document can be read",
+              "Purpose chosen",
+              "Model service reachable",
+              "Spending cap set"
+            ]
+          },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "confirm",
+        "groups": [
+          {
+            "name": "Issuer",
+            "rows": [
+              { "label": "Name", "value": "TransDigm Group Incorporated" },
+              { "label": "Reporting currency", "value": "USD" },
+              { "label": "Financial year end", "value": "30 September" },
+              { "label": "Latest period read", "value": "Q3 FY2026, nine months to 28 June 2026" },
+              { "label": "Guarantor group", "value": null }
+            ]
+          },
+          {
+            "name": "Documents",
+            "rows": [
+              { "label": "Read", "value": "4 of 4 added: 3 in full, 1 in part" },
+              { "label": "Periods covered", "value": "FY2021 to FY2025, and Q3 FY2026" },
+              {
+                "label": "Left out",
+                "value": "Investor presentation, scanned: removed because it has no readable text"
+              }
+            ]
+          },
+          {
+            "name": "Run",
+            "rows": [
+              { "label": "Purpose", "value": "Full credit review" },
+              { "label": "Modules", "value": "13" },
+              { "label": "Spending cap", "value": "USD 20.00" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "context",
+        "issuer": "TransDigm Group",
+        "position": "Step 4 of 5",
+        "previous": "confirm",
+        "next": "start",
+        "nextLabel": "Next",
+        "nextBlocked": null,
+        "readiness": {
+          "line": "Everything the run needs is in place.",
+          "notMet": { "count": "0", "items": [] },
+          "met": {
+            "count": "6",
+            "items": [
+              "At least one document added",
+              "Every document can be read",
+              "Purpose chosen",
+              "Summary approved",
+              "Model service reachable",
+              "Spending cap set"
+            ]
+          },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "context",
+        "note": ""
+      },
+      {
+        "id": "start",
+        "issuer": "TransDigm Group",
+        "position": "Step 5 of 5",
+        "previous": "context",
+        "next": "started",
+        "nextLabel": "Submit, spend up to USD 20.00",
+        "nextBlocked": null,
+        "readiness": {
+          "line": "Everything the run needs is in place.",
+          "notMet": { "count": "0", "items": [] },
+          "met": {
+            "count": "6",
+            "items": [
+              "At least one document added",
+              "Every document can be read",
+              "Purpose chosen",
+              "Summary approved",
+              "Model service reachable",
+              "Spending cap set"
+            ]
+          },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "start",
+        "recap": [
+          { "label": "Issuer", "value": "TransDigm Group Incorporated" },
+          { "label": "Purpose", "value": "Full credit review, 13 modules" },
+          { "label": "Documents", "value": "4, approved today at 14:36" },
+          { "label": "More context", "value": "One note added" }
+        ],
+        "paid": {
+          "text": "It can spend up to USD 20.00 and stops there. You confirm once more before anything is spent.",
+          "amount": "USD 20.00"
+        },
+        "confirm": {
+          "title": "Start a paid run?",
+          "text": "This run can spend up to USD 20.00 and stops when it reaches that cap. Once it starts, what it has spent cannot be taken back.",
+          "action": "Start run, up to USD 20.00",
+          "started": "started"
+        }
+      },
+      {
+        "id": "started",
+        "issuer": "TransDigm Group",
+        "position": "Step 5 of 5",
+        "previous": null,
+        "next": null,
+        "nextLabel": "Next",
+        "nextBlocked": null,
+        "readiness": {
+          "line": "Everything the run needs is in place.",
+          "notMet": { "count": "0", "items": [] },
+          "met": {
+            "count": "6",
+            "items": [
+              "At least one document added",
+              "Every document can be read",
+              "Purpose chosen",
+              "Summary approved",
+              "Model service reachable",
+              "Spending cap set"
+            ]
+          },
+          "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "step": "started",
+        "title": "Run started",
+        "text": "13 modules will read 4 documents for a full credit review of TransDigm Group. Spending stops at USD 20.00.",
+        "cap": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 },
+        "activity": "running"
+      }
+    ]
+  }
+}
