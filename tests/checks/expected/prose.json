@@ -127,6 +127,10 @@
     {"name": "marker: in Next module", "findings": "### Bottom line\nThe view holds.\n", "tail": "## Calculations\nNone.\n## Gaps\nNone.\n## Next module\nNone \ue200.\n", "expect": [["prose.provider-marker", "refusal", 14, "U+E200"]]},
     {"name": "marker: in a data section", "findings": "### Bottom line\nThe view holds.\n### Chart data: leverage\nA \ue200 note.\n", "expect": [["prose.provider-marker", "refusal", 10, "U+E200"]]},
     {"name": "earlier format: one refusal, no prose check", "findings": "### Overview\nText \ue200 from CP-2D [1].\n", "expect": [["structure.format", "refusal", 7, "Overview"]]},
-    {"name": "repeated passage heading: the checks that need no reader view still run", "findings": "### Bottom line\n12 items from CP-2D \ue200.\n### Key findings\n- k\n### Key findings\n- k\n", "expect": [["prose.module-code", "refusal", 8, "CP-2D"], ["prose.provider-marker", "refusal", 8, "U+E200"], ["structure.reader", "refusal", 11, "Key findings"]]}
+    {"name": "repeated passage heading: the checks that need no reader view still run", "findings": "### Bottom line\n12 items from CP-2D \ue200.\n### Key findings\n- k\n### Key findings\n- k\n", "expect": [["prose.module-code", "refusal", 8, "CP-2D"], ["prose.provider-marker", "refusal", 8, "U+E200"], ["structure.reader", "refusal", 11, "Key findings"]]},
+    {"name": "first sentence ends at an exclamation mark", "findings": "### Bottom line\n{words:46}! More follows.\n", "expect": [["prose.bottom-line-length", "refusal", 8, "{words:16} …"]], "reason_has": {"0": ["46 words"]}},
+    {"name": "first sentence ends after a closing round bracket", "findings": "### Bottom line\n{words:46}.) More follows.\n", "expect": [["prose.bottom-line-length", "refusal", 8, "{words:16} …"]], "reason_has": {"0": ["46 words"]}},
+    {"name": "bracket: a lone closing lenticular bracket", "findings": "### Bottom line\nThe view holds 】 here.\n", "expect": [["prose.bracket", "refusal", 8, "The view holds 】 here."]]},
+    {"name": "bracket: the quoted window is stripped of the space at its edge", "findings": "### Bottom line\nCover is thin and the view holds [ here and it stays so for now.\n", "expect": [["prose.bracket", "refusal", 8, "and the view holds [ here and it stays s"]]}
   ]
 }
