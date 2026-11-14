@@ -572,6 +572,14 @@ def test_the_connections_operations_carry_the_per_operation_timeout(
     assert wire.wrapped[0].gettimeout() == 3.0
 
 
+def test_the_connections_operations_carry_the_time_left_when_that_is_less_than_the_timeout(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connection = _connection(wire, monkeypatch, Clock(98.0), timeout=3.0)
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert wire.wrapped[0].gettimeout() == 2.0
+
+
 def test_an_answer_read_after_the_total_time_is_spent_is_refused(
     wire: Wire, monkeypatch: pytest.MonkeyPatch
 ) -> None:
