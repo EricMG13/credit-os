@@ -107,10 +107,10 @@ describe("the Evidence frame", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
-  it("draws no module filter on Summary, where it would narrow nothing", () => {
+  it("draws no module filter on Summary, where it would narrow nothing, but the jump field", () => {
     renderEvidence("2026-09-30");
     expect(screen.queryByRole("button", { name: /Module/ })).toBeNull();
-    expect(screen.queryByText("Jump to an item")).toBeNull();
+    expect(screen.getByRole("button", { name: /^Jump to an item/ })).toBeVisible();
   });
 
   it("draws the run's counts on the capped run and the first run", () => {
@@ -336,11 +336,11 @@ function pick(name: string) {
 }
 
 describe("Evidence, Sources", () => {
-  it("draws the Sources tab as current, with the module filter at 'Module: All' and no dead field", () => {
+  it("draws the Sources tab as current, with the module filter at 'Module: All' and the live jump field", () => {
     renderEvidence("2026-09-30", SOURCES);
     expect(tabs().getByRole("link", { name: /^Sources/ })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: /^Module: All/ })).toBeVisible();
-    expect(screen.queryByText("Jump to an item")).toBeNull();
+    expect(screen.getByRole("button", { name: /^Jump to an item/ })).toBeVisible();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
