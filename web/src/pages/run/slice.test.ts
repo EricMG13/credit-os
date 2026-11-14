@@ -742,6 +742,21 @@ describe("rejects, run activity", () => {
       expect(reason(editRun("failed", ["alert", "title"], ""))).toBe(
         `run.runs[4].alert.title: ${want}`,
       );
+      expect(reason(editRun("running", ["feed", 0, "who"], ""))).toBe(
+        `run.runs[0].feed[0].who: ${want}`,
+      );
+      expect(reason(editRun("running", ["feed", 0, "time"], ""))).toBe(
+        `run.runs[0].feed[0].time: ${want}`,
+      );
+      expect(reason(edit("documents", ["files", 0, "kind"], ""))).toBe(
+        `run.drafts[1].files[0].kind: ${want}`,
+      );
+      expect(reason(edit("documents", ["files", 0, "size"], ""))).toBe(
+        `run.drafts[1].files[0].size: ${want}`,
+      );
+      expect(reason(editRun("unreadable", ["labels", 0], ""))).toBe(
+        `run.runs[10].labels[0]: ${want}`,
+      );
     });
     it("a list the step draws for the reader to act on is not empty", () => {
       const want = "expected a non-empty list";

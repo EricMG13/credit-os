@@ -72,8 +72,8 @@ const file = (v: unknown, path: string): StartFile => {
   const o = obj(v, path);
   return {
     name: fileName(o, "name", path),
-    kind: str(o, "kind", path),
-    size: str(o, "size", path),
+    kind: text(o, "kind", path),
+    size: text(o, "size", path),
     state: oneOf(o, "state", path, FILE_STATES),
     progress: orNull(o, "progress", path, bar),
     reason: strOrNull(o, "reason", path),

@@ -88,5 +88,9 @@ export function orNull<T>(
   if (typeof v !== "object" || Array.isArray(v)) return fail(`${path}.${key}`, "an object or null");
   return read(v, `${path}.${key}`);
 }
+// Each item is drawn (a chip or a list line), so it is not blank; the list itself may be empty.
 export const strings = (o: Obj, key: string, path: string): string[] =>
-  list(o, key, path, (v, p) => (typeof v === "string" ? noCode(v, p) : fail(p, "a string")));
+  list(o, key, path, (v, p) => {
+    if (typeof v !== "string") return fail(p, "a string");
+    return v.trim() === "" ? fail(p, "a non-empty string") : noCode(v, p);
+  });

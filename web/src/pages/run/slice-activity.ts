@@ -98,8 +98,8 @@ const figure = (v: unknown, path: string): Figure => {
 const line = (v: unknown, path: string): ActivityLine => {
   const o = obj(v, path);
   return {
-    who: str(o, "who", path),
-    time: str(o, "time", path),
+    who: text(o, "who", path),
+    time: text(o, "time", path),
     text: str(o, "text", path),
     state: oneOf(o, "state", path, [...RUN_STATES, "Not assessable"] as const),
   };
