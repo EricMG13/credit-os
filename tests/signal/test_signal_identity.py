@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import pytest
 from hypothesis import given, settings
@@ -110,12 +111,25 @@ def test_clean_name_is_stable_through_the_cookie(raw: str) -> None:
     assert user is not None and user.name == name
 
 
-@settings(deadline=None, max_examples=50)
-@given(st.text(max_size=300))
-def test_any_cookie_header_is_safe(header: str) -> None:
-    with fresh_db() as db:
-        user = current_user(db, header)
+_TEXT = st.text(alphabet=st.characters(codec="utf-8"), max_size=100)
+_NAME_PAIR = _TEXT.map(lambda text: "signal_name=" + quote(text, safe=""))
+HEADERS = st.lists(st.one_of(_NAME_PAIR, _TEXT), max_size=4).map("; ".join)
+
+
+def test_any_cookie_header_is_safe() -> None:
+    """Headers of which a good share carry a name: the user half of the claim must run."""
+    outcomes: list[bool] = []
+
+    @settings(deadline=None, max_examples=100)
+    @given(HEADERS)
+    def check(header: str) -> None:
+        with fresh_db() as db:
+            user = current_user(db, header)
+        outcomes.append(user is not None)
         assert user is None or (0 < len(user.name) <= 60 and user.role == "reader")
+
+    check()
+    assert any(outcomes)
 
 
 # Departures from the predecessor (S3-03, R15, R33).
@@ -301,3 +315,38 @@ def test_a_name_cut_at_the_limit_loses_the_space_the_cut_left_at_its_end() -> No
 def test_the_set_cookie_value_is_exactly_this() -> None:
     assert cookie_for("x") == ("signal_name=x; Path=/; Max-Age=31536000; SameSite=Strict; HttpOnly")
     assert cookie_for("a/b c").startswith("signal_name=a%2Fb%20c; ")
+
+
+@pytest.mark.parametrize(
+    ("raw", "want"),
+    [
+        ("A\nK", "A K"),
+        ("A\rK", "A K"),
+        ("Eve\r\nBob", "Eve Bob"),
+        ("A\u00a0K", "A K"),
+        ("A\u3000\u0020 K", "A K"),
+        ("A\u2028K", "A K"),
+        ("A\u2003\u00a0K", "A K"),
+    ],
+)
+def test_every_kind_of_white_space_between_words_is_one_space(raw: str, want: str) -> None:
+    assert clean_name(raw) == want
+
+
+def test_a_name_of_unicode_spaces_only_is_empty() -> None:
+    assert cleaned("\u3000") == ""
+    with pytest.raises(IdentityError):
+        clean_name("\u00a0\u00a0")
+
+
+def test_marks_that_expand_under_nfc_are_cut_after_it() -> None:
+    # U+0344 becomes U+0308 U+0301 under NFC: the cut counts what NFC left.
+    assert clean_name("a" + "\u0344" * 8) == "\u00e4" + "\u0301\u0308" * 4
+
+
+@pytest.mark.parametrize(
+    ("value", "want"),
+    [("x" * 61, "x" * 60), ("%C3%A9" * 61, "\u00e9" * 60)],
+)
+def test_a_cookies_name_is_cut_to_sixty(db: sqlite3.Connection, value: str, want: str) -> None:
+    assert current_user(db, "signal_name=" + value) == User(want, "reader")
