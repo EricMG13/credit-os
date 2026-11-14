@@ -37,10 +37,26 @@ function useOnGone(then: () => void) {
 }
 
 /** The thread's own "Open thread" link in the group view; the page container when there is none. */
-function focusOpenLink(threadId: string | null) {
+function openLinkTarget(threadId: string | null): HTMLElement | null {
   const links = document.querySelectorAll<HTMLElement>("a[data-thread-link]");
   const own = [...links].find((a) => a.dataset["threadLink"] === threadId);
-  (own ?? document.getElementById("signal-content"))?.focus();
+  return own ?? document.getElementById("signal-content");
+}
+
+/**
+ * Focus goes to the link at once and again two frames later if it has fallen to the page. When the
+ * address was loaded directly the dialog library has no opener to restore and, in a browser, its own
+ * frame-late restore leaves focus on the body; a click-opened panel is restored to its link by it.
+ */
+function focusOpenLink(threadId: string | null) {
+  openLinkTarget(threadId)?.focus();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (document.activeElement === null || document.activeElement === document.body) {
+        openLinkTarget(threadId)?.focus();
+      }
+    });
+  });
 }
 
 function Quoted({ story }: { story: SignalStory }) {
