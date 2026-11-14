@@ -145,6 +145,11 @@
     {"text": "Fees were gbp 5, Gbp 6 and Usd 7.", "sides": ["passage", "held"], "figures": [["5", false, false, null, "GBP", "5", 15], ["6", false, false, null, "GBP", "6", 22], ["7", false, false, null, "USD", "7", 32]]},
     {"text": "The 3rd row fell 2%.", "sides": ["passage", "held"], "figures": [["3", false, false, null, null, "3", 5], ["2", false, false, "%", null, "2%", 18]]},
     {"text": "It fell USD –5 then.", "sides": ["passage", "held"], "figures": [["5", false, false, null, "USD", "5", 14]]},
-    {"text": "It lost -R$ 9M, (R$ -9M) and R$ -(9M).", "sides": ["passage", "held"], "figures": [["9", true, false, "m", "unrecognised", "-R$ 9M", 9], ["9", true, false, "m", "unrecognised", "(R$ -9M)", 17], ["9", true, true, "m", "unrecognised", "(9M)", 34]]}
+    {"text": "It lost -R$ 9M, (R$ -9M) and R$ -(9M).", "sides": ["passage", "held"], "figures": [["9", true, false, "m", "unrecognised", "-R$ 9M", 9], ["9", true, false, "m", "unrecognised", "(R$ -9M)", 17], ["9", true, true, "m", "unrecognised", "(9M)", 34]]},
+    {"text": "On Jan. 2024 it was 7%.", "sides": ["passage"], "figures": [["7", false, false, "%", null, "7%", 21]]},
+    {"text": "In 1999E it rose 2%.", "sides": ["passage"], "figures": [["2", false, false, "%", null, "2%", 18]]},
+    {"text": "It was LTM$5m.", "sides": ["passage"], "figures": [["5", false, false, "m", "USD", "5m", 12]]},
+    {"text": "It was 250 USD mid-year.", "sides": ["passage", "held"], "figures": [["250", false, false, null, null, "250", 8]]},
+    {"text": "It cost Us$5m and uS$6m.", "sides": ["passage", "held"], "figures": [["5", false, false, "m", "USD", "5m", 12], ["6", false, false, "m", "USD", "6m", 22]]}
   ]
 }
