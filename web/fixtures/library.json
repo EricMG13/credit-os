@@ -384,7 +384,7 @@
               "pathway": "Full review",
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
-              "firstModule": "capital-structure",
+              "firstModule": "business-profile",
               "forecastHref": null
             },
             "loading": false,
@@ -1528,7 +1528,7 @@
               "pathway": "Full review",
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
-              "firstModule": "capital-structure",
+              "firstModule": null,
               "forecastHref": null
             },
             "loading": true,
@@ -1545,7 +1545,7 @@
               "pathway": "Full review",
               "state": "Capped",
               "tabs": { "modulesCount": "9" },
-              "firstModule": "capital-structure",
+              "firstModule": "business-profile",
               "forecastHref": null
             },
             "loading": false,
@@ -1807,6 +1807,63 @@
                 }
               },
               {
+                "id": "industry-and-competition",
+                "name": "Industry and competition",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Build rates are rising; pricing discipline among the large suppliers is holding.",
+                    "rest": "Certification keeps new suppliers out of the aftermarket for years.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Entry is slow",
+                      "body": "A new supplier needs about three years to certify one part.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Market shares come from management, not from an independent source.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "financial-performance",
+                "name": "Financial performance",
+                "state": "Not run",
+                "body": {
+                  "kind": "blocked",
+                  "reason": "The run reached its cost cap before this module started.",
+                  "note": "Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.",
+                  "gapsLink": { "label": "See this gap in Evidence" }
+                }
+              },
+              {
+                "id": "cash-flow-and-liquidity",
+                "name": "Cash flow and liquidity",
+                "state": "Not run",
+                "body": {
+                  "kind": "blocked",
+                  "reason": "The run reached its cost cap before this module started.",
+                  "note": "Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.",
+                  "gapsLink": { "label": "See this gap in Evidence" }
+                }
+              },
+              {
                 "id": "capital-structure",
                 "name": "Capital structure",
                 "state": "Delivered with gaps",
@@ -1834,6 +1891,76 @@
                     "gapsLink": { "label": "See this module’s gaps in Evidence" },
                     "items": [
                       { "text": "Hedge expiries are not established for this run.", "trace": null }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "covenants-and-documentation",
+                "name": "Covenants and documentation",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "One springing covenant, untested, with wide baskets.",
+                    "rest": "It tests only when the facility is more than 40% drawn, and the facility was repaid from cash in the quarter.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Baskets are wide",
+                      "body": "Permitted debt and lien baskets leave room for further secured borrowing.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Intercreditor terms were read from a summary, not the signed agreement.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "management-and-governance",
+                "name": "Management and governance",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "A sponsor-controlled board; a record of debt-funded purchases.",
+                    "rest": "The chief executive and chief financial officer have served since 2021.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Continuity is a strength",
+                      "body": "Both senior executives have held their posts since 2021.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Sponsor intentions are inferred from past purchases, not stated.",
+                        "trace": null
+                      }
                     ]
                   }
                 }
@@ -1874,28 +2001,6 @@
                 }
               },
               {
-                "id": "financial-performance",
-                "name": "Financial performance",
-                "state": "Not run",
-                "body": {
-                  "kind": "blocked",
-                  "reason": "The run reached its cost cap before this module started.",
-                  "note": "Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.",
-                  "gapsLink": { "label": "See this gap in Evidence" }
-                }
-              },
-              {
-                "id": "cash-flow-and-liquidity",
-                "name": "Cash flow and liquidity",
-                "state": "Not run",
-                "body": {
-                  "kind": "blocked",
-                  "reason": "The run reached its cost cap before this module started.",
-                  "note": "Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.",
-                  "gapsLink": { "label": "See this gap in Evidence" }
-                }
-              },
-              {
                 "id": "recovery",
                 "name": "Recovery",
                 "state": "Not run",
@@ -1907,6 +2012,76 @@
                 }
               },
               {
+                "id": "rating-outlook",
+                "name": "Rating outlook",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Both agencies stable; one upgrade trigger is within reach by 2027.",
+                    "rest": "The outlook rests on the 2028 notes being refinanced.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "The triggers are published",
+                      "body": "Each agency has published its upgrade and downgrade triggers.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Agency views are those published at the date of the run.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "environmental-social-and-governance",
+                "name": "Environmental, social and governance",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "No finding that changes the credit view.",
+                    "rest": "Emissions and safety records are in line with the sector.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Records are in line",
+                      "body": "Emissions and safety measures sit within the sector range.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Sustainability data is self-reported and unaudited.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
                 "id": "forecast",
                 "name": "Forecast",
                 "state": "Not run",
@@ -1915,6 +2090,41 @@
                   "reason": "The run reached its cost cap before this module started.",
                   "note": "Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.",
                   "gapsLink": { "label": "See this gap in Evidence" }
+                }
+              },
+              {
+                "id": "credit-snapshot",
+                "name": "Credit snapshot",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "A one-page summary of this run for committee papers.",
+                    "rest": "It restates the nine modules delivered; the four that did not run before the cost cap are not summarised.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Four modules are missing",
+                      "body": "The snapshot carries no view of earnings, cash flow, recovery or forecast.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "The snapshot restates the other modules and adds no new analysis.",
+                        "trace": null
+                      }
+                    ]
+                  }
                 }
               }
             ],
@@ -1928,7 +2138,7 @@
               "pathway": "Full review",
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
-              "firstModule": "capital-structure",
+              "firstModule": "business-profile",
               "forecastHref": null
             },
             "loading": false,
@@ -2096,6 +2306,146 @@
             },
             "modules": [
               {
+                "id": "business-profile",
+                "name": "Business profile",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "A sole-source aftermarket franchise carries a thinner original-equipment business.",
+                    "rest": "The aftermarket earns most of the profit and held through the last two downturns in build rates.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "The aftermarket leads",
+                      "body": "Aftermarket parts were 59% of gross profit in the year, on the company-adjusted basis.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Customer terms come from management presentations.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "industry-and-competition",
+                "name": "Industry and competition",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Build rates are rising; pricing among the large suppliers is holding.",
+                    "rest": "Certification keeps new suppliers out of the aftermarket for years.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Entry is slow",
+                      "body": "A new supplier needs about three years to certify one part.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Market shares come from management, not from an independent source.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "financial-performance",
+                "name": "Financial performance",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Margin is 21.8% on revenue of USD 1,967m.",
+                    "rest": "Growth came from the aftermarket; original equipment held flat. EBITDA is on the company-adjusted basis.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Adjustments are modest",
+                      "body": "Company adjustments add less than one point to the margin.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "EBITDA for 2021 is not available on the current basis.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "cash-flow-and-liquidity",
+                "name": "Cash flow and liquidity",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Liquidity of USD 398m covers every maturity before the 2028 notes.",
+                    "rest": "Working capital absorbed cash as inventory was built for the engine ramp, so conversion lagged margin.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Inventory is the drag",
+                      "body": "Inventory built for the engine ramp will release only as deliveries rise.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Quarterly cash flow is not in the files; the module used year-end figures.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
                 "id": "capital-structure",
                 "name": "Capital structure",
                 "state": "Delivered with gaps",
@@ -2123,6 +2473,111 @@
                     "gapsLink": { "label": "See this module’s gaps in Evidence" },
                     "items": [
                       { "text": "Hedge expiries are not established for this run.", "trace": null }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "covenants-and-documentation",
+                "name": "Covenants and documentation",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Only a springing first-lien covenant applies, and only when the facility is more than 40% drawn.",
+                    "rest": "The bonds carry the usual incurrence tests.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Baskets are wide",
+                      "body": "Permitted debt and lien baskets leave room for further secured borrowing.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Intercreditor terms were read from a summary, not the signed agreement.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "management-and-governance",
+                "name": "Management and governance",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "A stable team under a sponsor that has used debt for purchases.",
+                    "rest": "The chief executive and chief financial officer have served since 2021.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Continuity is a strength",
+                      "body": "Both senior executives have held their posts since 2021.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Sponsor intentions are inferred from past purchases, not stated.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "peer-comparison",
+                "name": "Peer comparison",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "More levered than most peers, with a higher margin.",
+                    "rest": "The margin lead is real and holds on a like-for-like basis.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Leverage is above the group",
+                      "body": "Net leverage of 4.9x sits above the peer median.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Peer figures are as published and were not restated.",
+                        "trace": null
+                      }
                     ]
                   }
                 }
@@ -2156,6 +2611,146 @@
                     "items": [
                       {
                         "text": "Asset valuations are management’s own and were not tested.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "rating-outlook",
+                "name": "Rating outlook",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Both agencies stable, with the 2028 notes the next test.",
+                    "rest": "Each agency has published its upgrade and downgrade triggers.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "The triggers are published",
+                      "body": "Neither agency has moved its view in the last year.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Agency views are those published at the date of the run.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "environmental-social-and-governance",
+                "name": "Environmental, social and governance",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "No finding that changes the credit view.",
+                    "rest": "Emissions and safety records are in line with the sector.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "Records are in line",
+                      "body": "Emissions and safety measures sit within the sector range.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Sustainability data is self-reported and unaudited.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "forecast",
+                "name": "Forecast",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "Leverage falls from 4.9x on the base case as the engine ramp lands.",
+                    "rest": "The base case assumes the engine ramp holds and the aftermarket grows with traffic.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "The base case is steady",
+                      "body": "Revenue grows 5% a year and margin holds near 22%.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "The forecast uses the company’s plan for the engine ramp.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "credit-snapshot",
+                "name": "Credit snapshot",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "A stable credit with high leverage, summarised from the other modules.",
+                    "rest": "Maturities are long-dated and liquidity is adequate; the 2028 notes are the next test.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "One test ahead",
+                      "body": "The 2028 unsecured notes decide the view over the next year.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module’s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "The snapshot restates the other modules and adds no new analysis.",
                         "trace": null
                       }
                     ]
