@@ -254,3 +254,41 @@ def test_a_thousand_held_figures_and_a_thousand_judged_figures_run_in_time() -> 
     found = held.check_not_held(document, _context({}))
     _within(SECONDS, start)
     assert len(found) == 1000
+
+
+def _read_pair(text: str, passage: bool) -> list[tuple[bool, bool]]:
+    return [(f.negative, f.bracketed) for f in read_figures(text, passage=passage)]
+
+
+@pytest.mark.parametrize("passage", [True, False])
+def test_a_hundred_digit_figure_is_rounded_without_raising(passage: bool) -> None:
+    # 99...9.55 rounded half up to one place is 99...9.6, written in the bracket: a note.
+    text = f"It was {'9' * 100}.55 ({'9' * 100}.6)."
+    assert _read_pair(text, passage) == [(False, False), (False, False)]
+
+
+@pytest.mark.parametrize("passage", [True, False])
+def test_a_figure_with_many_leading_zeros_is_rounded_without_raising(passage: bool) -> None:
+    # 0.(31 zeros)49 to 32 places is 0.(31 zeros)5; to 2 places it is 0.00.
+    before = "0." + "0" * 31 + "49"
+    text = f"It was {before} (0.{'0' * 31}5) and {before} (0.00)."
+    assert _read_pair(text, passage) == [(False, False)] * 4
+
+
+@pytest.mark.parametrize("passage", [True, False])
+def test_the_same_figure_with_separators_on_both_sides_is_a_negative(passage: bool) -> None:
+    assert _read_pair("It was 1,250.50 (1,250.50).", passage) == [(False, False), (True, True)]
+
+
+def test_a_currency_symbol_before_a_minus_is_not_refused_by_r59() -> None:
+    document = _pair("### Bottom line\nIt lost US$-5m.\n", _calculations("It lost -US$5m.\n"))
+    assert check_handoff(document, _context({})) == ()
+
+
+def test_r59_refuses_the_currency_after_a_hyphen_that_is_no_currency() -> None:
+    document = _pair(
+        "### Bottom line\nThe B-1 loan lost USD-5 million.\n",
+        _calculations("The B-1 loan lost USD 5 million.\n"),
+    )
+    found = check_handoff(document, _context({}))
+    assert [(f.check, f.quoted, f.column) for f in found] == [("figure.form", "USD-5", 19)]
