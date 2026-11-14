@@ -16,7 +16,7 @@ that was at least 30 days old on 2026-11-13 (decision 0002: prefer established r
 | tailwind-merge | 3.7.0 | 2026-09-12 | MIT | Used by every Untitled UI component to merge class names |
 | tailwindcss-animate | 1.0.7 | 2023-08-28 | MIT | Listed by Untitled UI's manual install |
 | @untitledui/icons | 0.0.23 | 2026-09-22 | MIT | Icons, through the package only (ruling 5); no icon file is committed |
-| recharts | 3.10.1 | 2026-07-25 | MIT | Charts (ruling 2). **Conditional:** adopted only if step D2a's chart trial passes the open-from-disk check |
+| recharts | 3.10.1 | 2026-07-25 | MIT | Charts (ruling 2). Adopted 2026-11-14: step D2a's chart trial passed the open-from-disk check on Windows and Linux (PR 25) with no policy violation and no injected style element. The built bundle grew from about 411 kB to 794 kB |
 
 Untitled UI React itself is not a dependency: its components are copied into
 `web/src/components/` with `npx untitledui@latest add <name>` and are then this project's code,
