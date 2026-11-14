@@ -71,6 +71,190 @@
             "title": "Relative value",
             "part": "Spread against holdings",
             "reason": "The pricing comparison failed in this run, so the spread paid for this risk could not be set against the rest of the portfolio."
+          },
+          "scatter": {
+            "title": "Leverage and margin against holdings",
+            "subtitle": "Latest twelve months, one mark per issuer held",
+            "note": "Holdings are shown without names in this sample.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "x": {
+              "title": "Net leverage",
+              "short": "net leverage",
+              "ticks": [
+                { "value": 2, "label": "2x" },
+                { "value": 3, "label": "3x" },
+                { "value": 4, "label": "4x" },
+                { "value": 5, "label": "5x" },
+                { "value": 6, "label": "6x" },
+                { "value": 7, "label": "7x" },
+                { "value": 8, "label": "8x" }
+              ]
+            },
+            "y": {
+              "title": "EBITDA margin",
+              "short": "EBITDA margin",
+              "ticks": [
+                { "value": 0, "label": "0" },
+                { "value": 15, "label": "15%" },
+                { "value": 30, "label": "30%" },
+                { "value": 45, "label": "45%" },
+                { "value": 60, "label": "60%" }
+              ]
+            },
+            "othersName": "Other holdings",
+            "head": ["Issuer", "Net leverage", "EBITDA margin"],
+            "points": [
+              {
+                "name": "TransDigm",
+                "x": 5.9,
+                "y": 53.1,
+                "xText": "5.9x",
+                "yText": "53.1%",
+                "emphasis": true,
+                "cells": ["5.9x", "53.1%"]
+              },
+              {
+                "name": "Holding A",
+                "x": 3.1,
+                "y": 22,
+                "xText": "3.1x",
+                "yText": "22%",
+                "emphasis": false,
+                "cells": ["3.1x", "22%"]
+              },
+              {
+                "name": "Holding B",
+                "x": 4.2,
+                "y": 31,
+                "xText": "4.2x",
+                "yText": "31%",
+                "emphasis": false,
+                "cells": ["4.2x", "31%"]
+              },
+              {
+                "name": "Holding C",
+                "x": 2.6,
+                "y": 14,
+                "xText": "2.6x",
+                "yText": "14%",
+                "emphasis": false,
+                "cells": ["2.6x", "14%"]
+              },
+              {
+                "name": "Holding D",
+                "x": 5.1,
+                "y": 27,
+                "xText": "5.1x",
+                "yText": "27%",
+                "emphasis": false,
+                "cells": ["5.1x", "27%"]
+              },
+              {
+                "name": "Holding E",
+                "x": 6.8,
+                "y": 19,
+                "xText": "6.8x",
+                "yText": "19%",
+                "emphasis": false,
+                "cells": ["6.8x", "19%"]
+              },
+              {
+                "name": "Holding F",
+                "x": 3.8,
+                "y": 41,
+                "xText": "3.8x",
+                "yText": "41%",
+                "emphasis": false,
+                "cells": ["3.8x", "41%"]
+              },
+              {
+                "name": "Holding G",
+                "x": 4.6,
+                "y": 9,
+                "xText": "4.6x",
+                "yText": "9%",
+                "emphasis": false,
+                "cells": ["4.6x", "9%"]
+              },
+              {
+                "name": "Holding H",
+                "x": 5.6,
+                "y": 36,
+                "xText": "5.6x",
+                "yText": "36%",
+                "emphasis": false,
+                "cells": ["5.6x", "36%"]
+              },
+              {
+                "name": "Holding I",
+                "x": 2.4,
+                "y": 18,
+                "xText": "2.4x",
+                "yText": "18%",
+                "emphasis": false,
+                "cells": ["2.4x", "18%"]
+              },
+              {
+                "name": "Holding J",
+                "x": 4.4,
+                "y": null,
+                "xText": "4.4x",
+                "yText": null,
+                "emphasis": false,
+                "cells": ["4.4x", null]
+              },
+              {
+                "name": "Holding K",
+                "x": null,
+                "y": 24,
+                "xText": null,
+                "yText": "24%",
+                "emphasis": false,
+                "cells": [null, "24%"]
+              }
+            ]
+          },
+          "strips": {
+            "title": "Where the issuer sits in the portfolio",
+            "subtitle": "The issuer against the range across holdings",
+            "note": "The issuer has the highest margin held and sits near the top of the leverage range. Its spread is missing because the pricing comparison failed.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "rangeLabel": "Range across holdings",
+            "head": ["Measure", "Lowest held", "Highest held", "TransDigm"],
+            "rows": [
+              {
+                "label": "Net leverage",
+                "rangeText": "Holdings: 2.4x to 6.8x",
+                "range": { "low": 2.4, "high": 6.8 },
+                "markers": [{ "name": "TransDigm", "value": 5.9, "text": "5.9x" }],
+                "axis": { "min": 0, "max": 8 },
+                "cells": ["2.4x", "6.8x", "5.9x"]
+              },
+              {
+                "label": "Interest cover",
+                "rangeText": "Holdings: 1.6x to 6.2x",
+                "range": { "low": 1.6, "high": 6.2 },
+                "markers": [{ "name": "TransDigm", "value": 2.9, "text": "2.9x" }],
+                "axis": { "min": 0, "max": 8 },
+                "cells": ["1.6x", "6.2x", "2.9x"]
+              },
+              {
+                "label": "EBITDA margin",
+                "rangeText": "Holdings: 9% to 53%",
+                "range": { "low": 9, "high": 53.1 },
+                "markers": [{ "name": "TransDigm", "value": 53.1, "text": "53.1%" }],
+                "axis": { "min": 0, "max": 60 },
+                "cells": ["9%", "53%", "53.1%"]
+              },
+              {
+                "label": "Spread over benchmark",
+                "rangeText": "Holdings: 180 to 520 basis points",
+                "range": { "low": 180, "high": 520 },
+                "markers": [{ "name": "TransDigm", "value": null, "text": null }],
+                "axis": { "min": 0, "max": 600 },
+                "cells": ["180 bp", "520 bp", null]
+              }
+            ]
           }
         },
         "header": {

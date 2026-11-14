@@ -316,6 +316,8 @@ export type PortfolioFitPage = {
   limits: Limits;
   ratings: Ratings;
   relativeValue: RelativeValue;
+  scatter: HoldingsScatter;
+  strips: HoldingsStrips;
 };
 
 /** One column on its own scale. A text is `null` exactly where its value is; `cells` is the table row. */
@@ -342,3 +344,46 @@ export type Ratings = { title: string; trace: string | null; tiles: [RatingTile,
 
 /** The part that failed in this run: its name and the sentence saying why. */
 export type RelativeValue = { title: string; part: string; reason: string };
+
+export type ScatterAxis = {
+  title: string;
+  /** The measure's name inside a sentence ("net leverage"). */
+  short: string;
+  ticks: { value: number; label: string }[];
+};
+
+/** A holding or the issuer (`emphasis`, at most one); `cells` is the x then the y string. */
+export type ScatterRow = {
+  name: string;
+  x: number | null;
+  y: number | null;
+  xText: string | null;
+  yText: string | null;
+  emphasis: boolean;
+  cells: [string | null, string | null];
+};
+
+export type HoldingsScatter = ChartInfo & {
+  x: ScatterAxis;
+  y: ScatterAxis;
+  othersName: string;
+  head: string[];
+  points: ScatterRow[];
+};
+
+/**
+ * A range strip row on its own axis; `range: null` draws no strip, so no marker either. The last
+ * `markers.length` entries of `cells` are the markers' texts in marker order (the cells before
+ * them state the range): each equals its marker's `text`, `null` exactly where the marker is
+ * missing. The drivers table is the same shape, its markers being the cases in case order.
+ */
+export type StripRow = {
+  label: string;
+  rangeText: string;
+  range: { low: number; high: number } | null;
+  markers: { name: string; value: number | null; text: string | null }[];
+  axis: { min: number; max: number };
+  cells: (string | null)[];
+};
+
+export type HoldingsStrips = ChartInfo & { rangeLabel: string; head: string[]; rows: StripRow[] };
