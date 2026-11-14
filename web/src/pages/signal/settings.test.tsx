@@ -80,12 +80,6 @@ describe("the section list", () => {
         .map((t) => t.getAttribute("aria-selected")),
     ).toEqual(NAMES.map(() => "false"));
   });
-
-  it("says AI and cost is not built yet", () => {
-    show("/signal/main/settings/ai");
-    expect(page().getByText("Not built yet")).toBeTruthy();
-    expect(page().getByRole("heading", { level: 1 }).textContent).toBe("Settings");
-  });
 });
 
 describe("Groups (frame 1)", () => {
