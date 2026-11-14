@@ -1,1 +1,108 @@
-{}
+{
+  "issuers": [
+    { "id": "halden-aerostructures", "name": "Halden Aerostructures" },
+    { "id": "corvane-packaging", "name": "Corvane Packaging" },
+    { "id": "tessaly-foods", "name": "Tessaly Foods" },
+    { "id": "ardenne-cable", "name": "Ardenne Cable" },
+    { "id": "lumora-health", "name": "Lumora Health" }
+  ],
+  "slice": {
+    "home": {
+      "subtitle": "Five issuers, each opening on its latest finished run",
+      "filters": {
+        "sector": [
+          "Aerospace components",
+          "Cable and broadband",
+          "Outpatient clinics",
+          "Packaged food",
+          "Rigid packaging"
+        ],
+        "pathway": ["Full review", "Monitoring update"],
+        "state": ["Finished", "Running", "Failed", "Capped"],
+        "appliedLabels": [
+          "No filter applied",
+          "1 filter applied",
+          "2 filters applied",
+          "3 filters applied",
+          "4 filters applied"
+        ]
+      },
+      "cards": [
+        {
+          "kind": "issuer",
+          "issuer": "halden-aerostructures",
+          "name": "Halden Aerostructures",
+          "sector": "Aerospace components",
+          "state": "Finished",
+          "lead": "Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing before the engine programme pays back.",
+          "note": null,
+          "asOf": "As of 30 Sep 2026",
+          "pathway": "Full review",
+          "progress": { "text": "12 of 13 modules", "value": 12, "max": 13 },
+          "href": "2026-09-30"
+        },
+        {
+          "kind": "issuer",
+          "issuer": "corvane-packaging",
+          "name": "Corvane Packaging",
+          "sector": "Rigid packaging",
+          "state": "Running",
+          "lead": "Improving: volume recovery and a cleared 2027 maturity leave two years of runway.",
+          "note": "A new run as of 30 Sep 2026 is in progress. This is the run as of 30 Jun 2026.",
+          "asOf": "As of 30 Jun 2026",
+          "pathway": "Full review",
+          "progress": { "text": "5 of 13 modules", "value": 5, "max": 13 },
+          "href": "2026-06-30"
+        },
+        {
+          "kind": "issuer",
+          "issuer": "tessaly-foods",
+          "name": "Tessaly Foods",
+          "sector": "Packaged food",
+          "state": "Finished",
+          "lead": "Weakening: private-label losses in the two largest retail accounts, a third consecutive quarter of negative free cash flow and a facility that is now 70% drawn mean the springing covenant is likely to be tested at the December quarter end, earlier than management has guided.",
+          "note": null,
+          "asOf": "As of 30 Sep 2026",
+          "pathway": "Monitoring update",
+          "progress": { "text": "6 of 6 modules", "value": 6, "max": 6 },
+          "href": "2026-09-30"
+        },
+        {
+          "kind": "issuer",
+          "issuer": "ardenne-cable",
+          "name": "Ardenne Cable",
+          "sector": "Cable and broadband",
+          "state": "Failed",
+          "lead": "Stable: subscriber losses are offset by pricing; leverage is flat at 5.2x.",
+          "note": "The run as of 30 Sep 2026 failed. This is the run as of 31 Mar 2026.",
+          "asOf": "As of 31 Mar 2026",
+          "pathway": "Full review",
+          "progress": { "text": "13 of 13 modules", "value": 13, "max": 13 },
+          "href": "2026-03-31"
+        },
+        {
+          "kind": "issuer",
+          "issuer": "lumora-health",
+          "name": "Lumora Health",
+          "sector": "Outpatient clinics",
+          "state": "Capped",
+          "lead": "Not established for this run: the run stopped at its cost cap before the modules that form the view had finished.",
+          "note": "Seven modules delivered; their findings can be read.",
+          "asOf": "As of 30 Sep 2026",
+          "pathway": "Full review",
+          "progress": { "text": "7 of 13 modules", "value": 7, "max": 13 },
+          "href": "2026-09-30"
+        },
+        { "kind": "loading" }
+      ]
+    },
+    "issuers": [
+      { "id": "halden-aerostructures", "name": "Halden Aerostructures" },
+      { "id": "corvane-packaging", "name": "Corvane Packaging" },
+      { "id": "tessaly-foods", "name": "Tessaly Foods" },
+      { "id": "ardenne-cable", "name": "Ardenne Cable" },
+      { "id": "lumora-health", "name": "Lumora Health" }
+    ]
+  },
+  "params": {}
+}
