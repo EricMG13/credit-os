@@ -138,12 +138,33 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   the skipped list: accepted. When a pin is created no digest exists yet, so a link swapped in
   between `source_path`'s check and the open is hashed and pinned: an accepted limit, reported
   to the owner; closing it needs descriptor-relative opens.
-- **Ruled for PR 1e, not yet in `main`.** An `OSError` from `root.is_dir()` in `source_path`
+- **PR 1e (#135).** An `OSError` from `root.is_dir()` in `source_path`
   or from `os.close` in `read_capped` is typed, not raised bare; `validate_name` refuses the
   slash look-alikes U+2044, U+2215, U+2571, U+FF0F and the invisible fillers U+115F, U+1160,
-  U+3164, U+FFA0; the walk's property test and three bad-name rows that run on Windows.
+  U+3164, U+FFA0 (with the Windows-reserved punctuation, a closed list); the walk's property
+  test and three bad-name rows that run on Windows. A close that fails after another error is
+  a note on that error; a close that fails alone is `SourceUnreadable`.
+- **Ruled for PR 2 (#161).** Every reader returns `SourcePages(pages, encoding)` of
+  `Page(number, text, state)`, numbered from 1; readers are pure functions of bytes and
+  `read_pages(folder, pin)` arrives with PR 5. Pages are consecutive slices that rejoin to the
+  text exactly (text and csv 12,000 characters, HTML 3,000), ending at a line end where one
+  is in reach; the predecessor's header line and `textwrap` are dropped, so page numbers
+  differ from its. Text: UTF-8, else windows-1252 strictly; a control character other than
+  tab, LF, CR and form feed is refused by name. csv: comma, strict, no sniffing; a line break
+  in a cell is one space. HTML: the predecessor's tag lists; the reader holds a stated
+  peak-memory bound by a committed `tracemalloc` test, with a lower size cap for HTML if the
+  bound needs one; it is its own PR 2b with an adversarial review.
+- **PR 2 (#161) is merged.** Carried to PR 2b-1, key rows first: the two mutation survivors
+  that are not equivalent (`cut_stream`'s inner `>=`; `held = 1` in `csv_pages`, a row cap lower
+  by one after the first row) and an independent reference for `test_cut_stream_property`. A
+  memory test states, for each shape, which class of wrong reader it must fail. For 3A: a csv
+  of blank rows takes about 1.4 s per MiB and no time bound is stated.
+- **Ruled for PR 2's first task.** An `OSError` without `strerror` gives `cannot read` with
+  the error's class name, not `(None)`, failing test first; the comment in `source_path`
+  says, as the walk's docstring does, that no digest exists when a pin is created.
 - **For step 3A's plan.** The walk has no bound on the number of files or total bytes of a
-  folder; a run-level bound is 3A's question.
+  folder; a run-level bound is 3A's question. The first layer that stores or shows a
+  `SourceError` keeps its notes and decides whether the absolute path in its message is kept.
 - **Kind.** The pin checks the first bytes only. Each reader proves the structure of its kind
   and raises "unreadable" when it does not hold: a zip that is not a docx, an xlsx offered as a
   docx, OLE or executable bytes offered as text or csv. The NUL refusal covers HTML as well as
@@ -173,8 +194,9 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 | 1b (#59) | Capped read, path resolution and the symbolic-link refusal (`files.py`) |
 | 1c (#82) | `read_capped` refuses a final link on Windows; `COM0` and `LPT0` |
 | 1d (#100) | Folder walk (`pin_folder`, `PinnedFolder`, `Skipped`) |
-| 1e | The two untyped errors, the wider name refusals, the walk's property test |
-| 2 | Text, csv and HTML readers |
+| 1e (#135) | The two untyped errors, the wider name refusals, the walk's property test |
+| 2 (#161) | Text and csv readers; `Page` and `SourcePages` |
+| 2b | HTML reader, with its peak-memory bound |
 | 3 | Zip and XML guards; xlsx reader |
 | 4 | docx reader |
 | 5 | PDF reader |

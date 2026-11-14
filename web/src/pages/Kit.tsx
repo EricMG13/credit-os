@@ -23,6 +23,7 @@ import { KitInputSelect } from "@/pages/Kit7c";
 import { KitTableProgress } from "@/pages/Kit7d";
 import { KitOverlays } from "@/pages/Kit7e";
 import { KitFileUpload } from "@/pages/Kit7f";
+import { KitLinkButton } from "@/pages/Kit7g";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
@@ -429,6 +430,8 @@ export function Kit() {
           <Skeleton lines={3} />
         </div>
       </section>
+
+      <KitLinkButton />
 
       <section aria-labelledby="kit-page-header" className="mt-8 flex flex-col gap-4">
         <h2 id="kit-page-header" className="font-display text-h2 text-text-primary">
