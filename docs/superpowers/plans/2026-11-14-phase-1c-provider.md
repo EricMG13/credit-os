@@ -142,15 +142,21 @@ In `main` since PR 2 (#63):
   delivered earlier, that this one completes, else `None`. The type refuses a self-link, a
   link on an unfinished compaction, and two compactions of one reply naming the same one.
 
-Ruled for PR 2b (the parser; not yet in `main`):
+The parser (PR 2b, #102), `provider/events.py`:
 - **Several usage events in one call** (a retried turn). Each count and the charge are the
-  exact sum over the call's usage events when every event reports them readably, else `None`;
-  a repeat of an event id is counted once. The source does not say whether such events are
+  exact sum over the call's usage events when every event reports them readably, else `None`.
+  The source does not say whether such events are
   per-attempt or cumulative: if cumulative the sum overstates and never understates.
 - **Tool calls** are read from `tool.execution_start`; where a message carries `toolRequests`
   their ids must match, and a call with a parent tool call is refused. The parser takes
   `{"id", "type", "data"}` objects and imports nothing from the SDK.
-
+- **Redelivery.** An event is a redelivery, and ignored, only when its JSON text equals an
+  earlier event's, for every event type; the first copy keeps its place. An id reused by an
+  event that differs is a separate event: it can overstate a call and never hides a charge,
+  another model, an abort or an error. (This replaces "a repeat of an event id is counted
+  once": by id alone a later usage event and its charge were dropped, and `100` and `100.0`
+  merged.) The envelope is read with exact types; the parser promises not to raise only for
+  events built from JSON values.
 - **Replies that are not ok** keep their figures whenever known: `sent_usage` if a count or
   the charge is known, else `sent_unknown`. An aborted idle is class `Aborted`.
 - **Routing, a stated limit.** SDK 1.0.8 carries `isByok` and `isAuto` only on
@@ -165,11 +171,20 @@ Ruled for PR 3 (not yet in `main`):
 - The driver removes repeats of an event id before building a `Reply`; `event_id` is built
   from the envelope id only; a complete whose `success` is not a bool is `failed`, counts and
   charge as read; what `close()` returns is attributed to the run by the orchestrator.
-- **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
-  Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
-  with the reviewer's probe as the answer key, no later than PR 3, which does not merge while
-  that probe fails. PR 3's driver also gives the home directory and the runtime path to the
+- The driver hands `data` to the parser always as an object, reads an abort only from
+  `session.idle`, and gives the parser one model turn per list.
+- PR 3's driver also gives the home directory and the runtime path to the
   redactor as exact values; that alone is not enough.
+
+Ruled for PR 2c (not yet in `main`), before the driver:
+- **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
+  Windows user name that has a space or `'()` in it. Fixed in `redact.py`, test first, with
+  the reviewer's probe as the answer key.
+- **Exact redaction values in JSON.** A value that JSON escapes (non-ASCII, a quote, a
+  backslash, so any Windows path) is also matched in its escaped forms; today it can leave in
+  `raw` inside a tool argument. No driver calls the parser before this lands.
+- **Compactions from events:** start and complete into `Compaction`, the charge read by the
+  same rule as a call's.
 
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
@@ -189,7 +204,8 @@ Ruled for PR 3 (not yet in `main`):
 | 1 | Types, protocol, redaction (#36) |
 | 1b | Canned adapter, with `Compaction` and `Reply.compactions` |
 | 2 (#63) | Compaction outcome, identity and replacement link; `close()` returns compactions; float tool arguments |
-| 2b | Pure Copilot event parser and cost reading (`reply_from_events`); compactions from events here, or as 2c if it passes 800 lines |
+| 2b (#102) | Pure Copilot event parser and cost reading (`reply_from_events`) |
+| 2c | `redact.py`: the home-directory fix (M2) and JSON-escaped exact values; compactions from events (2d if together they pass 800 lines) |
 | 3 | Session driver against a fake client: one turn, errors, timeouts |
 | 3b | Tool-call turns (handlers parked until the next request), if 3 would pass 800 lines |
 | 4 | The SDK 1.0.8 binding, the `copilot-sol-medium` configuration, the `live`-marked check |
