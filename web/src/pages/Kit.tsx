@@ -145,7 +145,7 @@ export function Kit() {
         <h2 className="font-display text-h2 text-text-primary">Tooltip</h2>
         <Row>
           <Tooltip title="Tooltip title" description="Supporting text under the title.">
-            <TooltipTrigger className="text-small text-text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+            <TooltipTrigger className="text-small text-text-link focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-focus">
               Tooltip trigger
             </TooltipTrigger>
           </Tooltip>

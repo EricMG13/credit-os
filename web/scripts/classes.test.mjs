@@ -4,7 +4,13 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { builtClasses, classProblems, utilityTokens } from "./classes.mjs";
+import {
+  builtClasses,
+  classProblems,
+  focusOutlineProblems,
+  hiddenFocusOutline,
+  utilityTokens,
+} from "./classes.mjs";
 
 const roots = [];
 
@@ -115,4 +121,26 @@ test("two slashes inside a string are not a comment", () => {
   assert.deepEqual(utilityTokens('const u = "https://x.test/a"; const c = "bg-nope";'), [
     "bg-nope",
   ]);
+});
+
+test("outline-hidden with a focus-visible width and no style is a hidden outline", () => {
+  assert.equal(hiddenFocusOutline("outline-hidden focus-visible:outline-2"), true);
+  assert.equal(
+    hiddenFocusOutline("outline-hidden focus-visible:outline-2 focus-visible:outline-solid"),
+    false,
+  );
+  assert.equal(hiddenFocusOutline("focus-visible:outline-2"), false);
+});
+
+test("a TooltipTrigger without an outline style is reported with its file", () => {
+  const root = src({
+    "bad.tsx": '<TooltipTrigger className="focus-visible:outline-2 focus-visible:outline-focus">x',
+    "good.tsx": '<TooltipTrigger className="focus-visible:outline-2 focus-visible:outline-solid">x',
+  });
+  assert.equal(focusOutlineProblems(root).length, 1);
+  assert.match(focusOutlineProblems(root)[0], /^bad\.tsx: /);
+});
+
+test("the project's own TooltipTriggers all draw a focus outline", () => {
+  assert.deepEqual(focusOutlineProblems(path.resolve(import.meta.dirname, "..", "src")), []);
 });
