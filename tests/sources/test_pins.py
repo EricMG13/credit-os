@@ -54,6 +54,11 @@ VALID_NAMES = [
     "COM0x.txt",
     "xCOM0.txt",
     "LPT.txt",
+    "\ud55c\uae00.txt",
+    "\u1112\u1161\u11ab.txt",
+    "\uffa1.txt",
+    "a\u2013b.txt",
+    "1\u00bd.txt",
 ]
 INVALID_NAMES = [
     ("Q3-report\u202efdp.txt", "forbidden character U+202E"),
@@ -136,6 +141,17 @@ INVALID_NAMES = [
     ("LPT0 .tar.txt", "reserved device name"),
     ("NUL." + "a" * 300, "reserved device name"),
     ("a" * 300 + ".", "segment starts or ends with a space or ends with a dot"),
+    ("a\u2044b.txt", "forbidden character U+2044"),
+    ("a\u2215b.txt", "forbidden character U+2215"),
+    ("a\u2571b.txt", "forbidden character U+2571"),
+    ("a\uff0fb.txt", "forbidden character U+FF0F"),
+    ("a\u115fb.txt", "forbidden character U+115F"),
+    ("a\u1160b.txt", "forbidden character U+1160"),
+    ("a\u3164b.txt", "forbidden character U+3164"),
+    ("a\uffa0b.txt", "forbidden character U+FFA0"),
+    ("\u2215etc.txt", "forbidden character U+2215"),
+    ("notes/a.txt\u3164", "forbidden character U+3164"),
+    ("x\uff0f..\uff0fy.txt", "forbidden character U+FF0F"),
 ]
 
 
@@ -195,7 +211,11 @@ def test_property_dotdot_segment_refused(name: str, data: st.DataObject) -> None
         validate_name(bad)
 
 
-@given(_NAMES, st.sampled_from(["\\", ":", "\x00", "\x1f", "\x7f", "\ue000", "\ufdd0"]), st.data())
+@given(
+    _NAMES,
+    st.sampled_from(["\\", ":", "\x00", "\x1f", "\x7f", "\ue000", "\ufdd0", "\u2215", "\u3164"]),
+    st.data(),
+)
 def test_property_bad_character_refused(name: str, char: str, data: st.DataObject) -> None:
     at = data.draw(st.integers(min_value=0, max_value=len(name)))
     with pytest.raises(SourceRefused):
