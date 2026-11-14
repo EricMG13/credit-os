@@ -201,6 +201,10 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         [usage(1, **_STOP, **nano(100)), usage(1, **_STOP, **nano(10**12)), message(2, "done")],
         _ok((24, 8, 0, 14, 4), "10.00000000100", _TEXT_TURN),
     ),
+    "an int and a float charge under one id are two events": (
+        [usage(1, **_STOP, **nano(100)), usage(1, **_STOP, **nano(100.0)), message(2, "done")],
+        _ok((24, 8, 0, 14, 4), "0.00000000200", _TEXT_TURN),
+    ),
     "a usage event that reuses a message's id is counted": (
         [message(1, "done"), usage(1, **_STOP, **nano(12300000))],
         _ok(_FULL, "0.00012300000", _TEXT_TURN),
@@ -210,8 +214,8 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _OUT10),
     ),
     "a message and a tool start delivered twice are read once": (
-        [usage(1, **_TOOLS), message(2, "x"), message(2, "x"), *[start(3, "c1", "read")] * 2],
-        _ok(_OUT9, None, ("x", (("c1", "read", {}, None),), "tool_use", None)),
+        [usage(1, **_TOOLS), *[message(2, "x"), message(4, "y"), start(3, "c1", "read")] * 2],
+        _ok(_OUT9, None, ("xy", (("c1", "read", {}, None),), "tool_use", None)),
     ),
     "a sum of more than 28 digits is exact": (
         [usage(1, **nano(5 * 10**29)), usage(2, finishReason="stop", **nano(5 * 10**29))],
