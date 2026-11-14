@@ -49,7 +49,8 @@ its report file.
   of the diff reviewed.
 
 **Rulings.** 2B R59 to R64 and P1 to P9 (held figures, the note rule). 1B R41 to R44
-(operand order, a repeated passage heading, `CELL` refusals, no digit limit) and R45: a
+(operand order, a repeated passage heading, `CELL` refusals, no digit limit), confirmed by
+the coordinator at the merge, and R45, ruled then: a
 refusal that differs only by the sign rule names the rule in its message (PR 6a). 1D: an
 end record found in the archive comment is the conventional reading, pinned by a row in 3c;
 a declared charset name is matched against a literal table and refused if absent, with no
@@ -74,7 +75,8 @@ deferred survivors to 2b-3. 1B: four unpinned rules and an unguarded
 
 Not verified: a real CP-1 foundation and a caller of `check_base` (PR 7); costs of the HTML
 engine at its 50 MiB cap (probes read at most 4 MiB); the zip bound on Windows; #250's and
-#254's own mutation counts under the memory limits; the 13 equivalences beyond 1,000 lines each.
+#254's own mutation counts under the memory limits; #308's 13 equivalent survivors are shown
+equivalent over 1,000 lines each, not proved for every input.
 
 ## 2026-11-14 Roadmap back end: Signal's store, the 1B model fixtures, the step 3A plan
 
