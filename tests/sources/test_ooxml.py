@@ -5,6 +5,7 @@ by the code under test. Expected messages are literals.
 """
 
 import io
+import struct
 import sys
 import warnings
 import zipfile
@@ -42,11 +43,116 @@ def patched(raw: bytes, at: int, value: bytes) -> bytes:
     return raw[:at] + value + raw[at + len(value) :]
 
 
+def _zip64_offset(offset: int) -> bytes:
+    """ONE with its central entry's header offset moved into a ZIP64 extra field."""
+    cd = central(ONE)
+    name_len = struct.unpack("<H", ONE[cd + 28 : cd + 30])[0]
+    extra = struct.pack("<HHQ", 0x0001, 8, offset)
+    entry = bytearray(ONE[cd : cd + 46 + name_len])
+    entry[30:32] = struct.pack("<H", len(extra))
+    entry[42:46] = b"\xff\xff\xff\xff"
+    end = bytearray(ONE[EOCD:])
+    end[12:16] = struct.pack("<I", struct.unpack("<I", end[12:16])[0] + len(extra))
+    return ONE[:cd] + bytes(entry) + extra + bytes(end)
+
+
+def _unicode_path_entry(raw: bytes, at: int, stored: str, new: bytes) -> tuple[bytes, int]:
+    """The central entry at `at` with a 0x7075 field naming it `new`, and the next entry's offset."""
+    n, m, k = struct.unpack("<HHH", raw[at + 28 : at + 34])
+    body = struct.pack("<BI", 1, zlib.crc32(stored.encode())) + new
+    extra = struct.pack("<HH", 0x7075, len(body)) + body
+    entry = bytearray(raw[at : at + 46 + n])
+    entry[30:32] = struct.pack("<H", len(extra))
+    return bytes(entry) + extra, at + 46 + n + m + k
+
+
+def _unicode_path_zip(renames: list[tuple[str, bytes]], data: dict[str, bytes]) -> bytes:
+    """A zip of `data` whose central entries carry the 0x7075 names in `renames`, in order."""
+    raw = zipped(data)
+    cd = raw.index(b"PK\x01\x02")
+    out = bytearray(raw[:cd])
+    at = cd
+    for name, new in renames:
+        entry, at = _unicode_path_entry(raw, at, name, new)
+        out += entry
+    end = bytearray(raw[raw.rindex(b"PK\x05\x06") :])
+    end[12:16] = struct.pack("<I", len(out) - cd)
+    return bytes(out) + bytes(end)
+
+
+def _hidden_end_record() -> bytes:
+    """A zip whose end-record comment holds a second directory and end record into a member."""
+    inner = zipped({"xl/h1.xml": GOOD, "xl/h2.xml": GOOD, "xl/h3.xml": GOOD})
+    raw = zipped({PART: GOOD, "xl/blob.bin": inner})
+    start = raw.index(inner)
+    inner_end = inner.rindex(b"PK\x05\x06")
+    size_cd, offset_cd = struct.unpack("<II", inner[inner_end + 12 : inner_end + 20])
+    directory = bytearray(inner[offset_cd : offset_cd + size_cd])
+    at = 0
+    while at < len(directory):
+        n, m, k = struct.unpack("<HHH", directory[at + 28 : at + 34])
+        old = struct.unpack("<I", directory[at + 42 : at + 46])[0]
+        directory[at + 42 : at + 46] = struct.pack("<I", old + start)
+        at += 46 + n + m + k
+    end = raw.rindex(b"PK\x05\x06")
+    fake = b"PK\x05\x06" + struct.pack("<HHHHIIH", 0, 0, 3, 3, len(directory), end + 22, 0)
+    comment = bytes(directory) + fake
+    tail = bytearray(raw[end : end + 22])
+    tail[20:22] = struct.pack("<H", len(comment))
+    return raw[:end] + bytes(tail) + comment
+
+
+def _zip64(raw: bytes, dirsize: int | None = None, sentinel: bool = True) -> bytes:
+    e = raw.rindex(b"PK\x05\x06")
+    n, size, off = struct.unpack_from("<HLL", raw, e + 10)
+    rec = struct.pack(
+        "<4sQHHLLQQQQ",
+        b"PK\x06\x06",
+        44,
+        45,
+        45,
+        0,
+        0,
+        n,
+        n,
+        size if dirsize is None else dirsize,
+        off,
+    )
+    loc = struct.pack("<4sLQL", b"PK\x06\x07", 0, e, 1)
+    tail = bytearray(raw[e:])
+    if sentinel:
+        tail[8:20] = struct.pack("<HHLL", 0xFFFF, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+    return raw[:e] + rec + loc + bytes(tail)
+
+
+def _eocd_size(raw: bytes, size: int) -> bytes:
+    return patched(raw, raw.rindex(b"PK\x05\x06") + 12, size.to_bytes(4, "little"))
+
+
+def _commented(comment: bytes) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.comment = comment
+        archive.writestr(PART, GOOD)
+    return buffer.getvalue()
+
+
 ONE = zipped({PART: GOOD})
 TWO = zipped({PART: GOOD, "xl/b.xml": GOOD})
 DEFLATED = zipped({PART: b"<a>" + b"text " * 200 + b"</a>"}, zipfile.ZIP_DEFLATED)
 EOCD = ONE.rindex(b"PK\x05\x06")
+SHIFTED = patched(
+    patched(
+        ONE,
+        EOCD + 16,
+        (int.from_bytes(ONE[EOCD + 16 : EOCD + 20], "little") + 8).to_bytes(4, "little"),
+    ),
+    central(ONE) + 42,
+    (8).to_bytes(4, "little"),
+)
+SMALL = _eocd_size(_zip64(ONE, sentinel=False), 0)
 
+_TWO_NAMES = "a zip member with two names"
 _E_ACUTE_NAME = "\N{LATIN SMALL LETTER E WITH ACUTE}.xml"
 _MIB_200 = 200 * 1024 * 1024
 _OLE_MESSAGE = "an OLE file (an old or password-protected Office file), not a zip"
@@ -143,8 +249,8 @@ ZIP_ROWS: list[tuple[str, bytes, str, str | None, str]] = [
             (int.from_bytes(ONE[EOCD + 16 : EOCD + 20], "little") + 5).to_bytes(4, "little"),
         ),
         PART,
-        _DAMAGED,
-        "ValueError",
+        "a zip member outside the file",
+        "none",
     ),
     ("z20", patched(ONE, 30, b"xl/b.xml"), PART, _DAMAGED, "BadZipFile"),
     ("z21", ONE[:-10], PART, _UNREADABLE, "BadZipFile"),
@@ -155,7 +261,108 @@ ZIP_ROWS: list[tuple[str, bytes, str, str | None, str]] = [
         _DAMAGED,
         "BadZipFile",
     ),
+    (
+        "z28",
+        patched(
+            patched(ONE, 6, (int.from_bytes(ONE[6:8], "little") | 0x0800).to_bytes(2, "little")),
+            37,
+            b"\xff",
+        ),
+        PART,
+        _DAMAGED,
+        "UnicodeDecodeError",
+    ),
+    ("z23", _zip64_offset(2**63), PART, "a zip member outside the file", "none"),
+    ("z24", b"PK\x03\x04junk" + ONE, PART, "bytes before the first zip member", "none"),
+    ("z25", _hidden_end_record(), PART, "bytes before the first zip member", "none"),
+    (
+        "z26",
+        _unicode_path_zip([("xl/x.xml", b"xl\\a.xml")], {"xl/x.xml": GOOD}),
+        PART,
+        _TWO_NAMES,
+        "none",
+    ),
+    (
+        "z27",
+        _unicode_path_zip(
+            [(PART, b"xl/moved.xml"), ("zz/b.xml", PART.encode())],
+            {PART: GOOD, "zz/b.xml": b"<a>stored as zz/b.xml</a>"},
+        ),
+        PART,
+        _TWO_NAMES,
+        "none",
+    ),
 ]
+
+
+_TOO_LARGE = "a zip directory too large"
+_DISAGREES = "a zip end record that disagrees with its directory"
+_FOLDED = "zip members whose names differ only by case or form"
+_PREFIXED = b"PK\x03\x04junk"
+
+# (id, raw, cap or None for the module's, message after "b.xlsx: " or None when read, cause)
+DIRECTORY_ROWS: list[tuple[str, bytes, int | None, str | None, str]] = [
+    ("d1", ONE, 54, None, "none"),
+    ("d2", ONE, 53, _TOO_LARGE, "none"),
+    ("d3", _zip64(ONE), None, None, "none"),
+    ("d4", _zip64(ONE, sentinel=False), None, None, "none"),
+    ("d5", _zip64(ONE), 53, _TOO_LARGE, "none"),
+    ("d6", SMALL, None, None, "none"),
+    ("d7", SMALL, 53, _TOO_LARGE, "none"),
+    ("d8", _PREFIXED + SMALL, 53, _TOO_LARGE, "none"),
+    ("d9", _PREFIXED + SMALL, None, "bytes before the first zip member", "none"),
+    ("d10", _eocd_size(ONE, 0xFFFFFFFF), None, _TOO_LARGE, "none"),
+    ("d11", _eocd_size(ONE, 53), None, _UNREADABLE, "BadZipFile"),
+    ("d12", _eocd_size(ONE, 55), None, _UNREADABLE, "BadZipFile"),
+    ("d13", _zip64(ONE, 2**40), None, _TOO_LARGE, "none"),
+    ("d14", _zip64(ONE, 55), None, _UNREADABLE, "BadZipFile"),
+    ("d15", _commented(b"note"), None, None, "none"),
+    ("d16", _commented(b"n" * 65_535), None, None, "none"),
+    ("d17", patched(ONE, EOCD + 8, b"\x00\x00\x00\x00"), None, _DISAGREES, "none"),
+    ("d18", patched(ONE, EOCD + 10, b"\x02\x00"), None, _DISAGREES, "none"),
+    ("d19", SHIFTED, None, _DISAGREES, "none"),
+    ("d21", zipped({PART: GOOD, "XL/A.xml": GOOD}), None, _FOLDED, "none"),
+    (
+        "d22",
+        zipped({_E_ACUTE_NAME: GOOD, "e\N{COMBINING ACUTE ACCENT}.xml": GOOD}),
+        None,
+        _FOLDED,
+        "none",
+    ),
+]
+
+
+def _expect(raw: bytes, message: str | None, cause: str) -> None:
+    if message is None:
+        assert _read(raw) == GOOD
+        return
+    with pytest.raises(SourceUnreadable) as caught:
+        _read(raw)
+    assert str(caught.value) == f"b.xlsx: {message}"
+    expected = None if cause == "none" else cause
+    actual = caught.value.__cause__
+    assert (None if actual is None else type(actual).__name__) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "cap", "message", "cause"),
+    [pytest.param(*row[1:], id=row[0]) for row in DIRECTORY_ROWS],
+)
+def test_directory_rows(
+    monkeypatch: pytest.MonkeyPatch, raw: bytes, cap: int | None, message: str | None, cause: str
+) -> None:
+    if cap is not None:
+        monkeypatch.setattr(ooxml, "MAX_DIRECTORY_BYTES", cap)
+    _expect(raw, message, cause)
+
+
+def test_d20_no_end_record_found_disagrees(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "_end_record", lambda _raw: None)
+    _expect(ONE, _DISAGREES, "none")
+
+
+def test_directory_cap_is_four_mib() -> None:
+    assert ooxml.MAX_DIRECTORY_BYTES == 4 * 1024 * 1024
 
 
 def _read(raw: bytes, part: str = PART) -> bytes:
@@ -176,6 +383,32 @@ def test_zip_rows(raw: bytes, part: str, message: str | None, cause: str) -> Non
     expected = None if cause == "none" else cause
     actual = caught.value.__cause__
     assert (None if actual is None else type(actual).__name__) == expected
+
+
+def test_empty_unicode_path_warning_is_typed() -> None:
+    raw = _unicode_path_zip([(PART, b"")], {PART: GOOD})
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with pytest.raises(SourceUnreadable) as caught:
+            Package("b.xlsx", raw)
+    assert str(caught.value) == "b.xlsx: not a readable zip"
+    assert type(caught.value.__cause__) is UserWarning
+
+
+def test_pieces_are_at_most_chunk_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "CHUNK_BYTES", 4)
+    assert [len(piece) for piece in Package("b.xlsx", ONE).pieces(PART)] == [4, 4, 3]
+
+
+def test_expanded_cap_allows_exactly_the_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "MAX_EXPANDED_BYTES", 22)
+    package = Package("b.xlsx", TWO)
+    assert b"".join(package.pieces(PART)) == GOOD
+    assert b"".join(package.pieces("xl/b.xml")) == GOOD
+    with pytest.raises(SourceUnreadable) as caught:
+        b"".join(package.pieces(PART))
+    assert str(caught.value) == "b.xlsx: expands to more than 22 bytes"
+    assert caught.value.__cause__ is None
 
 
 def test_z18_cause_is_zlib_error() -> None:
@@ -219,6 +452,7 @@ def test_member_cap_lowered(monkeypatch: pytest.MonkeyPatch) -> None:
         with pytest.raises(SourceUnreadable) as caught:
             Package("b.xlsx", raw)
         assert str(caught.value) == "b.xlsx: more than 3 zip members"
+        assert caught.value.__cause__ is None
 
 
 def test_expanded_cap_lowered_counts_every_read(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -229,6 +463,7 @@ def test_expanded_cap_lowered_counts_every_read(monkeypatch: pytest.MonkeyPatch)
     with pytest.raises(SourceUnreadable) as caught:
         b"".join(package.pieces(PART))
     assert str(caught.value) == "b.xlsx: expands to more than 30 bytes"
+    assert caught.value.__cause__ is None
 
 
 def _fail(what: str, value: object, expected: object) -> str:
