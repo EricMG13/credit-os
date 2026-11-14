@@ -45,7 +45,7 @@ describe("readSlice, evidence", () => {
     if (result.kind !== "ok") throw new Error(result.kind);
     const evidence = result.data.issuers[0]?.runs[0]?.evidence;
     expect(evidence?.intro).toBe("Where every figure and claim in this run comes from.");
-    expect(evidence?.tabs).toEqual({ trace: "60", sources: "9", gaps: "7" });
+    expect(evidence?.tabs).toEqual({ trace: "58", sources: "9", gaps: "7" });
     expect(evidence?.summary.delivered).toEqual({
       note: "Recovery was not assessable",
       progress: { text: "12 of 13", value: 12, max: 13 },
@@ -56,7 +56,7 @@ describe("readSlice, evidence", () => {
         { kind: "value", text: "9", at: null },
         "7 read in full, 1 read in part, 1 unreadable",
       ],
-      ["Calculations", { kind: "value", text: "60", at: null }, "Each one traceable to its inputs"],
+      ["Calculations", { kind: "value", text: "58", at: null }, "Each one traceable to its inputs"],
       ["Gaps", { kind: "value", text: "7", at: null }, "2 high, 3 medium, 2 low"],
     ]);
     expect(evidence?.summary.run).toEqual({
@@ -246,7 +246,7 @@ describe("readSlice, trace", () => {
       sources: "Sources",
     });
     const rows = trace?.rows ?? [];
-    expect(rows).toHaveLength(60);
+    expect(rows).toHaveLength(58);
     const mock = ["T-0001", "T-0014", "T-0015", "T-0031", "T-0047", "T-0052", "T-0068"];
     expect(rows.map((r) => r.id).filter((id) => mock.includes(id))).toEqual(mock);
     expect(
@@ -311,7 +311,7 @@ describe("readSlice, trace", () => {
       for (const trace of Object.values(run.traces)) expect(held).toContain(trace.evidenceItem);
       expect(run.evidence.tabs.trace).toBe(String(held.length));
     }
-    expect(read().map((run) => run.evidence?.trace.rows.length)).toEqual([60, undefined, 0, 0]);
+    expect(read().map((run) => run.evidence?.trace.rows.length)).toEqual([58, undefined, 0, 0]);
   });
 
   const brokenRows: [string, (e: ReturnType<typeof evidenceOf>) => unknown, string][] = [
