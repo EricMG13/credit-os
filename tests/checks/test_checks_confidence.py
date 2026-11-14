@@ -46,7 +46,7 @@ def _document(case: dict[str, Any]) -> HandoffDocument:
 
 
 def test_the_key_is_collected_whole() -> None:
-    assert len(CASES) == 64
+    assert len(CASES) == 66
 
 
 @pytest.mark.parametrize("case", CASES, ids=[f"case{i}" for i in range(len(CASES))])

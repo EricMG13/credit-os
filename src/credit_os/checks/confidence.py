@@ -13,8 +13,8 @@ write the one row `Not assessable` with `Not supplied: <reason>` instead: no sco
 
 The state is `refused` when any finding other than `confidence.absent` is made, `absent` when there
 is no section, `blocked` for the one row, and otherwise `scored`. The score is exact: `int` and
-`fractions.Fraction` only, rounded half to even. The earlier format is never scored: its outcome is `absent`, and `check_handoff` runs no
-confidence check on it.
+`fractions.Fraction` only, rounded half to even. The earlier format is never scored: its outcome is `absent`, and
+`check_handoff` runs no confidence check on it.
 """
 
 from collections.abc import Mapping
