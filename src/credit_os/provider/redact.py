@@ -41,21 +41,25 @@ _KEY_PATTERN = re.compile(rf"(?:{_SK_BOUNDARY})(?:{_SK_KEY})|{_GITHUB_SHAPES}")
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
 _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
-# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" or WSL's
-# "/mnt/<drive>/Users/<user>", in either slash, repr-escaped or not. A Windows user name may hold
-# spaces when a slash or a closing quote follows it, or, on a Windows-form path, the line ends
-# after it; there "'", "(" and ")" are name characters when a slash follows. A path inside a
-# longer name or a URL's host part ("example.com/home/x") is not one; "file:///home/<user>" is. A closing "." is the
-# sentence's.
-_WIN_NAME = r"[^\s\\/:*?\"<>|,;]"  # on a Windows path "'", "(" and ")" are name characters too
-_WIN_PREFIX = r"(?P<win>(?:[A-Za-z]:|\\\\[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+)"
+# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" (long-path form
+# included) or WSL's "/mnt/<drive>/Users/<user>", in either slash, repr-escaped or not, and also
+# straight after a written-out "\n", "\r" or "\t". A user name may hold single or repeated
+# spaces when a slash or a closing quote follows it. On a Windows-form path a name of several
+# words is also taken whole before "," ";" ":" ")" ">" or the line's end (a full stop before
+# that end is the sentence's), and "'", "(" and ")" are name characters when a name character or
+# a slash follows them. A path inside a longer name or a URL's host part ("example.com/home/x")
+# is not one; "file:///home/<user>" is. A closing "." is the sentence's.
+_WIN_CHAR = r"[^\s\\/:*?\"'()<>|,;]"
+_WIN_WORD = rf"(?:{_WIN_CHAR}|['()](?={_WIN_CHAR}|[\\/]))+"
+_WIN_PREFIX = (
+    r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+)"
+)
 _HOME_PATH = re.compile(
-    rf"(?<![\w.-])(?:{_WIN_PREFIX}|[\\/])"
+    rf"(?:(?<![\w.-])|(?<=\\[nrt]))(?:{_WIN_PREFIX}|[\\/])"
     rf"(?:(?i:users|home|var[\\/]+home)[\\/]+(?:"
-    rf"(?(win){_WIN_NAME}+(?: {_WIN_NAME}+)*(?=[\\/])|(?!))"
-    rf"|{_NAME}+(?: {_NAME}+)*(?=[\\/'\"])"
-    rf"|(?(win){_NAME}+(?: {_NAME}+)+(?<!\.)(?=\r?\n|\Z)|(?!))"
-    rf"|{_NAME}+(?<!\.))"
+    rf"(?(win)(?>{_WIN_WORD}(?: +{_WIN_WORD})*)|{_NAME}+(?: +{_NAME}+)*)(?=[\\/'\"])"
+    rf"|(?(win){_WIN_WORD}(?: +{_WIN_WORD})+(?<!\.)(?=[,;:)>]|\.?(?:\r?\n|\Z))|(?!))"
+    rf"|(?(win){_WIN_WORD}|{_NAME}+)(?<!\.))"
     rf"|root(?!{_NAME}))"
 )
 
