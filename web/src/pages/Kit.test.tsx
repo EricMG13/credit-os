@@ -123,8 +123,9 @@ describe("Kit", () => {
 
   it("changes the selected segment of the Chart or Table toggle", () => {
     render(<Kit />);
-    const chart = screen.getByRole("radio", { name: "Chart" });
-    const table = screen.getByRole("radio", { name: "Table" });
+    const group = screen.getByRole("region", { name: "Button group" });
+    const chart = within(group).getByRole("radio", { name: "Chart" });
+    const table = within(group).getByRole("radio", { name: "Table" });
     expect(chart).toHaveAttribute("aria-checked", "true");
     expect(table).toHaveAttribute("aria-checked", "false");
     fireEvent.click(table);
@@ -140,5 +141,17 @@ describe("Kit", () => {
     expect(within(gaps).getByText("Withheld")).toBeInTheDocument();
     expect(within(gaps).getByText("Not assessable")).toBeInTheDocument();
     expect(gaps.querySelector('[aria-hidden="true"].flex-col')).not.toBeNull();
+  });
+
+  it("shows the trend chart with a broken line and the eight-series fold", () => {
+    render(<Kit />);
+    const trend = screen.getByRole("region", { name: "Trend chart" });
+    const legends = within(trend).getAllByRole("list", { name: "Legend" });
+    expect(legends).toHaveLength(2);
+    expect(within(legends[0] as HTMLElement).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(legends[1] as HTMLElement).getAllByRole("listitem")).toHaveLength(7);
+    const paths = [...trend.querySelectorAll("path.recharts-line-curve")];
+    expect(paths.some((p) => p.getAttribute("d")?.match(/M/g)?.length === 2)).toBe(true);
+    expect(within(trend).getAllByRole("radio", { name: "Table" })).toHaveLength(2);
   });
 });
