@@ -3,7 +3,7 @@ import { ClockRewind } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import type { Changes as ChangesData } from "./slice";
-import { ButtonLink } from "./parts/ButtonLink";
+import { Button } from "@/components/base/buttons/button";
 import { ChangeCard } from "./parts/ChangeCard";
 import { ChangesTable } from "./parts/ChangesTable";
 import { SECTION_HEADING } from "./parts/heading";
@@ -81,9 +81,9 @@ function NoEarlierRun({
         <EmptyState.Description>{data.text}</EmptyState.Description>
       </EmptyState.Content>
       <EmptyState.Footer>
-        <ButtonLink href={overviewHref(issuer, run)} color="secondary">
+        <Button href={overviewHref(issuer, run)} color="secondary">
           Open the Overview
-        </ButtonLink>
+        </Button>
       </EmptyState.Footer>
     </EmptyState>
   );

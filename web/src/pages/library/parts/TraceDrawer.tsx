@@ -3,7 +3,6 @@ import { Button } from "@/components/base/buttons/button";
 import { SlideoutMenu } from "@/components/application/slideout-menus/slideout-menu";
 import { Missing } from "@/components/gap/Missing";
 import type { Trace, TreeNode } from "../slice";
-import { ButtonLink } from "./ButtonLink";
 
 function Row({ node }: { node: TreeNode }) {
   return (
@@ -115,9 +114,9 @@ export function TraceDrawer({
         <Button color="secondary" slot="close">
           Close
         </Button>
-        <ButtonLink href={evidenceHref} onPress={onClose}>
+        <Button href={evidenceHref} onPress={onClose}>
           Open in Evidence
-        </ButtonLink>
+        </Button>
       </SlideoutMenu.Footer>
     </SlideoutMenu>
   );
