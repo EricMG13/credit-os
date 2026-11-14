@@ -1,4 +1,4 @@
-"""Answer key for 1B PR 6a (units named, the currency named) and PR 6a2 (R46), by the controller.
+"""Answer key for 1B PR 6a (units named, the currency named), 6a2 (R46) and 6a3 (R49), by the controller.
 
 Every figure, name and text is invented. Rows hold inputs only, as in `make_pr5.py`, whose
 oracle this script loads for the foundation's tables, the cells, the numbers and the cell check;
@@ -12,7 +12,10 @@ level-2 headings are not the handoff's six, in order, is the parser's own refusa
 `handoff/document.py` words it. R46 (PR 6a2): thousands, millions and billions; billions is
 never a block's unit, so a row naming it, and not the block's unit, is refused under either
 scale. Each of the twelve forms the 6a review found is a row under both blocks. R48: no letter
-before a letter code; a bare sign takes none. Run this file to write `pr6a.json` next to it.
+before a letter code; a bare sign takes none. R49 (PR 6a3), with R49a and R49b: marks before a
+letter code, glued or after one space (capital `T` for thousands as well as `k`), `000` after a
+code or sign and one space, `(000)` and `MM` standing alone, and the glued marks also name the
+currency. Run this file to write `pr6a.json` next to it.
 """
 
 import importlib.util
@@ -33,8 +36,17 @@ SPEC.loader.exec_module(PR5)
 CURRENCY = r"(?:(?<![A-Za-z])(?:US\$|USD|EUR|GBP)|[$€£])"
 SIGN = r"(?:US\$|[$€£])"
 UNITS = ["billions", "millions", "thousands"]
-WORDS_OF = {"thousands": "thousands?", "millions": "millions?|mln", "billions": "billions?|bln|bn"}
+WORDS_OF = {
+    "thousands": "thousands?",
+    "millions": "millions?|mln|mm",
+    "billions": "billions?|bln|bn",
+}
 MARKS = {"thousands": "k", "millions": "mln|mm|mn|m", "billions": "bln|bn"}
+# R49, R49a, R49b: the marks before a code or sign (capital T is thousands too, never after a
+# code), the marks glued before a letter code, and the letter codes they go before.
+BEFORE = {**MARKS, "thousands": "k|(?-i:T)"}
+GLUED = {"thousands": "k|(?-i:T)", "millions": "m"}
+CODES = "USD|EUR|GBP"
 ZEROS = "000s?"
 SUFFIX = "|".join([ZEROS, *MARKS.values()])
 
@@ -43,13 +55,17 @@ def unit_pattern(unit: str) -> "re.Pattern[str]":
     forms = [
         rf"(?<![A-Za-z])(?:{WORDS_OF[unit]})(?![A-Za-z])",
         rf"{CURRENCY}\s?(?:{MARKS[unit]})(?![A-Za-z])",
-        rf"(?<![A-Za-z])(?:{MARKS[unit]})\s?{SIGN}",
+        rf"(?<![A-Za-z])(?:{BEFORE[unit]})\s?{SIGN}",
+        rf"(?<![A-Za-z0-9])(?:{BEFORE[unit]})\s(?:{CODES})(?![A-Za-z])",
     ]
+    if unit in GLUED:
+        forms.append(rf"(?<![A-Za-z])(?:{GLUED[unit]})(?:{CODES})(?![A-Za-z])")
     if unit == "thousands":
         forms += [
-            rf"{CURRENCY}['’]?{ZEROS}(?![A-Za-z0-9])",
+            rf"{CURRENCY}(?:['’]|\s)?{ZEROS}(?![A-Za-z0-9])",
             rf"(?<![0-9])['’]{ZEROS}(?![A-Za-z0-9])",
             r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
+            r"(?<![A-Za-z0-9])\(000\)(?![A-Za-z0-9])",
         ]
     return re.compile("|".join(forms), re.IGNORECASE)
 
@@ -90,7 +106,8 @@ def units_named(text: str) -> list[str]:
 
 
 def names_currency(text: str, currency: str) -> bool:
-    forms = [rf"(?<![A-Za-z]){currency}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
+    prefix = "|".join(GLUED.values())
+    forms = [rf"(?<![A-Za-z])(?i:{prefix})?{currency}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
     forms += [SIGNS[currency]] if currency in SIGNS else []
     return re.search("|".join(forms), text) is not None
 
@@ -306,9 +323,9 @@ WORDS: list[Any] = [
     ["1USD k", ["thousands"]],
     ["1€m", ["millions"]],
     ["bnUS$", ["billions"]],
-    ["kEUR", []],
-    ["kUSD", []],
-    ["mm", []],
+    ["kEUR", ["thousands"]],
+    ["kUSD", ["thousands"]],
+    ["mm", ["millions"]],
     ["$b", []],
     ["USD b", []],
     ["GBP000x", []],
@@ -336,6 +353,50 @@ WORDS: list[Any] = [
     ["k  €", []],
     ["mn  $", []],
     ["bln  £", ["billions"]],
+    # R49, R49b: marks before a letter code, glued or after one space; capital T; `000` after a
+    # code or sign and one space; `(000)` and `MM` standing alone. Then the controls.
+    ["TEUR", ["thousands"]],
+    ["KEUR", ["thousands"]],
+    ["TUSD", ["thousands"]],
+    ["kGBP", ["thousands"]],
+    ["MEUR", ["millions"]],
+    ["MUSD", ["millions"]],
+    ["mGBP", ["millions"]],
+    ["T€", ["thousands"]],
+    ["T $", ["thousands"]],
+    ["TUS$", ["thousands"]],
+    ["T EUR", ["thousands"]],
+    ["k EUR", ["thousands"]],
+    ["m EUR", ["millions"]],
+    ["mn USD", ["millions"]],
+    ["mm GBP", ["millions"]],
+    ["bn USD", ["billions"]],
+    ["€ 000", ["thousands"]],
+    ["USD 000", ["thousands"]],
+    ["$ 000", ["thousands"]],
+    ["GBP 000s", ["thousands"]],
+    ["(000)", ["thousands"]],
+    ["EUR (000)", ["thousands"]],
+    ["in MM", ["millions"]],
+    ["MM", ["millions"]],
+    ["Class T EUR", ["thousands"]],
+    ["ITEM EUR", []],
+    ["TEAM USD", []],
+    ["from EUR", []],
+    ["AT€", []],
+    ["COMM", []],
+    ["1 000", []],
+    ["t EUR", []],
+    ["tEUR", []],
+    ["Class AT EUR", []],
+    ["km EUR", []],
+    ["5m EUR", []],
+    ["EUR T", []],
+    ["TEURO", []],
+    ["USD 1 000", []],
+    ["x(000)", []],
+    ["1(000)", []],
+    ["(0001)", []],
 ]
 CURRENCIES: list[Any] = [
     ["Statements (EURm)", "EUR", True],
@@ -380,6 +441,18 @@ CURRENCIES: list[Any] = [
     ["_USD_", "USD", True],
     ["aUSD", "USD", False],
     ["USDmillions", "USD", False],
+    # R49a: a mark glued before the code names the currency too.
+    ["TEUR", "EUR", True],
+    ["kEUR", "EUR", True],
+    ["MEUR", "EUR", True],
+    ["MUSD", "USD", True],
+    ["KGBP", "GBP", True],
+    ["tEUR", "EUR", False],
+    ["ATEUR", "EUR", False],
+    ["AkEUR", "EUR", False],
+    ["kmEUR", "EUR", False],
+    ["TEURO", "EUR", False],
+    ["MUSDA", "USD", False],
 ]
 # R46 rows: each form in the unit table of a `Revenue check` row, under the block whose unit it
 # names (accepted) and under the other block (refused); billions is refused under both.
@@ -397,8 +470,33 @@ FORMS = [
     ["USD billions", "billions"],
     ["€bn", "billions"],
 ]
+FORMS_R49 = [
+    ["kEUR", "thousands"],
+    ["TEUR", "thousands"],
+    ["T€", "thousands"],
+    ["T EUR", "thousands"],
+    ["MEUR", "millions"],
+    ["MUSD", "millions"],
+    ["m EUR", "millions"],
+    ["€ 000", "thousands"],
+    ["USD 000", "thousands"],
+    ["(000)", "thousands"],
+    ["in MM", "millions"],
+]
+CONTROLS_R49 = [
+    ("ITEM EUR", 1000),
+    ("TEAM USD", 1000),
+    ("from EUR", 1000),
+    ("AT€", 1),
+    ("COMM", 1000),
+    ("1 000", 1),
+    ("t EUR", 1),
+    ("Class AT EUR", 1),
+    ("km EUR", 1),
+]
 NOT_UNITS = [("10 km", 1), ("commitments", 1000), ("1,000 shares", 1), ("multimillion", 1000)]
 CALC_TEXT = json.loads(f'"{CALC}"')
+NO_USD_EDITS = json.loads(f"[{NO_USD}]")
 
 
 def unit_row(label: str, cell: str, scale: int, unit: str = "Unit") -> Doc:
@@ -440,6 +538,17 @@ def r46_rows() -> list[Doc]:
             "ops": [[["base", "revenue", "row"], "Revenue check"]],
         }
     )
+    for form, unit in FORMS_R49:
+        for scale, block in ((1, "millions"), (1000, "thousands")):
+            reading = "the block's unit" if unit == block else f"{unit}, not the block's {block}"
+            rows.append(unit_row(f"R49: `{form}` under a {block} block is {reading}", form, scale))
+    for text, scale in CONTROLS_R49:
+        rows.append(unit_row(f"R49: `{text}` at scale {scale} names no unit", text, scale))
+    for code, prefixed, ops in (("EUR", "MEUR", [[["currency"], "EUR"]]), ("USD", "MUSD", [])):
+        for text, named in ((prefixed, "names"), (f"A{prefixed}", "does not name")):
+            edits = [*NO_USD_EDITS, [CALC_TEXT, f"{CALC_TEXT}\nAmounts are in {text}.\n"]]
+            label = f"R49a: `{text}` alone {named} {code}"
+            rows.append({"label": label, "edits": edits, "ops": ops})
     return rows
 
 
@@ -460,7 +569,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 77 and len(accepted) == 25
+    assert len(labels) == len(set(labels)) == 112 and len(accepted) == 47
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
