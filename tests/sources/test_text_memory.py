@@ -22,7 +22,7 @@ DL = 12 * 262_144
 WL = 12 * 262_144 + 32 * 1_048_576
 ASTRAL = "\U0001f600".encode()
 EURO = "\N{EURO SIGN}".encode()
-CONTROL = "t.txt: control character U+001B on line 87382"
+CONTROL = "t.txt: control character U+001B on line 65536"
 
 
 def _exact(raw: bytes) -> bytes:
@@ -55,7 +55,7 @@ CASES = [
         2 + 26_213 * 10 + 9,
     ),
     _case("text-crlf", TXT, _exact(b"\r\n" * ((SIZE - 1) // 2) + b"x"), TL, 22, 131_071 * 2 + 2),
-    _case("text-crlf-then-control", TXT, b"a\r\n" * ((SIZE - 1) // 3) + b"\x1b", TL, 0, 0, CONTROL),
+    _case("text-crlf-then-control", TXT, b"ab\r\n" * 65_535 + b"abc\x1b", TL, 0, 0, CONTROL),
     _case("text-windows-1252", TXT, _exact(b"caf\xe9 \n" * (SIZE // 6)), TL, 22, 43_690 * 6 + 4),
     _case("csv-blank-rows", CSV, b"x\n" + b"\n" * (SIZE - 2), CL, 22, SIZE),
     _case("csv-short-cells", CSV, b"a\n" * (SIZE // 2), CL, 22, SIZE),
