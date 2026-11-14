@@ -43,7 +43,8 @@ MAX_NAMESPACE_CHARS = 2048
 # is released (see _Markup). Text reaches html.parser _FEED_CHARS at a time, so it never parses
 # more than MAX_HELD_CHARS + _FEED_CHARS = 4,096 characters at once: a tag of at most about
 # 2,048 attributes (html.parser keeps about 280 bytes for each), and a character reference of
-# fewer digits than the 4,300 int() reads.
+# fewer digits than the 4,300 int() reads. R46: a wait holds a construct only while it starts
+# within the last MAX_HELD_CHARS characters, so the bound stands.
 MAX_HELD_CHARS = 2048
 _FEED_CHARS = 2048
 TITLE_LIMIT = 500
@@ -463,8 +464,11 @@ class _Enough(Exception):
 
 # What ends a construct html.parser held too long: a comment ends at "-->" or "--!>", a CDATA
 # section at "]]>", anything else (a tag, a declaration, an instruction) at the next ">".
-_CONSTRUCT_ENDS = (("<!--", re.compile("--!?>")), ("<![CDATA[", re.compile(r"\]\]>")))
+_COMMENT_END = re.compile("--!?>")  # html.parser's commentclose
+_CONSTRUCT_ENDS = (("<!--", _COMMENT_END), ("<![CDATA[", re.compile(r"\]\]>")))
 _NEXT_GT = re.compile(">")
+_END_TAG_OPEN = re.compile("</[a-zA-Z]")  # html.parser's endtagopen
+_NUMERIC_REFERENCE = re.compile("&#(?:[0-9]*|[xX][0-9a-fA-F]*)")  # its end not seen yet
 
 
 class _Markup(HTMLParser):
@@ -478,8 +482,16 @@ class _Markup(HTMLParser):
     whole, and no reference holds an ``&``, so everything before the last one is read; (c) a held
     tag, comment or declaration is dropped, read as one space, and the input skipped to its end
     (see _CONSTRUCT_ENDS), so nothing after it joins what came before. A tag that is open past
-    the limit therefore ends at the next ``>``, even one inside a quoted value. ``rawdata``,
-    ``cdata_elem`` and ``goahead`` are html.parser's (CPython 3.12.14); the tests pin each
+    the limit therefore ends at the next ``>``, even one inside a quoted value.
+
+    html.parser settles three constructs on the text it holds even when more may come: a quoted
+    value after ``= `` or `` =`` that holds ``>``, ``<!-->`` (which it ends at once unless a later
+    ``-->`` is held) and a numeric reference over 34 characters. Each is made to wait, only while
+    it starts within the last MAX_HELD_CHARS characters (``check_for_whole_start_tag``,
+    ``parse_endtag``, ``parse_comment`` and ``_step``), so the reading equals the whole field's
+    wherever a piece ends, for a construct settled within 2,049 characters of its start. Past that
+    it is read as html.parser reads what it holds (R47). ``rawdata``, ``cdata_elem``, ``goahead``
+    and the three overridden methods are html.parser's (CPython 3.12.14); the tests pin each
     release path against html.parser itself.
     """
 
@@ -490,6 +502,8 @@ class _Markup(HTMLParser):
         self._skip = 0
         self._until: re.Pattern[str] | None = None  # the end of the construct being skipped
         self._tail = ""  # the last characters seen of it, in case its end spans two pieces
+        self._settle = 0  # a construct that starts before this index is read as it stands
+        self._final = False
         self._done = False
         self._out: list[str] = []
         self._out_size = 0
@@ -501,6 +515,7 @@ class _Markup(HTMLParser):
             self._read(data[start : start + _FEED_CHARS])
 
     def value(self) -> str:
+        self._final = True  # close(): no more text comes, so nothing waits
         if not self._done and self._until is None:
             if self._strip:
                 self.rawdata = self.rawdata.rstrip()
@@ -527,9 +542,20 @@ class _Markup(HTMLParser):
             raise FeedError("feed text could not be read") from exc
 
     def _parse(self) -> None:
-        self.goahead(False)
+        self._step()
         while len(self.rawdata) > MAX_HELD_CHARS:
             self._release(self.rawdata)
+            self._step()
+
+    def _step(self) -> None:
+        # (c): a numeric reference still open at the end is kept from html.parser (34-char look-back)
+        raw = self.rawdata
+        self._settle = len(raw) - MAX_HELD_CHARS
+        amp = raw.rfind("&", max(self._settle, 0))
+        cut = amp if amp >= 0 and _NUMERIC_REFERENCE.fullmatch(raw, amp) else len(raw)
+        self.rawdata = raw[:cut]
+        self.goahead(False)
+        self.rawdata += raw[cut:]
 
     def _release(self, held: str) -> None:
         if self.cdata_elem:
@@ -547,20 +573,45 @@ class _Markup(HTMLParser):
         # references html.parser decodes, do not cut a reference in two.
         cut = len(held) - len(element) - 2
         decoded = element in ("textarea", "title")  # html.parser's RCDATA content elements
-        if decoded and "&" in held[cut - 34 : cut]:
-            cut = held.rfind("&", 0, cut)
+        if decoded:
+            amp = held.rfind("&", 0, cut)
+            if amp > 0 and (amp >= cut - 34 or _NUMERIC_REFERENCE.fullmatch(held, amp, cut)):
+                cut = amp
         self.rawdata = held[cut:]
         self.handle_data(unescape(held[:cut]) if decoded else held[:cut])
 
     def _release_construct(self, held: str) -> None:
         self.rawdata = ""
         self._add(" ")
-        ends = (end for start, end in _CONSTRUCT_ENDS if held.startswith(start))
-        self._until = next(ends, _NEXT_GT)
-        rest = self._past_end(self._until, held[1:])
-        if rest:
-            self.rawdata = rest
-            self.goahead(False)
+        kinds = (kind for kind in _CONSTRUCT_ENDS if held.startswith(kind[0]))
+        start, self._until = next(kinds, ("<", _NEXT_GT))
+        self.rawdata = self._past_end(self._until, held[len(start) :])
+
+    def check_for_whole_start_tag(self, i: int) -> int:
+        end = super().check_for_whole_start_tag(i)
+        return -1 if end >= 0 and self._quote_open(i, end) else end
+
+    def parse_endtag(self, i: int) -> int:
+        if _END_TAG_OPEN.match(self.rawdata, i):
+            end = super().check_for_whole_start_tag(i + 1)  # html.parser ends it the same way
+            if end >= 0 and self._quote_open(i, end):
+                return -1
+        return super().parse_endtag(i)
+
+    def parse_comment(self, i: int, report: bool = True) -> int:
+        # (b): "<!-->" ends at once only when no "-->" follows; held past the limit it is skipped
+        if not self._final and _COMMENT_END.search(self.rawdata, i + 4) is None:
+            return -1
+        return super().parse_comment(i, report)
+
+    def _quote_open(self, i: int, end: int) -> bool:
+        # (a): a quote in the tag with none after it may close in text not given yet
+        raw = self.rawdata
+        return (
+            not self._final
+            and i >= self._settle
+            and any(raw.find(q, i, end) >= 0 and raw.find(q, end) < 0 for q in "\"'")
+        )
 
     def _past_end(self, until: re.Pattern[str], piece: str) -> str:
         """What follows the end of the construct being skipped, or "" if it has not ended."""
