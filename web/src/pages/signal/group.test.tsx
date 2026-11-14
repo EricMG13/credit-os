@@ -204,10 +204,16 @@ describe("the group view", () => {
     expect(list.className).toContain("divide-y");
   });
 
-  it("draws the thread route as the group view (the thread panel is a later task)", () => {
+  it("draws the thread route as the group view under the thread panel, which hides it from the accessibility tree", () => {
     show(`${LEV}/thread/packaging-note`);
-    expect(screen.getByRole("heading", { level: 1, name: "Leveraged credit" })).toBeInTheDocument();
-    expect(screen.getAllByRole("article")).toHaveLength(4);
+    const hidden = { hidden: true };
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Leveraged credit", ...hidden }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Shared in this group", ...hidden }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Thread" })).toBeInTheDocument();
   });
 
   it("says a group with no threads has none, with the writer's hint", () => {

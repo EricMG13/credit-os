@@ -276,8 +276,8 @@ describe("the Signal frame", () => {
         const { hash, missing } = fillParams(pattern, set);
         expect(missing).toEqual([]);
         const view = show(hash);
-        // hidden: only the no-name scene opens the name dialog, which hides the page from the accessibility tree.
-        const hidden = set["scene"] === "no-name";
+        // hidden: the no-name scene opens the name dialog and a thread route opens the thread panel; each hides the page from the accessibility tree.
+        const hidden = set["scene"] === "no-name" || pattern.includes("/thread/");
         expect(screen.getAllByRole("heading", { level: 1, hidden })).toHaveLength(1);
         const title = pattern.includes("/feed/")
           ? VIEW_TITLES[set["view"] ?? ""]

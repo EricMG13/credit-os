@@ -1,7 +1,7 @@
 // The group view (mock frames "Group view, writer" and "Group view, reader"): the group and its
 // members, then what was shared on one card with hairlines. A story is drawn with the story card
-// and a note with its sharer's avatar and line; each has an "Open thread" link. The thread panel is
-// a later task, so the thread route draws this view too. Nothing here writes: New thread and
+// and a note with its sharer's avatar and line; each has an "Open thread" link. The thread route draws
+// this view under the thread panel. Nothing here writes: New thread and
 // Attach story are present for a writer and disabled with their reason in view.
 import { Link01, Users01, MessageSquare01, Plus } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
@@ -123,6 +123,7 @@ function Item({
             scene,
             `group/${encodeURIComponent(group.id)}/thread/${encodeURIComponent(thread.id)}`,
           )}
+          data-thread-link={thread.id}
           aria-label={`Open thread: ${story === null ? thread.sharedBy.label : story.headline}`}
           className={`font-semibold text-text-link ${FOCUS}`}
         >
