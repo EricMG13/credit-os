@@ -27,9 +27,9 @@ export function StageProgress({ stage }: { stage: Stage }) {
         />
       </div>
       <ol className="mt-1.5 flex justify-between gap-2 text-sm text-text-tertiary">
-        {stage.stages.map((s) => (
+        {stage.stages.map((s, index) => (
           <li
-            key={s.name}
+            key={index}
             aria-current={s.current ? "step" : undefined}
             className={s.current ? "font-semibold text-text-primary" : undefined}
           >

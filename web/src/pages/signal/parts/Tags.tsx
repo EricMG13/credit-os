@@ -2,9 +2,9 @@
 export function Tags({ tags }: { tags: string[] }) {
   return (
     <ul className="flex flex-wrap items-center gap-2">
-      {tags.map((tag) => (
+      {tags.map((tag, index) => (
         <li
-          key={tag}
+          key={index}
           className="rounded-md bg-surface-card px-2 py-[3px] text-xs font-medium text-text-secondary ring-1 ring-border-hairline ring-inset"
         >
           {tag}

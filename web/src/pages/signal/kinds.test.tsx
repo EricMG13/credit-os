@@ -3,6 +3,9 @@
 import { render, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
+import { NumberedPanel } from "./parts/NumberedPanel";
+import { StageProgress } from "./parts/StageProgress";
+import { Tags } from "./parts/Tags";
 import type { LoadResult } from "../../data";
 
 function show(hash: string) {
@@ -15,7 +18,7 @@ function show(hash: string) {
 }
 
 function card(headline: string) {
-  const heading = screen.getByRole("heading", { level: 3, name: headline });
+  const heading = screen.getByRole("heading", { level: 2, name: headline });
   const article = heading.closest("article");
   if (article === null) throw new Error("a headline sits in an article");
   return within(article);
@@ -183,7 +186,11 @@ describe("the digest card", () => {
 
   it("puts the digest among the stories in the order the view gives", () => {
     show("/signal/ai-on/feed/for-you");
-    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
+    expect(
+      screen
+        .getAllByRole("article")
+        .map((a) => within(a).getByRole("heading", { level: 2 }).textContent),
+    ).toEqual([
       "Corvane Packaging to close two plants as volumes fall",
       TESSALY,
       HALVORSEN,
@@ -192,5 +199,39 @@ describe("the digest card", () => {
       DAILY,
       NOTHING,
     ]);
+  });
+});
+
+describe("lists that repeat a text", () => {
+  /** React reports two children with one key on the console; the lists are keyed by position. */
+  function keyClashes(draw: () => void): unknown[] {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    draw();
+    const clashes = spy.mock.calls.filter((c) => String(c[0]).includes("same key"));
+    spy.mockRestore();
+    return clashes;
+  }
+
+  it("keys the numbered points by position", () => {
+    expect(
+      keyClashes(() => render(<NumberedPanel items={["Same point", "Same point"]} />)),
+    ).toEqual([]);
+  });
+
+  it("keys the tags by position", () => {
+    expect(keyClashes(() => render(<Tags tags={["Telecoms", "Telecoms"]} />))).toEqual([]);
+  });
+
+  it("keys the stage names by position", () => {
+    const stage = {
+      current: "Opened",
+      label: "Stage 1 of 2",
+      position: 0.5,
+      stages: [
+        { name: "Opened", current: true },
+        { name: "Opened", current: false },
+      ],
+    };
+    expect(keyClashes(() => render(<StageProgress stage={stage} />))).toEqual([]);
   });
 });

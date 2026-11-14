@@ -61,7 +61,7 @@ describe("prototype-named topic ids", () => {
       };
       window.location.hash = `#/signal/main/topic/${id}`;
       render(<App result={ok} />);
-      expect(screen.getByRole("heading", { level: 2, name: "Shipping" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1, name: "Shipping" })).toBeInTheDocument();
       // Shipping is followed in the fixture; Telecoms is not. Neither reads an inherited value.
       expect(screen.getByRole("button", { name: "Unfollow Shipping" })).toHaveAttribute(
         "aria-pressed",

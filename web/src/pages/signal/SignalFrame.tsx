@@ -1,6 +1,6 @@
 // The layout every Signal page sits in: the channel list on the left, the page's content on the
-// right, after mock/signal.js (SgShell) and `.sub`, `.ni`, `.cnt`, `.dot`, `.me`.
-import { useRef, useState, type FC, type ReactNode } from "react";
+// right, each scrolling on its own, filling the full-bleed page region after mock/signal.js (SgShell) and `.sub`, `.ni`, `.cnt`, `.dot`, `.me`.
+import { useId, useRef, useState, type FC, type ReactNode } from "react";
 import {
   Bookmark,
   Clock,
@@ -83,6 +83,7 @@ function Heading({ children }: { children: string }) {
 
 function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCurrent }) {
   const { channels } = scene.snapshot;
+  const headingId = useId();
   // Follow is in-memory only: nothing is written; a reload shows the slice's own state again.
   const [followed, setFollowed] = useState<ReadonlyMap<string, boolean>>(new Map());
   const views = [
@@ -92,12 +93,12 @@ function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCu
   ] as const;
   return (
     <nav
-      aria-label="Signal"
-      className="flex w-64 shrink-0 flex-col border-r-[1.5px] border-border-hairline bg-surface-card px-4 pt-6 pb-5"
+      aria-labelledby={headingId}
+      className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r-[1.5px] border-border-hairline bg-surface-card px-4 pt-6 pb-5"
     >
-      <p className="px-2 text-sm font-semibold text-text-link" aria-hidden="true">
+      <h2 id={headingId} className="px-2 text-sm font-semibold text-text-link">
         Signal
-      </p>
+      </h2>
       <ul className="pt-2">
         {views.map((view) => (
           <Row
@@ -233,7 +234,7 @@ export function SignalFrame({
 }) {
   const content = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex items-stretch gap-6">
+    <div className="flex h-full">
       <a
         href="#signal-content"
         className="sr-only outline-focus-ring focus:not-sr-only focus:outline-2 focus:outline-offset-2 focus:fixed focus:top-2 focus:left-2 focus:z-10 focus:rounded-ds-xs focus:bg-surface-card focus:p-2 focus:text-text-link"
@@ -245,7 +246,12 @@ export function SignalFrame({
         Skip to the feed
       </a>
       <ChannelList scene={scene} current={current} />
-      <div id="signal-content" ref={content} tabIndex={-1} className="min-w-0 flex-1 outline-none">
+      <div
+        id="signal-content"
+        ref={content}
+        tabIndex={-1}
+        className="min-w-0 flex-1 overflow-y-auto p-8 outline-none"
+      >
         {children}
       </div>
     </div>

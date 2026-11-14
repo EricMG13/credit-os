@@ -15,10 +15,31 @@ function page(kind: SignalPageKind) {
 }
 
 export const routes: readonly Route[] = [
-  { path: "/signal/:scene/feed/:view", title: "Signal", render: page("feed") },
-  { path: "/signal/:scene/topic/:topic", title: "Signal", render: page("topic") },
-  { path: "/signal/:scene/group/:group", title: "Signal", render: page("group") },
-  { path: "/signal/:scene/group/:group/thread/:thread", title: "Signal", render: page("thread") },
-  { path: "/signal/:scene/digest/:digest", title: "Signal", render: page("digest") },
-  { path: "/signal/:scene/settings/:section", title: "Signal", render: page("settings") },
+  {
+    path: "/signal/:scene/feed/:view",
+    home: "/signal/main/feed/for-you",
+    layout: "bleed",
+    title: "Signal",
+    render: page("feed"),
+  },
+  { path: "/signal/:scene/topic/:topic", layout: "bleed", title: "Signal", render: page("topic") },
+  { path: "/signal/:scene/group/:group", layout: "bleed", title: "Signal", render: page("group") },
+  {
+    path: "/signal/:scene/group/:group/thread/:thread",
+    layout: "bleed",
+    title: "Signal",
+    render: page("thread"),
+  },
+  {
+    path: "/signal/:scene/digest/:digest",
+    layout: "bleed",
+    title: "Signal",
+    render: page("digest"),
+  },
+  {
+    path: "/signal/:scene/settings/:section",
+    layout: "bleed",
+    title: "Signal",
+    render: page("settings"),
+  },
 ];
