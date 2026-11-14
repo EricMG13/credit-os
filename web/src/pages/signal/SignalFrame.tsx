@@ -1,6 +1,6 @@
 // The layout every Signal page sits in: the channel list on the left, the page's content on the
 // right, each scrolling on its own, filling the full-bleed page region after mock/signal.js (SgShell) and `.sub`, `.ni`, `.cnt`, `.dot`, `.me`.
-import { useId, useRef, type FC, type ReactNode } from "react";
+import { useId, useRef, useState, type FC, type ReactNode, type RefObject } from "react";
 import {
   Bookmark,
   Clock,
@@ -12,11 +12,13 @@ import {
   Users01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
-import { Button } from "@/components/base/buttons/button";
 import { ButtonUtility } from "@/components/base/buttons/button-utility";
 import { StatusBadge } from "@/components/status/StatusBadge";
+import { Button as AriaButton } from "react-aria-components";
+import { Tooltip } from "@/components/base/tooltip/tooltip";
 import { cx } from "@/utils/cx";
 import { AvatarLabelGroup } from "./parts/Avatar";
+import { NameDialog, initialsOf } from "./NameDialog";
 import type { SignalScene } from "./slice";
 
 /** Which channel the page is on; the item with the same key is marked current. */
@@ -91,10 +93,12 @@ function ChannelList({
   scene,
   current,
   follow,
+  chip,
 }: {
   scene: SignalScene;
   current: SignalCurrent;
   follow: SignalFollow;
+  chip: ReactNode;
 }) {
   const { channels } = scene.snapshot;
   const headingId = useId();
@@ -193,7 +197,7 @@ function ChannelList({
           Settings
         </Row>
       </ul>
-      <NameChip viewer={scene.snapshot.viewer} />
+      {chip}
     </nav>
   );
 }
@@ -214,23 +218,37 @@ function DigestMark({ paused, unread }: { paused: boolean; unread: boolean }) {
   );
 }
 
-/** Ruling 19: the viewer's name and role; with no name, a button to set one (the dialog is task 6). */
-function NameChip({ viewer }: { viewer: SignalScene["snapshot"]["viewer"] }) {
+/** Ruling 19: the viewer's name and role; the chip is a button that opens the name dialog either way. */
+function NameChip({
+  name,
+  initials,
+  roleLabel,
+  chipRef,
+  onPress,
+}: {
+  name: string | null;
+  initials: string | null;
+  roleLabel: string;
+  chipRef: RefObject<HTMLButtonElement | null>;
+  onPress: () => void;
+}) {
   return (
     <div className="mt-auto pt-4">
-      <AvatarLabelGroup
-        size="sm"
-        initials={viewer.initials}
-        own={viewer.name !== null}
-        title={
-          viewer.name ?? (
-            <Button color="link-color" size="sm">
-              Set your name
-            </Button>
-          )
-        }
-        subtitle={viewer.roleLabel}
-      />
+      <Tooltip title="A display name, not a login. It only labels what you save and follow.">
+        <AriaButton
+          ref={chipRef}
+          onPress={onPress}
+          className="rounded-ds-xs text-left outline-focus-ring focus-visible:outline-2"
+        >
+          <AvatarLabelGroup
+            size="sm"
+            initials={initials ?? "?"}
+            own={name !== null}
+            title={name ?? <span className="text-text-link">Set your name</span>}
+            subtitle={roleLabel}
+          />
+        </AriaButton>
+      </Tooltip>
     </div>
   );
 }
@@ -247,6 +265,14 @@ export function SignalFrame({
   children: ReactNode;
 }) {
   const content = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLButtonElement>(null);
+  const { viewer } = scene.snapshot;
+  // In memory only: a typed name lasts until the page is left; nothing is written.
+  const [typed, setTyped] = useState<string | null>(null);
+  const [open, setOpen] = useState(viewer.name === null);
+  const [said, setSaid] = useState("");
+  const name = typed ?? viewer.name;
+  const initials = typed === null || typed === viewer.name ? viewer.initials : initialsOf(typed);
   return (
     <div className="flex h-full">
       <a
@@ -259,7 +285,38 @@ export function SignalFrame({
       >
         Skip to the feed
       </a>
-      <ChannelList scene={scene} current={current} follow={follow} />
+      <ChannelList
+        scene={scene}
+        current={current}
+        follow={follow}
+        chip={
+          <NameChip
+            name={name}
+            initials={initials}
+            roleLabel={viewer.roleLabel}
+            chipRef={chipRef}
+            onPress={() => {
+              setOpen(true);
+            }}
+          />
+        }
+      />
+      <NameDialog
+        open={open}
+        current={name}
+        onSubmit={(next) => {
+          setTyped(next);
+          setSaid(`Signed in as ${next}`);
+          setOpen(false);
+        }}
+        onCancel={() => {
+          setOpen(false);
+        }}
+        onGone={() => chipRef.current?.focus()}
+      />
+      <div role="status" className="sr-only">
+        {said}
+      </div>
       <div
         id="signal-content"
         ref={content}
