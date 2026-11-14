@@ -80,7 +80,7 @@ describe("RunFrame tabs", () => {
     expect(hrefs).toEqual([
       ["Overview", "#/library/halden-aerostructures/2026-09-30/overview", "page"],
       ["Changes", "#/library/halden-aerostructures/2026-09-30/changes", null],
-      ["Modules13", "#/library/halden-aerostructures/2026-09-30/modules/capital-structure", null],
+      ["Modules13", "#/library/halden-aerostructures/2026-09-30/modules/business-profile", null],
       ["Forecast", "#/derived/forecast", null],
       ["Evidence", "#/library/halden-aerostructures/2026-09-30/evidence/summary", null],
     ]);
