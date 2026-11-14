@@ -208,7 +208,13 @@ describe("Evidence, Record", () => {
       "The withheld register lists figures the sources marked confidential, so it is not published.";
     expect(within(row).getByText(reason)).toBeVisible();
     expect(open).toHaveAccessibleDescription(reason);
-    expect(open.parentElement).toHaveClass("justify-end");
+    // Sweep SW-09: a wrapping row of button + reason put the button 32 px from the cell's left edge in
+    // Chrome; the cell's Open stacks its reason under it, both against the right edge.
+    const stack = open.parentElement as HTMLElement;
+    expect(stack).toHaveClass("flex-col", "items-end");
+    expect(stack).not.toHaveClass("flex-wrap");
+    expect(stack).not.toHaveClass("justify-end");
+    expect(within(row).getByText(reason)).toHaveClass("text-right");
     expect(within(row).queryByRole("link", { name: "Open" })).toBeNull();
   });
 
@@ -250,6 +256,7 @@ describe("Evidence, Record", () => {
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";
     run.head["firstModule"] = null;
+    (run.head["tabs"] as Json)["modulesCount"] = "0";
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
     ];

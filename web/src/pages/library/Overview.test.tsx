@@ -464,13 +464,16 @@ describe("Overview, modules and limitations", () => {
     expect(collapsed?.title).toBe(`${String(named)} modules delivered`);
     const delivered = rest.filter((m) => m.state.startsWith("Delivered")).length;
     expect(run.modules.summary).toBe(`${String(named + delivered)} of 13 delivered`);
-    expect(capped.head.tabs.modulesCount).toBe(String(named + delivered));
-    expect(run.modules.items.filter((m) => m.state === "Not run").map((m) => m.title)).toEqual([
+    const notRun = run.modules.items.filter((m) => m.state === "Not run").map((m) => m.title);
+    expect(notRun).toEqual([
       "Financial performance",
       "Cash flow and liquidity",
       "Recovery",
       "Forecast",
     ]);
+    // Sweep ruling SW-01: the Modules tab counts the modules the run lists (as the mock's "Modules 13"
+    // beside "12 of 13 delivered"), here the delivered ones and the four not run.
+    expect(capped.head.tabs.modulesCount).toBe(String(named + delivered + notRun.length));
   });
 
   it("draws the limitations open: h2 with count, gaps link, one trace control each, long text in full", () => {
@@ -571,5 +574,29 @@ describe("Overview, the first run on the issuer", () => {
       `Limitations${overview.limitations.count}`,
     );
     expect(within(region).getAllByRole("listitem")).toHaveLength(overview.limitations.items.length);
+  });
+});
+
+describe("Overview, another run", () => {
+  it("sweep SW-05: draws the limitations open again when the run changes under the page", () => {
+    const view = renderOverview("2026-09-30");
+    const region = screen.getByRole("region", { name: "Limitations" });
+    fireEvent.click(within(region).getByRole("button", { name: "Collapse limitations" }));
+    expect(within(region).queryByRole("listitem")).toBeNull();
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error("no overview route");
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: fixture.slice,
+    };
+    view.rerender(
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer: "halden-aerostructures", run: "2026-03-31" })}
+      </SourceContext.Provider>,
+    );
+    const next = screen.getByRole("region", { name: "Limitations" });
+    expect(within(next).getByRole("button", { name: "Collapse limitations" })).toBeVisible();
+    expect(within(next).getAllByRole("listitem").length).toBeGreaterThan(0);
   });
 });

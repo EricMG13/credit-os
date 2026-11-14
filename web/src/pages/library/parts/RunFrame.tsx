@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Link } from "react-aria-components";
 import { Badge } from "@/components/base/badges/badges";
 import { StatusBadge } from "@/components/status/StatusBadge";
@@ -257,13 +257,17 @@ export function RunFrame({
                 />
                 <RunTabs issuer={issuer.id} run={run} tab={tab} />
               </div>
-              {run.loading ? (
-                <RunSkeleton />
-              ) : typeof children === "function" ? (
-                children(run, issuer.id)
-              ) : (
-                children
-              )}
+              {/* The app draws a route at one place, so a page's own state (a filter, a view, a
+                  collapse) would survive a hash change to another run: key the body by its run. */}
+              <Fragment key={`${issuer.id}/${run.id}`}>
+                {run.loading ? (
+                  <RunSkeleton />
+                ) : typeof children === "function" ? (
+                  children(run, issuer.id)
+                ) : (
+                  children
+                )}
+              </Fragment>
             </div>
             {trace === undefined ? null : (
               <TraceDrawer
