@@ -211,6 +211,9 @@ export function ThreadPanel({
   writer: boolean;
 }) {
   useOnGone(() => {
+    // When the address was loaded directly the dialog library has no opener to restore and, in a
+    // browser, its own frame-late restore leaves focus on the body; a click-opened panel is restored
+    // to its link by the library itself.
     focusAgainIfLost(() => openLinkTarget(thread === null ? null : thread.id));
   });
   const close = () => {
