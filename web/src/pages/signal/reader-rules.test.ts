@@ -95,7 +95,11 @@ describe("S3: a topic's keywords are one fact", () => {
     const slice = changed((scene) => {
       first(scene.snapshot.channels.topics).keywords.reverse();
     });
-    expect(readSlice(slice).kind).toBe("invalid");
+    expect(readSlice(slice)).toEqual(
+      invalid(
+        `${MAIN}.settings.topics[0].keywords: expected the keywords the channel list gives this topic, in order`,
+      ),
+    );
   });
 });
 

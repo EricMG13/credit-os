@@ -3,7 +3,7 @@
 // between sections; a reload shows the slice again); nothing is written. A reader's list holds
 // Topics and Notifications only (ruling 18).
 import { useState, type ReactNode } from "react";
-import { Tab, TabList, Tabs } from "@/components/application/tabs/tabs";
+import { Tab, TabList, TabPanel, Tabs } from "@/components/application/tabs/tabs";
 import { sceneHref } from "./SignalFrame";
 import { PageTitle } from "./parts/PageTitle";
 import type { SignalScene } from "./slice";
@@ -116,31 +116,38 @@ export function SettingsPage({
     }
   }
 
+  // A section the viewer can open has a tab panel the selected tab names; any other address selects no
+  // tab, so its sentence stands outside a panel.
+  const open = current !== undefined && listed.includes(current) ? current : undefined;
   return (
     <>
       <PageTitle>Settings</PageTitle>
-      <div className="mt-4 grid grid-cols-1 gap-y-4 xl:grid-cols-[200px_minmax(0,1fr)] xl:gap-x-12">
-        <Tabs
+      <Tabs
+        orientation="vertical"
+        selectedKey={open === undefined ? "" : open.id}
+        className="mt-4 grid grid-cols-1 gap-y-4 xl:grid-cols-[200px_minmax(0,1fr)] xl:gap-x-12"
+      >
+        <TabList
+          aria-label="Settings sections"
           orientation="vertical"
-          selectedKey={current !== undefined && listed.includes(current) ? current.id : ""}
-          className="w-auto"
+          type="line"
+          size="sm"
+          className="w-full flex-row flex-wrap gap-x-4 xl:w-max xl:flex-col"
         >
-          <TabList
-            aria-label="Settings sections"
-            orientation="vertical"
-            type="line"
-            size="sm"
-            className="w-full flex-row flex-wrap gap-x-4 xl:w-max xl:flex-col"
-          >
-            {listed.map((s) => (
-              <Tab key={s.id} id={s.id} href={sceneHref(scene, `settings/${s.id}`)}>
-                {s.name}
-              </Tab>
-            ))}
-          </TabList>
-        </Tabs>
-        <div className="min-w-0">{content()}</div>
-      </div>
+          {listed.map((s) => (
+            <Tab key={s.id} id={s.id} href={sceneHref(scene, `settings/${s.id}`)}>
+              {s.name}
+            </Tab>
+          ))}
+        </TabList>
+        {open === undefined ? (
+          <div className="min-w-0">{content()}</div>
+        ) : (
+          <TabPanel key={open.id} id={open.id} className="min-w-0">
+            {content()}
+          </TabPanel>
+        )}
+      </Tabs>
     </>
   );
 }

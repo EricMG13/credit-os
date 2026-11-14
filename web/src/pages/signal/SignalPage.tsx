@@ -113,7 +113,8 @@ function emptyContext(
   };
 }
 
-function Body({
+/** What the address draws: the channel to mark current and the page body (a plain function, not a component). */
+function pageFor({
   scene,
   kind,
   params,
@@ -343,7 +344,7 @@ function SceneView({
       setSaves(new Map(saves).set(story.id, !(saves.get(story.id) ?? story.saved)));
     },
   };
-  const { current, body } = Body({ scene, kind, params, follow, save });
+  const { current, body } = pageFor({ scene, kind, params, follow, save });
   return (
     <SignalFrame scene={scene} current={current} follow={follow}>
       {body}

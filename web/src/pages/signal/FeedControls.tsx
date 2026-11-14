@@ -1,10 +1,10 @@
 // The feed's controls: Top or Latest (beside the view title), the kind tabs and the search field.
 // All state lives in FeedPage; these draw it and report changes. Filtering is in memory.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { SearchLg } from "@untitledui/icons";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import { Input } from "@/components/base/input/input";
-import { Tab, TabList, Tabs } from "@/components/application/tabs/tabs";
+import { Tab, TabList, TabPanel, Tabs } from "@/components/application/tabs/tabs";
 
 export type FeedOrder = "top" | "latest";
 export type FeedKind = "all" | "regulator" | "news" | "ratings" | "research";
@@ -71,11 +71,17 @@ export function FeedControls({
   onKind,
   query,
   onQuery,
+  above,
+  children,
 }: {
   kind: FeedKind;
   onKind: (kind: FeedKind) => void;
   query: string;
   onQuery: (query: string) => void;
+  /** Drawn between the controls and the panel (the new-stories pill, the alert and the status line). */
+  above: ReactNode;
+  /** The list for the chosen kind: it sits in the panel the selected tab names. */
+  children: ReactNode;
 }) {
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -90,37 +96,40 @@ export function FeedControls({
     };
   }, []);
   return (
-    <div className="mt-5 flex flex-wrap items-center gap-3">
-      <Tabs
-        selectedKey={kind}
-        onSelectionChange={(key) => {
-          onKind(pick(KINDS, key));
-        }}
-        className="w-auto"
-      >
-        <TabList aria-label="Kind of story" size="sm">
+    <Tabs
+      selectedKey={kind}
+      onSelectionChange={(key) => {
+        onKind(pick(KINDS, key));
+      }}
+    >
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <TabList aria-label="Kind of story" size="sm" className="w-auto">
           {KINDS.map(([id, label]) => (
             <Tab key={id} id={id}>
               {label}
             </Tab>
           ))}
         </TabList>
-      </Tabs>
-      <div className="ml-auto w-70">
-        <Input
-          ref={field}
-          icon={SearchLg}
-          placeholder="Search stories"
-          value={query}
-          onChange={onQuery}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && query !== "") {
-              event.preventDefault();
-              onQuery("");
-            }
-          }}
-        />
+        <div className="ml-auto w-70">
+          <Input
+            ref={field}
+            icon={SearchLg}
+            placeholder="Search stories"
+            value={query}
+            onChange={onQuery}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && query !== "") {
+                event.preventDefault();
+                onQuery("");
+              }
+            }}
+          />
+        </div>
       </div>
-    </div>
+      {above}
+      <TabPanel key={kind} id={kind}>
+        {children}
+      </TabPanel>
+    </Tabs>
   );
 }

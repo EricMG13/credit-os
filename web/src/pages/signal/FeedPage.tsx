@@ -217,64 +217,75 @@ export function FeedPage({
         order={order}
         onOrder={switchable ? setOrder : null}
       />
-      <FeedControls kind={kind} onKind={setKind} query={query} onQuery={setQuery} />
-      {loading || waiting === null || revealed ? null : (
-        <div className="mt-4 flex justify-center">
-          <Pill
-            label={waiting.label}
-            action="Show"
-            onAction={() => {
-              focusAt.current = visible(waiting.entries, kind, needle).length > 0 ? 0 : "title";
-              setRevealed(true);
+      <FeedControls
+        kind={kind}
+        onKind={setKind}
+        query={query}
+        onQuery={setQuery}
+        above={
+          <>
+            {loading || waiting === null || revealed ? null : (
+              <div className="mt-4 flex justify-center">
+                <Pill
+                  label={waiting.label}
+                  action="Show"
+                  onAction={() => {
+                    focusAt.current =
+                      visible(waiting.entries, kind, needle).length > 0 ? 0 : "title";
+                    setRevealed(true);
+                  }}
+                />
+              </div>
+            )}
+            {error === null ? null : <FeedAlert error={error} />}
+            <div aria-live="polite">
+              {shared > 0 ? (
+                <div key={shared} className="mt-4">
+                  <Alert tone="success" title="Sample data: the story was not shared." />
+                </div>
+              ) : null}
+            </div>
+          </>
+        }
+      >
+        {loading ? (
+          <FeedSkeleton />
+        ) : shown.length > 0 ? (
+          <EntryList
+            entries={shown}
+            scene={scene}
+            writer={writer}
+            save={save}
+            onShared={() => {
+              setShared(shared + 1);
             }}
+            listRef={list}
           />
-        </div>
-      )}
-      {error === null ? null : <FeedAlert error={error} />}
-      <div aria-live="polite">
-        {shared > 0 ? (
-          <div key={shared} className="mt-4">
-            <Alert tone="success" title="Sample data: the story was not shared." />
+        ) : needle !== "" ? (
+          <NoMatch
+            title={`No story matches ${needle}`}
+            hint="Check the spelling or clear the search."
+          />
+        ) : kind !== "all" ? (
+          <NoMatch title="No stories of this kind here" hint="Choose All to see every kind." />
+        ) : (
+          <FeedEmpty context={empty} />
+        )}
+        {loading || older.length === 0 || olderShown ? null : (
+          <div className="mt-4 flex justify-center">
+            <Button
+              color="secondary"
+              size="sm"
+              onPress={() => {
+                focusAt.current = visible(older, kind, needle).length > 0 ? shown.length : "title";
+                setOlderShown(true);
+              }}
+            >
+              Show older
+            </Button>
           </div>
-        ) : null}
-      </div>
-      {loading ? (
-        <FeedSkeleton />
-      ) : shown.length > 0 ? (
-        <EntryList
-          entries={shown}
-          scene={scene}
-          writer={writer}
-          save={save}
-          onShared={() => {
-            setShared(shared + 1);
-          }}
-          listRef={list}
-        />
-      ) : needle !== "" ? (
-        <NoMatch
-          title={`No story matches ${needle}`}
-          hint="Check the spelling or clear the search."
-        />
-      ) : kind !== "all" ? (
-        <NoMatch title="No stories of this kind here" hint="Choose All to see every kind." />
-      ) : (
-        <FeedEmpty context={empty} />
-      )}
-      {loading || older.length === 0 || olderShown ? null : (
-        <div className="mt-4 flex justify-center">
-          <Button
-            color="secondary"
-            size="sm"
-            onPress={() => {
-              focusAt.current = visible(older, kind, needle).length > 0 ? shown.length : "title";
-              setOlderShown(true);
-            }}
-          >
-            Show older
-          </Button>
-        </div>
-      )}
+        )}
+      </FeedControls>
     </>
   );
 }

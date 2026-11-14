@@ -120,7 +120,7 @@ function Row({ digest, issue }: { digest: SignalDigest; issue: SignalDigestIssue
           {issue.ai ? <Badge size="sm">AI</Badge> : null}
           {issue.date === null ? null : <span>{issue.date}</span>}
         </div>
-        <h3 id={issue.id} className="text-lg font-medium text-text-primary">
+        <h3 data-issue={issue.id} className="text-lg font-medium text-text-primary">
           {issue.title}
         </h3>
         {/* Keyed by slot, not by text: the summary and the nothing line may be the same sentence. */}
