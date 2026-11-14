@@ -19,7 +19,7 @@ import type { SignalStory } from "./slice";
 const FOCUS = "outline-focus-ring focus-visible:outline-2";
 const LINK = `text-text-link ${FOCUS}`;
 /** The predecessor's safe-link test: only an http or https address is drawn as a link. */
-const isWebLink = (url: string) => /^https?:\/\//i.test(url);
+export const isWebLink = (url: string) => /^https?:\/\//i.test(url);
 const ROW = "mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-tertiary";
 
 /** `inGroup`: the card sits in a group view, where "Open thread" is the way in, so a writer's Comment and Share to group are left out. */
