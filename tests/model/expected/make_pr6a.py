@@ -7,8 +7,9 @@ an edit with a third element `"all"` replaces every occurrence. Worked here: the
 the foundation's text (this script's own reading: every kept line that is not a heading, a fence
 or blank) and whether it names the block's currency, and each outcome. `words` and `currencies`
 hold text forms with their expected reading written by hand from the predecessor's cases (text
-forms, not figures); `render()` asserts this script's patterns give them. Run this file to write
-`pr6a.json` next to it.
+forms, not figures); `render()` asserts this script's patterns give them. A foundation whose
+level-2 headings are not the handoff's six, in order, is the parser's own refusal, worded as
+`handoff/document.py` words it. Run this file to write `pr6a.json` next to it.
 """
 
 import importlib.util
@@ -33,7 +34,23 @@ MESSAGES = {
     "currency": "CP-1 nowhere names `{currency}`: state `currency` as the three-letter code of the "
     "currency CP-1 reports its figures in.",
 }
+REQUIRED = ["Request", "Sources", "Findings", "Calculations", "Gaps", "Next module"]
 Doc = dict[str, Any]
+
+
+def skeleton(text: str) -> str | None:
+    """The parser's refusal of the level-2 headings, or None when they are the six, in order."""
+    lines = PR5.shown_lines(text)
+    heads = [(index, PR5.HEADING.fullmatch(line)) for index, line, fenced in lines if not fenced]
+    twos = [(index, m[2].strip()) for index, m in heads if m is not None and len(m[1]) == 2]
+    for (index, title), required in zip(twos, REQUIRED, strict=False):
+        if title != required:
+            found = PR5.echo(title)
+            return f"line {index}: level-2 heading `{found}` found where `{required}` is required"
+    if len(twos) < len(REQUIRED):
+        count = len(lines) - (1 if text.endswith("\n") else 0)
+        return f"line {count}: level-2 heading `{REQUIRED[len(twos)]}` is missing"
+    return None
 
 
 def units_named(text: str) -> list[str]:
@@ -90,6 +107,8 @@ def outcome(row: Doc) -> list[str] | None:
     foundation: str = row.get("foundation", "foundation.md")
     source: str = row.get("source", foundation)
     text = edited(foundation, row.get("edits", []))
+    if (refused := skeleton(text)) is not None:
+        return ["HandoffError", refused]
     try:
         read = PR5.tables(text)
     except PR5.Repeated as error:
@@ -150,6 +169,15 @@ ROWS = rf"""
 {{"label": "USD named by its sign", "edits": [{NO_USD}, ["{CALC}", "{CALC}\nAmounts are in US$.\n"]]}}
 {{"label": "a lower-case code names no currency", "edits": [{NO_USD}, ["{CALC}", "{CALC}\nAmounts are in usd.\n"]]}}
 {{"label": "a bare dollar sign names no currency", "edits": [{NO_USD}, ["{CALC}", "{CALC}\nAmounts are in $m.\n"]]}}
+{{"label": "a foundation with Request as its only top-level section", "edits": [["\n## Sources\n", "\n### Sources\n"], ["\n## Findings\n", "\n### Findings\n"], ["\n## Calculations\n", "\n### Calculations\n"], ["\n## Gaps\n", "\n### Gaps\n"], ["\n## Next module\n", "\n### Next module\n"]]}}
+{{"label": "a foundation whose second top-level section is not Sources", "edits": [["\n## Sources\n", "\n### Sources\n"]]}}
+{{"label": "a long period header is cut at 80 in the message", "edits": [["{CALC}", "{CALC}\n| Line item | {LONG} |\n| --- | --- |\n| Revenue check | 1,456 |\n"]], "ops": [[["base", "revenue", "row"], "Revenue check"], [["base", "revenue", "period"], "{LONG}"], [["base", "revenue", "amount"], "1457"]]}}
+{{"label": "a long cell that is not a number is cut at 80 in the message", "edits": [["{CALC}", "{CALC}\n| Line item | FY2024 |\n| --- | --- |\n| Revenue check | {LONG} |\n"]], "ops": [[["base", "revenue", "row"], "Revenue check"]]}}
+{{"label": "a period header compares with its case", "ops": [[["base", "revenue", "period"], "fy2024"]]}}
+{{"label": "interest stated negative names the magnitude rule", "ops": [[["base", "interest", "amount"], "-64"]]}}
+{{"label": "capex stated with the cell's sign names the magnitude rule", "ops": [[["base", "capex", "amount"], "-72"]]}}
+{{"label": "taxes stated negative against a positive cell names the magnitude rule", "edits": [["| -29 | -37 |", "| -29 | 37 |"]], "ops": [[["base", "taxes", "amount"], "-37"]]}}
+{{"label": "working capital of another size names no sign rule", "ops": [[["base", "wc", "amount"], "20"]]}}
 """
 
 WORDS: list[Any] = [
@@ -228,7 +256,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 34 and len(accepted) == 12
+    assert len(labels) == len(set(labels)) == 43 and len(accepted) == 12
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
