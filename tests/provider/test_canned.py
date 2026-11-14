@@ -42,6 +42,8 @@ def test_digits_kept_and_missing_count_not_zero() -> None:
     assert turn is not None
     scale = turn.tool_calls[0].arguments["scale"]
     assert type(scale) is float and scale == key.CANNED_SCALE
+    offset = turn.tool_calls[0].arguments["offset"]
+    assert type(offset) is float and offset == -2.5
     usage = _ask(model, CP1_1).usage
     assert usage is not None and (usage.cached_read_tokens, usage.input_tokens) == (0, None)
 
@@ -86,6 +88,7 @@ _C: dict[str, Any] = {
     "billed_usd": None,
     "outcome": "done",
     "event_id": "a",
+    "supersedes": None,
 }
 
 
@@ -115,7 +118,7 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     (_compactions({**_C, "usage": None}), "usage must be an object"),
     (
         _compactions({**_C, "x": 1}),
-        _EXACTLY("compaction", "usage, billed_usd, outcome, event_id"),
+        _EXACTLY("compaction", "usage, billed_usd, outcome, event_id, supersedes"),
     ),
     (_compactions({**_C, "outcome": "ok"}), "unknown compaction outcome 'ok'"),
     (_compactions({**_C, "event_id": ""}), "event_id must be a non-empty string"),
@@ -124,6 +127,24 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
         "a compaction has no reasoning-token count",
     ),
     (_compactions(_C, {**_C, "billed_usd": None}), "two compactions share an event_id"),
+    *(
+        (_compactions({**_C, "supersedes": v}), "supersedes must be a non-empty string or None")
+        for v in (7, "")
+    ),
+    (
+        _compactions(
+            {**_C, "usage": dict.fromkeys(_C["usage"]), "outcome": "unfinished", "supersedes": "z"}
+        ),
+        "an unfinished compaction supersedes nothing",
+    ),
+    (
+        _compactions({**_C, "supersedes": "a"}),
+        "a compaction cannot supersede itself",
+    ),
+    (
+        _compactions({**_C, "supersedes": "z"}, {**_C, "event_id": "b", "supersedes": "z"}),
+        "two compactions supersede the same one",
+    ),
     (
         _compactions({**_C, "outcome": "unfinished", "billed_usd": None}),
         "an unfinished compaction has no counts and no charge",
@@ -173,9 +194,13 @@ def test_good_lines_accepted_and_details(tmp_path: Path) -> None:
     texts = key.CANNED_COMPACTION_BILLED_TEXT[("cp1-synthetic", 0)]
     assert [str(c.billed_usd) for c in two.compactions] == [str(t) for t in texts]
     assert [str(load(key.CANNED_GOOD_LINES[i]).billed_usd) for i in (6, 7)] == ["0", "10.50"]
-    last = load(key.CANNED_GOOD_LINES[-1]).compactions
+    last = load(key.CANNED_GOOD_LINES[9]).compactions
     assert [c.outcome for c in last] == ["done", "failed", "unfinished"]
     assert last[2].usage == Usage()
+    (kept,) = load(key.CANNED_GOOD_LINES[10]).compactions
+    assert (kept.event_id, kept.supersedes) == (" evt ", "evt-0")
+    (failed,) = load(key.CANNED_GOOD_LINES[11]).compactions
+    assert (failed.outcome, failed.billed_usd, failed.supersedes) == ("failed", None, "evt-0")
     null = load(_turn(reported_model=None, request_id=None, tool_calls=[_CALL]))
     assert null.turn is not None
     assert (null.turn.reported_model, null.turn.tool_calls[0].bad_arguments) == (None, None)
