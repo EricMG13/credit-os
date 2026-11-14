@@ -53,9 +53,22 @@ _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # written-out "\'" (repr, or JSON of a repr), not a separator: it stays in the name, unless the
 # run starts a UNC head (a host that begins with "'"). Prose after a name on the same line goes with it.
 # The output always covers at least what the fail-closed pattern (_HOME_PATH_PLAIN, main's at 54073086) matches:
-# the union of both patterns' spans is redacted, so no head that pattern finds can be hidden by a name.
-_UNC = r"\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+"
+# the union of the three patterns' spans is redacted, so no head that pattern finds can be hidden by a name.
+_UNC_LEAD = r"\\\\"
+_UNC_BODY = r"(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+"
+_UNC = rf"{_UNC_LEAD}{_UNC_BODY}"
 _WIN_PREFIX = rf"(?P<win>(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z])[\\/]+|\\)"
+# A UNC head led by a forward slash, for _HOME_PATH_FWD only: "//srv/share", "//?/UNC/srv/share"; a
+# lead of "/" and any run of separators ("/\srv", "///srv"); or a run of backslashes, "/" and any
+# further separators ("\/srv", and "\\/srv" as repr writes it). It may not follow ":", "/" or "\", so
+# a URL ("https://host/...") is not one. The one exception is a "file:" URL (the whole scheme, any
+# case, also straight after a written-out "\n", "\r" or "\t"): "file://srv/share/..." is one, and so
+# is "file:" with four or more slashes (an empty authority, then a UNC path); "file:///x" is not.
+_FILE = r"(?<=(?:(?<![\w.+-])|(?<=\\[nrt]))(?i:file):)"
+_UNC_FWD = (
+    r"(?:(?<![:/\\])(?:/[\\/]+|\\+/[\\/]*)"
+    rf"|{_FILE}(?:/[\\/]|\\/)(?:[\\/]{{2}}[\\/]*)?)"
+)
 _HOME_DIRS = r"(?i:users|home|var[\\/]+home)"  # the one list of home folders
 _ROOT = rf"root(?!{_NAME})"
 _LEAD = r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
@@ -70,13 +83,25 @@ _HOME_PATH = re.compile(
     r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
     rf"|{_ROOT})"
 )
+# The forward-slash UNC form is its own pattern, a Windows form: the _HOME_PATH name rule, with the
+# lookahead that stops a name at a following UNC head. _HOME_PATH stays the base's, so a head that
+# this pattern's separator run swallows is still found by it.
+_HOME_PATH_FWD = re.compile(
+    rf"{_LEAD}(?P<win>{_UNC_FWD}{_UNC_BODY}[\\/]+)"
+    rf"(?:{_HOME_DIRS}[\\/]++"
+    rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))"
+    r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
+    rf"|{_ROOT})"
+)
 
 
 def home_paths(text: str) -> str:
     """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
     name that no slash or reserved character ends takes the rest of its line. It does not redact
     keys."""
-    spans = [m.span() for p in (_HOME_PATH, _HOME_PATH_PLAIN) for m in p.finditer(text)]
+    spans = [
+        m.span() for p in (_HOME_PATH, _HOME_PATH_FWD, _HOME_PATH_PLAIN) for m in p.finditer(text)
+    ]
     return _replace_spans(text, spans, "<home>")
 
 

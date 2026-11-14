@@ -1,6 +1,8 @@
 """Redaction tests, compared with the controller's answer key (provider_redaction_key)."""
 
 import ast
+import json
+from collections.abc import Callable
 from pathlib import Path
 
 import provider_redaction_key as key
@@ -98,6 +100,150 @@ def test_home_paths_rows(text: str, expected: str) -> None:
 )
 def test_home_paths_mutation_rows(text: str, expected: str) -> None:
     assert home_paths(text) == expected
+
+
+# A UNC home whose leading separators are forward slashes (a Windows form: the Windows name
+# rule and the escaped-apostrophe rule apply). Expected values by hand.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("//srv/share/Users/Bo Lu", "<home>"),
+        ("//?/UNC/srv/share/Users/Bo Lu", "<home>"),
+        ('open "//srv/share/Users/Bo Lu" failed', 'open "<home>" failed'),
+        ("//srv//share//Users//Bo Lu", "<home>"),
+        ("//?//UNC//srv//share//Users//Bo Lu", "<home>"),
+        ("//srv/share/USERS/Bo Lu", "<home>"),
+        ("//srv/share/var/home/Bo Lu", "<home>"),
+        ("//srv/share/root", "<home>"),
+        ("//srv/share/Users/Bo Lu/x", "<home>/x"),
+        ("//srv/share/Users/Bo Lu: next", "<home>: next"),
+        ('open "//srv/share/Users/Pat O\\\'Hara Jones" failed', 'open "<home>" failed'),
+        # Mixed leading separators.
+        ("\\/srv/share/Users/Bo Lu/x", "<home>/x"),
+        ("/\\srv\\share\\Users\\Bo Lu\\x", "<home>\\x"),
+        # Straight after a written-out "\n".
+        ("msg\\n//srv/share/Users/Bo Lu/x", "msg\\n<home>/x"),
+        # A UNC file URL is a UNC path: it fails closed (the "file:" prefix stays).
+        ("file://srv/share/Users/x", "file:<home>"),
+        # A protocol-relative URL after a quote cannot be told from a UNC path: it fails closed.
+        ('<script src="//cdn.example.com/a/home/b">', '<script src="<home>">'),
+    ],
+)
+def test_forward_slash_unc_rows(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# Not UNC paths: the output is the base's (52adbcac) output, recorded before the change.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("https://example.com/a/Users/jane/p", "https://example.com/a/Users/jane/p"),
+        ("https://srv/share/Users/jane/p", "https://srv/share/Users/jane/p"),
+        ("ftp://srv/share/home/jane", "ftp://srv/share/home/jane"),
+        ("file:///home/jane/x.txt", "file://<home>/x.txt"),
+        ("file:///C:/Users/Jane Doe/x", "file:///<home>/x"),
+        ("/home/jane//x", "<home>//x"),
+        ("/a//b/Users/c", "/a//b/Users/c"),
+        ("x//srv/share/Users/y", "x//srv/share/Users/y"),
+        ("// see /Users/jane", "// see <home>"),
+    ],
+)
+def test_forward_slash_unc_leaves_non_unc_unchanged(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# The forward-slash UNC form's own pattern must never hide a Windows head the base finds: where its
+# separator run swallows the start of a second head, the union still redacts the second head's name.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('open "//h/s/Users/\\Users\\Pat O\\\'Hara Jones" failed', 'open "<home>" failed'),
+        ("//h/s/Users/\\\\v\\s\\Users\\Pat O\\'Hara Jones", "<home>"),
+        ("//h/s/Users//mnt/c/Users/Pat O\\'Hara Jones", "<home>"),
+        ("/\\h/s/USERS\\\\var\\home\\Pat O\\'Hara Jones", "<home>"),
+        ("//h/s/home\\\\Users\\Pat O\\'Hara Jones", "<home>"),
+    ],
+)
+def test_forward_slash_unc_never_hides_a_second_head(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# A UNC file URL with an empty authority (four or more slashes after "file:"), any case, straight
+# after a written-out "\n"; "file" must be the whole scheme.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("file:////srv/share/Users/Bo Lu/x.txt", "file:<home>/x.txt"),
+        ("file://///srv/share/Users/Bo Lu/x.txt", "file:<home>/x.txt"),
+        ('open "file:////srv/share/Users/Bo Lu" failed', 'open "file:<home>" failed'),
+        ("file:////srv/share/home/Bo Lu", "file:<home>"),
+        ("FILE://srv/share/Users/Bo Lu", "FILE:<home>"),
+        ("File://srv/share/Users/Bo Lu", "File:<home>"),
+        ("msg\\nfile://srv/share/Users/Bo Lu", "msg\\nfile:<home>"),
+        # Not the whole scheme, or a POSIX file path: unchanged from the base.
+        ("vscode-file://vscode-app/c:/Users/Bo/x", "vscode-file://vscode-app/<home>/x"),
+        ("x-file://srv/share/Users/Bo", "x-file://srv/share/Users/Bo"),
+        ("my.file://srv/share/home/Bo", "my.file://srv/share/home/Bo"),
+        ("file:///srv/share/Users/Bo", "file:///srv/share/Users/Bo"),
+    ],
+)
+def test_forward_slash_unc_file_urls(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# The written-out forms of a forward-slash-led UNC home (repr, JSON of repr) and the mixed leads.
+@pytest.mark.parametrize(
+    "head",
+    [
+        "//srv/share/Users/",
+        "\\/srv/share/Users/",
+        "/\\srv\\share\\Users\\",
+        "//srv\\share\\Users\\",
+    ],
+)
+@pytest.mark.parametrize(
+    ("wrap", "expected"),
+    [
+        (lambda s: s, 'open "<home>" failed'),
+        (repr, "'open \"<home>\" failed'"),
+        (lambda s: json.dumps(repr(s)), '"\'open \\"<home>\\" failed\'"'),
+        (lambda s: repr(repr(s)), "'\\'open \"<home>\" failed\\''"),
+    ],
+)
+def test_forward_slash_unc_written_out_forms(
+    head: str, wrap: Callable[[str], str], expected: str
+) -> None:
+    assert home_paths(wrap(f'open "{head}Pat O\'Hara Jones" failed')) == expected
+
+
+# A home folder needs a separator before it: a share that merely ends in "home" or "root" is not one.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "//fileserver/sharedhome/docs/plan.txt",
+        "//h/myroot",
+        '<script src="//cdn.example.com/ahome/b.js">',
+        "//h/sUsers/x",
+        "file://srv/sharedhome/docs",
+    ],
+)
+def test_forward_slash_unc_home_folder_needs_a_separator(text: str) -> None:
+    assert home_paths(text) == text
+
+
+def test_home_path_is_the_bases_pattern() -> None:
+    # the base's (52adbcac) compiled pattern, verbatim: the forward-slash form has its own pattern
+    base = (
+        r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+        r"(?:(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
+        r"[\\/]+|\\)|/)"
+        r"(?:(?i:users|home|var[\\/]+home)(?(win)[\\/]++|[\\/]+)"
+        r"(?(win)(?!\\*\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+[\\/]+"
+        r"(?:(?i:users|home|var[\\/]+home)[\\/]|root(?![^\s\\/:*?\"'<>|(),;])))"
+        r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
+        r"|root(?![^\s\\/:*?\"'<>|(),;]))"
+    )
+    assert redact._HOME_PATH.pattern == base
 
 
 def test_lone_surrogate_value_does_not_raise_and_its_encodable_forms_match() -> None:

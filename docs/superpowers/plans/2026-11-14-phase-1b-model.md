@@ -143,7 +143,7 @@ its files are written data and count toward the cap.
 7. **Typed results, no files.** `model/` returns `ForecastResult` (cases, years, facility
    detail, limits, the two document hashes) and `History` (columns, limits); no JSON, no display
    rounding (legacy's is in the 3B row). *Cost if wrong:* 3B adds one function here.
-8. **Typed refusals; nothing fails open here.** `ForecastRefused(kind, subject, message)`, the
+8. **Typed refusals; nothing fails open here.** `ForecastRefused(kind, subject, message)` (an `Exception`, not a `ValueError`), the
    kind telling 3A what to ask the module to repair; `ForecastDeclined` when every driver is
    null. Messages echo at most 80 characters of handoff text. History never raises on a table's
    shape; only `decimal.Inexact` is caught, as a named reason. *Cost if wrong:* 3A matches text.
@@ -189,7 +189,7 @@ its files are written data and count toward the cap.
 | 1 | `Value`, `Missing`, the context; sum, difference, product, ratio; `half_unit`, `beyond_rounding`; bounded operand text to `Decimal`; canonical amount text |
 | 2 | Forecast engine: operands, drivers, one case of three years, shock, schedule override |
 | 3 | Facility terms and the three-year schedule |
-| 4 | Forecast inputs: strict JSON, the declined block (tested before the schema, as legacy does), schema, scale to millions |
+| 4 | Forecast inputs, in two PRs. 4a: refusal types, the forecast block, strict JSON, the declined block (tested before the schema, as legacy does). 4b: schema, scale to millions |
 | 5 | Inputs against the financial foundation: table selection, the named cell, the sign rule |
 | 6 | Units, currency named, facility terms printed, facility totals against base debt |
 | 7 | Cases, unallocated debt, the negative-cash rule, facility detail, `ForecastResult` |
@@ -211,6 +211,19 @@ the scale it is given; a context is built per call; operand text is an optional 
 and an optional point with digits, at most 38 digits and 64 characters, of type `str` exactly;
 the kernel sets no operand-count limit (the calculate tool's is 3A's); `total` and `product`
 take a list or tuple; `beyond_rounding` compares exactly and never refuses for size.
+
+PR 2 (#194) is merged. Ruled after it: PR 4 is split into 4a (refusal types, the forecast
+block, strict JSON, the declined block) and 4b (schema and scale); `ForecastRefused` derives
+from `Exception`, not `ValueError`; an integer in the block holds at most 15 digits and the
+block at most 200,000 characters; a repeated key is compared after escape decoding. The engine
+does not refuse a repayment larger than the debt: PR 4b's schema check does, per case, when the
+running sum of the `debt_repayment` drivers passes that case's base debt, naming the first such
+year under its own refusal kind. Equal is allowed; a missing base debt refuses nothing (it is
+never read as zero); a negative driver is not refused by this rule. Key rows first: under,
+equal, over in year 1, over only by year 3, missing debt, negative driver. PR 6 decides the
+same bound for scheduled repayments. Parked for the next change to `forecast.py`: the unused
+repayment driver is still range-checked under a schedule, and the docstring does not give the
+order of a schedule pair.
 
 ## How it runs
 
