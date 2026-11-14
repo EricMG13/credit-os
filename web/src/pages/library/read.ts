@@ -714,6 +714,64 @@ function opensHeld(
   }
 }
 
+/**
+ * The module names a collapsed item's lead lists, in order, each followed by ", " or the closing
+ * full stop. Names hold commas themselves, so each is matched whole against the run's own names.
+ * `null` when the lead is not such a list.
+ */
+function namesListed(lead: string, names: readonly string[]): string[] | null {
+  const listed: string[] = [];
+  let rest = lead.endsWith(".") ? lead.slice(0, -1) : null;
+  while (rest !== null && rest !== "") {
+    const left: string = rest;
+    const name = names.find((n) => left === n || left.startsWith(`${n}, `));
+    if (name === undefined) return null;
+    listed.push(name);
+    rest = left === name ? "" : left.slice(name.length + 2);
+  }
+  return rest === null ? null : listed;
+}
+
+/** A collapsed item's title opens with the count of the modules it stands for. */
+const COLLAPSED_TITLE = /^(\d+) modules? /;
+
+/**
+ * A collapsed item (one that opens no module and whose title counts modules) lists, in its lead,
+ * only modules the run holds, and as many as its title says.
+ */
+function namesHeld(
+  items: readonly { title: string; lead: string; module: string | null }[],
+  modules: readonly Module[],
+  path: string,
+): void {
+  const names = modules.map((m) => m.name);
+  for (const [index, item] of items.entries()) {
+    const counted = item.module === null ? COLLAPSED_TITLE.exec(item.title) : null;
+    if (counted === null) continue;
+    const listed = namesListed(item.lead, names);
+    if (listed === null) {
+      throw new SliceError(child(nth(path, index), "lead"), "the names of modules this run holds");
+    }
+    if (listed.length !== Number(counted[1])) {
+      throw new SliceError(
+        child(nth(path, index), "title"),
+        "the count of the modules its lead names",
+      );
+    }
+  }
+}
+
+/** The first module is the first one the run holds, and absent exactly when it holds none. */
+function firstHeld(first: string | null, modules: readonly Module[] | null, path: string): void {
+  const wanted = modules?.[0]?.id ?? null;
+  if (first !== wanted) {
+    throw new SliceError(
+      child(child(path, "head"), "firstModule"),
+      wanted === null ? "null for a run with no modules" : "the first module this run holds",
+    );
+  }
+}
+
 function readRun(value: unknown, path: string): Run {
   const r = rec(value, path);
   const tracesPath = child(path, "traces");
@@ -731,6 +789,7 @@ function readRun(value: unknown, path: string): Run {
   const changesPath = child(path, "changes");
   const modulesPath = child(path, "modules");
   if (loading) {
+    firstHeld(base.head.firstModule, null, path);
     if (own(r, "overview") !== null) throw new SliceError(overviewPath, "null for a loading run");
     if (own(r, "changes") !== null) throw new SliceError(changesPath, "null for a loading run");
     if (own(r, "modules") !== null) throw new SliceError(modulesPath, "null for a loading run");
@@ -739,13 +798,15 @@ function readRun(value: unknown, path: string): Run {
   const overview = readOverview(own(r, "overview"), overviewPath, base.traces);
   const changes = readChanges(own(r, "changes"), changesPath, base.traces);
   const modules = readRunModules(r, path, base.traces);
+  firstHeld(base.head.firstModule, modules, path);
   const held = new Set(modules.map((m) => m.id));
-  if (base.head.firstModule !== null && !held.has(base.head.firstModule)) {
-    throw new SliceError(child(child(path, "head"), "firstModule"), "a module this run holds");
-  }
-  opensHeld(overview.modules.items, held, child(child(overviewPath, "modules"), "items"));
+  const overviewItems = child(child(overviewPath, "modules"), "items");
+  opensHeld(overview.modules.items, held, overviewItems);
+  namesHeld(overview.modules.items, modules, overviewItems);
   if (changes.kind === "compared") {
-    opensHeld(changes.modules.items, held, child(child(changesPath, "modules"), "items"));
+    const changeItems = child(child(changesPath, "modules"), "items");
+    opensHeld(changes.modules.items, held, changeItems);
+    namesHeld(changes.modules.items, modules, changeItems);
   }
   return { ...base, loading, overview, changes, modules };
 }
