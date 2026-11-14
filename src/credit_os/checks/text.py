@@ -86,6 +86,12 @@ def all_sections(document: HandoffDocument) -> list[Section]:
     return list(walk(document.sections))
 
 
+def is_earlier(reader: Reader | None) -> bool:
+    """True when the reader view is of the earlier format: the test `check_handoff`, the structure
+    checks and `confidence_outcome` share."""
+    return reader is not None and reader.format == "earlier"
+
+
 def try_reader(document: HandoffDocument) -> Reader | None:
     """The reader view, or None when `read_reader` refuses the document."""
     try:
