@@ -15,7 +15,7 @@ from credit_os.sources.pins import SourceKind, SourcePin, check_kind, kind_of, v
 
 _EXCLUDED_PREFIXES = ("_", "~$")
 
-Action = Literal["skip", "skip_dir", "enter", "file"]
+_Action = Literal["skip", "skip_dir", "enter", "file"]
 
 
 class Skipped(BaseModel):
@@ -88,7 +88,7 @@ def _listing(folder: Path, directory: Path, prefix: str) -> list[os.DirEntry[str
         raise _cannot_list(folder, prefix, error) from error
 
 
-def _classify(folder: Path, prefix: str, entry: os.DirEntry[str]) -> tuple[Action, str | None]:
+def _classify(folder: Path, prefix: str, entry: os.DirEntry[str]) -> tuple[_Action, str | None]:
     """Return (action, reason) for one entry: skip, skip_dir, enter, or file."""
     try:
         if entry.is_symlink() or entry.is_junction():
