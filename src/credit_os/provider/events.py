@@ -19,12 +19,9 @@ _COUNTS = (
     ("reasoningTokens", "reasoning_tokens"),
 )
 _STOPS: dict[str, StopReason] = {
-    "stop": "end",
-    "end_turn": "end",
-    "tool_calls": "tool_use",
-    "tool_use": "tool_use",
-    "length": "max_tokens",
-    "max_tokens": "max_tokens",
+    **dict.fromkeys(("stop", "end_turn"), "end"),
+    **dict.fromkeys(("tool_calls", "tool_use"), "tool_use"),
+    **dict.fromkeys(("length", "max_tokens"), "max_tokens"),
 }
 _KINDS = ("assistant.message", "session.error", "session.idle", "model.call_failure")
 _ROUTES = {"isByok": "ByokRouted", "isAuto": "AutoRouted"}
@@ -83,16 +80,11 @@ def _serialise(events: object) -> bytes | None:
 
 def _as_events(events: object) -> list[Any] | None:
     """The list when every item is an object with an id, a type and data, else `None`."""
-    if isinstance(events, list) and all(
-        isinstance(e, dict)
-        and isinstance(e.get("id"), str)
-        and e["id"] != ""
-        and isinstance(e.get("type"), str)
-        and isinstance(e.get("data"), dict)
-        for e in events
-    ):
-        return events
-    return None
+    if not isinstance(events, list):
+        return None
+    ok = all(isinstance(e, dict) and _non_empty(e.get("id")) for e in events)
+    ok = ok and all(isinstance(e["type"], str) and isinstance(e.get("data"), dict) for e in events)
+    return events if ok else None
 
 
 def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> Reply:
@@ -106,11 +98,8 @@ def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> R
 
 
 def _contents(events: list[Any]) -> list[str]:
-    return [
-        e["data"]["content"]
-        for e in events
-        if e["type"] == "assistant.message" and isinstance(e["data"].get("content"), str)
-    ]
+    contents = [d.get("content") for d in _of_type(events, "assistant.message")]
+    return [c for c in contents if isinstance(c, str)]
 
 
 def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
