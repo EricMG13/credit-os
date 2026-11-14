@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import { AlertCircle, CheckCircle, InfoCircle, SearchLg, Server01 } from "@untitledui/icons";
 import type { IconProps } from "@/utils/is-react-component";
+import { Alert, Callout } from "@/components/alert/Alert";
+import { EmptyState } from "@/components/application/empty-state/empty-state";
+import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/application/tabs/tabs";
 import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
@@ -43,6 +47,14 @@ function Plus({ className, "data-icon": slot }: IconProps) {
   );
 }
 
+const FEATURED = [
+  { colour: "brand", icon: InfoCircle },
+  { colour: "gray", icon: SearchLg },
+  { colour: "error", icon: AlertCircle },
+  { colour: "warning", icon: AlertCircle },
+  { colour: "success", icon: CheckCircle },
+] as const;
+
 const PERIODS = ["FY21", "FY22", "FY23", "FY24", "FY25", "FY26"];
 
 // Sample data, written out: the page computes and formats no figure.
@@ -59,26 +71,40 @@ const TREND = {
   ],
 };
 
-const EIGHT = [
-  "Term loan",
-  "Notes",
-  "Revolver",
-  "Leases",
-  "Pensions",
-  "Overdraft",
-  "Bonds",
-  "Other debt",
-];
 const FOLDED = {
-  series: EIGHT.map((name, i) => ({
-    name,
-    values: PERIODS.map((_, p) => 10 * (i + 1) + 3 * p),
-  })),
-  table: EIGHT.map((name, i) => ({
-    name,
-    cells: PERIODS.map((_, p) => String(10 * (i + 1) + 3 * p)),
-  })),
+  series: [
+    { name: "Term loan", values: [10, 13, 16, 19, 22, 25] },
+    { name: "Notes", values: [20, 23, 26, 29, 32, 35] },
+    { name: "Revolver", values: [30, 33, 36, 39, 42, 45] },
+    { name: "Leases", values: [40, 43, 46, 49, 52, 55] },
+    { name: "Pensions", values: [50, 53, 56, 59, 62, 65] },
+    { name: "Overdraft", values: [60, 63, 66, 69, 72, 75] },
+    { name: "Bonds", values: [70, 73, 76, 79, 82, 85] },
+    { name: "Other debt", values: [80, 83, 86, 89, 92, 95] },
+  ],
+  table: [
+    { name: "Term loan", cells: ["10", "13", "16", "19", "22", "25"] },
+    { name: "Notes", cells: ["20", "23", "26", "29", "32", "35"] },
+    { name: "Revolver", cells: ["30", "33", "36", "39", "42", "45"] },
+    { name: "Leases", cells: ["40", "43", "46", "49", "52", "55"] },
+    { name: "Pensions", cells: ["50", "53", "56", "59", "62", "65"] },
+    { name: "Overdraft", cells: ["60", "63", "66", "69", "72", "75"] },
+    { name: "Bonds", cells: ["70", "73", "76", "79", "82", "85"] },
+    { name: "Other debt", cells: ["80", "83", "86", "89", "92", "95"] },
+  ],
 };
+
+const TREND_TICKS = [
+  { value: 0, label: "0" },
+  { value: 200, label: "200" },
+  { value: 400, label: "400" },
+  { value: 600, label: "600" },
+];
+const FOLDED_TICKS = [
+  { value: 0, label: "0" },
+  { value: 50, label: "50" },
+  { value: 100, label: "100" },
+];
 
 function Row({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-4">{children}</div>;
@@ -262,6 +288,92 @@ export function Kit() {
         />
       </section>
 
+      <section aria-labelledby="kit-featured-icon" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-featured-icon" className="font-display text-h2 text-text-primary">
+          Featured icon
+        </h2>
+        <Row>
+          {FEATURED.map(({ colour, icon }) => (
+            <div key={colour} className="flex flex-col items-center gap-2">
+              <FeaturedIcon color={colour} icon={icon} />
+              <span className="text-small text-text-secondary">{label(colour)}</span>
+            </div>
+          ))}
+        </Row>
+      </section>
+
+      <section aria-labelledby="kit-empty-state" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-empty-state" className="font-display text-h2 text-text-primary">
+          Empty state
+        </h2>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <EmptyState>
+            <EmptyState.Header>
+              <EmptyState.FeaturedIcon icon={SearchLg} />
+            </EmptyState.Header>
+            <EmptyState.Content>
+              <EmptyState.Title as="h3">No changes yet</EmptyState.Title>
+              <EmptyState.Description>
+                Changes appear here once a second run has finished.
+              </EmptyState.Description>
+            </EmptyState.Content>
+          </EmptyState>
+          <EmptyState>
+            <EmptyState.Header>
+              <EmptyState.FeaturedIcon icon={Server01} />
+            </EmptyState.Header>
+            <EmptyState.Content>
+              <EmptyState.Title as="h3">No sources yet</EmptyState.Title>
+              <EmptyState.Description>
+                Add the issuer files to start the first run.
+              </EmptyState.Description>
+            </EmptyState.Content>
+            <EmptyState.Footer>
+              <Button size="lg">Add sources</Button>
+            </EmptyState.Footer>
+          </EmptyState>
+        </div>
+      </section>
+
+      <section aria-labelledby="kit-alert" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-alert" className="font-display text-h2 text-text-primary">
+          Alert
+        </h2>
+        <div className="flex max-w-md flex-col gap-4">
+          <Alert tone="success" title="Success">
+            The run finished and the library is ready.
+          </Alert>
+          <Alert tone="error" title="Error">
+            The service could not be reached.
+          </Alert>
+          <Alert tone="warning" title="Warning">
+            The run is close to its cost cap.
+          </Alert>
+          <Alert
+            tone="info"
+            title="Info"
+            action={
+              <Button size="sm" color="secondary">
+                Open run
+              </Button>
+            }
+          >
+            The run has started.
+          </Alert>
+        </div>
+      </section>
+
+      <section aria-labelledby="kit-callout" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-callout" className="font-display text-h2 text-text-primary">
+          Callout
+        </h2>
+        <div className="max-w-xl">
+          <Callout title="What would change the view">
+            A covenant breach, or a refinancing that misses the next maturity.
+          </Callout>
+        </div>
+      </section>
+
       <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
         <h2 id="kit-trend-chart" className="font-display text-h2 text-text-primary">
           Trend chart
@@ -272,6 +384,7 @@ export function Kit() {
           periods={PERIODS}
           series={TREND.series}
           table={TREND.table}
+          yTicks={TREND_TICKS}
         />
         <TrendChart
           title="Eight series"
@@ -279,6 +392,7 @@ export function Kit() {
           periods={PERIODS}
           series={FOLDED.series}
           table={FOLDED.table}
+          yTicks={FOLDED_TICKS}
         />
       </section>
 

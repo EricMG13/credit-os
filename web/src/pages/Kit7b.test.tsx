@@ -1,0 +1,123 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { render, screen, within } from "@testing-library/react";
+import { Alert, Callout } from "@/components/alert/Alert";
+import { Kit } from "./Kit";
+
+const designSystem = readFileSync(
+  path.resolve(import.meta.dirname, "..", "..", "..", "docs", "design", "design-system.md"),
+  "utf8",
+).replace(/\r\n/g, "\n");
+const row = (name: string): string =>
+  designSystem.split("\n").find((l) => l.startsWith(`| ${name} |`)) ?? "";
+
+// The status shape each tone carries, quoted from the design system's Status table.
+const SHAPE_OF_TONE: Record<string, string> = {
+  success: "filled circle",
+  warning: "triangle",
+  error: "diamond",
+  info: "ring",
+};
+
+describe("design system rows", () => {
+  it("names the alert tones, the empty-state parts and the featured icon theme", () => {
+    expect(row("Alert")).toContain("info, warning, error, success, each with its status shape");
+    expect(row("Empty state")).toContain("Featured icon, title, one sentence, optional action");
+    expect(row("Featured icon")).toContain("`light` theme");
+  });
+
+  it("pairs each alert tone with its status shape in the Status table", () => {
+    for (const [tone, shape] of Object.entries(SHAPE_OF_TONE)) {
+      const line = designSystem
+        .split("\n")
+        .find((l) => l.toLowerCase().startsWith(`| ${tone} | ${shape} |`));
+      expect(line, `${tone} ${shape}`).toBeDefined();
+    }
+  });
+});
+
+describe("Alert", () => {
+  it.each(Object.keys(SHAPE_OF_TONE))("draws the %s tone with its shape and colours", (tone) => {
+    const { container } = render(
+      <Alert tone={tone as "success"} title="Heading">
+        Body text.
+      </Alert>,
+    );
+    const alert = screen.getByText("Heading").closest("[role]");
+    expect(alert).toHaveClass(`border-${tone}-edge`, `bg-${tone}-fill`);
+    expect(screen.getByText("Body text.")).toHaveClass(`text-${tone}-text`);
+    expect(container.querySelector(`[data-shape="${SHAPE_OF_TONE[tone] ?? ""}"]`)).not.toBeNull();
+    expect(container.querySelector(`.text-${tone}-mark`)).not.toBeNull();
+  });
+
+  it("is an alert for error and warning and a status otherwise", () => {
+    render(
+      <>
+        <Alert tone="error" title="E" />
+        <Alert tone="warning" title="W" />
+        <Alert tone="success" title="S" />
+        <Alert tone="info" title="I" />
+      </>,
+    );
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(screen.getAllByRole("status")).toHaveLength(2);
+  });
+
+  it("shows an action and no dismiss button", () => {
+    render(
+      <Alert tone="info" title="Run started" action={<button type="button">Open run</button>}>
+        The run is queued.
+      </Alert>,
+    );
+    expect(screen.getByRole("button", { name: "Open run" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+});
+
+describe("Callout", () => {
+  it("is static, in the info colours and in the body type", () => {
+    render(<Callout title="What would change the view">A covenant breach.</Callout>);
+    const note = screen.getByRole("note");
+    expect(note).toHaveClass("border-s-4", "bg-info-fill");
+    expect(within(note).getByText("What would change the view")).toBeInTheDocument();
+    expect(within(note).getByText("A covenant breach.")).toHaveClass("text-body", "text-info-text");
+    expect(within(note).queryByRole("button")).toBeNull();
+  });
+});
+
+describe("Kit sections for featured icon, empty state, alert and callout", () => {
+  it("shows a featured icon in each colour", () => {
+    render(<Kit />);
+    const region = screen.getByRole("region", { name: "Featured icon" });
+    for (const word of ["Brand", "Gray", "Error", "Warning", "Success"]) {
+      expect(within(region).getByText(word), word).toBeInTheDocument();
+    }
+    expect(region.querySelectorAll("[data-featured-icon]")).toHaveLength(5);
+  });
+
+  it("shows the empty state with and without an action", () => {
+    render(<Kit />);
+    const region = screen.getByRole("region", { name: "Empty state" });
+    expect(within(region).getAllByRole("heading", { level: 3 })).toHaveLength(2);
+    expect(within(region).getAllByRole("button")).toHaveLength(1);
+    expect(within(region).getByRole("button", { name: "Add sources" })).toBeEnabled();
+    expect(region.querySelectorAll("[data-featured-icon]")).toHaveLength(2);
+  });
+
+  it("shows the four alert tones, one with an action", () => {
+    render(<Kit />);
+    const region = screen.getByRole("region", { name: "Alert" });
+    expect(within(region).getAllByRole("alert")).toHaveLength(2);
+    expect(within(region).getAllByRole("status")).toHaveLength(2);
+    for (const shape of Object.values(SHAPE_OF_TONE)) {
+      expect(region.querySelectorAll(`[data-shape="${shape}"]`), shape).toHaveLength(1);
+    }
+    expect(within(region).getAllByRole("button")).toHaveLength(1);
+  });
+
+  it("shows the callout", () => {
+    render(<Kit />);
+    const region = screen.getByRole("region", { name: "Callout" });
+    expect(within(region).getByRole("note")).toBeInTheDocument();
+  });
+});

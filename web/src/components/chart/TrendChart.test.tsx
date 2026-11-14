@@ -148,3 +148,95 @@ describe("TrendChart table side", () => {
     expect(screen.getByRole("radio", { name: "Chart" })).toBeChecked();
   });
 });
+
+const YTICKS = [
+  { value: 0, label: "0" },
+  { value: 10, label: "10 m" },
+  { value: 20, label: "20 m" },
+];
+
+function yTexts(container: HTMLElement): (string | null)[] {
+  return [
+    ...container.querySelectorAll(
+      ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value",
+    ),
+  ].map((t) => t.textContent);
+}
+
+describe("TrendChart review fixes", () => {
+  it("shows exactly the supplied y tick labels", () => {
+    const { container } = render(
+      <TrendChart
+        title="Leverage"
+        periods={PERIODS}
+        series={[series("Net debt", A)]}
+        table={[table("Net debt", A_CELLS)]}
+        yTicks={YTICKS}
+      />,
+    );
+    expect(yTexts(container)).toEqual(["0", "10 m", "20 m"]);
+  });
+
+  it("shows no y tick text without yTicks, and keeps the gridlines", () => {
+    const { container } = renderTwo();
+    expect(yTexts(container)).toEqual([]);
+    expect(
+      container.querySelectorAll(".recharts-cartesian-grid-horizontal line").length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("draws no vertical gridlines", () => {
+    const { container } = renderTwo();
+    expect(container.querySelectorAll(".recharts-cartesian-grid-vertical line")).toHaveLength(0);
+  });
+
+  it("carries legend text in text-secondary", () => {
+    renderTwo();
+    const items = within(screen.getByRole("list", { name: "Legend" })).getAllByRole("listitem");
+    for (const li of items) expect(li.className).toContain("text-text-secondary");
+  });
+
+  it("names the chart by its title", () => {
+    renderTwo();
+    expect(screen.getByRole("figure", { name: "Leverage" })).toBeInTheDocument();
+  });
+
+  it("throws when series and table names differ or are ordered differently", () => {
+    const bad = (rows: ReturnType<typeof table>[]) =>
+      render(
+        <TrendChart
+          title="x"
+          periods={PERIODS}
+          series={[series("Net debt", A), series("Gross debt", B)]}
+          table={rows}
+        />,
+      );
+    expect(() => bad([table("Net debt", A_CELLS)])).toThrow(/same names/);
+    expect(() => bad([table("Gross debt", B_CELLS), table("Net debt", A_CELLS)])).toThrow(
+      /same names/,
+    );
+  });
+
+  it("throws when a row's length differs from the periods", () => {
+    expect(() =>
+      render(
+        <TrendChart
+          title="x"
+          periods={PERIODS}
+          series={[series("Net debt", [1, 2])]}
+          table={[table("Net debt", A_CELLS)]}
+        />,
+      ),
+    ).toThrow(/periods/);
+    expect(() =>
+      render(
+        <TrendChart
+          title="x"
+          periods={PERIODS}
+          series={[series("Net debt", A)]}
+          table={[table("Net debt", ["1"])]}
+        />,
+      ),
+    ).toThrow(/periods/);
+  });
+});

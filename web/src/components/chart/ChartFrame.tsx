@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 
 export type ChartView = "chart" | "table";
@@ -14,10 +14,13 @@ interface ChartFrameProps {
 /** A titled frame with the Chart or Table toggle. It owns which side is shown. */
 export function ChartFrame({ title, note, children }: ChartFrameProps) {
   const [view, setView] = useState<ChartView>("chart");
+  const titleId = useId();
   return (
-    <figure className="flex flex-col gap-4">
+    <figure aria-labelledby={titleId} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h4 className="font-display text-h4 text-text-primary">{title}</h4>
+        <h4 id={titleId} className="font-display text-h4 text-text-primary">
+          {title}
+        </h4>
         <ButtonGroup
           size="sm"
           aria-label={`${title}: Chart or Table`}
