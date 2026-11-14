@@ -31,7 +31,10 @@ function renderOverview(
 
 const tiles = () =>
   within(screen.getByRole("region", { name: "Headline figures" })).getAllByRole("listitem");
-const traces = () => screen.queryAllByRole("button", { name: "Show sources for this figure" });
+const traces = () =>
+  screen.queryAllByRole("button", {
+    name: /^Show sources for (the bottom line|this figure|this point)$/,
+  });
 
 describe("the overview route", () => {
   it("is titled Overview and the fixture visits the full, loading and capped runs", () => {
@@ -56,7 +59,9 @@ describe("Overview, the mock's run", () => {
       }),
     ).toBeVisible();
     expect(within(band).getByText(/^Halden converts a strong order book/)).toBeVisible();
-    expect(within(band).getAllByRole("button")).toHaveLength(1);
+    expect(
+      within(band).getByRole("button", { name: "Show sources for the bottom line" }),
+    ).toBeVisible();
   });
 
   it("draws six headline tiles with the mock's labels, figures and notes", () => {
@@ -181,5 +186,53 @@ describe("Overview, states", () => {
     renderOverview("2026-09-30", fixture.slice, "nobody");
     expect(screen.getByText("No such issuer")).toBeVisible();
     expect(screen.getByRole("link", { name: "Back to the library" })).toBeVisible();
+  });
+});
+
+describe("Overview, fix round 1", () => {
+  it("draws the section heading in the system h2 size and the bottom-line lead in h3", () => {
+    renderOverview("2026-09-30");
+    expect(screen.getByRole("heading", { level: 3, name: "For and against" })).toHaveClass(
+      "text-h2",
+    );
+    expect(screen.getByRole("heading", { level: 3, name: /^Stable credit/ })).toHaveClass(
+      "text-h3",
+    );
+  });
+
+  it("lets a point tile hold at narrow widths: container, stacks until wide, figure and badge shrink", () => {
+    renderOverview("2026-09-30");
+    const item = screen.getByText("Unhedged portion estimated").closest("li") as HTMLElement;
+    expect(item).toHaveClass("@container");
+    const row = screen.getByText(/^Interest cover leaves little room/).parentElement?.parentElement;
+    expect(row).toHaveClass("flex-col", "@md:flex-row");
+    const figure = within(item).getByText("2.4x").parentElement as HTMLElement;
+    expect(figure.className).not.toMatch(/(^| )w-50/);
+    expect(screen.getByText("Unhedged portion estimated")).toHaveClass(
+      "whitespace-normal",
+      "max-w-full",
+    );
+  });
+
+  it("puts no block element inside a phrasing span, and logs no React error", () => {
+    const errors: string[] = [];
+    const spy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      errors.push(args.join(" "));
+    });
+    const { container } = renderOverview("2026-03-31");
+    spy.mockRestore();
+    expect([...container.querySelectorAll("span div, span p")]).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  it("holds the n.a. in an element the page owns, so the kit's text is not reached into", () => {
+    renderOverview("2026-09-30");
+    const na = within(tiles()[5] as HTMLElement).getByText("n.a.");
+    expect(na.closest(".font-normal")).not.toBeNull();
+  });
+
+  it("says the capped run's points come from the delivered modules", () => {
+    renderOverview("2026-03-31");
+    expect(screen.getByText(/^Points taken from the nine delivered modules only/)).toBeVisible();
   });
 });
