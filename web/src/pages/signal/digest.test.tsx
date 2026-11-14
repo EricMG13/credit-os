@@ -218,7 +218,7 @@ describe("a digest with its newest issue (frame 1)", () => {
 describe("Earlier digests as rows (frame 4)", () => {
   it("draws an earlier issue as a row: tile, labels, date, h3 title with the issue's id, summary, no link and no points", () => {
     show("/signal/ai-on/digest/weekly-brief");
-    const title = document.getElementById("week-6-nov");
+    const title = document.querySelector('[data-issue="week-6-nov"]');
     expect(title?.tagName).toBe("H3");
     expect(title?.textContent).toBe(EARLIER);
     const row = within(title?.closest("li") as HTMLElement);
@@ -233,7 +233,9 @@ describe("Earlier digests as rows (frame 4)", () => {
 
   it("holds the issue a feed card names, as a row", () => {
     show("/signal/ai-on/digest/daily-ratings");
-    expect(document.getElementById("12-nov")?.textContent).toBe("Rating actions: 12 November");
+    expect(document.querySelector('[data-issue="12-nov"]')?.textContent).toBe(
+      "Rating actions: 12 November",
+    );
   });
 });
 

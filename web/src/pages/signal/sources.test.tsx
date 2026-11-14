@@ -183,9 +183,7 @@ describe("Sources (frame 3)", () => {
     expect(list.className).toMatch(/(^| )flex-row( |$)/);
     expect(list.className).toContain("flex-wrap");
     expect(list.className).toContain("xl:flex-col");
-    expect(list.parentElement?.parentElement?.className).toContain(
-      "xl:grid-cols-[200px_minmax(0,1fr)]",
-    );
+    expect(list.parentElement?.className).toContain("xl:grid-cols-[200px_minmax(0,1fr)]");
     // the column and its copy under the kind are never both shown: each hidden by display
     const column = header("Last check and item");
     expect(column.className).toContain("max-xl:hidden");
