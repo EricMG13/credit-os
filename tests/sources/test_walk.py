@@ -494,9 +494,15 @@ def test_entry_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.parametrize(
-    ("directory", "written"), [("locked", "locked"), ("evil\x1b[2J", "evil\\x1b[2J")]
+    ("directory", "exc", "message"),
+    [
+        ("locked", SourceUnreadable, "{folder}/locked: cannot list ({reason})"),
+        ("evil\x1b[2J", SourceRefused, "'evil\\x1b[2J': forbidden character U+001B"),
+    ],
 )
-def test_unlistable_directory(tmp_path: Path, directory: str, written: str) -> None:
+def test_unlistable_directory(
+    tmp_path: Path, directory: str, exc: type[Exception], message: str
+) -> None:
     if sys.platform == "win32":
         pytest.skip("Windows cannot hold this name")
     if hasattr(os, "geteuid") and os.geteuid() == 0:
@@ -512,10 +518,10 @@ def test_unlistable_directory(tmp_path: Path, directory: str, written: str) -> N
             pass
         else:
             pytest.skip("chmod does not deny listing here")
-        message = _refusal(folder, SourceUnreadable)
+        raised = _refusal(folder, exc)
     finally:
         locked.chmod(0o700)
-    assert message == f"{folder}/{written}: cannot list ({os.strerror(errno.EACCES)})"
+    assert raised == message.format(folder=folder, reason=os.strerror(errno.EACCES))
 
 
 def test_public_surface() -> None:

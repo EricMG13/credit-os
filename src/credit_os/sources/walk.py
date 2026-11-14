@@ -73,9 +73,8 @@ def _written(name: str) -> str:
 
 
 def _cannot_list(folder: Path, prefix: str, error: OSError) -> SourceUnreadable:
-    """The typed error for a directory that cannot be listed, its name below the folder written
-    as a skipped row is (the folder part stays whole)."""
-    shown = folder / _written(prefix[:-1]) if prefix else folder
+    """The typed error for a directory that cannot be listed (its name is already valid)."""
+    shown = folder / prefix[:-1] if prefix else folder
     return SourceUnreadable(f"{shown}: cannot list ({error.strerror or error})")
 
 
@@ -133,6 +132,7 @@ def _visit(
     name = prefix + entry.name
     action, reason = _classify(folder, prefix, entry)
     if action == "enter":
+        validate_name(name)
         pending.append((directory / entry.name, name + "/"))
     elif action == "file" and (kind := kind_of(name)) is not None:
         pins.append(_pin_file(folder, name, kind))
@@ -149,8 +149,8 @@ def pin_folder(folder: Path) -> PinnedFolder:
     with a trailing ``/`` and not entered. A name that fails ``validate_name`` is written in
     ``Skipped`` with ASCII backslash escapes, so every row is printable. A file that would be
     pinned and has a bad name, a wrong signature or a read error stops the walk, and so does a
-    directory the walk would enter whose own name fails ``validate_name`` (checked once it is
-    listed, before any entry in it is visited).
+    directory the walk would enter whose own name fails ``validate_name`` (checked before it is
+    listed).
 
     A directory swapped for a link between its classification and its listing can put names from
     outside the folder into the skipped list. No bytes are read through it, because
@@ -167,10 +167,7 @@ def pin_folder(folder: Path) -> PinnedFolder:
     pending: list[tuple[Path, str]] = [(folder, "")]
     while pending:
         directory, prefix = pending.pop()
-        listing = _listing(folder, directory, prefix)
-        if prefix:
-            validate_name(prefix[:-1])
-        for entry in listing:
+        for entry in _listing(folder, directory, prefix):
             _visit(folder, directory, prefix, entry, pending, pins, skipped)
     refuse_case_collisions(pin.name for pin in pins)
     return PinnedFolder(
