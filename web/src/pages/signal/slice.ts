@@ -77,10 +77,13 @@ export type SignalDigestIssue = {
   ai: boolean;
   summary: string | null;
   nothing: string | null;
+  /** Only the newest issue of a digest that is not paused is drawn with its points; an earlier one is a row (title, date, summary). */
   points: {
     number: string;
     lead: string;
     body: string | null;
+    /** The delivered "3 stories behind this point"; never counted on the page. */
+    storiesLine: string | null;
     stories: { headline: string; url: string | null; source: string; time: string | null }[];
   }[];
 };
@@ -88,6 +91,8 @@ export type SignalDigestIssue = {
 export type SignalDigest = {
   id: string;
   name: string;
+  /** The tile of an earlier-digest row. */
+  monogram: string;
   paused: string | null;
   issues: SignalDigestIssue[];
 };
@@ -351,6 +356,7 @@ const digestIssue = noModel(
         number: str,
         lead: str,
         body: strOrNull,
+        storiesLine: strOrNull,
         stories: list(shape({ headline: str, url: strOrNull, source: str, time: strOrNull })),
       }),
     ),
@@ -360,6 +366,7 @@ const digestIssue = noModel(
 const digestRecord = shape<SignalDigest>({
   id: str,
   name: str,
+  monogram: str,
   paused: strOrNull,
   issues: list(digestIssue),
 });

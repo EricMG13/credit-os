@@ -1,5 +1,5 @@
 // The digest page (mock digests frames 1, 3 and 4). Expected wording is the mock's, not the code's.
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
 import type { LoadResult } from "../../data";
@@ -25,6 +25,18 @@ function with_(id: string, change: (scene: Scene) => void): unknown {
 }
 
 /** The page itself, without the channel list beside it. */
+/** The "main" scene with its Daily ratings running (not paused), changed by `change`. */
+function running(change: (digest: Scene["snapshot"]["digests"][number]) => void): unknown {
+  return with_("main", (scene) => {
+    const digest = scene.snapshot.digests[1];
+    const channel = scene.snapshot.channels.digests[1];
+    if (digest === undefined || channel === undefined) throw new Error("main has Daily ratings");
+    Object.assign(digest, { paused: null });
+    channel.paused = false;
+    change(digest);
+  });
+}
+
 const page = () => within(document.getElementById("signal-content") as HTMLElement);
 const headings = (level: number) =>
   page()
@@ -33,8 +45,9 @@ const headings = (level: number) =>
 
 const WEEKLY = "Leveraged credit: the week to 13 November";
 const EARLIER = "Leveraged credit: the week to 6 November";
+const NOTHING_TITLE = "Rating actions: 11 November";
 const NOTHING_SENTENCE =
-  "Nothing material to report: no rating action reached this digest's sources on 11 November.";
+  "No rating action reached this digest's sources on 11 November. The next digest is due on Thu 12 Nov.";
 const PAUSED =
   "No new digest is written while AI is off or at its cap. Earlier digests stay readable.";
 
@@ -43,40 +56,37 @@ afterEach(() => {
 });
 
 describe("a digest with its newest issue (frame 1)", () => {
-  it("draws the name as the h1, the issue as an h2, each point as an h3, then Earlier digests", () => {
+  it("takes the issue's title as the h1, the points as h2 and Earlier digests as an h2 with an h3 row", () => {
     show("/signal/ai-on/digest/weekly-brief");
-    expect(headings(1)).toEqual(["Weekly brief"]);
-    expect(headings(2)).toEqual([WEEKLY, "Earlier digests"]);
-    expect(headings(3)).toEqual([
+    expect(headings(1)).toEqual([WEEKLY]);
+    expect(headings(2)).toEqual([
       "Packaging issuers are cutting capacity, not prices",
       "Two telecoms disposals are now in in-depth review",
       "Shipping downgrades cluster around 2027 maturities",
       "Loan extensions are clearing at a higher margin",
       "A port operator is preparing a first bond",
-      EARLIER,
+      "Earlier digests",
     ]);
-    expect(headings(4)).toEqual([
-      "Term loan margins widened for single-B issuers",
-      "Container lines are holding contract rates",
-    ]);
+    expect(headings(3)).toEqual([EARLIER]);
   });
 
-  it("carries the AI label and the delivered date and summary line", () => {
+  it("draws the meta line (Digest, AI, name, date) then the delivered summary line", () => {
     show("/signal/ai-on/digest/weekly-brief");
-    const issue = within(screen.getByRole("region", { name: WEEKLY }));
-    expect(issue.getByText("AI")).toBeInTheDocument();
-    expect(issue.getByText("Fri 13 Nov 2026")).toBeInTheDocument();
-    expect(
-      issue.getByText(
-        "Covers 9 to 13 Nov 2026. Written by a model from 41 stories in Leveraged credit, Shipping and Packaging.",
-      ),
-    ).toBeInTheDocument();
+    const h1 = page().getByRole("heading", { level: 1 });
+    const meta = h1.previousElementSibling as HTMLElement;
+    expect(within(meta).getByText("Digest")).toBeInTheDocument();
+    expect(within(meta).getByText("AI")).toBeInTheDocument();
+    expect(meta.textContent).toBe("DigestAIWeekly briefFri 13 Nov 2026");
+    expect(h1.nextElementSibling?.textContent).toBe(
+      "Covers 9 to 13 Nov 2026. Written by a model from 41 stories in Leveraged credit, Shipping and Packaging.",
+    );
   });
 
   it("draws the delivered number, lead and body of each point", () => {
     show("/signal/ai-on/digest/weekly-brief");
-    const items = within(screen.getByRole("region", { name: WEEKLY })).getAllByRole("listitem");
-    const points = items.filter((li) => /^\d/.test(li.textContent));
+    const points = page()
+      .getAllByRole("listitem")
+      .filter((li) => /^\d/.test(li.textContent));
     expect(points.map((li) => li.textContent.slice(0, 1))).toEqual(["1", "2", "3", "4", "5"]);
     expect(
       within(points[3] as HTMLElement).getByText(
@@ -94,8 +104,26 @@ describe("a digest with its newest issue (frame 1)", () => {
         first.number = "A";
       }),
     );
-    const issue = within(screen.getByRole("region", { name: WEEKLY }));
-    expect(issue.getAllByRole("listitem")[0]?.textContent).toMatch(/^APackaging issuers/);
+    expect(page().getAllByRole("listitem")[0]?.textContent).toMatch(/^APackaging issuers/);
+  });
+
+  it("draws the delivered stories line above each point's stories, and leaves it out when null", () => {
+    show("/signal/ai-on/digest/weekly-brief");
+    expect(page().getByText("3 stories behind this point")).toBeInTheDocument();
+    expect(page().getByText("1 story behind this point")).toBeInTheDocument();
+    expect(page().getAllByText(/stories behind this point/)).toHaveLength(4);
+  });
+
+  it("leaves the stories line out of a point whose line is null", () => {
+    show(
+      "/signal/ai-on/digest/weekly-brief",
+      with_("ai-on", (scene) => {
+        const first = scene.snapshot.digests[0]?.issues[0]?.points[0];
+        if (first === undefined) throw new Error("the fixture has a first point");
+        Object.assign(first, { storiesLine: null });
+      }),
+    );
+    expect(page().queryByText("3 stories behind this point")).not.toBeInTheDocument();
   });
 
   it("links each story to its source in a new tab, named as the story card names it", () => {
@@ -118,7 +146,7 @@ describe("a digest with its newest issue (frame 1)", () => {
     ]);
   });
 
-  it("draws a story with no link as plain text with its source and time", () => {
+  it("draws a story with no link as plain text ending (no link), as frame 1 does", () => {
     show("/signal/ai-on/digest/weekly-brief");
     const point = within(
       screen.getByRole("list", {
@@ -126,7 +154,7 @@ describe("a digest with its newest issue (frame 1)", () => {
       }),
     );
     const plain = "Notice of initial review: Oakhaven Lines and Pellant Terminals";
-    expect(point.getByText(`${plain}, Regulatory Gazette, 13 Nov`)).toBeInTheDocument();
+    expect(point.getByText(`${plain}, Regulatory Gazette, 13 Nov (no link)`)).toBeInTheDocument();
     expect(point.queryByRole("link", { name: new RegExp(plain) })).not.toBeInTheDocument();
   });
 
@@ -149,7 +177,7 @@ describe("a digest with its newest issue (frame 1)", () => {
       expect(list.queryByRole("link")).not.toBeInTheDocument();
       expect(
         list.getByText(
-          "Brightwell Foods extends its term loan by three years, Credit Ledger Daily, 12 Nov",
+          "Brightwell Foods extends its term loan by three years, Credit Ledger Daily, 12 Nov (no link)",
         ),
       ).toBeInTheDocument();
     },
@@ -174,21 +202,85 @@ describe("a digest with its newest issue (frame 1)", () => {
     ).toEqual(["Brightwell Foods extends its term loan by three years, Credit Ledger Daily"]);
   });
 
-  it("draws every earlier issue in full, its heading carrying the issue's id", () => {
+  it("keeps the mock's 820px column", () => {
     show("/signal/ai-on/digest/weekly-brief");
-    const earlier = document.getElementById("week-6-nov");
-    expect(earlier?.textContent).toBe(EARLIER);
-    expect(earlier?.tagName).toBe("H3");
-    const section = within(screen.getByRole("region", { name: EARLIER }));
-    expect(section.getByText("5 points from 36 stories")).toBeInTheDocument();
-    expect(section.getByText("Fri 6 Nov")).toBeInTheDocument();
-    expect(section.getAllByRole("link")).toHaveLength(1);
+    expect(page().getByRole("heading", { level: 1 }).parentElement).toHaveClass("max-w-[820px]");
+  });
+});
+
+describe("Earlier digests as rows (frame 4)", () => {
+  it("draws an earlier issue as a row: tile, labels, date, h3 title with the issue's id, summary, no link and no points", () => {
+    show("/signal/ai-on/digest/weekly-brief");
+    const title = document.getElementById("week-6-nov");
+    expect(title?.tagName).toBe("H3");
+    expect(title?.textContent).toBe(EARLIER);
+    const row = within(title?.closest("li") as HTMLElement);
+    expect(row.getByText("WB")).toBeInTheDocument();
+    expect(row.getByText("Digest")).toBeInTheDocument();
+    expect(row.getByText("AI")).toBeInTheDocument();
+    expect(row.getByText("Fri 6 Nov")).toBeInTheDocument();
+    expect(row.getByText("5 points from 36 stories")).toBeInTheDocument();
+    expect(row.queryByRole("link")).not.toBeInTheDocument();
+    expect(row.queryByRole("list")).not.toBeInTheDocument();
   });
 
-  it("is reached from every feed card: the card's issue is a heading on the digest's page", () => {
+  it("holds the issue a feed card names, as a row", () => {
     show("/signal/ai-on/digest/daily-ratings");
     expect(document.getElementById("12-nov")?.textContent).toBe("Rating actions: 12 November");
-    expect(document.getElementById("11-nov")?.textContent).toBe("Rating actions: 11 November");
+  });
+});
+
+describe("a digest with nothing material (frame 3)", () => {
+  it("draws the meta line without AI, the title as the h1 and the kit empty state", () => {
+    show("/signal/ai-on/digest/daily-ratings");
+    expect(headings(1)).toEqual([NOTHING_TITLE]);
+    const h1 = page().getByRole("heading", { level: 1 });
+    expect((h1.previousElementSibling as HTMLElement).textContent).toBe(
+      "DigestDaily ratingsWed 11 Nov",
+    );
+    expect(headings(2)).toEqual(["Nothing material to report", "Earlier digests"]);
+    expect(page().getByText(NOTHING_SENTENCE)).toBeInTheDocument();
+    expect(page().queryByText("AI")).toBeInTheDocument(); // the earlier row's own label
+    expect(h1.previousElementSibling).not.toHaveTextContent("AI");
+  });
+
+  it("draws no numbered list for it", () => {
+    show("/signal/ai-on/digest/daily-ratings");
+    expect(page().queryByRole("list", { name: /Stories behind/ })).not.toBeInTheDocument();
+    expect(page().queryByRole("listitem", { name: /^1/ })).not.toBeInTheDocument();
+  });
+
+  it("moves focus to the Earlier digests heading from See earlier digests, leaving the hash alone", () => {
+    show("/signal/ai-on/digest/daily-ratings");
+    const hash = window.location.hash;
+    fireEvent.click(page().getByRole("button", { name: "See earlier digests" }));
+    expect(document.activeElement).toBe(
+      page().getByRole("heading", { level: 2, name: "Earlier digests" }),
+    );
+    expect(window.location.hash).toBe(hash);
+  });
+
+  it("offers See earlier digests only when earlier issues exist", () => {
+    show(
+      "/signal/main/digest/daily-ratings",
+      running((digest) => {
+        digest.issues = [
+          {
+            id: "11-nov",
+            title: NOTHING_TITLE,
+            date: "Wed 11 Nov",
+            ai: false,
+            summary: null,
+            nothing: NOTHING_SENTENCE,
+            points: [],
+          },
+        ];
+      }),
+    );
+    expect(headings(1)).toEqual([NOTHING_TITLE]);
+    expect(page().getByText(NOTHING_SENTENCE)).toBeInTheDocument();
+    expect(page().queryByRole("button", { name: /See earlier digests/ })).not.toBeInTheDocument();
+    expect(page().queryByRole("heading", { name: "Earlier digests" })).not.toBeInTheDocument();
   });
 });
 
@@ -204,49 +296,26 @@ describe("the channel list beside a digest", () => {
   });
 });
 
-describe("a digest with nothing material (frame 3)", () => {
-  /** The scene's Daily ratings with the nothing-material issue first. */
-  const nothingFirst = () =>
-    with_("ai-on", (scene) => {
-      scene.snapshot.digests[1]?.issues.reverse();
-    });
-
-  it("draws the sentence under the issue's title with no list and no AI label", () => {
-    show("/signal/ai-on/digest/daily-ratings", nothingFirst());
-    expect(headings(1)).toEqual(["Daily ratings"]);
-    expect(headings(2)).toEqual(["Rating actions: 11 November", "Earlier digests"]);
-    const issue = within(screen.getByRole("region", { name: "Rating actions: 11 November" }));
-    expect(issue.getByText(NOTHING_SENTENCE)).toBeInTheDocument();
-    expect(issue.queryByText("AI")).not.toBeInTheDocument();
-    expect(issue.queryByRole("list")).not.toBeInTheDocument();
-  });
-
-  it("keeps the AI label on the model-written issue beside it", () => {
-    show("/signal/ai-on/digest/daily-ratings", nothingFirst());
-    const earlier = within(screen.getByRole("region", { name: "Rating actions: 12 November" }));
-    expect(earlier.getByText("AI")).toBeInTheDocument();
-    expect(earlier.getAllByRole("listitem")).toHaveLength(2);
-  });
-
-  it("also draws it as an earlier issue, with its sentence and no AI label", () => {
-    show("/signal/ai-on/digest/daily-ratings");
-    const issue = within(screen.getByRole("region", { name: "Rating actions: 11 November" }));
-    expect(issue.getByText(NOTHING_SENTENCE)).toBeInTheDocument();
-    expect(issue.queryByText("AI")).not.toBeInTheDocument();
-  });
-});
-
 describe("a paused digest (frame 4)", () => {
-  it("says so in an info alert and a Paused badge, with its earlier issue readable", () => {
+  it("takes its name as the h1 with a Paused badge, the alert and the AI and cost link", () => {
     show("/signal/main/digest/weekly-brief");
     expect(headings(1)).toEqual(["Weekly brief"]);
     const alert = page().getByRole("status");
     expect(alert).toHaveTextContent(PAUSED);
     expect(alert).toHaveTextContent("Info");
+    expect(within(alert).getByRole("link", { name: "Open AI and cost" })).toHaveAttribute(
+      "href",
+      "#/signal/main/settings/ai",
+    );
     expect(page().getByText("Paused")).toBeInTheDocument();
+  });
+
+  it("draws every issue as a row under Earlier digests, with its own summary and no points", () => {
+    show("/signal/main/digest/weekly-brief");
     expect(headings(2)).toEqual(["Earlier digests"]);
     expect(headings(3)).toEqual([WEEKLY]);
-    expect(headings(4)).toEqual(["Packaging issuers are cutting capacity, not prices"]);
+    expect(page().getByText("5 points from 41 stories")).toBeInTheDocument();
+    expect(page().queryByRole("list", { name: /Stories behind/ })).not.toBeInTheDocument();
   });
 
   it("draws no Paused badge and no alert on a digest that is running", () => {
@@ -272,5 +341,17 @@ describe("a digest the page cannot show", () => {
     expect(headings(1)).toEqual(["Daily ratings"]);
     expect(headings(2)).toEqual(["No digest yet"]);
     expect(page().getByRole("status")).toHaveTextContent(PAUSED);
+  });
+
+  it("says a running digest with no issue has no digest yet, under its own name", () => {
+    show(
+      "/signal/main/digest/daily-ratings",
+      running((digest) => {
+        digest.issues = [];
+      }),
+    );
+    expect(headings(1)).toEqual(["Daily ratings"]);
+    expect(headings(2)).toEqual(["No digest yet"]);
+    expect(page().queryByRole("status")).not.toBeInTheDocument();
   });
 });

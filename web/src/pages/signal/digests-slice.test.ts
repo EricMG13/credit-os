@@ -58,6 +58,20 @@ describe("the digests of a snapshot", () => {
       `${POINT}.stories: expected a list`,
     ],
     [
+      "a point whose stories line is a number",
+      AI_ON,
+      [...P0, "storiesLine"],
+      3,
+      `${POINT}.storiesLine: expected a string or null`,
+    ],
+    [
+      "a digest with no monogram",
+      AI_ON,
+      ["snapshot", "digests", 0, "monogram"],
+      undefined,
+      `${AI}.digests[0].monogram: expected a string`,
+    ],
+    [
       "a story whose url is a number",
       AI_ON,
       [...P0, "stories", 1, "url"],
@@ -74,16 +88,16 @@ describe("the digests of a snapshot", () => {
     [
       "a nothing-material issue that still has points",
       AI_ON,
-      ["snapshot", "digests", 1, "issues", 1, "points"],
-      [{ number: "1", lead: "One", body: null, stories: [] }],
-      `${AI}.digests[1].issues[1].points: expected no points on a nothing-to-report issue`,
+      ["snapshot", "digests", 1, "issues", 0, "points"],
+      [{ number: "1", lead: "One", body: null, storiesLine: null, stories: [] }],
+      `${AI}.digests[1].issues[0].points: expected no points on a nothing-to-report issue`,
     ],
     [
       "a nothing-material issue marked AI",
       AI_ON,
-      ["snapshot", "digests", 1, "issues", 1, "ai"],
+      ["snapshot", "digests", 1, "issues", 0, "ai"],
       true,
-      `${AI}.digests[1].issues[1].ai: expected false on a nothing-to-report issue`,
+      `${AI}.digests[1].issues[0].ai: expected false on a nothing-to-report issue`,
     ],
     [
       "a digest id another digest uses",
@@ -110,7 +124,7 @@ describe("the digests of a snapshot", () => {
       "a digest the channel list lacks",
       AI_ON,
       ["snapshot", "digests", 2],
-      { id: "extra", name: "Extra", paused: null, issues: [] },
+      { id: "extra", name: "Extra", monogram: "EX", paused: null, issues: [] },
       `${AI}.digests[2].id: expected the id of a digest in the channel list`,
     ],
     [

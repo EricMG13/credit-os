@@ -344,6 +344,7 @@
             {
               "id": "weekly-brief",
               "name": "Weekly brief",
+              "monogram": "WB",
               "paused": "No new digest is written while AI is off or at its cap. Earlier digests stay readable.",
               "issues": [
                 {
@@ -353,20 +354,14 @@
                   "ai": true,
                   "summary": "5 points from 41 stories",
                   "nothing": null,
-                  "points": [
-                    {
-                      "number": "1",
-                      "lead": "Packaging issuers are cutting capacity, not prices",
-                      "body": null,
-                      "stories": []
-                    }
-                  ]
+                  "points": []
                 }
               ]
             },
             {
               "id": "daily-ratings",
               "name": "Daily ratings",
+              "monogram": "DR",
               "paused": "No new digest is written while AI is off or at its cap. Earlier digests stay readable.",
               "issues": []
             }
@@ -713,8 +708,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [
             {
@@ -1065,6 +1072,7 @@
             {
               "id": "weekly-brief",
               "name": "Weekly brief",
+              "monogram": "WB",
               "paused": null,
               "issues": [
                 {
@@ -1098,7 +1106,8 @@
                           "source": "The Meridian Post",
                           "time": "10 Nov"
                         }
-                      ]
+                      ],
+                      "storiesLine": "3 stories behind this point"
                     },
                     {
                       "number": "2",
@@ -1117,7 +1126,8 @@
                           "source": "Regulatory Gazette",
                           "time": "10 Nov"
                         }
-                      ]
+                      ],
+                      "storiesLine": "2 stories behind this point"
                     },
                     {
                       "number": "3",
@@ -1136,7 +1146,8 @@
                           "source": "The Meridian Post",
                           "time": "13 Nov"
                         }
-                      ]
+                      ],
+                      "storiesLine": "2 stories behind this point"
                     },
                     {
                       "number": "4",
@@ -1149,7 +1160,8 @@
                           "source": "Credit Ledger Daily",
                           "time": "12 Nov"
                         }
-                      ]
+                      ],
+                      "storiesLine": "1 story behind this point"
                     },
                     {
                       "number": "5",
@@ -1168,7 +1180,8 @@
                           "source": "Regulatory Gazette",
                           "time": "13 Nov"
                         }
-                      ]
+                      ],
+                      "storiesLine": "2 stories behind this point"
                     }
                   ]
                 },
@@ -1179,35 +1192,25 @@
                   "ai": true,
                   "summary": "5 points from 36 stories",
                   "nothing": null,
-                  "points": [
-                    {
-                      "number": "1",
-                      "lead": "Term loan margins widened for single-B issuers",
-                      "body": "Two refinancings priced wider than the same issuers' last deals.",
-                      "stories": [
-                        {
-                          "headline": "Lenmark Foods reprices its term loan wider",
-                          "url": "https://example.com/credit-ledger/lenmark-reprice",
-                          "source": "Credit Ledger Daily",
-                          "time": "4 Nov"
-                        }
-                      ]
-                    },
-                    {
-                      "number": "2",
-                      "lead": "Container lines are holding contract rates",
-                      "body": "Rates agreed for the first half were flat on the year.",
-                      "stories": []
-                    }
-                  ]
+                  "points": []
                 }
               ]
             },
             {
               "id": "daily-ratings",
               "name": "Daily ratings",
+              "monogram": "DR",
               "paused": null,
               "issues": [
+                {
+                  "id": "11-nov",
+                  "title": "Rating actions: 11 November",
+                  "date": "Wed 11 Nov",
+                  "ai": false,
+                  "summary": null,
+                  "nothing": "No rating action reached this digest's sources on 11 November. The next digest is due on Thu 12 Nov.",
+                  "points": []
+                },
                 {
                   "id": "12-nov",
                   "title": "Rating actions: 12 November",
@@ -1215,28 +1218,6 @@
                   "ai": true,
                   "summary": "2 points from 7 stories",
                   "nothing": null,
-                  "points": [
-                    {
-                      "number": "1",
-                      "lead": "Halvorsen Marine cut one notch to B+ on refinancing risk",
-                      "body": "The agency cited 2027 maturities against weaker charter rates.",
-                      "stories": []
-                    },
-                    {
-                      "number": "2",
-                      "lead": "Oakhaven Lines affirmed at BB, outlook to positive",
-                      "body": "The outlook change follows lower leverage after the asset sale.",
-                      "stories": []
-                    }
-                  ]
-                },
-                {
-                  "id": "11-nov",
-                  "title": "Rating actions: 11 November",
-                  "date": "Wed 11 Nov",
-                  "ai": false,
-                  "summary": null,
-                  "nothing": "Nothing material to report: no rating action reached this digest's sources on 11 November.",
                   "points": []
                 }
               ]
@@ -1330,8 +1311,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [
@@ -1392,8 +1385,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [
@@ -1454,8 +1459,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [
@@ -1511,8 +1528,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [
@@ -1624,8 +1653,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [
@@ -1686,8 +1727,20 @@
             "sources": { "approved": false }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [
@@ -1782,8 +1835,20 @@
             "sources": { "approved": true }
           },
           "digests": [
-            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
-            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
           ],
           "threads": [],
           "groups": [

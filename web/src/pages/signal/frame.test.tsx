@@ -29,10 +29,12 @@ const GROUP_TITLES: Record<string, string> = {
   "shipping-desk": "Shipping desk",
 };
 
-/** A digest page's h1 is the digest's name. */
+/** A digest page's h1 is its newest issue's title; a paused digest or one with no issue takes its own name. */
 const DIGEST_TITLES: Record<string, string> = {
-  "weekly-brief": "Weekly brief",
-  "daily-ratings": "Daily ratings",
+  "main/weekly-brief": "Weekly brief",
+  "main/daily-ratings": "Daily ratings",
+  "ai-on/weekly-brief": "Leveraged credit: the week to 13 November",
+  "ai-on/daily-ratings": "Rating actions: 11 November",
 };
 
 /** A topic page's h1 is the topic's name as the channel list gives it. */
@@ -288,7 +290,7 @@ describe("the Signal frame", () => {
             : pattern.includes("/group/")
               ? GROUP_TITLES[set["group"] ?? ""]
               : pattern.includes("/digest/")
-                ? DIGEST_TITLES[set["digest"] ?? ""]
+                ? DIGEST_TITLES[`${set["scene"] ?? ""}/${set["digest"] ?? ""}`]
                 : TITLES[pattern];
         if (title === undefined) throw new Error(`no expected title for ${hash}`);
         expect(screen.getByRole("heading", { level: 1, hidden }).textContent).toBe(title);

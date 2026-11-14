@@ -11,7 +11,7 @@ export function NumberedPanel({
   leadAs: Lead = "span",
 }: {
   items: Item[];
-  leadAs?: "span" | "h3" | "h4";
+  leadAs?: "span" | "h2" | "h3";
 }) {
   return (
     <ol className="overflow-hidden rounded-md border border-border-hairline bg-surface-card">
