@@ -715,52 +715,33 @@ function opensHeld(
 }
 
 /**
- * The most work one collapsed item's lead may cost to split: one unit for each held name tried at
- * each place a name can start, and one for each count carried back from the tail. A run holds at
- * most a few dozen modules and a name is a few words, so a real lead (a few dozen names) costs
- * about 40 names x 100 places = 4,000 units. 100,000 is some twenty times that. It bounds the
- * start places found (each costing at least one unit, so at most 100,000 are ever held) and the
- * name comparisons and carried counts; it does not bound the one pass of `indexOf` over the lead's
- * characters, which stops at the place that passes it.
- */
-export const MAX_SPLIT_WORK = 100_000;
-
-/**
  * The counts of modules a collapsed item's lead can list: every way to split it into names the run
  * holds, each followed by ", " or the closing full stop. Names hold commas themselves, and one name
- * can open another, so every split is tried. Empty when the lead is not such a list, and null when
- * splitting it would cost more than `MAX_SPLIT_WORK`. Iterative: a long lead must not overflow the
- * call stack.
+ * can open another, so every split is tried. Empty when the lead is not such a list. Iterative: a
+ * long lead must not overflow the call stack. The caller has already refused a lead longer than the
+ * held names can make, so the places a name can start and the names tried at each are bounded by
+ * the names' own text.
  */
-function namesListed(lead: string, names: readonly string[]): Set<number> | null {
+function namesListed(lead: string, names: readonly string[]): Set<number> {
   if (!lead.endsWith(".")) return new Set();
   const body = lead.slice(0, -1);
   const end = body.length;
   // A name starts at the front or after any ", ".
-  // Counted as found: past the work limit no list of places is built.
-  const perPlace = Math.max(names.length, 1);
   const starts = new Set([0]);
   for (let at = body.indexOf(", "); at !== -1; at = body.indexOf(", ", at + 1)) {
-    if (at + 2 === end) continue;
-    starts.add(at + 2);
-    if (starts.size * perPlace > MAX_SPLIT_WORK) return null;
+    if (at + 2 !== end) starts.add(at + 2);
   }
   // Counts reachable from each place, filled from the end of the lead back to the front.
   const reach = new Map<number, Set<number>>([[end, new Set([0])]]);
-  let work = 0;
   for (const from of [...starts].sort((x, y) => y - x)) {
     if (from === end) continue;
     const found = new Set<number>();
-    work += names.length;
-    if (work > MAX_SPLIT_WORK) return null;
     for (const name of names) {
       if (!body.startsWith(name, from)) continue;
       const after = from + name.length;
       const next = after === end ? after : body.startsWith(", ", after) ? after + 2 : -1;
       const tail = reach.get(next);
       if (tail === undefined) continue;
-      work += tail.size;
-      if (work > MAX_SPLIT_WORK) return null;
       for (const n of tail) found.add(n + 1);
     }
     reach.set(from, found);
@@ -781,13 +762,18 @@ function namesHeld(
   path: string,
 ): void {
   const names = modules.map((m) => m.name);
+  // The longest list of distinct held names: their own text and ", " between each.
+  const longest = names.reduce((sum, n) => sum + n.length, 0) + 2 * Math.max(names.length - 1, 0);
   for (const [index, item] of items.entries()) {
     const counted = item.module === null ? COLLAPSED_TITLE.exec(item.title) : null;
     if (counted === null) continue;
-    const listed = namesListed(item.lead, names);
-    if (listed === null) {
-      throw new SliceError(child(nth(path, index), "lead"), "a lead short enough to check");
+    if (item.lead.length - 1 > longest) {
+      throw new SliceError(
+        child(nth(path, index), "lead"),
+        "the names of modules this run holds, no longer than those names together",
+      );
     }
+    const listed = namesListed(item.lead, names);
     if (listed.size === 0) {
       throw new SliceError(child(nth(path, index), "lead"), "the names of modules this run holds");
     }

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { MAX_SPLIT_WORK, cell, readSlice, traceKey } from "./read";
+import { cell, readSlice, traceKey } from "./read";
 
 type Json = Record<string, unknown>;
 
@@ -1010,32 +1010,40 @@ describe("readSlice, modules", () => {
     });
   });
 
-  describe("a collapsed item whose lead lists very many names", () => {
-    const listing = (n: number, title = `${String(n)} modules delivered`) => {
+  describe("a collapsed item whose lead is longer than the held names can make", () => {
+    // Every list of distinct held names fits in the names' own lengths plus ", " between them.
+    const listing = (extra: readonly string[]) => {
       const slice = fresh();
-      modOf(slice, "business-profile", 2)["name"] = "A";
       const run = runOf(slice, 2);
+      const names = (run.modules ?? []).map((m) => String(m["name"]));
+      const listed = [...names, ...extra];
       const item = (run.overview["modules"] as { items: Json[] }).items[0] as Json;
-      item["title"] = title;
-      item["lead"] = `${"A, ".repeat(n - 1)}A.`;
-      return { slice, held: run.modules?.length ?? 0 };
+      item["title"] = `${String(listed.length)} modules delivered`;
+      item["lead"] = `${listed.join(", ")}.`;
+      return { slice, names };
     };
 
-    it("answers invalid, not a thrown stack overflow, for a lead of 50,000 names", () => {
-      const { slice } = listing(50_000);
-      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
-    });
-
-    it("refuses a lead one name over the work limit, on its lead", () => {
-      const { held } = listing(1);
-      const { slice } = listing(Math.floor(MAX_SPLIT_WORK / (held + 1)) + 1);
-      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
-    });
-
-    it("accepts a lead at the work limit whose count matches", () => {
-      const { held } = listing(1);
-      const { slice } = listing(Math.floor(MAX_SPLIT_WORK / (held + 1)));
+    it("accepts the longest list of distinct held names, at the bound", () => {
+      const { slice, names } = listing([]);
+      const bound = names.reduce((sum, n) => sum + n.length, 0) + 2 * (names.length - 1);
+      const item = (runOf(slice, 2).overview["modules"] as { items: Json[] }).items[0] as Json;
+      expect(String(item["lead"]).length - 1).toBe(bound);
       expect(readSlice(slice).kind).toBe("ok");
+    });
+
+    it("refuses a lead one name past the bound, on its lead", () => {
+      const { names } = listing([]);
+      const { slice } = listing([String(names[0])]);
+      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
+    });
+
+    it("refuses a lead of 50,000 names, on its lead", () => {
+      const slice = fresh();
+      modOf(slice, "business-profile", 2)["name"] = "A";
+      const item = (runOf(slice, 2).overview["modules"] as { items: Json[] }).items[0] as Json;
+      item["title"] = "50000 modules delivered";
+      item["lead"] = `${"A, ".repeat(49_999)}A.`;
+      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
     });
   });
 

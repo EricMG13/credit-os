@@ -291,6 +291,51 @@ describe("Module, the navigator", () => {
     Reflect.deleteProperty(Element.prototype, "scrollIntoView");
   });
 
+  it("forgets the selected section when the issuer changes and run and module stay", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const slice = structuredClone(fixture.slice) as {
+      issuers: { id: string; name: string; runs: { id: string; modules: unknown }[] }[];
+    };
+    const [first] = slice.issuers;
+    if (first === undefined) throw new Error("no issuer");
+    const earlier = first.runs.find((r) => r.id === "2026-03-31");
+    const later = first.runs.find((r) => r.id === "2026-09-30");
+    if (earlier === undefined || later === undefined) throw new Error("no runs");
+    // The same run and module under another issuer, whose copy lacks the section.
+    const other = structuredClone(first);
+    const otherRun = other.runs.find((r) => r.id === "2026-09-30");
+    if (otherRun === undefined) throw new Error("no run");
+    otherRun.modules = earlier.modules;
+    other.id = "halden-copy";
+    other.name = "Halden copy";
+    slice.issuers.push(other);
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: slice,
+    };
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error(`no route ${PATH}`);
+    const at = (issuer: string) => (
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer, run: "2026-09-30", module: "business-profile" })}
+      </SourceContext.Provider>
+    );
+    const view = render(at("halden-aerostructures"));
+    fireEvent.click(within(nav()).getByRole("button", { name: "Contrary evidence" }));
+    expect(within(nav()).getByRole("button", { name: "Contrary evidence" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+    view.rerender(at("halden-copy"));
+    expect(within(nav()).queryByRole("button", { name: "Contrary evidence" })).toBeNull();
+    const current = within(nav())
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("aria-current") === "location");
+    expect(current.map((b) => b.textContent)).toEqual(["Bottom line"]);
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
   it("lists all thirteen modules with the state in each name and the current one marked", () => {
     renderModule("business-profile");
     const links = within(nav()).getAllByRole("link");
