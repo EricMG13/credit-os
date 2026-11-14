@@ -27,7 +27,7 @@ type SignalFeed = {
   error: null | "unreachable" | "request" | "unreadable";
 };
 type SignalSnapshot = { viewer: SignalViewer; channels: SignalChannels; feed: SignalFeed };
-type SignalScene = { id: string; snapshot: SignalSnapshot };
+export type SignalScene = { id: string; snapshot: SignalSnapshot };
 export type SignalSlice = { scenes: [SignalScene, ...SignalScene[]] };
 
 type Got<T> = { ok: true; value: T } | { ok: false; reason: string };
