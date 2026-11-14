@@ -369,6 +369,36 @@ function readBottomLine(value: unknown, path: string, traces: Traces): BottomLin
   };
 }
 
+/** The same list, each item's `key` unused by an earlier one; the failing path ends in `field`. */
+function unique<T>(items: T[], path: string, key: (item: T) => string, field: string): T[] {
+  const seen = new Set<string>();
+  for (const [index, item] of items.entries()) {
+    if (seen.has(key(item))) {
+      throw new SliceError(child(nth(path, index), field), `a ${field} not used by an earlier one`);
+    }
+    seen.add(key(item));
+  }
+  return items;
+}
+
+/** For and against has two columns, "supports" and "against", each with its own points. */
+function readColumns(sides: Rec, path: string, traces: Traces): Overview["sides"]["columns"] {
+  const columns = list(sides, "columns", path, (column, columnPath) => {
+    const c = rec(column, columnPath);
+    return {
+      name: str(c, "name", columnPath),
+      items: unique(
+        list(c, "items", columnPath, (item, p) => readPoint(item, p, traces)),
+        child(columnPath, "items"),
+        (point) => point.text,
+        "text",
+      ),
+    };
+  });
+  if (columns.length !== 2) throw new SliceError(child(path, "columns"), "two columns");
+  return columns;
+}
+
 function readOverview(value: unknown, path: string, traces: Traces): Overview {
   const o = rec(value, path);
   const sidesPath = child(path, "sides");
@@ -376,17 +406,16 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
   return {
     bottomLine: readBottomLine(own(o, "bottomLine"), child(path, "bottomLine"), traces),
     metricsLabel: str(o, "metricsLabel", path),
-    metrics: list(o, "metrics", path, (m, p) => readMetric(m, p, traces)),
+    metrics: unique(
+      list(o, "metrics", path, (m, p) => readMetric(m, p, traces)),
+      child(path, "metrics"),
+      (m) => m.label,
+      "label",
+    ),
     sides: {
       heading: str(sides, "heading", sidesPath),
       note: str(sides, "note", sidesPath),
-      columns: list(sides, "columns", sidesPath, (column, columnPath) => {
-        const c = rec(column, columnPath);
-        return {
-          name: str(c, "name", columnPath),
-          items: list(c, "items", columnPath, (item, p) => readPoint(item, p, traces)),
-        };
-      }),
+      columns: readColumns(sides, sidesPath, traces),
     },
   };
 }

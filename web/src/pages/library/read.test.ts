@@ -430,4 +430,19 @@ describe("readSlice, overview", () => {
     runOf(loaded, 1).overview = ovOf(fresh());
     expect(invalidReason(loaded)).toContain("issuers[0].runs[1].overview");
   });
+
+  it("rejects a repeated metric label, a repeated point in a column and a column count not two", () => {
+    const labels = fresh();
+    ovOf(labels).metrics[1] = { ...ovOf(labels).metrics[0] };
+    expect(invalidReason(labels)).toContain("issuers[0].runs[0].overview.metrics[1].label");
+    const texts = fresh();
+    const items = ovOf(texts).sides.columns[0]?.items as Json[];
+    items[1] = { ...items[0] };
+    expect(invalidReason(texts)).toContain(
+      "issuers[0].runs[0].overview.sides.columns[0].items[1].text",
+    );
+    const columns = fresh();
+    ovOf(columns).sides.columns.pop();
+    expect(invalidReason(columns)).toContain("issuers[0].runs[0].overview.sides.columns");
+  });
 });

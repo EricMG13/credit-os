@@ -37,7 +37,7 @@ function Branch({ node }: { node: TreeNode }) {
     <li>
       <details open className="group/branch">
         <summary
-          className={`${ROW} cursor-pointer list-none outline-hidden hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden`}
+          className={`${ROW} cursor-pointer list-none outline-hidden hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-brand [&::-webkit-details-marker]:hidden`}
         >
           <ChevronRight
             aria-hidden="true"
