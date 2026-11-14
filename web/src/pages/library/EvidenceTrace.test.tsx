@@ -26,6 +26,8 @@ const fixture = JSON.parse(
 const TRACE = "/library/:issuer/:run/evidence/trace";
 const ITEM = "/library/:issuer/:run/evidence/trace/:item";
 const FULL = "2026-09-30";
+const EMPTY_TEXT =
+  "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.";
 const rowsOf = (slice: Json = fixture.slice) =>
   (
     (slice["issuers"] as { runs: { evidence: { trace: { rows: Row[] } } | null }[] }[])[0]?.runs[0]
@@ -344,6 +346,28 @@ describe("Evidence, Trace", () => {
     expect(screen.getByRole("heading", { name: "Nothing is traced in this run" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Trace0" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.getByText(EMPTY_TEXT)).toBeVisible();
+    expect(screen.queryByText(/carries sources/)).toBeNull();
+  });
+
+  it("warns that an address names no item even when the run traces nothing", () => {
+    for (const run of ["2026-03-31", "2025-09-30"]) {
+      renderTrace(run, "T-0014");
+      expect(screen.getByRole("alert")).toHaveTextContent("No item has this address");
+      expect(screen.getByRole("heading", { name: "Nothing is traced in this run" })).toBeVisible();
+      expect(screen.getByText(EMPTY_TEXT)).toBeVisible();
+      cleanup();
+    }
+    renderTrace("2026-03-31");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps the register's region free of a forced width and of focus classes it cannot use", () => {
+    renderTrace(FULL);
+    const region = screen.getByRole("region", { name: "Trace" });
+    expect(region).toHaveClass("overflow-x-auto");
+    expect(region.className).not.toMatch(/focus|outline/);
+    expect(table().className).not.toMatch(/min-w/);
   });
 
   it("keeps one h1 and no skipped level in every state", () => {

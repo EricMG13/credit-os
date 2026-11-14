@@ -102,11 +102,14 @@ export function SortHead<C extends string>({
 }
 
 /** A cell of a dense register row. */
-export const REGISTER_CELL = "px-5 py-3 align-top text-sm text-text-tertiary";
+export const REGISTER_CELL =
+  "px-5 py-3 align-top text-sm text-text-tertiary [overflow-wrap:anywhere]";
 
 /**
- * A register table in its own named scroll region, so a wide table never widens the page. Its sort
- * buttons and row controls take the keyboard, so the browser scrolls the region to whichever has focus.
+ * A register table in a named region. The table wraps its long ids and sentences to the page's width,
+ * so there is nothing to scroll to; the region only stops a table that still overflows from widening
+ * the page. It takes no focus of its own: a scroller can hold a tab stop only through a lint option
+ * this folder cannot set.
  */
 export function RegisterTable({
   name,
@@ -118,12 +121,8 @@ export function RegisterTable({
   children: ReactNode;
 }) {
   return (
-    <div
-      role="region"
-      aria-label={name}
-      className="overflow-x-auto rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
-    >
-      <table className="w-full min-w-[640px] border-collapse">
+    <div role="region" aria-label={name} className="overflow-x-auto rounded-ds-xs">
+      <table className="w-full border-collapse">
         <caption className="sr-only">{name}</caption>
         <thead className="border-b border-border-hairline">
           <tr>{head}</tr>

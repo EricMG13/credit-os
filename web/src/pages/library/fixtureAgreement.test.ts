@@ -166,6 +166,11 @@ describe("the fixture's runs agree with themselves", () => {
       expect(count(run, "Calculations").value.text, run.id).toBe(rows);
     }
     expect(fullRun().evidence.trace.rows).toHaveLength(58);
+    expect(count(fullRun(), "Calculations").note).toBe("Each one traceable to its inputs");
+    for (const run of loaded.filter((r) => r.evidence.trace.rows.length === 0)) {
+      expect(count(run, "Calculations").note, run.id).toBe("Not traced item by item in this run");
+      expect(run.evidence.trace.emptyText, run.id).toContain("not traced item by item");
+    }
   });
 
   it("tells the risks apart: a risk or indicator row carries its trace's own statement", () => {

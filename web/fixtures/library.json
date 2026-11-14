@@ -1825,6 +1825,7 @@
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": null,
                 "columns": {
                   "id": "Item",
                   "item": "Statement",
@@ -4382,6 +4383,7 @@
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.",
                 "columns": {
                   "id": "Item",
                   "item": "Statement",
@@ -4407,7 +4409,7 @@
                   {
                     "label": "Calculations",
                     "value": { "kind": "value", "text": "0", "at": null },
-                    "note": "Each one traceable to its inputs",
+                    "note": "Not traced item by item in this run",
                     "trace": null
                   },
                   {
@@ -5215,6 +5217,7 @@
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.",
                 "columns": {
                   "id": "Item",
                   "item": "Statement",
@@ -5240,7 +5243,7 @@
                   {
                     "label": "Calculations",
                     "value": { "kind": "value", "text": "0", "at": null },
-                    "note": "Each one traceable to its inputs",
+                    "note": "Not traced item by item in this run",
                     "trace": null
                   },
                   {

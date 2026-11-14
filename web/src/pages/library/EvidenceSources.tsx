@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/base/buttons/button";
-import type { Evidence } from "./slice";
+import type { Evidence, Reader } from "./slice";
 import { NothingForModule } from "./parts/ModuleFilter";
 import { SourceFileRow } from "./parts/SourceFileRow";
 import { QuietSection } from "./parts/Section";
@@ -13,13 +13,11 @@ import { QuietSection } from "./parts/Section";
 export function EvidenceSources({
   sources,
   module,
-  moduleName,
   onClear,
 }: {
   sources: Evidence["sources"];
-  /** The id of the module the filter names, or `null` for all. */
-  module: string | null;
-  moduleName: string | null;
+  /** The module the filter names, or `null` for all. */
+  module: Reader | null;
   onClear: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -32,14 +30,14 @@ export function EvidenceSources({
       ? null
       : sources.files.filter(
           (file) =>
-            file.readers.shown.some((reader) => reader.id === module) ||
-            file.readers.more?.ids.includes(module) === true,
+            file.readers.shown.some((reader) => reader.id === module.id) ||
+            file.readers.more?.ids.includes(module.id) === true,
         );
   const files = filtered ?? (expanded ? sources.files : sources.files.slice(0, sources.visible));
-  if (filtered?.length === 0) {
+  if (module !== null && filtered?.length === 0) {
     return (
       <NothingForModule
-        title={`No file was read by ${moduleName ?? ""}`}
+        title={`No file was read by ${module.name}`}
         clearLabel="Show all files"
         onClear={onClear}
       />

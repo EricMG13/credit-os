@@ -31,6 +31,8 @@ const optionOf = (e: ReturnType<typeof evidenceOf>, i: number): Json => {
   if (found === undefined) throw new RangeError(`no option ${String(i)}`);
   return found;
 };
+const EMPTY_TEXT =
+  "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.";
 const at = (r: number) => `issuers[0].runs[${String(r)}].evidence`;
 
 function invalidReason(source: unknown): string {
@@ -381,6 +383,43 @@ describe("readSlice, trace", () => {
     (traces["net-leverage"] as Json)["evidenceItem"] = "T-9999";
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.evidenceItem");
   });
+
+  it("is invalid for a G- row that is no gap of its run, and for one that sits in another module", () => {
+    const unknown = fresh();
+    const first = evidenceOf(unknown);
+    const i = first.trace.rows.findIndex((r) => r["id"] === "G-02");
+    rowOf(first, "G-02")["id"] = "G-09";
+    expect(invalidReason(unknown)).toContain(`${at(0)}.trace.rows[${String(i)}].id`);
+    const elsewhere = fresh();
+    const second = evidenceOf(elsewhere);
+    Object.assign(rowOf(second, "G-02"), {
+      module: "Peer comparison",
+      moduleId: "peer-comparison",
+    });
+    expect(invalidReason(elsewhere)).toContain(`${at(0)}.trace.rows[${String(i)}].moduleId`);
+  });
+
+  it("holds an empty register's sentence exactly when the register is empty", () => {
+    const runs = read();
+    expect(runs.map((run) => run.evidence?.trace.emptyText)).toEqual([
+      null,
+      undefined,
+      EMPTY_TEXT,
+      EMPTY_TEXT,
+    ]);
+    const filled = fresh();
+    evidenceOf(filled).trace["emptyText"] = "Nothing here.";
+    expect(invalidReason(filled)).toContain(`${at(0)}.trace.emptyText`);
+    const bare = fresh();
+    evidenceOf(bare, 2).trace["emptyText"] = null;
+    expect(invalidReason(bare)).toContain(`${at(2)}.trace.emptyText`);
+    const blank = fresh();
+    evidenceOf(blank, 2).trace["emptyText"] = "";
+    expect(invalidReason(blank)).toContain(`${at(2)}.trace.emptyText`);
+    const absent = fresh();
+    delete evidenceOf(absent, 3).trace["emptyText"];
+    expect(invalidReason(absent)).toContain(`${at(3)}.trace.emptyText`);
+  });
 });
 
 type GapGroups = { rows: Json[] }[];
@@ -581,14 +620,14 @@ describe("readSlice, gaps", () => {
 
   it("reads a run with no gap: no group, a tab that says 0 and an Overview link that names 0", () => {
     const slice = fresh();
-    const run = slice.issuers[0]?.runs[0] as Json;
-    const evidence = evidenceOf(slice);
+    const run = slice.issuers[0]?.runs[2] as Json;
+    const evidence = evidenceOf(slice, 2);
     (evidence["gaps"] as Json)["groups"] = [];
     (evidence["tabs"] as Json)["gaps"] = "0";
     const limits = (run["overview"] as { limitations: { gapsLink: Json } }).limitations;
     limits.gapsLink["label"] = "See the 0 gaps in Evidence";
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
-    expect(result.data.issuers[0]?.runs[0]?.evidence?.gaps.groups).toEqual([]);
+    expect(result.data.issuers[0]?.runs[2]?.evidence?.gaps.groups).toEqual([]);
   });
 });
