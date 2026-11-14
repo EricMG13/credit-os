@@ -20,6 +20,22 @@ from credit_os.store.codec import (
 from credit_os.store.errors import StoreCorrupt, StoreRefused
 
 Call = Callable[[Any], object]
+
+
+def _short_id(value: object) -> str | None:
+    """A parameter id of at most 60 characters; Windows caps an environment variable at 32,767."""
+    if isinstance(value, str | bytes):
+        return f"{value[:40]!r}-len{len(value)}"[:60]
+    return None
+
+
+def test_short_id_never_returns_a_long_id() -> None:
+    for value in ("[" * 100_000, "9" * 5_000, b"x" * 5_000):
+        shown = _short_id(value)
+        assert isinstance(shown, str) and len(shown) <= 60
+    assert _short_id(5) is None
+
+
 _DISTINCTIVE = "QXZJ-distinctive-" * 40
 _REFUSALS: tuple[tuple[Call, tuple[object, ...], type[Exception]], ...] = (
     (money_to_text, key.MONEY_WRITE_REFUSED, StoreRefused),
@@ -78,7 +94,7 @@ _MESSAGES: tuple[tuple[Call, Any, str], ...] = (
 )
 
 
-@pytest.mark.parametrize(("call", "value", "error"), _CASES)
+@pytest.mark.parametrize(("call", "value", "error"), _CASES, ids=_short_id)
 def test_codec_refuses_what_the_key_lists(call: Call, value: Any, error: type[Exception]) -> None:
     with pytest.raises(error) as caught:
         call(value)
@@ -92,19 +108,19 @@ _WRITTEN += [(detail_to_text, v, t) for v, t in key.DETAIL_WRITTEN]
 _WRITTEN += [(detail_to_text, *key.DETAIL_MAPPING_PROXY)]
 
 
-@pytest.mark.parametrize(("call", "value", "text"), _WRITTEN)
+@pytest.mark.parametrize(("call", "value", "text"), _WRITTEN, ids=_short_id)
 def test_values_are_written_as_the_keys_text(call: Call, value: Any, text: str) -> None:
     assert call(value) == text
     assert call is not time_to_text or len(text) == key.TIME_TEXT_LENGTH
 
 
-@pytest.mark.parametrize(("stored", "shown"), key.MONEY_READ)
+@pytest.mark.parametrize(("stored", "shown"), key.MONEY_READ, ids=_short_id)
 def test_money_read_keeps_digits_and_exponent(stored: str, shown: str) -> None:
     result = money_from_text(stored)
     assert type(result) is Decimal and str(result) == shown
 
 
-@pytest.mark.parametrize(("stored", "instant"), key.TIME_READ)
+@pytest.mark.parametrize(("stored", "instant"), key.TIME_READ, ids=_short_id)
 def test_time_read_gives_aware_utc(stored: str, instant: datetime) -> None:
     result = time_from_text(stored)
     assert result == instant
@@ -112,7 +128,9 @@ def test_time_read_gives_aware_utc(stored: str, instant: datetime) -> None:
 
 
 @pytest.mark.parametrize(
-    ("detail", "text"), [row for row in key.DETAIL_WRITTEN if "ud800" not in row[1]]
+    ("detail", "text"),
+    [row for row in key.DETAIL_WRITTEN if "ud800" not in row[1]],
+    ids=_short_id,
 )
 def test_detail_written_text_reads_back_equal(
     detail: dict[str, str | int | None], text: str
@@ -141,8 +159,8 @@ def test_none_passes_through_and_zero_is_not_none() -> None:
     assert time_to_text(0.0) == "1970-01-01T00:00:00.000000Z"
 
 
-@pytest.mark.parametrize("call", [call for call, _, _ in _REFUSALS])
-@pytest.mark.parametrize("value", [_DISTINCTIVE, b"QXZJ"])
+@pytest.mark.parametrize("call", [call for call, _, _ in _REFUSALS], ids=_short_id)
+@pytest.mark.parametrize("value", [_DISTINCTIVE, b"QXZJ"], ids=_short_id)
 def test_refusal_message_names_the_type_not_the_value(call: Call, value: Any) -> None:
     with pytest.raises((StoreRefused, StoreCorrupt)) as caught:
         call(value)
@@ -150,7 +168,7 @@ def test_refusal_message_names_the_type_not_the_value(call: Call, value: Any) ->
     assert type(value).__name__ in str(caught.value)
 
 
-@pytest.mark.parametrize(("call", "value", "message"), _MESSAGES)
+@pytest.mark.parametrize(("call", "value", "message"), _MESSAGES, ids=_short_id)
 def test_error_message_names_the_rule_broken(call: Call, value: Any, message: str) -> None:
     with pytest.raises((StoreRefused, StoreCorrupt)) as caught:
         call(value)
