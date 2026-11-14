@@ -1,0 +1,131 @@
+"""The foundation's text, units named and the currency named, against the controller's key."""
+
+import decimal
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from credit_os.handoff.document import parse
+from credit_os.handoff.errors import HandoffError
+from credit_os.model.foundation import (
+    check_foundation,
+    foundation_text,
+    names_currency,
+    units_named,
+)
+from credit_os.model.inputs import parse_inputs
+from credit_os.model.inputs_json import read_forecast_document
+from credit_os.model.refusals import ForecastRefused, RefusalKind
+
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "model"
+KEY = json.loads((Path(__file__).with_name("expected") / "pr6a.json").read_text("utf-8"))
+ROWS = KEY["rows"]
+LABELS = [row["label"] for row in ROWS]
+
+
+def _edited(name: str, edits: list[list[str]]) -> str:
+    text = (FIXTURES / name).read_text("utf-8")
+    for old, new, *every in edits:
+        if every == ["all"]:
+            assert text.count(old) > 1, old
+        else:
+            assert every == [] and text.count(old) == 1, old
+        text = text.replace(old, new)
+    return text
+
+
+def _foundation(row: dict[str, Any]) -> Any:
+    name = row.get("foundation", "foundation.md")
+    return parse(_edited(name, row.get("edits", [])).encode("utf-8"))
+
+
+def _block(row: dict[str, Any]) -> dict[str, object]:
+    name = row.get("source", row.get("foundation", "foundation.md"))
+    document = read_forecast_document(parse((FIXTURES / name).read_bytes()))
+    for path, *value in row.get("ops", []):
+        holder: Any = document
+        for step in path[:-1]:
+            holder = holder[step]
+        if value:
+            holder[path[-1]] = value[0]
+        else:
+            del holder[path[-1]]
+    return document
+
+
+def _outcome(row: dict[str, Any]) -> list[str] | None:
+    try:
+        foundation = _foundation(row)
+        inputs, stated = parse_inputs(_block(row))
+        check_foundation(inputs, stated, foundation)
+    except ForecastRefused as error:
+        return [error.kind.value, error.subject, error.message]
+    except HandoffError as error:
+        return ["HandoffError", str(error)]
+    return None
+
+
+@pytest.mark.parametrize("label", LABELS)
+def test_row(label: str) -> None:
+    row = ROWS[LABELS.index(label)]
+    assert _outcome(row) == row["outcome"]
+
+
+@pytest.mark.parametrize("label", LABELS)
+def test_row_under_a_hostile_context(label: str) -> None:
+    row = ROWS[LABELS.index(label)]
+    with decimal.localcontext(decimal.Context(prec=5, rounding=decimal.ROUND_UP)):
+        assert _outcome(row) == row["outcome"]
+
+
+@pytest.mark.parametrize(("text", "named"), KEY["words"])
+def test_units_named(text: str, named: list[str]) -> None:
+    assert units_named(text) == frozenset(named)
+
+
+@pytest.mark.parametrize(("text", "code", "named"), KEY["currencies"])
+def test_names_currency(text: str, code: str, named: bool) -> None:
+    assert names_currency(text, code) is named
+
+
+def test_the_foundation_text_is_the_kept_tables_and_prose() -> None:
+    text = foundation_text(parse((FIXTURES / "foundation.md").read_bytes()))
+    joined = "\n".join(text)
+    assert "USD millions" in text
+    assert "Net debt is Total Debt less Cash & Equivalents." in text
+    assert "Annual report" not in joined
+    assert "Statements and the debt note." not in joined
+    assert "Harrow Vale Synthetic Industries reports earnings" not in joined
+    assert "schema_version" not in joined
+    assert "Calculations" not in joined
+
+
+def test_the_foundation_text_holds_labels_columns_cells_and_list_items_in_order() -> None:
+    source = (
+        "# F\n\n## Request\nr\n\n## Sources\n\n| S | U |\n| --- | --- |\n| a | b |\n\n"
+        "## Findings\n\n### Bottom line\n\nbl\n\n### Part\n\npara one\n"
+        "- item\n\n**Figures**\n| Col A | Col B |\n| --- | --- |\n| c1 | c2 |\n\n"
+        "```\ncode\n```\n\n## Calculations\ncalc\n\n## Gaps\ngap\n\n## Next module\nnext\n"
+    )
+    text = foundation_text(parse(source.encode("utf-8")))
+    assert text == (
+        "r",
+        "para one",
+        "item",
+        "**Figures**",
+        "Figures",
+        "Col A",
+        "Col B",
+        "c1",
+        "c2",
+        "calc",
+        "gap",
+        "next",
+    )
+
+
+def test_the_new_refusal_kinds_follow_cell() -> None:
+    kinds = [kind.value for kind in RefusalKind]
+    assert kinds[-3:] == ["cell", "unit", "currency"]

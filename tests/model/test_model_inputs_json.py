@@ -281,6 +281,8 @@ def test_refused_construction() -> None:
         "scale",
         "repayment",
         "cell",
+        "unit",
+        "currency",
     ]
     wrong: Any = "json"
     with pytest.raises(TypeError, match="^kind must be a RefusalKind$"):
