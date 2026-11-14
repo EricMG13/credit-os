@@ -41,7 +41,7 @@ def nano(value: Any) -> dict[str, Any]:
     return {"copilotUsage": {"totalNanoAiu": value}}
 
 
-IDLE = _event(90, "session.idle")
+IDLE = _event(90, "session.idle", aborted="true")  # only the bool True is an abort
 ABORTED = _event(90, "session.idle", aborted=True)
 _COUNTS = {
     "inputTokens": 12,
@@ -52,6 +52,7 @@ _COUNTS = {
 }
 _FULL = (12, 4, 0, 7, 2)  # input, cached read, cache write, output, reasoning
 _OUT9 = (None, None, None, 9, None)
+_OUT10 = (None, None, None, 10, None)
 _NONE5 = (None, None, None, None, None)
 _ERROR = _event(80, "session.error", errorType="upstream", message="boom", statusCode=503)
 
@@ -64,32 +65,16 @@ _ERROR = _event(80, "session.error", errorType="upstream", message="boom", statu
 #                                   tool call is (call_id, name, arguments, bad_arguments).
 # For an ok reply the turn's usage is the reply's usage and reported_model is MODEL. raw,
 # times and compactions are checked by rules in the brief, not per case.
+_FIELDS = ("kind", "error_class", "message", "usage", "charge", "turn")
+
+
+def _bad(*given: Any) -> dict[str, Any]:
+    """kind, error_class, message, then usage, charge and turn where they are not None."""
+    return {**dict.fromkeys(_FIELDS), **dict(zip(_FIELDS, given, strict=False))}
+
+
 def _ok(usage_: tuple[Any, ...], charge: str | None, turn: tuple[Any, ...]) -> dict[str, Any]:
-    return {
-        "kind": "ok",
-        "error_class": None,
-        "message": None,
-        "usage": usage_,
-        "charge": charge,
-        "turn": turn,
-    }
-
-
-def _bad(
-    kind: str,
-    error_class: str,
-    message_: str,
-    usage_: tuple[Any, ...] | None = None,
-    charge: str | None = None,
-) -> dict[str, Any]:
-    return {
-        "kind": kind,
-        "error_class": error_class,
-        "message": message_,
-        "usage": usage_,
-        "charge": charge,
-        "turn": None,
-    }
+    return _bad("ok", None, None, usage_, charge, turn)
 
 
 def _unparsable(detail: str, *figures: Any) -> dict[str, Any]:
@@ -98,8 +83,9 @@ def _unparsable(detail: str, *figures: Any) -> dict[str, Any]:
 
 
 _TEXT_TURN = ("done", (), "end", "api-1")
-_STOP = {**_COUNTS, "finishReason": "stop", "apiCallId": "api-1"}
+_STOP = {**_COUNTS, "finishReason": "stop", "apiCallId": "api-1", "providerCallId": "p-1"}
 _TOOLS = {"finishReason": "tool_calls", "outputTokens": 9}
+_TWO_CALLS: Any = (("c1", "read", {"p": 1, "scale": 1.5}, None), ("c2", "write", {}, None))
 
 EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
     # ---- a normal reply
@@ -141,27 +127,11 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
     "tool turn, requests and starts agree": (
         [
             usage(1, **_TOOLS),
-            message(
-                2,
-                "",
-                toolRequests=[
-                    {"toolCallId": "c2", "name": "write"},
-                    {"toolCallId": "c1", "name": "read"},
-                ],
-            ),
+            message(2, "", toolRequests=[{"toolCallId": "c2"}, {"toolCallId": "c1"}]),
             start(3, "c1", "read", arguments={"p": 1, "scale": 1.5}),
             start(4, "c2", "write", arguments=None),
         ],
-        _ok(
-            _OUT9,
-            None,
-            (
-                "",
-                (("c1", "read", {"p": 1, "scale": 1.5}, None), ("c2", "write", {}, None)),
-                "tool_use",
-                None,
-            ),
-        ),
+        _ok(_OUT9, None, ("", _TWO_CALLS, "tool_use", None)),
     ),
     "tool turn with no toolRequests on any message": (
         [usage(1, finishReason="tool_use", outputTokens=9), start(2, "c1", "read")],
@@ -188,7 +158,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         _unparsable("duplicate toolCallId", _OUT9),
     ),
     "sub-agent tool call": (
-        [usage(1, **_TOOLS), start(2, "c1", "read", parentToolCallId="c0")],
+        [usage(1, **_TOOLS), start(2, "c1", "read", parentToolCallId="")],
         _unparsable("sub-agent tool call", _OUT9),
     ),
     "tool call id that is not a non-empty string": (
@@ -225,6 +195,23 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
             message(2, "done"),
         ],
         _ok(_FULL, "0.00012300000", _TEXT_TURN),
+    ),
+    # ---- only an exact repeat (same id, type and data) is a redelivery; a reused id hides nothing
+    "a reused id with another charge is counted": (
+        [usage(1, **_STOP, **nano(100)), usage(1, **_STOP, **nano(10**12)), message(2, "done")],
+        _ok((24, 8, 0, 14, 4), "10.00000000100", _TEXT_TURN),
+    ),
+    "a usage event that reuses a message's id is counted": (
+        [message(1, "done"), usage(1, **_STOP, **nano(12300000))],
+        _ok(_FULL, "0.00012300000", _TEXT_TURN),
+    ),
+    "another model behind a reused id is seen": (
+        [usage(1, outputTokens=9), _event(1, "assistant.usage", model="gpt-other", outputTokens=1)],
+        _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _OUT10),
+    ),
+    "a message and a tool start delivered twice are read once": (
+        [usage(1, **_TOOLS), message(2, "x"), message(2, "x"), *[start(3, "c1", "read")] * 2],
+        _ok(_OUT9, None, ("x", (("c1", "read", {}, None),), "tool_use", None)),
     ),
     "a sum of more than 28 digits is exact": (
         [usage(1, **nano(5 * 10**29)), usage(2, finishReason="stop", **nano(5 * 10**29))],
@@ -286,9 +273,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
     ),
     "another model on one of two usage events": (
         [usage(1, outputTokens=9), _event(2, "assistant.usage", model="gpt-other", outputTokens=1)],
-        _bad(
-            "sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", (None, None, None, 10, None)
-        ),
+        _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _OUT10),
     ),
     "another model and nothing counted": (
         [_event(1, "assistant.usage", model="gpt-other", finishReason="stop")],
@@ -304,7 +289,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
     ),
     "a call failure that routed nowhere unusual is evidence only": (
         [
-            _event(1, "model.call_failure", source="top_level", isByok=False, isAuto=None),
+            _event(1, "model.call_failure", source="top_level", isByok="yes", isAuto=1),
             usage(2, **_STOP),
             message(3, "done"),
         ],
