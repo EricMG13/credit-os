@@ -6,7 +6,6 @@ given, and ``Redactor()`` matches key shapes only. This module does not import `
 
 from __future__ import annotations
 
-import functools
 import json
 import re
 import unicodedata
@@ -266,27 +265,14 @@ def _longest_first(forms: Iterable[str]) -> list[str]:
     return sorted(forms, key=lambda f: (-len(f), f))
 
 
-@functools.cache
-def _case_groups() -> dict[str, set[str]]:
-    groups: dict[str, set[str]] = {}
-    for char in map(chr, range(0x110000)):
-        groups.setdefault(char.casefold(), set()).add(char)
-    return groups
-
-
-def _case_forms(char: str) -> set[str]:
-    same = _case_groups().get(char.casefold(), set())
-    return {char} | {f for f in same if re.fullmatch(re.escape(char), f, re.IGNORECASE)}
-
-
 def _char_pattern(char: str, after_separator: bool, taken: bool = False) -> str:
-    """One character: as written, and each case form of it (every letter ``re.IGNORECASE`` holds the same) as
+    """One character: as written, and each same-length case form of it (as given, lower, upper) as
     ``\\uXXXX`` (a surrogate pair above U+FFFF), ``\\xXX`` (below U+0100), its UTF-8 bytes as
     ``\\xHH`` or ``\\u00HH``, and percent-encoded. The literal is one alternative: the pattern
     ignores case, and two alternatives for one text would let a failing match retry both."""
     plain = {re.escape(char)}
     escaped: set[str] = set()
-    for form in _case_forms(char):
+    for form in {f for f in (char, char.lower(), char.upper()) if len(f) == 1}:
         data = form.encode("utf-8", "surrogatepass")
         escaped |= {_escapes("u", _units(ord(form)), 4), _escapes("x", data, 2)}
         escaped.add(_escapes("u", data, 4))
@@ -317,22 +303,28 @@ def _form_patterns(form: str, after_separator: bool) -> list[str]:
                 rest = "".join(_char_pattern(c, False) for c in form[width:])
                 found.append(rf"{_token_lookbehinds(form[:width])}{rest}")
                 found.append(
-                    _token_lookbehinds(form[:width], "\\\\")
+                    _token_lookbehinds(form[:width], 8)
                     + "".join(_char_pattern(c, False, i == 0) for i, c in enumerate(form[width:]))
                 )
     return found
 
 
-def _token_lookbehinds(token: str, tail: str = "") -> str:
+def _token_lookbehinds(token: str, backslashes: int = 0) -> str:
     """Zero-width lookbehinds for a separator ``token`` as written and with its leading percent
     encoded once and twice (``%5c`` as ``%255c``, ``%25255c``), each only where the separator run
-    still takes it as one token."""
+    still takes it as one token. With ``backslashes`` the token is followed by 1 to that many
+    backslashes (one fixed-width lookbehind each: ``re`` has no variable-width one)."""
     seen = [token]
     for depth in (1, 2):
         encoded = "%" + "25" * depth + token[1:]
         if _SEPARATOR_TOKEN.fullmatch(encoded):
             seen.append(encoded)
-    return "(?:" + "|".join(rf"(?<={re.escape(t)}{tail})" for t in seen) + ")"
+    counts = range(1, backslashes + 1) if backslashes else (0,)
+    return (
+        "(?:"
+        + "|".join(rf"(?<={re.escape(t)}{chr(92) * 2 * k})" for t in seen for k in counts)
+        + ")"
+    )
 
 
 def _word(part: str, after_separator: bool) -> str:
@@ -436,7 +428,7 @@ class Redactor:
         case, one to eight backslashes, UTF-8 bytes included), percent-encoded (the percent
         itself up to twice), in NFC or NFD, each separator a run of up to 16 of ``/``, ``\\``,
         ``%2F``, ``%5C``, in any letter case. Case applies before encoding: each character's escape,
-        UTF-8 and percent forms are built from every letter ``re.IGNORECASE`` holds the same.
+        UTF-8 and percent forms are built from its as-given, lower and upper forms of the same length.
 
         Not guaranteed: another user's home (the net, best effort); Windows 8.3 short names; a
         case mapping that changes length (``ß`` to ``SS``); a bare user name; a value split
