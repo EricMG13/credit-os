@@ -13,7 +13,6 @@ import {
 } from "./parts/FilterBar";
 import { IssuerList, NO_BANDS, type Bands } from "./parts/IssuerList";
 import { IssuerCard, LoadingCard } from "./parts/IssuerCard";
-import { ButtonLink } from "./parts/ButtonLink";
 import { LibraryPage } from "./parts/LibraryPage";
 import { PAGE_NAME, PageTitle } from "./parts/PageTitle";
 import { RUN_START } from "./parts/links";
@@ -60,7 +59,7 @@ function NoRuns() {
         </EmptyState.Description>
       </EmptyState.Content>
       <EmptyState.Footer>
-        <ButtonLink href={RUN_START}>Start a run</ButtonLink>
+        <Button href={RUN_START}>Start a run</Button>
       </EmptyState.Footer>
     </EmptyState>
   );
@@ -194,7 +193,7 @@ export function Home() {
               <PageTitle>{PAGE_NAME.home}</PageTitle>
               <p className="text-body text-text-tertiary">{home.subtitle}</p>
             </div>
-            {home.cards.length === 0 ? null : <ButtonLink href={RUN_START}>Start a run</ButtonLink>}
+            {home.cards.length === 0 ? null : <Button href={RUN_START}>Start a run</Button>}
           </div>
           {home.cards.length === 0 ? <NoRuns /> : <Layout home={home} />}
         </div>

@@ -1,6 +1,6 @@
 import { BookOpen01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { ButtonLink } from "./ButtonLink";
+import { Button } from "@/components/base/buttons/button";
 import { SECTION_HEADING } from "./heading";
 import { PageTitle } from "./PageTitle";
 import { LIBRARY_HOME } from "./links";
@@ -17,9 +17,9 @@ export function Absent({ title, description }: { title: string; description: str
         <EmptyState.Description>{description}</EmptyState.Description>
       </EmptyState.Content>
       <EmptyState.Footer>
-        <ButtonLink href={LIBRARY_HOME} color="secondary">
+        <Button href={LIBRARY_HOME} color="secondary">
           Back to the library
-        </ButtonLink>
+        </Button>
       </EmptyState.Footer>
     </EmptyState>
   );

@@ -2,7 +2,7 @@ import { Link } from "react-aria-components";
 import { BookOpen01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { PageHeader } from "@/shell/PageHeader";
-import { ButtonLink } from "./parts/ButtonLink";
+import { Button } from "@/components/base/buttons/button";
 import { LibraryPage } from "./parts/LibraryPage";
 import { NotHeld } from "./parts/NotHeld";
 import { PAGE_NAME } from "./parts/PageTitle";
@@ -28,10 +28,10 @@ function NoReport({ issuer, sentence }: { issuer: Issuer; sentence: string }) {
           <EmptyState.Description>{sentence}</EmptyState.Description>
         </EmptyState.Content>
         <EmptyState.Footer>
-          <ButtonLink href={LIBRARY_HOME} color="secondary">
+          <Button href={LIBRARY_HOME} color="secondary">
             Back to the library
-          </ButtonLink>
-          <ButtonLink href={RUN_START}>Start a run</ButtonLink>
+          </Button>
+          <Button href={RUN_START}>Start a run</Button>
         </EmptyState.Footer>
       </EmptyState>
     </div>
@@ -53,10 +53,10 @@ function Feed({ issuer, latest }: { issuer: Issuer; latest: string }) {
           title={issuer.name}
           actions={
             <>
-              <ButtonLink href={overviewHref(issuer.id, latest)} color="secondary">
+              <Button href={overviewHref(issuer.id, latest)} color="secondary">
                 Open latest report
-              </ButtonLink>
-              <ButtonLink href={RUN_START}>New run</ButtonLink>
+              </Button>
+              <Button href={RUN_START}>New run</Button>
             </>
           }
         />
