@@ -1168,6 +1168,12 @@ describe("readSlice, modules", () => {
     const slice = fresh();
     const run = runOf(slice, 3);
     run.modules = [];
+    const evidence = run["evidence"] as {
+      moduleFilter: unknown[];
+      sources: { files: { readers: unknown }[] };
+    };
+    evidence.moduleFilter = [];
+    for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     run.head["firstModule"] = null;
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
