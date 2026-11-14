@@ -3,6 +3,154 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Design track: Signal pages (step D2e)
+
+**Merged** into `main` in stack order by the coordinator, 43 PRs as merge commits: #64, #65,
+#79, #80, #93, #94, #101, #117, #118, #119, #123, #124, #131, #132, #133, #143, #144, #145,
+#146, #154, #155, #172, #173, #174, #175, #188, #189, #190, #192, #193, #195, #203, #204,
+#205, #206, #238, #239, #240, #241, #242, #251, #252, #253. `main` after the last merge:
+`dca4981c`. `git diff --quiet origin/main cc1f8cb3 -- web/src/pages/signal
+web/fixtures/signal.json` exit 0: Signal's pages and fixture on `main` equal the final head
+`cc1f8cb3`. Review coverage: the whole-branch review covers `eb8a83ae..419c360a`; the scoped
+re-review covers `419c360a..42ee09f8`; `cc1f8cb3` (task 18d, 17 lines, the re-review's one
+Low) was gated and checked by the controller against the reviewer's probes (t18-2, t18-2b,
+wb-4 exit 0) and had no review round of its own, as the owner's rule for Low findings allows.
+
+**Order of merging.** #64 to #242 were merged at about 15:20 UTC, before the fix wave's CI
+finished, so for about 15 minutes `main` (`be376a0d`) held the two Medium findings of the
+whole-branch review. #251 to #253 were merged at about 15:32 UTC once their checks passed.
+
+- **D2e, Signal pages**: 43 stacked PRs, #64 on `main`, each based on the one before. The
+  stack touches only `web/src/pages/signal/` and `web/fixtures/signal.json` (75 files,
+  +16219/-8 against `eb8a83ae`). Every PR within 800 changed lines.
+- PR #167 (a contributed fix from an owner-started process) was placed in the stack as task 15
+  (#238): its five named commits applied, its three defects confirmed by failing tests first;
+  its branch's later commits were weighed in the sweep and not applied. #167 was closed as
+  superseded by the lead coordinator on the owner's instruction (a comment on the PR lists
+  where each commit landed): b6c8ab1e, 364d326b, 1e7e9483, 31977282 and df133331 landed as
+  task 15 (#238); 06213690 in #240; 8769cf4f and fb818546 were ruled as sweep row S12, with
+  repeated statuses re-announced in #242; 16351f09 and 3dea9e97 are formatting and one test.
+
+**Delivers.** The Signal pages from the D1 mocks on fixture data: the feed (For you, Latest,
+Saved; kind tabs, search, new-stories pill, older stories), the four story kinds, the name
+dialog, topic pages with follow, groups and threads (comments, replies, reactions, archived and
+note threads), Share to a group, digests (feed cards and the digest page), and Settings
+(Groups, Thread rules, Sources, Topics, Digests, Notifications, AI and cost; a reader sees
+Topics and Notifications only). Eleven fixture scenes cover the empty, loading, unreachable,
+not-checked, no-sources, nothing-followed, AI-on and AI-capped states. All state is in memory;
+write controls are disabled with a visible reason; AI is off by default and its toggles are
+disabled in every scene.
+
+**Coordinator pre-check** on the final head `cc1f8cb3`, before merge: no file outside
+`web/src/pages/signal/` and `web/fixtures/signal.json`; no PR over 800 changed lines; no
+fetch, storage, raw HTML, suppression or number formatting added; `setTimeout` appears only
+in three test files (`share.test.tsx`, `sweep-fixes.test.tsx`, `thread.test.tsx`, a 50 ms wait
+each); `git merge-tree` of the head with `main` clean.
+
+**Gates** (controller's reports; the reports are kept outside the repository, in the
+coordinator's session notes folder `d2e-records/`).
+- `npm --prefix web run gates`: exit 0 at `419c360a` (task 17 tip) and at `cc1f8cb3` (task
+  18d), and on `42ee09f8` merged with `main` `970bc152` (merge-tree clean; D2c's chart and
+  model pages included). Exit 0 on the task 18 commits `7c220f83`, `c27ade8f` and `42ee09f8`
+  per the implementer. Explicit gate results are recorded for task 2 (controller gates on
+  `4c2501b` exit 0; implementer on both commits), task 10 (the chained run of 10a timed out
+  twice in the file check; that step alone exited 0 later), task 13 (13a and 13b never passed
+  the open-from-disk step locally, headless Chrome hung under load; 13c and 13d did), task 17
+  (tip gates exit 0) and task 18. For tasks 1, 3 to 9, 11, 12, 14 and 16 only the ledger's
+  gates-first-pass `y` is recorded; no gate result is recorded for task 15's commits. CI
+  decided the heads without a local result.
+- CI: every PR head green on `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
+  before its merge. On #94, #143, #144, #146, #154, #188, #193 five older duplicate runs show
+  as cancelled (cancelled by the coordinator earlier); each head also has five passing checks.
+  On #144 (head `596af9f`) run 43581602424 (web) failed on Windows with the
+  `DevToolsActivePort` read race (EBUSY) fixed on `main` by #156, all tests before it passing,
+  and run 43581601758 (python) was cancelled; neither is a failure of that PR's tree, and the
+  forward push replaced both. The stack was not forwarded onto `main` after `970bc152`, so no
+  CI run covered a PR head merged with later `main`.
+
+**Reviews.**
+- Task review per task, `mx-precise` (18 tasks; task 15 also reviewed #167's commits).
+- Sweep discovery, `/sweep refactoring discover changed-update` (`mx-autonomous`): 22 rows;
+  S1 to S8 fixed in task 17 (#241, #242); S9 not a defect (ruled); S10 reopened by the whole-branch
+  review and fixed in the task 18 wave (#251 to #253); S11 deferred (back-end contract note); S13 reconciled; S14 and S15 fixed at base; S16
+  platform-only; S19 to S22 (structure, duplication) go to the phase sweep; S12 and S17 are kit decisions; S18 holds owner questions.
+- Whole-branch adversarial review (`mx-architect`, fresh agent, `eb8a83ae..419c360a`): FAIL,
+  High 0, Medium 2 (a topic or group count badge beside a page that lists nothing; a pressed
+  Save forgotten when a filter hides the card), Low 6, Info 4. One fix wave (task 18, #251 to
+  #253): the reviewer's probes exit 1 before and 0 after. Scoped re-review (`mx-precise`):
+  PASS, High 0, Medium 0, Low 1 (Settings panel id after a section change; fixed as 18d,
+  its probes exit 0), Info 2.
+
+**Live validation** (the D2e controller, 2026-11-14). `file://` in headed Chrome over its
+debugging protocol: 51 addresses at 1440 and 1024 (one `h1`, one `main`, no horizontal
+scroll, no "Not built yet", `undefined` or `NaN`, console clean); per-task interaction walks
+t1 to t15 replayed on the finished stack (both at `419c360a`; all pass; t2's step names an old button label, Save
+verified by pointer and keyboard); the task 18 walk, on the fix wave (tab panels, Save across search, kind
+tabs, group page and scenes; filled topic pages; no overflow at 1024). Localhost in the app's
+browser pane (owner-watchable): feed, thread by address, digest, Sources and AI settings,
+reader Settings, name dialog, topic, unreachable feed, Share dialog error and focus return.
+The content-policy and no-network checks count on `file://` only.
+
+**Rulings** (controller, each reversible; full list in the D2e ledger):
+- Mock frames are the answer key over brief prose, except three safety rules (Run once now,
+  Save digest and AI toggles stay disabled with their reasons).
+- Reader coherence rules tie threads, thread references, digests, Settings groups and topics,
+  sources and the freshness line, AI state, Saved, and count badges to the pages they sit
+  beside; ids must be non-empty and fit an address.
+- Settings is one column below `xl` with the section list as a tab row; the Sources table folds
+  its last-check line under the source.
+- The Saved badge is null while the feed loads (departure from the mock's loading frame).
+- Topic counts keep the mock's values; empty topic views are filled from the scene's stories.
+- A group's unread badge is null in the 9 scenes where the group holds no thread (the mock's
+  nav shows 3).
+- Reaction labels are Agree, Disagree and Seen (decision 0006 ruling 19) over the mock's
+  "Important" and the back end's keys.
+- A reply quotes its parent's whole text (no excerpt field).
+- Comment counts and reaction counts are not recomputed after an in-memory action.
+- Settings freshness: `freshness.failing` is non-null exactly when a source is Failing, and
+  main's line reads "Sources checked 6 min ago · 1 source failing".
+- The nothing-material sample moved to 13 Nov for date order.
+- S11: `top` is required on Latest and Saved views and never drawn (a back-end contract note).
+- `moreMembers` on one list only is accepted (Info, parked).
+- The whole-branch review was dispatched while the tip's Windows web gates sat in a 75-run
+  queue (the change is front-end, not sensitive code); Windows was to be read on every head
+  before the report.
+- The full ledger is kept in the notes folder `d2e-records/`.
+
+**Ledger** (D2e). All `agent=mx-feature`. fix-rounds 0 for tasks 3, 6, 9, 14, 16, 17, 18;
+1 for tasks 1, 4, 5, 7, 8, 11, 12, 13, 15; 2 for tasks 2 and 10. gates-first-pass `y` for
+1, 3 to 9, 11, 12, 14, 16, 17, 18; `n` for 2, 10, 13, 15. Task 9 lost three implementers to
+machine restarts.
+
+**Open for the owner.**
+- Frame 8 of the Settings mock says "Nothing is spent." beside USD 6.40 (drawn at
+  `main/settings/ai`): keep the mock's words or change them.
+- Reactions: the back end's key for a reaction; two visibility vocabularies for groups.
+- No per-issue route for earlier digest rows; AI parts are not tied to the snapshot.
+- Paid-call rulings for any write control.
+- Predecessor features not built: Join/Leave, member management, the note dialog, new group,
+  comment edit and delete, thread chips.
+- Kit changes needed: EmptyState title as `h1`; segmented Tabs and the hovered vertical tab;
+  Input `sm`; StatusBadge label override; ButtonGroup radio semantics; TooltipTrigger ref;
+  SlideoutMenu header close label and overlay class; a kit toggle (`parts/Toggle` is the swap
+  point); Select (`aria-invalid`, long names, 36px/14px, trigger ref); `Table.Head` nowrap;
+  ProgressBar `valueText` and its fill transition; Alert without a fixed role; a shared trace
+  control.
+- Pre-existing: `App.tsx` still lists `/signal` under `NOT_BUILT` (dead since the home route).
+
+**Not verified.** Edge and Windows beyond CI; a screen reader (I3: a status sentence written
+as a modal closes may not be spoken while the overlay exits); Chrome and Edge accessibility
+trees for the tab panels, and whether the Share modal's inert outside holds in real browsers
+(every reviewer probe ran in jsdom only); that any reviewer read `cc1f8cb3`; that the
+re-reviewer ran the new `id-rules.test.ts` and `tab-panels.test.tsx` (it read them, it did
+not run them); the layout at 1440 and 1024 after the Tabs change (the re-reviewer relied on
+the implementer's screenshots); a live walk on `cc1f8cb3` or on merged `main`; reduced motion switched on; pixel comparison with
+the mock frames; whether the Signal service will send the shapes the reader now requires; the
+Python gates on the stack (it touches no Python; CI runs them); the push runs of the `web`
+and `python` workflows on `main` `dca4981c` (queued when this entry was written), and any CI
+run of a PR head merged with later `main` (the stack was not forwarded after `970bc152`);
+mutation testing; the whole-branch review sampled the tests rather than auditing each.
+
 ## 2026-11-14 Design track: Model and Forecast pages and the chart kinds (step D2c)
 
 **Merged** into `main` in stack order by the coordinator, 28 PRs as merge commits: #69,
@@ -813,131 +961,3 @@ each merge.
 - No fixture or retained reply holds an empty cell or text on a tag's own line; the 14-row
   form of Confidence inputs is tested by synthetic rows only.
 - The gap between a link check and the open is not closed.
-
-## 2026-11-14 Roadmap back end: 1C PR 2 and Signal's network pin
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #63 | 1C PR 2 | `b3d2b7f`, `ee28e4a` | Compaction outcome, event id and replacement link; `close()` returns compactions; float tool arguments (339 lines) |
-| #74 | Signal S-2a, 1 of 2 | `110b273`, `6489c01` | `signal/netpin.py`: public-address check and pinned https connection, carried (785 lines) |
-| #75 | Signal S-2a, 2 of 2 | `ba60879`, `94c0dc3` | Review fixes: explicit ranges, strict X.509, the pin re-checks its address (380 lines) |
-| #68 | records | `16a1fc6` | The entry below this one and the 1A and 1D plan rules |
-
-**Reviews.**
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #63 | `mx-precise` approved; `mx-adversary` PASS; scoped `mx-adversary` on the replacement link PASS, Info 3 | 0 confirmed defects | PASS on `b838513`: High 0, Medium 0, Low 4, Info 5 |
-| #74, #75 | `mx-precise` pass; `mx-adversary` Medium 1 (the handshake could take twice the time left; fixed in #74), Low 4, Info 6, re-review closed | no defect outside security | FAIL at `a0f3adc`: Medium 1, a test gap on what `connect` hands to the socket budget |
-
-**The Medium on #75, and a second round.** The whole-branch Medium was closed by tests against
-the reviewer's four mutants, and no reviewer saw that fix. The coordinator dispatched a scoped
-`mx-adversary` re-review: FAIL, the gap was half closed. Four more mutants survived, one of
-them the per-operation timeout and the total deadline swapped, which would refuse every fetch
-in production. One test row was added (`ba60879`); the coordinator ran the reviewer's probe on
-that head: 21 of 21 mutants as expected, no survivor. The first fix (`a0f3adc..16d20ec`) also
-deleted the unused `_BudgetedSocket.send` and `.recv` and added `close()` to `ResponseLike`; the
-re-review read that diff and found nothing at Medium or above. The second changed tests only.
-The re-review's report was returned as text and is not saved as a file; its two probes are.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #63
-on `b3d2b7f` (1,030 passed, coverage 100%), #75 on `ba60879`; `npm --prefix web run gates`
-exit 0 for the Signal PRs. CI green on Ubuntu, Windows and the review job on each merged head; #75's
-run on `ba60879` after it was retargeted to `main` is the one the coordinator read before merging. Mutation on #63 (`mutmut`, `src/credit_os/provider/`):
-719 mutants, 710 killed, 9 equivalent. Signal: hand mutants only.
-
-**Ledger.**
-- `1C-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1C-2 task=1-lows agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1C-2 task=1b agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `S-2a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `S-2a task=2 agent=mx-feature fix-rounds=2 gates-first-pass=n`
-
-**Rulings by the coordinator.** In the 1C plan and the addendum to decision 0009. The ones a
-later step depends on:
-- A completed compaction names the unfinished one it replaces only when exactly one is
-  outstanding. Step 3A drops a replaced entry only when it is unfinished and its completing
-  entry is present; the completing entry's own charge then counts, and an unknown one keeps
-  the spend unknown.
-- In SDK 1.0.8 a call routed to another model that succeeds first time gives no signal; the
-  routing refusals can only be read from a failed call.
-- Signal's fetcher tests go through the real pinned connection at least once.
-- A Signal ready message says which review ran on which head, and whether any fix after the
-  last review was itself reviewed.
-
-**Not verified.**
-- That runtime 1.0.108 never runs two compactions at once, and that a complete always follows
-  its own start. Nothing in `provider/` has run against a live session.
-- `netpin.py` on CPython 3.12.0 to 3.12.3 (simulated by patched tables), against a public
-  certificate authority, or against a corporate inspection root on the work PC.
-- `mutmut` on the Signal PRs. `confidence-review` and `rewrite-tournament` were not run on
-  their diff.
-- The Signal session reported 14 probes at exit 0 after its first fix round with wrong exit
-  codes (a shell loop printed another command's status); it re-ran them through the
-  reviewer's seam and reports every result holds. The coordinator did not re-run those.
-
-## 2026-11-14 Roadmap back end: 1A PR 4 and 1D PR 1b-names
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #53 | 1A PR 4 | `41edd3d`, `d21b706` | Format detection, reader passages, Basis lines, earlier-format reader summary (741 lines) |
-| #61 | 1D PR 1b-names | `3b5dec2`, `7edca04` | A reason per name rule, wider refusals, length caps, name echo bounded at 120 characters (285 lines) |
-| #54 | records | `69e862a`, `50d6b4b` | The entry below this one and the 1A and 1C plan rules |
-
-**Reviews.**
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #53 | `mx-precise`: Basis lines needed fixes, Medium 2 (a bare `.pdf` read as a source; a page number over 4,300 digits raised), closed in one round and re-reviewed; reader approved | no confirmed defect; Low 1, Info 8 | PASS on `aa3aa93`: High 0, Medium 0, Low 4, Info 9. Two batches followed with no review round |
-| #61 | `mx-precise` PASS, Info 1; `mx-adversary` PASS, Low 3, Info 3 (both on the branch before it was split from #59 and before the echo bound) | 0 confirmed; 1 measured structural, 2 evidence gaps | PASS on `e5f8315`: High 0, Medium 0, Low 2, Info 6. One test row followed |
-
-#53's answer keys were generated by the controller's script, so each task reviewer wrote its
-own reader from the fixture bytes: no disagreement with the key or the code on the 25 full
-fixtures and the 11 Basis lines. #61's adversary ran 4.78 million names against an independent
-oracle at `7d22e09`, before the echo bound: each was refused with `SourceRefused` or returned unchanged.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #53
-on `41edd3d` (946 tests, `credit_os.handoff` coverage 100%), #61 on `3b5dec2` (macOS). CI green
-on Ubuntu, Windows and the review job on both heads. Mutation on #61 (`mutmut`, at `e5f8315`):
-86 of 86 killed.
-
-**Ledger.**
-- `1A-4 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1A-4 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1A-4 task=3(end batch) agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1A-4 task=4(end batch 2) agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1D-1b task=1(name rules) agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1D-1b task=low-batch-1 agent=mx-scaffold then mx-feature fix-rounds=0 gates-first-pass=n`
-  (`mx-scaffold` reported BLOCKED)
-- `1D-1b task=echo-bound agent=mx-feature fix-rounds=0 gates-first-pass=n`
-
-**Rulings by the coordinator.** In the 1A and 1D plans. The ones a later step depends on:
-- Real replies cite a source named `context`, with no extension; #53 reads such an item as
-  plain text. 1A PR 5 matches Basis items against the names in the document's own Sources
-  table.
-- The earlier format's bracket citations are not read. Delivery draws no earlier-format
-  paragraph unless a reader for them is added to `handoff/` first.
-- A reader summary that is present but unreadable is an explicit gap, never absent. 20 of the
-  52 retained earlier-format replies have one; all 20 are first drafts.
-- A source name that is or passes through a symbolic link is refused (in #59, not yet merged).
-  `COM0` and `LPT0` join the reserved names in 1D PR 1c.
-- pydantic's error output carries the whole refused name of a pin; the first layer that loads
-  pin records bounds it.
-
-**Not verified.**
-- No JavaScript engine was run: the predecessor's Basis reader was compared through a Python
-  port and by reading.
-- A reviewer's mutant probe on #53 no longer runs after the end batch restructured `basis.py`;
-  the kill of its two surviving mutants rests on the seven new rows.
-- Every new-format real reply comes from one run. The reason for the empty reader summary
-  heading was read in 2 of the 20 drafts.
-- #61: nothing on a real Windows file system beyond the CI run; mutation was not rerun on
-  `3b5dec2` (one test row after `e5f8315`); the task reviews ran before the echo bound.
-- How the work PC renders `…` in a message.
-- `npm --prefix web run gates` did not run for either PR; neither changes a web file.
