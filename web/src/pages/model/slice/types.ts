@@ -13,7 +13,9 @@ export type ModelRun = {
   front: FrontPage;
   analysis: AnalysisPage;
   statements: StatementsPage;
+  portfolioFit: PortfolioFitPage;
   limitations: LimitationsPage;
+  forecast: ForecastPage;
 };
 
 /** A word of the status kit's "Run states" set. */
@@ -195,6 +197,7 @@ export type ColumnsData = ChartInfo & {
   groups: { label: string; trace: string | null }[];
   series: { name: string; values: (number | null)[]; labels: (string | null)[] }[];
 };
+
 /** One header note per case, in the order of `ModelRun.cases`. */
 type CaseNote = { text: string };
 
@@ -309,4 +312,124 @@ export type AnalysisLimitations = {
   linkText: string;
   href: string;
   items: { title: string; text: string; trace: string | null }[];
+};
+
+export type PortfolioFitPage = {
+  limits: Limits;
+  ratings: Ratings;
+  relativeValue: RelativeValue;
+  scatter: HoldingsScatter;
+  strips: HoldingsStrips;
+};
+
+/** One column on its own scale. A text is `null` exactly where its value is; `cells` is the table row. */
+export type LimitsColumn = {
+  label: string;
+  exposure: number | null;
+  limit: number | null;
+  scaleMax: number;
+  exposureText: string | null;
+  limitText: string | null;
+  /**
+   * The exposure's text, then the limit without its word ("3.0%"): the first is `exposureText`,
+   * the second is `limitText` less "limit " and `null` exactly where the limit is missing.
+   */
+  cells: [string | null, string | null];
+};
+
+export type Limits = ChartInfo & { head: string[]; columns: LimitsColumn[] };
+
+/** A rating and its outlook line; both `null` when missing. */
+export type RatingTile = { label: string; value: string | null; caption: string | null };
+
+export type Ratings = { title: string; trace: string | null; tiles: [RatingTile, RatingTile] };
+
+/** The part that failed in this run: its name and the sentence saying why. */
+export type RelativeValue = { title: string; part: string; reason: string };
+
+export type ScatterAxis = {
+  title: string;
+  /** The measure's name inside a sentence ("net leverage"). */
+  short: string;
+  ticks: { value: number; label: string }[];
+};
+
+/** A holding or the issuer (`emphasis`, at most one); `cells` is the x then the y string. */
+export type ScatterRow = {
+  name: string;
+  x: number | null;
+  y: number | null;
+  xText: string | null;
+  yText: string | null;
+  emphasis: boolean;
+  cells: [string | null, string | null];
+};
+
+export type HoldingsScatter = ChartInfo & {
+  x: ScatterAxis;
+  y: ScatterAxis;
+  othersName: string;
+  head: string[];
+  points: ScatterRow[];
+};
+
+/**
+ * A range strip row on its own axis; `range: null` draws no strip, so no marker either. The last
+ * `markers.length` entries of `cells` are the markers' texts in marker order (the cells before
+ * them state the range): each equals its marker's `text`, `null` exactly where the marker is
+ * missing. The drivers table is the same shape, its markers being the cases in case order.
+ */
+export type StripRow = {
+  label: string;
+  rangeText: string;
+  range: { low: number; high: number } | null;
+  markers: { name: string; value: number | null; text: string | null }[];
+  axis: { min: number; max: number };
+  cells: (string | null)[];
+};
+
+export type HoldingsStrips = ChartInfo & { rangeLabel: string; head: string[]; rows: StripRow[] };
+
+/** A tab of the run's library pages, drawn on the Forecast page; `count` is a delivered string. */
+export type RunTab = { label: string; href: string; count: string | null; current: boolean };
+
+/** What the two line charts share: the divider, the axis and the table side. */
+type PathBlock = ChartInfo & {
+  divider: { period: string; at: "on" | "after"; label: string };
+  yTicks: Tick[];
+  /** The first entry heads the label column; the rest are the page's periods. */
+  head: string[];
+  rows: { label: string; cells: (string | null)[] }[];
+};
+
+/** A line: one value and one label per period; a label is `null` where none is drawn. */
+type PathSeries = { name: string; values: (number | null)[]; labels: (string | null)[] };
+
+/**
+ * Interest cover: `cases` holds one line per case, in case order, and the chart draws the chosen
+ * one. The table holds one row per case.
+ */
+export type InterestCover = PathBlock & {
+  cases: { values: (number | null)[]; labels: (string | null)[] }[];
+};
+
+/** EBITDA by case: every line is always drawn; the table holds one row per line. */
+export type EbitdaPaths = PathBlock & { series: PathSeries[] };
+
+export type ForecastPage = {
+  tabs: RunTab[];
+  /** The periods of both line charts, oldest first. */
+  periods: string[];
+  /** A driver's markers are one per case, in case order, named as the cases are. */
+  drivers: HoldingsStrips;
+  /** Legend entry k is marker k's wording and the case it belongs to, in case order. */
+  driverKeys: { label: string; case: string }[];
+  interestCover: InterestCover;
+  ebitda: EbitdaPaths;
+  /** The cash flow walk for FY26, drawn for the chosen case. */
+  walk: Bridge;
+  gap: GapItem;
+  /** What would change the forecast, drawn as a standout note. */
+  watch: Passage;
+  limitations: { title: string; text: string; href: string };
 };
