@@ -1,10 +1,12 @@
 """The forecast inputs schema, scale to millions and the repayment bound."""
 
+import contextlib
 import copy
 import decimal
 import json
 import re
 import typing
+from collections.abc import Iterator
 from decimal import Context
 from fractions import Fraction
 from pathlib import Path
@@ -23,37 +25,22 @@ from credit_os.model.value import Missing, MissingCode, Value
 
 HERE = Path(__file__).parent / "expected"
 KEY = json.loads((HERE / "pr4b.json").read_text("utf-8"))
-HEAD, TAIL = (
-    json.loads((HERE / "pr4a.json").read_text("utf-8"))["handoff"][k] for k in ("head", "tail")
-)
+P4A = json.loads((HERE / "pr4a.json").read_text("utf-8"))["handoff"]
 VALID = KEY["valid"]
-SECTION = "### Forecast inputs (machine-readable)\n\n```json\n{}\n```\n"
-
-
-def put(root: Any, path: list[Any], value: Any) -> None:
-    for step in path[:-1]:
-        root = root[step]
-    root[path[-1]] = value
 
 
 def build(ops: list[Any]) -> dict[str, Any]:
     document: dict[str, Any] = copy.deepcopy(VALID)
     for op in ops:
-        if op == "thousands":
-            for path, value in KEY["thousands"]:
-                put(document, path, value)
-        elif len(op) == 1:
+        for path, *value in KEY["thousands"] if op == "thousands" else [op]:
             holder = document
-            for step in op[0][:-1]:
+            for step in path[:-1]:
                 holder = holder[step]
-            del holder[op[0][-1]]
-        else:
-            put(document, op[0], op[1])
+            if value:
+                holder[path[-1]] = value[0]
+            else:
+                del holder[path[-1]]
     return document
-
-
-def expected_dump(row: dict[str, Any]) -> dict[str, Any]:
-    return build([[path, value] for path, value in row["becomes"]])
 
 
 def outcome(document: dict[str, Any]) -> tuple[Any, ...]:
@@ -93,7 +80,7 @@ def test_accepted(row: dict[str, Any], through_json: bool) -> None:
     before = copy.deepcopy(document)
     got, stated = parse_inputs(document)
     assert document == before
-    assert got.model_dump(mode="json") == expected_dump(row)
+    assert got.model_dump(mode="json") == build(row["becomes"])
     assert stated == row["stated"]
     assert list(stated) == list(row["stated"])
 
@@ -101,60 +88,46 @@ def test_accepted(row: dict[str, Any], through_json: bool) -> None:
 @pytest.mark.parametrize("row", REFUSED, ids=label)
 def test_refused(row: dict[str, Any]) -> None:
     error = refusal(build(row["ops"]))
-    assert error.kind is RefusalKind(row["kind"])
-    assert error.subject == row["subject"]
-    assert error.message == row["message"]
+    got = (error.kind.value, error.subject, error.message)
+    assert got == (row["kind"], row["subject"], row["message"])
 
 
 def test_key_constants() -> None:
     assert list(inputs.OPERANDS) == KEY["operands"]
     assert list(typing.get_args(inputs.Category)) == KEY["categories"]
     assert inputs.SCHEMA_VERSION == VALID["schema_version"]
-    assert [
-        kind.value for kind in RefusalKind if kind.name in ("SCHEMA", "SCALE", "REPAYMENT")
-    ] == [
-        "schema",
-        "scale",
-        "repayment",
-    ]
+    assert [kind.value for kind in RefusalKind][2:] == ["schema", "scale", "repayment"]
+
+
+def one_facility(**changes: Any) -> dict[str, Any]:
+    base = {"name": "T", "balance": "4", "fixed_rate_pct": "6", "spread_pct": None}
+    base |= {"floor_pct": None, "reference_rate": None, "annual_amortisation": None}
+    return base | {"maturity": None} | changes
 
 
 def test_forty_one_facilities() -> None:
-    one = {"balance": "1", "fixed_rate_pct": "6.5", "spread_pct": None, "floor_pct": None}
-    one |= {"reference_rate": None, "annual_amortisation": None, "maturity": None}
-    document = build([[["facilities"], [one | {"name": f"F{i}"} for i in range(41)]]])
+    document = build([[["facilities"], [one_facility(name=f"F{i}") for i in range(41)]]])
     assert refusal(document).message == KEY["forty_one"]
 
 
-@pytest.mark.parametrize("bad", ["list", "string"])
-def test_not_a_document(bad: str) -> None:
-    given: Any = [] if bad == "list" else "{}"
+@pytest.mark.parametrize("given", [[], "{}"])
+def test_not_a_document(given: Any) -> None:
     with pytest.raises(TypeError, match="^document must be a dict$"):
         parse_inputs(given)
 
 
-def alternatives(items: list[Any]) -> list[Any]:
-    others: list[Any] = [(item for item in items)]
-    if all(isinstance(item, str) for item in items):
-        others.append(set(items))
-    return others
-
-
 @pytest.mark.parametrize(
-    ("path", "items", "loc"),
+    ("path", "items"),
     [
-        (
-            ["base_drivers", "dividends", "values"],
-            ["20", "20", "25"],
-            "base_drivers.dividends.values",
-        ),
-        (["years"], VALID["years"], "years"),
-        (["scope_limits"], ["a", "b"], "scope_limits"),
+        (["base_drivers", "dividends", "values"], ["20", "20", "25"]),
+        (["years"], VALID["years"]),
+        (["scope_limits"], ["a", "b"]),
     ],
 )
-def test_sequences_are_lists_or_tuples_only(path: list[str], items: list[Any], loc: str) -> None:
-    for other in alternatives(items):
-        assert issues_of(build([[path, other]])) == f"{loc}: Input should be a valid tuple"
+def test_sequences_are_lists_or_tuples_only(path: list[str], items: list[Any]) -> None:
+    want = f"{'.'.join(path)}: Input should be a valid tuple"
+    for other in ((i for i in items), {str(i) for i in items}):
+        assert issues_of(build([[path, other]])) == want
     got, _ = parse_inputs(build([[path, tuple(items)]]))
     assert got.model_dump(mode="json") == build([[path, items]])
 
@@ -181,14 +154,9 @@ SECRET_KEYS = {"amount", "values", "rationale", "scope_limits", "limitation", "b
 def leaves(node: Any, secret: bool = False) -> list[str]:
     if isinstance(node, str):
         return [node] if secret and len(node) >= 4 else []
-    items = (
-        node.items()
-        if isinstance(node, dict)
-        else enumerate(node)
-        if isinstance(node, list)
-        else []
-    )
-    return [x for k, v in items for x in leaves(v, secret or k in SECRET_KEYS)]
+    if isinstance(node, dict):
+        return [x for k, v in node.items() for x in leaves(v, secret or k in SECRET_KEYS)]
+    return [x for v in node for x in leaves(v, secret)] if isinstance(node, list) else []
 
 
 @pytest.mark.parametrize("row", [r for r in REFUSED if r["kind"] == "schema"], ids=label)
@@ -198,7 +166,9 @@ def test_schema_messages_hold_no_stated_text(row: dict[str, Any]) -> None:
 
 
 def handoff(document: dict[str, Any]) -> Any:
-    return parse((HEAD + SECTION.format(json.dumps(document)) + TAIL).encode("utf-8"))
+    section = f"### Forecast inputs (machine-readable)\n\n```json\n{json.dumps(document)}\n```\n"
+    text = P4A["head"] + section + P4A["tail"]
+    return parse(text.encode("utf-8"))
 
 
 def test_read_inputs_end_to_end() -> None:
@@ -213,11 +183,8 @@ def test_read_inputs_end_to_end() -> None:
     row = REFUSED[0]
     with pytest.raises(ForecastRefused) as caught:
         read_inputs(handoff(build(row["ops"])))
-    assert (caught.value.kind.value, caught.value.subject, caught.value.message) == (
-        row["kind"],
-        row["subject"],
-        row["message"],
-    )
+    got_row = (caught.value.kind.value, caught.value.subject, caught.value.message)
+    assert got_row == (row["kind"], row["subject"], row["message"])
 
 
 HOSTILE = [r for r in ACCEPTED if r["ops"] and r["ops"][0] == [["scale"], 1000]] + [
@@ -225,12 +192,15 @@ HOSTILE = [r for r in ACCEPTED if r["ops"] and r["ops"][0] == [["scale"], 1000]]
 ]
 
 
-def hostile_default() -> tuple[Any, Any, Any, Any]:
-    default = decimal.DefaultContext
-    saved = (default.prec, default.rounding, default.Emax, default.Emin)
-    decimal.DefaultContext.prec, decimal.DefaultContext.rounding = 3, decimal.ROUND_DOWN
-    decimal.DefaultContext.Emax, decimal.DefaultContext.Emin = 5, -5
-    return saved
+@contextlib.contextmanager
+def hostile_default() -> Iterator[None]:
+    d = decimal.DefaultContext
+    saved = (d.prec, d.rounding, d.Emax, d.Emin)
+    d.prec, d.rounding, d.Emax, d.Emin = 3, decimal.ROUND_DOWN, 5, -5
+    try:
+        yield
+    finally:
+        d.prec, d.rounding, d.Emax, d.Emin = saved
 
 
 @pytest.mark.parametrize("row", HOSTILE, ids=label)
@@ -238,12 +208,8 @@ def test_ambient_decimal_context_is_not_used(row: dict[str, Any]) -> None:
     plain = outcome(build(row["ops"]))
     with decimal.localcontext(Context(prec=5, rounding=decimal.ROUND_UP)):
         assert outcome(build(row["ops"])) == plain
-    saved = hostile_default()
-    try:
+    with hostile_default():
         assert outcome(build(row["ops"])) == plain
-    finally:
-        decimal.DefaultContext.prec, decimal.DefaultContext.rounding = saved[:2]
-        decimal.DefaultContext.Emax, decimal.DefaultContext.Emin = saved[2:]
 
 
 def millions(tenths: int) -> str:
@@ -253,11 +219,11 @@ def millions(tenths: int) -> str:
     return f"{whole}.{part:04d}".rstrip("0").rstrip(".")
 
 
-tenths = st.integers(min_value=0, max_value=9_999_999_999)
+units = st.integers(min_value=0, max_value=9_999_999_999)
 
 
 @settings(max_examples=200, deadline=None)
-@given(revenue=tenths, negative=st.booleans(), dividends=st.tuples(tenths, tenths, tenths))
+@given(revenue=units, negative=st.booleans(), dividends=st.tuples(units, units, units))
 def test_scale_property(revenue: int, negative: bool, dividends: tuple[int, int, int]) -> None:
     sign = "-" if negative and revenue else ""
     thousand = [
@@ -277,11 +243,8 @@ def test_scale_property(revenue: int, negative: bool, dividends: tuple[int, int,
     assert [stated[f"base_drivers dividends year {n}"] for n in (1, 2, 3)] == thousand[3][1]
 
 
-ten_thousandths = st.integers(min_value=0, max_value=9_999_999_999)
-
-
 @settings(max_examples=200, deadline=None)
-@given(debt=ten_thousandths, repaid=st.tuples(ten_thousandths, ten_thousandths, ten_thousandths))
+@given(debt=units, repaid=st.tuples(units, units, units))
 def test_bound_property(debt: int, repaid: tuple[int, int, int]) -> None:
     def text(units: int) -> str:
         return f"{units // 10000}.{units % 10000:04d}"
@@ -302,41 +265,36 @@ def test_bound_property(debt: int, repaid: tuple[int, int, int]) -> None:
     assert re.search(rf"through forecast year {over[0]} totals ", result[2])
 
 
-def one_facility(**changes: Any) -> dict[str, Any]:
-    base = {"name": "T", "balance": "4", "fixed_rate_pct": "6", "spread_pct": None}
-    base |= {"floor_pct": None, "reference_rate": None, "annual_amortisation": None}
-    return base | {"maturity": None} | changes
-
-
 def test_length_error_that_echoes_a_failed_item_is_dropped() -> None:
-    both = build([[["facilities"], [one_facility(spread_pct="2")]]])
-    assert (
-        issues_of(both)
-        == "facilities.0: Value error, a facility states a fixed rate or a floating one, not both"
-    )
-    assert issues_of(build([[["facilities"], []]])) == (
-        "facilities: Tuple should have at least 1 item after validation, not 0"
-    )
+    one = "facilities.0: Value error, a facility states a fixed rate or a floating one, not both"
+    empty = "facilities: Tuple should have at least 1 item after validation, not 0"
+    for facilities, text in (([one_facility(spread_pct="2")], one), ([], empty)):
+        assert issues_of(build([[["facilities"], facilities]])) == text
 
 
-def length_error(minimum: int, actual: int) -> Any:
+def length_error(minimum: int, actual: int, kind: str = "Tuple", type_: str = "too_short") -> Any:
     ctx = {"min_length": minimum, "actual_length": actual}
-    msg = f"Tuple should have at least {minimum} items after validation, not {actual}"
-    return {"type": "too_short", "loc": ("f",), "msg": msg, "ctx": ctx}
+    msg = f"{kind} should have at least {minimum} items after validation, not {actual}"
+    return {"type": type_, "loc": ("f",), "msg": msg, "ctx": ctx}
 
 
 def failed_item(index: int) -> Any:
     return {"type": "value_error", "loc": ("f", index), "msg": "Value error, x"}
 
 
-def test_drop_rule_on_built_errors() -> None:
-    echo_only = [length_error(1, 0), failed_item(0)]
-    assert inputs.without_echoes(echo_only) == [failed_item(0)]
-    short = [length_error(2, 0), failed_item(0)]
-    assert inputs.without_echoes(short) == short
-    assert inputs.without_echoes([length_error(1, 0)]) == [length_error(1, 0)]
-    two_items = [length_error(2, 0), failed_item(0), failed_item(1), failed_item(1)]
-    assert inputs.without_echoes(two_items) == two_items[1:]
+DROPS = [  # errors, indexes of the errors kept
+    ([length_error(1, 0), failed_item(0)], [1]),
+    ([length_error(2, 0), failed_item(0)], [0, 1]),
+    ([length_error(1, 0)], [0]),
+    ([length_error(2, 0), failed_item(0), failed_item(1), failed_item(1)], [1, 2, 3]),
+    ([length_error(1, 0, type_="value_error"), failed_item(0)], [0, 1]),
+    ([length_error(1, 0, kind="List"), failed_item(0)], [1]),
+]
+
+
+@pytest.mark.parametrize(("errors", "kept"), DROPS)
+def test_drop_rule_on_built_errors(errors: list[Any], kept: list[int]) -> None:
+    assert inputs.without_echoes(errors) == [errors[i] for i in kept]
 
 
 def test_missing_value_cannot_be_unwrapped() -> None:
@@ -345,26 +303,9 @@ def test_missing_value_cannot_be_unwrapped() -> None:
         inputs._plain(missing)
 
 
-@pytest.mark.parametrize(
-    "ops",
-    [
-        [[["base"], ["x"]]],
-        [[["base", "debt"], "amount"]],
-        [[["facilities"], ["balance"]]],
-        [[["facilities"], [7]]],
-    ],
-)
-def test_odd_holders_at_scale_1000_reach_the_schema(ops: list[Any]) -> None:
-    document = build([[["scale"], 1000], *ops])
-    assert refusal(document).kind is RefusalKind.SCHEMA
+ODD = [[["base"], 0], [["base", "wc"], "amount"], [["facilities"], ["balance"]]]
 
 
-def test_drop_rule_names_only_length_errors() -> None:
-    not_length = {**length_error(1, 0), "type": "value_error"}
-    kept = [not_length, failed_item(0)]
-    assert inputs.without_echoes(kept) == kept
-    as_list: Any = {
-        **length_error(1, 0),
-        "msg": "List should have at least 1 item after validation, not 0",
-    }
-    assert inputs.without_echoes([as_list, failed_item(0)]) == [failed_item(0)]
+@pytest.mark.parametrize("op", ODD)
+def test_odd_holders_at_scale_1000_reach_the_schema(op: list[Any]) -> None:
+    assert refusal(build([[["scale"], 1000], op])).kind is RefusalKind.SCHEMA

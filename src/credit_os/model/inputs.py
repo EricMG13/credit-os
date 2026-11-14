@@ -4,6 +4,8 @@ import datetime
 import re
 from collections.abc import Iterator
 from decimal import Decimal
+from itertools import chain
+from itertools import product as pairs
 from typing import Annotated, Any, Literal, Self
 
 import pydantic
@@ -12,44 +14,29 @@ from pydantic_core import ErrorDetails
 
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import echo
+from credit_os.model import facilities as fac
 from credit_os.model.arithmetic import product, total
-from credit_os.model.facilities import (
-    AMOUNT_PATTERN,
-    DATE_PATTERN,
-    FRACTION_PATTERN,
-    LIST_AS_TUPLE,
-    Facility,
-)
+from credit_os.model.facilities import LIST_AS_TUPLE, Facility
 from credit_os.model.inputs_json import read_forecast_document
 from credit_os.model.refusals import ForecastRefused, RefusalKind
 from credit_os.model.value import Value, amount_text, parse_operand
 
 SCHEMA_VERSION = "cpos-forecast-inputs/1"
-OPERANDS = (
-    "revenue",
-    "ebitda",
-    "interest",
-    "taxes",
-    "wc",
-    "capex",
-    "fcf",
-    "debt",
-    "cash",
-    "undrawn",
-)
+_NAMES = "revenue, ebitda, interest, taxes, wc, capex, fcf, debt, cash, undrawn"
+OPERANDS = tuple(_NAMES.split(", "))
 SHARE_PATTERN = r"^(0|1|0\.[0-9]{1,4}|1\.0{1,4})$"
 SIGNED_PATTERN = r"^-?[0-9]{1,6}(\.[0-9]{1,4})?$"
 Category = Literal[
     "Documentary Fact", "Management Language", "Analyst Interpretation", "Insufficient Information"
 ]
-Name = Annotated[str, Field(min_length=1)]
-Signed = Annotated[str, Field(pattern=SIGNED_PATTERN)]
-Growth = Annotated[str, Field(pattern=FRACTION_PATTERN)]
+Growth = Annotated[str, Field(pattern=fac.FRACTION_PATTERN)]
 Share = Annotated[str, Field(pattern=SHARE_PATTERN)]
-Amount = Annotated[str, Field(pattern=AMOUNT_PATTERN)]
-Date = Annotated[str, Field(pattern=DATE_PATTERN)]
-_STRICT = ConfigDict(extra="forbid", frozen=True, strict=True, allow_inf_nan=False)
-_SUBJECT = "forecast inputs"
+Amount = Annotated[str, Field(pattern=fac.AMOUNT_PATTERN)]
+Date = Annotated[str, Field(pattern=fac.DATE_PATTERN)]
+_ONE_OF = "an operand states an amount or a reason, never both or neither"
+_BOTH = "an operand names the `period` header or the `column` header, not both"
+_UNNAMED = "an operand with an amount names its `row` and its `period` or `column`"
+_LENGTH = ("Tuple should have at least", "List should have at least")
 _SCALED = ("dividends", "debt_repayment")
 _GROUPS = ("base_drivers", "upside_drivers", "downside_drivers")
 _CODE = re.compile(r"[A-Z]{3}")
@@ -62,35 +49,33 @@ _THOUSANDS_TEXT = (
 )
 
 
-class Operand(BaseModel):
-    model_config = _STRICT
-    amount: Signed | None
+class _Model(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True, allow_inf_nan=False)
+
+
+class Operand(_Model):
+    amount: Annotated[str, Field(pattern=SIGNED_PATTERN)] | None
     reason: str | None
-    row: Name | None = None
-    period: Name | None = None
-    column: Name | None = None
+    row: Annotated[str, Field(min_length=1)] | None = None
+    period: Annotated[str, Field(min_length=1)] | None = None
+    column: Annotated[str, Field(min_length=1)] | None = None
 
     @model_validator(mode="after")
     def _rules(self) -> Self:
         if (self.amount is None) == (self.reason is None):
-            raise ValueError("an operand states an amount or a reason, never both or neither")
+            raise ValueError(_ONE_OF)
         if self.reason is not None and not self.reason.strip():
             raise ValueError("an operand's reason must not be blank")
         if self.period is not None and self.column is not None:
-            raise ValueError(
-                "an operand names the `period` header or the `column` header, not both"
-            )
+            raise ValueError(_BOTH)
         if self.amount is not None and (
             self.row is None or (self.period, self.column) == (None, None)
         ):
-            raise ValueError(
-                "an operand with an amount names its `row` and its `period` or `column`"
-            )
+            raise ValueError(_UNNAMED)
         return self
 
 
-class _Driver(BaseModel):
-    model_config = _STRICT
+class _Driver(_Model):
     category: Category
     rationale: str
     limitation: str | None
@@ -108,8 +93,7 @@ class AmountDriver(_Driver):
     values: Annotated[tuple[Amount, Amount, Amount], LIST_AS_TUPLE]
 
 
-class BaseDrivers(BaseModel):
-    model_config = _STRICT
+class BaseDrivers(_Model):
     revenue_growth: GrowthDriver
     ebitda_margin: ShareDriver
     capex_pct_revenue: ShareDriver
@@ -119,8 +103,7 @@ class BaseDrivers(BaseModel):
     debt_repayment: AmountDriver
 
 
-class CaseDrivers(BaseModel):
-    model_config = _STRICT
+class CaseDrivers(_Model):
     revenue_growth: GrowthDriver | None = None
     ebitda_margin: ShareDriver | None = None
     capex_pct_revenue: ShareDriver | None = None
@@ -136,8 +119,7 @@ class CaseDrivers(BaseModel):
         return self
 
 
-class Shock(BaseModel):
-    model_config = _STRICT
+class Shock(_Model):
     ebitda_decline: Share
     rate_increase: Share
 
@@ -149,8 +131,7 @@ def _day(text: str, field: str) -> datetime.date:
         raise ValueError(f"{field} {text} is not a calendar date") from None
 
 
-class Span(BaseModel):
-    model_config = _STRICT
+class Span(_Model):
     year: Annotated[int, Field(ge=1000, le=9999)]
     start: Date
     end: Date
@@ -163,8 +144,7 @@ class Span(BaseModel):
         return self
 
 
-class ForecastInputs(BaseModel):
-    model_config = _STRICT
+class ForecastInputs(_Model):
     schema_version: Literal["cpos-forecast-inputs/1"]
     base: dict[str, Operand]
     base_drivers: BaseDrivers
@@ -182,7 +162,7 @@ class ForecastInputs(BaseModel):
     @model_validator(mode="after")
     def _rules(self) -> Self:
         if set(self.base) != set(OPERANDS):
-            raise ValueError("base must state exactly " + ", ".join(OPERANDS))
+            raise ValueError("base must state exactly " + _NAMES)
         one, two, three = self.years
         if (two.year, three.year) != (one.year + 1, one.year + 2):
             raise ValueError("years must be three consecutive fiscal years")
@@ -202,7 +182,6 @@ def _plain(value: Value) -> Decimal:
 
 
 def _copied(node: Any) -> Any:
-    """A copy of the dicts and lists; every other value is shared (and is never changed)."""
     if isinstance(node, dict):
         return {key: _copied(item) for key, item in node.items()}
     if isinstance(node, list):
@@ -217,7 +196,7 @@ def _scale_refused(document: dict[str, Any]) -> ForecastRefused:
     return ForecastRefused(RefusalKind.SCALE, "scale", message)
 
 
-Slot = tuple[str, Any, Any, bool]
+Slot = tuple[str, Any, Any, bool]  # name, holder, key in the holder, whether -0 is allowed
 
 
 def _base_slots(document: dict[str, Any]) -> Iterator[Slot]:
@@ -227,18 +206,13 @@ def _base_slots(document: dict[str, Any]) -> Iterator[Slot]:
             yield f"base {key}", operand, "amount", True
 
 
-def _values(drivers: object, name: str) -> list[Any]:
-    driver = drivers.get(name) if isinstance(drivers, dict) else None
-    values = driver.get("values") if isinstance(driver, dict) else None
-    return values if isinstance(values, list) else []
-
-
 def _driver_slots(document: dict[str, Any]) -> Iterator[Slot]:
-    for group in _GROUPS:
-        for name in _SCALED:
-            values = _values(document.get(group), name)
-            for index in range(len(values)):
-                yield f"{group} {name} year {index + 1}", values, index, False
+    for group, name in pairs(_GROUPS, _SCALED):
+        drivers = document.get(group)
+        driver = drivers.get(name) if isinstance(drivers, dict) else None
+        values = driver.get("values") if isinstance(driver, dict) else None
+        for index in range(len(values) if isinstance(values, list) else 0):
+            yield f"{group} {name} year {index + 1}", values, index, False
 
 
 def _facility_slots(document: dict[str, Any]) -> Iterator[Slot]:
@@ -249,28 +223,19 @@ def _facility_slots(document: dict[str, Any]) -> Iterator[Slot]:
                 yield f"facility {number} {field}", facility, field, False
 
 
-def _slots(document: dict[str, Any]) -> Iterator[Slot]:
-    """Each amount slot: its name, holder, key in the holder, and whether -0 is allowed."""
-    yield from _base_slots(document)
-    yield from _driver_slots(document)
-    yield from _facility_slots(document)
-
-
-def _millions(name: str, text: str, minus_zero_ok: bool) -> str:
-    negative_zero = not minus_zero_ok and _MINUS_ZERO.fullmatch(text) is not None
-    if _THOUSANDS.fullmatch(text) is None or negative_zero:
-        message = _THOUSANDS_TEXT.format(slot=name, text=echo(text))
-        raise ForecastRefused(RefusalKind.SCALE, name, message)
-    return amount_text(_plain(product([Value(amount=parse_operand(text)), _MILLI])))
-
-
 def _to_millions(document: dict[str, Any]) -> dict[str, str]:
     stated: dict[str, str] = {}
-    for name, holder, key, minus_zero_ok in _slots(document):
+    slots = chain(_base_slots(document), _driver_slots(document), _facility_slots(document))
+    for name, holder, key, minus_zero_ok in slots:
         text = holder[key]
-        if type(text) is str:
-            holder[key] = _millions(name, text, minus_zero_ok)
-            stated[name] = text
+        if type(text) is not str:
+            continue
+        negative_zero = not minus_zero_ok and _MINUS_ZERO.fullmatch(text) is not None
+        if _THOUSANDS.fullmatch(text) is None or negative_zero:
+            message = _THOUSANDS_TEXT.format(slot=name, text=echo(text))
+            raise ForecastRefused(RefusalKind.SCALE, name, message)
+        holder[key] = amount_text(_plain(product([Value(amount=parse_operand(text)), _MILLI])))
+        stated[name] = text
     return stated
 
 
@@ -279,15 +244,7 @@ def _issue(error: ErrorDetails) -> str:
     return f"{'.'.join(parts) or '(root)'}: {error['msg']}"
 
 
-def _is_length(error: ErrorDetails) -> bool:
-    return error["type"] == "too_short" and error["msg"].startswith(
-        ("Tuple should have at least", "List should have at least")
-    )
-
-
 def _echoes(error: ErrorDetails, errors: list[ErrorDetails]) -> bool:
-    """A length error counts only the items that passed: it echoes failed items when those
-    plus the passed ones reach the minimum."""
     depth = len(error["loc"])
     failed = {
         item["loc"][depth]
@@ -296,16 +253,16 @@ def _echoes(error: ErrorDetails, errors: list[ErrorDetails]) -> bool:
     }
     ctx = error.get("ctx") or {}
     actual, minimum = ctx.get("actual_length"), ctx.get("min_length")
-    return (
-        bool(failed)
-        and isinstance(actual, int)
-        and isinstance(minimum, int)
-        and actual + len(failed) >= minimum
-    )
+    if not failed or not isinstance(actual, int) or not isinstance(minimum, int):
+        return False
+    return actual + len(failed) >= minimum
 
 
 def without_echoes(errors: list[ErrorDetails]) -> list[ErrorDetails]:
-    return [item for item in errors if not (_is_length(item) and _echoes(item, errors))]
+    def is_length(item: ErrorDetails) -> bool:
+        return item["type"] == "too_short" and item["msg"].startswith(_LENGTH)
+
+    return [item for item in errors if not (is_length(item) and _echoes(item, errors))]
 
 
 def _validated(document: dict[str, Any]) -> ForecastInputs:
@@ -316,29 +273,27 @@ def _validated(document: dict[str, Any]) -> ForecastInputs:
         issues = [_issue(item) for item in without_echoes(errors)]
         first = "; ".join(issues[:3])
         text = f"{len(issues)} problems; first: {first}" if len(issues) > 3 else first
-        raise ForecastRefused(RefusalKind.SCHEMA, _SUBJECT, f"{_SUBJECT}: {text}") from None
-
-
-def _refuse_over(case: str, values: tuple[str, ...], debt: Value) -> None:
-    for year in (1, 2, 3):
-        running = total([Value(amount=parse_operand(text)) for text in values[:year]])
-        if _plain(running) > _plain(debt):
-            message = (
-                f"{case} case: debt_repayment through forecast year {year} totals "
-                f"{amount_text(_plain(running))}, more than base debt {amount_text(_plain(debt))}"
-            )
-            raise ForecastRefused(RefusalKind.REPAYMENT, "debt_repayment", message)
+        raise ForecastRefused(
+            RefusalKind.SCHEMA, "forecast inputs", f"forecast inputs: {text}"
+        ) from None
 
 
 def _check_repayment(inputs: ForecastInputs) -> None:
     stated = inputs.base["debt"].amount
     if stated is None:
         return
-    debt = Value(amount=parse_operand(stated))
+    debt = _plain(Value(amount=parse_operand(stated)))
     cases = (inputs.base_drivers, inputs.upside_drivers, inputs.downside_drivers)
     for case, drivers in zip(("base", "upside", "downside"), cases, strict=True):
-        if drivers is not None and drivers.debt_repayment is not None:
-            _refuse_over(case, drivers.debt_repayment.values, debt)
+        if drivers is None or drivers.debt_repayment is None:
+            continue
+        values = drivers.debt_repayment.values
+        for year in (1, 2, 3):
+            running = _plain(total([Value(amount=parse_operand(text)) for text in values[:year]]))
+            if running > debt:
+                message = f"{case} case: debt_repayment through forecast year {year} totals "
+                message += f"{amount_text(running)}, more than base debt {amount_text(debt)}"
+                raise ForecastRefused(RefusalKind.REPAYMENT, "debt_repayment", message)
 
 
 def parse_inputs(document: dict[str, object]) -> tuple[ForecastInputs, dict[str, str]]:
