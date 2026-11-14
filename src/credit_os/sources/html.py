@@ -70,7 +70,21 @@ LINE_TAGS = frozenset({"p", "tr", "li", "br", "h1", "h2", "h3", "h4", "h5", "h6"
 # The legacy's: a charset is looked for in the first 4,096 bytes only.
 _SNIFF_BYTES = 4096
 _CHARSET = re.compile(rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)""", re.IGNORECASE)
-# codecs.lookup(...).name -> the name reported for the source.
+# A declared charset, lower-cased with "_" as "-", -> its codec. The codec search is an import keyed
+# by the file's text, so only these names reach a codec; any other is refused, never looked up.
+_LABELS = {
+    "utf-8": "utf-8",
+    "utf8": "utf-8",
+    "windows-1252": "cp1252",
+    "cp1252": "cp1252",
+    "iso-8859-1": "iso8859-1",
+    "iso8859-1": "iso8859-1",
+    "latin1": "iso8859-1",
+    "latin-1": "iso8859-1",
+    "ascii": "ascii",
+    "us-ascii": "ascii",
+}
+# codec -> the name reported for the source.
 # Tags are read from the bytes (_visible_text, _long_tag), which is exact only for an encoding in
 # which no ASCII byte occurs inside a longer character and decoding then encoding gives the same
 # bytes back. The four here are such; check that before adding one (utf-16, shift_jis and
@@ -166,16 +180,9 @@ def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
             name, "not valid UTF-8 and declares no charset in its first 4,096 bytes"
         ) from utf8_error
     declared = found.group(1).decode("ascii")
-    lookup_error: LookupError | None = None
-    codec = ""
-    try:
-        codec = codecs.lookup(declared).name
-    except LookupError as error:
-        lookup_error = error
-    if codec not in _ACCEPTED:
-        raise _refuse(
-            name, f"declares a charset that is not accepted: {declared[:40]!r}"
-        ) from lookup_error
+    codec = _LABELS.get(declared.lower().replace("_", "-"))
+    if codec is None:
+        raise _refuse(name, f"declares a charset that is not accepted: {declared[:40]!r}")
     reported = _ACCEPTED[codec]
     codec_error = _decodes(raw, 0, codec)
     if codec_error is not None:

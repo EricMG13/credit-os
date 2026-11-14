@@ -1,5 +1,6 @@
 """The HTML reader's decoding and its line writer."""
 
+import codecs
 import re
 import tracemalloc
 from html.parser import HTMLParser
@@ -61,7 +62,7 @@ _REFUSAL_ROWS = [
     pytest.param(
         b'<meta charset="klingon"><p>caf\xe9</p>',
         "declares a charset that is not accepted: 'klingon'",
-        LookupError,
+        None,
         id="klingon",
     ),
     pytest.param(
@@ -73,8 +74,20 @@ _REFUSAL_ROWS = [
     pytest.param(
         b'<meta charset="' + b"k" * 60 + b'"><p>caf\xe9</p>',
         "declares a charset that is not accepted: " + repr("k" * 40),
-        LookupError,
+        None,
         id="long-name",
+    ),
+    pytest.param(
+        b'<meta charset="l1"><p>caf\xe9</p>',
+        "declares a charset that is not accepted: 'l1'",
+        None,
+        id="l1",
+    ),
+    pytest.param(
+        b'<meta charset="US_ASCII"><p>cafe\x80</p>',
+        "not valid ascii",
+        UnicodeDecodeError,
+        id="us-ascii-label",
     ),
     pytest.param(
         b'<meta charset="ascii"><p>caf\xe9</p>',
@@ -168,8 +181,38 @@ def test_encoding_holds_no_decoded_copy(
     assert peak <= 262_144
 
 
+def test_a_declared_name_outside_the_table_is_never_looked_up(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real = codecs.lookup
+    names: list[str] = []
+
+    def recording(name: str) -> codecs.CodecInfo:
+        names.append(name)
+        return real(name)
+
+    monkeypatch.setattr(codecs, "lookup", recording)
+    with pytest.raises(SourceUnreadable) as caught:
+        _encoding("f.html", b'<meta charset="klingon"><p>caf\xe9</p>')
+    assert str(caught.value) == "f.html: declares a charset that is not accepted: 'klingon'"
+    assert caught.value.__cause__ is None
+    assert "klingon" not in names
+
+
 def test_constants() -> None:
     assert reader._SNIFF_BYTES == 4_096
+    assert reader._LABELS == {
+        "utf-8": "utf-8",
+        "utf8": "utf-8",
+        "windows-1252": "cp1252",
+        "cp1252": "cp1252",
+        "iso-8859-1": "iso8859-1",
+        "iso8859-1": "iso8859-1",
+        "latin1": "iso8859-1",
+        "latin-1": "iso8859-1",
+        "ascii": "ascii",
+        "us-ascii": "ascii",
+    }
     assert reader._ACCEPTED == {
         "utf-8": "utf-8",
         "cp1252": "windows-1252",
