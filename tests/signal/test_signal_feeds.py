@@ -1,4 +1,5 @@
 import time
+from array import array
 from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
@@ -19,7 +20,6 @@ from credit_os.signal.feeds import (
     Entry,
     FeedError,
     _drop_long_tags,
-    _folded,
     _new_parser,
     _Node,
     _tag_end,
@@ -1266,38 +1266,6 @@ def test_text_outside_the_fields_that_are_read_is_not_kept() -> None:
     assert (e.title, e.summary) == ("t", "d")
 
 
-def test_folding_equals_the_whole_text_folded_then_cut() -> None:
-    import random
-
-    # What each piece leaves in the text, written out here (not computed with the production
-    # helpers): format and control characters vanish, other white space becomes a space.
-    left = {
-        "a": "a",
-        "b": "b",
-        "\u0436": "\u0436",
-        " ": " ",
-        "\n": " ",
-        "\t": " ",
-        "\u200b": "",
-        "\x07": "",
-        "\u00a0": " ",
-        "\x1c": " ",
-        "word": "word",
-    }
-    rnd = random.Random(7)
-    for size in (0, 1, 7, 90, 4095, 4096, 4097, 9000, 20000):
-        chosen = [rnd.choice(list(left)) for _ in range(size)]
-        text = "".join(chosen)
-        expected = " ".join("".join(left[piece] for piece in chosen).split())
-        for limit in (1, 5, 301, 500, 100_000):
-            assert _folded(text, limit) == expected[:limit]
-
-
-def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
-    assert _folded("w" * 1_000_000, 500) == "w" * 500
-    assert _folded(" " * 10_000 + "a b", 10) == "a b"
-
-
 def test_text_is_read_after_any_amount_of_markup() -> None:
     assert _summary_of("Lead " + "<i></i>" * 100_000 + "late") == "Lead late"
     assert _summary_of("<i></i>" * 100_000 + "late") == "late"
@@ -1426,3 +1394,59 @@ def test_a_body_that_is_not_contiguous_bytes_is_refused() -> None:
     padded = RSS + b" " * (-len(RSS) % 2)
     two_d = memoryview(padded).cast("B", [2, len(padded) // 2])
     assert parse_feed(cast(bytes, two_d)) == parse_feed(RSS)
+
+
+# --- R37/R38: dates and links are read to their limits, a memoryview must be bytes ---
+
+_DATE = "Fri, 13 Nov 2026 09:00:00 GMT"  # 29 characters
+
+
+def _published(date: str) -> datetime | None:
+    (e,) = parse_feed(_rss(f"<title>t</title>{_LINK}<pubDate>{date}</pubDate>"))
+    return e.published
+
+
+def test_a_date_longer_than_the_limit_is_no_date() -> None:
+    at_limit = _DATE + " x" * 113 + "y"
+    assert len(at_limit) == 256
+    assert _published(at_limit) == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+    assert _published(at_limit + "y") is None
+    assert _published(" " * 300 + at_limit + " " * 300) == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+
+
+def test_an_atom_date_is_read_without_its_blanks_and_none_when_too_long() -> None:
+    def updated(text: str) -> datetime | None:
+        return _atom_one("<title>T</title>", f"<updated>{text}</updated>").published
+
+    stamp = "2026-11-13T09:00:00Z"
+    assert updated(" " * 300 + stamp + " " * 300) == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+    assert updated(stamp + " " * 300 + "x") is None
+
+
+def test_a_link_is_read_with_blanks_at_its_ends_and_cut_by_its_limit() -> None:
+    def rss_links(link: str) -> list[str]:
+        return [e.link for e in parse_feed(_rss(f"<title>t</title><link>{link}</link>"))]
+
+    def atom_links(href: str) -> list[str]:
+        body = f'{_ATOM_HEAD.decode()}<entry><title>T</title><link href="{href}"/></entry></feed>'
+        return [e.link for e in parse_feed(body.encode())]
+
+    for links in (rss_links, atom_links):
+        assert links(" " * 5000 + "https://e.org/a" + " " * 5000) == ["https://e.org/a"]
+        assert links("https://e.org/" + "a" * 2034) == ["https://e.org/" + "a" * 2034]
+        assert links("https://e.org/" + "a" * 2035) == []
+        assert links("https://e.org/a" + " " * 5000 + "x") == []
+
+
+def test_a_memoryview_that_is_not_contiguous_bytes_is_a_type_error() -> None:
+    """A2 (R31 point 4): a contiguous view of anything but bytes is refused, not read."""
+    padded = RSS + b" " * (-len(RSS) % 4)
+    for view in (memoryview(padded).cast("H"), memoryview(padded).cast("c")):
+        with pytest.raises(TypeError, match="contiguous bytes"):
+            parse_feed(cast(bytes, view))
+
+
+def test_a_memoryview_of_four_byte_items_is_a_type_error() -> None:
+    padded = RSS + b" " * (-len(RSS) % 4)
+    with pytest.raises(TypeError, match="contiguous bytes"):
+        parse_feed(cast(bytes, memoryview(array("I", padded))))

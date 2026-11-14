@@ -27,6 +27,10 @@ from credit_os.signal.feeds import (
 
 MiB = 1024 * 1024
 CEILING = 64 * MiB
+# R37. A field's text is never held whole: one at 4 bytes a character is 8 MiB, so this allows
+# pyexpat's own attribute value (the Atom href case) and nothing more. Every TEXT_CASES row is
+# measured against it at full size.
+TEXT_CEILING = 16 * MiB
 # A case that runs its whole text through html.parser is slow under tracemalloc, so it runs at
 # 1/REDUCED of MAX_BYTES against 1/REDUCED of CEILING; its cost is linear in the body, and
 # before the fix the shapes cost 280 MiB or more at full size (probe r24_memory.py runs them whole).
@@ -39,6 +43,10 @@ _C0, _C1 = _HEAD + b"<description><![CDATA[", b"]]></description>" + _TAIL
 _ATOM0 = b'<feed xmlns="http://www.w3.org/2005/Atom"><entry><link href="https://e.org/a"/>'
 _ATOM1 = b"</entry></feed>"
 _LETTER = "ж".encode()  # a 2-byte letter: one new str object per character
+_AST = "\U0001f600".encode()  # one astral character widens a Python str to 4 bytes a character
+_RSS0 = b'<rss version="2.0"><channel><item>'
+_ATOM_T = _ATOM0.replace(b'<link href="https://e.org/a"/>', b"<title>T</title>")
+_ATOM_L = b'<link href="https://e.org/a"/>'
 
 
 def _fill(pre: bytes, unit: bytes, post: bytes, size: int) -> bytes:
@@ -200,6 +208,35 @@ CASES: dict[str, Callable[[int], bytes]] = {
 }
 
 
+# R37: one row per stage that held a copy of a whole field. Each is read at full size and must
+# stay under TEXT_CEILING as well as CEILING.
+TEXT_CASES: dict[str, Callable[[int], bytes]] = {
+    "title: words, blank and astral first": lambda s: _fill(
+        _RSS0 + b"<link>https://e.org/a</link><title> " + _AST, b"w ", b" </title>" + _TAIL, s
+    ),
+    "link: astral then letters, blanks": lambda s: _fill(
+        _RSS0 + b"<title>t</title><link> https://e.org/" + _AST, b"a", b" </link>" + _TAIL, s
+    ),
+    "atom href of 2 MiB, astral": lambda s: _fill(
+        _ATOM_T + b'<link href=" https://e.org/' + _AST, b"a", b' "/>' + _ATOM1, s
+    ),
+    "pubDate: two-digit words, blank and astral": lambda s: _fill(
+        _HEAD + b"<pubDate> " + _AST, b"12 ", b" </pubDate>" + _TAIL, s
+    ),
+    "atom updated: two-digit words, astral": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b"<updated>" + _AST, b"12 ", b"</updated>" + _ATOM1, s
+    ),
+    "atom text summary: words, astral": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b"<summary>" + _AST, b"w ", b"</summary>" + _ATOM1, s
+    ),
+    "description: plain 2 MiB text, astral": lambda s: _fill(_D0 + _AST, b"a", _D1, s),
+}
+# A feed with no readable entry is read to the end all the same.
+_NO_ENTRY = frozenset({"link: astral then letters, blanks", "atom href of 2 MiB, astral"})
+# Rows that run a whole field through html.parser, which is slow under tracemalloc.
+REDUCED_ROWS = frozenset(name for name in CASES if name.startswith(("html ", "atom html ")))
+CASES.update(TEXT_CASES)
+
 _TOO_MANY_ELEMENTS = f"feed has more than {MAX_ELEMENTS} elements"
 _TOO_MANY_ATTRIBUTES = f"feed has an element with more than {MAX_ATTRIBUTES} attributes"
 _LONG_NAMES = "feed element names are too long"  # MAX_NAME_CHARS
@@ -239,7 +276,7 @@ def _peak(body: bytes) -> tuple[int, object]:
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_the_peak_memory_of_a_hostile_body_stays_under_the_ceiling(name: str) -> None:
-    scale = REDUCED if name.startswith(("html ", "atom html ")) else 1
+    scale = REDUCED if name in REDUCED_ROWS else 1
     body = CASES[name](MAX_BYTES // scale)
     assert len(body) <= MAX_BYTES // scale
     peak, result = _peak(body)
@@ -249,6 +286,17 @@ def test_the_peak_memory_of_a_hostile_body_stays_under_the_ceiling(name: str) ->
     else:
         assert isinstance(result, list), result
     assert peak < CEILING // scale, f"{name}: {peak / MiB:.1f} MiB"
+
+
+@pytest.mark.parametrize("name", list(TEXT_CASES))
+def test_a_text_field_is_never_held_whole(name: str) -> None:
+    body = TEXT_CASES[name](MAX_BYTES)
+    assert len(body) <= MAX_BYTES
+    peak, result = _peak(body)
+    assert isinstance(result, list), result
+    if name in _NO_ENTRY:
+        assert result == []
+    assert peak < TEXT_CEILING, f"{name}: {peak / MiB:.1f} MiB"
 
 
 def test_a_genuine_feed_of_1000_xhtml_entries_of_100_elements_is_read_whole() -> None:

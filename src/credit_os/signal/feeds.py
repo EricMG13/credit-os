@@ -9,7 +9,6 @@ title, link, date and summary are read.
 import re
 import string
 import unicodedata
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
@@ -43,6 +42,10 @@ MAX_NAMESPACE_CHARS = 2048
 MAX_TAG_CHARS = 4096
 TITLE_LIMIT = 500
 LINK_LIMIT = 2048
+# R37. Longest date read, blanks at either end not counted; a longer one is no date.
+DATE_LIMIT = 256
+# R37. Bytes handed to expat per call, so no character-data callback carries more than this.
+_XML_CHUNK = 16384
 ERROR_TEXT_LIMIT = 120
 _HOST_CHARS = frozenset(string.ascii_letters + string.digits + "-")
 _HEX_NUMBER = re.compile(r"0x[0-9a-f]*", re.ASCII | re.IGNORECASE)
@@ -82,28 +85,25 @@ _CLOSE_TAG = {tag: f"</{tag}>" for tag in _XHTML_TAGS}
 class _Node:
     """A kept element. ``kind`` is its place in the feed: ``rss``, ``feed`` or ``other`` for the
     root, then ``channel``, ``item`` and ``entry``. ``children`` are the kept elements below it.
-    An item or entry keeps, for each field read from it, the field's kind and all text below it
-    in ``fields``, and, for an Atom entry, the href of its first alternate link in ``link``.
+    An item or entry keeps, for each field read from it, the text its sink made of everything
+    below it in ``fields``, and, for an Atom entry, the href of its first alternate link in
+    ``link``.
     """
 
     kind: str
     children: list["_Node"] = field(default_factory=list)
-    fields: dict[str, tuple[str, str]] = field(default_factory=dict)
+    fields: dict[str, str] = field(default_factory=dict)
     link: str | None = None
 
 
 @dataclass(eq=False, slots=True)
 class _Field:
-    """The field being read: its text, or, for Atom xhtml, the rebuilt markup, in order."""
+    """The field being read: where its text goes as it arrives (R37: no field is kept whole)."""
 
     owner: _Node
     key: str
-    kind: str
-    parts: list[str] = field(default_factory=list)
-
-    @property
-    def markup(self) -> bool:
-        return self.kind == "xhtml"
+    markup: bool  # Atom xhtml: the text is the rebuilt markup, in order
+    sink: "_Fold | _Head | _Collect"
 
 
 # R24: the tree keeps only what parse_feed reads. R31: an element is named by its namespace URI
@@ -120,7 +120,6 @@ _FIELD_KEYS = {
     "item": {("", key): key for key in ("title", "link", "pubDate", "description")},
     "entry": {(_ATOM, key): key for key in ("published", "updated", "title", "summary", "link")},
 }
-_NO_FIELD = ("", "")
 _SLICE = 4096
 _TEXT_CONSTRUCTS = ("title", "summary")
 
@@ -291,12 +290,13 @@ class _TreeBuilder:
         if key == "link" and record.kind == "entry":
             # The first alternate link counts, whether or not it has an href (RFC 4287, 4.2.7.2).
             if record.link is None and attrs.get("rel") in (None, "alternate"):
-                record.link = (attrs.get("href") or "").strip()
+                record.link = _Head.of(attrs.get("href") or "", LINK_LIMIT)
             return None
         if key in record.fields:  # the first of two fields of a name wins
             return None
         kind = attrs.get("type", "") if record.kind == "entry" and key in _TEXT_CONSTRUCTS else ""
-        self._field = _Field(record, key, kind if kind in ("html", "xhtml") else "")
+        kind = kind if kind in ("html", "xhtml") else ""
+        self._field = _Field(record, key, kind == "xhtml", _sink(key, kind))
         return self._field
 
     @staticmethod
@@ -306,7 +306,7 @@ class _TreeBuilder:
         tag = _xhtml_tag(local)
         if tag is None:
             return None
-        current.parts.append(_OPEN_TAG[tag])
+        current.sink.add(_OPEN_TAG[tag])
         return _CLOSE_TAG[tag]
 
     def end(self, name: str) -> None:
@@ -314,9 +314,9 @@ class _TreeBuilder:
             self._scope.leave(prefix)
         top = self._open.pop()
         if isinstance(top, str) and self._field is not None:
-            self._field.parts.append(top)
+            self._field.sink.add(top)
         elif isinstance(top, _Field):
-            top.owner.fields[top.key] = (top.kind, "".join(top.parts))
+            top.owner.fields[top.key] = top.sink.value()
             self._field = None
         elif isinstance(top, _Node) and top.kind in ("item", "entry"):
             self._drop_if_unread(top)
@@ -329,7 +329,7 @@ class _TreeBuilder:
 
     def data(self, text: str) -> None:
         if self._field is not None:
-            self._field.parts.append(escape(text, quote=False) if self._field.markup else text)
+            self._field.sink.add(escape(text, quote=False) if self._field.markup else text)
 
 
 def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
@@ -350,8 +350,12 @@ def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
 
 def _read_xml(body: bytes) -> _Node:
     builder = _TreeBuilder()
-    # Parse raises ExpatError unless the body holds exactly one root element.
-    _new_parser(builder).Parse(body, True)
+    parser = _new_parser(builder)
+    view = memoryview(body).cast("B")
+    for start in range(0, len(view), _XML_CHUNK):
+        parser.Parse(view[start : start + _XML_CHUNK], False)
+    # The last call raises ExpatError unless the body holds exactly one root element.
+    parser.Parse(b"", True)
     return builder.document.children[0]
 
 
@@ -509,33 +513,108 @@ def _plain(raw: str) -> str:
     return "".join(ch for ch in raw if ch.isspace() or unicodedata.category(ch) not in ("Cc", "Cf"))
 
 
-def _folded(text: str, limit: int) -> str:
-    """The first ``limit`` characters of ``" ".join(_plain(text).split())``, whole text unread.
+class _Fold:
+    """The first ``limit`` characters of ``" ".join(_plain(text).split())``, text given in pieces.
 
-    R24. Cleaning goes a slice at a time and stops once ``limit`` characters of folded text
-    exist, so it builds at most one slice of one-character strings (not one per character of a
-    2 MiB field) and reads no further than the result needs. The result is exact: a character
-    is dropped or kept on its own, and a word that ends a slice is joined to the next slice.
+    R24/R37. Cleaning goes a slice at a time and stops once ``limit`` characters of folded text
+    exist, so it holds at most one slice and ``limit`` characters, however long the field. The
+    result is exact: a character is dropped or kept on its own, and a word that ends a piece is
+    joined to the next piece.
     """
-    words: list[str] = []
-    size = 0  # characters in " ".join(words), plus one
-    word = ""  # the last word of the slices read, which the next slice may continue
-    for start in range(0, len(text), _SLICE):
-        chunk = word + _plain(text[start : start + _SLICE])
-        found = chunk.split()
-        word = found.pop() if found and not chunk[-1].isspace() else ""
-        words.extend(found)
-        size += sum(len(w) + 1 for w in found)
-        if size + len(word) > limit:
-            break
-    if word:
-        words.append(word)
-    return " ".join(words)[:limit]
+
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self.words: list[str] = []
+        self.size = 0  # characters in " ".join(words), plus one
+        self.word = ""  # the last word read, which the next piece may continue
+
+    @property
+    def full(self) -> bool:
+        return self.size + len(self.word) > self.limit
+
+    def add(self, text: str) -> None:
+        for start in range(0, len(text), _SLICE):
+            if self.full:
+                return
+            chunk = self.word + _plain(text[start : start + _SLICE])
+            found = chunk.split()
+            self.word = found.pop() if found and not chunk[-1].isspace() else ""
+            self.words.extend(found)
+            self.size += sum(len(w) + 1 for w in found)
+
+    def value(self) -> str:
+        return " ".join([*self.words, self.word] if self.word else self.words)[: self.limit]
 
 
-def _summary(text: str) -> str:
-    """Plain text folded to single spaces, then cut to SUMMARY_LIMIT on a word boundary."""
-    head = _folded(text, SUMMARY_LIMIT + 1)
+class _Head:
+    """A field's text with blanks at either end removed, or "" if that is more than ``limit``.
+
+    R37. Only ``limit`` characters are kept; text after them only says whether there is more.
+    """
+
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self.kept: list[str] = []
+        self.size = 0
+        self.over = False
+
+    @classmethod
+    def of(cls, text: str, limit: int) -> str:
+        head = cls(limit)
+        for start in range(0, len(text), _SLICE):
+            head.add(text[start : start + _SLICE])
+        return head.value()
+
+    def add(self, text: str) -> None:
+        if self.over:
+            return
+        if not self.kept:
+            text = text.lstrip()
+        room = self.limit - self.size
+        if text and room > 0:
+            self.kept.append(text[:room])
+            self.size += min(room, len(text))
+            text = text[room:]
+        if text and not text.isspace():
+            self.over = True
+
+    def value(self) -> str:
+        return "" if self.over else "".join(self.kept).rstrip()
+
+
+class _Collect:
+    """An HTML field, kept whole until its end and then stripped and folded (see _strip_markup).
+
+    R37: this is the one sink that still holds a whole field; _Markup replaces it.
+    """
+
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self.parts: list[str] = []
+
+    def add(self, text: str) -> None:
+        self.parts.append(text)
+
+    def value(self) -> str:
+        fold = _Fold(self.limit)
+        fold.add(_strip_markup("".join(self.parts).strip()))
+        return fold.value()
+
+
+def _sink(key: str, kind: str) -> _Fold | _Head | _Collect:
+    """Where a field's text goes (R18: an Atom html or xhtml text construct is markup; an RSS
+    description is markup; an RSS title or an Atom text construct of no type is literal)."""
+    if key == "link":
+        return _Head(LINK_LIMIT)
+    if key in ("pubDate", "published", "updated"):
+        return _Head(DATE_LIMIT)
+    limit = TITLE_LIMIT if key == "title" else SUMMARY_LIMIT + 1
+    return _Collect(limit) if key == "description" or kind else _Fold(limit)
+
+
+def _summary(head: str) -> str:
+    """The folded head (SUMMARY_LIMIT + 1 characters at most) cut to SUMMARY_LIMIT on a word
+    boundary."""
     if len(head) <= SUMMARY_LIMIT:
         return head
     if " " not in head:
@@ -565,12 +644,7 @@ def _rss_date(text: str) -> datetime | None:
 
 
 def _text(record: _Node, key: str) -> str:
-    return record.fields.get(key, _NO_FIELD)[1].strip()
-
-
-def _title(text: str) -> str:
-    """Plain text with control and format characters dropped, folded, cut, then stripped."""
-    return _folded(text, TITLE_LIMIT).strip()
+    return record.fields.get(key, "")
 
 
 def _dns_name(host: str) -> bool:
@@ -608,41 +682,24 @@ def _usable_link(link: str) -> bool:
         return False
 
 
-def _make(title: str, link: str, date: datetime | None, summary: Callable[[], str]) -> Entry | None:
+def _make(title: str, link: str, date: datetime | None, summary: str) -> Entry | None:
+    # R8b: a title is stripped again after the 500-character cut.
+    title = title.strip()
     if not title or not _usable_link(link):
         return None
-    return Entry(title, link, date, _summary(summary()))
+    return Entry(title, link, date, _summary(summary))
 
 
 def _rss_entry(item: _Node) -> Entry | None:
     pub = _text(item, "pubDate")
     date = _rss_date(pub) if pub else None
-    return _make(
-        _title(_text(item, "title")),
-        _text(item, "link"),
-        date,
-        lambda: _strip_markup(_text(item, "description")),
-    )
-
-
-def _atom_text(entry: _Node, key: str) -> str:
-    # R18. An Atom text construct (RFC 4287, 3.1.1) says what it holds: type "html" is escaped
-    # HTML and "xhtml" is child elements (rebuilt as markup by the tree builder), so both go
-    # through the text-only stripper; no type, or "text", is literal text and is not stripped.
-    # RSS differs: a title is literal and a description is HTML.
-    kind, text = entry.fields.get(key, _NO_FIELD)
-    return _strip_markup(text) if kind else text
+    return _make(_text(item, "title"), _text(item, "link"), date, _text(item, "description"))
 
 
 def _atom_entry(entry: _Node) -> Entry | None:
     stamp = _text(entry, "published") or _text(entry, "updated")
     date = _iso_date(stamp) if stamp else None
-    return _make(
-        _title(_atom_text(entry, "title")),
-        entry.link or "",
-        date,
-        lambda: _atom_text(entry, "summary"),
-    )
+    return _make(_text(entry, "title"), entry.link or "", date, _text(entry, "summary"))
 
 
 def _entries(root: _Node) -> list[Entry]:
@@ -658,13 +715,14 @@ def _entries(root: _Node) -> list[Entry]:
 def parse_feed(body: bytes) -> list[Entry]:
     """Return the readable entries of an RSS 2.0 or Atom feed, in feed order.
 
-    R26: anything but bytes, bytearray or a contiguous memoryview (the predecessor's byte search
-    accepted these; the annotation stays ``bytes``, as its was) is a TypeError, before the size
-    check: a str is measured in characters, not in the bytes expat would encode it to.
+    R26/R31: anything but bytes, bytearray or a contiguous memoryview of bytes (format "B"; the
+    predecessor's byte search accepted these; the annotation stays ``bytes``, as its was) is a
+    TypeError, before the size check: a str is measured in characters, not in the bytes expat
+    would encode it to.
     """
     if not isinstance(body, bytes | bytearray | memoryview):
         raise TypeError("feed body must be bytes")
-    if isinstance(body, memoryview) and not body.contiguous:
+    if isinstance(body, memoryview) and not (body.contiguous and body.format == "B"):
         raise TypeError("feed body must be contiguous bytes")
     if memoryview(body).nbytes > MAX_BYTES:
         raise FeedError("feed is larger than 2 MiB")
