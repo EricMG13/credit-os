@@ -3,8 +3,11 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from typing import cast
+from xml.parsers import expat
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from credit_os.signal.feeds import (
     MAX_ATTRIBUTES,
@@ -18,6 +21,7 @@ from credit_os.signal.feeds import (
     _drop_long_tags,
     _folded,
     _new_parser,
+    _Node,
     _TreeBuilder,
     parse_feed,
 )
@@ -282,6 +286,18 @@ def test_a_prefix_rebound_inside_an_element_applies_from_that_element() -> None:
     ]
 
 
+def test_a_title_link_or_entry_in_a_foreign_namespace_is_never_the_feeds() -> None:
+    body = _atom(
+        '<o:entry><o:title>no</o:title><o:link href="https://e.org/no"/></o:entry>'
+        '<entry><o:title>no</o:title><title xmlns="urn:other">no</title>'
+        '<title>Yes</title><o:link href="https://e.org/no"/><link xmlns="urn:other" href="https://e.org/no2"/>'
+        '<link href="https://e.org/yes"/></entry>'
+        '<entry xmlns="urn:other"><title>no</title><link href="https://e.org/no3"/></entry>',
+        ' xmlns:o="urn:other"',
+    )
+    assert [(e.title, e.link) for e in parse_feed(body)] == [("Yes", "https://e.org/yes")]
+
+
 def test_an_empty_default_namespace_undeclares_the_default() -> None:
     inner = "<title>T</title>" + _ENTRY.format(n="1")
     assert parse_feed(_atom(f'<entry xmlns="">{inner}</entry>')) == []
@@ -352,6 +368,116 @@ def test_a_namespace_uri_is_refused_beyond_the_limit() -> None:
     for attr in ("xmlns:p", "xmlns"):
         with pytest.raises(FeedError, match=f"more than {MAX_NAMESPACE_CHARS} characters"):
             parse_feed(rss(attr, at_limit + "x"))
+
+
+# --- the namespace rules against expat's own: the reader treats the same elements as its own ---
+
+# Children are drawn from the names the reader looks for below their parent, so that generated
+# documents are often feeds; the declarations and prefixes are what vary.
+_BELOW = {
+    "": ("rss", "feed"),
+    "rss": ("channel", "x"),
+    "channel": ("item", "x"),
+    "item": ("title", "link", "x"),
+    "feed": ("entry", "x"),
+    "entry": ("title", "link", "x"),
+}
+_URIS = (None, None, "", _ATOM_URI, _ATOM_URI, "urn:other")
+_ATTRIBUTES = ('rel="alternate"', 'href="https://e.org/x"', 'xml:lang="en"', 'a:rel="x"', 'b:y=""')
+_Element = tuple[str, str | None, tuple[str | None, ...], tuple[str, ...], tuple[object, ...]]
+
+
+@st.composite
+def _element(draw: st.DrawFn, parent: str = "", depth: int = 0) -> _Element:
+    local = draw(st.sampled_from(_BELOW.get(parent, ("x", "title"))))
+    prefix = draw(st.sampled_from((None, None, "a", "b")))
+    declared = tuple(draw(st.sampled_from(_URIS)) for _ in range(3))  # xmlns, xmlns:a, xmlns:b
+    attrs = tuple(draw(st.lists(st.sampled_from(_ATTRIBUTES), unique=True, max_size=3)))
+    count = draw(st.integers(0, 3)) if depth < 4 else 0
+    children = tuple(draw(_element(local, depth + 1)) for _ in range(count))
+    return local, prefix, declared, attrs, children
+
+
+def _render(element: _Element) -> str:
+    local, prefix, declared, attrs, children = element
+    names = ("xmlns", "xmlns:a", "xmlns:b")
+    declarations = [
+        f'{n}="{uri}"' for n, uri in zip(names, declared, strict=True) if uri is not None
+    ]
+    name = f"{prefix}:{local}" if prefix else local
+    inner = "".join(_render(cast(_Element, child)) for child in children)
+    return f"<{' '.join([name, *declarations, *attrs])}>{inner}</{name}>"
+
+
+def _expected_kind(parent: str | None, name: str, seen: set[str]) -> str | None:
+    """What the reader should make of ``name`` below ``parent``, from expat's "uri}local" names."""
+    atom = f"{_ATOM_URI}}}"
+    if parent == "document":
+        return {"rss": "rss", f"{atom}feed": "feed"}.get(name, "other")
+    below = {
+        "rss": {"channel": "channel"},
+        "channel": {"item": "item"},
+        "feed": {f"{atom}entry": "entry"},
+        "item": dict.fromkeys(("title", "link", "pubDate", "description"), "field"),
+        "entry": dict.fromkeys(
+            (f"{atom}{k}" for k in ("published", "updated", "title", "summary")), "field"
+        ),
+    }
+    kind = below.get(parent or "", {}).get(name)
+    if kind == "field":
+        if name in seen:  # the first of two fields of a name wins
+            return None
+        seen.add(name)
+    return kind
+
+
+def _expat_kinds(body: bytes) -> list[str | None] | None:
+    """Per element, in document order, what the reader should make of it; None if refused."""
+    kinds: list[str | None] = []
+    stack: list[tuple[str | None, set[str]]] = [("document", set())]
+
+    def start(name: str, attrs: dict[str, str]) -> None:
+        parent, seen = stack[-1]
+        kind = _expected_kind(parent, name, seen)
+        kinds.append(kind)
+        stack.append((kind, set()))
+
+    parser = expat.ParserCreate(namespace_separator="}")
+    parser.StartElementHandler = start
+    parser.EndElementHandler = lambda name: stack.pop()
+    try:
+        parser.Parse(body, True)
+    except expat.ExpatError:
+        return None
+    return kinds
+
+
+def _reader_kinds(body: bytes) -> list[str | None] | None:
+    """Per element, what the tree builder made of it (a node's kind, "field", or None)."""
+    builder = _TreeBuilder()
+    kinds: list[str | None] = []
+
+    def start(name: str, attrs: dict[str, str]) -> None:
+        builder.start(name, attrs)
+        kept = builder._open[-1]  # the smallest seam: what _enter returned for this element
+        kinds.append(kept.kind if isinstance(kept, _Node) else "field" if kept else None)
+
+    parser = _new_parser(builder)
+    parser.StartElementHandler = start
+    try:
+        parser.Parse(body, True)
+    except FeedError:
+        return None
+    return kinds
+
+
+@settings(max_examples=400, deadline=None)
+@given(_element())
+def test_the_reader_treats_the_elements_expat_namespace_mode_names_as_the_feeds_as_its_own(
+    document: _Element,
+) -> None:
+    body = _render(document).encode()
+    assert _reader_kinds(body) == _expat_kinds(body)
 
 
 @pytest.mark.parametrize(
