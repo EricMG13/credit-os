@@ -136,10 +136,7 @@ export function IssuerList({
         <div
           role="region"
           aria-label="Issuers"
-          // A horizontally scrolling region must take focus so a keyboard user can scroll it (WCAG 2.1.1).
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-          tabIndex={0}
-          className="overflow-x-auto rounded-ds-xs outline-none focus-visible:ring-2 focus-visible:ring-brand [&>div]:w-max [&>div]:min-w-full [&>div]:overflow-x-visible"
+          className="overflow-x-auto [&>div]:w-max [&>div]:min-w-full [&>div]:overflow-x-visible"
         >
           <Table
             aria-label="Issuers"
