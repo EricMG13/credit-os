@@ -133,6 +133,28 @@ const ROW_PATH = "runs[0].statements.statements[0].rows[0]";
 const PAIR = { kind: "missing", reason: null } as const;
 
 describe("readSlice: cases and statements", () => {
+  it("reads two cases and four statements of seven columns", () => {
+    const result = readSlice(fixtureSlice());
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.runs[0];
+    expect(run?.cases.map((c) => c.name)).toEqual(["Base case", "Downside case"]);
+    expect(run?.statements.statements.map((s) => s.name)).toEqual([
+      "Income statement",
+      "Cash flow",
+      "Balance sheet",
+      "Key measures",
+    ]);
+    expect(run?.statements.columns.map((c) => c.period)).toEqual([
+      "FY22",
+      "FY23",
+      "FY24",
+      "LTM",
+      "FY25E",
+      "FY26E",
+      "FY27E",
+    ]);
+  });
+
   it("reads a column delivered empty with a reason and rows without a cell for it", () => {
     const source = fixtureSlice() as { runs: { statements: Record<string, unknown> }[] };
     const statements = source.runs[0]?.statements;
@@ -187,6 +209,11 @@ describe("readSlice: cases and statements", () => {
       "no statement at all",
       edited([...STM, "statements"], []),
       "runs[0].statements.statements: expected at least one statement",
+    ],
+    [
+      "two statements with one name",
+      edited([...STM, "statements", 1, "name"], "Income statement"),
+      "runs[0].statements.statements[1].name: expected a name no other statement has",
     ],
     [
       "a column of an unknown kind",
@@ -247,6 +274,26 @@ describe("readSlice: cases and statements", () => {
       "a figure whose position is text",
       edited([...ROW, "cells", 1, "pos"], "0.5"),
       `${ROW_PATH}.cells[1].pos: expected a number from -1 to 1`,
+    ],
+    [
+      "a missing cell with a numeric reason",
+      edited([...STM, "statements", 1, "rows", 1, "cells", 1, "reason"], 5),
+      "runs[0].statements.statements[1].rows[1].cells[1].reason: expected a string or null",
+    ],
+    [
+      "a withheld cell that lost its reason key",
+      edited([...STM, "statements", 1, "rows", 6, "cells", 4, 0, "reason"], undefined),
+      "runs[0].statements.statements[1].rows[6].cells[4][0].reason: missing",
+    ],
+    [
+      "an actual column given a list of cells",
+      edited([...ROW, "cells", 0], [PAIR, PAIR]),
+      `${ROW_PATH}.cells[0]: expected one cell for an actual column`,
+    ],
+    [
+      "a forecast column given a single cell",
+      edited([...ROW, "cells", 4], PAIR),
+      `${ROW_PATH}.cells[4]: expected a list of 2 cells, one per case`,
     ],
     [
       "a forecast column with one case's cell missing",
@@ -326,6 +373,14 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
     metric.trace = null;
     expect(readSlice(source).kind).toBe("ok");
   });
+
+  it("accepts a statement row label that another statement repeats (one statement is open at a time)", () => {
+    const result = readSlice(fixtureSlice());
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const [income, cash] = result.data.runs[0]?.statements.statements ?? [];
+    expect(income?.rows[2]?.label).toBe("EBITDA as defined");
+    expect(cash?.rows[0]?.label).toBe("EBITDA as defined");
+  });
 });
 
 describe("readSlice: lists the pages draw hold something", () => {
@@ -349,6 +404,11 @@ describe("readSlice: lists the pages draw hold something", () => {
       "no limitation",
       edited([...RUN, "limitations", "items"], []),
       "runs[0].limitations.items: expected at least one limitation",
+    ],
+    [
+      "a statement with no row (its empty column's reason would not be drawn)",
+      edited([...STM, "statements", 1, "rows"], []),
+      "runs[0].statements.statements[1].rows: expected at least one row",
     ],
     [
       "no column",
@@ -429,6 +489,10 @@ describe("readSlice: a string the page draws is never empty", () => {
   it.each([
     [["front", "headline", "metrics", 0, "note"], `${P}.front.headline.metrics[0].note`],
     [["cases", 0, "note"], `${P}.cases[0].note`],
+    [
+      ["statements", "statements", 1, "rows", 1, "cells", 1, "reason"],
+      `${P}.statements.statements[1].rows[1].cells[1].reason`,
+    ],
   ] as [(string | number)[], string][])(
     "refuses an empty string, not null, at %j",
     (steps, where) => {
