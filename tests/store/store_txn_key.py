@@ -79,6 +79,7 @@ BAD_SECOND_MIGRATIONS: dict[str, tuple[str, ...]] = {
     ),
     "turns foreign keys off": ("PRAGMA foreign_keys=OFF", _ADD_TAG, "PRAGMA user_version = 2"),
     "an empty statement": (_ADD_TAG, "", "PRAGMA user_version = 2"),
+    "a statement of spaces only": (_ADD_TAG, "   ", "PRAGMA user_version = 2"),
     "upper-case pragma": ("PRAGMA JOURNAL_MODE=OFF", _ADD_TAG, "PRAGMA user_version = 2"),
     "attaches another database": (
         "ATTACH DATABASE ':memory:' AS aux",
@@ -93,6 +94,11 @@ BAD_SECOND_MIGRATIONS: dict[str, tuple[str, ...]] = {
     "creates a temporary trigger": (
         _ADD_TAG,
         "CREATE TEMP TRIGGER swallow BEFORE INSERT ON note BEGIN SELECT RAISE(IGNORE); END",
+        "PRAGMA user_version = 2",
+    ),
+    "creates a temporary view": (
+        _ADD_TAG,
+        "CREATE TEMP VIEW peek AS SELECT id FROM note",
         "PRAGMA user_version = 2",
     ),
 }
@@ -121,3 +127,7 @@ INTERRUPTED_ROWS: list[tuple[object, ...]] = []
 CLEAR_PROGRESS_NOTE_PREFIX = "progress handler not removed: "
 CLEAR_PROGRESS_LEFT_OPEN = False
 CLEAR_PROGRESS_ROWS: list[tuple[object, ...]] = []
+
+# Clearing the authorizer fails (simulated, or a connection closed inside the body): the leaving
+# error's note names it (whole-branch review of PR 1d, parked L2 of the fix-4 rereview).
+CLEAR_AUTH_NOTE_PREFIX = "authorizer not removed: "
