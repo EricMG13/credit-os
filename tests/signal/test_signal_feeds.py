@@ -1425,6 +1425,230 @@ def test_an_rss_description_with_blanks_at_its_ends_is_read_as_stripped() -> Non
     assert _summary_of("\n  Lead <b>x</b> \n ") == "Lead x"
 
 
+# --- R46/R47: a field read in pieces is what html.parser reads of the whole field ---
+# Each literal is what html.parser gives of the whole field (the hand oracle of the plan), read
+# through an RSS description, an Atom html summary and an Atom html title.
+
+
+def _three(field: str) -> tuple[str, str, str]:
+    escaped = field.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return (
+        _summary_of(field),
+        _atom_one("<title>T</title>", f'<summary type="html">{escaped}</summary>').summary,
+        _atom_one(f'<title type="html">{escaped}</title>').title,
+    )
+
+
+_QUOTED_TAG = '<a title= "a>b" href="z">Link</a> tail words'
+_SHOWN_TAIL = "-->shown tail words"
+_REF_65 = "&#" + "0" * 38 + "65; tail words"
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        pytest.param(
+            "Lead" + " " * 2031 + _QUOTED_TAG, "Lead Link tail words", id="a2 = then a blank"
+        ),
+        pytest.param(
+            "Lead" + " " * 2032 + '<a title= ">" href="z">Link</a> tail words',
+            "Lead Link tail words",
+            id="a1 the value is >",
+        ),
+        pytest.param(
+            "Lead" + " " * 2031 + "<a title= 'a>b' href='z'>Link</a> tail words",
+            "Lead Link tail words",
+            id="a3 single quotes",
+        ),
+        pytest.param(
+            "Lead" + " " * 2031 + '<a title ="a>b" href="z">Link</a> tail words',
+            "Lead Link tail words",
+            id="a4 a blank before =",
+        ),
+        pytest.param(
+            "Lead" + " " * 2030 + '<img alt= "x > y" src="s.png">Caption tail words',
+            "Lead Caption tail words",
+            id="a5 img",
+        ),
+        pytest.param(
+            "Lead" + " " * 2032 + '<a title= "><script>" href="z">Link</a> tail words',
+            "Lead Link tail words",
+            id="a6 the value holds a script start tag",
+        ),
+        pytest.param(
+            "Lead" + " " * 2026 + 'Link</a title= "a>b" id="q"> tail words',
+            "Lead Link tail words",
+            id="a9 end tag",
+        ),
+        pytest.param(
+            "Lead" + " " * 2039 + "<!-->hidden words" + _SHOWN_TAIL,
+            "Lead shown tail words",
+            id="b1 <!-->",
+        ),
+        pytest.param(
+            "Lead" + " " * 2038 + "<!--->hidden words" + _SHOWN_TAIL,
+            "Lead shown tail words",
+            id="b2 <!--->",
+        ),
+        pytest.param(
+            "Lead" + " " * 2039 + "<!--><script>code()</script>" + _SHOWN_TAIL,
+            "Lead shown tail words",
+            id="b3 <!--> over a script",
+        ),
+        pytest.param(
+            "Lead" + " " * 2039 + "<!-->hidden words--!>shown tail words",
+            "Lead shown tail words",
+            id="b4 --!>",
+        ),
+        pytest.param(
+            "Lead <!-->" + "h " * 1200 + "-->shown tail", "Lead shown tail", id="b6 1,200 words"
+        ),
+        pytest.param(
+            "Lead <!-->" + "h " * 2500 + "-->shown tail", "Lead shown tail", id="b7 2,500 words"
+        ),
+        pytest.param(
+            "Lead" + " " * 2009 + "&#" + "0" * 38 + "65; tail words",
+            "Lead A tail words",
+            id="c1 38 zeros",
+        ),
+        pytest.param(
+            "Lead" + " " * 2009 + "&#x" + "0" * 38 + "41; tail words",
+            "Lead A tail words",
+            id="c2 hexadecimal",
+        ),
+        pytest.param(
+            "Lead" + " " * 2009 + "&#" + "0" * 39 + "65  tail words",
+            "Lead A tail words",
+            id="c3 no semicolon",
+        ),
+    ],
+)
+def test_a_construct_html_parser_settles_on_what_it_holds_is_read_as_the_whole_field(
+    field: str, expected: str
+) -> None:
+    assert _three(field) == (expected, expected, expected)
+
+
+_FOLD_58 = ["word"] * 58  # 290 visible characters: the summary's cut falls after them
+_FOLD_98 = ["word"] * 98  # 490 visible characters: the title's cut falls after them
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        pytest.param(
+            "word " * 58 + " " * 1745 + _QUOTED_TAG, " ".join([*_FOLD_58, "Link", "tail"]), id="a"
+        ),
+        pytest.param(
+            "word " * 58 + " " * 1753 + "<!-->hidden words" + _SHOWN_TAIL,
+            " ".join([*_FOLD_58, "shown", "tail"]),
+            id="b",
+        ),
+        pytest.param(
+            "word " * 58 + " " * 1723 + _REF_65, " ".join([*_FOLD_58, "A", "tail"]), id="c"
+        ),
+    ],
+)
+def test_a_wait_does_not_change_where_the_summary_is_cut(field: str, expected: str) -> None:
+    assert _three(field)[:2] == (expected, expected)
+
+
+def test_a_wait_does_not_change_where_the_title_is_cut() -> None:
+    field = "word " * 98 + " " * 1545 + _QUOTED_TAG
+    assert _three(field)[2] == " ".join([*_FOLD_98, "Link", "tail"])
+
+
+def test_a_comment_start_that_ends_at_once_is_read_as_one_when_no_end_follows_in_one_piece() -> (
+    None
+):
+    # the same text, whole or in pieces: nothing hides what follows "<!-->" when no "-->" comes
+    assert _three("Lead <!-->" + "h " * 500 + "shown tail")[:2] == (
+        "Lead " + "h " * 147 + "h",
+        "Lead " + "h " * 147 + "h",
+    )
+
+
+@pytest.mark.parametrize(
+    ("element", "shift"), [(e, n) for e in ("textarea", "title") for n in range(13)]
+)
+def test_a_reference_across_the_cut_of_released_text_content_is_decoded(
+    element: str, shift: int
+) -> None:
+    ref = "&#" + "0" * 38 + "65;"
+    before = f"Lead <{element}>"
+    start = 4096 - (len(element) + 2) - 40 - shift  # the release cut falls 40 characters in
+    field = before + "\u200b" * (start - len(before)) + ref + " z" * 40 + f"</{element}> after"
+    expected = "Lead A" + " z" * 40 + " after"
+    assert _three(field) == (expected, expected, expected)
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        pytest.param(
+            "Lead " + " " * 40 + _QUOTED_TAG, "Lead Link tail words", id="a2 in one piece"
+        ),
+        pytest.param(
+            "Lead <textarea>" + " " * 2020 + '<a title= "a>b" href="z">Link</a></textarea> after',
+            'Lead <a title= "a>b" href="z">Link</a> after',
+            id="a2 in a textarea",
+        ),
+        pytest.param(
+            "Lead <script>" + " " * 2022 + '<a title= "a>b" href="z">Link</a></script> after',
+            "Lead after",
+            id="a2 in a script",
+        ),
+        pytest.param(
+            "Lead <style>" + " " * 2031 + "<!-->hidden words-->shown</style> after",
+            "Lead after",
+            id="b1 in a style",
+        ),
+        pytest.param(
+            "Lead <title>" + " " * 2001 + "&#" + "0" * 38 + "65;</title> after",
+            "Lead A after",
+            id="c in a title",
+        ),
+        pytest.param(
+            "Lead" + " " * 2009 + "&#" + "0" * 29 + "65; tail words",
+            "Lead A tail words",
+            id="a reference of 34 characters",
+        ),
+    ],
+)
+def test_a_construct_the_stripper_already_read_alike_is_still_read_alike(
+    field: str, expected: str
+) -> None:
+    assert _three(field) == (expected, expected, expected)
+
+
+# R47, the accepted limits. Each row records a reading that differs from the whole field's, with
+# the literal; it is a limit recorded, not a defect to be fixed by editing the expected text.
+
+
+def test_recorded_limit_1_a_comment_start_with_no_end_and_a_long_text_after_it_hides_the_text() -> (
+    None
+):
+    assert _summary_of("Lead <!-->" + "h " * 2500 + "shown tail") == "Lead"  # whole: "Lead h h h…"
+    assert _summary_of("x<!-->" + "h " * 4000 + "-->y") == "x y"  # released: one space; whole: "xy"
+
+
+def test_recorded_limit_2_a_quote_closing_past_the_settle_point_is_read_as_html_parser_holds_it() -> (
+    None
+):
+    field = "Lead" + " " * 2036 + '<a title= "a>' + "b w " * 750 + '" href="z">Link</a> tail'
+    assert _summary_of(field) == "Lead " + "b w " * 73 + "b w"  # whole: "Lead Link tail"
+    script = "Lead" + " " * 2036 + '<script title= "a>' + "b w " * 750 + '" x="z">y</script> shown'
+    assert _summary_of(script) == "Lead shown"
+
+
+def test_recorded_limit_3_reference_digits_past_the_settle_point_read_as_replacement_digits() -> (
+    None
+):
+    field = "Lead" + " " * 2036 + "&#" + "0" * 3000 + "65; tail"
+    # the digits are one word of more than 300 characters, so a summary keeps only "Lead"
+    assert _three(field) == ("Lead", "Lead", "Lead \ufffd" + "0" * 494)  # whole: "Lead A tail"
+
+
 class _WholeText(HTMLParser):
     """The oracle: html.parser reading a whole description at once, with the reader's block rule."""
 
@@ -1452,11 +1676,18 @@ _FIELD_PIECES = st.sampled_from(
     ["word", "x ", " ", "<p>", "</p>", "<b>", "</b>", "&amp;", "&lt;", "&#1078;", "&notin;"]
     + ["&a", "<br/>", "<!-- c -->", "<script>s</script>", '<a href="q>r">', "</a>", "&", "\n"]
     + ["<textarea>t</textarea>", "<", ">", "\u0436", "<![CDATA[ k>l ]]>"]
+    # R46: the three constructs html.parser reads by what it has been given, and blank filler
+    # that puts a piece boundary inside the 300 visible characters
+    + ['<a title= "a>b" href="z">', "<i t ='x>y'>", '</a title= "a>b">', '<img alt= "><script>">']
+    + ["<!-->", "<!--->", "-->", "--!>", "&#" + "0" * 38 + "65;", "&#x" + "0" * 38 + "41;"]
+    + ["&#" + "0" * 39 + "65", " " * 256]
 )
 
 
-@settings(max_examples=150, deadline=None, derandomize=True)
-@given(st.lists(_FIELD_PIECES, min_size=300, max_size=1500).map("".join))
+# Every field ends with "-->": a "<!-->" with no later comment end and more than MAX_HELD_CHARS
+# after it is the recorded difference of R47 (limit 1), outside this property.
+@settings(max_examples=300, deadline=None, derandomize=True)
+@given(st.lists(_FIELD_PIECES, min_size=300, max_size=1500).map(lambda p: "".join(p) + "-->"))
 def test_a_description_read_in_pieces_is_what_html_parser_reads_of_the_whole(text: str) -> None:
     """Fields past one step (2,048 characters) with no construct held over the limit: the
     reader gives what html.parser gives of the whole text, folded and cut by hand here."""
