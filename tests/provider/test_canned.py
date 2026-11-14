@@ -58,8 +58,7 @@ def test_missing_request_raises(at: tuple[str, int]) -> None:
     with pytest.raises(RecordingMissing) as caught:
         _ask(canned_model("c", RECORDING), at)
     assert (caught.value.exchange_id, caught.value.call_index) == at
-    assert at[0] in str(caught.value)
-    assert str(at[1]) in str(caught.value)
+    assert at[0] in str(caught.value) and str(at[1]) in str(caught.value)
 
 
 @pytest.mark.parametrize("line", key.CANNED_BAD_LINES, ids=range(len(key.CANNED_BAD_LINES)))
@@ -71,10 +70,10 @@ def test_bad_lines_refused(tmp_path: Path, line: dict[str, Any] | str) -> None:
 _BASE = key.CANNED_GOOD_LINES[0]
 _TURN = _BASE["reply"]["turn"]
 _CALL = {"call_id": "c", "name": "n", "arguments": {}}
-_USAGE_KEYS = (
+_EXACTLY = "{} must have exactly the keys {}".format
+_USAGE_TEXT = (
     "input_tokens, cached_read_tokens, cache_write_tokens, output_tokens, reasoning_tokens"
 )
-_CHARGE = "billed_usd must be a decimal string or null"
 _NUMBER = '{"exchange_id":"e","call_index":0,"reply":{"x":NaN}}'
 
 
@@ -93,20 +92,17 @@ def _call(**changes: Any) -> dict[str, Any]:
 # (one-line recording, the whole refusal text after "rec.jsonl line 1: ")
 MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     ("[]", "line must be an object"),
-    ({**_BASE, "x": 1}, "line must have exactly the keys exchange_id, call_index, reply"),
+    ({**_BASE, "x": 1}, _EXACTLY("line", "exchange_id, call_index, reply")),
     ({**_BASE, "exchange_id": ""}, "exchange_id must be a non-empty string"),
     ({**_BASE, "call_index": -1}, "call_index must be a non-negative integer"),
     ({**_BASE, "reply": []}, "reply must be an object"),
     (
         _reply(x=1),
-        (
-            "reply must have exactly the keys kind, turn, error_class, message, usage, "
-            "billed_usd, compactions"
-        ),
+        _EXACTLY("reply", "kind, turn, error_class, message, usage, billed_usd, compactions"),
     ),
     (_reply(kind="sent_known"), "unknown reply kind 'sent_known'"),
     (_reply(usage={}), "an ok reply's usage is its turn's: usage must be null"),
-    (_reply(billed_usd=0.5), _CHARGE),
+    (_reply(billed_usd=0.5), "billed_usd must be a decimal string or null"),
     (_reply(billed_usd="one"), "billed_usd is not a decimal"),
     (_reply(error_class=5), "error_class must be a string or null"),
     (_reply(message=5), "message must be a string or null"),
@@ -115,22 +111,19 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     (_reply(compactions=[{"usage": None, "billed_usd": None}]), "usage must be an object"),
     (
         _reply(compactions=[{"usage": {}, "billed_usd": None, "x": 1}]),
-        "compaction must have exactly the keys usage, billed_usd",
+        _EXACTLY("compaction", "usage, billed_usd"),
     ),
     (
         _turn(x=1),
-        (
-            "turn must have exactly the keys text, tool_calls, usage, stop_reason, "
-            "reported_model, request_id"
-        ),
+        _EXACTLY("turn", "text, tool_calls, usage, stop_reason, reported_model, request_id"),
     ),
     (_turn(text=None), "text must be a string"),
     (_turn(reported_model=6), "reported_model must be a string or null"),
     (_turn(request_id=6), "request_id must be a string or null"),
-    (_turn(usage={"input_tokens": 1}), f"usage must have exactly the keys {_USAGE_KEYS}"),
+    (_turn(usage={"input_tokens": 1}), _EXACTLY("usage", _USAGE_TEXT)),
     (_turn(tool_calls={}), "tool_calls must be a list"),
     (_turn(tool_calls=[1]), "tool call must be an object"),
-    (_call(x=1), "tool call must have exactly the keys call_id, name, arguments"),
+    (_call(x=1), _EXACTLY("tool call", "call_id, name, arguments")),
     (_call(call_id=1), "call_id must be a string"),
     (_call(name=1), "name must be a string"),
     (_call(arguments="{}"), "arguments must be an object"),
@@ -182,11 +175,8 @@ def test_blank_lines_count(tmp_path: Path) -> None:
 
 def test_unreadable_paths(tmp_path: Path) -> None:
     (tmp_path / "bad.jsonl").write_bytes(b"\xff\n")
-    for name, error in (
-        ("absent.jsonl", r"\w+"),
-        ("", r"\w+"),
-        ("bad.jsonl", "UnicodeDecodeError"),
-    ):
+    cases = {"absent.jsonl": r"\w+", "": r"\w+", "bad.jsonl": "UnicodeDecodeError"}
+    for name, error in cases.items():
         path = tmp_path / name
         with pytest.raises(RecordingError, match=rf"^{path.name}: unreadable: {error}$"):
             canned_model("c", path)

@@ -1,7 +1,7 @@
 """A `Model` that replays replies from one JSON Lines recording, for tests and replays.
 
-A request with no recorded reply raises `RecordingMissing`; a default reply is never built.
-A decimal is read as text or `Decimal`, never a float; a count not reported stays `None`."""
+A request with no recorded reply raises `RecordingMissing`; nothing is defaulted. Money is
+read as text or `Decimal`, never a float; a count not reported stays `None`."""
 
 import json
 import re
@@ -23,7 +23,6 @@ from credit_os.provider.types import (
 
 _USAGE_KEYS = tuple(f.name for f in fields(Usage))
 _CHARGE = re.compile(r"(0|[1-9][0-9]*)(\.[0-9]+)?")
-_MAX_INT_DIGITS = 18
 _LINE_KEYS = ("exchange_id", "call_index", "reply")
 _REPLY_KEYS = ("kind", "turn", "error_class", "message", "usage", "billed_usd", "compactions")
 _TURN_KEYS = ("text", "tool_calls", "usage", "stop_reason", "reported_model", "request_id")
@@ -45,8 +44,7 @@ class RecordingMissing(LookupError):
 
 
 class CannedModel:
-    """Answers from a fixed table of replies. It holds nothing to release, so `close` does
-    nothing and the model still answers afterwards."""
+    """Answers from a fixed table of replies; `close` does nothing and it still answers after."""
 
     def __init__(self, config_id: str, replies: Mapping[tuple[str, int], Reply]) -> None:
         self._config_id = config_id
@@ -98,8 +96,8 @@ def _parse_float(text: str) -> Decimal:
 
 
 def _parse_int(text: str) -> int:
-    if len(text.lstrip("-")) > _MAX_INT_DIGITS:
-        raise RecordingError(f"an integer has more than {_MAX_INT_DIGITS} digits")
+    if len(text.lstrip("-")) > 18:
+        raise RecordingError("an integer has more than 18 digits")
     return int(text)
 
 
@@ -137,9 +135,7 @@ def _parse_line(line: str) -> tuple[tuple[str, int], Reply]:
         raise RecordingError(str(error)) from None
 
 
-def _exact(
-    value: object, keys: tuple[str, ...], what: str, optional: str | None = None
-) -> dict[str, Any]:
+def _exact(value: object, keys: tuple[str, ...], what: str, optional: str = "") -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RecordingError(f"{what} must be an object")
     if not set(keys) <= set(value) <= {*keys, optional}:
@@ -157,10 +153,6 @@ def _list(value: object, what: str) -> list[Any]:
     if not isinstance(value, list):
         raise RecordingError(f"{what} must be a list")
     return value
-
-
-def _usage(value: object) -> Usage:
-    return Usage(**_exact(value, _USAGE_KEYS, "usage"))
 
 
 def _charge(value: object) -> Decimal | None:
@@ -191,7 +183,7 @@ def _turn(value: object) -> Turn:
     return Turn(
         _text(obj["text"], "text"),
         tuple(_call(c) for c in _list(obj["tool_calls"], "tool_calls")),
-        _usage(obj["usage"]),
+        Usage(**_exact(obj["usage"], _USAGE_KEYS, "usage")),
         obj["stop_reason"],
         _text(obj["reported_model"], "reported_model", nullable=True),
         _text(obj["request_id"], "request_id", nullable=True),
@@ -200,7 +192,9 @@ def _turn(value: object) -> Turn:
 
 def _compaction(value: object) -> Compaction:
     obj = _exact(value, _COMPACTION_KEYS, "compaction")
-    return Compaction(_usage(obj["usage"]), _charge(obj["billed_usd"]))
+    return Compaction(
+        Usage(**_exact(obj["usage"], _USAGE_KEYS, "usage")), _charge(obj["billed_usd"])
+    )
 
 
 def _reply(value: object) -> Reply:
@@ -211,7 +205,9 @@ def _reply(value: object) -> Reply:
             raise RecordingError("an ok reply's usage is its turn's: usage must be null")
         usage = None if turn is None else turn.usage
     else:
-        usage = None if obj["usage"] is None else _usage(obj["usage"])
+        usage = (
+            None if obj["usage"] is None else Usage(**_exact(obj["usage"], _USAGE_KEYS, "usage"))
+        )
     return Reply(
         obj["kind"],
         turn,
