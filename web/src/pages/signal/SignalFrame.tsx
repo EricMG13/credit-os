@@ -1,6 +1,6 @@
 // The layout every Signal page sits in: the channel list on the left, the page's content on the
 // right, each scrolling on its own, filling the full-bleed page region after mock/signal.js (SgShell) and `.sub`, `.ni`, `.cnt`, `.dot`, `.me`.
-import { useId, useRef, useState, type FC, type ReactNode } from "react";
+import { useId, useRef, type FC, type ReactNode } from "react";
 import {
   Bookmark,
   Clock,
@@ -26,6 +26,12 @@ export type SignalCurrent =
   | { kind: "settings" }
   /** The address names no channel item (an unknown view or topic): nothing is marked current. */
   | { kind: "none" };
+
+/** Follow state kept above the frame so the channel list and the page agree; in memory only. */
+export type SignalFollow = {
+  on: (topic: { id: string; followed: boolean }) => boolean;
+  toggle: (topic: { id: string; followed: boolean }) => void;
+};
 
 export function sceneHref(scene: SignalScene, path: string): string {
   return `#/signal/${encodeURIComponent(scene.id)}/${path}`;
@@ -81,11 +87,17 @@ function Heading({ children }: { children: string }) {
   return <h2 className="px-2 pt-4 pb-1 text-xs font-bold text-text-tertiary">{children}</h2>;
 }
 
-function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCurrent }) {
+function ChannelList({
+  scene,
+  current,
+  follow,
+}: {
+  scene: SignalScene;
+  current: SignalCurrent;
+  follow: SignalFollow;
+}) {
   const { channels } = scene.snapshot;
   const headingId = useId();
-  // Follow is in-memory only: nothing is written; a reload shows the slice's own state again.
-  const [followed, setFollowed] = useState<ReadonlyMap<string, boolean>>(new Map());
   const views = [
     { id: "for-you", label: "For you", icon: Stars01, count: null },
     { id: "latest", label: "Latest", icon: Clock, count: null },
@@ -118,7 +130,7 @@ function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCu
       ) : (
         <ul>
           {channels.topics.map((topic) => {
-            const on = followed.get(topic.id) ?? topic.followed;
+            const on = follow.on(topic);
             return (
               <Row
                 key={topic.id}
@@ -133,7 +145,7 @@ function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCu
                     className={on ? "text-action hover:text-action-hover" : undefined}
                     icon={<Star01 data-icon className={on ? "fill-current" : undefined} />}
                     onPress={() => {
-                      setFollowed(new Map(followed).set(topic.id, !on));
+                      follow.toggle(topic);
                     }}
                   />
                 }
@@ -226,10 +238,12 @@ function NameChip({ viewer }: { viewer: SignalScene["snapshot"]["viewer"] }) {
 export function SignalFrame({
   scene,
   current,
+  follow,
   children,
 }: {
   scene: SignalScene;
   current: SignalCurrent;
+  follow: SignalFollow;
   children: ReactNode;
 }) {
   const content = useRef<HTMLDivElement>(null);
@@ -245,7 +259,7 @@ export function SignalFrame({
       >
         Skip to the feed
       </a>
-      <ChannelList scene={scene} current={current} />
+      <ChannelList scene={scene} current={current} follow={follow} />
       <div
         id="signal-content"
         ref={content}
