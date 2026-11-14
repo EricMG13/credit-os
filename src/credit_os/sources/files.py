@@ -16,6 +16,8 @@ from credit_os.sources.pins import SourcePin, check_kind, validate_name
 
 MAX_BYTES = 50 * 1024 * 1024
 
+_HAS_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+
 _OPEN_FLAGS = os.O_RDONLY
 for _flag in ("O_BINARY", "O_NONBLOCK", "O_CLOEXEC", "O_NOFOLLOW"):
     _OPEN_FLAGS |= getattr(os, _flag, 0)
@@ -24,6 +26,11 @@ for _flag in ("O_BINARY", "O_NONBLOCK", "O_CLOEXEC", "O_NOFOLLOW"):
 def read_capped(path: Path) -> bytes:
     """Read a regular file of at most MAX_BYTES bytes through a single descriptor."""
     try:
+        # No O_NOFOLLOW here (Windows), so the open would follow a final link. This test
+        # and the open are two steps, the same stated limit as the link walk in
+        # source_path: a link swapped in between them is not closed here.
+        if not _HAS_NOFOLLOW and (path.is_symlink() or path.is_junction()):
+            raise SourceUnreadable(f"{path}: is a symbolic link")
         fd = os.open(path, _OPEN_FLAGS)
     except (OSError, ValueError) as error:
         reason = getattr(error, "strerror", None) or str(error)
