@@ -718,8 +718,10 @@ function opensHeld(
  * The most work one collapsed item's lead may cost to split: one unit for each held name tried at
  * each place a name can start, and one for each count carried back from the tail. A run holds at
  * most a few dozen modules and a name is a few words, so a real lead (a few dozen names) costs
- * about 40 names x 100 places = 4,000 units. 100,000 is some twenty times that, and bounds the work
- * on a lead that is not one.
+ * about 40 names x 100 places = 4,000 units. 100,000 is some twenty times that. It bounds the
+ * start places found (each costing at least one unit, so at most 100,000 are ever held) and the
+ * name comparisons and carried counts; it does not bound the one pass of `indexOf` over the lead's
+ * characters, which stops at the place that passes it.
  */
 export const MAX_SPLIT_WORK = 100_000;
 
@@ -735,8 +737,14 @@ function namesListed(lead: string, names: readonly string[]): Set<number> | null
   const body = lead.slice(0, -1);
   const end = body.length;
   // A name starts at the front or after any ", ".
+  // Counted as found: past the work limit no list of places is built.
+  const perPlace = Math.max(names.length, 1);
   const starts = new Set([0]);
-  for (let at = body.indexOf(", "); at !== -1; at = body.indexOf(", ", at + 1)) starts.add(at + 2);
+  for (let at = body.indexOf(", "); at !== -1; at = body.indexOf(", ", at + 1)) {
+    if (at + 2 === end) continue;
+    starts.add(at + 2);
+    if (starts.size * perPlace > MAX_SPLIT_WORK) return null;
+  }
   // Counts reachable from each place, filled from the end of the lead back to the front.
   const reach = new Map<number, Set<number>>([[end, new Set([0])]]);
   let work = 0;
