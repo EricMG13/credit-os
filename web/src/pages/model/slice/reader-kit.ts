@@ -9,6 +9,9 @@ export const child = (path: string, key: string): string => (path === "" ? key :
 export function fail(path: string, what: string): never {
   throw new SliceError(`${path}: ${what}`);
 }
+/** A string that may be empty: a chart's subtitle or note, which draws nothing when empty. */
+const freeText: Reader<string> = (value, path) =>
+  typeof value === "string" ? value : fail(path, "expected a string");
 
 /** A string that holds something: a label drawn as text is never empty or only whitespace. */
 export const text: Reader<string> = (value, path) => {
@@ -33,6 +36,9 @@ export const addressOrNull: Reader<string | null> = (value, path) => {
   const read = textOrNull(value, path);
   return read === null ? null : inLibrary(read, path);
 };
+
+export const num: Reader<number> = (value, path) =>
+  typeof value === "number" && Number.isFinite(value) ? value : fail(path, "expected a number");
 
 export const bool: Reader<boolean> = (value, path) =>
   typeof value === "boolean" ? value : fail(path, "expected true or false");
@@ -104,6 +110,9 @@ export const is =
     value === word ? word : fail(path, `expected ${word}`);
 
 export const at = (path: string, index: number): string => `${path}[${String(index)}]`;
+
+/** The fields every chart's info carries. */
+export const chartInfo = { title: text, subtitle: freeText, note: freeText, trace: addressOrNull };
 
 /** Refuses the first item whose `field` an earlier item already has. */
 export function distinct<T>(

@@ -94,6 +94,53 @@ export type StatementsPage = {
   intro: string;
   columns: StatementColumn[];
   statements: Statement[];
+  /** The bridges, each drawn for the chosen case. */
+  bridges: Bridge[];
+};
+
+/**
+ * What every chart carries besides its marks: the words around it and its trace address. Every
+ * address in this slice that leads into the library (a `trace`, `links`, a tab's or a
+ * limitations link's `href`) starts with `#/`; `published.href` and `checkFigure.href` (files)
+ * are not covered by that rule.
+ *
+ * The two sides of one chart state the same thing for one record: wherever a table cell states a
+ * mark, the cell is `null` exactly where the mark is missing and holds the mark's text where it is
+ * drawn. The mapping per kind is written on the type that carries the cells.
+ */
+type ChartInfo = { title: string; subtitle: string; note: string; trace: string | null };
+
+/** A caller tick: a position on the axis and the exact label drawn there. */
+export type Tick = { value: number; label: string };
+
+/**
+ * A bridge step. `from` and `to` are positions on the axis only; `text` is the exact signed
+ * label. A missing step carries nothing else.
+ */
+export type BridgeStep =
+  | PresentStep<"total">
+  | PresentStep<"up">
+  | PresentStep<"down">
+  | { label: string; kind: "missing" };
+
+type PresentStep<K extends string> = {
+  label: string;
+  kind: K;
+  from: number;
+  to: number;
+  text: string;
+};
+
+/**
+ * One walk. `caseSteps` holds one list of steps per case, in case order; the table holds one row
+ * per step with one cell per case, `null` where the step is missing.
+ */
+export type Bridge = ChartInfo & {
+  yTicks: Tick[];
+  caseSteps: BridgeStep[][];
+  /** The first entry heads the label column; the rest are the case names. */
+  head: string[];
+  rows: { label: string; cells: (string | null)[]; trace: string | null }[];
 };
 
 /** One header note per case, in the order of `ModelRun.cases`. */
