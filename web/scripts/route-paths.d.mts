@@ -4,3 +4,6 @@ export function fillParams(
   p: string,
   s: Record<string, string>,
 ): { hash: string; missing: string[] };
+export function homesIn(source: string): string[];
+export function declaresHome(source: string): boolean;
+export function groupDeclaresHome(groupDir: string): boolean;
