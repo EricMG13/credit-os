@@ -447,8 +447,24 @@
             ],
             "views": {
               "for-you": {
-                "top": ["corvane", "tessaly", "halvorsen", "brightwell"],
-                "latest": ["corvane", "tessaly", "halvorsen", "brightwell"]
+                "top": [
+                  "corvane",
+                  "tessaly",
+                  "halvorsen",
+                  "weekly-brief",
+                  "brightwell",
+                  "daily-ratings-12-nov",
+                  "daily-ratings-11-nov"
+                ],
+                "latest": [
+                  "corvane",
+                  "tessaly",
+                  "halvorsen",
+                  "weekly-brief",
+                  "brightwell",
+                  "daily-ratings-12-nov",
+                  "daily-ratings-11-nov"
+                ]
               },
               "latest": { "top": [], "latest": [] },
               "saved": { "top": [], "latest": [] }

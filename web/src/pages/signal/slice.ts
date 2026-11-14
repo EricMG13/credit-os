@@ -49,7 +49,7 @@ export type SignalStory = {
   ratingMoves: { from: string; to: string; word: string }[];
 };
 /** A digest card in the feed; with `nothing` set it is the one-sentence card and holds no points. */
-type SignalDigestCard = {
+export type SignalDigestCard = {
   id: string;
   digestName: string;
   monogram: string;
