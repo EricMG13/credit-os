@@ -22,14 +22,14 @@ merges. A row not yet ported sits at the baseline pin with nothing pending.
 
 | Legacy path | credit-os target | Phase | Adapted to | Pending |
 | :--- | :--- | :--- | :--- | :--- |
-| `src/deploy_workflow/docx_text.py`, `html_text.py`, `pdf_headers.py`, `inline_xbrl.py`, `src/deploy_vii/preparation.py`, `contracts.py`, `readiness.py` | `sources/` | 1D | `8e3954a` | none |
+| `src/deploy_workflow/docx_text.py`, `html_text.py`, `run_inputs.py` (`read_capped`), `src/deploy_vii/preparation.py` (its zip, XML and size guards only); `pdf_headers.py` and `inline_xbrl.py` are deferred, `contracts.py` and `readiness.py` are not ported (1D plan) | `sources/` | 1D | `8e3954a` | none |
 | `src/deploy_workflow/handoff_delivery.py`, `markdown_delivery.py`, `run_scopes.py`, `src/deploy_vii/bindings/shipped.py`, `display.py`, `report_view.py` | `handoff/` | 1A | `8e3954a` | none |
 | `tests/fixtures/sol_medium_run_2026_11_09` (two fragments), `apps/issuer-library/fixtures/synthetic-new-format`; the full answer key is the retained run named in decision 0002, which is not in the legacy repository | `tests/fixtures/` | 1A | `8e3954a` | none |
 | `src/deploy_vii/model`, `src/deploy_workflow/model_handoff_delivery.py`, `owners/cpos_forecast.py`, `owners/cp2g.py` (the forecast arithmetic, `cp2g.forecast`), `owners/cpos_periods.py`, `owners/cpos_facilities.py` | `model/` | 1B | `8e3954a` | none |
-| `src/deploy_workflow/model/handoff.py`, `loop.py`, `copilot.py`, `copilot_adapter.py`, `adapter.py`, `record.py`, `redact.py`, `reply_classes.py`, `turn.py`, `model_testing/configs.py`, `src/deploy_vii/live/schema.py`, `live/prompts.py`, `live/tools.py`, `execution.py` | `provider/` | 1C | `8e3954a` | none |
+| `src/deploy_workflow/model/copilot.py`, `copilot_adapter.py`, `adapter.py`, `redact.py`, `reply_classes.py`, `turn.py`, `model/providers.py` (its shared helpers only), `model_testing/configs.py` (the `copilot-sol-medium` entry only) | `provider/` | 1C | `8e3954a` | none |
 | `src/deploy_workflow/run_events.py`, `library_index.py`, `reader_summary.py`, `platform_io.py` | `store/` | 2A | `8e3954a` | none |
 | `src/deploy_workflow/prose_checks.py`, `confidence.py` | `checks/` | 2B | `8e3954a` | none |
-| `src/deploy_vii/registry.py`, `business_context.py`, `src/deploy_workflow/owners/cpos.py`, `owners/cpos_launch.py`, `owners/cpos_cp1_check.py` (new in legacy #111; CP-1's acceptance check, imported by the launcher), `context.py`, `run_expectations.py`, `model/budget.py`, `model/pricing.py` (run cap; see open questions) | `orchestrator/` | 3A | `8e3954a` | none |
+| `src/deploy_workflow/model/handoff.py` (the module loop; its page readers `_pages` and `_workbook_pages` are adapted in 1D), `model/loop.py`, `model/record.py`, `src/deploy_vii/registry.py`, `business_context.py`, `src/deploy_workflow/owners/cpos.py`, `owners/cpos_launch.py`, `owners/cpos_cp1_check.py` (new in legacy #111; CP-1's acceptance check, imported by the launcher), `context.py`, `run_expectations.py`, `model/budget.py`, `model/pricing.py` (run cap; see open questions) | `orchestrator/` | 3A | `8e3954a` | none |
 | `apps/issuer-library/update_library.py`, `credit_os/store.py`, `src/deploy_workflow/credit_os_catalogue.py`, `credit_os_chips.py`, `src/deploy_vii/render.py` | `delivery/` | 3B | `8e3954a` | none |
 | `apps/issuer-library/credit_os/web` | `web/` (behaviour to match, not code to copy) | 4 | `8e3954a` | none |
 | `src/deploy_workflow/changes.py`, `changes_check.py` | `orchestrator/`, `checks/`, `delivery/` | 5A | `8e3954a` | none |
@@ -88,7 +88,8 @@ Changes under these legacy paths are not adapted; the roadmap says why.
 - `src/deploy_workflow/run_pathway.py`, `owner_workflow.py`, `financial_workflow.py`,
   `earnings_workflow.py`, `host.py`, `workflow.py`, `replay.py`, `research/`, `owners/cp*.py`
   other than `cpos*.py` and `cp2g.py`, `model_testing/` other than `configs.py`
-- `src/deploy_workflow/model/providers.py`, `transport.py`
+- `src/deploy_workflow/model/providers.py` other than the helpers the Copilot adapter shares, `transport.py`
+- `src/deploy_vii/live/schema.py`, `live/prompts.py`, `live/tools.py`, `execution.py` (traced for step 1C on 2026-11-14: the structured runtime, not the provider)
 - `src/deploy_vii` outside the files named in the map
 - `docs/reuse` outside `selected-methods`; within it, the archived `runtime/` snapshots
 - `src/deploy_workflow/research/weblookup.py`, `web_allowlist.json` and the launcher code that
@@ -134,6 +135,11 @@ behind).
 **Ruled by the owner, 2026-11-14 ("Leave it out"):** the rebuild does not carry CP-DR's web
 lookup. The live launcher imports `research/weblookup.py` since #110; step 3A's port drops
 that import and the lookup's instructions, and `research/` stays left behind.
+
+The 1A parser also adapts grammar rules that live in other rows' files
+(`model_handoff_delivery.py`, `prose_checks.py`, `confidence.py`,
+`apps/issuer-library/credit_os/store.py`, `owners/cpos_launch.py`, `web/reader.js`); a change
+to those is read for 1A as well as for its own row.
 
 ## Not tracked
 

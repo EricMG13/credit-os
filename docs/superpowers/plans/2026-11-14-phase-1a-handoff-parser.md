@@ -48,7 +48,7 @@ not `pyproject.toml` (standard library and pydantic 2.13.4 only), not `VERIFICAT
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
 1. **Retained run** (decision 0002, item 3): the 20 handoffs in
-   `/Users/ericguei/Documents/RBOT-HTML/runs/cpos-tdg-sol-medium-all-001/deliveries/abd687ca74b49fbd703ed27dc3f8f9edaa20e12f0236efa80d9d1ea4757c2baa/`
+   `~/Documents/RBOT-HTML/runs/cpos-tdg-sol-medium-all-001/deliveries/abd687ca74b49fbd703ed27dc3f8f9edaa20e12f0236efa80d9d1ea4757c2baa/`
    (public TransDigm case). The controller copies them byte for byte to
    `tests/fixtures/handoffs/tdg-2026-11-09/` in PR 1 with a `SHA256SUMS` file, and a test
    checks every file against it. They prove the earlier format.
