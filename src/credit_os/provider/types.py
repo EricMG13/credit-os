@@ -92,7 +92,7 @@ def _check_charge_value(value: Decimal | None) -> None:
         return
     if not isinstance(value, Decimal):
         raise ProviderDataError("billed_usd must be a Decimal")
-    if not value.is_finite() or value < 0:
+    if not value.is_finite() or value.is_signed():
         raise ProviderDataError("billed_usd must be finite and not negative")
 
 

@@ -2,13 +2,14 @@
 
 import ast
 from pathlib import Path
+from types import ModuleType
 
 import provider_redaction_key as key
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from credit_os.provider import redact
+from credit_os.provider import canned, redact
 from credit_os.provider.redact import Redactor, home_paths
 
 
@@ -47,8 +48,9 @@ def test_empty_redactors_leave_text_unchanged() -> None:
     assert Redactor.from_environ({}).text("x") == "x"
 
 
-def test_module_does_not_import_os() -> None:
-    tree = ast.parse(Path(redact.__file__).read_text(encoding="utf-8"))
+@pytest.mark.parametrize("module", [redact, canned])
+def test_module_does_not_import_os(module: ModuleType) -> None:
+    tree = ast.parse(Path(str(module.__file__)).read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             assert all(alias.name.split(".")[0] != "os" for alias in node.names)

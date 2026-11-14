@@ -1,6 +1,5 @@
 import dataclasses
 import json
-import os
 import re
 from decimal import Decimal
 from pathlib import Path
@@ -63,7 +62,7 @@ def test_missing_request_raises(at: tuple[str, int]) -> None:
     assert str(at[1]) in str(caught.value)
 
 
-@pytest.mark.parametrize("line", key.CANNED_BAD_LINES)
+@pytest.mark.parametrize("line", key.CANNED_BAD_LINES, ids=range(len(key.CANNED_BAD_LINES)))
 def test_bad_lines_refused(tmp_path: Path, line: dict[str, Any] | str) -> None:
     with pytest.raises(RecordingError, match="line 1"):
         canned_model("c", _file(tmp_path, line))
@@ -113,10 +112,7 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     (_reply(message=5), "message must be a string or null"),
     (_reply(compactions={}), "compactions must be a list"),
     (_reply(compactions=[None]), "compaction must be an object"),
-    (
-        _reply(compactions=[{"usage": None, "billed_usd": None}]),
-        "usage must be an object",
-    ),
+    (_reply(compactions=[{"usage": None, "billed_usd": None}]), "usage must be an object"),
     (
         _reply(compactions=[{"usage": {}, "billed_usd": None, "x": 1}]),
         "compaction must have exactly the keys usage, billed_usd",
@@ -138,7 +134,7 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     (_call(call_id=1), "call_id must be a string"),
     (_call(name=1), "name must be a string"),
     (_call(arguments="{}"), "arguments must be an object"),
-    (_call(bad_arguments=1), "bad_arguments must be a string or null"),
+    (_call(bad_arguments=1), "bad_arguments must be a string"),
     ('{"exchange_id":"e","exchange_id":"e"}', "duplicate key 'exchange_id'"),
     (_NUMBER, "NaN is not allowed in a JSON number"),
     (_NUMBER.replace("NaN", "-Infinity"), "-Infinity is not allowed in a JSON number"),
@@ -194,32 +190,6 @@ def test_unreadable_paths(tmp_path: Path) -> None:
         path = tmp_path / name
         with pytest.raises(RecordingError, match=rf"^{path.name}: unreadable: {error}$"):
             canned_model("c", path)
-
-
-class _NoEnvironment:
-    """Every read raises, except the two names the mutation tool itself reads."""
-
-    def __contains__(self, name: str) -> bool:
-        if name == "MUTANT_UNDER_TEST":
-            return False
-        raise AssertionError("environment read")
-
-    def get(self, name: str, default: str) -> str:
-        if name == "MUTMUT_DEPENDENCY_DEPTH":
-            return default
-        raise AssertionError("environment read")
-
-    def __getitem__(self, name: str) -> str:
-        raise AssertionError("environment read")
-
-    def __getattr__(self, name: str) -> object:
-        raise AssertionError("environment read")
-
-
-def test_reads_no_environment(monkeypatch: pytest.MonkeyPatch) -> None:
-    with monkeypatch.context() as patched:
-        patched.setattr(os, "environ", _NoEnvironment())
-        assert _ask(canned_model("c", RECORDING), CP1_1).kind == "ok"
 
 
 def test_config_close_and_repeat() -> None:

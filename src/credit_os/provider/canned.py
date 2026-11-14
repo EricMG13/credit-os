@@ -4,7 +4,9 @@ A request with no recorded reply raises `RecordingMissing`; a default reply is n
 A decimal is read as text or `Decimal`, never a float; a count not reported stays `None`."""
 
 import json
+import re
 from collections.abc import Mapping
+from dataclasses import fields
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -19,13 +21,9 @@ from credit_os.provider.types import (
     Usage,
 )
 
-_USAGE_KEYS = (
-    "input_tokens",
-    "cached_read_tokens",
-    "cache_write_tokens",
-    "output_tokens",
-    "reasoning_tokens",
-)
+_USAGE_KEYS = tuple(f.name for f in fields(Usage))
+_CHARGE = re.compile(r"(0|[1-9][0-9]*)(\.[0-9]+)?")
+_MAX_INT_DIGITS = 18
 _LINE_KEYS = ("exchange_id", "call_index", "reply")
 _REPLY_KEYS = ("kind", "turn", "error_class", "message", "usage", "billed_usd", "compactions")
 _TURN_KEYS = ("text", "tool_calls", "usage", "stop_reason", "reported_model", "request_id")
@@ -92,6 +90,19 @@ def _refuse_constant(name: str) -> object:
     raise RecordingError(f"{name} is not allowed in a JSON number")
 
 
+def _parse_float(text: str) -> Decimal:
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        raise RecordingError("a number is out of range") from None
+
+
+def _parse_int(text: str) -> int:
+    if len(text.lstrip("-")) > _MAX_INT_DIGITS:
+        raise RecordingError(f"an integer has more than {_MAX_INT_DIGITS} digits")
+    return int(text)
+
+
 def _no_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for name, value in pairs:
@@ -105,7 +116,8 @@ def _parse_line(line: str) -> tuple[tuple[str, int], Reply]:
     try:
         value = json.loads(
             line,
-            parse_float=Decimal,
+            parse_float=_parse_float,
+            parse_int=_parse_int,
             parse_constant=_refuse_constant,
             object_pairs_hook=_no_duplicate_keys,
         )
@@ -156,10 +168,9 @@ def _charge(value: object) -> Decimal | None:
         return None
     if not isinstance(value, str):
         raise RecordingError("billed_usd must be a decimal string or null")
-    try:
-        return Decimal(value)
-    except InvalidOperation:
-        raise RecordingError("billed_usd is not a decimal") from None
+    if not _CHARGE.fullmatch(value):
+        raise RecordingError("billed_usd is not a decimal")
+    return Decimal(value)
 
 
 def _call(value: object) -> ToolCall:
@@ -171,7 +182,7 @@ def _call(value: object) -> ToolCall:
         _text(obj["call_id"], "call_id"),
         _text(obj["name"], "name"),
         arguments,
-        _text(obj.get("bad_arguments"), "bad_arguments", nullable=True),
+        _text(obj["bad_arguments"], "bad_arguments") if "bad_arguments" in obj else None,
     )
 
 
