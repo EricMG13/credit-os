@@ -55,7 +55,7 @@ which the implementer does not weaken. Every report ends with a `Not verified:` 
 ### Task 1: lock and decision record (`mx-scaffold`; batched `mx-feature` review)
 
 1. `pyproject.toml`: `requires = ["hatchling==1.32.4"]`; `dependencies` gains
-   `pypdf==6.21.2` and `github-copilot-sdk==1.0.8`. Run `uv lock`. Nothing imports either
+   `pypdf==6.21.4` and `github-copilot-sdk==1.0.8`. Run `uv lock`. Nothing imports either
    package yet.
 2. `docs/decisions/0005-python-gate-tools.md`, in the form of decision 0004: a table of the
    Python gate tools and the build backend with version, release date and licence, each read
@@ -68,6 +68,8 @@ which the implementer does not weaken. Every report ends with a `Not verified:` 
 
 Answer key: the versions and dates in the pre-flight above; `uv lock --check` exits 0; the
 resolved versions of `pypdf`, `github-copilot-sdk` and `pydantic` in `uv.lock` equal the pins.
+Amended 2026-11-14 by the owner's ruling: pypdf 6.21.4, because 6.21.2 fails pip-audit (7
+advisories).
 
 ### Task 2: duplication gate (`mx-feature`, test first; `mx-precise` review)
 
