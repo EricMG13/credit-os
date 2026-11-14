@@ -12,7 +12,7 @@ import pytest
 import store_runs_key as key
 
 from credit_os.sources.pins import SourceKind, SourcePin
-from credit_os.store import location
+from credit_os.store import location, runs
 from credit_os.store.db import Store, StoreReader, open_reader, open_store
 from credit_os.store.errors import StoreConflict, StoreCorrupt, StoreRefused, StoreUnusable
 
@@ -137,23 +137,66 @@ def test_values_read_back_as_given(store: Store, field: str, written: object, re
         assert store.run(RUN_ID).request_sha256 == key.EMPTY_REQUEST_SHA256
 
 
+def _counting_clock() -> tuple[Clock, list[int]]:
+    """A clock that records each call; the list holds one entry per call."""
+    calls: list[int] = []
+
+    def clock() -> datetime:
+        calls.append(1)
+        return key.CLOCK_FIRST
+
+    return clock, calls
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [(field, value) for _, field, value in key.REFUSED_CREATE],
     ids=[f"refused{index}" for index in range(len(key.REFUSED_CREATE))],
 )
 def test_a_bad_argument_is_refused_and_nothing_is_written(
-    store: Store, tmp_path: Path, field: str, value: object
+    tmp_path: Path, field: str, value: object
 ) -> None:
-    with pytest.raises(StoreRefused):
-        store.create_run(**_args(**{field: value}))
+    clock, calls = _counting_clock()
+    with open_store(tmp_path, clock=clock) as opened, pytest.raises(StoreRefused):
+        opened.create_run(**_args(**{field: value}))
+    assert calls == []
     _nothing_written(tmp_path)
 
 
-def test_duplicate_pin_names_are_refused(store: Store, tmp_path: Path) -> None:
-    with pytest.raises(StoreRefused):
-        store.create_run(**_args(pins=_pins(key.DUPLICATE_PIN_NAMES)))
+def test_duplicate_pin_names_are_refused(tmp_path: Path) -> None:
+    clock, calls = _counting_clock()
+    with open_store(tmp_path, clock=clock) as opened, pytest.raises(StoreRefused):
+        opened.create_run(**_args(pins=_pins(key.DUPLICATE_PIN_NAMES)))
+    assert calls == []
     _nothing_written(tmp_path)
+
+
+def test_a_pin_size_sqlite_cannot_hold_is_refused_before_anything_happens(tmp_path: Path) -> None:
+    name, sha, _, kind = key.PINS[0]
+    big = _pins(((name, sha, key.OVERSIZE_PIN_SIZE_BYTES, kind),))
+    clock, calls = _counting_clock()
+    with open_store(tmp_path, clock=clock) as opened, pytest.raises(StoreRefused):
+        opened.create_run(**_args(pins=big))
+    assert calls == []
+    _nothing_written(tmp_path)
+
+
+def test_a_failure_after_the_run_row_leaves_the_whole_database_unchanged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def dump() -> list[str]:
+        with closing(sqlite3.connect(tmp_path / location.STATE_FILE_NAME)) as raw:
+            return list(raw.iterdump())
+
+    def boom(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("injected")
+
+    with open_store(tmp_path, clock=_steps()) as opened:
+        before = dump()
+        monkeypatch.setattr(runs, "insert_event", boom)
+        with pytest.raises(RuntimeError, match="injected"):
+            opened.create_run(**_args())
+        assert dump() == before
 
 
 @pytest.mark.parametrize("value", [key.NAIVE_CLOCK, None], ids=["naive", "none"])

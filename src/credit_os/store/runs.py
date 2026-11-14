@@ -24,6 +24,7 @@ from credit_os.store.errors import StoreCorrupt, StoreRefused, safe_text
 from credit_os.store.records import EventRecord, RunRecord
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9._-]{1,128}")
+_SQLITE_MAX_INTEGER = 2**63 - 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +69,8 @@ def check_new_run(
         raise StoreRefused("request must be bytes")
     if not isinstance(pins, tuple | list) or not all(isinstance(pin, SourcePin) for pin in pins):
         raise StoreRefused("pins must be a tuple or list of SourcePin")
+    if any(pin.size_bytes > _SQLITE_MAX_INTEGER for pin in pins):
+        raise StoreRefused("pin size_bytes must be at most 9223372036854775807")
     if len({pin.name for pin in pins}) != len(pins):
         raise StoreRefused("pin names must be distinct")
     cap_text = money_to_text(cap_usd) if isinstance(cap_usd, Decimal) else None
