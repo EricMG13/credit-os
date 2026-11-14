@@ -90,6 +90,13 @@ CASES: list[tuple[str, tuple[BasisItem, ...]]] = [
     ("a.pdf, page " + "1" * 5000, (txt("a.pdf, page " + "1" * 5000),)),
     ("a.pdf, page 3\t-\t5", (txt("a.pdf, page 3\t-\t5"),)),
     ("a.pdf, page 3\u00a0–\u00a05", (txt("a.pdf, page 3\u00a0–\u00a05"),)),
+    ("a.abcde", (src("a.abcde"),)),
+    ("a.abcdef", (txt("a.abcdef"),)),
+    ("a.abcdef, page 3", (txt("a.abcdef, page 3"),)),
+    ("a.b2c3d, page 3", (src("a.b2c3d", (3, 3), text="a.b2c3d, page 3"),)),
+    ("v1.2", (txt("v1.2"),)),
+    ("report.2024, page 3", (txt("report.2024, page 3"),)),
+    ("section 4.2", (txt("section 4.2"),)),
 ]
 
 
@@ -165,13 +172,14 @@ def test_property_body_and_no_raise(lines: tuple[str, ...]) -> None:
 
 _FRAGMENTS = st.sampled_from(
     ["a.pdf", ".", "..", "x.b2", ", page ", ", pages ", "-", "–", " ", ", ", "; ", "7"]
-    + ["calculation ", "K1", " (CP-1)", "name", "\t"]
+    + ["calculation ", "K1", " (CP-1)", "name", "\t", "calculation K1"]
+    + ["Financial foundation (CP-1)", "a.pdf, pages 3-5", "management statement"]
 ) | st.text(alphabet="0123456789", min_size=1, max_size=20)
 
 
 @given(st.lists(_FRAGMENTS, max_size=14), st.lists(st.text(), max_size=2))
 def test_property_basis_line_reaches_items(fragments: list[str], body: list[str]) -> None:
-    lines = (*body, "Basis: " + "".join(fragments))
+    lines = (*body, "Basis: " + "; ".join(fragments))
     result = read_basis(Paragraph(line=3, lines=lines))
     assert result is not None
     assert result.body == lines[:-1]

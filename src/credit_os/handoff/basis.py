@@ -3,6 +3,10 @@
 The line starts `Basis: `; its items are split on `; ` and each is a calculation id, an
 upstream module, a source file with optional pages, or plain text. Nothing is guessed: a piece
 that does not fit is kept as text.
+
+Known limit: source file names are not matched against the Sources table, so a name without an
+extension is read as text and a name holding `; ` is split. Page numbers are one to nine
+digits; only spaces may surround the dash of a span.
 """
 
 import re
@@ -17,6 +21,7 @@ _MODULE = re.compile(r"(.+) \(CP-([A-Z0-9]+)\)", re.DOTALL)
 _EXTENSION = re.compile(r"(?<=.)\.[A-Za-z][A-Za-z0-9]{0,4}", re.DOTALL)
 _SPAN = r"[0-9]{1,9}(?: *[-–] *[0-9]{1,9})?"
 _PAGE_LIST = re.compile(rf"{_SPAN}(?:, {_SPAN})*")
+_PAGES_OPEN = re.compile(r", (pages?) ")
 _SPAN_PARTS = re.compile(r"([0-9]+)(?: *[-–] *([0-9]+))?")
 
 
@@ -40,14 +45,11 @@ def _spans(text: str) -> tuple[tuple[int, int], ...]:
     return tuple((int(first), int(last or first)) for first, last in _SPAN_PARTS.findall(text))
 
 
-def _with_pages(piece: str, end: int) -> BasisItem | None:
-    for word, one_only in ((", page ", True), (", pages ", False)):
-        if piece.startswith(word, end):
-            listed = piece[end + len(word) :]
-            if _PAGE_LIST.fullmatch(listed) is None or (one_only and ", " in listed):
-                return None
-            return BasisItem(kind="source", text=piece, file=piece[:end], pages=_spans(listed))
-    return None
+def _with_pages(piece: str, end: int, opened: re.Match[str]) -> BasisItem | None:
+    listed = piece[opened.end() :]
+    if _PAGE_LIST.fullmatch(listed) is None or (opened.group(1) == "page" and ", " in listed):
+        return None
+    return BasisItem(kind="source", text=piece, file=piece[:end], pages=_spans(listed))
 
 
 def _source(piece: str) -> BasisItem | None:
@@ -55,8 +57,9 @@ def _source(piece: str) -> BasisItem | None:
         for end in range(found.start() + 2, found.end() + 1):
             if end == len(piece):
                 return BasisItem(kind="source", text=piece, file=piece)
-            if piece.startswith((", page ", ", pages "), end):
-                return _with_pages(piece, end)
+            opened = _PAGES_OPEN.match(piece, end)
+            if opened is not None:
+                return _with_pages(piece, end, opened)
     return None
 
 

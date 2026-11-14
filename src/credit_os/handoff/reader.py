@@ -2,6 +2,12 @@
 
 The format is new when the first level-3 section under `Findings` is `Bottom line`. Only
 real sections are read, never text inside a code block.
+
+Passages exist only in the new format; a repeated passage heading is refused here, not by
+`parse`. An earlier-format summary has three states: no `Reader summary` section (`summary_section`
+None); a section that does not hold exactly its two tables (`summary` None, `summary_section`
+set: present but unreadable); or both set. In the new format both are None. Blocks under a deeper
+heading inside a passage are in the passage's `sections`, not its `blocks`.
 """
 
 from typing import Literal

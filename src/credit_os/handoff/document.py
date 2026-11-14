@@ -1,4 +1,7 @@
-"""The one public entry of the package: `parse(bytes)` returns a typed `HandoffDocument`.
+"""`parse(bytes)` is the one reader of handoff bytes and returns a typed `HandoffDocument`.
+
+`reader.read_reader(document)` and `basis.read_basis(block)` are typed readings of what it
+returns.
 
 The file must hold the six level-2 sections in order; an optional front matter and one
 level-1 title come first. Sections nest by heading level and own the blocks under them.
