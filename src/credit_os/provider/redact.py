@@ -6,6 +6,7 @@ given, and ``Redactor()`` matches key shapes only. This module does not import `
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Iterable, Mapping
 
@@ -40,23 +41,136 @@ _KEY_PATTERN = re.compile(rf"(?:{_SK_BOUNDARY})(?:{_SK_KEY})|{_GITHUB_SHAPES}")
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
 _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
-# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" or WSL's
-# "/mnt/<drive>/Users/<user>", in either slash, repr-escaped or not. A Windows user name may hold
-# spaces when a backslash or a closing quote follows it. A path inside a longer name or a URL's
-# host part ("example.com/home/x") is not one; "file:///home/<user>" is. A closing "." is the
-# sentence's.
-_HOME_PATH = re.compile(
-    r"(?<![\w.-])(?:(?:[A-Za-z]:|\\\\[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+|[\\/])"
-    rf"(?:(?i:users|home|var[\\/]+home)[\\/]+"
-    rf"(?:{_NAME}+(?: {_NAME}+)*(?=[\\'\"])|{_NAME}+(?<!\.))"
-    rf"|root(?!{_NAME}))"
+# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" (long-path form included),
+# WSL's "/mnt/<drive>/Users/<user>" or a backslash-led "\Users\<user>", in either slash,
+# repr-escaped or not, also straight after a written-out "\n", "\r" or "\t" when a drive, "\\" or
+# "/" follows. A path inside a longer name or a URL's host part ("example.com/home/x") is not
+# one; "file:///home/<user>" is. The user name fails closed: it ends only at a character no such
+# name can hold, else at the line's end. On a Windows form that is a slash or a character Windows
+# reserves in a name (< > : " | ? *) or the line's end; on a POSIX form a "/", a ":" (the passwd
+# field separator) or the line's end, and a backslash in it takes the rest of the line. On a
+# Windows form a run of backslashes straight before an apostrophe is a
+# written-out "\'" (repr, or JSON of a repr), not a separator: it stays in the name, unless the
+# run starts a UNC head (a host that begins with "'"). Prose after a name on the same line goes with it.
+# The output always covers at least what the fail-closed pattern (_HOME_PATH_PLAIN, main's at 54073086) matches:
+# the union of the three patterns' spans is redacted, so no head that pattern finds can be hidden by a name.
+_UNC_LEAD = r"\\\\"
+_UNC_BODY = r"(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+"
+_UNC = rf"{_UNC_LEAD}{_UNC_BODY}"
+_WIN_PREFIX = rf"(?P<win>(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z])[\\/]+|\\)"
+# A UNC head led by a forward slash, for _HOME_PATH_FWD only: "//srv/share", "//?/UNC/srv/share"; a
+# lead of "/" and any run of separators ("/\srv", "///srv"); or a run of backslashes, "/" and any
+# further separators ("\/srv", and "\\/srv" as repr writes it). It may not follow ":", "/" or "\", so
+# a URL ("https://host/...") is not one. The one exception is a "file:" URL (the whole scheme, any
+# case, also straight after a written-out "\n", "\r" or "\t"): "file://srv/share/..." is one, and so
+# is "file:" with four or more slashes (an empty authority, then a UNC path); "file:///x" is not.
+_FILE = r"(?<=(?:(?<![\w.+-])|(?<=\\[nrt]))(?i:file):)"
+_UNC_FWD = (
+    r"(?:(?<![:/\\])(?:/[\\/]+|\\+/[\\/]*)"
+    rf"|{_FILE}(?:/[\\/]|\\/)(?:[\\/]{{2}}[\\/]*)?)"
 )
+_HOME_DIRS = r"(?i:users|home|var[\\/]+home)"  # the one list of home folders
+_ROOT = rf"root(?!{_NAME})"
+_LEAD = r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+_HOME_PATH_PLAIN = re.compile(  # main's pattern at 54073086; its matches are always redacted
+    rf"{_LEAD}(?:{_WIN_PREFIX}|/)"
+    rf"(?:{_HOME_DIRS}[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+|{_ROOT})"
+)
+_HOME_PATH = re.compile(
+    rf"{_LEAD}(?:{_WIN_PREFIX}|/)"
+    rf"(?:{_HOME_DIRS}(?(win)[\\/]++|[\\/]+)"
+    rf"(?(win)(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))"
+    r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
+    rf"|{_ROOT})"
+)
+# The forward-slash UNC form is its own pattern, a Windows form: the _HOME_PATH name rule, with the
+# lookahead that stops a name at a following UNC head. _HOME_PATH stays the base's, so a head that
+# this pattern's separator run swallows is still found by it.
+_HOME_PATH_FWD = re.compile(
+    rf"{_LEAD}(?P<win>{_UNC_FWD}{_UNC_BODY}[\\/]+)"
+    rf"(?:{_HOME_DIRS}[\\/]++"
+    rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))"
+    r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
+    rf"|{_ROOT})"
+)
+# A home folder inside a path is a home too (owner ruling, 2026-11-14), but only on a path that is
+# one: reached through path segments from a drive, a UNC share (either slash, long-path form
+# included) or "/mnt/<drive>/", or from the end of a home the three patterns above matched. It is
+# its own pass whose spans join the union, so it never redacts less than they do. A path reaches
+# (owner ruling, 2026-11-14) to the first whitespace, a reserved character on a Windows path (< >
+# : " | ? *), ":" on a POSIX path, or the line's end: a folder past a space is not looked for. A
+# user name does not stop there: once a folder is found its name follows the rule of the path's form
+# (a Windows name runs through spaces to a slash, a reserved character or the line's end), but the
+# reach does not continue past the first space inside it, so the tail of a name never starts a
+# search in the prose after it. The span is the
+# separators before the folder, the folder, its separators and the user name; the name follows the
+# rule of the path's form. A folder must be a whole segment, and "root" has no nested form. A path
+# is scanned once: a start inside an earlier start's reach is skipped, since the scan of that reach
+# meets every folder in it. The user name of one nested home can be the folder of the next
+# ("\\home\\users\\jdoeq"), so the search for the next folder resumes where the last one's folder
+# ends, not where its name ends; both spans are kept and overlapping spans render as one "<home>".
+_NEST_START = re.compile(rf"{_LEAD}(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z]|{_UNC_FWD}{_UNC_BODY})[\\/]+")
+_NEST_WORD = re.compile(r"(?i:users|home)")  # every folder in _HOME_DIRS holds one
+_NEST_HEAD = re.compile(rf"(?<![\\/])[\\/]++{_HOME_DIRS}(?P<folder_end>)[\\/]++")
+_NEST_WIN_NAME = re.compile(
+    rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
+)
+_NEST_POSIX_NAME = re.compile(r"(?:[^/:\\\r\n]|\\[^\r\n]*)+")
+_NEST_WIN_REACH = re.compile(r"[^\s<>:\"|?*]*")
+_NEST_POSIX_REACH = re.compile(r"[^\s:]*")
+_NEST_FORMS = {
+    True: (_NEST_WIN_REACH, _NEST_WIN_NAME),
+    False: (_NEST_POSIX_REACH, _NEST_POSIX_NAME),
+}
+
+
+def _reach_spans(
+    text: str, start: int, end: int, name: re.Pattern[str], spans: list[tuple[int, int]]
+) -> int:
+    """Append to ``spans`` the nested homes in ``text[start:end]``; return where the last name ended."""
+    at = start
+    named = 0
+    while (head := _NEST_HEAD.search(text, at, end)) is not None:
+        at = head.end("folder_end")
+        # Inside a name that took the rest of its line, a later head's name ends where that did.
+        if head.start() < named and text[named : named + 1] in ("", "\r", "\n"):
+            continue
+        if (user := name.match(text, head.end())) is not None:
+            spans.append((head.start(), user.end()))
+            named = max(named, user.end())
+    return named
+
+
+def _nested_spans(text: str, homes: list[tuple[int, bool]]) -> list[tuple[int, int]]:
+    """Spans of the home folders inside paths. ``homes`` is the end and Windows-form flag of each
+    match of the three patterns; a match that ends at a separator has the rest of its path."""
+    if _NEST_WORD.search(text) is None:  # no folder name anywhere: nothing to find, skip the scan
+        return []
+    starts = [(m.end(), True) for m in _NEST_START.finditer(text)]
+    starts += [(end, win) for end, win in homes if text[end : end + 1] in ("/", "\\")]
+    spans: list[tuple[int, int]] = []
+    scanned = {True: 0, False: 0}
+    for start, win in sorted(starts):
+        if start < scanned[win]:
+            continue
+        reach, name = _NEST_FORMS[win]
+        end = next(reach.finditer(text, start)).end()  # the reach pattern matches, empty or not
+        scanned[win] = max(end, _reach_spans(text, start, end, name, spans))
+    return spans
 
 
 def home_paths(text: str) -> str:
-    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; the
-    rest of each path, and all other text, is kept. It does not redact keys."""
-    return _HOME_PATH.sub("<home>", text)
+    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
+    name that no slash or reserved character ends takes the rest of its line. It does not redact
+    keys."""
+    matches = [
+        (m.span(), m.group("win") is not None)
+        for p in (_HOME_PATH, _HOME_PATH_FWD, _HOME_PATH_PLAIN)
+        for m in p.finditer(text)
+    ]
+    spans = [span for span, _ in matches]
+    spans += _nested_spans(text, [(span[1], win) for span, win in matches])
+    return _replace_spans(text, spans, "<home>")
 
 
 def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], marker: T) -> T:
@@ -83,16 +197,44 @@ def _with_stripped(value: str | None) -> tuple[str, ...]:
     return (value, value.strip()) if value and value.strip() else ()
 
 
+def _json_forms(value: str) -> set[str]:
+    """``value`` and its text as ``json.dumps`` writes it inside a string, ASCII-escaped or not,
+    and the same again applied to each of those: up to two levels of escaping."""
+    forms = {value}
+    for _ in range(2):
+        forms |= {json.dumps(f, ensure_ascii=a)[1:-1] for f in forms for a in (True, False)}
+    return forms
+
+
+def _utf8(form: str) -> bytes | None:
+    try:
+        return form.encode("utf-8")
+    except UnicodeEncodeError:  # a lone surrogate: no bytes form, its other forms still match
+        return None
+
+
 class Redactor:
+    """Matches key shapes and exact values. An exact value is also matched as ``json.dumps``
+    writes it inside a string, once or twice escaped (text and bytes). Not matched: other
+    serialisers' escapes (upper-case ``\\uXXXX`` hex, ``\\/``, URL or HTML encodings) and deeper
+    nesting. A value that is not valid UTF-8 text still matches as text; in bytes only its forms
+    that can be encoded match."""
+
     def __init__(self, exact_values: Iterable[str] = ()) -> None:
-        values = sorted({v for v in exact_values if v}, key=lambda v: (-len(v), v))
+        values = sorted(
+            {f for v in exact_values if v for f in _json_forms(v)}, key=lambda v: (-len(v), v)
+        )
+        encoded = sorted(
+            {b for v in values if (b := _utf8(v)) is not None}, key=lambda b: (-len(b), b)
+        )
         # A lookahead finds every occurrence, including ones that overlap an earlier match.
         self._exact: re.Pattern[str] | None = None
         self._exact_bytes: re.Pattern[bytes] | None = None
         if values:
             self._exact = re.compile("(?=(" + "|".join(re.escape(v) for v in values) + "))")
+        if encoded:
             self._exact_bytes = re.compile(
-                b"(?=(" + b"|".join(re.escape(v.encode("utf-8")) for v in values) + b"))"
+                b"(?=(" + b"|".join(re.escape(b) for b in encoded) + b"))"
             )
 
     @classmethod
