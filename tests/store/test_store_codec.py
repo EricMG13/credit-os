@@ -8,6 +8,7 @@ import store_codec_key as key
 from hypothesis import given
 from hypothesis import strategies as st
 
+from credit_os.store import codec
 from credit_os.store.codec import (
     detail_from_text,
     detail_to_text,
@@ -30,13 +31,21 @@ _REFUSALS: tuple[tuple[Call, tuple[object, ...], type[Exception]], ...] = (
 )
 _CASES = [(c, v, e) for c, values, e in _REFUSALS for v in values]
 _CASES += [(detail_from_text, v, StoreCorrupt) for v in ("[" * 100_000, "9" * 5_000)]
+_NAIVE = next(v for v in key.TIME_WRITE_REFUSED if isinstance(v, datetime) and v.tzinfo is None)
+_BAD_OFFSET = next(
+    v
+    for v in key.TIME_WRITE_REFUSED
+    if isinstance(v, datetime)
+    and isinstance(v.tzinfo, key.OddZone)
+    and v.tzinfo.utcoffset(None) == timedelta(hours=24)
+)
 _LONG = Decimal("1" * 63 + ".5")  # 64 digits, but 65 characters of text
 _COLLIDE = {"\ud800": 1, "\\ud800": 2}  # the same key once escaped
 _CASES += [(detail_to_text, _COLLIDE, StoreRefused), (money_to_text, _LONG, StoreRefused)]
 _MESSAGES: tuple[tuple[Call, Any, str], ...] = (
     (money_to_text, Decimal("NaN"), "money must be finite"),
     (money_to_text, Decimal(-1), "money must be unsigned"),
-    (time_to_text, key.TIME_WRITE_REFUSED[0], "time must be timezone-aware"),
+    (time_to_text, _NAIVE, "time must be timezone-aware"),
     (
         money_to_text,
         Decimal("1E+64"),
@@ -52,9 +61,13 @@ _MESSAGES: tuple[tuple[Call, Any, str], ...] = (
         Decimal("1" * 65),
         "money has more than 64 digits or an exponent outside -62..63",
     ),
-    (money_from_text, "1" + "0" * 64, "stored money is longer than 64 characters (str)"),
+    (
+        money_from_text,
+        "1" * (key.MONEY_TEXT_MAXIMUM + 1),
+        "stored money is longer than 64 characters (str)",
+    ),
     (money_to_text, _LONG, "money text is longer than 64 characters"),
-    (time_to_text, key.TIME_WRITE_REFUSED[-2], "time zone offset is not valid"),
+    (time_to_text, _BAD_OFFSET, "time zone offset is not valid"),
     (detail_to_text, {"n": 2**63}, "detail int is outside 64 signed bits"),
     (time_to_text, 1e18, "time is outside years 0001 to 9999 or not a number"),
     (time_from_text, "2026-02-30T00:00:00.000000Z", "stored time names no real instant"),
@@ -191,3 +204,18 @@ def test_detail_text_ignores_insertion_order_and_round_trips(
     text = detail_to_text(detail)
     assert detail_to_text(dict(items)) == text
     assert detail_from_text(text) == detail
+
+
+def test_money_size_checks_run_before_the_text_is_built(monkeypatch: pytest.MonkeyPatch) -> None:
+    def no_format(*_: object) -> str:
+        raise RuntimeError("format called before the size checks")
+
+    monkeypatch.setattr(codec, "format", no_format, raising=False)
+    for huge in ("1E+1000000", "1E-1000000", "0E+1000000", "1" * 65):
+        with pytest.raises(StoreRefused):
+            money_to_text(Decimal(huge))
+
+
+def test_money_written_texts_respect_the_maximum_and_reach_it() -> None:
+    lengths = [len(text) for _, text in key.MONEY_WRITTEN]
+    assert max(lengths) == key.MONEY_TEXT_MAXIMUM
