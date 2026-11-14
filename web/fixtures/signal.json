@@ -117,5 +117,23 @@
         }
       }
     ]
+  },
+  "params": {
+    "/signal/:scene/feed/:view": [
+      { "scene": "main", "view": "for-you" },
+      { "scene": "main", "view": "latest" },
+      { "scene": "main", "view": "saved" },
+      { "scene": "reader", "view": "for-you" },
+      { "scene": "ai-on", "view": "for-you" },
+      { "scene": "no-name", "view": "for-you" },
+      { "scene": "no-topics", "view": "for-you" }
+    ],
+    "/signal/:scene/topic/:topic": [{ "scene": "main", "topic": "shipping" }],
+    "/signal/:scene/group/:group": [{ "scene": "main", "group": "leveraged-credit" }],
+    "/signal/:scene/group/:group/thread/:thread": [
+      { "scene": "main", "group": "leveraged-credit", "thread": "thread-1" }
+    ],
+    "/signal/:scene/digest/:digest": [{ "scene": "main", "digest": "weekly-brief" }],
+    "/signal/:scene/settings/:section": [{ "scene": "main", "section": "topics" }]
   }
 }

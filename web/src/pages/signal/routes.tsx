@@ -2,8 +2,23 @@
 // written in this file; every path starts with /signal/. scripts/route-paths.mjs reads these paths
 // to visit each in a browser, and a test fails if it cannot see one. A page reads its data with
 // `readSlice(useSource().signal)`. Edit only this folder and fixtures/signal.json.
+import type { ReactElement } from "react";
 import type { Route } from "../route-table";
+import { SignalPage, type SignalPageKind } from "./SignalPage";
 
 export { readSlice } from "./slice";
 
-export const routes: readonly Route[] = [];
+function page(kind: SignalPageKind) {
+  return (params: Record<string, string>): ReactElement => (
+    <SignalPage kind={kind} params={params} />
+  );
+}
+
+export const routes: readonly Route[] = [
+  { path: "/signal/:scene/feed/:view", title: "Signal", render: page("feed") },
+  { path: "/signal/:scene/topic/:topic", title: "Signal", render: page("topic") },
+  { path: "/signal/:scene/group/:group", title: "Signal", render: page("group") },
+  { path: "/signal/:scene/group/:group/thread/:thread", title: "Signal", render: page("thread") },
+  { path: "/signal/:scene/digest/:digest", title: "Signal", render: page("digest") },
+  { path: "/signal/:scene/settings/:section", title: "Signal", render: page("settings") },
+];
