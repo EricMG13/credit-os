@@ -18,6 +18,31 @@ function channels() {
   return screen.getByRole("navigation", { name: "Signal" });
 }
 
+/** The h1 each declared path shows for its fixture parameter sets (the view, topic, group, digest or page name). */
+const TITLES: Record<string, string> = {
+  "/signal/:scene/topic/:topic": "Shipping",
+  "/signal/:scene/group/:group": "Leveraged credit",
+  "/signal/:scene/group/:group/thread/:thread": "Leveraged credit",
+  "/signal/:scene/digest/:digest": "Weekly brief",
+  "/signal/:scene/settings/:section": "Settings",
+};
+
+const VIEW_TITLES: Record<string, string> = {
+  "for-you": "For you",
+  latest: "Latest",
+  saved: "Saved",
+};
+
+/** Headings that sit more than one level below the one before them (the channel list's h2s open the page, before the h1). */
+function skippedLevels(): string[] {
+  const levels = screen
+    .getAllByRole("heading")
+    .map((h) => ({ level: Number(h.tagName.slice(1)), text: h.textContent }));
+  return levels
+    .filter((h, i) => i > 0 && h.level > (levels[i - 1]?.level ?? 0) + 1)
+    .map((h) => h.text);
+}
+
 describe("the Signal frame", () => {
   afterEach(() => {
     window.location.hash = "";
@@ -46,7 +71,7 @@ describe("the Signal frame", () => {
     expect(screen.getByText("Writer")).toBeInTheDocument();
   });
 
-  it("marks the current item and shows its title as an h2", () => {
+  it("marks the current item and shows its title as the h1", () => {
     show("/signal/main/feed/latest");
     expect(within(channels()).getByRole("link", { name: "Latest" })).toHaveAttribute(
       "aria-current",
@@ -55,7 +80,7 @@ describe("the Signal frame", () => {
     expect(within(channels()).getByRole("link", { name: "For you" })).not.toHaveAttribute(
       "aria-current",
     );
-    expect(screen.getByRole("heading", { level: 2, name: "Latest" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Latest" })).toBeInTheDocument();
   });
 
   it("titles a topic view with the topic's name and marks it current", () => {
@@ -64,7 +89,7 @@ describe("the Signal frame", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("heading", { level: 2, name: "Telecoms" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Telecoms" })).toBeInTheDocument();
   });
 
   it("toggles a follow star in memory", () => {
@@ -124,15 +149,43 @@ describe("the Signal frame", () => {
     expect(skip.className).toContain("outline-focus-ring");
     fireEvent.click(skip);
     expect(
-      screen.getByRole("heading", { level: 2, name: "For you" }).closest("[tabindex='-1']"),
+      screen.getByRole("heading", { level: 1, name: "For you" }).closest("[tabindex='-1']"),
     ).toHaveFocus();
     expect(window.location.hash).toBe("#/signal/main/feed/for-you");
   });
 
-  it("draws one main landmark and an h1", () => {
+  it("draws one main landmark, with the page's title as the one h1 and the channel list under it", () => {
     show("/signal/main/feed/for-you");
     expect(screen.getAllByRole("main")).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1, name: "Signal" })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "For you" })).toBeInTheDocument();
+    expect(within(channels()).getByRole("heading", { level: 2, name: "Signal" })).toBeVisible();
+    expect(within(channels()).queryByRole("heading", { level: 1 })).toBeNull();
+  });
+
+  it("draws the bare #/signal as the first scene's For you with For you current", () => {
+    show("/signal");
+    expect(window.location.hash).toBe("#/signal");
+    expect(screen.getByRole("heading", { level: 1, name: "For you" })).toBeInTheDocument();
+    expect(within(channels()).getByRole("link", { name: "For you" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(channels()).getByRole("link", { name: "Latest" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(screen.getAllByRole("article")).toHaveLength(4);
+  });
+
+  it("gives the frame its own scrolling columns and the content its padding", () => {
+    show("/signal/main/feed/for-you");
+    expect(channels().className).toContain("overflow-y-auto");
+    expect(channels().className).toContain("w-64");
+    const content = screen
+      .getByRole("heading", { level: 1, name: "For you" })
+      .closest("[tabindex='-1']");
+    expect(content?.className).toContain("overflow-y-auto");
+    expect(content?.className).toContain("p-8");
   });
 
   it.each([
@@ -141,15 +194,15 @@ describe("the Signal frame", () => {
     ["/signal/main/topic/nowhere", "No such topic"],
   ])("says so for the unknown address %s", (hash, words) => {
     show(hash);
-    expect(screen.getByText(words)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: words })).toBeInTheDocument();
     expect(screen.queryByText("Page not found")).toBeNull();
   });
 
-  it("links an unknown scene home to the first scene's For you and draws no channel list", () => {
+  it("links an unknown scene to the bare #/signal home and draws no channel list", () => {
     show("/signal/nowhere/feed/for-you");
     expect(screen.getByRole("link", { name: "Back to the sample scenes" })).toHaveAttribute(
       "href",
-      "#/signal/main/feed/for-you",
+      "#/signal",
     );
     expect(screen.queryByRole("navigation", { name: "Signal" })).toBeNull();
   });
@@ -163,9 +216,10 @@ describe("the Signal frame", () => {
     },
   );
 
-  it("says Not built yet for pages later tasks add, inside the frame", () => {
+  it("says Not built yet for pages later tasks add, inside the frame, under the page's own h1", () => {
     show("/signal/main/group/leveraged-credit");
-    expect(screen.getByText("Not built yet")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Leveraged credit" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Not built yet" })).toBeInTheDocument();
     expect(within(channels()).getByRole("link", { name: "Leveraged credit 3" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -202,7 +256,11 @@ describe("the Signal frame", () => {
         const { hash, missing } = fillParams(pattern, set);
         expect(missing).toEqual([]);
         const view = show(hash);
-        expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+        expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+        const title = pattern.includes("/feed/") ? VIEW_TITLES[set["view"] ?? ""] : TITLES[pattern];
+        if (title === undefined) throw new Error(`no expected title for ${hash}`);
+        expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(title);
+        expect(skippedLevels()).toEqual([]);
         expect(screen.queryByText("Page not found")).toBeNull();
         expect(screen.queryByText(/^No such /)).toBeNull();
         view.unmount();

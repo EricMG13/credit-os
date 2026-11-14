@@ -35,7 +35,7 @@ export function StoryCard({ story, writer }: { story: SignalStory; writer: boole
           <span>{story.source.name}</span>
           {story.time === null ? null : <span>{story.time}</span>}
         </div>
-        <h3 className="text-lg font-medium text-text-primary">
+        <h2 className="text-lg font-medium text-text-primary">
           {link === null ? (
             headline
           ) : (
@@ -48,14 +48,14 @@ export function StoryCard({ story, writer }: { story: SignalStory; writer: boole
               {headline}
             </a>
           )}
-        </h3>
+        </h2>
         {story.summary === null ? null : (
           <p className="mt-0.5 max-w-[72ch] text-text-secondary">{story.summary}</p>
         )}
         {story.ratingMoves.length === 0 ? null : (
           <div className={ROW}>
-            {story.ratingMoves.map((move) => (
-              <BadgeGroup key={`${move.from}>${move.to}`} {...move} />
+            {story.ratingMoves.map((move, index) => (
+              <BadgeGroup key={index} {...move} />
             ))}
           </div>
         )}
@@ -112,12 +112,12 @@ export function StoryCard({ story, writer }: { story: SignalStory; writer: boole
                 iconLeading={MessageSquare01}
                 aria-label={`${story.commentCount === null ? "Comment" : `Comment ${story.commentCount}`}: ${headline}`}
               >
-                Comment
-                {story.commentCount === null ? null : (
-                  <Badge size="sm" className="ml-1">
-                    {story.commentCount}
-                  </Badge>
-                )}
+                <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                  Comment
+                  {story.commentCount === null ? null : (
+                    <Badge size="sm">{story.commentCount}</Badge>
+                  )}
+                </span>
               </Button>
               <Button
                 size="sm"

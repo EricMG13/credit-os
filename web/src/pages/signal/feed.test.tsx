@@ -23,7 +23,7 @@ function withFirstStory(change: Record<string, unknown>): unknown {
 
 /** The story whose headline is the given text (mock frames 1, 10 and 11 give the wording). */
 function story(headline: string) {
-  const heading = screen.getByRole("heading", { level: 3, name: headline });
+  const heading = screen.getByRole("heading", { level: 2, name: headline });
   const article = heading.closest("article");
   if (article === null) throw new Error("a story headline sits in an article");
   return within(article);
@@ -41,16 +41,15 @@ describe("the feed list and the story card", () => {
     window.location.hash = "";
   });
 
-  it("draws each story as an article with its headline as an h3, in the view's order", () => {
+  it("draws each story as an article with its headline as an h2, in the view's order", () => {
     show("/signal/main/feed/for-you");
     expect(screen.getAllByRole("article")).toHaveLength(4);
-    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
-      CORVANE,
-      TESSALY,
-      HALVORSEN,
-      BRIGHTWELL,
-    ]);
-    expect(screen.getByRole("heading", { level: 2, name: "For you" })).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("article")
+        .map((a) => within(a).getByRole("heading", { level: 2 }).textContent),
+    ).toEqual([CORVANE, TESSALY, HALVORSEN, BRIGHTWELL]);
+    expect(screen.getByRole("heading", { level: 1, name: "For you" })).toBeInTheDocument();
   });
 
   it("draws kind, publication, time, summary, tags and the monogram tile", () => {
@@ -132,6 +131,10 @@ describe("the feed list and the story card", () => {
     const card = story(CORVANE);
     const comment = card.getByRole("button", { name: `Comment 3: ${CORVANE}` });
     expect(within(comment).getByText("3")).toBeInTheDocument();
+    // label and count badge share one nowrap box, so the badge cannot drop under the word
+    const label = within(comment).getByText("Comment");
+    expect(label.className).toContain("whitespace-nowrap");
+    expect(label).toContainElement(within(comment).getByText("3"));
     expect(card.getByRole("button", { name: `Share to group: ${CORVANE}` })).toBeInTheDocument();
     expect(card.getByRole("button", { name: `Save: ${CORVANE}` })).toBeInTheDocument();
     const none = story(BRIGHTWELL).getByRole("button", { name: `Comment: ${BRIGHTWELL}` });
@@ -164,7 +167,7 @@ describe("the feed list and the story card", () => {
     show("/signal/main/feed/for-you");
     const card = story(CORVANE);
     const nodes = [
-      screen.getByRole("heading", { level: 3, name: CORVANE }),
+      screen.getByRole("heading", { level: 2, name: CORVANE }),
       card.getByText(/^Corvane will shut two/),
     ];
     for (const node of nodes) {
@@ -176,7 +179,7 @@ describe("the feed list and the story card", () => {
 
   it("draws nothing under the title for a view with no stories", () => {
     show("/signal/reader/feed/saved");
-    expect(screen.getByRole("heading", { level: 2, name: "Saved" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Saved" })).toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });
 

@@ -1,7 +1,7 @@
 // A feed page: its view title row, then the entries of the view on one card with hairlines between
-// them. An entry is a story or a digest card. The header and the list are separate so the shell can
-// later lay them out full bleed.
+// them. An entry is a story or a digest card. The header and the list are separate components.
 import { DigestCard } from "./DigestCard";
+import { PageTitle } from "./parts/PageTitle";
 import type { SignalDigestCard, SignalStory } from "./slice";
 import { StoryCard } from "./StoryCard";
 
@@ -12,7 +12,7 @@ export type FeedEntry =
 function FeedHeader({ title }: { title: string }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <h2 className="text-xl font-semibold text-text-primary">{title}</h2>
+      <PageTitle>{title}</PageTitle>
     </div>
   );
 }

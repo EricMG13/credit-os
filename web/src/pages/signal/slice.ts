@@ -156,6 +156,15 @@ const unit: Reader<number> = (v, path) =>
     ? good(v)
     : bad(path, "a number from 0 to 1");
 
+/** A case stage names its four steps and marks exactly one of them as the current one. */
+const stageSteps: Reader<{ name: string; current: boolean }[]> = (v, path) => {
+  const got = list(shape({ name: str, current: bool }))(v, path);
+  if (!got.ok) return got;
+  return got.value.filter((step) => step.current).length === 1
+    ? got
+    : bad(path, "exactly one current step");
+};
+
 const marks: Reader<1 | 2 | 3> = (v, path) =>
   v === 1 || v === 2 || v === 3 ? good(v) : bad(path, "1, 2 or 3");
 
@@ -180,7 +189,7 @@ const story = shape<SignalStory>({
       current: str,
       label: str,
       position: unit,
-      stages: list(shape({ name: str, current: bool })),
+      stages: stageSteps,
     }),
   ),
   ratingMoves: list(shape({ from: str, to: str, word: str })),

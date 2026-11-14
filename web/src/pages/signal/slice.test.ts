@@ -15,6 +15,8 @@ function withScene(path: (string | number)[], value: Json | undefined): unknown 
   return copy;
 }
 
+const STAGES = ["Opened", "Initial review", "In-depth review", "Decision"];
+
 describe("readSlice", () => {
   it("is absent for undefined", () => {
     expect(readSlice(undefined)).toEqual({ kind: "absent" });
@@ -190,6 +192,18 @@ describe("readSlice", () => {
       ["snapshot", "feed", "stories", 2, "stage", "stages", 1, "current"],
       "yes",
       "scenes[2].snapshot.feed.stories[2].stage.stages[1].current: expected true or false",
+    ],
+    [
+      "a stage with no current step",
+      ["snapshot", "feed", "stories", 2, "stage", "stages"],
+      STAGES.map((name) => ({ name, current: false })),
+      "scenes[2].snapshot.feed.stories[2].stage.stages: expected exactly one current step",
+    ],
+    [
+      "a stage with two current steps",
+      ["snapshot", "feed", "stories", 2, "stage", "stages"],
+      STAGES.map((name, i) => ({ name, current: i < 2 })),
+      "scenes[2].snapshot.feed.stories[2].stage.stages: expected exactly one current step",
     ],
     [
       "a rating move missing its to",
