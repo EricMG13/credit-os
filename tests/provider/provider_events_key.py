@@ -213,9 +213,9 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         [usage(1, outputTokens=9), _event(1, "assistant.usage", model="gpt-other", outputTokens=1)],
         _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _OUT10),
     ),
-    "a message and a tool start delivered twice are read once": (
-        [usage(1, **_TOOLS), *[message(2, "x"), message(4, "y"), start(3, "c1", "read")] * 2],
-        _ok(_OUT9, None, ("xy", (("c1", "read", {}, None),), "tool_use", None)),
+    "a message delivered twice is read once, in its first place": (
+        [usage(1, **_TOOLS), message(2, "x"), message(4, "y"), message(2, "x"), start(3, "c", "r")],
+        _ok(_OUT9, None, ("xy", (("c", "r", {}, None),), "tool_use", None)),
     ),
     "a sum of more than 28 digits is exact": (
         [usage(1, **nano(5 * 10**29)), usage(2, finishReason="stop", **nano(5 * 10**29))],
