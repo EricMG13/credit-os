@@ -12,7 +12,11 @@ import type {
   Measure,
   MeasureKey,
   MeasureSpec,
+  Run,
+  RunHead,
   RunState,
+  Trace,
+  TreeNode,
 } from "./slice";
 import { APPLIED_LABELS } from "./slice";
 
@@ -282,12 +286,89 @@ function readHistory(value: unknown, path: string): History {
   return { subtitle: str(h, "subtitle", path), latest, empty, entries };
 }
 
+function readTree(value: unknown, path: string): TreeNode {
+  const n = rec(value, path);
+  return {
+    label: str(n, "label", path),
+    value: strOrNull(n, "value", path),
+    note: strOrNull(n, "note", path),
+    children: list(n, "children", path, readTree),
+  };
+}
+
+function readExcerpt(t: Rec, path: string): Trace["excerpt"] {
+  const at = child(path, "excerpt");
+  const value = own(t, "excerpt");
+  if (value === null) return null;
+  const e = rec(value, at);
+  return { quote: str(e, "quote", at), source: str(e, "source", at) };
+}
+
+function readTrace(value: unknown, path: string): Trace {
+  const t = rec(value, path);
+  return {
+    title: str(t, "title", path),
+    subtitle: str(t, "subtitle", path),
+    statement: str(t, "statement", path),
+    derivation: readTree(own(t, "derivation"), child(path, "derivation")),
+    excerpt: readExcerpt(t, path),
+    qualification: strOrNull(t, "qualification", path),
+    evidenceItem: str(t, "evidenceItem", path),
+  };
+}
+
+function readHead(value: unknown, path: string): RunHead {
+  const h = rec(value, path);
+  const tabsPath = child(path, "tabs");
+  return {
+    issuerName: str(h, "issuerName", path),
+    asOf: str(h, "asOf", path),
+    pathway: str(h, "pathway", path),
+    state: oneOf(h, "state", path, RUN_STATES),
+    tabs: { modulesCount: str(rec(own(h, "tabs"), tabsPath), "modulesCount", tabsPath) },
+    firstModule: strOrNull(h, "firstModule", path),
+    forecastHref: strOrNull(h, "forecastHref", path),
+  };
+}
+
+function readRun(value: unknown, path: string): Run {
+  const r = rec(value, path);
+  const tracesPath = child(path, "traces");
+  const traces = rec(own(r, "traces"), tracesPath);
+  const loading = own(r, "loading");
+  if (typeof loading !== "boolean") throw new SliceError(child(path, "loading"), "a boolean");
+  return {
+    id: str(r, "id", path),
+    head: readHead(own(r, "head"), child(path, "head")),
+    loading,
+    traces: Object.fromEntries(
+      Object.keys(traces).map((key) => [key, readTrace(traces[key], child(tracesPath, key))]),
+    ),
+  };
+}
+
+function readRuns(i: Rec, path: string): Run[] {
+  const runs = list(i, "runs", path, readRun);
+  const seen = new Set<string>();
+  for (const [index, run] of runs.entries()) {
+    if (seen.has(run.id)) {
+      throw new SliceError(
+        child(nth(child(path, "runs"), index), "id"),
+        "an id not used by an earlier run",
+      );
+    }
+    seen.add(run.id);
+  }
+  return runs;
+}
+
 function readIssuer(value: unknown, path: string): Issuer {
   const i = rec(value, path);
   return {
     id: str(i, "id", path),
     name: str(i, "name", path),
     history: readHistory(own(i, "history"), child(path, "history")),
+    runs: readRuns(i, path),
   };
 }
 

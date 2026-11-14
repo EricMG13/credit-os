@@ -269,3 +269,74 @@ describe("readSlice, issuer history", () => {
     expect(invalidReason(slice)).toContain("issuers[0].history.entries[1]");
   });
 });
+
+describe("readSlice, run frame", () => {
+  type Run = Json & { head: Json; traces: Record<string, Json & { derivation: Json }> };
+  const runOf = (slice: ReturnType<typeof fresh>, i: number, r: number) =>
+    (slice.issuers[i]?.["runs"] as Run[])[r] as Run;
+
+  it("reads Halden's two runs, the second still loading, with its trace tree", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const [head, loading] = result.data.issuers[0]?.runs ?? [];
+    expect(head?.head).toMatchObject({ issuerName: "Halden Aerostructures", state: "Finished" });
+    expect(head?.loading).toBe(false);
+    expect(head?.traces["net-leverage"]?.derivation.children[0]?.label).toBe("Formula");
+    expect(loading?.loading).toBe(true);
+  });
+
+  it("names the path of a malformed head field", () => {
+    const slice = fresh();
+    runOf(slice, 0, 0).head["forecastHref"] = 4;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
+  });
+
+  it("names the path of a malformed tree node deep in a trace", () => {
+    const slice = fresh();
+    const tree = runOf(slice, 0, 0).traces["net-leverage"]?.derivation as Json & {
+      children: Json[];
+    };
+    (tree.children[0] as Json & { children: Json[] }).children[0] = { label: "Input", value: 3 };
+    expect(invalidReason(slice)).toContain(
+      "issuers[0].runs[0].traces.net-leverage.derivation.children[0].children[0].value",
+    );
+  });
+
+  it("rejects a trace without its statement, and a run state outside the run states", () => {
+    const slice = fresh();
+    delete runOf(slice, 0, 0).traces["net-leverage"]?.["statement"];
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.statement");
+    const other = fresh();
+    runOf(other, 0, 0).head["state"] = "Done";
+    expect(invalidReason(other)).toContain("issuers[0].runs[0].head.state");
+  });
+
+  it("names the path of a malformed excerpt, and takes a null excerpt and qualification", () => {
+    const slice = fresh();
+    const trace = runOf(slice, 0, 0).traces["net-leverage"] as Json;
+    trace["excerpt"] = { quote: "q", source: 5 };
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.excerpt.source");
+    trace["excerpt"] = null;
+    trace["qualification"] = null;
+    expect(readSlice(slice).kind).toBe("ok");
+    delete trace["subtitle"];
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.subtitle");
+  });
+
+  it("rejects two runs with one id and an issuer with no runs list", () => {
+    const slice = fresh();
+    (slice.issuers[0] as Json)["runs"] = [runOf(slice, 0, 0), runOf(slice, 0, 0)];
+    expect(invalidReason(slice)).toContain("issuers[0].runs[1].id");
+    const bare = fresh();
+    delete (bare.issuers[1] as Json)["runs"];
+    expect(invalidReason(bare)).toContain("issuers[1].runs");
+  });
+
+  it("does not read a prototype property as a trace", () => {
+    const slice = fresh();
+    runOf(slice, 0, 0).traces = Object.create({ x: {} }) as Run["traces"];
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(Object.keys(result.data.issuers[0]?.runs[0]?.traces ?? {})).toEqual([]);
+  });
+});

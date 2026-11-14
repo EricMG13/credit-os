@@ -7,15 +7,18 @@ import { cx } from "@/utils/cx";
 export function ButtonLink({
   href,
   color = "primary",
+  onPress,
   children,
 }: {
   href: string;
   color?: "primary" | "secondary";
+  onPress?: () => void;
   children: ReactNode;
 }) {
   return (
     <Link
       href={href}
+      onPress={onPress}
       className={cx(styles.common.root, styles.sizes.md.root, styles.colors[color].root)}
     >
       <span data-text className="px-0.5">

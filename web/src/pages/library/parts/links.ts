@@ -14,7 +14,7 @@ export const LIBRARY_HOME = "#/library/home";
 export const TEXT_LINK =
   "rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand";
 
-const historyHref = (issuer: string): string => `#/library/${seg(issuer)}/history`;
+export const historyHref = (issuer: string): string => `#/library/${seg(issuer)}/history`;
 
 export const overviewHref = (issuer: string, run: string): string =>
   `#/library/${seg(issuer)}/${seg(run)}/overview`;
@@ -26,3 +26,11 @@ export const cardHref = (issuer: string, run: string | null): string =>
 /** The Changes page of a run: the target of an entry's "What changed since …" link. */
 export const changesHref = (issuer: string, run: string): string =>
   `#/library/${seg(issuer)}/${seg(run)}/changes`;
+
+/** A module's page, the target of the Modules tab. */
+export const modulesHref = (issuer: string, run: string, module: string): string =>
+  `#/library/${seg(issuer)}/${seg(run)}/modules/${seg(module)}`;
+
+/** One page of a run's Evidence section: `summary` or `trace`. */
+export const evidenceHref = (issuer: string, run: string, page: "summary" | "trace"): string =>
+  `#/library/${seg(issuer)}/${seg(run)}/evidence/${page}`;

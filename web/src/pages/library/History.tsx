@@ -4,31 +4,11 @@ import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { PageHeader } from "@/shell/PageHeader";
 import { ButtonLink } from "./parts/ButtonLink";
 import { LibraryPage } from "./parts/LibraryPage";
+import { NotHeld } from "./parts/NotHeld";
 import { RunFeed } from "./parts/RunFeed";
 import { ISSUER_HEADING } from "./parts/heading";
 import { LIBRARY_HOME, RUN_START, TEXT_LINK, overviewHref } from "./parts/links";
 import type { Issuer } from "./slice";
-
-function Missing() {
-  return (
-    <EmptyState>
-      <EmptyState.Header>
-        <EmptyState.FeaturedIcon icon={BookOpen01} />
-      </EmptyState.Header>
-      <EmptyState.Content>
-        <EmptyState.Title>No such issuer</EmptyState.Title>
-        <EmptyState.Description>
-          The library holds no issuer at this address.
-        </EmptyState.Description>
-      </EmptyState.Content>
-      <EmptyState.Footer>
-        <ButtonLink href={LIBRARY_HOME} color="secondary">
-          Back to the library
-        </ButtonLink>
-      </EmptyState.Footer>
-    </EmptyState>
-  );
-}
 
 function NoReport({ issuer, sentence }: { issuer: Issuer; sentence: string }) {
   return (
@@ -91,7 +71,14 @@ export function History({ issuer: id }: { issuer: string | undefined }) {
     <LibraryPage>
       {({ issuers }) => {
         const issuer = issuers.find((item) => item.id === id);
-        if (issuer === undefined) return <Missing />;
+        if (issuer === undefined) {
+          return (
+            <NotHeld
+              title="No such issuer"
+              description="The library holds no issuer at this address."
+            />
+          );
+        }
         const { latest, empty } = issuer.history;
         if (empty !== null) return <NoReport issuer={issuer} sentence={empty} />;
         if (latest === null)

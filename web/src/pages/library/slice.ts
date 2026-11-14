@@ -92,6 +92,49 @@ export type History = {
   entries: readonly HistoryEntry[];
 };
 
-export type Issuer = { id: string; name: string; history: History };
+/** One row of a derivation: `value` is the figure as delivered, `null` when it is not recorded. */
+export type TreeNode = {
+  label: string;
+  value: string | null;
+  note: string | null;
+  children: readonly TreeNode[];
+};
+
+/** What the trace drawer shows for one figure; `evidenceItem` is the item its Evidence page opens. */
+export type Trace = {
+  title: string;
+  /** The line under the title, for example "Capital structure · figure · as of 30 Sep 2026". */
+  subtitle: string;
+  statement: string;
+  derivation: TreeNode;
+  /** The quoted passage and where it was read; `null` when the trace has none. */
+  excerpt: { quote: string; source: string } | null;
+  /** The qualification sentence; `null` when the figure carries none. */
+  qualification: string | null;
+  evidenceItem: string;
+};
+
+/** What the frame of a run page draws above its body. */
+export type RunHead = {
+  issuerName: string;
+  asOf: string;
+  pathway: string;
+  state: RunState;
+  tabs: { modulesCount: string };
+  /** The module the Modules tab opens on, or `null` when the run has none. */
+  firstModule: string | null;
+  /** Where the Forecast tab goes, or `null` while the forecast is not built. */
+  forecastHref: string | null;
+};
+
+/** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
+export type Run = {
+  id: string;
+  head: RunHead;
+  loading: boolean;
+  traces: Record<string, Trace>;
+};
+
+export type Issuer = { id: string; name: string; history: History; runs: readonly Run[] };
 
 export type LibrarySlice = { home: LibraryHome; issuers: readonly Issuer[] };
