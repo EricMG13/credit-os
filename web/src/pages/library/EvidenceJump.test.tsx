@@ -72,7 +72,7 @@ describe("Jump to an item, the field", () => {
     expect(within(field()).getByText("Ctrl K")).toBeVisible();
   });
 
-  it("opens the menu on click, with the mock's three groups and items", async () => {
+  it("opens the menu on click, with three groups and the four items of the fixture", async () => {
     renderEvidence("summary");
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(field());

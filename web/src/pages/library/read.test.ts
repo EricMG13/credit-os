@@ -291,6 +291,29 @@ describe("readSlice, run frame", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
   });
 
+  it.each([
+    ["a different issuer", "#/model/corvane-packaging/2026-09-30/forecast"],
+    ["a different run", "#/model/halden-aerostructures/2026-06-30/forecast"],
+    ["a different model page", "#/model/halden-aerostructures/2026-09-30/summary"],
+    ["a library address", "#/library/halden-aerostructures/2026-09-30/overview"],
+  ])("rejects a Forecast address of %s, with its path", (_name, href) => {
+    const slice = fresh();
+    runOf(slice, 0, 0).head["forecastHref"] = href;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
+  });
+
+  it("reads the model page of the run's own issuer and run, or null", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const hrefs = result.data.issuers[0]?.runs.map((run) => run.head.forecastHref);
+    expect(hrefs).toEqual([
+      "#/model/halden-aerostructures/2026-09-30/forecast",
+      null,
+      null,
+      "#/model/halden-aerostructures/2025-09-30/forecast",
+    ]);
+  });
+
   it("names the path of a malformed tree node deep in a trace", () => {
     const slice = fresh();
     const tree = runOf(slice, 0, 0).traces["net-leverage"]?.derivation as Json & {

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { EvidenceGaps } from "./EvidenceGaps";
 import { EvidenceRecord } from "./EvidenceRecord";
 import { EvidenceSources } from "./EvidenceSources";
@@ -11,17 +11,21 @@ import { RunFrame } from "./parts/RunFrame";
 
 /**
  * A tab whose content is delivered per module draws the module filter at the heading's right. The
- * filter is state of the tab: the caller keys this by the tab, so each starts at "All".
+ * filter is state of the tab: the caller keys this by the tab and the item the address names, so each
+ * starts at "All" and an item address always draws its row.
  */
 function FilteredTab({
   run,
   issuer,
   current,
+  onSameAddress,
   children,
 }: {
   run: LoadedRun;
   issuer: string;
   current: Extract<EvidenceTab, "sources" | "trace" | "gaps">;
+  /** Only the pages that open at an item address restart on a pick of it. */
+  onSameAddress?: (() => void) | undefined;
   children: (module: Reader | null, clear: () => void) => ReactNode;
 }) {
   const { chosen, clear, control } = useModuleFilter(run.evidence.moduleFilter);
@@ -32,6 +36,7 @@ function FilteredTab({
       evidence={run.evidence}
       current={current}
       filter={control}
+      onSameAddress={onSameAddress}
     >
       {children(chosen, clear)}
     </EvidenceFrame>
@@ -51,6 +56,11 @@ export function Evidence({
   /** The row the address names, on the Trace and Gaps pages only. */
   item?: string | undefined;
 }) {
+  /** Counts picks of the address already shown; it is in each filtered tab's key, so one restarts it. */
+  const [restarts, setRestarts] = useState(0);
+  const restart = () => {
+    setRestarts((n) => n + 1);
+  };
   return (
     <RunFrame issuer={issuer} run={run} tab="evidence">
       {(loaded, issuerId) => {
@@ -66,7 +76,13 @@ export function Evidence({
             );
           case "trace":
             return (
-              <FilteredTab key="trace" run={loaded} issuer={issuerId} current="trace">
+              <FilteredTab
+                key={`trace/${item ?? ""}/${String(restarts)}`}
+                run={loaded}
+                issuer={issuerId}
+                current="trace"
+                onSameAddress={restart}
+              >
                 {(chosen, clear) => (
                   <EvidenceTrace
                     key={item ?? ""}
@@ -81,7 +97,13 @@ export function Evidence({
             );
           case "gaps":
             return (
-              <FilteredTab key="gaps" run={loaded} issuer={issuerId} current="gaps">
+              <FilteredTab
+                key={`gaps/${item ?? ""}/${String(restarts)}`}
+                run={loaded}
+                issuer={issuerId}
+                current="gaps"
+                onSameAddress={restart}
+              >
                 {(chosen, clear) => (
                   <EvidenceGaps
                     key={item ?? ""}

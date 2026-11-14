@@ -25,7 +25,7 @@ function reasonOf(source: unknown): string {
 }
 
 describe("readSlice, the jump list", () => {
-  it("reads the mock's four items, in their three groups", () => {
+  it("reads four items in three groups: the mock's, but for one row id (Secured leverage names T-0104, the fixture's own row for that figure)", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const jump = result.data.issuers[0]?.runs[0]?.evidence?.jump;

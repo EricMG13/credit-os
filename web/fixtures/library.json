@@ -385,7 +385,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
               "firstModule": "business-profile",
-              "forecastHref": null
+              "forecastHref": "#/model/halden-aerostructures/2026-09-30/forecast"
             },
             "loading": false,
             "overview": {
@@ -4851,7 +4851,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
               "firstModule": "business-profile",
-              "forecastHref": null
+              "forecastHref": "#/model/halden-aerostructures/2025-09-30/forecast"
             },
             "loading": false,
             "overview": {
