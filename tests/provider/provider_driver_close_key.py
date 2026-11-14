@@ -1,0 +1,292 @@
+"""Answer key for step 1C, PR 3-2: the compactions a reply carries, what close() returns, and the
+events a session still holds when it is read at release or at close. Written by the controller
+before the code existed; implementers do not edit it. Every value is invented.
+
+A case drives one driver (provider_driver_key's DEFAULTS: environ, home, models, idle, overall)
+through its calls in order, then calls close() `closes` times. Each call is call index 0 of its own
+exchange, on its own client and session (a fake built from DEFAULTS merged with that call), handed
+out by open_client in order; close() reads the kept sessions in the order their replies returned.
+`queued` is what that session's queued() returns: read at release when the call's reply is not ok,
+else read by close(). `fail` and `takes` work as in provider_driver_key, per call. Times and step
+lists are not compared here (provider_driver_key does that).
+
+want["replies"][i] is (kind, error_class, usage, charge, compactions) for call i: usage is the five
+counts in Usage's order or None, charge is format(billed_usd, "f") or None, and compactions is a tuple of
+(event_id, outcome, counts, charge, supersedes) in the reply's order, counts being the four
+compaction counts in Usage's order and charge None when unknown. want["closed"][k] is the tuple the
+k-th close() returned, in the same form. want["log"], where given, is (words the warnings logged
+during the case have, taken together; words none of them has).
+
+The rules the rows encode (coordinator rulings for PR 3-2, 2026-11-14):
+- A reply carries the compactions of its call's events. A reply that is not ok also carries those of
+  the events its release read from queued(): one list, the call's events then the queued ones, read
+  for compactions only; the reply's kind, class, usage and charge come from the call's events alone.
+- A queued event that reports spend (`assistant.usage`, or any event whose data holds a field the
+  parser reads a count or charge from: the count fields, `copilotUsage`, `compactionTokensUsed`) is
+  spend the reply does not attribute, and a queued() read that times out, raises or does not return
+  a list of events is a read that failed: either adds one compaction `driver:release-unread`
+  (failed, no counts, charge None) at the end of the reply's. At close() the same, for any kept
+  session, gives one `driver:close-unread` per close() call, at the end of what it returns. Every
+  failed read logs a warning naming `queued` (a result that is not a list of events: the words
+  `not a list of events`; spend: the event types), never content. A leftover event with no figures
+  that is not a compaction is dropped and its type logged, never its content.
+- A compaction event whose data holds a spend field the parser does not read for it (a start: any;
+  a complete: any but `compactionTokensUsed`) is spend not attributed: its read counts as failed
+  (the release or close entry), in the call's events as in the queued ones (sweep Q1, controller).
+- When the call's own events are not a list of events, the queued events, if they are, give their
+  compactions on their own, and the reply also carries `driver:release-unread`: the call's own
+  compactions could not be read (review round 1, controller).
+- A complete supersedes a compaction only within one session: when that session delivered exactly
+  one unfinished compaction, the complete's own list holds no start and no other complete, and that
+  compaction's id was not withheld. Otherwise it supersedes nothing (None).
+- An event_id the driver's redaction would change is withheld: `driver:withheld-<n>`, n counting
+  from 1 per driver, outcome failed, no counts, charge None, supersedes None.
+- A compaction whose envelope id this driver already delivered is not delivered again. When it is
+  not the same compaction (outcome, counts, charge), its read counts as one that failed (the release
+  or close entry): controller's reading of ruling 5, since dropping it would drop spend. Seen in an
+  ok call's own events, it puts `driver:release-unread` on that ok reply, the reply of the call
+  that observed it, not at close (review round 1, controller). The driver's own ids are never
+  dropped as repeats of one another.
+- Unknown spend is None everywhere, never 0.
+"""
+
+from typing import Any
+
+from provider_driver_key import _ERROR, _IDLE, _TOKEN, _TURN_SCRIPT, _USAGE, event, said
+
+_FULL = (12, 4, 0, 7, 2)
+_CALL_CHARGE = "0.00012300000"  # 12,300,000 x 1E-11
+_USED = {"inputTokens": 30, "cacheReadTokens": 20, "cacheWriteTokens": 0, "outputTokens": 5}
+_PAID = {**_USED, "copilotUsage": {"totalNanoAiu": 2140500000}}
+_C4, _N4 = (30, 20, 0, 5), (None, None, None, None)
+_CHARGE = "0.02140500000"  # 2,140,500,000 x 1E-11
+CALL: dict[str, Any] = {"script": _TURN_SCRIPT, "queued": [], "fail": {}, "takes": {}}
+
+
+def _start(i: str) -> dict[str, Any]:
+    return {**event(0, "session.compaction_start", conversationTokens=900), "id": i}
+
+
+def _end(i: str, **used: Any) -> dict[str, Any]:
+    data = {"success": True, "compactionTokensUsed": used} if used else {"success": True}
+    return {**event(0, "session.compaction_complete", **data), "id": i}
+
+
+def _done(i: str, charge: str | None = _CHARGE, sup: str | None = None) -> tuple[Any, ...]:
+    return (i, "done", _C4, charge, sup)
+
+
+def _open(i: str) -> tuple[Any, ...]:
+    return (i, "unfinished", _N4, None, None)
+
+
+def _failed(i: str) -> tuple[Any, ...]:
+    return (i, "failed", _N4, None, None)
+
+
+def _ok(*compactions: tuple[Any, ...]) -> tuple[Any, ...]:
+    return ("ok", None, _FULL, _CALL_CHARGE, compactions)
+
+
+def _error(cls: str, *compactions: tuple[Any, ...]) -> tuple[Any, ...]:
+    return ("sent_usage", cls, _FULL, _CALL_CHARGE, compactions)
+
+
+_W1, _W2 = _failed("driver:withheld-1"), _failed("driver:withheld-2")
+RELEASE_UNREAD, CLOSE_UNREAD = _failed("driver:release-unread"), _failed("driver:close-unread")
+_UNREAD_CALL = ("sent_unknown", "UnparsableReply", None, None, (_done("c1"), RELEASE_UNREAD))
+_STRAY = {"copilotUsage": {"totalNanoAiu": 5}}  # a charge where the parser does not read one
+
+
+def _stray(e: dict[str, Any]) -> dict[str, Any]:
+    return {**e, "data": {**e["data"], **_STRAY}}
+
+
+_LATE_SPEND = {**_USAGE, "id": "u7"}  # reports spend after the call ended
+_TURN = [_USAGE, said(2, "done"), _IDLE]
+_FAILED = [_USAGE, _ERROR]  # the session reports an error: SessionError, figures kept, released
+_TOKEN_IDS = [_start(f"{_TOKEN}-1"), _start(f"{_TOKEN}-2")]  # the parser: KeyReflected
+
+
+def _case(calls: list[dict[str, Any]], replies: list[Any], *closed: Any, **more: Any) -> Any:
+    calls = [{**CALL, "exchange_id": f"ex-{n}", **c} for n, c in enumerate(calls)]
+    want = {"replies": replies, "closed": closed, **more}
+    return {"calls": calls, "closes": len(closed), "want": want}
+
+
+CASES: dict[str, dict[str, Any]] = {
+    # --- what a reply carries
+    "a start and its complete in one call are one compaction on the reply": _case(
+        [{"script": [_start("s1"), _end("c1", **_PAID), *_TURN]}], [_ok(_done("c1"))], ()
+    ),
+    "a start left open by an ok call is completed at close, in its session": _case(
+        [{"script": [_start("s1"), *_TURN], "queued": [_end("c1", **_PAID)]}],
+        [_ok(_open("s1"))],
+        (_done("c1", sup="s1"),),
+        (),
+    ),
+    # --- a complete supersedes only a start its own session delivered
+    "two sessions, first a then b": _case(
+        [
+            {"script": [_start("a1"), *_TURN], "queued": [_end("ca", **_PAID)]},
+            {"script": [_start("b1"), *_TURN], "queued": [_end("cb", **_USED)]},
+        ],
+        [_ok(_open("a1")), _ok(_open("b1"))],
+        (_done("ca", sup="a1"), _done("cb", None, sup="b1")),
+    ),
+    "two sessions, first b then a": _case(
+        [
+            {"script": [_start("b1"), *_TURN], "queued": [_end("cb", **_USED)]},
+            {"script": [_start("a1"), *_TURN], "queued": [_end("ca", **_PAID)]},
+        ],
+        [_ok(_open("b1")), _ok(_open("a1"))],
+        (_done("cb", None, sup="b1"), _done("ca", sup="a1")),
+    ),
+    "a complete from a session that delivered no start leaves another session's open": _case(
+        [
+            {"queued": [_end("ca", **_PAID)]},
+            {"script": [_start("b1"), *_TURN], "queued": [_end("cb", **_USED)]},
+        ],
+        [_ok(), _ok(_open("b1"))],
+        (_done("ca"), _done("cb", None, sup="b1")),
+    ),
+    # --- linking is conservative: when it cannot be sure, nothing is superseded
+    "a complete whose list also holds a start supersedes nothing": _case(
+        [{"script": [_start("s1"), *_TURN], "queued": [_start("s2"), _end("c2", **_PAID)]}],
+        [_ok(_open("s1"))],
+        (_done("c2"),),
+    ),
+    "two completes in one list supersede nothing": _case(
+        [{"script": [_start("s1"), *_TURN], "queued": [_end("c1", **_PAID), _end("c2", **_USED)]}],
+        [_ok(_open("s1"))],
+        (_done("c1"), _done("c2", None)),
+    ),
+    "two open starts in a session: a complete supersedes neither": _case(
+        [{"script": [_start("s1"), _start("s2"), *_TURN], "queued": [_end("c1", **_PAID)]}],
+        [_ok(_open("s1"), _open("s2"))],
+        (_done("c1"),),
+    ),
+    "a start whose id holds the home path is withheld, and nothing supersedes it": _case(
+        [{"script": [_start("/home/jane/s1"), *_TURN], "queued": [_end("c1", **_PAID)]}],
+        [_ok(_W1)],
+        (_done("c1"),),
+    ),
+    # --- repeats
+    "a start already delivered is not delivered again at close": _case(
+        [{"script": [_start("s1"), *_TURN], "queued": [_start("s1")]}], [_ok(_open("s1"))], ()
+    ),
+    "a complete under the id of a start already delivered is spend unknown": _case(
+        [{"script": [_start("s1"), *_TURN], "queued": [_end("s1", **_PAID)]}],
+        [_ok(_open("s1"))],
+        (CLOSE_UNREAD,),
+    ),
+    "two replies whose release reads fail each carry the release entry": _case(
+        [{"script": _FAILED, "queued": "junk"}, {"script": _FAILED, "queued": "junk"}],
+        [_error("SessionError", RELEASE_UNREAD), _error("SessionError", RELEASE_UNREAD)],
+        (),
+    ),
+    "a differing repeat in an ok call's own events puts the release entry on that reply": _case(
+        [
+            {"script": [_start("s1"), _end("c1", **_PAID), *_TURN]},
+            {"script": [_end("c1", **_USED), *_TURN]},
+        ],
+        [_ok(_done("c1")), _ok(RELEASE_UNREAD)],
+        (),
+    ),
+    "a differing repeat after a released reply, in an ok call's own events": _case(
+        [
+            {"script": [_start("s1"), *_FAILED], "queued": [_end("c1", **_PAID)]},
+            {"script": [_end("c1", **_USED), *_TURN]},
+        ],
+        [_error("SessionError", _done("c1")), _ok(RELEASE_UNREAD)],
+        (),
+    ),
+    # --- the release path of a reply that is not ok
+    "a complete read at release goes on the reply, paired with the call's start": _case(
+        [{"script": [_start("s1"), *_FAILED], "queued": [_end("c1", **_PAID)]}],
+        [_error("SessionError", _done("c1"))],
+        (),
+    ),
+    "spend read at release is not the reply's: its figures stay the call's": _case(
+        [{"script": _FAILED, "queued": [_LATE_SPEND]}],
+        [_error("SessionError", RELEASE_UNREAD)],
+        (),
+        log=(("queued", "assistant.usage"), ("12300000",)),
+    ),
+    "a release read that times out": _case(
+        [{"script": _FAILED, "fail": {"queued": "timeout"}}],
+        [_error("SessionError", RELEASE_UNREAD)],
+        (),
+        log=(("queued", "TimeoutError"), ()),
+    ),
+    "a release read that raises": _case(
+        [{"script": _FAILED, "fail": {"queued": ("RuntimeError", "boom")}}],
+        [_error("SessionError", RELEASE_UNREAD)],
+        (),
+        log=(("queued", "RuntimeError"), ("boom",)),
+    ),
+    "a release read that is not a list": _case(
+        [{"script": _FAILED, "queued": "junk"}],
+        [_error("SessionError", RELEASE_UNREAD)],
+        (),
+        log=(("queued", "not a list of events"), ("junk",)),
+    ),
+    "two withheld ids and the release entry on one reply, then the close entry: none dropped": _case(
+        [{"script": [*_TOKEN_IDS, *_FAILED], "queued": [_LATE_SPEND]}, {"queued": "junk"}],
+        [_error("KeyReflected", _W1, _W2, RELEASE_UNREAD), _ok()],
+        (CLOSE_UNREAD,),
+    ),
+    "call events that are not events: the queued compactions on their own, then the entry": _case(
+        [{"script": [_USAGE, "junk"], "queued": [_end("c1", **_PAID)]}],
+        [_UNREAD_CALL],
+        (),
+    ),
+    "a call event with an empty id: the same": _case(
+        [{"script": [_USAGE, {**_IDLE, "id": ""}], "queued": [_end("c1", **_PAID)]}],
+        [_UNREAD_CALL],
+        (),
+    ),
+    # --- spend fields the parser does not read on a compaction event
+    "a queued start that holds a charge": _case(
+        [{"queued": [_stray(_start("s9"))]}], [_ok()], (_open("s9"), CLOSE_UNREAD)
+    ),
+    "a queued complete with a second, top-level charge": _case(
+        [{"queued": [_stray(_end("c9", **_PAID))]}], [_ok()], (_done("c9"), CLOSE_UNREAD)
+    ),
+    "a start that holds a charge in a released call's events": _case(
+        [{"script": [_stray(_start("s9")), *_FAILED]}],
+        [_error("SessionError", _open("s9"), RELEASE_UNREAD)],
+        (),
+    ),
+    "a complete with a top-level charge in an ok call's own events": _case(
+        [{"script": [_stray(_end("c9", **_PAID)), *_TURN]}], [_ok(_done("c9"), RELEASE_UNREAD)], ()
+    ),
+    # --- what close() returns
+    "spend a kept session still holds at close": _case(
+        [{"queued": [_LATE_SPEND]}],
+        [_ok()],
+        (CLOSE_UNREAD,),
+        log=(("assistant.usage",), ("12300000",)),
+    ),
+    "a leftover of another type that holds a cost field is spend too": _case(
+        [{"queued": [event(7, "model.call_failure", copilotUsage={"totalNanoAiu": 5})]}],
+        [_ok()],
+        (CLOSE_UNREAD,),
+    ),
+    "a leftover of another type that holds compaction figures is spend too": _case(
+        [{"queued": [event(7, "session.truncation", compactionTokensUsed=_PAID)]}],
+        [_ok()],
+        (CLOSE_UNREAD,),
+    ),
+    "two kept sessions whose reads fail give one close entry": _case(
+        [{"fail": {"queued": "timeout"}}, {"queued": ["junk"]}], [_ok(), _ok()], (CLOSE_UNREAD,)
+    ),
+    "what was pending, then the close entry": _case(
+        [{"script": [_start("s1"), *_TURN], "queued": [_end("c1", **_PAID)]}, {"queued": "junk"}],
+        [_ok(_open("s1")), _ok()],
+        (_done("c1", sup="s1"), CLOSE_UNREAD),
+    ),
+    "a leftover with no figures and no compaction is dropped and its type logged": _case(
+        [{"queued": [said(7, "late")]}], [_ok()], (), log=(("assistant.message",), ("late",))
+    ),
+}

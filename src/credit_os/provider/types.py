@@ -103,10 +103,14 @@ class Compaction:
     `billed_usd` `None` is unknown, never zero, whatever the outcome. `outcome` is `done` (the
     runtime reported success), `failed` (it reported failure) or `unfinished` (a start whose
     complete had not arrived when the call ended or the model was closed; it knows nothing:
-    every count `None` and no charge). `event_id` is the id of the SDK event that reported it,
-    so an event delivered twice is counted once. `supersedes` is the `event_id` of an
-    unfinished compaction, delivered earlier, that this one completes (`None` when it completes
-    none); an unfinished one supersedes nothing. It has no reasoning-token count."""
+    every count `None` and no charge). `failed` also covers two differing events under one id and
+    a read that failed (nothing known). `event_id` is the id of the SDK event that reported it,
+    so an event delivered twice is counted once; the driver's fixed ids (`driver:close-unread`,
+    `driver:release-unread`, `driver:withheld-<n>`) are the one exception, and an SDK id
+    starting `driver:` is withheld. A differing repeat seen in an ok call's own events puts
+    `driver:release-unread` on that ok reply, not at close. `supersedes` is the `event_id` of
+    an unfinished compaction, delivered earlier, that this one completes (`None` when it
+    completes none); an unfinished one supersedes nothing. It has no reasoning-token count."""
 
     usage: Usage
     billed_usd: Decimal | None
@@ -232,7 +236,9 @@ class Model(Protocol):
 
     A compaction is on the reply of the call during which it was observed; one observed after
     a call returned is on the next reply that may carry one (a `not_sent` reply carries none),
-    else `close` returns it. An adapter never drops one."""
+    else `close` returns it. An adapter never drops one. A compaction whose event_id would need
+    redacting, or that starts `driver:`, is withheld (a fixed `driver:withheld-<n>` id), never
+    sent redacted."""
 
     @property
     def config_id(self) -> str: ...

@@ -66,7 +66,7 @@ def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
     assert all(fake.bounds[s] == v for s, v in want.get("bounds", {}).items())
     assert min(fake.given, default=0) >= 0
     assert driver.config_id == "copilot-sol-medium"
-    assert reply.compactions == ()
+    assert tuple(c.event_id for c in reply.compactions) == want.get("compactions", ())
     _check_turn(reply, want["turn"])
     _check_raw(reply, want, case)
     if "send" in want["calls"] and "absent" not in want:
