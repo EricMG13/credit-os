@@ -371,6 +371,10 @@ CUT = "a" * 120 + "\u2026"
             "a" * 119 + ".",
             "'" + "a" * 119 + ".': segment starts or ends with a space or ends with a dot",
         ),
+        (
+            "é" * 100 + ".",
+            "'" + "é" * 100 + ".': segment starts or ends with a space or ends with a dot",
+        ),
     ],
 )
 def test_validate_name_shows_at_most_120_characters(name: str, message: str) -> None:
