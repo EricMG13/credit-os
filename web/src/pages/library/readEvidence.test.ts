@@ -19,6 +19,7 @@ const evidenceOf = (slice: ReturnType<typeof fresh>, r = 0) =>
     sources: Json & { files: Files };
     summary: Json & { take: { download: Json } };
     moduleFilter: Json[];
+    trace: Json & { rows: Json[] };
   };
 const fileOf = (e: ReturnType<typeof evidenceOf>, i: number): Json => {
   const found = e.sources.files[i];
@@ -218,5 +219,170 @@ describe("readSlice, evidence", () => {
     const slice = fresh();
     edit(evidenceOf(slice));
     expect(invalidReason(slice)).toContain(`${at(0)}.${expected}`);
+  });
+});
+
+const rowOf = (e: ReturnType<typeof evidenceOf>, id: string): Json => {
+  const found = e.trace.rows.find((row) => row["id"] === id);
+  if (found === undefined) throw new RangeError(`no trace row ${id}`);
+  return found;
+};
+
+describe("readSlice, trace", () => {
+  const read = () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    return result.data.issuers[0]?.runs ?? [];
+  };
+
+  it("reads the full run's trace: the mock's rows in the mock's order, with its heads and its tree", () => {
+    const trace = read()[0]?.evidence?.trace;
+    expect(trace?.title).toBe("Trace");
+    expect(trace?.description).toBe(
+      "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+    );
+    expect(trace?.columns).toEqual({
+      id: "Item",
+      item: "Statement",
+      value: "Value",
+      module: "Module",
+      kind: "Kind",
+      sources: "Sources",
+    });
+    const rows = trace?.rows ?? [];
+    expect(rows).toHaveLength(60);
+    const mock = ["T-0001", "T-0014", "T-0015", "T-0031", "T-0047", "T-0052", "T-0068"];
+    expect(rows.map((r) => r.id).filter((id) => mock.includes(id))).toEqual(mock);
+    expect(
+      rows
+        .filter((r) => mock.includes(r.id))
+        .map((r) => [r.id, r.item, r.module, r.kind, r.sources]),
+    ).toEqual([
+      [
+        "T-0001",
+        "Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing.",
+        "Overview",
+        "Passage",
+        "6",
+      ],
+      ["T-0014", "Net leverage 4.6x", "Capital structure", "Figure", "3"],
+      ["T-0015", "Interest cover 2.4x", "Capital structure", "Figure", "4"],
+      [
+        "T-0031",
+        "Three customers bring 58% of revenue and one engine programme 34%.",
+        "Business profile",
+        "Passage",
+        "2",
+      ],
+      ["T-0047", "Maturities by year", "Capital structure", "Chart", "5"],
+      ["T-0052", "Receivables facility availability", "Capital structure", "Row", "1"],
+      [
+        "T-0068",
+        "Management says no alternative part has passed certification.",
+        "Business profile",
+        "Passage",
+        "0",
+      ],
+    ]);
+    expect(rows.find((r) => r.id === "T-0001")?.moduleId).toBeNull();
+    expect(rows.find((r) => r.id === "T-0068")?.note).toBe(
+      "The module gave no source for this claim.",
+    );
+    const calc = rows.find((r) => r.id === "T-0014")?.calc;
+    const lines = (node: typeof calc, depth = 0): string[] =>
+      node === null || node === undefined
+        ? []
+        : [
+            `${"  ".repeat(depth)}${node.label} | ${node.value ?? ""} | ${node.note ?? ""}`,
+            ...node.children.flatMap((child) => lines(child, depth + 1)),
+          ];
+    expect(lines(calc)).toEqual([
+      "Result | Net leverage | 4.6x · C-0412",
+      "  Formula | Net debt ÷ EBITDA | 2,236 ÷ 486",
+      "    Input | Net debt = gross debt − cash | 2,236 · C-0398",
+      "      Source | Gross debt 2,398 | annual-report-2026.pdf · p. 112, note 18",
+      "      Source | Cash 162 | annual-report-2026.pdf · p. 84",
+      "    Input | EBITDA, company-adjusted | 486",
+      "      Source | EBITDA 486 | lender-presentation-nov-2026.pdf · p. 9",
+      "        Excerpt | “Adjusted EBITDA for the twelve months ended 30 September 2026 was USD 486 million (2025: USD 441 million).” | ",
+    ]);
+  });
+
+  it("holds a row for every item a trace opens, in every loaded run, and says how many in its tab", () => {
+    for (const run of read()) {
+      if (run.evidence === null) continue;
+      const held = run.evidence.trace.rows.map((r) => r.id);
+      for (const trace of Object.values(run.traces)) expect(held).toContain(trace.evidenceItem);
+      expect(run.evidence.tabs.trace).toBe(String(held.length));
+    }
+    expect(read().map((run) => run.evidence?.trace.rows.length)).toEqual([60, undefined, 0, 0]);
+  });
+
+  const brokenRows: [string, (e: ReturnType<typeof evidenceOf>) => unknown, string][] = [
+    ["a row with no id", (e) => (rowOf(e, "T-0042")["id"] = ""), "trace.rows[11].id"],
+    ["an id given twice", (e) => (rowOf(e, "T-0042")["id"] = "T-0001"), "trace.rows[11].id"],
+    ["a statement that is not text", (e) => (rowOf(e, "T-0001")["item"] = 6), "trace.rows[0].item"],
+    [
+      "a module the run does not hold",
+      (e) => (rowOf(e, "T-0014")["moduleId"] = "treasury"),
+      "trace.rows[3].moduleId",
+    ],
+    [
+      "a module named otherwise",
+      (e) => (rowOf(e, "T-0014")["module"] = "Capital"),
+      "trace.rows[3].module",
+    ],
+    [
+      "an item with no module that is not on the Overview",
+      (e) => (rowOf(e, "T-0001")["module"] = "Recovery"),
+      "trace.rows[0].module",
+    ],
+    [
+      "a value that is not a figure",
+      (e) => (rowOf(e, "T-0014")["value"] = { kind: "sum" }),
+      "trace.rows[3].value.kind",
+    ],
+    [
+      "a count of sources that is not text",
+      (e) => (rowOf(e, "T-0014")["sources"] = 3),
+      "trace.rows[3].sources",
+    ],
+    [
+      "a calculation that is not a tree",
+      (e) => (rowOf(e, "T-0014")["calc"] = "4.6x"),
+      "trace.rows[3].calc",
+    ],
+    [
+      "a branch of the calculation with no children list",
+      (e) => delete ((rowOf(e, "T-0014")["calc"] as Json)["children"] as Json[])[0]?.["children"],
+      "trace.rows[3].calc.children[0].children",
+    ],
+    [
+      "a note that is an empty string",
+      (e) => (rowOf(e, "T-0068")["note"] = ""),
+      "trace.rows[33].note",
+    ],
+    [
+      "a head that is missing",
+      (e) => delete (e.trace["columns"] as Json)["kind"],
+      "trace.columns.kind",
+    ],
+    [
+      "a tab count that is not the number of rows",
+      (e) => ((e["tabs"] as Json)["trace"] = "59"),
+      "tabs.trace",
+    ],
+  ];
+  it.each(brokenRows)("is invalid for %s, with its path", (_, edit, expected) => {
+    const slice = fresh();
+    edit(evidenceOf(slice));
+    expect(invalidReason(slice)).toContain(`${at(0)}.${expected}`);
+  });
+
+  it("is invalid for a trace that opens an item no row holds, with the trace's path", () => {
+    const slice = fresh();
+    const traces = (slice.issuers[0]?.runs[0] as Json)["traces"] as Record<string, Json>;
+    (traces["net-leverage"] as Json)["evidenceItem"] = "T-9999";
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.evidenceItem");
   });
 });

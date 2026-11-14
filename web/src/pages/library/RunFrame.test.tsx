@@ -113,8 +113,11 @@ describe("RunFrame tabs", () => {
     const evidence = run["evidence"] as {
       moduleFilter: unknown[];
       sources: { files: { readers: unknown }[] };
+      trace: { rows: { module: string; moduleId: string | null }[] };
     };
     evidence.moduleFilter = [];
+    for (const row of evidence.trace.rows)
+      Object.assign(row, { module: "Overview", moduleId: null });
     for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     run.overview = {
       ...(run.overview as Json),
