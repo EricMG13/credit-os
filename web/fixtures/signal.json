@@ -5,6 +5,107 @@
         "id": "main",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "31", "height": 0.89 },
+                  { "label": "Week of 13 Oct", "items": "28", "height": 0.8 },
+                  { "label": "Week of 20 Oct", "items": "35", "height": 1.0 },
+                  { "label": "Week of 27 Oct", "items": "30", "height": 0.86 },
+                  { "label": "Week of 3 Nov", "items": "26", "height": 0.74 },
+                  { "label": "Week of 10 Nov", "items": "33", "height": 0.94 }
+                ],
+                "sort": { "name": 2, "state": 1, "health": 1 }
+              },
+              {
+                "id": "regulatory-gazette",
+                "name": "Regulatory Gazette",
+                "kind": "Regulatory cases",
+                "state": "Approved",
+                "health": "Quiet",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": "No item for 9 days",
+                "lastCheck": "6 min ago",
+                "lastItem": "4 Nov",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "4", "height": 0.67 },
+                  { "label": "Week of 13 Oct", "items": "6", "height": 1.0 },
+                  { "label": "Week of 20 Oct", "items": "3", "height": 0.5 },
+                  { "label": "Week of 27 Oct", "items": "5", "height": 0.83 },
+                  { "label": "Week of 3 Nov", "items": "1", "height": 0.17 },
+                  { "label": "Week of 10 Nov", "items": "0", "height": 0 }
+                ],
+                "sort": { "name": 4, "state": 1, "health": 2 }
+              },
+              {
+                "id": "northgate-ratings",
+                "name": "Northgate Ratings",
+                "kind": "Rating actions",
+                "state": "Approved",
+                "health": "Failing",
+                "reason": "The feed returned an error at the last 3 checks",
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "yesterday",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "9", "height": 0.82 },
+                  { "label": "Week of 13 Oct", "items": "7", "height": 0.64 },
+                  { "label": "Week of 20 Oct", "items": "11", "height": 1.0 },
+                  { "label": "Week of 27 Oct", "items": "8", "height": 0.73 },
+                  { "label": "Week of 3 Nov", "items": null, "height": null },
+                  { "label": "Week of 10 Nov", "items": "6", "height": 0.55 }
+                ],
+                "sort": { "name": 3, "state": 1, "health": 3 }
+              },
+              {
+                "id": "meridian-post",
+                "name": "The Meridian Post",
+                "kind": "News",
+                "state": "Paused",
+                "health": null,
+                "reason": null,
+                "stateNote": "By the owner, 2 Nov",
+                "healthNote": null,
+                "lastCheck": "2 Nov",
+                "lastItem": "2 Nov",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "18", "height": 0.82 },
+                  { "label": "Week of 13 Oct", "items": "22", "height": 1.0 },
+                  { "label": "Week of 20 Oct", "items": "20", "height": 0.91 },
+                  { "label": "Week of 27 Oct", "items": "19", "height": 0.86 },
+                  { "label": "Week of 3 Nov", "items": null, "height": null },
+                  { "label": "Week of 10 Nov", "items": null, "height": null }
+                ],
+                "sort": { "name": 5, "state": 2, "health": 4 }
+              },
+              {
+                "id": "freight-monitor",
+                "name": "Freight Monitor",
+                "kind": "News",
+                "state": "Proposed",
+                "health": null,
+                "reason": null,
+                "stateNote": "By Tobias O, yesterday",
+                "healthNote": null,
+                "lastCheck": null,
+                "lastItem": null,
+                "weeks": [],
+                "sort": { "name": 1, "state": 3, "health": 4 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week, 6 weeks",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -684,6 +785,23 @@
         "id": "reader",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -1013,6 +1131,23 @@
         "id": "ai-on",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -1469,6 +1604,23 @@
         "id": "no-name",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -1596,6 +1748,23 @@
         "id": "no-topics",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -1694,6 +1863,23 @@
         "id": "not-checked",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -1792,6 +1978,23 @@
         "id": "loading",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -1885,6 +2088,23 @@
         "id": "unreachable",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -2034,6 +2254,8 @@
         "id": "no-sources",
         "snapshot": {
           "settings": {
+            "sources": [],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -2132,6 +2354,23 @@
         "id": "nothing-followed",
         "snapshot": {
           "settings": {
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
             "groups": [
               {
                 "id": "leveraged-credit",
@@ -2304,6 +2543,7 @@
     ],
     "/signal/:scene/settings/:section": [
       { "scene": "main", "section": "groups" },
+      { "scene": "main", "section": "sources" },
       { "scene": "main", "section": "thread-rules" },
       { "scene": "main", "section": "notifications" },
       { "scene": "main", "section": "topics" },

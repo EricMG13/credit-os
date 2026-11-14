@@ -301,6 +301,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(35);
+    expect(visits).toBe(36);
   });
 });
