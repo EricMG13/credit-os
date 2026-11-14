@@ -41,22 +41,30 @@ _KEY_PATTERN = re.compile(rf"(?:{_SK_BOUNDARY})(?:{_SK_KEY})|{_GITHUB_SHAPES}")
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
 _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
-# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" or WSL's
-# "/mnt/<drive>/Users/<user>", in either slash, repr-escaped or not. A Windows user name may hold
-# spaces when a backslash or a closing quote follows it. A path inside a longer name or a URL's
-# host part ("example.com/home/x") is not one; "file:///home/<user>" is. A closing "." is the
-# sentence's.
+# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" (long-path form included),
+# WSL's "/mnt/<drive>/Users/<user>" or a backslash-led "\Users\<user>", in either slash,
+# repr-escaped or not, also straight after a written-out "\n", "\r" or "\t" when a drive, "\\" or
+# "/" follows. A path inside a longer name or a URL's host part ("example.com/home/x") is not
+# one; "file:///home/<user>" is. The user name fails closed: it ends only at a character no such
+# name can hold, else at the line's end. On a Windows form that is a slash or a character Windows
+# reserves in a name (< > : " | ? *) or the line's end; on a POSIX form a "/", a ":" (the passwd
+# field separator) or the line's end. Prose after a name on the same line goes with it.
+_WIN_PREFIX = (
+    r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
+    r"[\\/]+|\\)"
+)
 _HOME_PATH = re.compile(
-    r"(?<![\w.-])(?:(?:[A-Za-z]:|\\\\[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+|[\\/])"
-    rf"(?:(?i:users|home|var[\\/]+home)[\\/]+"
-    rf"(?:{_NAME}+(?: {_NAME}+)*(?=[\\'\"])|{_NAME}+(?<!\.))"
+    r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+    rf"(?:{_WIN_PREFIX}|/)"
+    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|[^/:\r\n])+"
     rf"|root(?!{_NAME}))"
 )
 
 
 def home_paths(text: str) -> str:
-    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; the
-    rest of each path, and all other text, is kept. It does not redact keys."""
+    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
+    name that no slash or reserved character ends takes the rest of its line. It does not redact
+    keys."""
     return _HOME_PATH.sub("<home>", text)
 
 
