@@ -185,6 +185,8 @@ def test_csv_row_cap_counts_one_row_at_a_time() -> None:
     assert str(caught.value) == "t.csv: a row is longer than 1,048,576 characters"
     many_rows = csv_pages("t.csv", b"a\n" * 524_289)
     assert "".join(p.text for p in many_rows.pages) == "a\n" * 524_289
+    after_first = csv_pages("t.csv", b"a\n" + b"a," * 524_287 + b"b\n")
+    assert "".join(p.text for p in after_first.pages) == "a\n" + "a | " * 524_287 + "b\n"
 
 
 def test_csv_row_cap_counts_lines_and_line_ends() -> None:
