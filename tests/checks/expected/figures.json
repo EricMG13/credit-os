@@ -135,6 +135,16 @@
     {"text": "Debt was USD - 9M.", "sides": ["passage"], "figures": []},
     {"text": "Debt was USD - 9M.", "sides": ["held"], "figures": [["9", false, false, "m", null, "9M", 16]]},
     {"text": "Debt was USD ( -9M).", "sides": ["passage", "held"], "figures": [["9", true, false, "m", "USD", "( -9M)", 14]]},
-    {"text": "Debt was (USD 9M).", "sides": ["passage", "held"], "figures": [["9", true, true, "m", "USD", "(USD 9M)", 10]]}
+    {"text": "Debt was (USD 9M).", "sides": ["passage", "held"], "figures": [["9", true, true, "m", "USD", "(USD 9M)", 10]]},
+    {"text": "Dates: 5 January 2024, 5 February 2024, 5 March 2024, 5 April 2024, 5 May 2024, 5 June 2024, 5 July 2024, 5 August 2024, 5 September 2024, 5 October 2024, 5 November 2024, 5 December 2024, 5 Jan 2024, 5 Feb 2024, 5 Mar 2024, 5 Apr 2024, 5 Jun 2024, 5 Jul 2024, 5 Aug 2024, 5 Sept 2024, 5 Sep 2024, 5 Oct 2024, 5 Nov 2024, 5 Dec 2024; it was 7%.", "sides": ["passage"], "figures": [["7", false, false, "%", null, "7%", 342]]},
+    {"text": "On January. 5th and 5th June it was 7%.", "sides": ["passage"], "figures": [["7", false, false, "%", null, "7%", 37]]},
+    {"text": "On January 5, 2024 it was 7%.", "sides": ["passage"], "figures": [["7", false, false, "%", null, "7%", 27]]},
+    {"text": "In 1H, 2H25, 2125E and 1825A it rose.", "sides": ["passage"], "figures": [["2125", false, false, "unrecognised", null, "2125E", 14], ["1825", false, false, "unrecognised", null, "1825A", 24]]},
+    {"text": "The tag 0123456789ABCDEF0 and T12A.5 were set.", "sides": ["passage", "held"], "figures": []},
+    {"text": "It was 250 eur m, 250 abc m and 250 USD K.", "sides": ["passage", "held"], "figures": [["250", false, false, "m", "EUR", "250 eur m", 8], ["250", false, false, null, null, "250", 19], ["250", false, false, null, null, "250", 33]]},
+    {"text": "Fees were gbp 5, Gbp 6 and Usd 7.", "sides": ["passage", "held"], "figures": [["5", false, false, null, "GBP", "5", 15], ["6", false, false, null, "GBP", "6", 22], ["7", false, false, null, "USD", "7", 32]]},
+    {"text": "The 3rd row fell 2%.", "sides": ["passage", "held"], "figures": [["3", false, false, null, null, "3", 5], ["2", false, false, "%", null, "2%", 18]]},
+    {"text": "It fell USD –5 then.", "sides": ["passage", "held"], "figures": [["5", false, false, null, "USD", "5", 14]]},
+    {"text": "It lost -R$ 9M, (R$ -9M) and R$ -(9M).", "sides": ["passage", "held"], "figures": [["9", true, false, "m", "unrecognised", "-R$ 9M", 9], ["9", true, false, "m", "unrecognised", "(R$ -9M)", 17], ["9", true, true, "m", "unrecognised", "(9M)", 34]]}
   ]
 }
