@@ -80,5 +80,5 @@
       }
     ]
   },
-  "params": {}
+  "params": { "/model/:issuer/:run/limitations": [{ "issuer": "transdigm", "run": "2025-06-30" }] }
 }
