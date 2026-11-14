@@ -12,16 +12,20 @@ import {
   atLeastOne,
   at,
   fail,
+  is,
   object,
   oneOf,
   orNull,
   text,
   textOrNull,
+  tagged,
   yes,
   type Reader,
 } from "./reader-kit";
 import type {
   Fact,
+  Cell,
+  CaseCard,
   FrontPage,
   GapItem,
   LimitationsPage,
@@ -30,11 +34,16 @@ import type {
   MetricValue,
   ModelRun,
   ModelSlice,
+  RowKind,
   RunHeader,
   RunLinks,
   Part,
   PartPage,
   RunState,
+  Statement,
+  StatementColumn,
+  StatementRow,
+  StatementsPage,
 } from "./types";
 
 const runState = oneOf(Object.keys(STATUS_SETS["Run states"]) as RunState[]);
@@ -100,6 +109,49 @@ const front = object<FrontPage>({
   covers: object({ facts: arrayOf(fact) }),
   parts: arrayOf(part),
 });
+const caseCard = object<CaseCard>({
+  name: text,
+  tag: text,
+  assumption: text,
+  leavesOut: text,
+  note: textOrNull,
+  trace: addressOrNull,
+});
+
+const position: Reader<number> = (value, path) =>
+  typeof value === "number" && Math.abs(value) <= 1
+    ? value
+    : fail(path, "expected a number from -1 to 1");
+const cell = tagged<Cell>({
+  figure: object({ kind: is("figure"), text: text, pos: position }),
+  missing: object({ kind: is("missing"), reason: textOrNull }),
+  withheld: object({ kind: is("withheld"), reason: textOrNull }),
+});
+const cellEntry: Reader<Cell | Cell[]> = (value, path) =>
+  Array.isArray(value) ? arrayOf(cell)(value, path) : cell(value, path);
+const column = tagged<StatementColumn>({
+  actual: object({ kind: is("actual"), period: text, note: text }),
+  forecast: object({
+    kind: is("forecast"),
+    period: text,
+    notes: arrayOf(object({ text: text })),
+  }),
+  empty: object({ kind: is("empty"), period: text, note: textOrNull, reason: text }),
+});
+const rowKind = oneOf<RowKind>(["plain", "subtotal", "total"]);
+const statementRow = object<StatementRow>({
+  label: text,
+  kind: rowKind,
+  gap: bool,
+  trace: addressOrNull,
+  cells: arrayOf(cellEntry),
+});
+const statements = object<StatementsPage>({
+  intro: text,
+  columns: arrayOf(column),
+  statements: arrayOf(object<Statement>({ name: text, rows: arrayOf(statementRow) })),
+});
+
 /** Every list the front page draws holds something, and no two of its trace controls share a name. */
 function checkFront(page: FrontPage, path: string): void {
   atLeastOne(page.headline.metrics, child(path, "headline.metrics"), "metric");
@@ -137,18 +189,97 @@ function checkLimitations(page: LimitationsPage, path: string): void {
   );
 }
 
+/**
+ * The statements page's trace controls: the cases, the five charts and, for each statement (one
+ * is open at a time), its rows. No two controls that can be drawn together share a name.
+ */
+function checkStatementNames(
+  page: StatementsPage,
+  cases: readonly CaseCard[],
+  casesPath: string,
+  path: string,
+): void {
+  const shared = [
+    ...cases.map((c, i) => ({ name: c.name, trace: c.trace, where: `${at(casesPath, i)}.name` })),
+  ];
+  page.statements.forEach((statement, s) => {
+    distinctTraceNames([
+      ...shared,
+      ...statement.rows.map((row, r) => ({
+        name: row.label,
+        trace: row.trace,
+        where: `${at(`${child(path, "statements")}[${String(s)}].rows`, r)}.label`,
+      })),
+    ]);
+  });
+}
+
+/** The statements must hold one note and one cell per case in every forecast column. */
+function checkStatements(page: StatementsPage, cases: number, path: string): void {
+  atLeastOne(page.columns, `${path}.columns`, "column");
+  if (page.statements.length === 0) {
+    fail(`${path}.statements`, "expected at least one statement");
+  }
+  page.statements.forEach((statement, i) => {
+    if (page.statements.findIndex((other) => other.name === statement.name) !== i) {
+      fail(`${path}.statements[${String(i)}].name`, "expected a name no other statement has");
+    }
+  });
+  const plural = (n: number, noun: string) => `${String(n)} ${noun}${n === 1 ? "" : "s"}`;
+  page.columns.forEach((col, i) => {
+    if (col.kind === "forecast" && col.notes.length !== cases) {
+      fail(
+        `${path}.columns[${String(i)}].notes`,
+        `expected ${plural(cases, "note")}, one per case`,
+      );
+    }
+  });
+  const shown = page.columns.filter((col) => col.kind !== "empty");
+  page.statements.forEach((statement, s) => {
+    atLeastOne(statement.rows, `${path}.statements[${String(s)}].rows`, "row");
+    statement.rows.forEach((row, r) => {
+      const rowPath = `${path}.statements[${String(s)}].rows[${String(r)}].cells`;
+      if (row.cells.length !== shown.length) {
+        fail(rowPath, `expected ${String(shown.length)} entries, one per column that is not empty`);
+      }
+      row.cells.forEach((entry, c) => {
+        const cellPath = `${rowPath}[${String(c)}]`;
+        if (shown[c]?.kind === "forecast") {
+          if (!Array.isArray(entry) || entry.length !== cases) {
+            fail(cellPath, `expected a list of ${String(cases)} cells, one per case`);
+          }
+        } else if (Array.isArray(entry)) {
+          fail(cellPath, "expected one cell for an actual column");
+        }
+      });
+    });
+  });
+}
+
 const runFields = object<ModelRun>({
   issuer: text,
   run: text,
   header,
   links,
+  cases: arrayOf(caseCard),
   front,
+  statements,
   limitations,
 });
 const run: Reader<ModelRun> = (value, path) => {
   const read = runFields(value, path);
+  if (read.cases.length === 0) fail(child(path, "cases"), "expected at least one case");
+  if (read.cases.length !== 2) {
+    fail(child(path, "cases"), "expected two cases, the side by side chart draws two");
+  }
+  const [first, second] = read.cases;
+  if (first?.name === second?.name) {
+    fail(`${child(path, "cases")}[1].name`, "expected a name the other case does not have");
+  }
   checkFront(read.front, child(path, "front"));
   checkLimitations(read.limitations, child(path, "limitations"));
+  checkStatements(read.statements, read.cases.length, child(path, "statements"));
+  checkStatementNames(read.statements, read.cases, child(path, "cases"), child(path, "statements"));
   return read;
 };
 const sliceFields = object<ModelSlice>({ runs: arrayOf(run) });

@@ -17,6 +17,24 @@
           "evidence": "#/library/transdigm/2025-06-30/evidence",
           "evidenceGaps": "#/library/transdigm/2025-06-30/evidence"
         },
+        "cases": [
+          {
+            "name": "Base case",
+            "tag": "Management plan, trimmed",
+            "assumption": "Aftermarket sales grow 8% a year and margins hold near 53%. Cash builds on the balance sheet.",
+            "leavesOut": "acquisitions and any further special dividend.",
+            "note": null,
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          {
+            "name": "Downside case",
+            "tag": "Traffic shock",
+            "assumption": "Flight hours fall 10% in FY26 and recover half in FY27; prices stay flat; floating debt costs 100 basis points more.",
+            "leavesOut": "covenant waivers and asset sales.",
+            "note": null,
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          }
+        ],
         "front": {
           "bottomLine": {
             "lead": "Leverage falls only if the cash is kept: net debt drops from 5.9x to 3.8x EBITDA by FY27 in the base case, and cash flow covers interest about three times throughout.",
@@ -217,6 +235,229 @@
               }
             ]
           }
+        },
+        "statements": {
+          "intro": "USD millions unless a unit is shown. Fiscal years end 30 September.",
+          "columns": [
+            { "period": "FY22", "kind": "actual", "note": "Actual" },
+            { "period": "FY23", "kind": "actual", "note": "Actual" },
+            { "period": "FY24", "kind": "actual", "note": "Actual" },
+            { "period": "LTM", "kind": "actual", "note": "To June 2025" },
+            {
+              "period": "FY25E",
+              "kind": "forecast",
+              "notes": [{ "text": "Base" }, { "text": "Downside" }]
+            },
+            {
+              "period": "FY26E",
+              "kind": "forecast",
+              "notes": [{ "text": "Base" }, { "text": "Downside" }]
+            },
+            {
+              "period": "FY27E",
+              "kind": "forecast",
+              "notes": [{ "text": "Base" }, { "text": "Downside" }]
+            }
+          ],
+          "statements": [
+            {
+              "name": "Income statement",
+              "rows": [
+                {
+                  "label": "Revenue",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "5,429", "pos": 0.5328 },
+                    { "kind": "figure", "text": "6,585", "pos": 0.6462 },
+                    { "kind": "figure", "text": "7,940", "pos": 0.7792 },
+                    { "kind": "figure", "text": "8,580", "pos": 0.842 },
+                    [
+                      { "kind": "figure", "text": "8,840", "pos": 0.8675 },
+                      { "kind": "figure", "text": "8,650", "pos": 0.8489 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "9,520", "pos": 0.9342 },
+                      { "kind": "figure", "text": "8,780", "pos": 0.8616 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "10,190", "pos": 1 },
+                      { "kind": "figure", "text": "9,050", "pos": 0.8881 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Gross profit",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "3,099", "pos": 0.5122 },
+                    { "kind": "figure", "text": "3,840", "pos": 0.6347 },
+                    { "kind": "figure", "text": "4,670", "pos": 0.7719 },
+                    { "kind": "figure", "text": "5,060", "pos": 0.8364 },
+                    [
+                      { "kind": "figure", "text": "5,220", "pos": 0.8628 },
+                      { "kind": "figure", "text": "5,080", "pos": 0.8397 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,640", "pos": 0.9322 },
+                      { "kind": "figure", "text": "5,040", "pos": 0.8331 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "6,050", "pos": 1 },
+                      { "kind": "figure", "text": "5,250", "pos": 0.8678 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "EBITDA as defined",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2,646", "pos": 0.4846 },
+                    { "kind": "figure", "text": "3,395", "pos": 0.6218 },
+                    { "kind": "figure", "text": "4,173", "pos": 0.7643 },
+                    { "kind": "figure", "text": "4,560", "pos": 0.8352 },
+                    [
+                      { "kind": "figure", "text": "4,690", "pos": 0.859 },
+                      { "kind": "figure", "text": "4,560", "pos": 0.8352 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,080", "pos": 0.9304 },
+                      { "kind": "figure", "text": "4,120", "pos": 0.7546 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,460", "pos": 1 },
+                      { "kind": "figure", "text": "4,350", "pos": 0.7967 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Depreciation and amortisation",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-253", "pos": -0.6571 },
+                    { "kind": "figure", "text": "-268", "pos": -0.6961 },
+                    { "kind": "figure", "text": "-310", "pos": -0.8052 },
+                    { "kind": "figure", "text": "-345", "pos": -0.8961 },
+                    [
+                      { "kind": "figure", "text": "-355", "pos": -0.9221 },
+                      { "kind": "figure", "text": "-355", "pos": -0.9221 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-370", "pos": -0.961 },
+                      { "kind": "figure", "text": "-370", "pos": -0.961 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-385", "pos": -1 },
+                      { "kind": "figure", "text": "-385", "pos": -1 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Operating income",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2,220", "pos": 0.4723 },
+                    { "kind": "figure", "text": "2,920", "pos": 0.6213 },
+                    { "kind": "figure", "text": "3,540", "pos": 0.7532 },
+                    { "kind": "figure", "text": "3,880", "pos": 0.8255 },
+                    [
+                      { "kind": "figure", "text": "3,990", "pos": 0.8489 },
+                      { "kind": "figure", "text": "3,860", "pos": 0.8213 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "4,350", "pos": 0.9255 },
+                      { "kind": "figure", "text": "3,400", "pos": 0.7234 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "4,700", "pos": 1 },
+                      { "kind": "figure", "text": "3,610", "pos": 0.7681 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Net interest expense",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-1,076", "pos": -0.5978 },
+                    { "kind": "figure", "text": "-1,164", "pos": -0.6467 },
+                    { "kind": "figure", "text": "-1,286", "pos": -0.7144 },
+                    { "kind": "figure", "text": "-1,540", "pos": -0.8556 },
+                    [
+                      { "kind": "figure", "text": "-1,560", "pos": -0.8667 },
+                      { "kind": "figure", "text": "-1,570", "pos": -0.8722 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-1,560", "pos": -0.8667 },
+                      { "kind": "figure", "text": "-1,790", "pos": -0.9944 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-1,530", "pos": -0.85 },
+                      { "kind": "figure", "text": "-1,800", "pos": -1 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Income tax",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-261", "pos": -0.3434 },
+                    { "kind": "figure", "text": "-417", "pos": -0.5487 },
+                    { "kind": "figure", "text": "-500", "pos": -0.6579 },
+                    { "kind": "figure", "text": "-560", "pos": -0.7368 },
+                    [
+                      { "kind": "figure", "text": "-583", "pos": -0.7671 },
+                      { "kind": "figure", "text": "-550", "pos": -0.7237 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-670", "pos": -0.8816 },
+                      { "kind": "figure", "text": "-390", "pos": -0.5132 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-760", "pos": -1 },
+                      { "kind": "figure", "text": "-430", "pos": -0.5658 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Net income",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "866", "pos": 0.3654 },
+                    { "kind": "figure", "text": "1,298", "pos": 0.5477 },
+                    { "kind": "figure", "text": "1,714", "pos": 0.7232 },
+                    { "kind": "figure", "text": "1,740", "pos": 0.7342 },
+                    [
+                      { "kind": "figure", "text": "1,810", "pos": 0.7637 },
+                      { "kind": "figure", "text": "1,700", "pos": 0.7173 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,080", "pos": 0.8776 },
+                      { "kind": "figure", "text": "1,180", "pos": 0.4979 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,370", "pos": 1 },
+                      { "kind": "figure", "text": "1,340", "pos": 0.5654 }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
         }
       }
     ]
