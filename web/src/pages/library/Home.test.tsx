@@ -413,7 +413,7 @@ describe("Library home, List side", () => {
     expect(names().slice(0, 2)).toEqual(["Corvane Packaging", "Ardenne Cable"]);
   });
 
-  it("delivers a count line for each measure, with and without the adjusted clause", () => {
+  it("delivers a count line for each measure, naming the runs on adjusted EBITDA", () => {
     toList();
     expect(
       screen.getByText("Leverage recorded for 3 of 5 runs · 1 on adjusted EBITDA, not screened"),

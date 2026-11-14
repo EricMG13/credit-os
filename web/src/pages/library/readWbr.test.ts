@@ -89,6 +89,16 @@ describe("WBR-04 a delivered address stays inside the library folder", () => {
     ["a drive path", "C:\\downloads\\x.zip"],
     ["a parent segment", "downloads/../../x.zip"],
     ["a backslash parent segment", "downloads\\..\\..\\x.zip"],
+    ["a space before https", " https://example.invalid/x.zip"],
+    ["a tab before https", "\thttps://example.invalid/x.zip"],
+    ["a space before slashes", " //example.invalid/x.zip"],
+    ["a newline inside a scheme", "ht\ntps://example.invalid/x.zip"],
+    ["a tab between slashes", "\t/\t/example.invalid/x.zip"],
+    ["encoded parent segments", "downloads/%2e%2e/%2e%2e/x.zip"],
+    ["a half-encoded parent segment", "downloads/.%2E/x.zip"],
+    ["a space before a rooted path", " /etc/x"],
+    ["an encoded slash", "downloads%2f..%2fx.zip"],
+    ["a malformed escape", "downloads/%zz/x.zip"],
   ])("refuses %s as a download", (_, href) => {
     const slice = fresh();
     run(slice).evidence.summary.take.download["href"] = href;

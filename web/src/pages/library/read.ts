@@ -1447,24 +1447,26 @@ function readFile(value: unknown, path: string, held: Held): SourceFile {
   };
 }
 
-const SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/;
+/** The characters a delivered file path uses; a `%` only starts a two-digit escape. */
+const SEGMENT = /^(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+$/;
 
 /**
  * An address the page hands to an anchor: a relative path inside the library folder, or `null`.
- * A scheme, a leading slash or backslash, or a `..` segment would leave the folder.
+ * Every segment must be plain (allow-list), and none may be `.` or `..` before or after
+ * percent-decoding, so no scheme, rooted path, whitespace or escape can leave the folder.
  */
 function insideLibrary(o: Rec, key: string, path: string): string | null {
   const href = gradeOrNull(o, key, path);
-  if (
-    href !== null &&
-    (SCHEME.test(href) ||
-      href.startsWith("/") ||
-      href.startsWith("\\") ||
-      href.split(/[\\/]/).includes(".."))
-  ) {
+  if (href !== null && !href.split("/").every(plainSegment)) {
     throw new SliceError(child(path, key), "a relative path inside the library folder");
   }
   return href;
+}
+
+function plainSegment(segment: string): boolean {
+  if (!SEGMENT.test(segment)) return false;
+  const decoded = decodeURIComponent(segment);
+  return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
 }
 
 /** An address, or the reason there is none: exactly one of the two. */
