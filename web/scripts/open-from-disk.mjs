@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
 import { classProblems, focusOutlineProblems } from "./classes.mjs";
 import { checkKitInChrome } from "./kit-chrome.mjs";
-import { checkRoutes } from "./route-visits.mjs";
+import { checkRoutes, defaultAddressProblems, libraryDeclaresHome } from "./route-visits.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 // A hung browser must fail the run, not hold the CI job until the runner limit.
@@ -136,6 +136,24 @@ function check(label, browser, folder, expected, hash = "", forbidden = []) {
   return ok;
 }
 
+// While the library declares no home, its default address draws the placeholder library and the
+// check expects the placeholder's text. Once it declares one, that address draws the home page, so
+// the check expects a real page: one main, one h1 and none of the failure texts.
+function checkDefaultAddress(label, browser, folder, expected) {
+  if (!libraryDeclaresHome()) return check(label, browser, folder, expected);
+  const { dom, log } = dumpPage(browser, folder);
+  const found = problems(log);
+  const present = defaultAddressProblems(dom);
+  const ok = found.length === 0 && present.length === 0;
+  console.log(`${ok ? "PASS" : "FAIL"} ${label}: the library home page at the default address`);
+  if (!ok) {
+    for (const needle of found) console.log(`  stderr contains "${needle}"`);
+    for (const problem of present) console.log(`  ${problem}`);
+    console.log(`  stderr:\n${log}\n  dom:\n${dom}`);
+  }
+  return ok;
+}
+
 // Positive control for the violation detector. A copy of the built page gets an inline <style>
 // element, which the policy forbids, so the browser must log a violation. If it does not, the
 // browser's log never reaches this script and a green run on the real page proves nothing.
@@ -179,7 +197,7 @@ try {
   const dataFile = path.join(folder, "data.js");
   const original = readFileSync(dataFile, "utf8");
   const results = [checkAssets(folder), checkStyleUrls(folder), checkClasses(folder)];
-  results.push(check("data.js present", browser, folder, "No runs yet"));
+  results.push(checkDefaultAddress("data.js present", browser, folder, "No runs yet"));
   // The dump is the live DOM: a style element injected by a library would appear in it.
   results.push(
     check("component kit, no injected style", browser, folder, "Component kit", "#/kit", [
@@ -203,7 +221,7 @@ try {
   );
   if (populated === original) throw new Error("data.js has no empty issuers list to fill");
   writeFileSync(dataFile, populated);
-  results.push(check("data.js with one issuer", browser, folder, "TransDigm"));
+  results.push(checkDefaultAddress("data.js with one issuer", browser, folder, "TransDigm"));
   writeFileSync(dataFile, original);
   results.push(await checkKitInChrome({ browser, folder }));
   results.push(checkRoutes({ browser, folder, work, dumpPage, problems }));

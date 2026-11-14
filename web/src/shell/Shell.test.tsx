@@ -50,6 +50,24 @@ describe("Shell", () => {
   });
 });
 
+describe("Shell bleed", () => {
+  it("keeps one main region and drops its padding", () => {
+    render(
+      <Shell current="signal" bleed>
+        edge to edge
+      </Shell>,
+    );
+    expect(screen.getAllByRole("main")).toHaveLength(1);
+    expect(screen.getByRole("main")).toHaveTextContent("edge to edge");
+    expect(screen.getByRole("main").className).not.toMatch(/(^|\s)p-\d/);
+  });
+
+  it("pads main by default", () => {
+    render(<Shell current="signal">x</Shell>);
+    expect(screen.getByRole("main").className).toMatch(/\bp-8\b/);
+  });
+});
+
 describe("PageHeader", () => {
   it("renders one h1 with the title, the badges and the actions", () => {
     render(
