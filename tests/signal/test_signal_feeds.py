@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 
@@ -870,19 +871,23 @@ def test_a_date_with_no_zone_is_read_as_utc() -> None:
     assert atom.published == datetime(2026, 11, 12, 18, 30, tzinfo=UTC)
 
 
-@pytest.mark.skipif(not hasattr(time, "tzset"), reason="the local zone cannot be set here")
+_TZSET: Callable[[], None] | None = getattr(time, "tzset", None)
+
+
+@pytest.mark.skipif(_TZSET is None, reason="the local zone cannot be set here")
 def test_a_date_with_no_zone_is_utc_whatever_the_local_zone(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    assert _TZSET is not None
     monkeypatch.setenv("TZ", "Asia/Tokyo")
-    time.tzset()
+    _TZSET()
     try:
         (e,) = parse_feed(
             _rss("<title>t</title>" + _LINK + "<pubDate>2026-11-12T18:30:00</pubDate>")
         )
     finally:
         monkeypatch.undo()
-        time.tzset()
+        _TZSET()
     assert e.published == datetime(2026, 11, 12, 18, 30, tzinfo=UTC)
 
 
