@@ -304,6 +304,13 @@ BAD_CALLS: list[Callable[[Any], object]] = [
     lambda db: match_story(db, 2**63),
     lambda db: match_story(db, untyped("1")),
     lambda db: list_topics(db, untyped(None)),
+    lambda db: follow(db, "Eve ", 1),
+    lambda db: follow(db, "", 1),
+    lambda db: unfollow(db, "E\u202eve", 1),
+    lambda db: list_topics(db, "A  B"),
+    lambda db: add_topic(db, "T", ["k"], [], "e\u0301ve"),
+    lambda db: add_topic(db, "T", ["k"], [], ""),
+    lambda db: add_topic(db, "T", ["k"], [], "\u3164"),
 ]
 
 

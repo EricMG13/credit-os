@@ -6,6 +6,7 @@ store. The module is the whole seam the landing-page project replaces.
 
 from __future__ import annotations
 
+import re
 import sqlite3
 import unicodedata
 from dataclasses import dataclass
@@ -17,10 +18,17 @@ COOKIE = "signal_name"
 MAX_NAME = 60
 _MAX_AGE = 31536000
 _WHITESPACE_CONTROLS = {"\t": " ", "\n": " ", "\r": " "}
-# Characters that draw nothing (or a blank) yet are not control or format characters, so the
-# category test below keeps them: Hangul filler, combining grapheme joiner, variation selector 16,
-# braille blank. A name made of them would look empty or look like another name.
-_LOOK_ALIKE_BLANKS = frozenset("ㅤ͏️⠀")
+# Characters a renderer draws as nothing (Unicode Default_Ignorable_Code_Point, plus the braille
+# blank). Most are not control or format characters, so the category test below would keep them;
+# a name made of them would look empty, and "AK" plus one would look like "AK". Written as
+# escapes so no tool can strip them from the source.
+_IGNORABLE = re.compile(
+    "[\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e"
+    "\u2060-\u206f\u2800\u3164\ufe00-\ufe0f\ufeff\uffa0\ufff0-\ufff8"
+    "\U0001bca0-\U0001bca3\U0001d173-\U0001d17a\U000e0000-\U000e0fff]"
+)
+_MARKS = ("Mn", "Mc", "Me")
+MAX_MARKS = 8
 
 
 class IdentityError(ValueError):
@@ -36,7 +44,7 @@ class User:
 def _printable(ch: str) -> str:
     if ch in _WHITESPACE_CONTROLS:
         return " "
-    if ch in _LOOK_ALIKE_BLANKS:
+    if _IGNORABLE.fullmatch(ch):
         return ""
     return "" if unicodedata.category(ch) in ("Cc", "Cf", "Cs") else ch
 
@@ -47,14 +55,33 @@ def _require_str(value: object, what: str) -> str:
     return value
 
 
+def _cut_mark_runs(text: str) -> str:
+    """Keep at most MAX_MARKS combining marks in a row, so one letter cannot carry a tower."""
+    out: list[str] = []
+    run = 0
+    for ch in text:
+        run = run + 1 if unicodedata.category(ch) in _MARKS else 0
+        if run <= MAX_MARKS:
+            out.append(ch)
+    return "".join(out)
+
+
+def _has_base(text: str) -> bool:
+    """Whether some character is neither a space nor a combining mark: marks need a base."""
+    return any(ch != " " and unicodedata.category(ch) not in _MARKS for ch in text)
+
+
 def cleaned(raw: str) -> str:
-    """The cleaned text, not cut to MAX_NAME: controls dropped, NFC, whitespace collapsed."""
+    """The cleaned text, not cut to MAX_NAME: controls and invisible characters dropped, NFC,
+    whitespace collapsed, mark runs cut; empty when nothing but marks and spaces is left."""
     text = unicodedata.normalize("NFC", "".join(_printable(ch) for ch in _require_str(raw, "name")))
-    return " ".join(text.split())
+    text = _cut_mark_runs(" ".join(text.split()))
+    return text if _has_base(text) else ""
 
 
 def _clean(raw: str) -> str:
-    return cleaned(raw)[:MAX_NAME].strip()
+    name = cleaned(raw)[:MAX_NAME].strip()
+    return name if _has_base(name) else ""
 
 
 def clean_name(raw: str) -> str:
@@ -63,6 +90,16 @@ def clean_name(raw: str) -> str:
     if not name:
         raise IdentityError("display name is empty")
     return name
+
+
+def require_name(name: object) -> str:
+    """`name` itself when it is a name `clean_name` leaves unchanged; otherwise a StoreError.
+
+    For every place that stores a user's name: a stored name is one a cookie can carry."""
+    text = _require_str(name, "name")
+    if len(text) > MAX_NAME or _clean(text) != text or not text:
+        raise StoreError(f"a name must be a clean display name of at most {MAX_NAME} characters")
+    return text
 
 
 def _cookie_value(header: str) -> str | None:

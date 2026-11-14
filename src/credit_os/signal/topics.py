@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from credit_os.signal.identity import MAX_NAME as MAX_USER_NAME
+from credit_os.signal.identity import require_name
 from credit_os.signal.store import (
     KINDS,
     StoreError,
@@ -138,7 +138,7 @@ def add_topic(
     """Create a topic and match every existing story against it before returning."""
     if not _text(name, "name", MAX_TOPIC_NAME).strip():
         raise StoreError("name must not be empty")
-    _text(created_by, "created_by", MAX_USER_NAME)
+    require_name(created_by)
     cleaned = _clean_keywords(keywords)
     allowed = _clean_kinds(kinds)
     with write_transaction(db):
@@ -165,7 +165,7 @@ def _require_topic(db: sqlite3.Connection, topic_id: int) -> None:
 
 
 def follow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
-    _text(user_name, "user name", MAX_USER_NAME)
+    require_name(user_name)
     _id(topic_id, "topic")
     with write_transaction(db):
         _require_topic(db, topic_id)
@@ -176,7 +176,7 @@ def follow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
 
 
 def unfollow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
-    _text(user_name, "user name", MAX_USER_NAME)
+    require_name(user_name)
     _id(topic_id, "topic")
     with write_transaction(db):
         _require_topic(db, topic_id)
@@ -187,7 +187,7 @@ def unfollow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
 
 def list_topics(db: sqlite3.Connection, user_name: str) -> list[sqlite3.Row]:
     """Every topic with whether `user_name` follows it and how many stories it holds."""
-    _text(user_name, "user name", MAX_USER_NAME)
+    require_name(user_name)
     return db.execute(
         "SELECT t.id, t.name,"
         " EXISTS(SELECT 1 FROM topic_follows f WHERE f.topic_id = t.id AND f.user_name = ?)"
