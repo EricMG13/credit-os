@@ -10,7 +10,7 @@ import {
   type Measure,
   type MeasureKey,
 } from "../slice";
-import { cardHref } from "./links";
+import { TEXT_LINK, cardHref } from "./links";
 
 /** The band chosen for each measure: an index into its delivered bands, or `null` for All. */
 export type Bands = Record<MeasureKey, number | null>;
@@ -18,10 +18,10 @@ export const NO_BANDS: Bands = { leverage: null, netLeverage: null, interestCove
 
 type Specs = LibraryHome["list"]["measures"];
 
-/** Only a reported figure takes part in a range or a sort; an adjusted or missing one does not. */
 const CELL = "px-3";
 const NOWRAP = `${CELL} whitespace-nowrap`;
 
+/** Only a reported figure takes part in a range or a sort; an adjusted or missing one does not. */
 const screened = (m: Measure): m is NonNullable<Measure> => m !== null && m.basis === "reported";
 
 /** Whether the figure sits in the chosen band (`min` included, `max` excluded); All passes any row. */
@@ -94,7 +94,7 @@ function Hidden({
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-small text-text-secondary">
         {rows.map((r) => (
           <li key={r.issuer}>
-            <Link href={cardHref(r.issuer, r.href)} className="underline">
+            <Link href={cardHref(r.issuer, r.href)} className={`${TEXT_LINK} underline`}>
               {r.name}
             </Link>
           </li>
@@ -167,7 +167,10 @@ export function IssuerList({
               {shown.map((r) => (
                 <Table.Row key={r.issuer} id={r.issuer}>
                   <Table.Cell className={NOWRAP}>
-                    <Link href={cardHref(r.issuer, r.href)} className="text-text-primary underline">
+                    <Link
+                      href={cardHref(r.issuer, r.href)}
+                      className={`${TEXT_LINK} text-text-primary underline`}
+                    >
                       {r.name}
                     </Link>
                   </Table.Cell>

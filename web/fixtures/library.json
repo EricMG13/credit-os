@@ -4,7 +4,8 @@
     { "id": "corvane-packaging", "name": "Corvane Packaging" },
     { "id": "tessaly-foods", "name": "Tessaly Foods" },
     { "id": "ardenne-cable", "name": "Ardenne Cable" },
-    { "id": "lumora-health", "name": "Lumora Health" }
+    { "id": "lumora-health", "name": "Lumora Health" },
+    { "id": "corvane-fasteners", "name": "Corvane Fasteners" }
   ],
   "slice": {
     "home": {
@@ -216,12 +217,186 @@
       }
     },
     "issuers": [
-      { "id": "halden-aerostructures", "name": "Halden Aerostructures" },
-      { "id": "corvane-packaging", "name": "Corvane Packaging" },
-      { "id": "tessaly-foods", "name": "Tessaly Foods" },
-      { "id": "ardenne-cable", "name": "Ardenne Cable" },
-      { "id": "lumora-health", "name": "Lumora Health" }
+      {
+        "id": "halden-aerostructures",
+        "name": "Halden Aerostructures",
+        "history": {
+          "subtitle": "Report history: seven runs since September 2025",
+          "latest": "2026-09-30",
+          "empty": null,
+          "entries": [
+            {
+              "asOf": "30 Sep 2026",
+              "ran": "13 Nov 2026",
+              "state": "Finished",
+              "pathway": "Full review",
+              "text": "Stable credit with thin headroom. Twelve of thirteen modules delivered; recovery was not assessable.",
+              "report": "2026-09-30",
+              "changes": { "label": "What changed since 30 Jun 2026", "run": "2026-09-30" }
+            },
+            {
+              "asOf": "30 Jun 2026",
+              "ran": "14 Aug 2026",
+              "state": "Finished",
+              "pathway": "Monitoring update",
+              "text": "Stable, outlook negative: leverage at 4.9x after the Corvane Fasteners purchase.",
+              "report": "2026-06-30",
+              "changes": { "label": "What changed since 31 Mar 2026", "run": "2026-06-30" }
+            },
+            {
+              "asOf": "31 Mar 2026",
+              "ran": "20 May 2026",
+              "state": "Capped",
+              "pathway": "Full review",
+              "text": "The run stopped at its cost cap after nine modules. The delivered modules can be read; no overall view was formed.",
+              "report": "2026-03-31",
+              "changes": { "label": "What changed since 31 Dec 2025", "run": "2026-03-31" }
+            },
+            {
+              "asOf": "31 Mar 2026",
+              "ran": "19 May 2026",
+              "state": "Rejected",
+              "pathway": "Full review",
+              "text": "Not started: the files provided did not include the annual report the run needs.",
+              "report": null,
+              "changes": null
+            },
+            {
+              "asOf": "31 Dec 2025",
+              "ran": "2 Mar 2026",
+              "state": "Failed",
+              "pathway": "Full review",
+              "text": "The run failed before any module was accepted. Nothing from it is shown in the library.",
+              "report": null,
+              "changes": null
+            },
+            {
+              "asOf": "31 Dec 2025",
+              "ran": "27 Feb 2026",
+              "state": "Interrupted",
+              "pathway": "Full review",
+              "text": "Interrupted after four modules and not resumed.",
+              "report": null,
+              "changes": null
+            },
+            {
+              "asOf": "30 Sep 2025",
+              "ran": "21 Nov 2025",
+              "state": "Finished",
+              "pathway": "Full review",
+              "text": "Stable. First run on this issuer, so there is no earlier run to compare.",
+              "report": "2025-09-30",
+              "changes": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "corvane-packaging",
+        "name": "Corvane Packaging",
+        "history": {
+          "subtitle": "Report history: one run",
+          "latest": "2026-06-30",
+          "empty": null,
+          "entries": [
+            {
+              "asOf": "30 Jun 2026",
+              "ran": "2 Jul 2026",
+              "state": "Running",
+              "pathway": "Full review",
+              "text": "In progress: the modules delivered so far can be read.",
+              "report": "2026-06-30",
+              "changes": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "tessaly-foods",
+        "name": "Tessaly Foods",
+        "history": {
+          "subtitle": "Report history: one run",
+          "latest": "2026-09-30",
+          "empty": null,
+          "entries": [
+            {
+              "asOf": "30 Sep 2026",
+              "ran": "4 Nov 2026",
+              "state": "Finished",
+              "pathway": "Monitoring update",
+              "text": "Weakening: the springing covenant is likely to be tested at the December quarter end.",
+              "report": "2026-09-30",
+              "changes": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "ardenne-cable",
+        "name": "Ardenne Cable",
+        "history": {
+          "subtitle": "Report history: one run",
+          "latest": "2026-03-31",
+          "empty": null,
+          "entries": [
+            {
+              "asOf": "31 Mar 2026",
+              "ran": "12 May 2026",
+              "state": "Failed",
+              "pathway": "Full review",
+              "text": "The run failed after the modules shown were accepted.",
+              "report": "2026-03-31",
+              "changes": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "lumora-health",
+        "name": "Lumora Health",
+        "history": {
+          "subtitle": "Report history: one run",
+          "latest": "2026-09-30",
+          "empty": null,
+          "entries": [
+            {
+              "asOf": "30 Sep 2026",
+              "ran": "10 Nov 2026",
+              "state": "Capped",
+              "pathway": "Full review",
+              "text": "The run stopped at its cost cap before the modules that form the view had finished.",
+              "report": "2026-09-30",
+              "changes": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "corvane-fasteners",
+        "name": "Corvane Fasteners",
+        "history": {
+          "subtitle": "One run, not finished",
+          "latest": null,
+          "empty": "The only run on this issuer failed on 11 Nov 2026 before any module was delivered, so there is nothing to read. Start a new run to write the first report.",
+          "entries": [
+            {
+              "asOf": "30 Sep 2026",
+              "ran": "11 Nov 2026",
+              "state": "Failed",
+              "pathway": "Full review",
+              "text": "The run failed before any module was delivered.",
+              "report": null,
+              "changes": null
+            }
+          ]
+        }
+      }
     ]
   },
-  "params": {}
+  "params": {
+    "/library/:issuer/history": [
+      { "issuer": "halden-aerostructures" },
+      { "issuer": "corvane-fasteners" }
+    ]
+  }
 }

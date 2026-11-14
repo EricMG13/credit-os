@@ -195,3 +195,39 @@ describe("readSlice, the List side", () => {
     expect(invalidReason(bare)).toContain("home.list");
   });
 });
+
+describe("readSlice, issuer history", () => {
+  type History = Json & { entries: Json[] };
+  const historyOf = (slice: ReturnType<typeof fresh>, i: number) =>
+    slice.issuers[i]?.["history"] as History;
+
+  it("names the exact path of a malformed entry's changes link", () => {
+    const slice = fresh();
+    historyOf(slice, 0).entries[1] = {
+      ...historyOf(slice, 0).entries[1],
+      changes: { label: "What changed", run: 3 },
+    };
+    expect(invalidReason(slice)).toContain("issuers[0].history.entries[1].changes.run");
+  });
+
+  it("rejects a history missing from an issuer", () => {
+    const slice = fresh();
+    delete slice.issuers[2]?.["history"];
+    expect(invalidReason(slice)).toContain("issuers[2].history");
+  });
+
+  it("rejects a latest run no entry opens", () => {
+    const slice = fresh();
+    historyOf(slice, 0)["latest"] = "2031-01-01";
+    expect(invalidReason(slice)).toContain("issuers[0].history.latest");
+  });
+
+  it("rejects no latest run without the sentence, and a sentence beside a latest run", () => {
+    const none = fresh();
+    historyOf(none, 5)["empty"] = null;
+    expect(invalidReason(none)).toContain("issuers[5].history.empty");
+    const both = fresh();
+    historyOf(both, 0)["empty"] = "Nothing to read.";
+    expect(invalidReason(both)).toContain("issuers[0].history.empty");
+  });
+});
