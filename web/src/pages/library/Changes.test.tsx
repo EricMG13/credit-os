@@ -96,19 +96,33 @@ describe("Changes, the mock's compared run", () => {
     expect(cardOf("Rating outlook")).toHaveTextContent("Conclusion");
   });
 
-  it("draws the delivered direction text, with a mark only for up and down", () => {
+  it("draws the delivered direction text with the mock's chevrons, a flat mark, and none for none", () => {
     renderChanges("2026-09-30");
+    const mark = (card: HTMLElement) => card.querySelector("[data-direction]");
     const down = cardOf("Net leverage");
     expect(down).toHaveTextContent("Lower by 0.3x");
-    expect(down.querySelectorAll("svg[aria-hidden='true']").length).toBeGreaterThanOrEqual(1);
+    expect(mark(down)).toHaveAttribute("data-direction", "down");
+    expect(mark(down)).toHaveClass("rotate-45", "border-r-[1.5px]", "border-b-[1.5px]");
     const up = cardOf("EBITDA margin");
     expect(up).toHaveTextContent("Higher by 0.6 points");
-    const none = cardOf("Rating outlook");
-    expect(none).toHaveTextContent("Changed");
-    // The up and down cards carry one more arrow than a card whose direction is "none".
-    const arrows = (card: HTMLElement) => card.querySelectorAll("span > svg").length;
-    expect(arrows(down)).toBe(arrows(none) + 1);
-    expect(arrows(up)).toBe(arrows(none) + 1);
+    expect(mark(up)).toHaveAttribute("data-direction", "up");
+    expect(mark(up)).toHaveClass("-rotate-135", "border-r-[1.5px]", "border-b-[1.5px]");
+    for (const measure of ["Rating outlook", "Refinancing of the 2028 notes"]) {
+      const flat = cardOf(measure);
+      expect(mark(flat)).toHaveAttribute("data-direction", "flat");
+      expect(mark(flat)).toHaveClass("h-[1.5px]", "w-3.5", "bg-current");
+      expect(mark(flat)).not.toHaveClass("rotate-45", "-rotate-135");
+    }
+    expect(cardOf("Rating outlook")).toHaveTextContent("Changed");
+    expect(cardOf("Refinancing of the 2028 notes")).toHaveTextContent("Later by six months");
+    expect(document.querySelectorAll("svg[aria-hidden='true'][class*='size-3']")).toHaveLength(0);
+  });
+
+  it("draws the card's figure at the mock's weight 500", () => {
+    renderChanges("2026-09-30");
+    const figure = within(cardOf("Net leverage")).getByText("4.6x");
+    expect(figure).toHaveClass("font-medium");
+    expect(figure).not.toHaveClass("font-semibold");
   });
 
   it("reads from n.a. with no direction mark and no direction text when the earlier figure is missing", () => {
@@ -117,7 +131,7 @@ describe("Changes, the mock's compared run", () => {
     expect(cover).toHaveTextContent("2.4x");
     expect(within(cover).getByText("n.a.")).toBeVisible();
     expect(cover).toHaveTextContent(/from\s*n\.a\./);
-    expect(cover.querySelectorAll("span > svg")).toHaveLength(0);
+    expect(cover.querySelectorAll("[data-direction]")).toHaveLength(0);
     expect(cover).not.toHaveTextContent(/Lower|Higher|Changed|Later/);
     expect(cover).toHaveTextContent(
       "The earlier run did not establish cash interest. No comparison can be made; the figure is new.",
@@ -213,9 +227,11 @@ describe("Changes, the Table side", () => {
     expect(earlier).toHaveClass("text-right");
   });
 
-  it("keeps one trace control per row", () => {
-    renderChanges("2026-09-30");
+  it("keeps one trace control per row, shown by the row's hover through the card's selector", () => {
+    const { container } = renderChanges("2026-09-30");
     openTable();
+    const wrapper = container.querySelector("table")?.closest("[class*='tbody_tr:hover_button']");
+    expect(wrapper?.className).toContain("[&_tbody_tr:hover_button]:opacity-100");
     expect(screen.getAllByRole("button", { name: "Show sources for this change" })).toHaveLength(6);
   });
 

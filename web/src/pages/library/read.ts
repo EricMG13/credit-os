@@ -392,17 +392,26 @@ function unique<T>(items: T[], path: string, key: (item: T) => string, field: st
   return items;
 }
 
+/** A list the page draws as a section: an empty one would draw a heading over nothing. */
+function some<T>(items: T[], path: string): T[] {
+  if (items.length === 0) throw new SliceError(path, "at least one item");
+  return items;
+}
+
 /** For and against has two columns, "supports" and "against", each with its own points. */
 function readColumns(sides: Rec, path: string, traces: Traces): Overview["sides"]["columns"] {
   const columns = list(sides, "columns", path, (column, columnPath) => {
     const c = rec(column, columnPath);
     return {
       name: str(c, "name", columnPath),
-      items: unique(
-        list(c, "items", columnPath, (item, p) => readPoint(item, p, traces)),
+      items: some(
+        unique(
+          list(c, "items", columnPath, (item, p) => readPoint(item, p, traces)),
+          child(columnPath, "items"),
+          (point) => point.text,
+          "text",
+        ),
         child(columnPath, "items"),
-        (point) => point.text,
-        "text",
       ),
     };
   });
@@ -459,14 +468,17 @@ function readLimitations(value: unknown, path: string, traces: Traces): Limitati
   return {
     count: str(l, "count", path),
     gapsLink: { label: str(rec(own(l, "gapsLink"), linkPath), "label", linkPath) },
-    items: unique(
-      list(l, "items", path, (item, p) => {
-        const i = rec(item, p);
-        return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
-      }),
+    items: some(
+      unique(
+        list(l, "items", path, (item, p) => {
+          const i = rec(item, p);
+          return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
+        }),
+        child(path, "items"),
+        (item) => item.text,
+        "text",
+      ),
       child(path, "items"),
-      (item) => item.text,
-      "text",
     ),
   };
 }
@@ -475,11 +487,14 @@ function readModules(value: unknown, path: string): Overview["modules"] {
   const m = rec(value, path);
   return {
     summary: str(m, "summary", path),
-    items: unique(
-      list(m, "items", path, readModuleItem),
+    items: some(
+      unique(
+        list(m, "items", path, readModuleItem),
+        child(path, "items"),
+        (item) => item.title,
+        "title",
+      ),
       child(path, "items"),
-      (item) => item.title,
-      "title",
     ),
   };
 }
@@ -502,18 +517,24 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       note: str(sides, "note", sidesPath),
       columns: readColumns(sides, sidesPath, traces),
     },
-    findings: unique(
-      list(o, "findings", path, (f, p) => readFinding(f, p, traces)),
+    findings: some(
+      unique(
+        list(o, "findings", path, (f, p) => readFinding(f, p, traces)),
+        child(path, "findings"),
+        (f) => f.number,
+        "number",
+      ),
       child(path, "findings"),
-      (f) => f.number,
-      "number",
     ),
     changeView: readChangeView(own(o, "changeView"), child(path, "changeView"), traces),
-    dates: unique(
-      list(o, "dates", path, readDate),
+    dates: some(
+      unique(
+        list(o, "dates", path, readDate),
+        child(path, "dates"),
+        (d) => `${d.date}|${d.title}`,
+        "title",
+      ),
       child(path, "dates"),
-      (d) => `${d.date}|${d.title}`,
-      "title",
     ),
     modules: readModules(own(o, "modules"), child(path, "modules")),
     limitations: readLimitations(own(o, "limitations"), child(path, "limitations"), traces),
@@ -531,16 +552,23 @@ function changeCell(o: Rec, key: string, path: string): Cell {
   return c;
 }
 
+/** Both figures of a change are values: only then can a direction mark or its words be delivered. */
+const isValue = (c: Cell): boolean => c !== null && c.kind === "value";
+
 function readChange(value: unknown, path: string, traces: Traces): Change {
   const c = rec(value, path);
   const from = changeCell(c, "from", path);
-  const direction = oneOf(c, "direction", path, ["up", "down", "none"]);
+  const current = changeCell(c, "current", path);
+  const direction = oneOf(c, "direction", path, ["up", "down", "flat", "none"]);
   const change = strOrNull(c, "change", path);
-  if (from === null && direction !== "none") {
-    throw new SliceError(child(path, "direction"), "none when the earlier figure is missing");
-  }
-  if (from === null && change !== null) {
-    throw new SliceError(child(path, "change"), "null when the earlier figure is missing");
+  if (change === "") throw new SliceError(child(path, "change"), "a non-empty string or null");
+  if (!isValue(from) || !isValue(current)) {
+    if (direction !== "none") {
+      throw new SliceError(child(path, "direction"), "none unless both figures are values");
+    }
+    if (change !== null) {
+      throw new SliceError(child(path, "change"), "null unless both figures are values");
+    }
   }
   if (direction !== "none" && change === null) {
     throw new SliceError(child(path, "change"), "the delivered words for a direction mark");
@@ -548,7 +576,7 @@ function readChange(value: unknown, path: string, traces: Traces): Change {
   return {
     measure: str(c, "measure", path),
     kind: str(c, "kind", path),
-    current: changeCell(c, "current", path),
+    current,
     from,
     direction,
     change,

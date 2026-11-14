@@ -8,7 +8,16 @@ import type { Cell } from "../slice";
  * semibold, "n.a." the same size but regular weight, or Withheld or a gap panel in their own
  * type, which never inherits the figure's.
  */
-export function CellValue({ cell, figureClass }: { cell: Cell; figureClass: string }) {
+export function CellValue({
+  cell,
+  figureClass,
+  weight = "font-semibold",
+}: {
+  cell: Cell;
+  figureClass: string;
+  /** The figure's weight: semibold unless a card's mock sets it to 500. */
+  weight?: "font-semibold" | "font-medium";
+}) {
   if (cell === null) {
     return (
       <div>
@@ -22,7 +31,7 @@ export function CellValue({ cell, figureClass }: { cell: Cell; figureClass: stri
     case "value":
       return (
         <div>
-          <span className={`${figureClass} font-semibold`}>{cell.text}</span>
+          <span className={`${figureClass} ${weight}`}>{cell.text}</span>
         </div>
       );
     case "withheld":
