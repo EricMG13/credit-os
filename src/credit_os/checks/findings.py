@@ -1,10 +1,14 @@
 """Findings returned by the checks, the closed list of check ids and the context checks read.
 
-A finding names one check, the 1-based file line and column of the offending text, that text
-as written (cut to 80 code points by `echo`) and one sentence saying what to change.
-`ordered` sorts by line, then the position of the check in `CHECKS`, then column.
+A finding names one check, the 1-based file line of the offending text, its 1-based column in
+the text node as the parser shows it (for a paragraph or list line, the stripped line, not the
+file line), that text (each control, format, line and paragraph separator character replaced by
+one space, then cut to 80 code points by `echo`, so `message` is one line) and one sentence
+saying what to change. `ordered` sorts by line, then the position of the check in `CHECKS`,
+then column. A context is built per call; it is not dumped, copied or pickled.
 """
 
+import unicodedata
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
 from typing import Literal
@@ -51,6 +55,8 @@ CHECKS = (
     "confidence.range",
 )
 
+_BREAKS = frozenset({"Cc", "Cf", "Zl", "Zp"})
+
 
 class Finding(Node):
     check: str
@@ -70,7 +76,7 @@ class Finding(Node):
     @field_validator("quoted")
     @classmethod
     def _cut(cls, quoted: str) -> str:
-        return echo(quoted)
+        return echo("".join(" " if unicodedata.category(c) in _BREAKS else c for c in quoted))
 
     @property
     def message(self) -> str:
@@ -90,8 +96,8 @@ class CheckContext(Node):
     scored: bool = False
     pins: tuple[SourcePin, ...] = ()
     other_sources: tuple[str, ...] = ()
-    upstream: Mapping[str, HandoffDocument] = Field(default_factory=dict)
-    accepted: Mapping[str, HandoffDocument] = Field(default_factory=dict)
+    upstream: Mapping[str, HandoffDocument] = Field(default_factory=dict, validate_default=True)
+    accepted: Mapping[str, HandoffDocument] = Field(default_factory=dict, validate_default=True)
     required_registers: tuple[str, ...] = ()
 
     @field_validator("upstream", "accepted")

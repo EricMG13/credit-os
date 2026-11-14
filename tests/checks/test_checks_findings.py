@@ -223,3 +223,65 @@ def test_context_takes_pin_and_document() -> None:
     context = CheckContext(kind="prose", pins=(pin,), upstream={"CP-0": document})
     assert context.pins == (pin,)
     assert context.upstream["CP-0"] == document
+
+
+@pytest.mark.parametrize("name", ["upstream", "accepted"])
+def test_context_default_mapping_read_only(name: str) -> None:
+    mapping: Any = getattr(CheckContext(kind="prose"), name)
+    with pytest.raises(TypeError):
+        mapping["CP-0"] = None
+    with pytest.raises(TypeError):
+        del mapping["CP-0"]
+
+
+def test_context_left_out_mapping_read_only_when_other_given() -> None:
+    _, passed, _ = _context_with_document()
+    context = CheckContext(kind="prose", upstream=passed)
+    left_out: Any = context.accepted
+    with pytest.raises(TypeError):
+        left_out["CP-0"] = None
+    with pytest.raises(TypeError):
+        del left_out["CP-0"]
+    given: Any = context.upstream
+    with pytest.raises(TypeError):
+        given["CP-1"] = None
+    assert list(context.accepted) == []
+
+
+def test_context_defaults_not_shared_mutable() -> None:
+    first: Any = CheckContext(kind="prose").upstream
+    second: Any = CheckContext(kind="prose").upstream
+    for mapping in (first, second):
+        with pytest.raises(TypeError):
+            mapping["CP-0"] = None
+    assert first == {}
+    assert second == {}
+
+
+def test_quoted_one_line_newline() -> None:
+    assert _finding(quoted="a\nb").quoted == "a b"
+
+
+def test_quoted_one_line_controls() -> None:
+    assert _finding(quoted="a\tb\x0bc\x0cd\x1be").quoted == "a b c d e"
+
+
+def test_quoted_one_line_next_line_and_format() -> None:
+    assert _finding(quoted="a b c\u0085d\u202ee").quoted == "a b c d e"
+
+
+def test_quoted_one_line_separators() -> None:
+    assert _finding(quoted="a\u2028b\u2029c").quoted == "a b c"
+
+
+def test_quoted_newlines_then_cut() -> None:
+    assert _finding(quoted="\n" * 100).quoted == " " * 80 + "…"
+
+
+def test_quoted_keeps_quote_and_spaces() -> None:
+    assert _finding(quoted='say "x"  y').quoted == 'say "x"  y'
+
+
+def test_quoted_one_line_idempotent() -> None:
+    once = _finding(quoted="a\nb\u202ec" * 40).quoted
+    assert _finding(quoted=once).quoted == once

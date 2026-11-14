@@ -40,3 +40,13 @@ def test_case() -> None:
 def test_case_nested() -> None:
     case = KEY["case_nested"]
     _compare(parse(case["document"].encode("utf-8")), case)
+
+
+@pytest.mark.parametrize("name", ["case", "case_nested"])
+def test_passage_text_reader_from_equal_reparse(name: str) -> None:
+    case = KEY[name]
+    data = case["document"].encode("utf-8")
+    document_a = parse(data)
+    document_b = parse(data)
+    passage = passage_text(document_a, read_reader(document_b))
+    assert [item.line for item in passage] == case["passage"]

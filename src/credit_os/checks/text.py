@@ -30,7 +30,7 @@ def _block_lines(block: Paragraph | ListItem) -> Iterable[Line]:
 
 
 def _section_lines(section: Section, skipped: frozenset[int]) -> Iterable[Line]:
-    if id(section) in skipped:
+    if section.line in skipped:
         return
     for block in section.blocks:
         if isinstance(block, Paragraph | ListItem):
@@ -40,7 +40,7 @@ def _section_lines(section: Section, skipped: frozenset[int]) -> Iterable[Line]:
 
 
 def _sentence_text(document: HandoffDocument, sections: tuple[Section, ...]) -> tuple[Line, ...]:
-    skipped = frozenset(id(found.section) for found in read_data_sections(document))
+    skipped = frozenset(found.section.line for found in read_data_sections(document))
     return tuple(line for section in sections for line in _section_lines(section, skipped))
 
 
