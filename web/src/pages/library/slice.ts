@@ -230,11 +230,52 @@ export type Changes =
       modules: { summary: string; items: readonly ChangeModuleItem[] };
     };
 
+/**
+ * One block of a module's records (tables, charts and the like). Tasks 9 to 11 add its kinds; until
+ * then no kind is known, so the reader accepts only an empty list.
+ */
+type RecordBlock = never;
+
+/** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
+export type DeliveredBody = {
+  kind: "delivered";
+  bottomLine: BottomLineText;
+  findings: readonly Finding[];
+  contrary: ChangeView | null;
+  changeView: ChangeView | null;
+  records: readonly RecordBlock[];
+  limitations: Limitations;
+};
+
+/** A module that could not be delivered: why, the sentence under it and the link's label. */
+export type BlockedBody = {
+  kind: "blocked";
+  reason: string;
+  note: string;
+  gapsLink: { label: string };
+};
+
+/**
+ * One module of a run. A delivered body carries "Delivered" or "Delivered with gaps"; a blocked
+ * one carries "Not assessable" or "Not run".
+ */
+export type Module = {
+  id: string;
+  name: string;
+  state: ModuleState;
+  body: DeliveredBody | BlockedBody;
+};
+
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
 
-/** A run still loading carries no overview or changes; every other run carries both. */
-export type LoadedRun = RunBase & { loading: false; overview: Overview; changes: Changes };
-type LoadingRun = RunBase & { loading: true; overview: null; changes: null };
+/** A run still loading carries no overview, changes or modules; every other run carries all three. */
+export type LoadedRun = RunBase & {
+  loading: false;
+  overview: Overview;
+  changes: Changes;
+  modules: readonly Module[];
+};
+type LoadingRun = RunBase & { loading: true; overview: null; changes: null; modules: null };
 
 /** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
 export type Run = LoadedRun | LoadingRun;
