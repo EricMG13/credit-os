@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { EvidenceGaps } from "./EvidenceGaps";
+import { EvidenceRecord } from "./EvidenceRecord";
 import { EvidenceSources } from "./EvidenceSources";
 import { EvidenceSummary } from "./EvidenceSummary";
 import { EvidenceTrace } from "./EvidenceTrace";
@@ -46,7 +47,7 @@ export function Evidence({
 }: {
   issuer: string | undefined;
   run: string | undefined;
-  page: Extract<EvidenceTab, "summary" | "sources" | "trace" | "gaps">;
+  page: Extract<EvidenceTab, "summary" | "sources" | "trace" | "gaps" | "record">;
   /** The trace item the address names, on the Trace page only. */
   item?: string | undefined;
 }) {
@@ -92,6 +93,12 @@ export function Evidence({
                   />
                 )}
               </FilteredTab>
+            );
+          case "record":
+            return (
+              <EvidenceFrame issuer={issuerId} run={loaded.id} evidence={evidence} current="record">
+                <EvidenceRecord record={evidence.record} />
+              </EvidenceFrame>
             );
           case "summary":
             return (
