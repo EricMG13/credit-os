@@ -2102,7 +2102,7 @@
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Row",
-                    "value": null,
+                    "value": { "kind": "withheld", "reason": null },
                     "sources": "1",
                     "calc": null,
                     "note": null

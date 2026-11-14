@@ -7,7 +7,14 @@ import path from "node:path";
  * Every expectation is a delivered string read from the fixture or the mock's own text.
  */
 type Json = Record<string, unknown>;
-type TraceRow = { id: string; item: string; module: string; moduleId: string | null; kind: string };
+type TraceRow = {
+  id: string;
+  item: string;
+  module: string;
+  moduleId: string | null;
+  kind: string;
+  value: unknown;
+};
 type Trace = { heading: string; statement: string; evidenceItem: string };
 type Gap = { id: string; moduleId: string };
 type Run = {
@@ -66,7 +73,46 @@ function titled(node: unknown, found: { title: string; trace: string }[] = []) {
   return found;
 }
 
+/**
+ * The form of a delivered Cell: missing, withheld, gap or value. The text of a value is not
+ * compared: the Trace register shows the mock's own figure text ("2,105"), the page adds its unit.
+ */
+function form(cell: unknown): string {
+  return cell === null ? "missing" : String((cell as { kind?: string }).kind);
+}
+
+/** Every object of a page that carries a trace key and a Cell-valued `value`, with where it sits. */
+function traced(node: unknown, at: string, found: { at: string; trace: string; value: unknown }[]) {
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => traced(item, `${at}[${String(i)}]`, found));
+  } else if (node !== null && typeof node === "object") {
+    const o = node as Json;
+    if (typeof o["trace"] === "string" && "value" in o && typeof o["value"] === "object") {
+      found.push({ at, trace: o["trace"], value: o["value"] });
+    }
+    for (const [key, value] of Object.entries(o)) traced(value, `${at}.${key}`, found);
+  }
+  return found;
+}
+
 describe("the fixture's runs agree with themselves", () => {
+  it("draws a traced figure in the form of the Trace row its trace opens: missing, withheld, gap or value", () => {
+    for (const run of loaded) {
+      const cells = traced({ modules: run.modules, overview: run.overview }, "", []);
+      if (run === fullRun()) expect(cells.length).toBeGreaterThan(10);
+      for (const cell of cells) {
+        const trace = run.traces[cell.trace];
+        if (trace === undefined) continue;
+        const row = rowOf(run, trace.evidenceItem);
+        // A trace that several cells share (one facility's terms) names the group, not one figure.
+        if (cells.filter((c) => c.trace === cell.trace).length > 1) continue;
+        expect(form(row.value), `${run.id} ${cell.trace} ${row.id} ${cell.at}`).toBe(
+          form(cell.value),
+        );
+      }
+    }
+  });
+
   it("has a Summary gaps note that names each Gaps group's delivered count and severity word", () => {
     for (const run of loaded) {
       const groups = run.evidence.gaps.groups.map((g) => `${g.count} ${g.severity.toLowerCase()}`);
