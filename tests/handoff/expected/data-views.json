@@ -1,0 +1,22 @@
+{
+  "synthetic-data-views/SYNTHETIC-CP-1B.md": {
+    "blocked": true,
+    "sources": [8, ["NBG_2025-03-31_annual-report.pdf", "context", "Source readiness (CP-0)"]],
+    "gap_cells": 9,
+    "comments": [[42, 42, "table-id: cp1b.model_comparator_register"]],
+    "sections": [["map", "holding chain", 56, 58, null], ["confidence", "", 62, 64, null]],
+    "registers": [
+      ["T1", "heading", 32, 34],
+      ["T4.12", "heading", 40, 46],
+      ["cp1b.model_comparator_register", "tag", 42, 46],
+      ["downstream_readiness", "heading", 50, 52]
+    ],
+    "bottom_line_basis": [
+      ["source", "NBG_2025-03-31_annual-report.pdf, page 41"],
+      ["source", "context, page 1"],
+      ["module", "Source readiness (CP-0)"]
+    ],
+    "contrary_gap": "Not supplied: no document read argues the other way.",
+    "limitations_blocks": 0
+  }
+}
