@@ -54,7 +54,8 @@ skipped there are a FIFO, opening a directory and two `chmod` rows. Mutation on 
   one before it draws them.
 - `Reader.blocked` is unknown, not false, for an earlier-format handoff.
 - Step 2B refuses a repeated register id and checks Sources-table names against pinned sources.
-- The folder walk refuses a folder with two names that differ only by case or Unicode form.
+- Ruled for the folder walk (#100, open, not in `main`): it refuses a folder with two names
+  that differ only by case or Unicode form.
   The coordinator first ruled both are pinned as listed, against an earlier ruling; the 1D
   controller raised the conflict and the earlier ruling stands.
 - The first layer that prints or stores a `SourceError` encodes with `backslashreplace`.
