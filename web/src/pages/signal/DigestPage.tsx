@@ -123,9 +123,15 @@ function Row({ digest, issue }: { digest: SignalDigest; issue: SignalDigestIssue
         <h3 id={issue.id} className="text-lg font-medium text-text-primary">
           {issue.title}
         </h3>
-        {[issue.summary, issue.nothing].map((line) =>
+        {/* Keyed by slot, not by text: the summary and the nothing line may be the same sentence. */}
+        {(
+          [
+            ["summary", issue.summary],
+            ["nothing", issue.nothing],
+          ] as const
+        ).map(([slot, line]) =>
           line === null ? null : (
-            <p key={line} className="mt-0.5 max-w-[72ch] text-sm text-text-tertiary">
+            <p key={slot} className="mt-0.5 max-w-[72ch] text-sm text-text-tertiary">
               {line}
             </p>
           ),

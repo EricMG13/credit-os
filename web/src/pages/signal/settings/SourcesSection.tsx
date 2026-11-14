@@ -34,13 +34,15 @@ function Small({ children }: { children: string }) {
 /** Called, not drawn as an element: a null result is the cell's missing health (n.a.). */
 function health(source: SignalSource) {
   if (source.health === null) return null;
-  const notes = [source.reason, source.healthNote].filter((n) => n !== null);
+  // Keyed by slot, not by text: the reason and the note may be the same sentence.
+  const notes = [
+    ["reason", source.reason],
+    ["note", source.healthNote],
+  ] as const;
   return (
     <>
       <StatusBadge set="Signal source states" state={source.health} />
-      {notes.map((n) => (
-        <Small key={n}>{n}</Small>
-      ))}
+      {notes.map(([slot, text]) => (text === null ? null : <Small key={slot}>{text}</Small>))}
     </>
   );
 }
