@@ -226,8 +226,8 @@ capped at 39 by any critical and at 59 by any material (C10). Any `confidence.*`
 other than `absent` makes the outcome `refused` with no value (R65); R66 fixes each quoted
 text. A confidence outcome is used only for a document `check_handoff` returns no refusal
 for: a reader error does not know the format, so a value can stand beside a refusal that is
-not a confidence one (R69). `check_handoff` is the only caller of `check_confidence` for the
-earlier format (R70). The reader's progress guard merged as #318.
+not a confidence one (R69). `check_handoff` runs no confidence check on the earlier format;
+`check_confidence` called directly has no such guard, which its docstring is to say (R70). The reader's progress guard merged as #318.
 
 PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b (#170) the
 structure checks and `check_handoff`. PR 4 is split 4a, 4b (above).

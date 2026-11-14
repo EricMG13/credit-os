@@ -31,7 +31,9 @@ Its second part waits for 1B's PR 7.
 - #318's Low predates it: `_read` also trusts `_find` to return a number at or after its
   position, which only a mutant of `_find` breaks, so mutation runs on `figures.py` keep the
   1.5 GB stop.
-- Groups: 18 of 20 hand mutants caught, taken under load and not of record; one survivor
+- Groups: 18 of 20 hand mutants caught (the re-review's report calls it the count of
+  record; the controller's ready message says it ran with the 1-minute load well above 40,
+  before the load rule, so the coordinator asked for one rerun in a slot); one survivor
   (a `NOT GLOB` in the manager check) is carried to the next groups test batch, one is
   equivalent. A caller that catches a failure inside `create_group`'s transaction and commits
   keeps a memberless group (ruled: the caller owns the transaction).
@@ -41,9 +43,11 @@ Its second part waits for 1B's PR 7.
   fresh branches as #321 and #322 with the literal changed from the first commit.
 
 **Rulings.** For the "states 2" design step: a run that ended normally has status
-`finished` (the merged schema's word; the 3A plan's `completed` is corrected with this
-entry); an interrupted run is written `stopped` with end reason `interrupted` by the next
-process to hold the store's writer lock, never inferred by a reader; a launch refused for
+`finished` and end reason `completed` (the 3A plan's G3 is clarified with this entry); an
+interrupted run is never inferred by a reader: it is written `stopped` with end reason
+`interrupted` only when the operator takes the run over, which claims it again and fences
+the earlier writer. The coordinator's first answer named a store writer lock; the store has
+none (a per-run writer token), and the answer was corrected. A launch refused for
 its file count or size is never a run. 2B's confidence rulings C1 to C10 and R65 to R70 are
 now in the 2B plan. 1D: a declared charset name is refused unless a literal table holds it.
 
@@ -52,8 +56,8 @@ now in the 2B plan. 1D: a declared charset name is refused unless a literal tabl
 - `2B-guard task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
 - `S-5 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n`
 
-Not verified: a mutmut count for Signal's groups; the groups hand-mutant result at a load
-under 40; real memory growth in `_read` (simulated under a 1,000-call cap).
+Not verified: a mutmut count for Signal's groups; the groups hand-mutant result rerun in a
+slot; real memory growth in `_read` (simulated under a 1,000-call cap).
 
 ## 2026-11-14 Roadmap back end: 2B confidence, the run store's first tables, Signal's names and topics
 
