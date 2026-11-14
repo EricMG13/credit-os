@@ -118,19 +118,20 @@ _HISTORY = "a first call is system messages, then exactly one user message"
 _BAD_INDEX = _unsent("UnsupportedCall", "a call index other than 0 is not supported yet")
 _TO_LIST = ("open_client", "start", "list_models", "stop")
 _NO_MODEL = _unsent("ModelUnavailable", "gpt-6-sol is not offered", *_TO_LIST)
-_NO_EFFORT = "is not offered for gpt-6-sol"
+_NO_EFFORT = _unsent("EffortUnavailable", "effort high is not offered for gpt-6-sol", *_TO_LIST)
 _TURN_SCRIPT = [_USAGE, _DONE, _IDLE]
 _SHARED = {"start": 100.0, "list_models": 70.0, "open_session": 65.0, "send": 65.0}
-_SLOW = ("tick", 8)
-_CHATTER = [_SLOW, said(2, "a"), _SLOW, said(3, "b"), _SLOW, said(4, "c")]
+_CHATTER = [e for n in (2, 3, 4) for e in (("tick", 8), said(n, "abc"[n - 2]))]
 _RUNTIME = "/home/jane/acme-runtime/copilot"  # 31 characters, 43 with "\\" escaped twice
-_WITH_RUNTIME = {**ENVIRON, "COPILOT_CLI_PATH": _RUNTIME + " \n"}  # matched without its padding
+_WITH_RUNTIME = {**ENVIRON, "COPILOT_CLI_PATH": f" {_RUNTIME} \n"}  # matched without padding
 _LEAKY = ("RuntimeError", f"bad {_TOKEN} in /home/jane/.copilot/x or C:\\home\\janet\\y")
 _LEAK_FREE = "open_session failed: RuntimeError: bad [redacted] in <home>/.copilot/x or <home>\\y"
 _LOCKED = ("RuntimeError", "locked in C:\\Users\\bob smith (in use); status 401")
 _START_STOP = ("open_client", "start", "stop")
 _JANE = ("jane", "roe")
 _WIN = "D:\\Profiles\\Jane Roe"
+_MUL = "C:\\Users\\M\u00fcller"
+_ESC = "C:\\\\Users\\\\M\\u00fcller\\\\proj"  # as json.dumps writes _MUL + "\\proj"
 
 CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     # --- a turn; the session is kept, nothing is released
@@ -189,9 +190,9 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"fail": {"abort": _BOOM, "next_event": "timeout"}},
     ),
     # --- sending
-    "send raises: it may have been sent": (
-        _unknown("AdapterError", "send failed: RuntimeError: boom"),
-        {"fail": {"send": _BOOM}},
+    "send raises: it may have been sent; an escaped non-ASCII home in its text": (
+        _unknown("AdapterError", "send failed: RuntimeError: cannot open [redacted]\\\\proj"),
+        {"home": _MUL, "fail": {"send": ("RuntimeError", "cannot open " + _ESC)}},
     ),
     "a failure text after sending is redacted, then cut": (
         _unknown("AdapterError", f"send failed: RuntimeError: [redacted] {_Y}"[:500]),
@@ -251,10 +252,7 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"models": [{"id": "gpt-other", "supportedReasoningEfforts": ["medium"]}]},
     ),
     "the model list is not a list": (_NO_MODEL, {"models": None}),
-    "the effort is not offered": (
-        _unsent("EffortUnavailable", f"effort high {_NO_EFFORT}", *_TO_LIST),
-        {"effort": "high"},
-    ),
+    "the effort is not offered": (_NO_EFFORT, {"effort": "high"}),
     "open_session raises with a key and a home path in its text": (
         _unsent("PreSendFailure", _LEAK_FREE, *_OPEN, "stop"),
         {"fail": {"open_session": _LEAKY}},
@@ -280,6 +278,7 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         _figures("SessionError", "x: cannot read <home>:[redacted]\\proj", absent=_JANE),
         {"home": _WIN, "script": [_USAGE, _error("cannot read /home/build or " + _WIN + "\\proj")]},
     ),
+    "an escaped non-ASCII home in raw": (_ok(absent=("ller",)), {"home": _MUL, **_seen(_ESC)}),
     "the runtime path in a session error": (
         _figures("SessionError", absent=("acme-runtime",)),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error(_RUNTIME + " died")]},
