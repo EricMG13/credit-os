@@ -59,12 +59,18 @@ export const routes: readonly Route[] = [
     path: "/library/:issuer/:run/evidence",
     layout: "bleed",
     title: PAGE_NAME.evidence,
-    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} />,
+    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} page="summary" />,
   },
   {
     path: "/library/:issuer/:run/evidence/summary",
     layout: "bleed",
     title: PAGE_NAME.evidence,
-    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} />,
+    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} page="summary" />,
+  },
+  {
+    path: "/library/:issuer/:run/evidence/sources",
+    layout: "bleed",
+    title: PAGE_NAME.evidence,
+    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} page="sources" />,
   },
 ];
