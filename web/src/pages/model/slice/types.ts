@@ -13,6 +13,7 @@ export type ModelRun = {
   front: FrontPage;
   analysis: AnalysisPage;
   statements: StatementsPage;
+  portfolioFit: PortfolioFitPage;
   limitations: LimitationsPage;
 };
 
@@ -310,3 +311,34 @@ export type AnalysisLimitations = {
   href: string;
   items: { title: string; text: string; trace: string | null }[];
 };
+
+export type PortfolioFitPage = {
+  limits: Limits;
+  ratings: Ratings;
+  relativeValue: RelativeValue;
+};
+
+/** One column on its own scale. A text is `null` exactly where its value is; `cells` is the table row. */
+export type LimitsColumn = {
+  label: string;
+  exposure: number | null;
+  limit: number | null;
+  scaleMax: number;
+  exposureText: string | null;
+  limitText: string | null;
+  /**
+   * The exposure's text, then the limit without its word ("3.0%"): the first is `exposureText`,
+   * the second is `limitText` less "limit " and `null` exactly where the limit is missing.
+   */
+  cells: [string | null, string | null];
+};
+
+export type Limits = ChartInfo & { head: string[]; columns: LimitsColumn[] };
+
+/** A rating and its outlook line; both `null` when missing. */
+export type RatingTile = { label: string; value: string | null; caption: string | null };
+
+export type Ratings = { title: string; trace: string | null; tiles: [RatingTile, RatingTile] };
+
+/** The part that failed in this run: its name and the sentence saying why. */
+export type RelativeValue = { title: string; part: string; reason: string };
