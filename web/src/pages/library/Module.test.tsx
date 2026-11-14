@@ -75,6 +75,8 @@ describe("Module, a delivered prose module", () => {
       ["H3", "Contrary evidence"],
       ["H3", "What would change the view"],
       ["H3", "Risks by probability and impact"],
+      ["H3", "Indicators to watch"],
+      ["H3", "Questions this module set out to answer"],
       ["H3", "Limitations2"],
     ]);
   });
@@ -153,6 +155,8 @@ describe("Module, a delivered prose module", () => {
       "Show sources for the trigger",
       "Show sources for the risk matrix",
       ...Array<string>(5).fill("Show sources for this risk"),
+      ...Array<string>(4).fill("Show sources for this indicator"),
+      ...Array<string>(2).fill("Show sources for this answer"),
       "Show sources for this limitation",
       "Show sources for this limitation",
     ]);
@@ -164,7 +168,7 @@ describe("Module, a delivered prose module", () => {
     const { container } = renderModule("business-profile");
     fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
-    expect(sourceButtons()).toHaveLength(15);
+    expect(sourceButtons()).toHaveLength(21);
   });
 
   it("opens the drawer of each passage's own module-level trace", () => {
@@ -175,7 +179,7 @@ describe("Module, a delivered prose module", () => {
       titles.push(screen.getByRole("dialog").getAttribute("aria-label"));
       fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     }
-    expect(new Set(titles).size).toBe(15);
+    expect(new Set(titles).size).toBe(21);
   });
 
   it("shows no audit material and no module or trace code", () => {
@@ -247,6 +251,126 @@ describe("Module, the risk matrix", () => {
     expect(heading).toHaveAttribute("tabindex", "-1");
     expect(heading).toHaveClass("focus-visible:ring-2", "focus-visible:ring-brand");
     Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+});
+
+describe("Module, the watch list", () => {
+  const watch = () => region("Indicators to watch");
+  const rows = () => within(watch()).getAllByRole("listitem").slice(0, 4);
+
+  it("lists the mock's four indicators with their thresholds", () => {
+    renderModule("business-profile");
+    expect(
+      within(watch())
+        .getByRole("heading", { level: 3, name: "Indicators to watch" })
+        .getAttribute("tabindex"),
+    ).toBe("-1");
+    expect(rows().map((r) => r.textContent)).toEqual([
+      "Engine deliveries per monthBelow 40 for two quarters",
+      "Aftermarket price rise at renewalBelow 3%",
+      "Alternative parts certifiedAny top-ten part",
+      "Aftermarket share of gross profitBelow 55%",
+    ]);
+  });
+
+  it("marks each indicator Leading or Lagging with an icon named by the word", () => {
+    renderModule("business-profile");
+    expect(rows().map((r) => within(r).getByRole("img").getAttribute("aria-label"))).toEqual([
+      "Leading",
+      "Leading",
+      "Leading",
+      "Lagging",
+    ]);
+  });
+
+  it("explains the two icons in a legend that the screen reader does not repeat", () => {
+    renderModule("business-profile");
+    const legend = within(watch()).getByText(/^LeadingLagging$/);
+    expect(legend.querySelectorAll("[aria-hidden=true]")).toHaveLength(2);
+    expect(within(watch()).getAllByRole("img")).toHaveLength(4);
+  });
+
+  it("draws one trace control for each indicator", () => {
+    renderModule("business-profile");
+    const buttons = within(watch()).getAllByRole("button");
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(
+      Array<string>(4).fill("Show sources for this indicator"),
+    );
+    fireEvent.click(buttons[3] as HTMLElement);
+    expect(
+      screen.getByRole("dialog", { name: "Sources for the gross profit share" }),
+    ).toBeVisible();
+  });
+});
+
+describe("Module, the questions", () => {
+  const questions = () => region("Questions this module set out to answer");
+  const rows = () => Array.from(questions().querySelectorAll("details"));
+  const BADGES = /^(Answered|Partly answered|Not answered)$/;
+
+  it("draws the mock's three questions in order, then the added long one, each with its state", () => {
+    renderModule("business-profile");
+    expect(
+      within(questions())
+        .getAllByText(/\?$/)
+        .map((q) => q.textContent),
+    ).toEqual([
+      "How durable is aftermarket pricing?",
+      "How exposed is revenue to one programme?",
+      "What share of contracts can pass through cost inflation?",
+      "How much of the order book is firm?",
+    ]);
+    expect(
+      within(questions())
+        .getAllByText(BADGES)
+        .map((b) => b.textContent),
+    ).toEqual(["Answered", "Partly answered", "Not answered", "Answered"]);
+  });
+
+  it("opens the first answer as the mock draws it and words it as the mock does", () => {
+    renderModule("business-profile");
+    expect(rows()).toHaveLength(2);
+    const first = rows()[0] as HTMLElement;
+    expect(first).toHaveAttribute("open");
+    expect(first).toHaveTextContent(
+      "Durable for the parts where Halden is the only certified source, which carry about three fifths of gross profit. Price rises of 4 to 6% a year have held since 2021.",
+    );
+    expect(
+      within(first).getByRole("button", { name: "Show sources for this answer" }),
+    ).toBeVisible();
+    expect(rows()[1]).not.toHaveAttribute("open");
+  });
+
+  it("draws a partly or not answered question as a plain row: no toggle that opens nothing", () => {
+    renderModule("business-profile");
+    for (const text of [
+      "How exposed is revenue to one programme?",
+      "What share of contracts can pass through cost inflation?",
+    ]) {
+      const row = within(questions()).getByText(text).closest("li") as HTMLElement;
+      expect(row.querySelector("details, summary, button")).toBeNull();
+      expect(within(row).getByText(BADGES)).toBeVisible();
+    }
+  });
+
+  it("opens a closed answer and closes it again through its summary", () => {
+    renderModule("business-profile");
+    const closed = rows()[1] as HTMLElement;
+    const summary = closed.querySelector("summary") as HTMLElement;
+    expect(summary).not.toHaveAttribute("tabindex");
+    fireEvent.click(summary);
+    expect(closed).toHaveAttribute("open");
+    fireEvent.click(summary);
+    expect(closed).not.toHaveAttribute("open");
+  });
+
+  it("wraps a long answer in full at the reading width, with nothing cut", () => {
+    renderModule("business-profile");
+    const long = rows()[1] as HTMLElement;
+    const answer = within(long).getByText(/^About four fifths of the order book/);
+    expect(answer.textContent).toMatch(/which the files do not show\.$/);
+    expect(answer.className).toMatch(/max-w-\[72ch\]/);
+    expect(long.innerHTML).not.toMatch(/truncate|line-clamp|text-ellipsis/);
   });
 });
 

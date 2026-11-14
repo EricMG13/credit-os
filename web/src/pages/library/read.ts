@@ -9,6 +9,7 @@ import type {
   Changes,
   ChangeView,
   BlockedBody,
+  AnswerState,
   DateState,
   DeliveredBody,
   DatedItem,
@@ -692,11 +693,79 @@ function readMatrix(m: Rec, path: string, traces: Traces): RecordBlock {
   };
 }
 
-/** Tasks 10 and 11 add the chart and table kinds; the watch list, questions and pathway are next. */
+function readWatch(w: Rec, path: string, traces: Traces): RecordBlock {
+  const itemsPath = child(path, "items");
+  return {
+    kind: "watch",
+    title: named(w, "title", path),
+    items: some(
+      unique(
+        list(w, "items", path, (item, p) => {
+          const i = rec(item, p);
+          return {
+            indicator: named(i, "indicator", p),
+            threshold: named(i, "threshold", p),
+            timing: oneOf(i, "timing", p, ["leading", "lagging"]),
+            trace: traceKey(i, "trace", p, traces),
+          };
+        }),
+        itemsPath,
+        (item) => item.indicator,
+        "indicator",
+      ),
+      itemsPath,
+    ),
+  };
+}
+
+const ANSWER_STATES = Object.keys(STATUS_SETS["Answer state"]) as AnswerState[];
+
+/** A question has an answer unless it is "Not answered", and only an answer has sources. */
+function readQuestion(item: unknown, path: string, traces: Traces) {
+  const q = rec(item, path);
+  const state = oneOf(q, "state", path, ANSWER_STATES);
+  const answer = gradeOrNull(q, "answer", path);
+  if (state === "Answered" && answer === null) {
+    throw new SliceError(child(path, "answer"), "an answer for an Answered question");
+  }
+  if (state === "Not answered" && answer !== null) {
+    throw new SliceError(child(path, "answer"), "null for a Not answered question");
+  }
+  const trace = traceKey(q, "trace", path, traces);
+  if (answer === null && trace !== null) {
+    throw new SliceError(child(path, "trace"), "null for a question with no answer");
+  }
+  return { question: named(q, "question", path), state, answer, trace };
+}
+
+function readQuestions(q: Rec, path: string, traces: Traces): RecordBlock {
+  const itemsPath = child(path, "items");
+  return {
+    kind: "questions",
+    title: named(q, "title", path),
+    items: some(
+      unique(
+        list(q, "items", path, (item, p) => readQuestion(item, p, traces)),
+        itemsPath,
+        (item) => item.question,
+        "question",
+      ),
+      itemsPath,
+    ),
+  };
+}
+
+/** Tasks 10 and 11 add the chart and table kinds; the pathway is next. */
 function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   const r = rec(value, path);
-  oneOf(r, "kind", path, ["matrix"]);
-  return readMatrix(r, path, traces);
+  switch (oneOf(r, "kind", path, ["matrix", "watch", "questions"])) {
+    case "matrix":
+      return readMatrix(r, path, traces);
+    case "watch":
+      return readWatch(r, path, traces);
+    case "questions":
+      return readQuestions(r, path, traces);
+  }
 }
 
 function readBody(value: unknown, path: string, traces: Traces): DeliveredBody | BlockedBody {

@@ -248,8 +248,38 @@ type MatrixRecord = {
   trace: string | null;
 };
 
+/** Indicators to watch: `timing` says whether the indicator moves before the credit does or after. */
+type WatchRecord = {
+  kind: "watch";
+  title: string;
+  items: readonly {
+    indicator: string;
+    threshold: string;
+    timing: "leading" | "lagging";
+    trace: string | null;
+  }[];
+};
+
+/** The words of the Answer state set. */
+export type AnswerState = keyof (typeof STATUS_SETS)["Answer state"];
+
+/**
+ * Questions the module set out to answer. `answer` is `null` for a question with none, which
+ * carries no trace and is never "Answered".
+ */
+type QuestionsRecord = {
+  kind: "questions";
+  title: string;
+  items: readonly {
+    question: string;
+    state: AnswerState;
+    answer: string | null;
+    trace: string | null;
+  }[];
+};
+
 /** One block of a module's records. Tasks 10 and 11 add the chart and table kinds. */
-export type RecordBlock = MatrixRecord;
+export type RecordBlock = MatrixRecord | WatchRecord | QuestionsRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {
