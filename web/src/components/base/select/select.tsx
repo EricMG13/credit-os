@@ -10,6 +10,7 @@ import {
 } from "react-aria-components";
 import { HintText } from "@/components/base/input/hint-text";
 import { Label } from "@/components/base/input/label";
+import { StatusShape } from "@/components/status/shapes";
 import { cx } from "@/utils/cx";
 import { isReactComponent } from "@/utils/is-react-component";
 import { Popover } from "./popover";
@@ -36,6 +37,8 @@ interface SelectValueProps {
   isOpen: boolean;
   /** Whether the trigger is focused, which draws the brand focus ring. */
   isFocused: boolean;
+  /** Whether the field is invalid, which draws the error ring and the Error shape. */
+  isInvalid: boolean;
   /** Whether the trigger is dimmed and rejects pointer interaction. */
   isDisabled: boolean;
   /** Text shown in the trigger while no item is selected. */
@@ -49,6 +52,7 @@ interface SelectValueProps {
 const SelectValue = ({
   isOpen,
   isFocused,
+  isInvalid,
   isDisabled,
   placeholder,
   icon,
@@ -59,7 +63,9 @@ const SelectValue = ({
       ref={ref}
       className={cx(
         "relative flex w-full cursor-pointer items-center rounded-lg bg-primary shadow-xs ring-1 ring-primary outline-hidden transition duration-100 ease-linear ring-inset",
-        (isFocused || isOpen) && "ring-2 ring-brand",
+        isInvalid && "ring-error_subtle",
+        (isFocused || isOpen) && !isInvalid && "ring-2 ring-brand",
+        (isFocused || isOpen) && isInvalid && "ring-2 ring-error",
         isDisabled && "cursor-not-allowed opacity-50",
       )}
     >
@@ -103,9 +109,17 @@ const SelectValue = ({
                 <p className={cx("text-placeholder", size.text)}>{placeholder}</p>
               )}
 
+              {isInvalid && (
+                <span className="ml-auto flex size-4 shrink-0 items-center justify-center text-error-mark">
+                  <StatusShape shape="diamond" />
+                </span>
+              )}
               <ChevronDown
                 aria-hidden="true"
-                className="ml-auto size-4 shrink-0 stroke-[2.25px] text-fg-quaternary"
+                className={cx(
+                  "size-4 shrink-0 stroke-[2.25px] text-fg-quaternary",
+                  !isInvalid && "ml-auto",
+                )}
               />
             </>
           );

@@ -29,5 +29,4 @@ export const size = {
   withIcon: "",
   text: "text-md",
   textContainer: "gap-x-1.5",
-  shortcut: "pr-2.5",
 };

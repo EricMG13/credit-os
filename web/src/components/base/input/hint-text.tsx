@@ -14,7 +14,13 @@ interface HintTextProps extends AriaTextProps {
   children: ReactNode;
 }
 
-export const HintText = ({ isInvalid, className, size = "md", ...props }: HintTextProps) => {
+export const HintText = ({
+  isInvalid,
+  className,
+  size = "md",
+  children,
+  ...props
+}: HintTextProps) => {
   return (
     <AriaText
       {...props}
@@ -32,7 +38,11 @@ export const HintText = ({ isInvalid, className, size = "md", ...props }: HintTe
 
         className,
       )}
-    />
+    >
+      {isInvalid && <span className="sr-only">Error:</span>}
+      {isInvalid && " "}
+      {children}
+    </AriaText>
   );
 };
 

@@ -126,7 +126,11 @@ describe("Kit sections for featured icon, empty state, alert and callout", () =>
 
   it("keeps the source's small default size and the kit asks for lg", () => {
     render(<FeaturedIcon color="gray" icon={SearchLg} />);
-    expect(document.querySelector("[data-featured-icon]")).toHaveClass("size-8");
+    expect(document.querySelector("[data-featured-icon]")).toHaveClass(
+      "size-8",
+      "*:data-icon:size-4",
+      "*:data-icon:stroke-[2.25px]",
+    );
     render(<Kit />);
     const region = screen.getByRole("region", { name: "Featured icon" });
     for (const icon of region.querySelectorAll("[data-featured-icon]")) {
