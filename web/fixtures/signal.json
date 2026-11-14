@@ -4,6 +4,95 @@
       {
         "id": "main",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "I", "name": "Ines K" },
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "J", "name": "Jonas W" }
+                ],
+                "moreMembers": "+2",
+                "memberSummary": "6 members",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "A", "name": "Amir S" }
+                ],
+                "moreMembers": null,
+                "memberSummary": "3 members",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "committee-prep",
+                "name": "Committee prep",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [
+              {
+                "id": "comments-edited",
+                "label": "Comments can be edited",
+                "hint": "An edited comment is marked \"edited\".",
+                "on": true
+              },
+              {
+                "id": "authors-remove",
+                "label": "Authors can remove their own comments",
+                "hint": "The thread keeps a line saying a comment was removed.",
+                "on": true
+              },
+              {
+                "id": "readers-react",
+                "label": "Readers can react",
+                "hint": "Off: only writers react. Readers never comment.",
+                "on": false
+              },
+              {
+                "id": "archive-30",
+                "label": "Archive a thread after 30 days without a comment",
+                "hint": "An archived thread can be read but not added to.",
+                "on": true
+              }
+            ],
+            "notifications": {
+              "events": [
+                {
+                  "id": "comment",
+                  "label": "A comment on a thread I am in",
+                  "inSignal": true,
+                  "onDesktop": true
+                },
+                {
+                  "id": "shared",
+                  "label": "A story shared to one of my groups",
+                  "inSignal": true,
+                  "onDesktop": false
+                },
+                { "id": "digest", "label": "A new digest", "inSignal": true, "onDesktop": false },
+                {
+                  "id": "rating",
+                  "label": "A rating action in a topic I follow",
+                  "inSignal": false,
+                  "onDesktop": false
+                }
+              ]
+            }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
@@ -590,6 +679,95 @@
       {
         "id": "reader",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "I", "name": "Ines K" },
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "J", "name": "Jonas W" }
+                ],
+                "moreMembers": "+2",
+                "memberSummary": "6 members",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "A", "name": "Amir S" }
+                ],
+                "moreMembers": null,
+                "memberSummary": "3 members",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "committee-prep",
+                "name": "Committee prep",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [
+              {
+                "id": "comments-edited",
+                "label": "Comments can be edited",
+                "hint": "An edited comment is marked \"edited\".",
+                "on": true
+              },
+              {
+                "id": "authors-remove",
+                "label": "Authors can remove their own comments",
+                "hint": "The thread keeps a line saying a comment was removed.",
+                "on": true
+              },
+              {
+                "id": "readers-react",
+                "label": "Readers can react",
+                "hint": "Off: only writers react. Readers never comment.",
+                "on": false
+              },
+              {
+                "id": "archive-30",
+                "label": "Archive a thread after 30 days without a comment",
+                "hint": "An archived thread can be read but not added to.",
+                "on": true
+              }
+            ],
+            "notifications": {
+              "events": [
+                {
+                  "id": "comment",
+                  "label": "A comment on a thread I am in",
+                  "inSignal": true,
+                  "onDesktop": true
+                },
+                {
+                  "id": "shared",
+                  "label": "A story shared to one of my groups",
+                  "inSignal": true,
+                  "onDesktop": false
+                },
+                { "id": "digest", "label": "A new digest", "inSignal": true, "onDesktop": false },
+                {
+                  "id": "rating",
+                  "label": "A rating action in a topic I follow",
+                  "inSignal": false,
+                  "onDesktop": false
+                }
+              ]
+            }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "reader", "roleLabel": "Reader" },
           "channels": {
             "topics": [
@@ -826,6 +1004,30 @@
       {
         "id": "ai-on",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
@@ -1258,6 +1460,30 @@
       {
         "id": "no-name",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": null, "initials": null, "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
@@ -1361,6 +1587,30 @@
       {
         "id": "no-topics",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [],
@@ -1435,6 +1685,30 @@
       {
         "id": "not-checked",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [],
@@ -1509,6 +1783,30 @@
       {
         "id": "loading",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [],
@@ -1578,6 +1876,30 @@
       {
         "id": "unreachable",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [],
@@ -1703,6 +2025,30 @@
       {
         "id": "no-sources",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [],
@@ -1777,6 +2123,30 @@
       {
         "id": "nothing-followed",
         "snapshot": {
+          "settings": {
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
@@ -1924,6 +2294,13 @@
       { "scene": "ai-on", "digest": "weekly-brief" },
       { "scene": "ai-on", "digest": "daily-ratings" }
     ],
-    "/signal/:scene/settings/:section": [{ "scene": "main", "section": "topics" }]
+    "/signal/:scene/settings/:section": [
+      { "scene": "main", "section": "groups" },
+      { "scene": "main", "section": "thread-rules" },
+      { "scene": "main", "section": "notifications" },
+      { "scene": "main", "section": "topics" },
+      { "scene": "reader", "section": "notifications" },
+      { "scene": "reader", "section": "groups" }
+    ]
   }
 }
