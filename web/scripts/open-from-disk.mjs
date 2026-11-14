@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
-import { classProblems } from "./classes.mjs";
+import { classProblems, focusOutlineProblems } from "./classes.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 // A hung browser must fail the run, not hold the CI job until the runner limit.
@@ -112,7 +112,7 @@ function checkClasses(folder) {
     .map(({ ref }) => readFileSync(path.join(folder, ...ref.split("/")), "utf8"))
     .join("\n");
   const srcDir = path.resolve(import.meta.dirname, "..", "src");
-  const problems = classProblems(srcDir, css, NOT_CLASSES);
+  const problems = [...classProblems(srcDir, css, NOT_CLASSES), ...focusOutlineProblems(srcDir)];
   const ok = problems.length === 0;
   console.log(`${ok ? "PASS" : "FAIL"} every colour, shadow, radius and size class has a rule`);
   for (const problem of problems) console.log(`  ${problem}`);

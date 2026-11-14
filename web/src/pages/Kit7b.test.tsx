@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, within } from "@testing-library/react";
+import { SearchLg } from "@untitledui/icons";
 import { Alert, Callout } from "@/components/alert/Alert";
+import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { Kit } from "./Kit";
 
 const designSystem = readFileSync(
@@ -74,7 +76,21 @@ describe("Alert", () => {
   });
 });
 
+describe("Alert tone word", () => {
+  it("names the tone before the title for assistive technology", () => {
+    render(<Alert tone="error" title="The service could not be reached" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Error: The service could not be reached");
+    expect(screen.getByText("Error:", { exact: false, selector: ".sr-only" })).toBeInTheDocument();
+  });
+});
+
 describe("Callout", () => {
+  it("wraps the status shape in a size-6 icon box", () => {
+    const { container } = render(<Callout title="T">B</Callout>);
+    const box = container.querySelector("[data-shape]")?.closest(".size-6");
+    expect(box).toHaveClass("flex", "items-center", "justify-center");
+  });
+
   it("is static, in the info colours and in the body type", () => {
     render(<Callout title="What would change the view">A covenant breach.</Callout>);
     const note = screen.getByRole("note");
@@ -93,6 +109,29 @@ describe("Kit sections for featured icon, empty state, alert and callout", () =>
       expect(within(region).getByText(word), word).toBeInTheDocument();
     }
     expect(region.querySelectorAll("[data-featured-icon]")).toHaveLength(5);
+    const colourClass: Record<string, string> = {
+      Brand: "bg-brand-secondary",
+      Gray: "bg-tertiary",
+      Error: "bg-error-secondary",
+      Warning: "bg-warning-secondary",
+      Success: "bg-success-secondary",
+    };
+    for (const [word, cls] of Object.entries(colourClass)) {
+      const icon = within(region)
+        .getByText(word)
+        .parentElement?.querySelector("[data-featured-icon]");
+      expect(icon, word).toHaveClass(cls);
+    }
+  });
+
+  it("keeps the source's small default size and the kit asks for lg", () => {
+    render(<FeaturedIcon color="gray" icon={SearchLg} />);
+    expect(document.querySelector("[data-featured-icon]")).toHaveClass("size-8");
+    render(<Kit />);
+    const region = screen.getByRole("region", { name: "Featured icon" });
+    for (const icon of region.querySelectorAll("[data-featured-icon]")) {
+      expect(icon).toHaveClass("size-12");
+    }
   });
 
   it("shows the empty state with and without an action", () => {

@@ -149,3 +149,31 @@ export function classProblems(srcDir, css, allowed) {
   }
   return [...problems].sort();
 }
+
+// A class list that hides the outline (outline-hidden sets the outline style to none) and then
+// asks for a focus-visible outline width draws nothing unless a focus-visible class gives the
+// outline a visible style. Returns true when such a list is broken.
+export function hiddenFocusOutline(classList) {
+  const tokens = classList.split(/\s+/);
+  const hidden = tokens.includes("outline-hidden");
+  const width = tokens.some((t) => /^focus-visible:outline-\d+$/.test(t));
+  const style = tokens.some((t) => /^focus-visible:outline-(solid|dashed|dotted|double)$/.test(t));
+  return hidden && width && !style;
+}
+
+// The class lists of every <TooltipTrigger> in the source: the component adds outline-hidden to
+// whatever the caller passes (tooltip.tsx, a copied source file), so that class is added here.
+export function focusOutlineProblems(srcDir) {
+  const problems = [];
+  for (const file of sourceFiles(srcDir)) {
+    const text = readFileSync(file, "utf8");
+    for (const tag of text.matchAll(/<TooltipTrigger\b[^>]*?className="([^"]*)"/g)) {
+      if (hiddenFocusOutline(`outline-hidden ${tag[1]}`)) {
+        problems.push(
+          `${path.relative(srcDir, file)}: a TooltipTrigger asks for focus-visible:outline-<width> but nothing sets the outline style, so no outline is drawn`,
+        );
+      }
+    }
+  }
+  return problems.sort();
+}

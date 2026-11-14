@@ -145,7 +145,7 @@ export function Kit() {
         <h2 className="font-display text-h2 text-text-primary">Tooltip</h2>
         <Row>
           <Tooltip title="Tooltip title" description="Supporting text under the title.">
-            <TooltipTrigger className="text-small text-text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+            <TooltipTrigger className="text-small text-text-link focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-focus">
               Tooltip trigger
             </TooltipTrigger>
           </Tooltip>
@@ -295,7 +295,7 @@ export function Kit() {
         <Row>
           {FEATURED.map(({ colour, icon }) => (
             <div key={colour} className="flex flex-col items-center gap-2">
-              <FeaturedIcon color={colour} icon={icon} />
+              <FeaturedIcon color={colour} icon={icon} size="lg" />
               <span className="text-small text-text-secondary">{label(colour)}</span>
             </div>
           ))}

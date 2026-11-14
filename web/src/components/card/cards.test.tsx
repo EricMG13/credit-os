@@ -79,6 +79,12 @@ describe("MetricCard", () => {
     expect(card).toHaveClass("rounded-lg", "border-border-subtle", "p-6");
   });
 
+  it("reads the value then from, with a space between, and keeps the source's single block", () => {
+    render(<MetricCard label="Revenue" value="1,204" from="1,150" />);
+    expect(screen.getByText("1,204").parentElement).toHaveTextContent("1,204 from 1,150");
+    expect(screen.getByRole("article").className).not.toMatch(/\bgap-/);
+  });
+
   it("shows n.a. for a missing value, not zero", () => {
     render(<MetricCard label="Net leverage" value={null} />);
     const card = screen.getByRole("article");
@@ -160,6 +166,17 @@ describe("Timeline", () => {
       for (const s of shapes) expect(s.getAttribute("data-shape")).toBe(d.shape);
     });
     expect(entries[1]?.querySelector(".text-action")).not.toBeNull();
+  });
+
+  it("centres the shape in a size-3 wrapper, over the surface it sits on", () => {
+    const { rerender } = render(<Timeline items={items} />);
+    const wrapper = entriesOf()[0]?.querySelector("[data-shape]")?.parentElement;
+    expect(wrapper).toHaveClass("size-3", "bg-surface-canvas");
+    expect(wrapper?.className).not.toMatch(/mt-px/);
+    rerender(<Timeline items={items} surface="card" />);
+    const onCard = entriesOf()[0]?.querySelector("[data-shape]")?.parentElement;
+    expect(onCard).toHaveClass("bg-surface-card");
+    expect(onCard).not.toHaveClass("bg-surface-canvas");
   });
 
   it("draws the connector in the connector token and does not loop", () => {

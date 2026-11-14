@@ -16,30 +16,35 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, from, note }: MetricCardProps) {
   return (
-    <article className="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-card p-6">
-      <div className="flex items-center gap-1.5">
-        <p className="text-sm text-text-tertiary">{label}</p>
-        {note !== undefined && (
-          <Tooltip title={note}>
-            <TooltipTrigger
-              aria-label={`About ${label}`}
-              className="rounded-ds-xs text-text-tertiary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            >
-              <InfoCircle aria-hidden="true" className="size-4" />
-            </TooltipTrigger>
-          </Tooltip>
-        )}
-      </div>
-      <p>
-        <span className="text-2xl font-medium tabular-nums text-text-primary">
-          {value === null ? <Missing /> : value}
-        </span>
-        {from !== undefined && (
-          <span className="ml-2 text-xs tabular-nums text-text-tertiary">
-            from {from === null ? <Missing /> : from}
+    <article className="rounded-lg border border-border-subtle bg-surface-card p-6">
+      <div>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm text-text-tertiary">{label}</p>
+          {note !== undefined && (
+            <Tooltip title={note}>
+              <TooltipTrigger
+                aria-label={`About ${label}`}
+                className="rounded-ds-xs text-text-tertiary focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-focus"
+              >
+                <InfoCircle aria-hidden="true" className="size-4" />
+              </TooltipTrigger>
+            </Tooltip>
+          )}
+        </div>
+        <p>
+          <span className="text-2xl font-medium tabular-nums text-text-primary">
+            {value === null ? <Missing /> : value}
           </span>
-        )}
-      </p>
+          {from !== undefined && (
+            <>
+              {" "}
+              <span className="text-xs tabular-nums text-text-tertiary">
+                from {from === null ? <Missing /> : from}
+              </span>
+            </>
+          )}
+        </p>
+      </div>
     </article>
   );
 }

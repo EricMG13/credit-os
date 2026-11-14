@@ -12,7 +12,18 @@ interface TimelineItem {
   state: DatedState;
 }
 
-export function Timeline({ items }: { items: readonly TimelineItem[] }) {
+// The marker covers the rule behind a hollow shape, so its fill must be the surface the list sits
+// on: the page canvas by default, or "card" inside a Card. (bg-inherit would inherit the list's
+// transparent background, so the surface is named by the caller.)
+const SURFACE = { canvas: "bg-surface-canvas", card: "bg-surface-card" } as const;
+
+export function Timeline({
+  items,
+  surface = "canvas",
+}: {
+  items: readonly TimelineItem[];
+  surface?: keyof typeof SURFACE;
+}) {
   return (
     <ol className="relative space-y-8 before:absolute before:-ms-px before:h-full before:w-0.5 before:rounded-full before:bg-connector">
       {items.map((item) => {
@@ -23,7 +34,7 @@ export function Timeline({ items }: { items: readonly TimelineItem[] }) {
             className="relative -ms-1.5 flex items-start gap-4"
           >
             <span
-              className={`mt-px shrink-0 rounded-ds-full bg-surface-canvas ${tone === "action" ? "text-action" : "text-text-tertiary"}`}
+              className={`flex size-3 shrink-0 items-center justify-center rounded-ds-full ${SURFACE[surface]} ${tone === "action" ? "text-action" : "text-text-tertiary"}`}
             >
               <StatusShape shape={shape} />
             </span>
