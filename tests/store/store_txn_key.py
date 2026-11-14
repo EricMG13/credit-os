@@ -131,3 +131,6 @@ CLEAR_PROGRESS_ROWS: list[tuple[object, ...]] = []
 # Clearing the authorizer fails (simulated, or a connection closed inside the body): the leaving
 # error's note names it (whole-branch review of PR 1d, parked L2 of the fix-4 rereview).
 CLEAR_AUTH_NOTE_PREFIX = "authorizer not removed: "
+# The error text Python's sqlite3 module gives for a call on a closed connection: what follows
+# CLEAR_AUTH_NOTE_PREFIX when the body closed the connection.
+CLOSED_CONNECTION_TEXT = "Cannot operate on a closed database."
