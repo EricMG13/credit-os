@@ -15,6 +15,7 @@ export type ModelRun = {
   statements: StatementsPage;
   portfolioFit: PortfolioFitPage;
   limitations: LimitationsPage;
+  forecast: ForecastPage;
 };
 
 /** A word of the status kit's "Run states" set. */
@@ -387,3 +388,20 @@ export type StripRow = {
 };
 
 export type HoldingsStrips = ChartInfo & { rangeLabel: string; head: string[]; rows: StripRow[] };
+
+/** A tab of the run's library pages, drawn on the Forecast page; `count` is a delivered string. */
+export type RunTab = { label: string; href: string; count: string | null; current: boolean };
+
+export type ForecastPage = {
+  tabs: RunTab[];
+  /** The periods of both line charts, oldest first. */
+  periods: string[];
+  /** A driver's markers are one per case, in case order, named as the cases are. */
+  drivers: HoldingsStrips;
+  /** Legend entry k is marker k's wording and the case it belongs to, in case order. */
+  driverKeys: { label: string; case: string }[];
+  gap: GapItem;
+  /** What would change the forecast, drawn as a standout note. */
+  watch: Passage;
+  limitations: { title: string; text: string; href: string };
+};

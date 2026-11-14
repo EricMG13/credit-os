@@ -4,6 +4,135 @@
       {
         "issuer": "transdigm",
         "run": "2025-06-30",
+        "forecast": {
+          "tabs": [
+            {
+              "label": "Overview",
+              "href": "#/library/transdigm/2025-06-30/overview",
+              "count": null,
+              "current": false
+            },
+            {
+              "label": "Changes",
+              "href": "#/library/transdigm/2025-06-30/changes",
+              "count": "5",
+              "current": false
+            },
+            {
+              "label": "Modules",
+              "href": "#/library/transdigm/2025-06-30/modules",
+              "count": "11",
+              "current": false
+            },
+            {
+              "label": "Forecast",
+              "href": "#/model/transdigm/2025-06-30/forecast",
+              "count": null,
+              "current": true
+            },
+            {
+              "label": "Evidence",
+              "href": "#/library/transdigm/2025-06-30/evidence",
+              "count": null,
+              "current": false
+            }
+          ],
+          "periods": ["FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"],
+          "drivers": {
+            "title": "What drives each case",
+            "subtitle": "Each FY26 assumption against the range seen over the past five years",
+            "note": "Working capital days could not be set for FY26. No five-year range exists for aftermarket share, so no strip is drawn.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "rangeLabel": "Range over five years",
+            "head": ["Driver, FY26", "Range low", "Range high", "Base case", "Downside case"],
+            "rows": [
+              {
+                "label": "Organic revenue growth",
+                "rangeText": "Past five years: -12% to 18%",
+                "range": { "low": -12, "high": 18 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 8, "text": "8.0%" },
+                  { "name": "Downside case assumption", "value": -4, "text": "-4.0%" }
+                ],
+                "axis": { "min": -15, "max": 20 },
+                "cells": ["-12%", "18%", "8.0%", "-4.0%"]
+              },
+              {
+                "label": "EBITDA margin",
+                "rangeText": "Past five years: 44% to 53%",
+                "range": { "low": 44, "high": 53 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 53.4, "text": "53.4%" },
+                  { "name": "Downside case assumption", "value": 46.9, "text": "46.9%" }
+                ],
+                "axis": { "min": 40, "max": 56 },
+                "cells": ["44%", "53%", "53.4%", "46.9%"]
+              },
+              {
+                "label": "Capital expenditure, share of revenue",
+                "rangeText": "Past five years: 1.6% to 2.4%",
+                "range": { "low": 1.6, "high": 2.4 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 2.1, "text": "2.1%" },
+                  { "name": "Downside case assumption", "value": 1.7, "text": "1.7%" }
+                ],
+                "axis": { "min": 1, "max": 3 },
+                "cells": ["1.6%", "2.4%", "2.1%", "1.7%"]
+              },
+              {
+                "label": "Cash interest rate on debt",
+                "rangeText": "Past five years: 5.2% to 7.1%",
+                "range": { "low": 5.2, "high": 7.1 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 5.3, "text": "5.3%" },
+                  { "name": "Downside case assumption", "value": 6, "text": "6.0%" }
+                ],
+                "axis": { "min": 4, "max": 8 },
+                "cells": ["5.2%", "7.1%", "5.3%", "6.0%"]
+              },
+              {
+                "label": "Working capital days",
+                "rangeText": "Past five years: 92 to 118",
+                "range": { "low": 92, "high": 118 },
+                "markers": [
+                  { "name": "Base case assumption", "value": null, "text": null },
+                  { "name": "Downside case assumption", "value": null, "text": null }
+                ],
+                "axis": { "min": 80, "max": 130 },
+                "cells": ["92", "118", null, null]
+              },
+              {
+                "label": "Aftermarket share of revenue",
+                "rangeText": "Range n.a.",
+                "range": null,
+                "markers": [
+                  { "name": "Base case assumption", "value": 55, "text": "55%" },
+                  { "name": "Downside case assumption", "value": 52, "text": "52%" }
+                ],
+                "axis": { "min": 0, "max": 100 },
+                "cells": [null, null, "55%", "52%"]
+              }
+            ]
+          },
+          "driverKeys": [
+            { "label": "Base case assumption", "case": "Base case" },
+            { "label": "Downside case assumption", "case": "Downside case" }
+          ],
+          "gap": {
+            "title": "Quarterly cash flow",
+            "reason": "The sources give annual figures only, so no quarter-by-quarter path was built."
+          },
+          "watch": {
+            "title": "What would change the forecast",
+            "text": "A second debt-funded dividend of the size paid in 2024 would add about a turn of leverage in either case and remove the cash build the base case relies on.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "limitations": {
+            "title": "Limitations of the forecast",
+            "text": "Six qualifications apply, two of them to the downside case.",
+            "href": "#/model/transdigm/2025-06-30/limitations"
+          }
+        },
         "portfolioFit": {
           "limits": {
             "title": "Exposure against limits",

@@ -92,7 +92,7 @@ const stripRow = object<StripRow>({
   axis: object({ min: num, max: num }),
   cells: arrayOf(textOrNull),
 });
-const strips = object<HoldingsStrips>({
+export const strips = object<HoldingsStrips>({
   ...info,
   rangeLabel: text,
   head: arrayOf(text),
@@ -184,7 +184,7 @@ function checkScatter(s: HoldingsScatter, path: string): void {
   });
 }
 
-function checkStrips(s: HoldingsStrips, path: string, markersNeedRange = true): void {
+export function checkStrips(s: HoldingsStrips, path: string, markersNeedRange = true): void {
   if (s.head.length === 0) fail(`${path}.head`, "expected a heading for the label column");
   atLeastOne(s.rows, `${path}.rows`, "row");
   distinct(s.rows, (r) => r.label, `${path}.rows`, "label", "row");
