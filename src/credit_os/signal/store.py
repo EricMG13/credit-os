@@ -244,6 +244,28 @@ def write_transaction(db: sqlite3.Connection) -> Iterator[None]:
         _OWNED.discard(key)
 
 
+@contextmanager
+def read_snapshot(db: sqlite3.Connection) -> Iterator[None]:
+    """One read transaction: every read inside the block sees the state committed when the
+    first of them ran, whatever another connection commits meanwhile.
+
+    The transaction is always rolled back, never committed, also when the block raises, so
+    nothing a block writes by a raw statement survives it. A store writer inside the block is
+    refused by `write_transaction` (it finds a transaction it did not begin: `StoreUnusable`)
+    before it writes. Started while any transaction is open on the connection, including
+    another snapshot, it raises `StoreUnusable` and begins nothing.
+
+    Not detected: a block whose body ends the transaction itself (a raw COMMIT or ROLLBACK)."""
+    if db.in_transaction:
+        raise StoreUnusable("a transaction is already open on the connection")
+    try:
+        db.execute("BEGIN")  # inside the try: an interrupt as BEGIN returns is rolled back too
+        yield
+    finally:
+        if db.in_transaction:
+            db.execute("ROLLBACK")
+
+
 def _apply_migration(db: sqlite3.Connection, version: int) -> None:
     """Apply one migration under the write lock; skip it if another opener already did."""
     with write_transaction(db):
