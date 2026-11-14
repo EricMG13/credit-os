@@ -27,10 +27,19 @@ MIB = 1_048_576
 PREFIX = "b.xlsx: 'xl/a.xml': "
 DECLARATION = "a DOCTYPE or ENTITY declaration"
 NUL = "a NUL byte (XML parts are read as UTF-8 only)"
-LONG = "an XML tag, comment or reference longer than 1,048,576 bytes"
+LONG = "an XML tag, comment or reference longer than 524,288 bytes"
 NAMES = "more than 4,096 different XML names"
 DEEP = "XML nested deeper than 256 elements"
 MALFORMED = "not well-formed XML"
+QNAME = "an XML name that is not a qualified name under XML namespaces"
+UNBOUND = "an XML prefix that is not declared"
+TWICE = "an XML attribute twice in one namespace"
+RESERVED = "the xml or xmlns prefix or namespace name bound otherwise than XML allows"
+EMPTY = "an XML prefix bound to an empty namespace name"
+SEPARATOR = "an XML namespace name holding '}'"
+TRACKER = "XML that needs more memory than expat's allocation limit allows"
+XML = "http://www.w3.org/XML/1998/namespace"
+XMLNS = "http://www.w3.org/2000/xmlns/"
 E_ACUTE = "\N{LATIN SMALL LETTER E WITH ACUTE}"
 
 
@@ -146,8 +155,9 @@ XM29 = (
 )
 XM2 = b"<!DOCTYPE a><a/>"
 XM3 = b'<!DOCTYPE a [<!ENTITY e "x">]><a>&e;</a>'
-XM20 = b'<a k="' + b"y" * 1_048_567 + b'"/>'
-XM21 = b'<a k="' + b"y" * 1_048_568 + b'"/>'
+# The token cap: a tag of exactly 524,288 bytes reads, one of 524,289 is refused.
+XM20 = b'<a k="' + b"y" * 524_279 + b'"/>'
+XM21 = b'<a k="' + b"y" * 524_280 + b'"/>'
 XM26 = b"<a>" + b"y" * 2_097_152 + b"</a>"
 XM31 = _attributes(4_096)
 XM32 = _prefixes(4_095)
@@ -170,17 +180,18 @@ ROWS = [
     ),
     _case("xm13", b"<a><b></a>", None, MALFORMED, expat.ExpatError),
     _case("xm14", b"<a>&nbsp;</a>", None, MALFORMED, expat.ExpatError),
-    _case("xm15", b"<a><p:b/></a>", None, MALFORMED, expat.ExpatError),
+    # an unbound prefix on an element (the shape's, not expat's: no separator)
+    _case("xm15", b"<a><p:b/></a>", None, UNBOUND),
     _case("xm16", b'<a k="1" k="2"/>', None, MALFORMED, expat.ExpatError),
     _case("xm17", b"<a>&#xD800;</a>", None, MALFORMED, expat.ExpatError),
     _case("xm18", b"<a/>x", None, MALFORMED, expat.ExpatError),
     _case("xm19", b"", None, MALFORMED, expat.ExpatError),
-    _case("xm20", XM20, [("start", "a", {"k": "y" * 1_048_567}), ("end", "a")]),
+    _case("xm20", XM20, [("start", "a", {"k": "y" * 524_279}), ("end", "a")]),
     _case("xm21", XM21, None, LONG),
-    _case("xm22", b"<a><!--" + b"<>" * 524_300 + b"--></a>", None, LONG),
-    _case("xm23", b"<a><?p " + b"y" * 1_048_577 + b"?></a>", None, LONG),
-    _case("xm24", b"<a>&" + b"y" * 1_048_577 + b"</a>", None, LONG),
-    _case("xm25", b'<a k="' + b">" * 1_048_577 + b'"/>', None, LONG),
+    _case("xm22", b"<a><!--" + b"<>" * 262_150 + b"--></a>", None, LONG),
+    _case("xm23", b"<a><?p " + b"y" * 524_289 + b"?></a>", None, LONG),
+    _case("xm24", b"<a>&" + b"y" * 524_289 + b"</a>", None, LONG),
+    _case("xm25", b'<a k="' + b">" * 524_289 + b'"/>', None, LONG),
     _case("xm26", XM26, [_start("a"), "y" * 2_097_152, ("end", "a")]),
     _case("xm27", _chain(256), [_start("a")] * 256 + [("end", "a")] * 256),
     _case("xm28", _chain(257), None, DEEP),
@@ -191,7 +202,8 @@ ROWS = [
 ]
 
 
-U = b"u" * 1_048_000
+# A namespace name over the name cap, in a tag under the token cap.
+U = b"u" * 500_000
 LENGTH = "an XML name longer than 255 bytes"
 OPEN = "more than 4,096 namespace declarations open at once"
 H3_NAMES = [
@@ -213,8 +225,9 @@ HIDDEN = [
         b'<r xmlns:p="u">' + b"".join(b"<p:n%d/>" % i for i in range(2048)) * 2 + b"</r>",
         [_start("r")] + H3_NAMES + [("end", "r")],
     ),
-    _case("h4", b"<r><" + b"n" * 600_000 + b"/><" + b"m" * 600_000 + b"/></r>", None, LENGTH),
-    _case("h5", b'<a xmlns="x}y"/>', None, MALFORMED, expat.ExpatError),
+    _case("h4", b"<r><" + b"n" * 500_000 + b"/><" + b"m" * 500_000 + b"/></r>", None, LENGTH),
+    # a default namespace name holding the separator (the shape's refusal, not expat's)
+    _case("h5", b'<a xmlns="x}y"/>', None, SEPARATOR),
     _case(
         "h6",
         b'<a xmlns="u" xmlns:p="v" xmlns:q="v" p:k="1" k="2"><p:b q:j="3"/><q:b/></a>',
@@ -287,7 +300,69 @@ NAME_ROWS = [
 ]
 
 
-@pytest.mark.parametrize(("data", "expected", "reason", "cause"), ROWS + HIDDEN + NAME_ROWS)
+X = XML.encode()
+XS = XMLNS.encode()
+NS_ROWS = [
+    # an unbound prefix on an attribute; the xmlns prefix is never bound
+    _case("ns1", b'<a p:k="1"/>', None, UNBOUND),
+    _case("ns2", b"<xmlns:a/>", None, UNBOUND),
+    # two attributes that expand to one name
+    _case("ns3", b'<a xmlns:p="u" xmlns:q="u" p:k="1" q:k="2"/>', None, TWICE),
+    # the default namespace applies to elements, not to unprefixed attributes
+    _case(
+        "ns4",
+        b'<a xmlns="u" xmlns:p="u" k="1" p:k="2"/>',
+        [("start", "u}a", {"k": "1", "u}k": "2"}), ("end", "u}a")],
+    ),
+    # the reserved prefixes and namespace names
+    _case("ns5", b'<a xmlns:xml="u"/>', None, RESERVED),
+    _case("ns6", b'<a xmlns:p="' + X + b'"/>', None, RESERVED),
+    _case("ns7", b'<a xmlns="' + X + b'"/>', None, RESERVED),
+    _case("ns8", b'<a xmlns:xmlns="' + XS + b'"/>', None, RESERVED),
+    _case("ns9", b'<a xmlns:p="' + XS + b'"/>', None, RESERVED),
+    _case("ns10", b'<a xmlns="' + XS + b'"/>', None, RESERVED),
+    # xml is bound without a declaration, and may be declared to its own name
+    _case("ns11", b'<a xml:lang="en"/>', [("start", "a", {XML + "}lang": "en"}), ("end", "a")]),
+    _case("ns12", b'<xml:a xmlns:xml="' + X + b'"/>', [_start(XML + "}a"), ("end", XML + "}a")]),
+    # a prefix bound to an empty namespace name (the default may be: n8)
+    _case("ns13", b'<a xmlns:p=""/>', None, EMPTY),
+    # qualified names only: no second, leading or trailing colon, a local part that starts a
+    # name, a prefix declared that starts a name, no colon in an instruction's target
+    _case("ns14", b'<a:b:c xmlns:a="u"/>', None, QNAME),
+    _case("ns15", b'<a xmlns:a="u" a:b:c="1"/>', None, QNAME),
+    _case("ns16", b"<:a/>", None, QNAME),
+    _case("ns17", b'<a :k="1"/>', None, QNAME),
+    _case("ns18", b'<a: xmlns:a="u"/>', None, QNAME),
+    _case("ns19", b'<a xmlns:a:b="u"/>', None, QNAME),
+    _case("ns20", b'<a xmlns:="u"/>', None, QNAME),
+    _case("ns21", b'<a:1b xmlns:a="u"/>', None, QNAME),
+    _case("ns22", b'<a xmlns:1p="u"/>', None, QNAME),
+    _case("ns23", b"<a><?p:i d?></a>", None, QNAME),
+    # a prefixed namespace name holding the separator (the default's is h5)
+    _case("ns24", b'<a xmlns:p="x}y"/>', None, SEPARATOR),
+    # scope: an inner declaration binds until its element ends; a later one binds its whole tag
+    _case(
+        "ns25",
+        b'<a xmlns:p="u"><p:b xmlns:p="v" p:k="1"/><p:c/></a>',
+        [
+            _start("a"),
+            ("start", "v}b", {"v}k": "1"}),
+            ("end", "v}b"),
+            _start("u}c"),
+            ("end", "u}c"),
+            ("end", "a"),
+        ],
+    ),
+    _case("ns26", b'<p:a p:k="1" xmlns:p="u"/>', [("start", "u}a", {"u}k": "1"}), ("end", "u}a")]),
+    # only xmlns and xmlns: declare: XMLNS: is an unbound prefix, xmlnsx a name
+    _case("ns27", b'<a XMLNS:p="v"/>', None, UNBOUND),
+    _case("ns28", b'<a xmlnsx="1"/>', [("start", "a", {"xmlnsx": "1"}), ("end", "a")]),
+]
+
+
+@pytest.mark.parametrize(
+    ("data", "expected", "reason", "cause"), ROWS + HIDDEN + NAME_ROWS + NS_ROWS
+)
 def test_xml_rows(
     data: bytes, expected: list[Any] | None, reason: str, cause: type[BaseException] | None
 ) -> None:
@@ -355,7 +430,30 @@ def test_an_end_below_the_root_restores_the_depth_by_one() -> None:
 
 def test_the_limits() -> None:
     assert ooxml.CHUNK_BYTES <= ooxml.MAX_TOKEN_BYTES
+    assert ooxml.MAX_TOKEN_BYTES == 524_288
     assert ooxml.MAX_NAME_LENGTH == 255
+    assert (ooxml.EXPAT_THRESHOLD, ooxml.EXPAT_AMPLIFICATION) == (67_108_864, 100.0)
+
+
+def test_attributes_keep_their_order_without_their_declarations() -> None:
+    events = _parse(b'<a xmlns:p="u" z="1" p:y="2" b="3"/>').events
+    assert [list(event[2]) for event in events if isinstance(event, tuple) and len(event) == 3] == [
+        ["z", "u}y", "b"]
+    ]
+
+
+def test_expats_allocation_limit_is_a_typed_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
+    # expat's allocation tracker ends the part: a typed refusal, its error chained
+    data = _attributes(4_000)
+    assert len(_parse(data).events) == 2
+    monkeypatch.setattr(ooxml, "EXPAT_THRESHOLD", 65_536)
+    monkeypatch.setattr(ooxml, "EXPAT_AMPLIFICATION", 1.0)
+    with pytest.raises(SourceUnreadable) as caught:
+        _parse(data)
+    assert str(caught.value) == PREFIX + TRACKER
+    cause = caught.value.__cause__
+    assert isinstance(cause, expat.ExpatError)
+    assert cause.code == expat.errors.codes[expat.errors.XML_ERROR_NO_MEMORY]
 
 
 @pytest.mark.parametrize("data", [XM2, XM3], ids=["xm2", "xm3"])
@@ -398,21 +496,23 @@ def _fail(what: str, value: object, expected: object) -> str:
     return f"{what}: {value!r} != {expected!r} on {sys.version}"
 
 
-def test_pin9_a_str_ignores_the_declared_encoding_and_names_are_uri_local() -> None:
+def test_pin9_a_str_ignores_the_declared_encoding_and_names_come_as_written() -> None:
     events: list[object] = []
-    parser = expat.ParserCreate(None, "}")
-    parser.StartElementHandler = lambda name, attributes: events.append((name, attributes))
+    parser = expat.ParserCreate(intern=None)
+    parser.StartElementHandler = lambda name, attributes: events.append(
+        (name, list(attributes.items()))
+    )
     parser.Parse(
-        '<?xml version="1.0" encoding="UTF-16"?><a xmlns="u" xmlns:p="v" p:k="' + E_ACUTE + '"/>',
+        '<?xml version="1.0" encoding="UTF-16"?><p:a xmlns="u" xmlns:p="v" p:k="' + E_ACUTE + '"/>',
         True,
     )
-    expected = [("u}a", {"v}k": E_ACUTE})]
+    expected = [("p:a", [("xmlns", "u"), ("xmlns:p", "v"), ("p:k", E_ACUTE)])]
     assert events == expected, _fail("events", events, expected)
 
 
 def test_pin10_buffered_text_comes_whole_up_to_the_next_tag() -> None:
     pieces: list[str] = []
-    parser = expat.ParserCreate(None, "}")
+    parser = expat.ParserCreate(intern=None)
     parser.buffer_text = True
     parser.CharacterDataHandler = pieces.append
     for piece in ("<a>one &amp; ", "two<!-- c --> three<b/>", "four</a>"):
@@ -423,17 +523,39 @@ def test_pin10_buffered_text_comes_whole_up_to_the_next_tag() -> None:
 
 
 def test_pin11_reparse_deferral_is_on_by_default() -> None:
-    parser = expat.ParserCreate(None, "}")
+    parser = expat.ParserCreate(intern=None)
     assert parser.GetReparseDeferralEnabled() is True, sys.version
 
 
-def test_pin12_a_namespace_name_holding_the_separator_is_refused() -> None:
-    parser = expat.ParserCreate(None, "}")
+def test_pin12_a_name_holding_the_separator_is_refused() -> None:
+    parser = expat.ParserCreate(intern=None)
     try:
-        parser.Parse('<a xmlns="x}y"/>', True)
+        parser.Parse("<a}b/>", True)
     except expat.ExpatError:
         return
-    pytest.fail(f"expat accepted a namespace name holding the separator on {sys.version}")
+    pytest.fail(f"expat accepted a name holding the separator on {sys.version}")
+
+
+def test_pin13_the_allocation_tracker_refuses_as_out_of_memory() -> None:
+    parser = expat.ParserCreate(intern=None)
+    tracked: Any = parser  # the pinned mypy's stubs lack the tracker (Python 3.12.13)
+    tracked.SetAllocTrackerActivationThreshold(65_536)
+    tracked.SetAllocTrackerMaximumAmplification(1.0)
+    try:
+        parser.Parse(_attributes(4_000).decode(), True)
+    except expat.ExpatError as error:
+        expected = expat.errors.codes[expat.errors.XML_ERROR_NO_MEMORY]
+        assert error.code == expected, _fail("code", error.code, expected)
+        return
+    pytest.fail(f"the tracker did not refuse on {sys.version}")
+
+
+def test_pin14_without_an_intern_dict_each_name_is_a_new_str() -> None:
+    names: list[str] = []
+    parser = expat.ParserCreate(intern=None)
+    parser.StartElementHandler = lambda name, attributes: names.append(name)
+    parser.Parse("<abc><abc/></abc>", True)
+    assert names == ["abc", "abc"] and names[0] is not names[1], sys.version
 
 
 def _peak(data: bytes, reason: str) -> int:
@@ -462,6 +584,26 @@ MEMORY = {
     "xm26": (XM26, 7, ""),
     "xm31": (XM31, 4, NAMES),
     "xm32": (XM32, 4, NAMES),
+    # B-M1: one tag at the token cap, its names under a namespace name with an astral character
+    "b-m1": (
+        b'<r xmlns:p="\xf0\x90\x80\x80'
+        + b"u" * 245
+        + b'"'
+        + b"".join(b' p:k%d=""' % i for i in range(40_000))
+        + b"/>",
+        11,
+        NAMES,
+    ),
+    # S-H1: a refused namespace name declared in a tag with 1,000 attributes under its prefix
+    "s-h1": (
+        b'<r xmlns:p="'
+        + b"u" * 32_000
+        + b'"'
+        + b"".join(b' p:k%d=""' % i for i in range(1_000))
+        + b"/>",
+        3,
+        LENGTH,
+    ),
 }
 
 
