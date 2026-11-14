@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterable, Iterator, Mapping
-from typing import NamedTuple
+from collections.abc import Iterable, Mapping
 
 REPLACEMENT = "[redacted]"
 TOKEN_ENV_NAMES = ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")
@@ -40,88 +39,33 @@ _SK_KEY = r"sk-(?:(?:or|ant|proj)-[A-Za-z0-9_-]{6,}|[A-Za-z0-9_-]{20,})"
 _GITHUB_SHAPES = r"(?:gh[pousr]_(?=[A-Za-z0-9]{36})|github_pat_(?=[A-Za-z0-9_]{22}))[A-Za-z0-9_-]+"
 _KEY_PATTERN = re.compile(rf"(?:{_SK_BOUNDARY})(?:{_SK_KEY})|{_GITHUB_SHAPES}")
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
-# A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
-# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" (long-path form
-# included) or WSL's "/mnt/<drive>/Users/<user>", in either slash, repr-escaped or not, and also
-# straight after a written-out "\n", "\r" or "\t" when a drive, "\\" or "/" follows. After the
-# home prefix the user name is the longest of several candidates (one alternation cannot serve
-# every shape: whichever alternative came first would win even where a later one takes more of
-# the name). Words are separated by one or more spaces.
-# Windows form: W1 words of name characters and "'", "(", ")" before a slash; W2 plain words
-# before a slash or a quote; W3 two or more words before "," ";" ":" ")" ">" or the line's end
-# (a full stop before that end is the sentence's), where "'", "(" and ")" count when a name
-# character or a slash follows and a whole "(...)" group counts; W4 one such word (no group), wherever it ends. A name does not end in ".".
-# POSIX form: plain words before a slash or a quote, or one plain word. A path inside a longer
-# name or a URL's host part ("example.com/home/x") is not one; "file:///home/<user>" is.
 _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
-_WIN_ANY = r"[^\s\\/:*?\"<>|,;]"  # on a Windows path "'", "(" and ")" are name characters too
+# A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
+# "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" (long-path form included),
+# WSL's "/mnt/<drive>/Users/<user>" or a backslash-led "\Users\<user>", in either slash,
+# repr-escaped or not, also straight after a written-out "\n", "\r" or "\t" when a drive, "\\" or
+# "/" follows. A path inside a longer name or a URL's host part ("example.com/home/x") is not
+# one; "file:///home/<user>" is. The user name fails closed: it ends only at a character no such
+# name can hold, else at the line's end. On a Windows form that is a slash or a character Windows
+# reserves in a name (< > : " | ? *) or the line's end; on a POSIX form a "/", a ":" (the passwd
+# field separator) or the line's end. Prose after a name on the same line goes with it.
 _WIN_PREFIX = (
-    r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+)"
+    r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
+    r"[\\/]+|\\)"
 )
-_HOME_HEAD = re.compile(
+_HOME_PATH = re.compile(
     r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
-    rf"(?:{_WIN_PREFIX}|[\\/])"
-    rf"(?:(?i:users|home|var[\\/]+home)[\\/]+|(?P<root>root)(?!{_NAME}))"
+    rf"(?:{_WIN_PREFIX}|/)"
+    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|[^/:\r\n])+"
+    rf"|root(?!{_NAME}))"
 )
-_SIMPLE_UNIT = rf"(?:{_NAME}|['()](?={_NAME}|[\\/]))"
-_GROUP_UNIT = rf"\({_NAME}+\)(?!{_NAME}|[\\/])"  # never also readable as three single units
-_WORD = rf"(?:{_GROUP_UNIT}|{_SIMPLE_UNIT})+"
-_WORD_END = r"(?<!\.)(?=[,;:)>]|\.?(?:\r?\n|\Z))"
-_PLAIN = rf"{_NAME}+(?: +{_NAME}+)*(?=[\\/'\"])"
-_NAMES_WIN = tuple(
-    re.compile(p)
-    for p in (
-        rf"{_WIN_ANY}+(?: +{_WIN_ANY}+)*(?=[\\/])",  # W1
-        _PLAIN,  # W2
-        rf"{_WORD}(?: +{_WORD})+{_WORD_END}",  # W3
-        rf"{_SIMPLE_UNIT}+(?<!\.)",  # W4
-    )
-)
-_NAMES_POSIX = (re.compile(_PLAIN), re.compile(rf"{_NAME}+(?<!\.)"))
-
-
-def _name_end(text: str, pos: int, windows: bool) -> int | None:
-    """Where the longest user-name candidate that matches at ``pos`` ends, or None."""
-    ends = [m.end() for p in (_NAMES_WIN if windows else _NAMES_POSIX) if (m := p.match(text, pos))]
-    return max(ends, default=None)
-
-
-class _HomeMatch(NamedTuple):
-    start: int
-    end: int
-
-    def span(self) -> tuple[int, int]:
-        return self.start, self.end
-
-
-class _HomePaths:
-    """The home-directory finder: ``finditer`` yields the spans a ``re.Pattern`` would, but the
-    user name is the longest candidate, which one regular expression cannot express."""
-
-    def finditer(self, text: str) -> Iterator[_HomeMatch]:
-        scan = 0
-        while head := _HOME_HEAD.search(text, scan):
-            end = head.end() if head["root"] else _name_end(text, head.end(), bool(head["win"]))
-            if end is None:
-                scan = head.start() + 1
-                continue
-            yield _HomeMatch(head.start(), end)
-            scan = end
-
-
-_HOME_PATH = _HomePaths()
 
 
 def home_paths(text: str) -> str:
-    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; the
-    rest of each path, and all other text, is kept. It does not redact keys."""
-    out: list[str] = []
-    pos = 0
-    for start, end in _HOME_PATH.finditer(text):
-        out += [text[pos:start], "<home>"]
-        pos = end
-    out.append(text[pos:])
-    return "".join(out)
+    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
+    name that no slash or reserved character ends takes the rest of its line. It does not redact
+    keys."""
+    return _HOME_PATH.sub("<home>", text)
 
 
 def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], marker: T) -> T:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import provider_redaction_key as key
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from credit_os.provider import canned, events, redact
@@ -52,7 +52,7 @@ def test_home_paths_rows(text: str, expected: str) -> None:
         ("msg\\t/home/jane/x", "msg\\t<home>/x"),
         ("msg\\n\\\\fs01\\share\\Users\\jane\\x", "msg\\n<home>\\x"),
         ("C:\\Users\\Mary  O'Brien\\x", "<home>\\x"),
-        ("\\\\home\\x\\Users\\ y", "\\<home>\\Users\\ y"),
+        ("\\\\home\\x\\Users\\ y", "<home>"),
     ],
 )
 def test_home_paths_mutation_rows(text: str, expected: str) -> None:
@@ -98,3 +98,71 @@ _VALUES = st.text(min_size=4).filter(lambda v: "[" not in v and "]" not in v and
 def test_exact_value_never_survives(t: str, v: str) -> None:
     assert v not in Redactor([v]).text(t + v + t)
     assert v.encode() not in Redactor([v]).bytes_((t + v + t).encode())
+
+
+_NAME_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'().-_&éüßøÖ漢"
+_PREFIXES = (
+    "C:\\Users\\",
+    "c:/users/",
+    "C:\\\\Users\\\\",
+    "D:\\Users/",
+    "\\\\fs01\\share\\Users\\",
+    "\\\\?\\UNC\\srv\\share\\Users\\",
+    "\\\\?\\C:\\Users\\",
+    "/mnt/c/Users/",
+    "file:///C:/Users/",
+    "/home/",
+    "/Users/",
+    "/var/home/",
+    "file:///home/",
+)
+_LEADS = ("", " ", "cwd: ", "'", '"', "(", "<", "[", "msg\\n", '{"cwd": "')
+_TAILS = (
+    "",
+    "/x",
+    "\\x",
+    "\\\\x",
+    "\\AppData\\x.js",
+    "'",
+    '"',
+    "' set",
+    ",",
+    ";",
+    ":",
+    ": next",
+    ")",
+    ">",
+    ".",
+    ". Next",
+    " retry",
+    "  more words",
+    "\n",
+    "\r\nnext",
+    "\\n",
+    '\'s "x"',
+    ")\\n",
+    " C:\\Users\\Zed Q\\x",
+    " D:/Users/Zed",
+    " /home/zed/x",
+    " \\\\srv\\share\\Users\\zed",
+    "C:\\Users\\b",
+)
+
+
+@settings(max_examples=1000, deadline=None)
+@given(
+    lead=st.sampled_from(_LEADS),
+    prefix=st.sampled_from(_PREFIXES),
+    words=st.lists(st.text(_NAME_CHARS, min_size=1, max_size=8), min_size=1, max_size=4),
+    seps=st.lists(st.sampled_from([" ", "  ", "   "]), min_size=3, max_size=3),
+    tail=st.sampled_from(_TAILS),
+)
+def test_no_word_of_a_home_name_survives(
+    lead: str, prefix: str, words: list[str], seps: list[str], tail: str
+) -> None:
+    name = words[0] + "".join(s + w for s, w in zip(seps, words[1:], strict=False))
+    out = home_paths(lead + prefix + name + tail).replace("<home>", "\x00")
+    kept = [
+        w for w in words if len(w) > 1 and w not in lead + prefix and w not in tail and w in out
+    ]
+    assert kept == []
