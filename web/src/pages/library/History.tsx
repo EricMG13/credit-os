@@ -5,6 +5,7 @@ import { PageHeader } from "@/shell/PageHeader";
 import { ButtonLink } from "./parts/ButtonLink";
 import { LibraryPage } from "./parts/LibraryPage";
 import { NotHeld } from "./parts/NotHeld";
+import { PAGE_NAME } from "./parts/PageTitle";
 import { RunFeed } from "./parts/RunFeed";
 import { ISSUER_HEADING, SECTION_HEADING } from "./parts/heading";
 import { LIBRARY_HOME, RUN_START, TEXT_LINK, overviewHref } from "./parts/links";
@@ -69,13 +70,13 @@ function Feed({ issuer, latest }: { issuer: Issuer; latest: string }) {
 /** An issuer's runs, newest first; an issuer with nothing to read gets the "No report yet" state. */
 export function History({ issuer: id }: { issuer: string | undefined }) {
   return (
-    <LibraryPage title="Report history">
+    <LibraryPage title={PAGE_NAME.history}>
       {({ issuers }) => {
         const issuer = issuers.find((item) => item.id === id);
         if (issuer === undefined) {
           return (
             <NotHeld
-              page="Report history"
+              page={PAGE_NAME.history}
               title="No such issuer"
               description="The library holds no issuer at this address."
             />
