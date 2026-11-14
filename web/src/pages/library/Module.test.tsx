@@ -74,6 +74,7 @@ describe("Module, a delivered prose module", () => {
       ["H3", "Key findings"],
       ["H3", "Contrary evidence"],
       ["H3", "What would change the view"],
+      ["H3", "Risks by probability and impact"],
       ["H3", "Limitations2"],
     ]);
   });
@@ -134,13 +135,13 @@ describe("Module, a delivered prose module", () => {
     expect(within(limits).getAllByRole("listitem")).toHaveLength(2);
   });
 
-  it("draws no records section, and no placeholder for one", () => {
-    const { container } = renderModule("business-profile");
+  it("draws no records heading for a module with none, and no placeholder for one", () => {
+    const { container } = renderModule("capital-structure");
     expect(screen.queryByText(/records/i)).toBeNull();
     expect(container.textContent).not.toMatch(/coming soon|placeholder|no records/i);
   });
 
-  it("draws the nine trace controls the mock shows, each named as the mock names it, and opens a drawer", () => {
+  it("draws the trace controls the mock shows, each named as the mock names it, and opens a drawer", () => {
     renderModule("business-profile");
     expect(sourceButtons().map((b) => b.getAttribute("aria-label"))).toEqual([
       "Show sources for the bottom line",
@@ -150,6 +151,8 @@ describe("Module, a delivered prose module", () => {
       "Show sources for this finding",
       "Show sources for the contrary evidence",
       "Show sources for the trigger",
+      "Show sources for the risk matrix",
+      ...Array<string>(5).fill("Show sources for this risk"),
       "Show sources for this limitation",
       "Show sources for this limitation",
     ]);
@@ -161,7 +164,7 @@ describe("Module, a delivered prose module", () => {
     const { container } = renderModule("business-profile");
     fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
-    expect(sourceButtons()).toHaveLength(9);
+    expect(sourceButtons()).toHaveLength(15);
   });
 
   it("opens the drawer of each passage's own module-level trace", () => {
@@ -172,13 +175,78 @@ describe("Module, a delivered prose module", () => {
       titles.push(screen.getByRole("dialog").getAttribute("aria-label"));
       fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     }
-    expect(new Set(titles).size).toBe(9);
+    expect(new Set(titles).size).toBe(15);
   });
 
   it("shows no audit material and no module or trace code", () => {
     const { container } = renderModule("business-profile");
     const all = [container.innerHTML, container.textContent].join(" ");
     expect(all).not.toMatch(/T-\d{4}|C-\d{4}|\.pdf|hash|aftermarket-share|engine-programme|bp-/i);
+  });
+});
+
+describe("Module, the risk matrix", () => {
+  const card = () => region("Table side of the risk matrix");
+
+  it("draws the Table side only, under the block's title, with no Chart or Table toggle", () => {
+    renderModule("business-profile");
+    expect(
+      within(card()).getByRole("heading", { level: 3, name: "Risks by probability and impact" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("radio", { name: /chart|table/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Chart|Table)$/ })).toBeNull();
+  });
+
+  it("draws the mock's five risks with their grades and n.a. for the missing one", () => {
+    renderModule("business-profile");
+    const table = within(card()).getByRole("table", { name: "Risks by probability and impact" });
+    const rows = within(table).getAllByRole("row");
+    expect(
+      within(rows[0] as HTMLElement)
+        .getAllByRole("columnheader")
+        .map((h) => h.textContent),
+    ).toEqual(["Risk", "Probability", "Impact", "Sources"]);
+    const text = (row: HTMLElement) =>
+      [within(row).getByRole("rowheader"), ...within(row).getAllByRole("cell")]
+        .slice(0, 3)
+        .map((c) => c.textContent);
+    expect(rows.slice(1).map((r) => text(r))).toEqual([
+      ["Engine programme delay", "Medium", "High"],
+      ["Loss of sole-source status", "Low", "High"],
+      ["Customer concentration", "Medium", "Medium"],
+      ["Input cost inflation", "High", "Low"],
+      ["Tariff exposure", "n.a.not available", "Medium"],
+    ]);
+    const tariff = within(rows[5] as HTMLElement).getAllByRole("cell")[0] as HTMLElement;
+    expect(tariff.querySelector("[aria-hidden=true]")).toHaveTextContent("n.a.");
+    expect(within(card()).queryByText("0")).toBeNull();
+  });
+
+  it("draws one trace control for the block and one for each risk row", () => {
+    renderModule("business-profile");
+    expect(
+      within(card())
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual([
+      "Show sources for the risk matrix",
+      ...Array<string>(5).fill("Show sources for this risk"),
+    ]);
+    fireEvent.click(within(card()).getAllByRole("button")[0] as HTMLElement);
+    expect(screen.getByRole("dialog", { name: "Sources for the risk matrix" })).toBeVisible();
+  });
+
+  it("is one Records entry in the navigator, and moves focus to the first block's heading", () => {
+    renderModule("business-profile");
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    fireEvent.click(within(nav()).getByRole("button", { name: "Records" }));
+    const heading = screen.getByRole("heading", { name: "Risks by probability and impact" });
+    expect(scroll.mock.contexts[0]).toBe(heading.closest("[data-section]"));
+    expect(heading).toHaveFocus();
+    expect(heading).toHaveAttribute("tabindex", "-1");
+    expect(heading).toHaveClass("focus-visible:ring-2", "focus-visible:ring-brand");
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
   });
 });
 
@@ -201,7 +269,7 @@ describe("Module, the navigator", () => {
     );
   });
 
-  it("lists this module's sections: the four it has and no Records", () => {
+  it("lists this module's sections, Records among them", () => {
     renderModule("business-profile");
     const sections = within(within(nav()).getAllByRole("list")[0] as HTMLElement).getAllByRole(
       "button",
@@ -211,6 +279,7 @@ describe("Module, the navigator", () => {
       "Key findings",
       "Contrary evidence",
       "What would change the view",
+      "Records",
       "Limitations",
     ]);
   });
@@ -245,7 +314,7 @@ describe("Module, the navigator", () => {
     fireEvent.click(within(nav()).getByRole("button", { name: "Contrary evidence" }));
     const target = screen.getByRole("heading", { level: 3, name: "Contrary evidence" });
     expect(scroll).toHaveBeenCalledTimes(1);
-    expect((scroll.mock.contexts[0] as HTMLElement).contains(target)).toBe(true);
+    expect(scroll.mock.contexts[0]).toBe(target.closest("[data-section]"));
     expect(target).toHaveFocus();
     expect(target).toHaveAttribute("tabindex", "-1");
     expect(target).toHaveClass("focus-visible:ring-2", "focus-visible:ring-brand");

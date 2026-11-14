@@ -2,7 +2,7 @@ import { useId, type ReactNode } from "react";
 import { SECTION_HEADING, type SUBSECTION_HEADING } from "./heading";
 
 /** A heading the navigator moves focus to: not in the tab order, with the design focus ring. */
-const FOCUS = "rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand";
+export const FOCUS = "rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand";
 
 /** The size each heading level takes, so a section under a module name reads as a section. */
 const SIZE = { h2: "text-h2", h3: "text-h3", h4: "text-h4" } as const;
