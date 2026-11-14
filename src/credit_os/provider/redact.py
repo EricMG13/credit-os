@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterable, Mapping
+import unicodedata
+from collections.abc import Callable, Iterable, Mapping
 
 REPLACEMENT = "[redacted]"
+HOME = "<home>"
 TOKEN_ENV_NAMES = ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")
 # Two rules for the left side of a key. A GitHub token shape ("ghp_" and its kin, "github_pat_")
 # is redacted after any character, inside a word included: no boundary. An "sk-" key keeps one,
@@ -159,10 +161,8 @@ def _nested_spans(text: str, homes: list[tuple[int, bool]]) -> list[tuple[int, i
     return spans
 
 
-def home_paths(text: str) -> str:
-    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
-    name that no slash or reserved character ends takes the rest of its line. It does not redact
-    keys."""
+def _net_spans(text: str) -> list[tuple[int, int]]:
+    """The spans of the pattern net: the three home patterns and the nested pass."""
     matches = [
         (m.span(), m.group("win") is not None)
         for p in (_HOME_PATH, _HOME_PATH_FWD, _HOME_PATH_PLAIN)
@@ -170,27 +170,44 @@ def home_paths(text: str) -> str:
     ]
     spans = [span for span, _ in matches]
     spans += _nested_spans(text, [(span[1], win) for span, win in matches])
-    return _replace_spans(text, spans, "<home>")
+    return spans
+
+
+def home_paths(text: str) -> str:
+    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
+    name that no slash or reserved character ends takes the rest of its line. It does not redact
+    keys."""
+    return _replace_spans(text, _net_spans(text), HOME)
+
+
+def _merge(spans: list[tuple[int, int, bool]]) -> list[tuple[int, int, bool]]:
+    """The union of ``spans`` (start, end, is a path): overlaps merge, touching spans do not; a
+    merged span is a path if any span in it is."""
+    merged: list[tuple[int, int, bool]] = []
+    for start, end, path in sorted(spans):
+        if merged and start < merged[-1][1]:
+            last = merged[-1]
+            merged[-1] = (last[0], max(last[1], end), last[2] or path)
+        else:
+            merged.append((start, end, path))
+    return merged
+
+
+def _splice[T: (str, bytes)](
+    value: T, merged: list[tuple[int, int, bool]], marker: Callable[[bool], T]
+) -> T:
+    out: list[T] = []
+    pos = 0
+    for start, end, path in merged:
+        out += [value[pos:start], marker(path)]
+        pos = end
+    out.append(value[pos:])
+    return value[:0].join(out)
 
 
 def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], marker: T) -> T:
     """Replace the union of ``spans`` (overlaps merged) in ``value``, once each."""
-    out: list[T] = []
-    pos = 0
-    cur_start = cur_end = -1
-    for start, end in sorted(spans):
-        if start < cur_end:
-            cur_end = max(cur_end, end)
-            continue
-        if cur_end >= 0:
-            out += [value[pos:cur_start], marker]
-            pos = cur_end
-        cur_start, cur_end = start, end
-    if cur_end >= 0:
-        out += [value[pos:cur_start], marker]
-        pos = cur_end
-    out.append(value[pos:])
-    return value[:0].join(out)
+    return _splice(value, _merge([(s, e, False) for s, e in spans]), lambda _: marker)
 
 
 def _with_stripped(value: str | None) -> tuple[str, ...]:
@@ -213,6 +230,63 @@ def _utf8(form: str) -> bytes | None:
         return None
 
 
+# A known path (decision 0012): its text in every encoding the guarantee names, built once. An
+# escape is one to eight backslashes then "u" or "x" and hex digits; a percent escape is "%" with
+# the percent itself encoded up to twice ("%25", "%2525"); a separator is a run of 1 to 16 of "/",
+# "\\", "%2F" and "%5C". Hex digits are lower case here: the patterns ignore case. Every
+# quantifier is bounded.
+_ESCAPE = r"\\{1,8}"
+_PERCENT = r"%(?:25){0,2}"
+_SEPARATOR = rf"(?:[/\\]|{_PERCENT}(?:2f|5c)){{1,16}}"
+_DRIVE = re.compile(r"[A-Za-z]:")
+
+
+def _char_forms(char: str) -> set[str]:
+    """Patterns for ``char`` as written, as ``\\uXXXX`` (a surrogate pair above U+FFFF), as ``\\xXX``
+    (below U+0100), and as its UTF-8 bytes in ``\\xHH`` or percent form."""
+    code = ord(char)
+    data = char.encode("utf-8", "surrogatepass")
+    units = (
+        [code] if code < 0x10000 else [0xD800 + ((code - 0x10000) >> 10), 0xDC00 + (code & 0x3FF)]
+    )
+    forms = {re.escape(char), "".join(rf"{_ESCAPE}u{u:04x}" for u in units)}
+    forms.add("".join(rf"{_ESCAPE}x{b:02x}" for b in data))
+    forms.add("".join(rf"{_PERCENT}{b:02x}" for b in data))
+    if code < 0x100:
+        forms.add(rf"{_ESCAPE}x{code:02x}")
+    return forms
+
+
+def _char_pattern(char: str) -> str:
+    """One character of a known path: composed, or decomposed (NFD), each in every encoding."""
+    forms = _char_forms(char)
+    decomposed = unicodedata.normalize("NFD", char)
+    if decomposed != char:
+        forms.add("".join("(?:" + "|".join(sorted(_char_forms(c))) + ")" for c in decomposed))
+    return "(?:" + "|".join(sorted(forms)) + ")"
+
+
+def _path_patterns(path: str) -> list[str]:
+    """The patterns that find a known path: the whole path and its last two folders (the whole
+    only if it has one folder). A path with no folder name (a drive is not one) is refused."""
+    text = unicodedata.normalize("NFC", path.strip()).rstrip("/\\")
+    parts = [p for p in re.split(r"[/\\]+", text) if p]
+    folders = [p for p in parts if not _DRIVE.fullmatch(p)]
+    if not folders:
+        raise ValueError("a known path needs at least one folder name")
+
+    def word(part: str) -> str:
+        return "".join(_char_pattern(c) for c in part)
+
+    whole = (_SEPARATOR if text.startswith(("/", "\\")) else "") + _SEPARATOR.join(
+        word(p) for p in parts
+    )
+    if len(folders) < 2:
+        return [whole]
+    last = _SEPARATOR.join(word(f) for f in folders[-2:])
+    return [whole] if last == whole else [whole, last]
+
+
 class Redactor:
     """Matches key shapes and exact values. An exact value is also matched as ``json.dumps``
     writes it inside a string, once or twice escaped (text and bytes). Not matched: other
@@ -220,7 +294,9 @@ class Redactor:
     nesting. A value that is not valid UTF-8 text still matches as text; in bytes only its forms
     that can be encoded match."""
 
-    def __init__(self, exact_values: Iterable[str] = ()) -> None:
+    def __init__(
+        self, exact_values: Iterable[str] = (), *, known_paths: Iterable[str] = ()
+    ) -> None:
         values = sorted(
             {f for v in exact_values if v for f in _json_forms(v)}, key=lambda v: (-len(v), v)
         )
@@ -236,19 +312,51 @@ class Redactor:
             self._exact_bytes = re.compile(
                 b"(?=(" + b"|".join(re.escape(b) for b in encoded) + b"))"
             )
+        # A lookahead finds every occurrence, overlapping ones included.
+        self._known = [
+            re.compile(f"(?=({p}))", re.IGNORECASE)
+            for p in dict.fromkeys(q for path in known_paths for q in _path_patterns(path))
+        ]
 
     @classmethod
-    def from_environ(cls, environ: Mapping[str, str]) -> Redactor:
+    def from_environ(
+        cls, environ: Mapping[str, str], *, known_paths: Iterable[str] = ()
+    ) -> Redactor:
         # A value read with a trailing line ending is also matched without it; the constructor
         # drops empties and duplicates.
         values = [v for name in TOKEN_ENV_NAMES for v in _with_stripped(environ.get(name))]
-        return cls(values)
+        return cls(values, known_paths=known_paths)
 
-    def text(self, value: str) -> str:
+    def _key_spans(self, value: str) -> list[tuple[int, int]]:
         spans = [m.span() for m in _KEY_PATTERN.finditer(value)]
         if self._exact is not None:
             spans += [m.span(1) for m in self._exact.finditer(value)]
-        return _replace_spans(value, spans, REPLACEMENT)
+        return spans
+
+    def text(self, value: str) -> str:
+        return _replace_spans(value, self._key_spans(value), REPLACEMENT)
+
+    def message(self, text: str) -> str:
+        """``text`` for a stored diagnostic: keys become ``[redacted]``, paths ``<home>``. The
+        spans of the keys (as ``text`` finds them), of each known path and of the pattern net
+        (``home_paths``) are all found on the unmasked text and masked once as a union; a merged
+        span holding any path is ``<home>``, one holding only keys ``[redacted]``. Mask first,
+        then cut: a cut (``events`` keeps 500 characters) never splits a name.
+
+        Guaranteed: each known path, and its last two folders under any lead, wherever it
+        occurs, with no boundary consulted, as written, as ``\\uXXXX`` or ``\\xXX`` (either hex
+        case, one to eight backslashes, UTF-8 bytes included), percent-encoded (the percent
+        itself up to twice), in NFC or NFD, each separator a run of up to 16 of ``/``, ``\\``,
+        ``%2F``, ``%5C``, in any letter case.
+
+        Not guaranteed: another user's home (the net, best effort); Windows 8.3 short names; a
+        case mapping that changes length (``ß`` to ``SS``); a bare user name; a value split
+        across strings; other encodings (octal, HTML references, base64); the text of an ``ok``
+        reply."""
+        spans = [(start, end, False) for start, end in self._key_spans(text)]
+        spans += [(start, end, True) for start, end in _net_spans(text)]
+        spans += [(m.start(1), m.end(1), True) for p in self._known for m in p.finditer(text)]
+        return _splice(text, _merge(spans), lambda path: HOME if path else REPLACEMENT)
 
     def bytes_(self, value: bytes) -> bytes:
         spans = [m.span() for m in _KEY_PATTERN_BYTES.finditer(value)]
