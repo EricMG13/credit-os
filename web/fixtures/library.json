@@ -916,6 +916,11 @@
       {
         "issuer": "corvane-fasteners"
       }
+    ],
+    "/library/:issuer/:run/overview": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" }
     ]
   }
 }
