@@ -7,10 +7,8 @@ names the file, and the part where one is meant, and chains its cause.
 XML half (`Package.parse`): a part is never held whole. Each piece is checked on its bytes (a NUL
 byte, a DOCTYPE or ENTITY declaration, an unfinished markup token over `MAX_TOKEN_BYTES`) and
 decoded as UTF-8 before the parser is given it; expat's own DOCTYPE handler is a second guard
-behind the byte search. expat reads names as written; the shape binds namespaces itself, after
-measuring each tag's declarations, and measures the depth, the length and count of different
-names (namespace names included) and the namespace declarations open at once as elements
-arrive. Expat's reparse deferral is left on. Only `xml.parsers.expat` is used.
+behind the byte search, and the depth, the length and count of different names (namespace names
+included) and the namespace declarations open at once are measured as elements arrive. Expat's reparse deferral is left on. Only `xml.parsers.expat` is used.
 
 Limits are module constants read at call time; a test lowers one with `monkeypatch`.
 """
@@ -24,7 +22,7 @@ import warnings
 import zipfile
 import zlib
 from collections.abc import Iterator
-from typing import Protocol, cast
+from typing import Protocol
 from xml.parsers import expat
 
 from credit_os.sources.errors import SourceUnreadable, shown_name
@@ -38,26 +36,19 @@ MAX_MEMBERS = 16_384
 MAX_DIRECTORY_BYTES = 4_194_304
 # The most of a part held at once.
 CHUNK_BYTES = 65_536
-# expat keeps one unfinished markup token whole, and makes every attribute of a start tag before
-# any handler runs: a tag of this size costs up to 26 times that, 13.1 MiB (tracemalloc, macOS).
-# No real-file evidence bounds this either way: a part with a longer tag is refused whole.
-MAX_TOKEN_BYTES = 524_288
-# expat keeps a copy of each open element's name, the shape its name and bindings: 0.4 to 1.2 MiB
-# at this depth with names at the cap, 0.9 MiB with 4,096 declarations open (tracemalloc, macOS).
+# expat keeps one unfinished markup token whole; a tag of this size costs it 24 times that.
+MAX_TOKEN_BYTES = 1_048_576
+# expat keeps a copy of each open element's name and its namespace bindings: 0.4 to 1.0 MiB at
+# this depth with names at the cap, 1.2 MiB with 4,096 declarations open (tracemalloc, macOS).
 MAX_DEPTH = 256
-# expat keeps every different element and attribute name as written, and the shape every name as
-# it binds it (`uri}local}prefix`), every `xmlns:` prefix name and every namespace name, for the
-# life of a part; the same cap holds the namespace declarations open at once.
+# expat keeps every different element, attribute and `xmlns:` prefix name, and every namespace
+# name, for the life of a part; the same cap holds the namespace declarations open at once.
 MAX_NAMES = 4_096
-# The shape binds every name on every tag, so a long name costs time and memory per tag and per
-# open element, more per byte when a name holds wide characters; OOXML's are ASCII, under about
-# 110 bytes. With MAX_NAMES it bounds the UTF-8 bytes of the names counted, namespace names
-# included, to 255 x 4,096; a name as written is never longer than the name counted.
+# expat builds and binds every name on every tag, so a long name costs time and memory per tag and
+# per open element, more per byte when a name holds wide characters; OOXML's are ASCII, under about
+# 110 bytes. With MAX_NAMES it bounds the UTF-8 bytes of all names, namespace names included, to
+# 255 x 4,096.
 MAX_NAME_LENGTH = 255
-# expat's allocation tracker, set here rather than left to the bundled expat: past the threshold,
-# expat refuses to hold more than the amplification times the bytes it has been given.
-EXPAT_THRESHOLD = 67_108_864
-EXPAT_AMPLIFICATION = 100.0
 
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _LOCAL_SIGNATURE = b"PK\x03\x04"
@@ -83,16 +74,6 @@ _TOKEN_TEXT = (
 _TOKEN = re.compile(_TOKEN_TEXT, re.DOTALL)
 _WHOLE = re.compile(rb"(?:[^<&]++|" + _TOKEN_TEXT + rb")*+", re.DOTALL)
 _DECLARED = "a DOCTYPE or ENTITY declaration"
-_XML = "http://www.w3.org/XML/1998/namespace"
-_XMLNS = "http://www.w3.org/2000/xmlns/"
-_NO_MEMORY = expat.errors.codes[expat.errors.XML_ERROR_NO_MEMORY]
-_MEMORY = "XML that needs more memory than expat's allocation limit allows"
-_QNAME = "an XML name that is not a qualified name under XML namespaces"
-_UNBOUND = "an XML prefix that is not declared"
-_TWICE = "an XML attribute twice in one namespace"
-_RESERVED = "the xml or xmlns prefix or namespace name bound otherwise than XML allows"
-_EMPTY = "an XML prefix bound to an empty namespace name"
-_SEPARATOR = "an XML namespace name holding '}'"
 
 
 def _end_record(raw: bytes) -> tuple[int, int, int] | None:
@@ -141,14 +122,6 @@ class Target(Protocol):
 
     def text(self, data: str) -> None:
         """A piece of text; consecutive calls belong to one run, so a target joins them."""
-
-
-class _Tracked(Protocol):
-    """expat's allocation tracker (Python 3.12.13), not in the pinned mypy's stubs; pin13."""
-
-    def SetAllocTrackerActivationThreshold(self, threshold: int, /) -> None: ...
-
-    def SetAllocTrackerMaximumAmplification(self, factor: float, /) -> None: ...
 
 
 class Package:
@@ -264,19 +237,17 @@ class Package:
     def parse(self, part: str, target: Target) -> None:
         """Read one XML part into the target, refusing what the guards refuse."""
         shape = _Shape(self, part, target)
-        # No namespace separator: expat hands names as written and declarations as attributes,
-        # and the shape binds them after its own checks, so expat expands no name. No intern
-        # dict: pyexpat keeps no copy of every name it has made.
-        parser = expat.ParserCreate(intern=None)
+        parser = expat.ParserCreate(None, "}")
         parser.buffer_text = True
+        # Names arrive as `uri}local}prefix`, as expat keeps them, so that each is counted; the
+        # shape gives the target the name without its prefix.
+        parser.namespace_prefixes = True
         parser.StartElementHandler = shape.start
         parser.EndElementHandler = shape.end
         parser.CharacterDataHandler = target.text
-        parser.ProcessingInstructionHandler = shape.instruction
+        parser.StartNamespaceDeclHandler = shape.prefix
+        parser.EndNamespaceDeclHandler = shape.unprefix
         parser.StartDoctypeDeclHandler = shape.doctype
-        tracked = cast(_Tracked, parser)
-        tracked.SetAllocTrackerActivationThreshold(EXPAT_THRESHOLD)
-        tracked.SetAllocTrackerMaximumAmplification(EXPAT_AMPLIFICATION)
         decoder = codecs.getincrementaldecoder("utf-8-sig")()
         held = b""
         tail = b""
@@ -288,8 +259,6 @@ class Package:
                 parser.Parse(self._decoded(part, decoder, piece, False), False)
             parser.Parse(self._decoded(part, decoder, b"", True), True)
         except expat.ExpatError as error:
-            if error.code == _NO_MEMORY:
-                raise self.refuse(_MEMORY, part) from error
             raise self.refuse("not well-formed XML", part) from error
 
     def _check_bytes(self, part: str, seen: bytes) -> None:
@@ -320,151 +289,72 @@ class Package:
                     )
                 return data
             at = token.end()
-        # _WHOLE matches at every position, if only the empty string.
-        return data[next(_WHOLE.finditer(data, at)).end() :]
+        whole = _WHOLE.match(data, at)
+        return data[whole.end() :] if whole else data[at:]
 
 
-def _starts_name(char: str) -> bool:
-    """Whether expat takes the character as the first of a name, by its own tables."""
-    if char.isascii():
-        return char.isalpha() or char == "_"
-    try:
-        expat.ParserCreate().Parse(f"<{char}/>", True)
-    except expat.ExpatError:
-        return False
-    return True
+def _bare(name: str) -> str:
+    """Return a name without its `}prefix` part: `uri}local}prefix` becomes `uri}local`.
+
+    expat refuses a namespace name that holds `}`, so a name has at most two of them.
+    """
+    if name.count("}") < 2:
+        return name
+    return name.rpartition("}")[0]
 
 
 class _Shape:
-    """Between the parser and a target: the depth, the names and the namespace bindings."""
+    """Between the parser and a target: the depth, the names and the open namespace declarations."""
 
     def __init__(self, package: Package, part: str, target: Target) -> None:
         self._package = package
         self._part = part
         self._target = target
+        self._depth = 0
         self._open = 0
         self._names: set[str] = set()
-        self._uris: dict[str, str] = {}
-        self._bound: dict[str, list[str]] = {"xml": [_XML]}
-        self._elements: list[tuple[str, tuple[list[str], ...]]] = []
+        self._uris: set[str] = set()
 
-    def _refuse(self, reason: str) -> SourceUnreadable:
-        return self._package.refuse(reason, self._part)
-
-    def _measured(self, name: str) -> None:
+    def _known(self, name: str, kept: set[str]) -> None:
         if len(name.encode()) > MAX_NAME_LENGTH:
-            raise self._refuse(f"an XML name longer than {MAX_NAME_LENGTH} bytes")
-
-    def _counted(self) -> None:
+            raise self._package.refuse(
+                f"an XML name longer than {MAX_NAME_LENGTH} bytes", self._part
+            )
+        kept.add(name)
         if len(self._names) + len(self._uris) > MAX_NAMES:
-            raise self._refuse(f"more than {MAX_NAMES:,} different XML names")
-
-    def _known(self, name: str) -> None:
-        self._measured(name)
-        self._names.add(name)
-        self._counted()
-
-    def _split(self, name: str) -> tuple[str, str]:
-        prefix, colon, local = name.partition(":")
-        if not colon:
-            return "", name
-        if not prefix or not local or ":" in local:
-            raise self._refuse(_QNAME)
-        return prefix, local
-
-    def _declare(self, key: str, uri: str) -> tuple[str, str]:
-        prefix = self._split(key)[1] if key != "xmlns" else ""
-        self._open += 1
-        if self._open > MAX_NAMES:
-            raise self._refuse(f"more than {MAX_NAMES:,} namespace declarations open at once")
-        if prefix and key not in self._names:
-            if not _starts_name(prefix[0]):
-                raise self._refuse(_QNAME)
-            self._known(key)
-        if "}" in uri:
-            raise self._refuse(_SEPARATOR)
-        if prefix == "xmlns" or uri == _XMLNS or (prefix == "xml") != (uri == _XML):
-            raise self._refuse(_RESERVED)
-        if not uri:
-            if prefix:
-                raise self._refuse(_EMPTY)
-            return prefix, uri
-        kept = self._uris.get(uri)
-        if kept is None:
-            self._measured(uri)
-            kept = self._uris[uri] = uri
-            self._counted()
-        return prefix, kept
-
-    def _resolve(self, name: str) -> str:
-        """Return `uri}local` for an element name, or for a prefixed attribute name."""
-        prefix, local = self._split(name)
-        if prefix:
-            uris = self._bound.get(prefix)
-            if not uris:
-                raise self._refuse(_UNBOUND)
-            expanded = uris[-1] + "}" + local
-            counted = expanded + "}" + prefix
-        else:
-            uris = self._bound.get("")
-            expanded = counted = uris[-1] + "}" + local if uris and uris[-1] else local
-        if counted not in self._names:
-            if prefix and not _starts_name(local[0]):
-                raise self._refuse(_QNAME)
-            self._known(counted)
-        return expanded
-
-    def _bind(self, attributes: dict[str, str], declared: list[str]) -> tuple[list[str], ...]:
-        """Check every declaration of a tag, then bind them all; return the bindings opened."""
-        bindings = [self._declare(key, attributes[key]) for key in declared]
-        opened = tuple(self._bound.setdefault(prefix, []) for prefix, _ in bindings)
-        for uris, (_, uri) in zip(opened, bindings, strict=True):
-            uris.append(uri)
-        return opened
-
-    def _bare(self, attributes: dict[str, str]) -> dict[str, str]:
-        """Return the attributes that are not declarations, by `uri}local` where prefixed."""
-        bare: dict[str, str] = {}
-        for key, value in attributes.items():
-            if ":" not in key:
-                if key != "xmlns":
-                    if key not in self._names:
-                        self._known(key)
-                    bare[key] = value
-            elif not key.startswith("xmlns:"):
-                full = self._resolve(key)
-                if full in bare:
-                    raise self._refuse(_TWICE)
-                bare[full] = value
-        return bare
+            raise self._package.refuse(f"more than {MAX_NAMES:,} different XML names", self._part)
 
     def start(self, name: str, attributes: dict[str, str]) -> None:
-        # Every attribute but a default declaration is a different counted name: a tag with more
-        # is refused before any is bound.
-        if len(attributes) > MAX_NAMES + 1:
-            raise self._refuse(f"more than {MAX_NAMES:,} different XML names")
-        declared = [key for key in attributes if key == "xmlns" or key.startswith("xmlns:")]
-        opened = self._bind(attributes, declared) if declared else ()
-        if len(self._elements) >= MAX_DEPTH:
-            raise self._refuse(f"XML nested deeper than {MAX_DEPTH} elements")
-        expanded = self._resolve(name)
-        bare = self._bare(attributes) if attributes else {}
-        self._elements.append((expanded, opened))
-        self._target.start(expanded, bare)
+        self._depth += 1
+        if self._depth > MAX_DEPTH:
+            raise self._package.refuse(f"XML nested deeper than {MAX_DEPTH} elements", self._part)
+        if name not in self._names:
+            self._known(name, self._names)
+        if attributes and not self._names.issuperset(attributes):
+            for attribute in attributes:
+                if attribute not in self._names:
+                    self._known(attribute, self._names)
+        bare = {_bare(key): value for key, value in attributes.items()}
+        self._target.start(_bare(name), bare)
 
-    def end(self, _name: str) -> None:
-        expanded, opened = self._elements.pop()
-        if opened:
-            for uris in opened:
-                uris.pop()
-            self._open -= len(opened)
-        self._target.end(expanded)
-
-    def instruction(self, target: str, _data: str) -> None:
-        """XML namespaces allow no colon in a processing instruction's target."""
-        if ":" in target:
-            raise self._refuse(_QNAME)
+    def end(self, name: str) -> None:
+        self._depth -= 1
+        self._target.end(_bare(name))
 
     def doctype(self, *_declared: object) -> None:
         """The parser's own word that a DOCTYPE began: the second guard behind the byte search."""
-        raise self._refuse(_DECLARED)
+        raise self._package.refuse(_DECLARED, self._part)
+
+    def prefix(self, name: str | None, uri: str | None) -> None:
+        self._open += 1
+        if self._open > MAX_NAMES:
+            raise self._package.refuse(
+                f"more than {MAX_NAMES:,} namespace declarations open at once", self._part
+            )
+        if name is not None and "xmlns:" + name not in self._names:
+            self._known("xmlns:" + name, self._names)
+        if uri is not None and uri not in self._uris:
+            self._known(uri, self._uris)
+
+    def unprefix(self, _name: str | None) -> None:
+        self._open -= 1
