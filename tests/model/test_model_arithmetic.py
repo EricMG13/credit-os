@@ -233,13 +233,20 @@ def test_beyond_rounding_matches_fractions(
 
 
 @settings(max_examples=200, deadline=None)
-@given(PARTS, st.integers(0, 3), st.integers(-60, 60), PRINTED)
-def test_beyond_rounding_near_ties(
-    a: tuple[int, int], places: int, nudge: int, printed: list[tuple[int, int]] | None
-) -> None:
-    """Host within a few units of stated, at a finer place, so ties and near ties occur."""
-    scaled = a[0] * 10**places + nudge % 7 - 3
-    beyond_oracle(a, (scaled, a[1] - places), printed)
+@given(st.integers(-(10**37) + 1, 10**37 - 1), st.integers(-60, 0), st.integers(-7, 7))
+def test_beyond_rounding_ties_and_near_misses(c: int, e: int, delta: int) -> None:
+    """With no printed figures the half unit is 5 units of the place below stated's, so a
+    host `delta` units of that place away is an exact tie at |delta| == 5."""
+    event("tie" if abs(delta) == 5 else "not a tie")
+    beyond_oracle((c, e), (c * 10 + delta, e - 1), [])
+
+
+@pytest.mark.parametrize(
+    ("delta", "beyond"), [(5, False), (-5, False), (6, True), (-6, True), (4, False)]
+)
+def test_beyond_rounding_exact_ties_are_not_beyond(delta: int, beyond: bool) -> None:
+    host = make(1234 * 10 + delta, -4)
+    assert beyond_rounding(Decimal("1.234"), host, []) is beyond
 
 
 @pytest.mark.parametrize(
@@ -249,14 +256,14 @@ def test_beyond_rounding_near_ties(
         ("1", "1.5", [], False),
         ("-1", "-1.5001", [], True),
         (
-            "12345678901234567890123456789012345678",
-            "12345678901234567890123456789012345678.4999",
+            "1234567890123456789012345678901234",
+            "1234567890123456789012345678901234.4999",
             [],
             False,
         ),
         (
-            "12345678901234567890123456789012345678",
-            "12345678901234567890123456789012345678.5001",
+            "1234567890123456789012345678901234",
+            "1234567890123456789012345678901234.5001",
             [],
             True,
         ),
@@ -269,11 +276,38 @@ def test_beyond_rounding_written_ties(
     assert beyond_rounding(Decimal(stated), Decimal(host), shown) is beyond
 
 
-def test_beyond_rounding_exponent_spread_is_bounded() -> None:
-    assert beyond_rounding(Decimal("1E+1999999"), Decimal(0))
-    for stated, host in (("1E+2000000", "0"), ("0", "1E+2000000")):
-        with pytest.raises(decimal.Overflow):
-            beyond_rounding(Decimal(stated), Decimal(host))
+def test_domain_bounds_answer_exactly() -> None:
+    wide = Decimal("9" * 38)
+    assert beyond_rounding(Decimal("1E+200"), Decimal("1E-200"))
+    assert not beyond_rounding(Decimal("1E-200"), Decimal("1E-200"))
+    assert beyond_rounding(wide, Decimal("1E+200"))
+    assert not beyond_rounding(wide, wide, [wide])
+    # |1E+200 - 1E-200| is 200 + 200 places wide; half unit of 1E-200 is 5E-201.
+    assert half_unit([Decimal("1E-200")]).as_tuple() == Decimal("5E-201").as_tuple()
+    assert half_unit([Decimal("1E+200")]).as_tuple() == Decimal("0.5").as_tuple()
+    assert half_unit([wide]).as_tuple() == Decimal("0.5").as_tuple()
+
+
+@pytest.mark.parametrize(
+    "outside",
+    [
+        Decimal("1" * 39),
+        Decimal((0, (1,), 201)),
+        Decimal((0, (1,), -201)),
+        Decimal((0, (1,), -1000036)),
+    ],
+)
+def test_domain_refuses_outside_amounts(outside: Decimal) -> None:
+    good = Decimal(1)
+    for call_ in (
+        lambda: half_unit([outside]),
+        lambda: half_unit([good, outside]),
+        lambda: beyond_rounding(outside, good),
+        lambda: beyond_rounding(good, outside),
+        lambda: beyond_rounding(good, good, [outside]),
+    ):
+        with pytest.raises(ValueError):
+            call_()
 
 
 HOSTILE = [
@@ -468,12 +502,6 @@ def test_product_under_the_lowest_int_str_limit() -> None:
         sys.set_int_max_str_digits(old)
     assert result.amount is not None
     assert amount_text(result.amount) == "1"
-
-
-def test_half_unit_is_exact_or_refused() -> None:
-    with pytest.raises(decimal.DecimalException):
-        half_unit([Decimal((0, (1,), -1000036))])
-    assert half_unit([Decimal("1E-200")]).as_tuple() == Decimal("5E-201").as_tuple()
 
 
 @pytest.mark.parametrize("bad", [{val(Decimal(1))}, {1: 2}, iter([val(Decimal(1))]), "1", b"1"])

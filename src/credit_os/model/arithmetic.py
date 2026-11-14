@@ -24,9 +24,6 @@ def _first_missing(operands: Iterable[Value]) -> Value | None:
     return next((item for item in operands if item.missing is not None), None)
 
 
-_MAX_SPREAD = 2_000_000
-
-
 def _integer_parts(amount: Decimal) -> tuple[int, int]:
     """Signed coefficient and exponent of a finite Decimal as written."""
     sign, digits, exponent = amount.as_tuple()
@@ -117,26 +114,21 @@ def ratio(numerator: Value, denominator: Value, *, non_positive: str) -> Value:
         return Value(amount=top / bottom)
 
 
-def _exponent(amount: Decimal) -> int:
-    exponent = amount.as_tuple().exponent
-    if not isinstance(exponent, int):
-        raise TypeError("amount exponent must be an int")
-    return exponent
-
-
 def _decimals(amounts: Iterable[Decimal]) -> tuple[Decimal, ...]:
+    """Printed figures: finite, at most 38 digits, exponent -200..200 (so every answer is exact)."""
     checked = tuple(amounts)
     for amount in checked:
         if type(amount) is not Decimal:
             raise TypeError("every amount must be a Decimal")
-        if not amount.is_finite():
-            raise ValueError("every amount must be finite")
+        _, digits, exponent = amount.as_tuple()
+        if not isinstance(exponent, int) or len(digits) > 38 or not -200 <= exponent <= 200:
+            raise ValueError("every amount must be finite, at most 38 digits, exponent -200..200")
     return checked
 
 
 def half_unit(amounts: Iterable[Decimal]) -> Decimal:
     """Half a unit in the finest last place any of `amounts` is written to, at most 0.5."""
-    exponents = [_exponent(amount) for amount in _decimals(amounts)]
+    exponents = [_integer_parts(amount)[1] for amount in _decimals(amounts)]
     with decimal.localcontext(exact_context()):
         return _HALF.scaleb(min(min(exponents, default=0), 0))
 
@@ -151,8 +143,6 @@ def beyond_rounding(
     half = half_unit((stated, *places))
     (c1, e1), (c2, e2), (ch, eh) = (_integer_parts(d) for d in (*figures, half))
     floor = min(e1, e2, eh)
-    if max(e1, e2, eh) - floor > _MAX_SPREAD:
-        raise decimal.Overflow("exponents too far apart to compare exactly")
     gap: int = abs(c1 * 10 ** (e1 - floor) - c2 * 10 ** (e2 - floor))
     unit: int = ch * 10 ** (eh - floor)
     return gap > unit
