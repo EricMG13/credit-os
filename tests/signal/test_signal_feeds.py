@@ -606,3 +606,67 @@ def test_atom_published_takes_priority_over_updated() -> None:
     )
     (e,) = parse_feed(body)
     assert e.published == datetime(2026, 11, 1, 8, 0, tzinfo=UTC)
+
+
+# --- whole-branch review (S-3a), R17: block-level elements do not fuse in a summary ---
+
+
+def _summary_of(description: str) -> str:
+    item = (
+        "<title>t</title><link>https://e.org/a</link>"
+        f"<description><![CDATA[{description}]]></description>"
+    )
+    (e,) = parse_feed(_rss(item))
+    return e.summary
+
+
+@pytest.mark.parametrize(
+    ("description", "expected"),
+    [
+        (
+            "London, 13 November 2026<br/><br/>Example Ratings has downgraded Issuer SA to BB+.",
+            "London, 13 November 2026 Example Ratings has downgraded Issuer SA to BB+.",
+        ),
+        (
+            "<h2>Rating action</h2><p>Outlook revised to negative</p>",
+            "Rating action Outlook revised to negative",
+        ),
+        (
+            "<ul><li>Covenant breach</li><li>Liquidity shortfall</li></ul>",
+            "Covenant breach Liquidity shortfall",
+        ),
+        (
+            (
+                "<table><tr><th>Year</th><th>Leverage</th></tr>"
+                "<tr><td>2026</td><td>5.2x</td></tr></table>"
+            ),
+            "Year Leverage 2026 5.2x",
+        ),
+        (
+            "<p>Breaches reported in the year: 4</p><p>5 further cases are under review.</p>",
+            "Breaches reported in the year: 4 5 further cases are under review.",
+        ),
+        (
+            (
+                '<div class="body"><p>Consultation on liquidity reporting</p></div>'
+                '<div class="date">13 November 2026</div>'
+            ),
+            "Consultation on liquidity reporting 13 November 2026",
+        ),
+        (
+            (
+                "<section>One</section><article>Two</article><figure>Three</figure>"
+                "<figcaption>Four</figcaption><dl><dt>Five</dt><dd>Six</dd></dl>"
+            ),
+            "One Two Three Four Five Six",
+        ),
+        # controls: inline tags and blocks already separated by white space
+        (
+            "<p>Phase <b>two</b> of H<sub>2</sub>O and <b>B</b>old begins.</p>",
+            "Phase two of H2O and Bold begins.",
+        ),
+        ("<p>First paragraph.</p>\n<p>Second paragraph.</p>", "First paragraph. Second paragraph."),
+    ],
+)
+def test_block_level_elements_do_not_fuse_in_a_summary(description: str, expected: str) -> None:
+    assert _summary_of(description) == expected
