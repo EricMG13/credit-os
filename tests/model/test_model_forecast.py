@@ -5,6 +5,7 @@ import decimal
 import json
 from decimal import Context, Decimal
 from fractions import Fraction
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -13,13 +14,23 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from credit_os.model import forecast as fc
-from credit_os.model.forecast import Drivers, Operands, Shock, Year, forecast
+from credit_os.model.forecast import Drivers, Operands, Scheduled, Shock, Triple, Year, forecast
 from credit_os.model.value import Missing, MissingCode, Value, amount_text
 
 KEY = json.loads((Path(__file__).parent / "expected" / "pr2.json").read_text("utf-8"))
 CASES = KEY["cases"]
 DRIVER_NAMES = KEY["drivers"]
 OPERAND_NAMES = ("revenue", "debt", "cash", "undrawn")
+
+
+def three(values: Any) -> Triple:
+    a, b, c = values
+    return (a, b, c)
+
+
+def schedule_of(rows: Any) -> tuple[Scheduled, Scheduled, Scheduled]:
+    a, b, c = ((Decimal(x), Decimal(y)) for x, y in rows)
+    return (a, b, c)
 
 
 def build(item: Any) -> Value:
@@ -30,12 +41,12 @@ def build(item: Any) -> Value:
 
 def run_case(case: dict[str, Any]) -> tuple[dict[str, Value], tuple[Year, ...]]:
     given_operands = {name: build(case["operands"][name]) for name in OPERAND_NAMES}
-    drivers = Drivers(**{n: tuple(Decimal(t) for t in case["drivers"][n]) for n in DRIVER_NAMES})
+    drivers = Drivers(**{n: three(Decimal(t) for t in case["drivers"][n]) for n in DRIVER_NAMES})
     shock = Shock(*(Decimal(t) for t in case["shock"])) if "shock" in case else None
-    schedule = (
-        tuple((Decimal(a), Decimal(b)) for a, b in case["schedule"]) if "schedule" in case else None
+    schedule = schedule_of(case["schedule"]) if "schedule" in case else None
+    return given_operands, forecast(
+        Operands(**given_operands), drivers, shock=shock, schedule=schedule
     )
-    return given_operands, forecast(Operands(**given_operands), drivers, shock=shock, schedule=schedule)
 
 
 def check_case(case: dict[str, Any]) -> None:
@@ -51,11 +62,16 @@ def check_case(case: dict[str, Any]) -> None:
                 assert value.amount is not None, where
                 assert amount_text(value.amount) == expected, where
             elif isinstance(expected["missing"], str):
-                refused = Missing(MissingCode.ZERO_OR_NEGATIVE_DENOMINATOR, KEY["reasons"][expected["missing"]])
+                refused = Missing(
+                    MissingCode.ZERO_OR_NEGATIVE_DENOMINATOR, KEY["reasons"][expected["missing"]]
+                )
                 assert value == Value(missing=refused), where
             else:
-                carried = [v for v in operands.values() if v.missing is not None
-                           and v.missing.text == expected["missing"]["text"]]
+                carried = [
+                    v
+                    for v in operands.values()
+                    if v.missing is not None and v.missing.text == expected["missing"]["text"]
+                ]
                 assert len(carried) == 1
                 assert value is carried[0], where
 
@@ -111,6 +127,8 @@ D = Decimal
 def bad(value: Any) -> Any:
     """A deliberately wrongly typed argument."""
     return value
+
+
 TRIPLE = (D("0.1"), D("0.1"), D("0.1"))
 
 
@@ -132,7 +150,11 @@ def test_a_result_needing_more_than_38_digits_is_refused() -> None:
 SCHEDULE = ((D(1), D(2)), (D(1), D(2)), (D(1), D(2)))
 REFUSED: list[tuple[str, type[Exception], Any]] = [
     ("operands is a dict", TypeError, lambda: forecast(bad({}), good_drivers())),
-    ("operand is a bare Decimal", TypeError, lambda: Operands(bad(D(1)), *[Value(amount=D(1))] * 3)),
+    (
+        "operand is a bare Decimal",
+        TypeError,
+        lambda: Operands(bad(D(1)), *[Value(amount=D(1))] * 3),
+    ),
     ("drivers is a dict", TypeError, lambda: forecast(good_operands(), bad({}))),
     ("driver is a list", TypeError, lambda: good_drivers(dividends=bad([D(1)] * 3))),
     ("driver has two", ValueError, lambda: good_drivers(dividends=(D(1), D(1)))),
@@ -140,21 +162,81 @@ REFUSED: list[tuple[str, type[Exception], Any]] = [
     ("driver has a float", TypeError, lambda: good_drivers(dividends=bad((D(1), D(1), 1.5)))),
     ("driver has an int", TypeError, lambda: good_drivers(dividends=bad((D(1), D(1), 1)))),
     ("driver has NaN", ValueError, lambda: good_drivers(dividends=(D(1), D(1), D("NaN")))),
-    ("driver has Infinity", ValueError, lambda: good_drivers(dividends=(D(1), D(1), D("Infinity")))),
-    ("shock is a tuple", TypeError, lambda: forecast(good_operands(), good_drivers(), shock=bad((D(0), D(0))))),
+    (
+        "driver has Infinity",
+        ValueError,
+        lambda: good_drivers(dividends=(D(1), D(1), D("Infinity"))),
+    ),
+    (
+        "shock is a tuple",
+        TypeError,
+        lambda: forecast(good_operands(), good_drivers(), shock=bad((D(0), D(0)))),
+    ),
     ("shock has a float", TypeError, lambda: Shock(bad(0.2), D(0))),
     ("shock has an int", TypeError, lambda: Shock(D(0), bad(1))),
     ("shock has NaN", ValueError, lambda: Shock(D("NaN"), D(0))),
     ("shock has Infinity", ValueError, lambda: Shock(D(0), D("Infinity"))),
-    ("schedule is a list", TypeError, lambda: forecast(good_operands(), good_drivers(), schedule=bad(list(SCHEDULE)))),
-    ("schedule has two pairs", ValueError, lambda: forecast(good_operands(), good_drivers(), schedule=bad(SCHEDULE[:2]))),
-    ("schedule has four pairs", ValueError, lambda: forecast(good_operands(), good_drivers(), schedule=bad(SCHEDULE + SCHEDULE[:1]))),
-    ("schedule pair of three", ValueError, lambda: forecast(good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1),) * 3)))),
-    ("schedule pair is a list", TypeError, lambda: forecast(good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], [D(1), D(2)])))),
-    ("schedule has a float", TypeError, lambda: forecast(good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1), 2.5))))),
-    ("schedule has an int", TypeError, lambda: forecast(good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1), 2))))),
-    ("schedule has NaN", ValueError, lambda: forecast(good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D("NaN"), D(2)))))),
-    ("schedule has Infinity", ValueError, lambda: forecast(good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1), D("-Infinity")))))),
+    (
+        "schedule is a list",
+        TypeError,
+        lambda: forecast(good_operands(), good_drivers(), schedule=bad(list(SCHEDULE))),
+    ),
+    (
+        "schedule has two pairs",
+        ValueError,
+        lambda: forecast(good_operands(), good_drivers(), schedule=bad(SCHEDULE[:2])),
+    ),
+    (
+        "schedule has four pairs",
+        ValueError,
+        lambda: forecast(good_operands(), good_drivers(), schedule=bad(SCHEDULE + SCHEDULE[:1])),
+    ),
+    (
+        "schedule pair of three",
+        ValueError,
+        lambda: forecast(
+            good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1),) * 3))
+        ),
+    ),
+    (
+        "schedule pair is a list",
+        TypeError,
+        lambda: forecast(
+            good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], [D(1), D(2)]))
+        ),
+    ),
+    (
+        "schedule has a float",
+        TypeError,
+        lambda: forecast(
+            good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1), 2.5)))
+        ),
+    ),
+    (
+        "schedule has an int",
+        TypeError,
+        lambda: forecast(
+            good_operands(), good_drivers(), schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1), 2)))
+        ),
+    ),
+    (
+        "schedule has NaN",
+        ValueError,
+        lambda: forecast(
+            good_operands(),
+            good_drivers(),
+            schedule=bad((SCHEDULE[0], SCHEDULE[1], (D("NaN"), D(2)))),
+        ),
+    ),
+    (
+        "schedule has Infinity",
+        ValueError,
+        lambda: forecast(
+            good_operands(),
+            good_drivers(),
+            schedule=bad((SCHEDULE[0], SCHEDULE[1], (D(1), D("-Infinity")))),
+        ),
+    ),
 ]
 
 
@@ -165,7 +247,10 @@ def test_input_is_refused(row: str, error: type[Exception], act: Any) -> None:
 
 
 def test_good_inputs_run() -> None:
-    assert len(forecast(good_operands(), good_drivers(), shock=Shock(D(0), D(0)), schedule=SCHEDULE)) == 3
+    assert (
+        len(forecast(good_operands(), good_drivers(), shock=Shock(D(0), D(0)), schedule=SCHEDULE))
+        == 3
+    )
 
 
 # Properties: the oracle is Fraction arithmetic on the generated integers.
@@ -183,6 +268,8 @@ share = st.integers(0, 10_000)
 growth = st.integers(-10_000, 10_000)
 money = st.integers(0, 10**11 - 1)
 amount = st.integers(0, 999_999)
+
+
 def triple(s: Any) -> Any:
     return st.tuples(s, s, s)
 
@@ -205,15 +292,19 @@ def inputs(draw: Any) -> dict[str, Any]:
 def make(raw: dict[str, Any], *, shock: bool = False) -> tuple[Operands, Drivers, Shock | None]:
     operands = Operands(*(Value(amount=dec(n, 2)) for n in raw["operands"]))
     drivers = Drivers(
-        revenue_growth=tuple(dec(n, 4) for n in raw["growth"]),
-        ebitda_margin=tuple(dec(n, 4) for n in raw["margin"]),
-        capex_pct_revenue=tuple(dec(n, 4) for n in raw["capex"]),
-        tax_wc_pct_revenue=tuple(dec(n, 4) for n in raw["taxwc"]),
-        interest_rate=tuple(dec(n, 4) for n in raw["rate"]),
-        dividends=tuple(Decimal(n) for n in raw["dividends"]),
-        debt_repayment=tuple(Decimal(n) for n in raw["repayment"]),
+        revenue_growth=three(dec(n, 4) for n in raw["growth"]),
+        ebitda_margin=three(dec(n, 4) for n in raw["margin"]),
+        capex_pct_revenue=three(dec(n, 4) for n in raw["capex"]),
+        tax_wc_pct_revenue=three(dec(n, 4) for n in raw["taxwc"]),
+        interest_rate=three(dec(n, 4) for n in raw["rate"]),
+        dividends=three(Decimal(n) for n in raw["dividends"]),
+        debt_repayment=three(Decimal(n) for n in raw["repayment"]),
     )
-    return operands, drivers, (Shock(dec(raw["shock"][0], 4), dec(raw["shock"][1], 4)) if shock else None)
+    return (
+        operands,
+        drivers,
+        (Shock(dec(raw["shock"][0], 4), dec(raw["shock"][1], 4)) if shock else None),
+    )
 
 
 def amounts(year: Year) -> dict[str, Fraction]:
@@ -238,7 +329,7 @@ def test_years_chain_and_identities_hold(raw: dict[str, Any]) -> None:
     years = forecast(operands, drivers)
     assert years[0].opening_debt == operands.debt
     assert years[0].opening_cash == operands.cash
-    for before, after in zip(years, years[1:], strict=False):
+    for before, after in pairwise(years):
         assert after.opening_debt == before.closing_debt
         assert after.opening_cash == before.closing_cash
     assert years[0].undrawn == years[1].undrawn == years[2].undrawn == operands.undrawn
@@ -257,7 +348,10 @@ def test_years_chain_and_identities_hold(raw: dict[str, Any]) -> None:
 def close(value: Value, num: Fraction, den: Fraction) -> bool:
     if den <= 0:
         return value.missing is not None
-    return value.amount is not None and abs(Fraction(value.amount) - num / den) <= abs(num / den) / 10**37
+    return (
+        value.amount is not None
+        and abs(Fraction(value.amount) - num / den) <= abs(num / den) / 10**37
+    )
 
 
 @settings(max_examples=150, deadline=None)
@@ -277,12 +371,22 @@ def test_year_one_matches_the_formulas(raw: dict[str, Any], shocked: bool) -> No
     closing_cash = cash + fcf - raw["dividends"][0] - raw["repayment"][0]
     net_debt = closing_debt - closing_cash
     exact = {
-        "revenue": revenue, "ebitda": ebitda, "interest": interest, "tax_wc": tax_wc,
-        "capex": capex, "cfo": ebitda - interest - tax_wc, "fcf": fcf,
-        "opening_debt": debt, "repayment": Fraction(raw["repayment"][0]),
-        "closing_debt": closing_debt, "opening_cash": cash,
-        "dividends": Fraction(raw["dividends"][0]), "closing_cash": closing_cash,
-        "undrawn": undrawn, "liquidity": closing_cash + undrawn, "net_debt": net_debt,
+        "revenue": revenue,
+        "ebitda": ebitda,
+        "interest": interest,
+        "tax_wc": tax_wc,
+        "capex": capex,
+        "cfo": ebitda - interest - tax_wc,
+        "fcf": fcf,
+        "opening_debt": debt,
+        "repayment": Fraction(raw["repayment"][0]),
+        "closing_debt": closing_debt,
+        "opening_cash": cash,
+        "dividends": Fraction(raw["dividends"][0]),
+        "closing_cash": closing_cash,
+        "undrawn": undrawn,
+        "liquidity": closing_cash + undrawn,
+        "net_debt": net_debt,
     }
     for name, expected in exact.items():
         assert amounts(year)[name] == expected, name
@@ -294,7 +398,9 @@ def test_year_one_matches_the_formulas(raw: dict[str, Any], shocked: bool) -> No
 
 @settings(max_examples=150, deadline=None)
 @given(inputs(), st.booleans())
-def test_a_schedule_equal_to_the_drivers_changes_nothing(raw: dict[str, Any], shocked: bool) -> None:
+def test_a_schedule_equal_to_the_drivers_changes_nothing(
+    raw: dict[str, Any], shocked: bool
+) -> None:
     operands, drivers, shock = make(raw, shock=shocked)
     plain = forecast(operands, drivers, shock=shock)
     with decimal.localcontext(Context(prec=100)):
