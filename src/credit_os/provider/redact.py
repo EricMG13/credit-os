@@ -48,16 +48,27 @@ _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # one; "file:///home/<user>" is. The user name fails closed: it ends only at a character no such
 # name can hold, else at the line's end. On a Windows form that is a slash or a character Windows
 # reserves in a name (< > : " | ? *) or the line's end; on a POSIX form a "/", a ":" (the passwd
-# field separator) or the line's end. Prose after a name on the same line goes with it.
-_WIN_PREFIX = (
-    r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
-    r"[\\/]+|\\)"
+# field separator) or the line's end, and a backslash in it takes the rest of the line. On a
+# Windows form a run of backslashes straight before an apostrophe is a
+# written-out "\'" (repr, or JSON of a repr), not a separator: it stays in the name, unless the
+# run starts a UNC head (a host that begins with "'"). Prose after a name on the same line goes with it.
+# The output always covers at least what the fail-closed pattern (_HOME_PATH_PLAIN, main's at 54073086) matches:
+# the union of both patterns' spans is redacted, so no head that pattern finds can be hidden by a name.
+_UNC = r"\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+"
+_WIN_PREFIX = rf"(?P<win>(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z])[\\/]+|\\)"
+_HOME_DIRS = r"(?i:users|home|var[\\/]+home)"  # the one list of home folders
+_ROOT = rf"root(?!{_NAME})"
+_LEAD = r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+_HOME_PATH_PLAIN = re.compile(  # main's pattern at 54073086; its matches are always redacted
+    rf"{_LEAD}(?:{_WIN_PREFIX}|/)"
+    rf"(?:{_HOME_DIRS}[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+|{_ROOT})"
 )
 _HOME_PATH = re.compile(
-    r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
-    rf"(?:{_WIN_PREFIX}|/)"
-    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
-    rf"|root(?!{_NAME}))"
+    rf"{_LEAD}(?:{_WIN_PREFIX}|/)"
+    rf"(?:{_HOME_DIRS}(?(win)[\\/]++|[\\/]+)"
+    rf"(?(win)(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))"
+    r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
+    rf"|{_ROOT})"
 )
 
 
@@ -65,7 +76,8 @@ def home_paths(text: str) -> str:
     """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
     name that no slash or reserved character ends takes the rest of its line. It does not redact
     keys."""
-    return _HOME_PATH.sub("<home>", text)
+    spans = [m.span() for p in (_HOME_PATH, _HOME_PATH_PLAIN) for m in p.finditer(text)]
+    return _replace_spans(text, spans, "<home>")
 
 
 def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], marker: T) -> T:

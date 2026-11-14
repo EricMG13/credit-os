@@ -53,6 +53,47 @@ def test_home_paths_rows(text: str, expected: str) -> None:
         ("msg\\n\\\\fs01\\share\\Users\\jane\\x", "msg\\n<home>\\x"),
         ("C:\\Users\\Mary  O'Brien\\x", "<home>\\x"),
         ("\\\\home\\x\\Users\\ y", "<home>"),
+        # A written-out escaped apostrophe is part of the name, not a separator.
+        ("""'open "C:\\\\Users\\\\Pat O\\'Hara Jones" failed'""", """'open "<home>" failed'"""),
+        (
+            """'\\'open "C:\\\\\\\\Users\\\\\\\\Pat O\\\\\\'Hara Jones" failed\\''""",
+            """'\\'open "<home>" failed\\''""",
+        ),
+        ("""open "C:/Users/Pat O\\'Hara Jones" failed""", 'open "<home>" failed'),
+        (
+            """'open "\\\\\\\\srv\\\\share\\\\Users\\\\Pat O\\'Hara Jones" failed'""",
+            """'open "\\\\<home>" failed'""",
+        ),
+        (
+            """'open "\\\\\\\\?\\\\UNC\\\\srv\\\\share\\\\Users\\\\Pat O\\'Hara Jones" failed'""",
+            """'open "\\\\<home>" failed'""",
+        ),
+        ("open /mnt/c/Users/Pat O\\'Hara Jones failed", "open <home>"),
+        # JSON of a repr: exactly two backslashes before the apostrophe.
+        ("""'open "C:\\\\Users\\\\Pat O\\\\'Hara Jones" failed'""", """'open "<home>" failed'"""),
+        # A UNC host that starts with an apostrophe begins the next home path; its user goes too.
+        (
+            "C:\\Users\\mary\\'s \\\\'srv\\share\\Users\\bob smith\\x",
+            "<home><home>\\x",
+        ),
+        # The same, with the second head under var/home.
+        (
+            "C:\\Users\\mary\\'s \\\\'srv\\share\\var\\home\\bob smith\\x",
+            "<home><home>\\x",
+        ),
+        # A UNC head under a root folder begins the next home path; it goes too.
+        ("C:\\Users\\mary\\'s \\\\'srv\\share\\root\\x", "<home><home>\\x"),
+        # A drive head inside the name after the run begins its own home path.
+        ("C:\\Users\\mary\\'s D:/Users/x \\\\h/s/Users/bob", "<home>"),
+        ("C:\\Users\\mary\\'s D:\\Users\\bob", "<home>"),
+        # Without the written-out apostrophe: the base's output.
+        ("C:\\Users\\mary D:\\Users\\bob", "<home>:<home>"),
+        # POSIX heads: a backslash in the name takes the rest of the line (main's rule).
+        ("/home/\\:x", "<home>"),
+        ("/Users\\\\:y", "<home>"),
+        ("/var/home/\\:z", "<home>"),
+        # A real separator still ends the name (same as the base's output).
+        ("C:\\Users\\mary\\Documents\\x", "<home>\\Documents\\x"),
     ],
 )
 def test_home_paths_mutation_rows(text: str, expected: str) -> None:
@@ -166,3 +207,15 @@ def test_no_word_of_a_home_name_survives(
         w for w in words if len(w) > 1 and w not in lead + prefix and w not in tail and w in out
     ]
     assert kept == []
+
+
+def test_home_path_plain_is_mains_pattern() -> None:
+    # main's compiled pattern at 54073086, verbatim: the fail-closed floor must not drift silently.
+    base = (
+        r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+        r"(?:(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
+        r"[\\/]+|\\)|/)"
+        r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
+        r"|root(?![^\s\\/:*?\"'<>|(),;]))"
+    )
+    assert redact._HOME_PATH_PLAIN.pattern == base
