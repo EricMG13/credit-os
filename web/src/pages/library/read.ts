@@ -9,6 +9,7 @@ import type {
   LibrarySlice,
   RunState,
 } from "./slice";
+import { APPLIED_LABELS } from "./slice";
 
 type Rec = Record<string, unknown>;
 
@@ -103,8 +104,6 @@ export function cell(o: Rec, key: string, path: string): Cell {
 }
 
 const RUN_STATES = Object.keys(STATUS_SETS["Run states"]) as RunState[];
-// None, the search alone, and the search with each of the three selects.
-const APPLIED_LABELS = 5;
 
 function readProgress(value: unknown, path: string): IssuerCard["progress"] {
   const p = rec(value, path);

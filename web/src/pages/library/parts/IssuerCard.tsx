@@ -40,14 +40,29 @@ export function IssuerCard({ card }: { card: IssuerCardData }) {
   );
 }
 
+const SKEL = "bg-surface-subtle rounded-ds-xs";
+
 /** A card whose issuer has not arrived: static blocks in its shape, marked busy. */
 export function LoadingCard() {
   return (
     <div role="group" aria-busy="true" aria-label="Loading issuer" className={CARD}>
-      <Skeleton lines={1} />
+      <div aria-hidden="true" className="flex items-start justify-between gap-3">
+        <div className="flex w-full flex-col gap-2">
+          <div className={`${SKEL} h-6 w-[70%]`} />
+          <div className={`${SKEL} h-4 w-[40%]`} />
+        </div>
+        <div className="h-[22px] w-[84px] shrink-0 rounded-full bg-surface-subtle" />
+      </div>
       <Skeleton lines={3} />
-      <div className="mt-auto border-t border-border-hairline pt-5">
-        <Skeleton lines={1} />
+      <div
+        aria-hidden="true"
+        className="mt-auto flex flex-col gap-3.5 border-t border-border-hairline pt-5"
+      >
+        <div className="flex gap-2">
+          <div className="h-[22px] w-[110px] rounded-full bg-surface-subtle" />
+          <div className="h-[22px] w-20 rounded-full bg-surface-subtle" />
+        </div>
+        <div className={`${SKEL} h-2 w-full`} />
       </div>
     </div>
   );
