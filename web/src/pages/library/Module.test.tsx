@@ -1054,6 +1054,9 @@ describe("Module, the debt stack, maturities and headroom tables", () => {
       "Debt stack",
       "Maturities by year",
       "Headroom against covenant and rating triggers",
+      "Liquidity walk, June to September 2026",
+      "Leverage and margin against peers",
+      "Interest cover against the peer range",
       "Facility terms",
     ].map((t) => headings.indexOf(t));
     expect(order).not.toContain(-1);
@@ -1087,6 +1090,113 @@ describe("Module, the debt stack, maturities and headroom tables", () => {
   });
 });
 
+describe("Module, the liquidity walk and the peer tables", () => {
+  const card = (name: string) => region(name);
+  const rowsOf = (name: string) =>
+    within(within(card(name)).getByRole("table", { name }))
+      .getAllByRole("row")
+      .map((r) => [...r.children].map((c) => c.textContent));
+  const notes = (name: string) => [...card(name).querySelectorAll("p")].map((p) => p.textContent);
+  const WALK = "Liquidity walk, June to September 2026";
+  const SCATTER = "Leverage and margin against peers";
+  const RANGE = "Interest cover against the peer range";
+
+  it("draws the liquidity walk as its table, the totals as the module wrote them", () => {
+    renderModule("capital-structure");
+    expect(rowsOf(WALK)).toEqual([
+      ["Step", "Effect", "USD m"],
+      ["30 Jun 2026", "Total", "455"],
+      ["Free cash flow", "Inflow", "+96"],
+      ["Purchase", "Outflow", "\u2212140"],
+      ["Dividends", "Outflow", "\u221220"],
+      ["Other", "Inflow", "+21"],
+      ["30 Sep 2026", "Total", "412"],
+    ]);
+    expect(notes(WALK)).toEqual(["USD m"]);
+    const wrapper = within(card(WALK)).getByRole("table").parentElement
+      ?.parentElement as HTMLElement;
+    expect(wrapper.className).toContain("[&_tbody_tr:nth-child(1)>*]:font-semibold");
+    expect(wrapper.className).toContain("[&_tbody_tr:nth-child(6)>*]:font-semibold");
+    expect(wrapper.className).not.toContain("nth-child(2)>*");
+    expect(wrapper.className).toContain("[&_tr>:nth-child(2)]:text-left");
+  });
+
+  it("draws the peer scatter with Peer E's margin as n.a. and the delivered not-plotted footnote", () => {
+    renderModule("capital-structure");
+    expect(rowsOf(SCATTER)).toEqual([
+      ["Company", "Net leverage", "EBITDA margin, %"],
+      ["Halden", "4.6x", "23.1"],
+      ["Peer A", "3.2x", "19.6"],
+      ["Peer B", "3.7x", "18.0"],
+      ["Peer C", "4.2x", "16.0"],
+      ["Peer D", "5.2x", "14.4"],
+      ["Peer E", "3.5x", "n.a.not available"],
+    ]);
+    expect(notes(SCATTER)).toEqual([
+      "Five listed peers, latest financial year",
+      "Not plotted: Peer E (margin n.a.)",
+    ]);
+  });
+
+  it("draws the peer range with the secured leverage band as n.a. and the delivered sentence", () => {
+    renderModule("capital-structure");
+    expect(rowsOf(RANGE)).toEqual([
+      ["Measure", "Peer low", "Peer high", "Halden"],
+      ["Interest cover", "2.1x", "5.8x", "2.4x"],
+      ["Secured leverage", "n.a.not available", "n.a.not available", "3.3x"],
+    ]);
+    expect(notes(RANGE)).toEqual(["Near the bottom of the range: only one peer is lower."]);
+  });
+
+  it("opens each block's own drawer from its one trace control", () => {
+    renderModule("capital-structure");
+    for (const [name, label, title] of [
+      [
+        WALK,
+        "Show sources for the liquidity walk",
+        "Sources for the liquidity walk in this module",
+      ],
+      [SCATTER, "Show sources for the peer scatter", "Sources for the peer scatter in this module"],
+      [RANGE, "Show sources for the peer range", "Sources for the peer range in this module"],
+    ] as const) {
+      const buttons = within(card(name)).getAllByRole("button");
+      expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([label]);
+      fireEvent.click(buttons[0] as HTMLElement);
+      expect(screen.getByRole("dialog", { name: title })).toBeVisible();
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    }
+  });
+
+  it("sets the scatter and the range side by side from 1200px, stacked below, and the rest alone", () => {
+    renderModule("capital-structure");
+    const row = card(RANGE).parentElement as HTMLElement;
+    expect(row).toHaveClass("grid", "grid-cols-1", "gap-6", "min-[1200px]:grid-cols-2");
+    expect(card(SCATTER).parentElement?.parentElement).toBe(row);
+    for (const name of ["Debt stack", "Maturities by year", WALK]) {
+      const around = card(name).parentElement as HTMLElement;
+      expect(around.className).not.toContain("grid-cols-2");
+      expect(around.parentElement?.className).not.toContain("grid-cols-2");
+    }
+  });
+
+  it("keeps the run consistent: the tables read as the headline figures and the statement do", () => {
+    renderModule("capital-structure");
+    const page = document.body.textContent;
+    const total = (name: string, label: string, column: number) => {
+      const row = rowsOf(name).find((r) => r[0] === label);
+      return row?.[column];
+    };
+    expect(total(WALK, "30 Sep 2026", 2)).toBe("412");
+    expect(within(region("Measures and their consequence")).getByText("USD 412m")).toBeVisible();
+    expect(total(SCATTER, "Halden", 1)).toBe("4.6x");
+    expect(total(RANGE, "Secured leverage", 3)).toBe("3.3x");
+    expect(total("Maturities by year", "2028", 2)).toBe("310");
+    expect(page).toContain("USD 310m unsecured notes");
+    expect(card("Debt stack")).toHaveTextContent("USD 2,398m gross debt at 30 Sep 2026");
+    expect(total("Debt and leverage by year", "Gross debt", 5)).toBe("2,398");
+  });
+});
+
 describe("Module, the hedge expiries gap", () => {
   const hedges = () => region("Hedge expiries");
 
@@ -1117,6 +1227,9 @@ describe("Module, the data module as a whole", () => {
       "Show sources for the debt stack",
       "Show sources for maturities",
       "Show sources for headroom",
+      "Show sources for the liquidity walk",
+      "Show sources for the peer scatter",
+      "Show sources for the peer range",
       ...Array<string>(7).fill("Show sources for this fact"),
       ...Array<string>(3).fill("Show sources for this limitation"),
     ]);
@@ -1127,7 +1240,7 @@ describe("Module, the data module as a whole", () => {
     const toggle = screen.getByRole<HTMLInputElement>("switch", { name: "Show sources" });
     if (!toggle.checked) fireEvent.click(toggle);
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
-    expect(sourceButtons()).toHaveLength(26);
+    expect(sourceButtons()).toHaveLength(29);
   });
 
   it("opens the drawer of the bottom line, a finding and a limitation by their own traces", () => {
@@ -1136,7 +1249,7 @@ describe("Module, the data module as a whole", () => {
     for (const [index, title] of [
       [0, "Sources for the capital structure bottom line"],
       [3, "Sources for the capacity finding"],
-      [25, "Sources for the lease schedule limitation"],
+      [28, "Sources for the lease schedule limitation"],
     ] as const) {
       fireEvent.click(buttons[index] as HTMLElement);
       expect(screen.getByRole("dialog", { name: title })).toBeVisible();
@@ -1159,6 +1272,8 @@ describe("Module, the navigator of the data module", () => {
     for (const [entry, heading] of [
       ["Debt stack and maturities", "Debt stack"],
       ["Headroom", "Headroom against covenant and rating triggers"],
+      ["Liquidity walk", "Liquidity walk, June to September 2026"],
+      ["Against peers", "Leverage and margin against peers"],
       ["Terms and tests", "Facility terms"],
       ["Hedges", "Hedge expiries"],
     ] as const) {
@@ -1180,6 +1295,8 @@ describe("Module, the navigator of the data module", () => {
       "Headline figures",
       "Debt stack and maturities",
       "Headroom",
+      "Liquidity walk",
+      "Against peers",
       "Terms and tests",
       "Hedges",
       "Limitations",
