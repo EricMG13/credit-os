@@ -4,6 +4,75 @@
       {
         "issuer": "transdigm",
         "run": "2025-06-30",
+        "portfolioFit": {
+          "limits": {
+            "title": "Exposure against limits",
+            "subtitle": "Share of the portfolio after the proposed position; each limit on its own scale",
+            "note": "No country limit is set (limit n.a.). Exposure to subordinated debt was not measured, so no bar is drawn.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "head": ["Limit", "Exposure", "Limit"],
+            "columns": [
+              {
+                "label": "Single issuer",
+                "exposure": 2.1,
+                "limit": 3,
+                "scaleMax": 3.75,
+                "exposureText": "2.1%",
+                "limitText": "limit 3.0%",
+                "cells": ["2.1%", "3.0%"]
+              },
+              {
+                "label": "Aerospace and defence",
+                "exposure": 9.4,
+                "limit": 12,
+                "scaleMax": 15,
+                "exposureText": "9.4%",
+                "limitText": "limit 12.0%",
+                "cells": ["9.4%", "12.0%"]
+              },
+              {
+                "label": "Rated single B",
+                "exposure": 31,
+                "limit": 35,
+                "scaleMax": 43.75,
+                "exposureText": "31.0%",
+                "limitText": "limit 35.0%",
+                "cells": ["31.0%", "35.0%"]
+              },
+              {
+                "label": "United States",
+                "exposure": 58,
+                "limit": null,
+                "scaleMax": 83,
+                "exposureText": "58.0%",
+                "limitText": null,
+                "cells": ["58.0%", null]
+              },
+              {
+                "label": "Subordinated debt",
+                "exposure": null,
+                "limit": 10,
+                "scaleMax": 12.5,
+                "exposureText": null,
+                "limitText": "limit 10.0%",
+                "cells": [null, "10.0%"]
+              }
+            ]
+          },
+          "ratings": {
+            "title": "Agency ratings",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "tiles": [
+              { "label": "Moody's, corporate family", "value": "B1", "caption": "Stable outlook" },
+              { "label": "S&P, issuer credit", "value": "B+", "caption": "Stable outlook" }
+            ]
+          },
+          "relativeValue": {
+            "title": "Relative value",
+            "part": "Spread against holdings",
+            "reason": "The pricing comparison failed in this run, so the spread paid for this risk could not be set against the rest of the portfolio."
+          }
+        },
         "header": {
           "issuerName": "TransDigm Group",
           "asOf": "As of 30 June 2025",
