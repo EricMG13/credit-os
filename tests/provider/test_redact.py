@@ -1,6 +1,8 @@
 """Redaction tests, compared with the controller's answer key (provider_redaction_key)."""
 
 import ast
+import json
+from collections.abc import Callable
 from pathlib import Path
 
 import provider_redaction_key as key
@@ -148,6 +150,85 @@ def test_forward_slash_unc_rows(text: str, expected: str) -> None:
 )
 def test_forward_slash_unc_leaves_non_unc_unchanged(text: str, expected: str) -> None:
     assert home_paths(text) == expected
+
+
+# The forward-slash UNC form's own pattern must never hide a Windows head the base finds: where its
+# separator run swallows the start of a second head, the union still redacts the second head's name.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('open "//h/s/Users/\\Users\\Pat O\\\'Hara Jones" failed', 'open "<home>" failed'),
+        ("//h/s/Users/\\\\v\\s\\Users\\Pat O\\'Hara Jones", "<home>"),
+        ("//h/s/Users//mnt/c/Users/Pat O\\'Hara Jones", "<home>"),
+        ("/\\h/s/USERS\\\\var\\home\\Pat O\\'Hara Jones", "<home>"),
+        ("//h/s/home\\\\Users\\Pat O\\'Hara Jones", "<home>"),
+    ],
+)
+def test_forward_slash_unc_never_hides_a_second_head(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# A UNC file URL with an empty authority (four or more slashes after "file:"), any case, straight
+# after a written-out "\n"; "file" must be the whole scheme.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("file:////srv/share/Users/Bo Lu/x.txt", "file:<home>/x.txt"),
+        ("file://///srv/share/Users/Bo Lu/x.txt", "file:<home>/x.txt"),
+        ('open "file:////srv/share/Users/Bo Lu" failed', 'open "file:<home>" failed'),
+        ("file:////srv/share/home/Bo Lu", "file:<home>"),
+        ("FILE://srv/share/Users/Bo Lu", "FILE:<home>"),
+        ("File://srv/share/Users/Bo Lu", "File:<home>"),
+        ("msg\\nfile://srv/share/Users/Bo Lu", "msg\\nfile:<home>"),
+        # Not the whole scheme, or a POSIX file path: unchanged from the base.
+        ("vscode-file://vscode-app/c:/Users/Bo/x", "vscode-file://vscode-app/<home>/x"),
+        ("x-file://srv/share/Users/Bo", "x-file://srv/share/Users/Bo"),
+        ("my.file://srv/share/home/Bo", "my.file://srv/share/home/Bo"),
+        ("file:///srv/share/Users/Bo", "file:///srv/share/Users/Bo"),
+    ],
+)
+def test_forward_slash_unc_file_urls(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# The written-out forms of a forward-slash-led UNC home (repr, JSON of repr) and the mixed leads.
+@pytest.mark.parametrize(
+    "head",
+    [
+        "//srv/share/Users/",
+        "\\/srv/share/Users/",
+        "/\\srv\\share\\Users\\",
+        "//srv\\share\\Users\\",
+    ],
+)
+@pytest.mark.parametrize(
+    ("wrap", "expected"),
+    [
+        (lambda s: s, 'open "<home>" failed'),
+        (repr, "'open \"<home>\" failed'"),
+        (lambda s: json.dumps(repr(s)), '"\'open \\"<home>\\" failed\'"'),
+        (lambda s: repr(repr(s)), "'\\'open \"<home>\" failed\\''"),
+    ],
+)
+def test_forward_slash_unc_written_out_forms(
+    head: str, wrap: Callable[[str], str], expected: str
+) -> None:
+    assert home_paths(wrap(f'open "{head}Pat O\'Hara Jones" failed')) == expected
+
+
+def test_home_path_is_the_bases_pattern() -> None:
+    # the base's (52adbcac) compiled pattern, verbatim: the forward-slash form has its own pattern
+    base = (
+        r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+        r"(?:(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
+        r"[\\/]+|\\)|/)"
+        r"(?:(?i:users|home|var[\\/]+home)(?(win)[\\/]++|[\\/]+)"
+        r"(?(win)(?!\\*\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+[\\/]+"
+        r"(?:(?i:users|home|var[\\/]+home)[\\/]|root(?![^\s\\/:*?\"'<>|(),;])))"
+        r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
+        r"|root(?![^\s\\/:*?\"'<>|(),;]))"
+    )
+    assert redact._HOME_PATH.pattern == base
 
 
 def test_lone_surrogate_value_does_not_raise_and_its_encodable_forms_match() -> None:
