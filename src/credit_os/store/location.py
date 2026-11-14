@@ -61,7 +61,10 @@ def _make_folder(folder: Path) -> None:
             break
         missing.append(candidate)
     for candidate in reversed(missing):  # one by one: parents get 0o700 too
-        candidate.mkdir(mode=0o700, exist_ok=True)
+        try:
+            candidate.mkdir(mode=0o700)
+        except FileExistsError:
+            continue  # there already (a `..` made it so, or another process): left as found
         candidate.chmod(0o700)  # the umask may have narrowed the mode
     _check_folder(folder)
 

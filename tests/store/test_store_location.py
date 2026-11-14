@@ -254,3 +254,48 @@ def test_losing_the_creation_race_leaves_the_other_files_mode(
     monkeypatch.setattr(location, "_exists", lambda path: False)  # the file appears after lstat
     location.prepare(tmp_path)
     assert _state(tmp_path).stat().st_mode & 0o777 == 0o644
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("tail", "state_made"),
+    [
+        (("new", "..", "state"), True),
+        (("new", ".."), False),
+        (("state",), True),
+    ],
+    ids=["dotdot-child", "dotdot-self", "control"],
+)
+def test_prepare_changes_the_mode_only_of_folders_it_created(
+    tail: tuple[str, ...], state_made: bool, tmp_path: Path
+) -> None:
+    kept = tmp_path / "kept"
+    kept.mkdir()
+    kept.chmod(0o755)
+    location.prepare(kept.joinpath(*tail))
+    assert kept.stat().st_mode & 0o777 == 0o755
+    if state_made:
+        assert (kept / "state").stat().st_mode & 0o777 == 0o700
+
+
+def test_a_read_that_the_system_denies_is_unusable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _state(tmp_path).write_bytes(_header())
+
+    def denied(*args: Any, **kwargs: Any) -> None:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(Path, "open", denied)
+    with pytest.raises(StoreUnusable):
+        location.locate(tmp_path)
+
+
+def test_a_folder_the_system_cannot_resolve_is_unusable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def denied(*args: Any, **kwargs: Any) -> None:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(Path, "resolve", denied)
+    _both_raise(StoreUnusable, tmp_path)
