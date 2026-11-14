@@ -8,6 +8,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
 import { classProblems, focusOutlineProblems } from "./classes.mjs";
+import { checkKitInChrome } from "./kit-chrome.mjs";
 import { checkRoutes } from "./route-visits.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
@@ -204,6 +205,7 @@ try {
   writeFileSync(dataFile, populated);
   results.push(check("data.js with one issuer", browser, folder, "TransDigm"));
   writeFileSync(dataFile, original);
+  results.push(await checkKitInChrome({ browser, folder }));
   results.push(checkRoutes({ browser, folder, work, dumpPage, problems }));
   results.push(canary(browser, folder, work));
   allOk = results.every(Boolean);

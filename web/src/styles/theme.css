@@ -229,7 +229,7 @@
   --ring-color-secondary: var(--color-border-subtle);
   --border-color-secondary: var(--color-border-hairline);
 
-  /* Input and select: focus ring (the focus token), invalid ring (error mark, at rest and focused: an edge on white needs 3:1), the placeholder, the error text and the icon colours, the popover's ring */
+  /* Input and select: focus ring (the focus token), invalid ring at rest only (error mark: an edge on white needs 3:1; focused, the field draws the focus token), the placeholder, the error text and the icon colours, the popover's ring */
   --ring-color-brand: var(--color-focus);
   --ring-color-focus-ring: var(--color-focus);
   --ring-color-error: var(--color-error-mark);

@@ -394,6 +394,7 @@ export function Kit() {
         </h2>
         <TrendChart
           title="Debt by period"
+          as="h3"
           note="Sample figures in millions. Gross debt is missing for FY23."
           periods={PERIODS}
           series={TREND.series}
@@ -402,6 +403,7 @@ export function Kit() {
         />
         <TrendChart
           title="Eight series"
+          as="h3"
           note="The seventh and later series take the Other style."
           periods={PERIODS}
           series={FOLDED.series}

@@ -189,8 +189,9 @@ export const Button = ({
         styles.colors[color].root,
         isLinkType && styles.sizes[size].linkRoot,
         loading && "pointer-events-none",
-        // If in `loading` state, hide everything except the loading icon.
-        loading && "[&>*:not([data-icon=loading])]:invisible",
+        // If in `loading` state, hide everything except the loading icon. Opacity, not visibility:
+        // hidden text names nothing in Chrome, and the label is the button's name.
+        loading && "[&>*:not([data-icon=loading])]:opacity-0",
         className,
       )}
     >

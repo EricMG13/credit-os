@@ -26,6 +26,8 @@ interface TableRow {
 
 interface TrendChartProps {
   title: string;
+  /** The title's heading level; h4 unless the chart sits directly under a section's h2. */
+  as?: "h3" | "h4";
   note?: string;
   /** Oldest first: the x-axis. */
   periods: string[];
@@ -145,7 +147,7 @@ function check({ periods, series, table }: Pick<TrendChartProps, "periods" | "se
   }
 }
 
-function Chart({ title, periods, series, table, yTicks }: Omit<TrendChartProps, "note">) {
+function Chart({ title, periods, series, table, yTicks }: Omit<TrendChartProps, "note" | "as">) {
   const styles = assignSeries(series.map((s) => s.name));
   const data = periods.map((period, index) => ({
     period,
@@ -239,10 +241,10 @@ function DataTable({
 }
 
 /** A line chart over periods, with the Chart or Table toggle on the same data. */
-export function TrendChart({ title, note, periods, series, table, yTicks }: TrendChartProps) {
+export function TrendChart({ title, as, note, periods, series, table, yTicks }: TrendChartProps) {
   check({ periods, series, table });
   return (
-    <ChartFrame title={title} note={note}>
+    <ChartFrame title={title} as={as} note={note}>
       {(view) =>
         view === "chart" ? (
           <Chart title={title} periods={periods} series={series} table={table} yTicks={yTicks} />

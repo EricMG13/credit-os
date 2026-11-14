@@ -71,8 +71,8 @@ export const Input = ({
                 "group-invalid:ring-error_subtle",
 
                 // Invalid state with focus-within styles
-                isInvalid && isFocusWithin && "ring-2 ring-error",
-                isFocusWithin && "group-invalid:ring-2 group-invalid:ring-error",
+                isInvalid && isFocusWithin && "ring-2 ring-brand",
+                isFocusWithin && "group-invalid:ring-2 group-invalid:ring-brand",
               )
             }
           >
