@@ -50,6 +50,9 @@ def test_home_paths_rows(text: str, expected: str) -> None:
         ("C:\\Users\\Jane Doe: next", "<home>: next"),
         ("msg\\r/home/jane/x", "msg\\r<home>/x"),
         ("msg\\t/home/jane/x", "msg\\t<home>/x"),
+        ("msg\\n\\\\fs01\\share\\Users\\jane\\x", "msg\\n<home>\\x"),
+        ("C:\\Users\\Mary  O'Brien\\x", "<home>\\x"),
+        ("\\\\home\\x\\Users\\ y", "\\<home>\\Users\\ y"),
     ],
 )
 def test_home_paths_mutation_rows(text: str, expected: str) -> None:
