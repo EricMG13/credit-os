@@ -1,7 +1,8 @@
 """Public-address checks and the pinned connection of Signal's feed fetcher.
 
-Expected values are written by hand. No test opens a network connection: sockets are
-`socket.socketpair` ends (in-process, no address) and resolution is made to fail loudly.
+Expected values are written by hand. No test connects to a remote address: sockets are
+`socket.socketpair` ends (in-process; loopback at most, as on Windows) and resolution is made to
+fail loudly.
 """
 
 import http.client
@@ -276,6 +277,8 @@ def tables_call_everything_global(monkeypatch: pytest.MonkeyPatch) -> None:
         "192.0.0.8",
         "192.0.0.255",
         "::ffff:192.0.0.8",
+        "192.0.0.11",
+        "::ffff:192.0.0.11",
         "2606:4700::0:5efe:c000:8",
         "3fff::1",
         "3fff:fff:ffff:ffff:ffff:ffff:ffff:ffff",
@@ -289,7 +292,16 @@ def test_the_explicit_ranges_refuse_whatever_the_interpreters_tables_say(
 
 @pytest.mark.parametrize(
     "address",
-    ["192.0.0.9", "192.0.0.10", "::ffff:192.0.0.10", "8.8.8.8", "2003::1", "3fff:1000::1"],
+    [
+        "192.0.0.9",
+        "192.0.0.10",
+        "::ffff:192.0.0.10",
+        "192.0.1.0",
+        "191.255.255.255",
+        "8.8.8.8",
+        "2003::1",
+        "3fff:1000::1",
+    ],
 )
 def test_the_explicit_ranges_still_pass_the_public_addresses(
     tables_call_everything_global: None, address: str
@@ -352,6 +364,7 @@ class Wire:
     wrap_error: BaseException | None = None
     clock: Clock | None = None
     connect_takes: float = 0.0
+    wrapped: list[socket.socket] = field(default_factory=list)
 
     def create_connection(self, address: tuple[str, int], timeout: float) -> socket.socket:
         self.connects.append((address, timeout))
@@ -365,7 +378,10 @@ class Wire:
         self.handshake_timeouts.append(sock.gettimeout())
         if self.wrap_error is not None:
             raise self.wrap_error
-        return sock
+        # a real wrap_socket detaches the socket it is given and returns another object
+        tls = socket.socket(fileno=sock.detach())
+        self.wrapped.append(tls)
+        return tls
 
     def context(self, monkeypatch: pytest.MonkeyPatch) -> ssl.SSLContext:
         context = tls_context()
@@ -385,6 +401,8 @@ def wire(monkeypatch: pytest.MonkeyPatch) -> Iterator[Wire]:
     for name in ("getaddrinfo", "gethostbyname", "gethostbyname_ex"):
         monkeypatch.setattr(socket, name, _refuse_lookup)
     yield carried
+    for tls in carried.wrapped:
+        tls.close()
     client.close()
     peer.close()
 
@@ -535,6 +553,37 @@ def test_connect_leaves_a_budgeted_socket(wire: Wire, monkeypatch: pytest.Monkey
     assert isinstance(connection.sock, netpin._BudgetedSocket)
 
 
+def test_the_request_goes_over_the_socket_the_handshake_returned(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connection = _connection(wire, monkeypatch, Clock())
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert len(wire.wrapped) == 1
+    assert wire.wrapped[0] is not wire.client
+    assert wire.client.fileno() == -1  # detached, as by a real wrap_socket
+    assert wire.peer.recv(4096) == b"GET / HTTP/1.1\r\nHost: feeds.example.org\r\n\r\n"
+
+
+def test_the_connections_operations_carry_the_per_operation_timeout(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connection = _connection(wire, monkeypatch, Clock(), timeout=3.0)
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert wire.wrapped[0].gettimeout() == 3.0
+
+
+def test_an_answer_read_after_the_total_time_is_spent_is_refused(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = Clock()
+    connection = _connection(wire, monkeypatch, clock)
+    connection.request("GET", "/", headers={"Host": HOST})
+    wire.peer.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nlate")
+    clock.now = 100.0  # the deadline
+    with pytest.raises(TimeoutError, match="total time"):
+        connection.getresponse()
+
+
 def test_a_request_sends_exactly_the_given_headers_and_the_answer_is_read(
     wire: Wire, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -646,17 +695,11 @@ def test_every_send_and_receive_is_bounded_by_the_per_operation_timeout(wire: Wi
     budget.sendall(b"abc")
     assert wire.client.gettimeout() == 5.0
     assert wire.peer.recv(3) == b"abc"
-    wire.client.settimeout(None)
-    assert budget.send(b"d") == 1
-    assert wire.client.gettimeout() == 5.0
     wire.peer.sendall(b"hello!")
-    wire.client.settimeout(None)
-    assert budget.recv(5) == b"hello"
-    assert wire.client.gettimeout() == 5.0
     wire.client.settimeout(None)
     buffer = bytearray(1)
     assert budget.recv_into(buffer, 1) == 1
-    assert bytes(buffer) == b"!"
+    assert bytes(buffer) == b"h"
     assert wire.client.gettimeout() == 5.0
 
 
@@ -671,9 +714,7 @@ def test_with_the_total_time_spent_no_operation_touches_the_socket(wire: Wire, n
     budget = _budgeted(wire, Clock(now))
     buffer = bytearray(1)
     operations: list[Callable[[], object]] = [
-        lambda: budget.recv(1),
         lambda: budget.recv_into(buffer, 1),
-        lambda: budget.send(b"x"),
         lambda: budget.sendall(b"x"),
     ]
     for operation in operations:
@@ -687,7 +728,7 @@ def test_with_the_total_time_spent_no_operation_touches_the_socket(wire: Wire, n
 def test_a_silent_peer_times_out_after_the_per_operation_timeout(wire: Wire) -> None:
     budget = _budgeted(wire, Clock(0.0), timeout=0.05)
     with pytest.raises(TimeoutError):
-        budget.recv(1)
+        budget.recv_into(bytearray(1), 1)
 
 
 def test_makefile_reads_binary_only(wire: Wire) -> None:

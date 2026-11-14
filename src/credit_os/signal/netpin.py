@@ -1,6 +1,6 @@
 """Public-address checks and a pinned, deadline-bounded https connection for Signal's fetcher.
 
-Carried from the predecessor's ``research/webfetch.py`` (commit aebec97): only what Signal's
+Carried from ``research/webfetch.py`` of the predecessor repository: only what Signal's
 feed fetcher uses. A leaf: it imports nothing from ``credit_os`` and reads no settings.
 
 ``is_public`` says whether an address may be connected to. ``pinned_connection`` connects to the
@@ -20,6 +20,8 @@ from typing import Any, Protocol, cast
 
 @dataclass(frozen=True)
 class ConnectionTarget:
+    """``deadline`` is an absolute reading of ``clock``; ``timeout`` is a per-operation length."""
+
     host: str
     ip: str
     port: int
@@ -34,6 +36,8 @@ class ResponseLike(Protocol):
     def getheader(self, name: str, /) -> str | None: ...
 
     def read(self, amt: int) -> bytes: ...
+
+    def close(self) -> None: ...
 
 
 class ConnectionLike(Protocol):
@@ -124,14 +128,6 @@ class _BudgetedSocket:
     def recv_into(self, buffer: Any, nbytes: int = 0) -> int:
         self._arm()
         return self._raw.recv_into(buffer, nbytes)
-
-    def recv(self, bufsize: int) -> bytes:
-        self._arm()
-        return self._raw.recv(bufsize)
-
-    def send(self, data: Any) -> int:
-        self._arm()
-        return self._raw.send(data)
 
     def sendall(self, data: Any) -> None:
         self._arm()
