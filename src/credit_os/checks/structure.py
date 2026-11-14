@@ -66,7 +66,7 @@ def check_format(document: HandoffDocument, context: CheckContext) -> tuple[Find
 
 def check_reader_summary(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
     reader = try_reader(document)
-    if not is_earlier(reader):
+    if reader is None or not is_earlier(reader):
         return ()
     section = reader.summary_section
     if section is None or reader.summary is not None:
