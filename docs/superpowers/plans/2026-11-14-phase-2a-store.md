@@ -198,8 +198,8 @@ the CI version print; 1b (#169) the codecs; then 1c `location.py` (path rules), 
 
 Ruled by the controller in PR 1 and confirmed: a SQLite error maps by primary result code (5
 and 6 busy; 19 conflict; 11 and 26 corrupt; anything else unusable); an error message never
-contains the refused value, and PR 1c shows that SQLite's own constraint message carries no
-stored value or reduces it to the code's name; a time is an aware datetime or epoch seconds as an `int` or
+contains the refused value, and the PR that gives `store_error` its first caller shows that
+SQLite's own constraint message carries no stored value or reduces it to the code's name; a time is an aware datetime or epoch seconds as an `int` or
 float, never a bool; detail integers fit 64 signed bits; money text is at most 64 characters and refused
 before formatting beyond 64 digits or an exponent outside -62 to 63; an existing folder or
 file keeps its mode; the folder is absolute; the reader refuses a WAL file. The first layer
