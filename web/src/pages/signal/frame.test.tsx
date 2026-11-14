@@ -236,10 +236,10 @@ describe("the Signal frame", () => {
   );
 
   it("says Not built yet for pages later tasks add, inside the frame, under the page's own h1", () => {
-    show("/signal/main/group/leveraged-credit");
-    expect(screen.getByRole("heading", { level: 1, name: "Leveraged credit" })).toBeInTheDocument();
+    show("/signal/main/digest/weekly-brief");
+    expect(screen.getByRole("heading", { level: 1, name: "Weekly brief" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Not built yet" })).toBeInTheDocument();
-    expect(within(channels()).getByRole("link", { name: "Leveraged credit 3" })).toHaveAttribute(
+    expect(within(channels()).getByRole("link", { name: /^Weekly brief/ })).toHaveAttribute(
       "aria-current",
       "page",
     );
