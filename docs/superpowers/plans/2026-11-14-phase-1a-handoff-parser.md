@@ -157,12 +157,34 @@ Document (PR 3, #47):
 9. An unclosed fence is a flag on its code block, not an error; nothing inside it is classified
    by a later layer, and step 2B refuses a handoff that has one.
 
-Ruled for PR 4 (#53, not yet in `main`):
-- Every `HandoffError` message that echoes text from the file shows at most 80 characters of
-  it, then `…`.
-- A `Reader summary` section that is present but not in the expected shape is never read as
-  absent. The reader carries the raw section, so the summary being unreadable is an explicit
-  gap.
+Reader and Basis rules (PR 4, #53):
+1. Every `HandoffError` message that echoes text from the file shows at most 80 characters of
+   it, then `…`. The bound counts code points and removes no control character.
+2. The reader is a view, `read_reader(document)`; `HandoffDocument` gains no field. Passages
+   exist only in the new format (the first level-3 section under `Findings` is `Bottom line`);
+   a repeated passage heading is refused at the second.
+3. A `Reader summary` section that does not hold its two tables in the expected shape is
+   never read as absent: `summary` is `None` and `summary_section` carries the raw section, so the summary
+   being unreadable is an explicit gap. In the new format both are `None`.
+4. `read_basis(block)` reads a block's last line; the block keeps all its lines. Items are
+   split on `; `. A page span is a pair of integers of one to nine digits beside the item's
+   exact text; only spaces may surround its dash; two or more spans need `pages`. A piece that
+   does not fit is kept as text.
+5. A source file name has a character before its extension dot; the extension is a letter and
+   up to four letters or digits.
+6. Nothing inside an unclosed fence is classified.
+
+Ruled for PR 5 (not yet in `main`):
+- Known source names come back, from the document's own Sources table and nowhere else.
+  `read_basis` takes an optional sequence of known names; an item is a source when it is
+  exactly a known name or a known name followed by the page grammar, compared exactly, the
+  longest name first. Real replies cite a source named `context`, which PR 4 reads as text.
+  A name holding `; ` stays split.
+- A second `Reader summary` section is refused in `read_reader`, at the second heading.
+
+Not read in this step: the earlier format's bracket citations at the end of a paragraph (33
+of 704 real earlier-format paragraphs, in 3 of 52 retained replies). Delivery draws no
+earlier-format paragraph unless a reader for them is added to `handoff/` first.
 
 Known real case (one retained run): a table split by a blank line, or a header and separator
 of different widths, is refused; the predecessor accepted the first and turned rows into prose.
