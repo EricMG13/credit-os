@@ -51,6 +51,7 @@ def test_bad_shapes(events: Any) -> None:
     reply = _reply(events)
     assert (reply.kind, reply.error_class) == ("sent_unknown", "UnparsableReply")
     assert reply.message == key.BAD_SHAPE_MESSAGE
+    assert reply.raw == json.dumps(events, separators=(",", ":")).encode()
 
 
 def test_events_that_are_not_json() -> None:
@@ -80,15 +81,41 @@ def test_an_exact_environment_value_is_redacted_too() -> None:
     assert reply.raw == b'"[redacted]"'
 
 
-def test_a_session_error_message_is_cut_to_500() -> None:
-    event = {"id": "e1", "type": "session.error", "data": {"errorType": "e", "message": "x" * 600}}
-    assert _reply([event]).message == ("e: " + "x" * 600)[:500]
+@pytest.mark.parametrize(
+    ("error_type", "text", "want"),
+    [("e", "x" * 600, ("e: " + "x" * 600)[:500]), ("", "boom", "boom"), (7, "boom", "boom")],
+    ids=["cut", "empty", "int"],
+)
+def test_session_error_text(error_type: Any, text: str, want: str) -> None:
+    event = {
+        "id": "e1",
+        "type": "session.error",
+        "data": {"errorType": error_type, "message": text},
+    }
+    assert _reply([event]).message == want
+
+
+@pytest.mark.parametrize("reason", [None, ["x"], 7])
+def test_an_unreadable_finish_reason_is_other(reason: Any) -> None:
+    turn = _reply([key.usage(1, finishReason=reason)]).turn
+    assert turn is not None
+    assert turn.stop_reason == "other"
+
+
+def test_a_tool_request_that_is_not_an_object_differs() -> None:
+    events = [
+        key.usage(1, finishReason="tool_use"),
+        key.message(2, "", toolRequests=["x"]),
+        key.start(3, "c", "r"),
+    ]
+    assert _reply(events).message == "tool requests and tool starts differ"
 
 
 def test_missing_is_not_zero() -> None:
-    omitted = _reply(key.EVENT_CASES["a count one event omits is unknown, not smaller"][0])
-    assert omitted.usage is not None
-    assert (omitted.usage.cached_read_tokens, omitted.usage.reasoning_tokens) == (None, None)
+    omitted = _reply(key.EVENT_CASES["a count one event omits is unknown, not smaller"][0]).usage
+    assert omitted is not None
+    assert omitted.cached_read_tokens is None
+    assert omitted.reasoning_tokens is None
     zero = _reply(key.EVENT_CASES["zero counts are counts"][0])
     assert zero.usage is not None
     assert zero.usage.input_tokens == 0
