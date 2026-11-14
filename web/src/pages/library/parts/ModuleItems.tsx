@@ -2,6 +2,7 @@ import { ChevronRight, Cube01 } from "@untitledui/icons";
 import type { ReactNode } from "react";
 import { Link } from "react-aria-components";
 import { StatusBadge } from "@/components/status/StatusBadge";
+import { cx } from "@/utils/cx";
 import type { ChangeModuleItem, ModuleItem } from "../slice";
 import { modulesHref } from "./links";
 
@@ -31,7 +32,7 @@ function Row({ item }: { item: Entry }) {
 }
 
 /**
- * The module items (R7), two explicit columns from the medium width, split as the slice orders the items, one when narrow. An item with a module
+ * The module items (R7), two explicit columns from the medium width, split as the slice orders the items, one when narrow or when there is a single item. An item with a module
  * opens that module's page; one without (a repeated state collapsed into one item) is plain. The
  * Overview's items carry a Module state; the Changes page's carry a Change state.
  */
@@ -53,9 +54,10 @@ export function ModuleItems(props: Props) {
           badge: <StatusBadge set="Module state" state={item.state} />,
         }));
   const split = Math.ceil(entries.length / 2);
+  const columns = [entries.slice(0, split), entries.slice(split)].filter((c) => c.length > 0);
   return (
-    <div className="grid grid-cols-1 gap-x-12 md:grid-cols-2">
-      {[entries.slice(0, split), entries.slice(split)].map((column) => (
+    <div className={cx("grid grid-cols-1 gap-x-12", columns.length === 2 && "md:grid-cols-2")}>
+      {columns.map((column) => (
         <ul key={column[0]?.title ?? "none"}>
           {column.map((item) => (
             <li key={item.title} className="last:[&>*]:border-b-0">
