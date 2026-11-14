@@ -59,7 +59,7 @@ def test_folder_holds_only_the_fixtures() -> None:
 
 
 def test_gitattributes_exact() -> None:
-    expected = b"*.md -text\nSHA256SUMS text eol=lf\n"
+    expected = b"*.md -text\nSHA256SUMS text eol=lf\n.gitattributes text eol=lf\n"
     assert (FIXTURES / ".gitattributes").read_bytes() == expected
 
 
