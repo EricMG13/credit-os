@@ -15,6 +15,7 @@ import { IssuerList, NO_BANDS, type Bands } from "./parts/IssuerList";
 import { IssuerCard, LoadingCard } from "./parts/IssuerCard";
 import { ButtonLink } from "./parts/ButtonLink";
 import { LibraryPage } from "./parts/LibraryPage";
+import { PAGE_NAME, PageTitle } from "./parts/PageTitle";
 import { RUN_START } from "./parts/links";
 import {
   MEASURES,
@@ -185,12 +186,12 @@ function Layout({ home }: { home: LibraryHome }) {
 /** The library home: the delivered cards, narrowed in memory by search and three filters. */
 export function Home() {
   return (
-    <LibraryPage title="Library">
+    <LibraryPage title={PAGE_NAME.home}>
       {({ home }) => (
         <div className="flex flex-col gap-8">
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-start gap-4 border-b border-secondary pb-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <h1 className="font-display text-h1 text-text-primary">Library</h1>
+              <PageTitle>{PAGE_NAME.home}</PageTitle>
               <p className="text-body text-text-tertiary">{home.subtitle}</p>
             </div>
             {home.cards.length === 0 ? null : <ButtonLink href={RUN_START}>Start a run</ButtonLink>}

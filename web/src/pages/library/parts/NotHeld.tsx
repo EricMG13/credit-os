@@ -1,6 +1,7 @@
 import { BookOpen01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { ButtonLink } from "./ButtonLink";
+import { PageTitle } from "./PageTitle";
 import { LIBRARY_HOME } from "./links";
 
 /** A page's own "the library holds no such issuer, run or module" state, with the way back. */
@@ -15,7 +16,7 @@ export function NotHeld({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-h1 text-text-primary">{page}</h1>
+      <PageTitle>{page}</PageTitle>
       <EmptyState>
         <EmptyState.Header>
           <EmptyState.FeaturedIcon icon={BookOpen01} />

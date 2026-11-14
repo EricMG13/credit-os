@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
 import { routes } from "./routes";
@@ -225,10 +225,30 @@ describe("Overview, fix round 1", () => {
     expect(errors).toEqual([]);
   });
 
-  it("holds the n.a. in an element the page owns, so the kit's text is not reached into", () => {
+  it("draws the n.a. at the figure's size and regular weight, in both users of a figure", () => {
+    const holders = (na: HTMLElement, host: HTMLElement) => {
+      const chain: HTMLElement[] = [];
+      for (let el: HTMLElement | null = na; el !== null && el !== host; el = el.parentElement)
+        chain.push(el);
+      return chain;
+    };
     renderOverview("2026-09-30");
-    const na = within(tiles()[5] as HTMLElement).getByText("n.a.");
-    expect(na.closest(".font-normal")).not.toBeNull();
+    const metric = tiles()[5] as HTMLElement;
+    const cases: [HTMLElement, HTMLElement, string][] = [
+      [within(metric).getByText("n.a."), metric, "text-[30px]/[38px]"],
+    ];
+    cleanup();
+    renderOverview("2026-03-31");
+    const point = screen
+      .getByText(/^The financial performance, cash flow and recovery modules/)
+      .closest("li") as HTMLElement;
+    cases.push([within(point).getByText("n.a."), point, "text-[40px]/11"]);
+    for (const [na, host, size] of cases) {
+      const chain = holders(na, host);
+      expect(chain.some((el) => el.classList.contains(size))).toBe(true);
+      expect(chain.some((el) => el.classList.contains("font-normal"))).toBe(true);
+      expect(chain.filter((el) => el.classList.contains("font-semibold"))).toEqual([]);
+    }
   });
 
   it("says the capped run's points come from the delivered modules", () => {

@@ -8,6 +8,7 @@ import type { LoadedRun, Run, RunHead } from "../slice";
 import { ButtonLink } from "./ButtonLink";
 import { LibraryPage } from "./LibraryPage";
 import { NotHeld } from "./NotHeld";
+import { PAGE_NAME } from "./PageTitle";
 import { RunContext } from "./RunContext";
 import { SourcesSwitch, useSourcesOn } from "./SourcesSwitch";
 import { TraceDrawer } from "./TraceDrawer";
@@ -24,15 +25,6 @@ import {
 } from "./links";
 
 export type RunTab = "overview" | "changes" | "modules" | "forecast" | "evidence";
-
-/** The route titles, which are the page names a state without a run header draws as its h1. */
-const PAGE_NAME: Record<RunTab, string> = {
-  overview: "Overview",
-  changes: "Changes",
-  modules: "Modules",
-  forecast: "Forecast",
-  evidence: "Evidence",
-};
 
 const TAB =
   "inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-1.5 pb-2.5 text-md font-semibold whitespace-nowrap";

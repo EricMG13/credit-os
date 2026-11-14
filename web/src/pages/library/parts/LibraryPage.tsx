@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useSource } from "../../source";
 import { readSlice } from "../read";
 import type { LibrarySlice } from "../slice";
+import { PageTitle } from "./PageTitle";
 
 /**
  * Every library route is full bleed, so this is the one wrapper that gives a page the shell's
@@ -14,7 +15,7 @@ function Padded({ children }: { children: ReactNode }) {
 function Notice({ title, children }: { title: string; children: string }) {
   return (
     <Padded>
-      <h1 className="font-display text-h1 text-text-primary">{title}</h1>
+      <PageTitle>{title}</PageTitle>
       <p className="mt-6 text-text-secondary">{children}</p>
     </Padded>
   );

@@ -9,7 +9,7 @@ import { RunFrame } from "./parts/RunFrame";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
 import { SECTION_HEADING, SUBSECTION_HEADING } from "./parts/heading";
 
-const FIGURE = "text-[40px]/11 font-semibold tracking-tight tabular-nums break-words";
+const FIGURE = "text-[40px]/11 tracking-tight tabular-nums break-words";
 
 function PointTile({ point }: { point: Point }) {
   return (
