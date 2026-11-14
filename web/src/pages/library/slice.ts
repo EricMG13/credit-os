@@ -422,6 +422,57 @@ export type Module = {
   body: DeliveredBody | BlockedBody;
 };
 
+/** The words of the File state set a source file is drawn with; "Uploading" belongs to the run start page. */
+export type FileState = Exclude<keyof (typeof STATUS_SETS)["File state"], "Uploading">;
+
+/** A module that read a file, as the module filter lists it: its id, name and delivered initials. */
+export type Reader = { id: string; name: string; initials: string };
+
+/**
+ * One source file of a run. `kind` is the type shown on its icon ("PDF"); `why` is the sentence
+ * beside the state, always present for an unreadable file. `readers.shown` are the avatars drawn;
+ * `readers.more` is the "+N" avatar, whose `ids` are the modules it stands for, so a module filter
+ * compares ids across both. Each reader is a module the filter lists. `readersLabel` and every
+ * count are delivered text.
+ */
+export type SourceFile = {
+  name: string;
+  kind: string;
+  size: string;
+  state: FileState;
+  why: string | null;
+  readersLabel: string;
+  readers: {
+    shown: readonly Reader[];
+    more: { text: string; label: string; ids: readonly string[] } | null;
+  };
+  hash: string;
+};
+
+/**
+ * A download: `href` is the file's address, or `null` when none can be offered, then `reason` is the
+ * sentence drawn beside the disabled button. Nothing is generated in the browser.
+ */
+export type Download = { label: string; href: string | null; reason: string | null };
+
+/**
+ * A run's Evidence pages. `moduleFilter` is the options of the module filter. `tabs` are the delivered
+ * counts of the Trace, Sources and Gaps tabs. On Sources the first `visible` files are drawn and the
+ * rest wait behind `moreLabel`, which is `null` exactly when none is held back.
+ */
+export type Evidence = {
+  intro: string;
+  moduleFilter: readonly Reader[];
+  tabs: { trace: string; sources: string; gaps: string };
+  summary: {
+    delivered: { note: string | null; progress: { text: string; value: number; max: number } };
+    counts: readonly Metric[];
+    run: { code: string; hash: string };
+    take: { text: string; download: Download };
+  };
+  sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
+};
+
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
 
 /** A run still loading carries no overview, changes or modules; every other run carries all three. */
@@ -430,8 +481,15 @@ export type LoadedRun = RunBase & {
   overview: Overview;
   changes: Changes;
   modules: readonly Module[];
+  evidence: Evidence;
 };
-type LoadingRun = RunBase & { loading: true; overview: null; changes: null; modules: null };
+type LoadingRun = RunBase & {
+  loading: true;
+  overview: null;
+  changes: null;
+  modules: null;
+  evidence: null;
+};
 
 /** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
 export type Run = LoadedRun | LoadingRun;

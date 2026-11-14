@@ -110,6 +110,12 @@ describe("RunFrame tabs", () => {
     const run = slice.issuers[0]?.runs[0] as Run;
     run.head["firstModule"] = null;
     run.modules = [];
+    const evidence = run["evidence"] as {
+      moduleFilter: unknown[];
+      sources: { files: { readers: unknown }[] };
+    };
+    evidence.moduleFilter = [];
+    for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     run.overview = {
       ...(run.overview as Json),
       modules: {

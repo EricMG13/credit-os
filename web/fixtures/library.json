@@ -1780,6 +1780,246 @@
                 }
               }
             ],
+            "evidence": {
+              "intro": "Where every figure and claim in this run comes from.",
+              "moduleFilter": [
+                { "id": "business-profile", "name": "Business profile", "initials": "BP" },
+                {
+                  "id": "industry-and-competition",
+                  "name": "Industry and competition",
+                  "initials": "IC"
+                },
+                {
+                  "id": "financial-performance",
+                  "name": "Financial performance",
+                  "initials": "FP"
+                },
+                {
+                  "id": "cash-flow-and-liquidity",
+                  "name": "Cash flow and liquidity",
+                  "initials": "CL"
+                },
+                { "id": "capital-structure", "name": "Capital structure", "initials": "CS" },
+                {
+                  "id": "covenants-and-documentation",
+                  "name": "Covenants and documentation",
+                  "initials": "CD"
+                },
+                {
+                  "id": "management-and-governance",
+                  "name": "Management and governance",
+                  "initials": "MG"
+                },
+                { "id": "peer-comparison", "name": "Peer comparison", "initials": "PC" },
+                { "id": "recovery", "name": "Recovery", "initials": "RC" },
+                { "id": "rating-outlook", "name": "Rating outlook", "initials": "RO" },
+                {
+                  "id": "environmental-social-and-governance",
+                  "name": "Environmental, social and governance",
+                  "initials": "ES"
+                },
+                { "id": "forecast", "name": "Forecast", "initials": "FC" },
+                { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
+              ],
+              "tabs": { "trace": "148", "sources": "9", "gaps": "7" },
+              "summary": {
+                "delivered": {
+                  "note": "Recovery was not assessable",
+                  "progress": { "text": "12 of 13", "value": 12, "max": 13 }
+                },
+                "counts": [
+                  {
+                    "label": "Source files",
+                    "value": { "kind": "value", "text": "9", "at": null },
+                    "note": "7 read in full, 1 read in part, 1 unreadable",
+                    "trace": null
+                  },
+                  {
+                    "label": "Calculations",
+                    "value": { "kind": "value", "text": "148", "at": null },
+                    "note": "Each one traceable to its inputs",
+                    "trace": null
+                  },
+                  {
+                    "label": "Gaps",
+                    "value": { "kind": "value", "text": "7", "at": null },
+                    "note": "2 high, 3 medium, 2 low",
+                    "trace": null
+                  }
+                ],
+                "run": {
+                  "code": "HAE-20260930-FR-0003",
+                  "hash": "9f2c41d07ab35e88c1e4f6a2b9d03c57e1a84f60b7d2c9153ea06f48d1b7c2a0"
+                },
+                "take": {
+                  "text": "The module handoffs are the record this library was written from. Download them to read a module exactly as it was delivered.",
+                  "download": {
+                    "label": "Download handoffs",
+                    "href": "downloads/halden-aerostructures-2026-09-30-handoffs.zip",
+                    "reason": null
+                  }
+                }
+              },
+              "sources": {
+                "files": [
+                  {
+                    "name": "annual-report-2026.pdf",
+                    "kind": "PDF",
+                    "size": "8.4 MB · 214 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 11 modules",
+                    "readers": {
+                      "shown": [
+                        "business-profile",
+                        "financial-performance",
+                        "capital-structure",
+                        "cash-flow-and-liquidity"
+                      ],
+                      "more": {
+                        "text": "+7",
+                        "label": "7 more modules",
+                        "ids": [
+                          "industry-and-competition",
+                          "covenants-and-documentation",
+                          "management-and-governance",
+                          "peer-comparison",
+                          "rating-outlook",
+                          "environmental-social-and-governance",
+                          "forecast"
+                        ]
+                      }
+                    },
+                    "hash": "3a7f0c92e15d8b46f0a1c7e39d524b8806fe1d2c4a95b7e3018f6d2ac59e4b71"
+                  },
+                  {
+                    "name": "lender-presentation-nov-2026.pdf",
+                    "kind": "PDF",
+                    "size": "3.1 MB · 42 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 6 modules",
+                    "readers": {
+                      "shown": [
+                        "business-profile",
+                        "financial-performance",
+                        "capital-structure",
+                        "cash-flow-and-liquidity"
+                      ],
+                      "more": {
+                        "text": "+2",
+                        "label": "2 more modules",
+                        "ids": ["rating-outlook", "credit-snapshot"]
+                      }
+                    },
+                    "hash": "c81e4d2a90b7f3561e0d9a4c7b2e8f1305a6d9c4e7b10f283d5a6c9e1f4b7a20"
+                  },
+                  {
+                    "name": "credit-agreement-2023.pdf",
+                    "kind": "PDF",
+                    "size": "5.7 MB · 318 pages",
+                    "state": "Read in part",
+                    "why": "Schedules 4 to 9 are scanned images with no text layer and were not read.",
+                    "readersLabel": "Read by 2 modules",
+                    "readers": {
+                      "shown": ["capital-structure", "covenants-and-documentation"],
+                      "more": null
+                    },
+                    "hash": "5d0b9e7c3a1f48620e9d7c5b3a1f08e6d4c2b0a98f7e6d5c4b3a2918070f6e5d"
+                  },
+                  {
+                    "name": "q4-2026-kpi-pack.xlsx",
+                    "kind": "XLSX",
+                    "size": "412 KB · 6 sheets",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 3 modules",
+                    "readers": {
+                      "shown": [
+                        "financial-performance",
+                        "cash-flow-and-liquidity",
+                        "business-profile"
+                      ],
+                      "more": null
+                    },
+                    "hash": "e2f4a6c8b0d1e3f5a7c9b1d3e5f7a9c1b3d5e7f9a1c3b5d7e9f1a3c5b7d9e1f3"
+                  },
+                  {
+                    "name": "rating-report-oct-2026.pdf",
+                    "kind": "PDF",
+                    "size": "1.2 MB · 18 pages",
+                    "state": "Unreadable",
+                    "why": "The file is password-protected. Nothing in this run rests on it.",
+                    "readersLabel": "Read by 0 modules",
+                    "readers": { "shown": [], "more": null },
+                    "hash": "0b1c2d3e4f5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0"
+                  },
+                  {
+                    "name": "sustainability-report-2026.pdf",
+                    "kind": "PDF",
+                    "size": "4.6 MB · 76 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 3 modules",
+                    "readers": {
+                      "shown": [
+                        "environmental-social-and-governance",
+                        "business-profile",
+                        "management-and-governance"
+                      ],
+                      "more": null
+                    },
+                    "hash": "5c1641a69a0dc8a13ec100d5b45a2dc0732249f010d3c968f4a384de696b8860"
+                  },
+                  {
+                    "name": "bond-prospectus-2028-notes.pdf",
+                    "kind": "PDF",
+                    "size": "2.9 MB · 164 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 2 modules",
+                    "readers": {
+                      "shown": ["capital-structure", "covenants-and-documentation"],
+                      "more": null
+                    },
+                    "hash": "152b9269854add1e77218f7060b118c6bbf4d4dd77afb854340dc159581d41bc"
+                  },
+                  {
+                    "name": "peer-benchmark-extract.xlsx",
+                    "kind": "XLSX",
+                    "size": "286 KB · 4 sheets",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 2 modules",
+                    "readers": {
+                      "shown": ["peer-comparison", "financial-performance"],
+                      "more": null
+                    },
+                    "hash": "adc182f563c4b93abca1ae3168cde3a4fb6bd22e73a1756b95e0d41cec865811"
+                  },
+                  {
+                    "name": "interim-results-q3-2026.pdf",
+                    "kind": "PDF",
+                    "size": "1.8 MB · 24 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 5 modules",
+                    "readers": {
+                      "shown": [
+                        "financial-performance",
+                        "cash-flow-and-liquidity",
+                        "capital-structure",
+                        "forecast"
+                      ],
+                      "more": { "text": "+1", "label": "1 more module", "ids": ["credit-snapshot"] }
+                    },
+                    "hash": "b0b27e825319d7490bfc40a1fc7c00debdd915c30999f65d4d8f24b8ccd820f8"
+                  }
+                ],
+                "visible": 5,
+                "moreLabel": "Show the other 4 files"
+              }
+            },
             "traces": {
               "cash-conversion": {
                 "title": "Sources for cash conversion",
@@ -2681,6 +2921,7 @@
             "overview": null,
             "changes": null,
             "modules": null,
+            "evidence": null,
             "traces": {}
           },
           {
@@ -3274,6 +3515,126 @@
                 }
               }
             ],
+            "evidence": {
+              "intro": "Where every figure and claim in this run comes from.",
+              "moduleFilter": [
+                { "id": "business-profile", "name": "Business profile", "initials": "BP" },
+                {
+                  "id": "industry-and-competition",
+                  "name": "Industry and competition",
+                  "initials": "IC"
+                },
+                { "id": "capital-structure", "name": "Capital structure", "initials": "CS" },
+                {
+                  "id": "covenants-and-documentation",
+                  "name": "Covenants and documentation",
+                  "initials": "CD"
+                },
+                {
+                  "id": "management-and-governance",
+                  "name": "Management and governance",
+                  "initials": "MG"
+                },
+                { "id": "peer-comparison", "name": "Peer comparison", "initials": "PC" },
+                { "id": "rating-outlook", "name": "Rating outlook", "initials": "RO" },
+                {
+                  "id": "environmental-social-and-governance",
+                  "name": "Environmental, social and governance",
+                  "initials": "ES"
+                },
+                { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
+              ],
+              "tabs": { "trace": "31", "sources": "3", "gaps": "3" },
+              "summary": {
+                "delivered": {
+                  "note": "Four modules were not run: the run reached its cost cap",
+                  "progress": { "text": "9 of 13", "value": 9, "max": 13 }
+                },
+                "counts": [
+                  {
+                    "label": "Source files",
+                    "value": { "kind": "value", "text": "3", "at": null },
+                    "note": "2 read in full, 1 read in part",
+                    "trace": null
+                  },
+                  {
+                    "label": "Calculations",
+                    "value": { "kind": "value", "text": "31", "at": null },
+                    "note": "Each one traceable to its inputs",
+                    "trace": null
+                  },
+                  {
+                    "label": "Gaps",
+                    "value": { "kind": "value", "text": "3", "at": null },
+                    "note": "1 high, 1 medium, 1 low",
+                    "trace": null
+                  }
+                ],
+                "run": {
+                  "code": "HAE-20260331-FR-0002",
+                  "hash": "cbc411e180abe8bd5eef6ec5f52cebe8173c43d59fe1ab1a9d9dcc1a321ecdcf"
+                },
+                "take": {
+                  "text": "The module handoffs are the record this library was written from. Download them to read a module exactly as it was delivered.",
+                  "download": {
+                    "label": "Download handoffs",
+                    "href": null,
+                    "reason": "The run reached its cost cap before its handoffs were packed, so there is nothing to download."
+                  }
+                }
+              },
+              "sources": {
+                "files": [
+                  {
+                    "name": "annual-report-2025.pdf",
+                    "kind": "PDF",
+                    "size": "7.9 MB · 202 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 6 modules",
+                    "readers": {
+                      "shown": [
+                        "business-profile",
+                        "industry-and-competition",
+                        "capital-structure",
+                        "covenants-and-documentation"
+                      ],
+                      "more": {
+                        "text": "+2",
+                        "label": "2 more modules",
+                        "ids": ["management-and-governance", "rating-outlook"]
+                      }
+                    },
+                    "hash": "6c8b788269f67125ccf171d21da8a9e2044d0f0e1a9f8cd1c36a40a0703363f2"
+                  },
+                  {
+                    "name": "credit-agreement-2023.pdf",
+                    "kind": "PDF",
+                    "size": "5.7 MB · 318 pages",
+                    "state": "Read in part",
+                    "why": "Schedules 4 to 9 are scanned images with no text layer and were not read.",
+                    "readersLabel": "Read by 2 modules",
+                    "readers": {
+                      "shown": ["capital-structure", "covenants-and-documentation"],
+                      "more": null
+                    },
+                    "hash": "5d0b9e7c3a1f48620e9d7c5b3a1f08e6d4c2b0a98f7e6d5c4b3a2918070f6e5d"
+                  },
+                  {
+                    "name": "rating-report-feb-2026.pdf",
+                    "kind": "PDF",
+                    "size": "1.1 MB · 16 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 2 modules",
+                    "readers": { "shown": ["rating-outlook", "credit-snapshot"], "more": null },
+                    "hash": "0487220c9c82049c8fed8fcb376957a462188c31431d108aacf747d2c234cde8"
+                  }
+                ],
+                "visible": 3,
+                "moreLabel": null
+              }
+            },
             "traces": {}
           },
           {
@@ -3904,6 +4265,124 @@
                 }
               }
             ],
+            "evidence": {
+              "intro": "Where every figure and claim in this run comes from.",
+              "moduleFilter": [
+                { "id": "business-profile", "name": "Business profile", "initials": "BP" },
+                {
+                  "id": "industry-and-competition",
+                  "name": "Industry and competition",
+                  "initials": "IC"
+                },
+                {
+                  "id": "financial-performance",
+                  "name": "Financial performance",
+                  "initials": "FP"
+                },
+                {
+                  "id": "cash-flow-and-liquidity",
+                  "name": "Cash flow and liquidity",
+                  "initials": "CL"
+                },
+                { "id": "capital-structure", "name": "Capital structure", "initials": "CS" },
+                {
+                  "id": "covenants-and-documentation",
+                  "name": "Covenants and documentation",
+                  "initials": "CD"
+                },
+                {
+                  "id": "management-and-governance",
+                  "name": "Management and governance",
+                  "initials": "MG"
+                },
+                { "id": "peer-comparison", "name": "Peer comparison", "initials": "PC" },
+                { "id": "recovery", "name": "Recovery", "initials": "RC" },
+                { "id": "rating-outlook", "name": "Rating outlook", "initials": "RO" },
+                {
+                  "id": "environmental-social-and-governance",
+                  "name": "Environmental, social and governance",
+                  "initials": "ES"
+                },
+                { "id": "forecast", "name": "Forecast", "initials": "FC" },
+                { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
+              ],
+              "tabs": { "trace": "52", "sources": "2", "gaps": "2" },
+              "summary": {
+                "delivered": {
+                  "note": null,
+                  "progress": { "text": "13 of 13", "value": 13, "max": 13 }
+                },
+                "counts": [
+                  {
+                    "label": "Source files",
+                    "value": { "kind": "value", "text": "2", "at": null },
+                    "note": "2 read in full",
+                    "trace": null
+                  },
+                  {
+                    "label": "Calculations",
+                    "value": { "kind": "value", "text": "52", "at": null },
+                    "note": "Each one traceable to its inputs",
+                    "trace": null
+                  },
+                  {
+                    "label": "Gaps",
+                    "value": { "kind": "value", "text": "2", "at": null },
+                    "note": "1 medium, 1 low",
+                    "trace": null
+                  }
+                ],
+                "run": {
+                  "code": "HAE-20250930-FR-0001",
+                  "hash": "baff884f3b3df9e7aeaf322aa72a7120a53cc8ef296001bf9c61d11c539bdc72"
+                },
+                "take": {
+                  "text": "The module handoffs are the record this library was written from. Download them to read a module exactly as it was delivered.",
+                  "download": {
+                    "label": "Download handoffs",
+                    "href": "downloads/halden-aerostructures-2025-09-30-handoffs.zip",
+                    "reason": null
+                  }
+                }
+              },
+              "sources": {
+                "files": [
+                  {
+                    "name": "annual-report-2025.pdf",
+                    "kind": "PDF",
+                    "size": "7.2 MB · 188 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 4 modules",
+                    "readers": {
+                      "shown": [
+                        "business-profile",
+                        "financial-performance",
+                        "capital-structure",
+                        "cash-flow-and-liquidity"
+                      ],
+                      "more": null
+                    },
+                    "hash": "6120d88ebaaf49cd86326f24b301a7c937141ef51e2fe0d12ed5df254000f9e2"
+                  },
+                  {
+                    "name": "q4-2025-kpi-pack.xlsx",
+                    "kind": "XLSX",
+                    "size": "388 KB · 5 sheets",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 2 modules",
+                    "readers": {
+                      "shown": ["financial-performance", "cash-flow-and-liquidity"],
+                      "more": null
+                    },
+                    "hash": "49f16e3e4de74a74c75dc33604c3c0763917cef15175002a73fd59a0d76205dd"
+                  }
+                ],
+                "visible": 2,
+                "moreLabel": null
+              }
+            },
             "traces": {}
           }
         ]
@@ -4065,6 +4544,22 @@
       { "issuer": "halden-aerostructures", "run": "2026-03-31", "module": "forecast" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30", "module": "capital-structure" },
       { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "no-such-module" }
+    ],
+    "/library/:issuer/:run/evidence": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" }
+    ],
+    "/library/:issuer/:run/evidence/summary": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" },
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
+    ],
+    "/library/:issuer/:run/evidence/sources": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" },
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
     ]
   }
 }
