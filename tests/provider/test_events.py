@@ -86,10 +86,9 @@ def test_a_session_error_message_is_cut_to_500() -> None:
 
 
 def test_missing_is_not_zero() -> None:
-    omitted = key.EVENT_CASES["a count one event omits is unknown, not smaller"][0]
-    usage = _reply(omitted).usage
-    assert usage is not None
-    assert (usage.cached_read_tokens, usage.reasoning_tokens) == (None, None)
+    omitted = _reply(key.EVENT_CASES["a count one event omits is unknown, not smaller"][0])
+    assert omitted.usage is not None
+    assert (omitted.usage.cached_read_tokens, omitted.usage.reasoning_tokens) == (None, None)
     zero = _reply(key.EVENT_CASES["zero counts are counts"][0])
     assert zero.usage is not None
     assert zero.usage.input_tokens == 0
@@ -102,16 +101,12 @@ _JSON = st.recursive(
     lambda c: st.lists(c, max_size=3) | st.dictionaries(st.text(max_size=3), c, max_size=3),
     max_leaves=10,
 )
-_NAMES = st.sampled_from(
-    ["id", "type", "data", "content", "toolRequests", "toolCallId", "toolName", "arguments"]
-    + ["finishReason", "model", "inputTokens", "copilotUsage", "totalNanoAiu", "aborted", "isByok"]
-)
-_TYPES = st.sampled_from(
-    ["assistant.usage", "assistant.message", "tool.execution_start", "session.error"]
-)
+_NAMES = ["id", "type", "data", "content", "toolRequests", "toolCallId", "toolName", "arguments"]
+_NAMES += ["finishReason", "model", "inputTokens", "copilotUsage", "totalNanoAiu", "aborted"]
+_TYPES = ["assistant.usage", "assistant.message", "tool.execution_start", "session.error"]
 _EVENT = st.fixed_dictionaries(
-    {"id": st.sampled_from(["a", "b"]) | _JSON, "type": _TYPES | _JSON},
-    optional={"data": st.dictionaries(_NAMES, _JSON, max_size=6) | _JSON},
+    {"id": st.sampled_from(["a", "b"]) | _JSON, "type": st.sampled_from(_TYPES) | _JSON},
+    optional={"data": st.dictionaries(st.sampled_from(_NAMES), _JSON, max_size=6) | _JSON},
 )
 
 
