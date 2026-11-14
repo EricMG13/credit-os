@@ -715,6 +715,52 @@ describe("readSlice, modules", () => {
   const matrixRow = (s: ReturnType<typeof fresh>, i: number) =>
     (matrix(s)["rows"] as Json[])[i] as Json;
 
+  const block = (s: ReturnType<typeof fresh>, kind: string) =>
+    modOf(s, "business-profile").body.records.find((r) => (r as Json)["kind"] === kind) as Json;
+  const item = (s: ReturnType<typeof fresh>, kind: string, i: number) =>
+    (block(s, kind)["items"] as Json[])[i] as Json;
+
+  const step = (s: ReturnType<typeof fresh>, i: number) =>
+    (block(s, "edges")["steps"] as Json[])[i] as Json;
+
+  it("reads the pathway's four steps as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const edges = body.records[3];
+    expect(edges?.kind === "edges" && edges.steps.map((x) => [x.title, x.text])).toEqual([
+      ["Ramp slips", "Deliveries fall short of plan"],
+      ["Inventory stays", "Cash tied up for longer"],
+      ["Cash flow falls", "Less debt repaid from operations"],
+      ["Leverage holds", "Refinancing on weaker terms"],
+    ]);
+  });
+
+  it("reads the watch list and the questions as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const [, watch, questions] = body.records;
+    expect(
+      watch?.kind === "watch" && watch.items.map((i) => [i.indicator, i.threshold, i.timing]),
+    ).toEqual([
+      ["Engine deliveries per month", "Below 40 for two quarters", "leading"],
+      ["Aftermarket price rise at renewal", "Below 3%", "leading"],
+      ["Alternative parts certified", "Any top-ten part", "leading"],
+      ["Aftermarket share of gross profit", "Below 55%", "lagging"],
+    ]);
+    expect(
+      questions?.kind === "questions" && questions.items.map((i) => [i.state, i.answer === null]),
+    ).toEqual([
+      ["Answered", false],
+      ["Partly answered", true],
+      ["Not answered", true],
+      ["Answered", false],
+    ]);
+  });
+
   it("reads the matrix with a missing grade as null, not as a word", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -918,6 +964,90 @@ describe("readSlice, modules", () => {
       (s: ReturnType<typeof fresh>) => (matrixRow(s, 1)["risk"] = "Engine programme delay"),
       "business-profile",
       "body.records[0].rows[1].risk",
+    ],
+    [
+      "a watch list with no items",
+      (s: ReturnType<typeof fresh>) => (block(s, "watch")["items"] = []),
+      "business-profile",
+      "body.records[1].items",
+    ],
+    [
+      "a watch timing that is not leading or lagging",
+      (s: ReturnType<typeof fresh>) => (item(s, "watch", 0)["timing"] = "Leading"),
+      "business-profile",
+      "body.records[1].items[0].timing",
+    ],
+    [
+      "a watch threshold that is blank",
+      (s: ReturnType<typeof fresh>) => (item(s, "watch", 2)["threshold"] = ""),
+      "business-profile",
+      "body.records[1].items[2].threshold",
+    ],
+    [
+      "a watch item with an unknown trace",
+      (s: ReturnType<typeof fresh>) => (item(s, "watch", 1)["trace"] = "nothing"),
+      "business-profile",
+      "body.records[1].items[1].trace",
+    ],
+    [
+      "a question with no items",
+      (s: ReturnType<typeof fresh>) => (block(s, "questions")["items"] = []),
+      "business-profile",
+      "body.records[2].items",
+    ],
+    [
+      "a question state outside the answer states",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 1)["state"] = "Open"),
+      "business-profile",
+      "body.records[2].items[1].state",
+    ],
+    [
+      "an answered question with no answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 0)["answer"] = null),
+      "business-profile",
+      "body.records[2].items[0].answer",
+    ],
+    [
+      "a not answered question that has an answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 2)["answer"] = "Some."),
+      "business-profile",
+      "body.records[2].items[2].answer",
+    ],
+    [
+      "an empty-string answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 0)["answer"] = ""),
+      "business-profile",
+      "body.records[2].items[0].answer",
+    ],
+    [
+      "a question with a trace and no answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 1)["trace"] = "bp-risk-1"),
+      "business-profile",
+      "body.records[2].items[1].trace",
+    ],
+    [
+      "a pathway with no steps",
+      (s: ReturnType<typeof fresh>) => (block(s, "edges")["steps"] = []),
+      "business-profile",
+      "body.records[3].steps",
+    ],
+    [
+      "a pathway step with an empty line",
+      (s: ReturnType<typeof fresh>) => (step(s, 1)["text"] = ""),
+      "business-profile",
+      "body.records[3].steps[1].text",
+    ],
+    [
+      "a pathway step named twice",
+      (s: ReturnType<typeof fresh>) => (step(s, 2)["title"] = "Ramp slips"),
+      "business-profile",
+      "body.records[3].steps[2].title",
+    ],
+    [
+      "two blocks with one title",
+      (s: ReturnType<typeof fresh>) => (block(s, "edges")["title"] = "Indicators to watch"),
+      "business-profile",
+      "body.records[3].title",
     ],
     [
       "a record that is not an object",

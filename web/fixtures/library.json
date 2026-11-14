@@ -854,6 +854,76 @@
                         }
                       ],
                       "trace": "bp-risk-matrix"
+                    },
+                    {
+                      "kind": "watch",
+                      "title": "Indicators to watch",
+                      "items": [
+                        {
+                          "indicator": "Engine deliveries per month",
+                          "threshold": "Below 40 for two quarters",
+                          "timing": "leading",
+                          "trace": "bp-watch-1"
+                        },
+                        {
+                          "indicator": "Aftermarket price rise at renewal",
+                          "threshold": "Below 3%",
+                          "timing": "leading",
+                          "trace": "bp-watch-2"
+                        },
+                        {
+                          "indicator": "Alternative parts certified",
+                          "threshold": "Any top-ten part",
+                          "timing": "leading",
+                          "trace": "bp-watch-3"
+                        },
+                        {
+                          "indicator": "Aftermarket share of gross profit",
+                          "threshold": "Below 55%",
+                          "timing": "lagging",
+                          "trace": "bp-watch-4"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "questions",
+                      "title": "Questions this module set out to answer",
+                      "items": [
+                        {
+                          "question": "How durable is aftermarket pricing?",
+                          "state": "Answered",
+                          "answer": "Durable for the parts where Halden is the only certified source, which carry about three fifths of gross profit. Price rises of 4 to 6% a year have held since 2021.",
+                          "trace": "bp-answer-1"
+                        },
+                        {
+                          "question": "How exposed is revenue to one programme?",
+                          "state": "Partly answered",
+                          "answer": null,
+                          "trace": null
+                        },
+                        {
+                          "question": "What share of contracts can pass through cost inflation?",
+                          "state": "Not answered",
+                          "answer": null,
+                          "trace": null
+                        },
+                        {
+                          "question": "How much of the order book is firm?",
+                          "state": "Answered",
+                          "answer": "About four fifths of the order book is under firm contracts, and the rest is covered by framework agreements that set prices but not volumes. The two engine programmes are firm to 2029, the repair contracts run on annual renewals, and the module could not tell how much of the framework volume has been called off since 2024, which the files do not show.",
+                          "trace": "bp-answer-2"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "edges",
+                      "title": "How a programme delay reaches the credit",
+                      "steps": [
+                        { "title": "Ramp slips", "text": "Deliveries fall short of plan" },
+                        { "title": "Inventory stays", "text": "Cash tied up for longer" },
+                        { "title": "Cash flow falls", "text": "Less debt repaid from operations" },
+                        { "title": "Leverage holds", "text": "Refinancing on weaker terms" }
+                      ]
                     }
                   ],
                   "limitations": {
@@ -1752,6 +1822,96 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0057"
+              },
+              "bp-watch-1": {
+                "title": "Sources for engine deliveries",
+                "heading": "Below 40 a month",
+                "subtitle": "Business profile · indicator · as of 30 Sep 2026",
+                "statement": "Engine deliveries per month: Below 40 for two quarters.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Below 40 a month",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0058"
+              },
+              "bp-watch-2": {
+                "title": "Sources for the renewal price rise",
+                "heading": "Below 3%",
+                "subtitle": "Business profile · indicator · as of 30 Sep 2026",
+                "statement": "Aftermarket price rise at renewal: Below 3%.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Below 3%",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0059"
+              },
+              "bp-watch-3": {
+                "title": "Sources for the certified alternatives",
+                "heading": "Any top-ten part",
+                "subtitle": "Business profile · indicator · as of 30 Sep 2026",
+                "statement": "Alternative parts certified: Any top-ten part.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Any top-ten part",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0060"
+              },
+              "bp-watch-4": {
+                "title": "Sources for the gross profit share",
+                "heading": "Below 55%",
+                "subtitle": "Business profile · indicator · as of 30 Sep 2026",
+                "statement": "Aftermarket share of gross profit: Below 55%.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Below 55%",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0061"
+              },
+              "bp-answer-1": {
+                "title": "Sources for the aftermarket pricing answer",
+                "heading": "Pricing durable",
+                "subtitle": "Business profile · answer · as of 30 Sep 2026",
+                "statement": "Aftermarket pricing is durable for the parts where Halden is the only certified source.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Pricing durable",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0062"
+              },
+              "bp-answer-2": {
+                "title": "Sources for the order book answer",
+                "heading": "About four fifths firm",
+                "subtitle": "Business profile · answer · as of 30 Sep 2026",
+                "statement": "About four fifths of the order book is under firm contracts.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "About four fifths firm",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0063"
               }
             }
           },
