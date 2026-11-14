@@ -131,8 +131,8 @@ In `main` since PR 2 (#63):
 - **Compactions, carrier and identity.** A compaction is attached to the reply of the call
   during which it is observed, or to the next call's reply; `Model.close()` returns those
   observed and not yet delivered. `Compaction` gains `event_id` (the envelope id of the SDK
-  event, as text; two in one reply with the same id are refused, and the PR 3 driver removes
-  repeats first) and `outcome`: `done`, `failed`, or `unfinished` for a
+  event, as text; two compactions in one reply with the same id are refused, and the PR 3 driver
+  removes a repeated compaction first) and `outcome`: `done`, `failed`, or `unfinished` for a
   compaction that started and had not reported when the call ended. An unknown charge is
   `None` in every case; an unfinished one has every count `None`. A compaction has no
   reasoning-token count. The `Model` contract, which the PR 3 driver implements (the canned
@@ -168,8 +168,10 @@ Ruled for PR 3 (not yet in `main`):
   exactly one delivered start is unpaired, and only to an unfinished compaction delivered on an
   earlier reply. With two or more unpaired starts, in the same reply, or onto a done entry,
   there is no link and the spend stays unknown.
-- The driver removes repeats of an event id before building a `Reply`; `event_id` is built
-  from the envelope id only; a complete whose `success` is not a bool is `failed`, counts and
+- The driver hands session events to the parser unchanged: which event is a redelivery is the
+  parser's JSON-text rule, never the id alone. Separately, it removes a repeated compaction
+  (one whose `event_id` it has already delivered) before building a `Reply`, which refuses
+  two with one id. `event_id` is built from the envelope id only; a complete whose `success` is not a bool is `failed`, counts and
   charge as read; what `close()` returns is attributed to the run by the orchestrator.
 - The driver hands `data` to the parser always as an object, reads an abort only from
   `session.idle`, and gives the parser one model turn per list.

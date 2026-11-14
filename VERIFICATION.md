@@ -20,8 +20,8 @@ check green, and its diff read by the coordinator.
 | PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- |
 | #102 | `mx-precise` approved; `mx-adversary` FAIL, Medium 1, fixed and re-reviewed PASS | 2 confirmed defects, Medium 1 and Low 1, fixed; `mx-adversary` re-review PASS, Low 1 | PASS: High 0, Medium 0, Low 4, Info 3 |
-| #100 | `mx-precise` quality PASS, Low 3; `mx-adversary` FAIL, High 1 (the Windows type check on a test), Low 6; fixed, re-review PASS | 0 confirmed defects, 4 measured costs | PASS on `46a502d`: High 0, Medium 0, Low 5, Info 6. One docstring and test-spelling commit followed |
-| #121 | batched `mx-feature`: PASS, Low 4, three fixed | skipped (docs) | skipped (docs) |
+| #100 | `mx-precise` quality PASS, Low 3 (its spec verdict failed only on the controller's 560-line estimate, ruled by the 800 cap); `mx-adversary` FAIL, High 1 (the Windows type check on a test), Low 6; fixed, re-review PASS | 0 confirmed defects, 4 measured costs | PASS on `46a502d`: High 0, Medium 0, Low 5, Info 6. One docstring and test-spelling commit followed |
+| #121 | batched `mx-feature`: PASS, Low 4, three fixed (returned as text; the verdict is the PR's comment) | skipped (docs) | skipped (docs) |
 
 - #102's two Mediums were both on money. Removing repeats by event id alone dropped a later
   usage event and its charge and could hide another model or a session error; and repeats were
@@ -51,7 +51,7 @@ turn. The 1A sub-session is archived; its review reports were copied to the coor
 notes folder first.
 
 **Rulings by the coordinator.** In the plans. The ones the owner may want to see:
-- 1B ports what the launcher calls, about 2,400 of 9,565 legacy lines; the statement frames are
+- 1B ports what the launcher calls, about 2,500 of 9,565 legacy lines (the plan's table); the statement frames are
   deferred, so the Model page's statement rows beyond the sixteen measures have no Python
   source yet. Nothing is defaulted: a missing currency is refused (the predecessor read USD).
 - 2A: a call left open by a crash stays unknown, and such a run cannot resume until the owner

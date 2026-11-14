@@ -111,7 +111,8 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   each component below the resolved folder is tested. A failure of that test is refused, not
   raised untyped. `read_capped` refuses a final link on every platform: by `O_NOFOLLOW` where
   it exists, else by a test before the open (Windows). A link swapped in between a check and
-  the open is not closed by this; the pin's size and hash guard the content.
+  the open is not closed by this; when an existing pin is read, its size and hash guard the
+  content (not when a pin is created: see the folder walk).
 - **An unsearchable directory below the folder** is `SourceRefused` "cannot be resolved" from
   `source_path`, not `SourceUnreadable` from the open.
 - **`read_capped` is at the complexity cap (15).** The next change that adds a branch to it
