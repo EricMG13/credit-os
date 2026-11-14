@@ -14,8 +14,8 @@ from credit_os.handoff.scan import Node
 _PREFIX = "Basis: "
 _CALCULATION = re.compile(r"calculation (\S+)")
 _MODULE = re.compile(r"(.+) \(CP-([A-Z0-9]+)\)", re.DOTALL)
-_EXTENSION = re.compile(r"\.[A-Za-z][A-Za-z0-9]{0,4}")
-_SPAN = r"[0-9]+(?: *[-–] *[0-9]+)?"
+_EXTENSION = re.compile(r"(?<=.)\.[A-Za-z][A-Za-z0-9]{0,4}", re.DOTALL)
+_SPAN = r"[0-9]{1,9}(?: *[-–] *[0-9]{1,9})?"
 _PAGE_LIST = re.compile(rf"{_SPAN}(?:, {_SPAN})*")
 _SPAN_PARTS = re.compile(r"([0-9]+)(?: *[-–] *([0-9]+))?")
 
@@ -37,36 +37,26 @@ class Basis(Node):
 
 
 def _spans(text: str) -> tuple[tuple[int, int], ...]:
-    spans: list[tuple[int, int]] = []
-    for part in text.split(", "):
-        found = _SPAN_PARTS.fullmatch(part)
-        if found is None:
-            raise ValueError("not a page span")
-        first, last = found.groups()
-        spans.append((int(first), int(first if last is None else last)))
-    return tuple(spans)
+    return tuple((int(first), int(last or first)) for first, last in _SPAN_PARTS.findall(text))
 
 
-def _file_ends(piece: str) -> list[int]:
-    ends: list[int] = []
-    for dot in re.finditer(r"\.", piece):
-        found = _EXTENSION.match(piece, dot.start())
-        if found is not None:
-            ends.extend(range(dot.start() + 2, found.end() + 1))
-    return ends
+def _with_pages(piece: str, end: int) -> BasisItem | None:
+    for word, one_only in ((", page ", True), (", pages ", False)):
+        if piece.startswith(word, end):
+            listed = piece[end + len(word) :]
+            if _PAGE_LIST.fullmatch(listed) is None or (one_only and ", " in listed):
+                return None
+            return BasisItem(kind="source", text=piece, file=piece[:end], pages=_spans(listed))
+    return None
 
 
 def _source(piece: str) -> BasisItem | None:
-    for end in _file_ends(piece):
-        rest = piece[end:]
-        if not rest:
-            return BasisItem(kind="source", text=piece, file=piece)
-        for word, one_only in ((", page ", True), (", pages ", False)):
-            if rest.startswith(word):
-                listed = rest[len(word) :]
-                if _PAGE_LIST.fullmatch(listed) is None or (one_only and ", " in listed):
-                    return None
-                return BasisItem(kind="source", text=piece, file=piece[:end], pages=_spans(listed))
+    for found in _EXTENSION.finditer(piece):
+        for end in range(found.start() + 2, found.end() + 1):
+            if end == len(piece):
+                return BasisItem(kind="source", text=piece, file=piece)
+            if piece.startswith((", page ", ", pages "), end):
+                return _with_pages(piece, end)
     return None
 
 

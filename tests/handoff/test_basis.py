@@ -78,6 +78,18 @@ CASES: list[tuple[str, tuple[BasisItem, ...]]] = [
     ("a.pdf;b.pdf", (src("a.pdf;b.pdf"),)),
     ("a.pdf, pages x.pdf", (txt("a.pdf, pages x.pdf"),)),
     (".", ()),
+    (".pdf", (txt(".pdf"),)),
+    (".pdf, page 3", (txt(".pdf, page 3"),)),
+    (".a.pdf, page 3", (src(".a.pdf", (3, 3), text=".a.pdf, page 3"),)),
+    (
+        "a.pdf, page 123456789",
+        (src("a.pdf", (123456789, 123456789), text="a.pdf, page 123456789"),),
+    ),
+    ("a.pdf, page 1234567890", (txt("a.pdf, page 1234567890"),)),
+    ("a.pdf, pages 1-1234567890", (txt("a.pdf, pages 1-1234567890"),)),
+    ("a.pdf, page " + "1" * 5000, (txt("a.pdf, page " + "1" * 5000),)),
+    ("a.pdf, page 3\t-\t5", (txt("a.pdf, page 3\t-\t5"),)),
+    ("a.pdf, page 3\u00a0–\u00a05", (txt("a.pdf, page 3\u00a0–\u00a05"),)),
 ]
 
 
@@ -149,3 +161,18 @@ def test_fixture_totals() -> None:
 def test_property_body_and_no_raise(lines: tuple[str, ...]) -> None:
     result = read_basis(Paragraph(line=3, lines=lines))
     assert result is None or result.body == lines[:-1]
+
+
+_FRAGMENTS = st.sampled_from(
+    ["a.pdf", ".", "..", "x.b2", ", page ", ", pages ", "-", "–", " ", ", ", "; ", "7"]
+    + ["calculation ", "K1", " (CP-1)", "name", "\t"]
+) | st.text(alphabet="0123456789", min_size=1, max_size=20)
+
+
+@given(st.lists(_FRAGMENTS, max_size=14), st.lists(st.text(), max_size=2))
+def test_property_basis_line_reaches_items(fragments: list[str], body: list[str]) -> None:
+    lines = (*body, "Basis: " + "".join(fragments))
+    result = read_basis(Paragraph(line=3, lines=lines))
+    assert result is not None
+    assert result.body == lines[:-1]
+    assert all(item.text for item in result.items)
