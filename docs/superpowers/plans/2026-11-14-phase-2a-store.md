@@ -20,7 +20,8 @@ run with `uvx` and not added to `pyproject.toml`), survivors killed or justified
 
 ## Files this step may touch
 
-`src/credit_os/store/**`, `tests/store/**`. Nothing else: step 2B runs beside this one. Not
+`src/credit_os/store/**`, `tests/store/**` (test modules named `test_store_<topic>.py`: `tests/`
+has no packages, so a base name must be unique). Nothing else: step 2B runs beside this one. Not
 `pyproject.toml` (standard library `sqlite3` only), `VERIFICATION.md`, a decision record,
 `docs/legacy/ports.md` or this plan. `store` imports `sources`, `handoff`, `model` and
 `provider` only. Signal keeps its own SQLite database inside `signal/` (decision 0009): the
@@ -157,7 +158,7 @@ with `SourcePin`, `Usage` and `Compaction` reused. No `Reply` is rebuilt.
 | D10 | A `stopped` run may be admitted (decision 0006, rulings 5 and 12); a `failed` one may not | One status test and its key row change |
 | D11 | The store has its own decimal-text reader: 1C's is private to `provider/canned.py` | Two readers of one grammar; hoisting it is a later one-file change |
 | D12 | `PRAGMA quick_check` runs at every writer open; a failure is `StoreCorrupt` | Seconds at open on a large file; it can move to resume only |
-| D13 | The 2A row of `docs/legacy/ports.md` should follow the pre-flight table, with `platform_io.replace` and `write_atomic` moved to the 3B row | The coordinator's edit; the code is unaffected |
+| D13 | The 2A row of `docs/legacy/ports.md` follows the pre-flight table, with `platform_io.replace` and `write_atomic` left for step 3B (done with this plan) | The coordinator's edit; the code is unaffected |
 
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
@@ -227,5 +228,5 @@ reads the diff and merges. The sub-session does not merge and does not edit shar
 - SQLite's own pages were not fetched: the 3.37 floor for `STRICT`, WAL on a network file
   system and serialized threading on Windows builds are from memory.
 - What step 3A needs from the resume read is inferred from the legacy loop and decision 0006;
-  3A is not planned. Step 2B's draft was only searched for `store` (it places no duty here).
+  3A is not planned. The 2B plan was only searched for `store` (it places no duty here).
   Database size with raw bodies over a real run, and how long `quick_check` then takes.

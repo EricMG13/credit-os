@@ -18,7 +18,8 @@ or justified in the PR.
 
 ## Files this step may touch
 
-`src/credit_os/model/**`, `tests/model/**`, `tests/fixtures/model/**`. Nothing else: not
+`src/credit_os/model/**`, `tests/model/**`, `tests/fixtures/model/**` (test modules named
+`test_model_<topic>.py`: `tests/` has no packages, so a base name must be unique). Nothing else: not
 `src/credit_os/handoff/**` (a missing reading is reported to the coordinator, not added), not
 `pyproject.toml` (standard library and pydantic 2.13.4 only), not `VERIFICATION.md`, decision
 records, this plan or `docs/legacy/ports.md`. Decision 0007 does not cover `tests/fixtures/model`:
