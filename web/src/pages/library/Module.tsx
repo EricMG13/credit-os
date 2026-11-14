@@ -10,6 +10,7 @@ import { Findings } from "./parts/Findings";
 import { Limitations } from "./parts/Limitations";
 import { ModuleNav, type NavSection } from "./parts/ModuleNav";
 import { Absent } from "./parts/NotHeld";
+import { Records } from "./parts/Records";
 import { RunFrame } from "./parts/RunFrame";
 import { Section } from "./parts/Section";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
@@ -24,6 +25,7 @@ function sectionsOf(body: DeliveredBody): NavSection[] {
     named("findings", "Key findings"),
     ...(body.contrary === null ? [] : [named("contrary", "Contrary evidence")]),
     ...(body.changeView === null ? [] : [named("change-view", "What would change the view")]),
+    ...(body.records.length === 0 ? [] : [named("records", "Records")]),
     named("limitations", "Limitations"),
   ];
 }
@@ -79,6 +81,11 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
             label="Show sources for the trigger"
             level={SUBSECTION_HEADING}
           />
+        </Target>
+      )}
+      {body.records.length === 0 ? null : (
+        <Target id="records">
+          <Records blocks={body.records} />
         </Target>
       )}
       <Target id="limitations">

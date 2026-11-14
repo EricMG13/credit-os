@@ -815,7 +815,47 @@
                     "text": "One certified alternative on a top-ten part, or a third slip in the engine programme’s ramp, would move this module’s view from stable to weakening.",
                     "trace": "bp-trigger"
                   },
-                  "records": [],
+                  "records": [
+                    {
+                      "kind": "matrix",
+                      "title": "Risks by probability and impact",
+                      "note": null,
+                      "columns": ["Risk", "Probability", "Impact"],
+                      "rows": [
+                        {
+                          "risk": "Engine programme delay",
+                          "probability": "Medium",
+                          "impact": "High",
+                          "trace": "bp-risk-1"
+                        },
+                        {
+                          "risk": "Loss of sole-source status",
+                          "probability": "Low",
+                          "impact": "High",
+                          "trace": "bp-risk-2"
+                        },
+                        {
+                          "risk": "Customer concentration",
+                          "probability": "Medium",
+                          "impact": "Medium",
+                          "trace": "bp-risk-3"
+                        },
+                        {
+                          "risk": "Input cost inflation",
+                          "probability": "High",
+                          "impact": "Low",
+                          "trace": "bp-risk-4"
+                        },
+                        {
+                          "risk": "Tariff exposure",
+                          "probability": null,
+                          "impact": "Medium",
+                          "trace": "bp-risk-5"
+                        }
+                      ],
+                      "trace": "bp-risk-matrix"
+                    }
+                  ],
                   "limitations": {
                     "count": "2",
                     "gapsLink": { "label": "See this module’s gaps in Evidence" },
@@ -1622,6 +1662,96 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "G-05"
+              },
+              "bp-risk-matrix": {
+                "title": "Sources for the risk matrix",
+                "heading": "Five risks placed",
+                "subtitle": "Business profile · risk matrix · as of 30 Sep 2026",
+                "statement": "The module placed five risks by probability and impact.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Five risks placed",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0052"
+              },
+              "bp-risk-1": {
+                "title": "Sources for engine programme delay",
+                "heading": "Medium probability",
+                "subtitle": "Business profile · risk · as of 30 Sep 2026",
+                "statement": "Engine programme delay: Medium probability, high impact.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Medium probability",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0053"
+              },
+              "bp-risk-2": {
+                "title": "Sources for loss of sole-source status",
+                "heading": "Low probability",
+                "subtitle": "Business profile · risk · as of 30 Sep 2026",
+                "statement": "Loss of sole-source status: Low probability, high impact.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Low probability",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0054"
+              },
+              "bp-risk-3": {
+                "title": "Sources for customer concentration",
+                "heading": "Medium probability",
+                "subtitle": "Business profile · risk · as of 30 Sep 2026",
+                "statement": "Customer concentration: Medium probability, medium impact.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Medium probability",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0055"
+              },
+              "bp-risk-4": {
+                "title": "Sources for input cost inflation",
+                "heading": "High probability",
+                "subtitle": "Business profile · risk · as of 30 Sep 2026",
+                "statement": "Input cost inflation: High probability, low impact.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "High probability",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0056"
+              },
+              "bp-risk-5": {
+                "title": "Sources for tariff exposure",
+                "heading": "Probability not recorded",
+                "subtitle": "Business profile · risk · as of 30 Sep 2026",
+                "statement": "Tariff exposure: Probability not recorded, medium impact.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Probability not recorded",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0057"
               }
             }
           },

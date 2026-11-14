@@ -30,6 +30,7 @@ import type {
   Module,
   Overview,
   Point,
+  RecordBlock,
   Run,
   RunHead,
   RunState,
@@ -642,10 +643,60 @@ function optionalView(o: Rec, key: string, path: string, traces: Traces): Change
   return own(o, key) === null ? null : readChangeView(own(o, key), child(path, key), traces);
 }
 
-/** Tasks 9 to 11 add the record kinds; until then every record is of an unknown kind. */
-function readRecord(value: unknown, path: string): never {
-  rec(value, path);
-  throw new SliceError(child(path, "kind"), "a record kind this library draws (none yet)");
+/** Text a table draws as given: the table refuses a blank one, so it is `null` or has a character. */
+function gradeOrNull(o: Rec, key: string, path: string): string | null {
+  const value = strOrNull(o, key, path);
+  if (value === "") throw new SliceError(child(path, key), "a non-empty string or null");
+  return value;
+}
+
+/** A name the table or list draws as a heading or label: never blank. */
+function named(o: Rec, key: string, path: string): string {
+  const value = str(o, key, path);
+  if (value === "") throw new SliceError(child(path, key), "a non-empty string");
+  return value;
+}
+
+function readMatrix(m: Rec, path: string, traces: Traces): RecordBlock {
+  const columnsPath = child(path, "columns");
+  const columns = list(m, "columns", path, (item, p) => {
+    if (typeof item !== "string" || item === "") throw new SliceError(p, "a non-empty string");
+    return item;
+  });
+  if (columns.length !== 3) throw new SliceError(columnsPath, "three columns");
+  const rowsPath = child(path, "rows");
+  const rows = some(
+    unique(
+      list(m, "rows", path, (item, p) => {
+        const r = rec(item, p);
+        return {
+          risk: named(r, "risk", p),
+          probability: gradeOrNull(r, "probability", p),
+          impact: gradeOrNull(r, "impact", p),
+          trace: traceKey(r, "trace", p, traces),
+        };
+      }),
+      rowsPath,
+      (row) => row.risk,
+      "risk",
+    ),
+    rowsPath,
+  );
+  return {
+    kind: "matrix",
+    title: named(m, "title", path),
+    note: strOrNull(m, "note", path),
+    columns,
+    rows,
+    trace: traceKey(m, "trace", path, traces),
+  };
+}
+
+/** Tasks 10 and 11 add the chart and table kinds; the watch list, questions and pathway are next. */
+function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
+  const r = rec(value, path);
+  oneOf(r, "kind", path, ["matrix"]);
+  return readMatrix(r, path, traces);
 }
 
 function readBody(value: unknown, path: string, traces: Traces): DeliveredBody | BlockedBody {
@@ -673,7 +724,12 @@ function readBody(value: unknown, path: string, traces: Traces): DeliveredBody |
     ),
     contrary: optionalView(b, "contrary", path, traces),
     changeView: optionalView(b, "changeView", path, traces),
-    records: list(b, "records", path, readRecord),
+    records: unique(
+      list(b, "records", path, (item, p) => readRecord(item, p, traces)),
+      child(path, "records"),
+      (block) => block.title,
+      "title",
+    ),
     limitations: readLimitations(own(b, "limitations"), child(path, "limitations"), traces),
   };
 }
@@ -710,6 +766,23 @@ function opensHeld(
   for (const [index, item] of items.entries()) {
     if (item.module !== null && !held.has(item.module)) {
       throw new SliceError(child(nth(path, index), "module"), "a module this run holds");
+    }
+  }
+}
+
+/** An item that opens a module carries the state that module holds, word for word. */
+function statesMatch(
+  items: readonly { module: string | null; state: string }[],
+  modules: readonly Module[],
+  path: string,
+): void {
+  for (const [index, item] of items.entries()) {
+    const held = modules.find((m) => m.id === item.module);
+    if (held !== undefined && held.state !== item.state) {
+      throw new SliceError(
+        child(nth(path, index), "state"),
+        `the state ${held.state} its module holds`,
+      );
     }
   }
 }
@@ -802,6 +875,7 @@ function readRun(value: unknown, path: string): Run {
   const held = new Set(modules.map((m) => m.id));
   const overviewItems = child(child(overviewPath, "modules"), "items");
   opensHeld(overview.modules.items, held, overviewItems);
+  statesMatch(overview.modules.items, modules, overviewItems);
   namesHeld(overview.modules.items, modules, overviewItems);
   if (changes.kind === "compared") {
     const changeItems = child(child(changesPath, "modules"), "items");

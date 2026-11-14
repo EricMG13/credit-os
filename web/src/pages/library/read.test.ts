@@ -710,6 +710,44 @@ describe("readSlice, modules", () => {
   const at = (slice: ReturnType<typeof fresh>, id: string, r = 0) =>
     `issuers[0].runs[${String(r)}].modules[${String(runOf(slice, r).modules?.findIndex((m) => m["id"] === id))}]`;
 
+  const matrix = (s: ReturnType<typeof fresh>) =>
+    modOf(s, "business-profile").body.records[0] as Json;
+  const matrixRow = (s: ReturnType<typeof fresh>, i: number) =>
+    (matrix(s)["rows"] as Json[])[i] as Json;
+
+  it("reads the matrix with a missing grade as null, not as a word", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const block = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (block?.kind !== "delivered") throw new Error("not delivered");
+    expect(block.records[0]).toMatchObject({
+      kind: "matrix",
+      title: "Risks by probability and impact",
+      note: null,
+      columns: ["Risk", "Probability", "Impact"],
+    });
+    const rows = block.records[0]?.kind === "matrix" ? block.records[0].rows : [];
+    expect(rows.map((r) => [r.risk, r.probability, r.impact])).toEqual([
+      ["Engine programme delay", "Medium", "High"],
+      ["Loss of sole-source status", "Low", "High"],
+      ["Customer concentration", "Medium", "Medium"],
+      ["Input cost inflation", "High", "Low"],
+      ["Tariff exposure", null, "Medium"],
+    ]);
+  });
+
+  it("rejects an Overview item whose state differs from the module it opens, and only that", () => {
+    const slice = fresh();
+    const items = (runOf(slice, 0).overview["modules"] as { items: Json[] }).items;
+    const i = items.findIndex((item) => item["module"] !== null);
+    const held = modOf(slice, String((items[i] as Json)["module"]))["state"];
+    (items[i] as Json)["state"] = held === "Delivered" ? "Not run" : "Delivered";
+    expect(invalidReason(slice)).toContain(
+      `issuers[0].runs[0].overview.modules.items[${String(i)}].state`,
+    );
+    expect(readSlice(fresh()).kind).toBe("ok");
+  });
+
   it("reads thirteen modules for every finished run and a loading run's null", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -736,7 +774,8 @@ describe("readSlice, modules", () => {
       "Not assessable",
     ]);
     expect(full.find((m) => m.id === "recovery")?.body.kind).toBe("blocked");
-    expect(full[0]?.body).toMatchObject({ kind: "delivered", records: [] });
+    expect(full[0]?.body).toMatchObject({ kind: "delivered" });
+    expect(full[1]?.body).toMatchObject({ kind: "delivered", records: [] });
     expect(runs[1]?.modules).toBeNull();
     expect(runs[2]?.modules?.map((m) => m.name)).toEqual(full.map((m) => m.name));
     expect(runs[2]?.modules?.map((m) => m.state)).toEqual([
@@ -822,13 +861,67 @@ describe("readSlice, modules", () => {
     [
       "an unknown record kind",
       (s: ReturnType<typeof fresh>) =>
-        modOf(s, "business-profile").body.records.push({ kind: "heat" }),
+        (modOf(s, "business-profile").body.records[0] = { kind: "heat" }),
       "business-profile",
       "body.records[0].kind",
     ],
     [
+      "a matrix with no rows",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["rows"] = []),
+      "business-profile",
+      "body.records[0].rows",
+    ],
+    [
+      "a matrix with an empty-string grade",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 0)["probability"] = ""),
+      "business-profile",
+      "body.records[0].rows[0].probability",
+    ],
+    [
+      "a matrix grade that is not text",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 3)["impact"] = 2),
+      "business-profile",
+      "body.records[0].rows[3].impact",
+    ],
+    [
+      "a matrix with a missing grade field",
+      (s: ReturnType<typeof fresh>) => delete matrixRow(s, 4)["impact"],
+      "business-profile",
+      "body.records[0].rows[4].impact",
+    ],
+    [
+      "a matrix with two columns",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["columns"] = ["Risk", "Impact"]),
+      "business-profile",
+      "body.records[0].columns",
+    ],
+    [
+      "a matrix with an empty column name",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["columns"] = ["Risk", "", "Impact"]),
+      "business-profile",
+      "body.records[0].columns[1]",
+    ],
+    [
+      "a matrix risk row with an unknown trace",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 1)["trace"] = "nothing"),
+      "business-profile",
+      "body.records[0].rows[1].trace",
+    ],
+    [
+      "a matrix with an unknown trace",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["trace"] = "nothing"),
+      "business-profile",
+      "body.records[0].trace",
+    ],
+    [
+      "a matrix risk named twice",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 1)["risk"] = "Engine programme delay"),
+      "business-profile",
+      "body.records[0].rows[1].risk",
+    ],
+    [
       "a record that is not an object",
-      (s: ReturnType<typeof fresh>) => modOf(s, "business-profile").body.records.push("heat"),
+      (s: ReturnType<typeof fresh>) => (modOf(s, "business-profile").body.records[0] = "heat"),
       "business-profile",
       "body.records[0]",
     ],
