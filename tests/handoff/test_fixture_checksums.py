@@ -6,7 +6,7 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "handoffs"
 
 def test_every_listed_checksum_matches_the_file_bytes() -> None:
     entries = (FIXTURES / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
-    assert entries
+    assert len(entries) == 27
     for entry in entries:
         digest, relative = entry.split()
         assert hashlib.sha256((FIXTURES / relative).read_bytes()).hexdigest() == digest, relative

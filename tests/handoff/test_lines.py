@@ -41,7 +41,7 @@ def test_the_three_terminators(text: str, expected: tuple[str, ...]) -> None:
 
 @pytest.mark.parametrize(
     "char",
-    [" ", " ", "\x0c", "\x0b", "\x85", "\x1c", "\x1d", "\x1e"],
+    ["\u2028", "\u2029", "\x0c", "\x0b", "\x85", "\x1c", "\x1d", "\x1e"],
 )
 def test_other_separators_stay_inside_the_line(char: str) -> None:
     assert split_lines(f"a{char}b\nc") == (f"a{char}b", "c")
@@ -79,7 +79,7 @@ _line = st.text(alphabet=st.characters(blacklist_characters="\r\n"))
 
 @given(st.lists(_line, min_size=1), st.data())
 def test_join_then_split_round_trips(lines: list[str], data: st.DataObject) -> None:
-    lines = [line.removeprefix("\ufeff") for line in lines]
+    lines[0] = lines[0].lstrip("\ufeff")
     if lines[-1] == "":
         lines[-1] = "z"  # a trailing empty line would just be a final terminator
     seps = [data.draw(st.sampled_from(TERMINATORS)) for _ in lines[1:]]
@@ -97,7 +97,11 @@ def test_no_line_contains_a_terminator_character(text: str) -> None:
         assert "\r" not in line
 
 
-@given(st.lists(st.sampled_from(["a", " ", "\ufeff", "\r\n", "\n", "\r"])).map("".join))
+@given(
+    st.lists(
+        st.sampled_from(["a", "\u2028", "\u2029", "\x85", "\x0c", "\ufeff", "\r\n", "\n", "\r"])
+    ).map("".join)
+)
 def test_line_count_matches_terminator_count(text: str) -> None:
     if text.startswith("\ufeff"):
         return

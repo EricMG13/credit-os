@@ -87,13 +87,6 @@ class _State:
         self.comment: _OpenComment | None = None
 
 
-def _next_opener(text: str, start: int, spans: list[tuple[int, int]]) -> int:
-    at = text.find(_OPENER, start)
-    while at >= 0 and any(a <= at < b for a, b in spans):
-        at = text.find(_OPENER, at + 1)
-    return at
-
-
 def _hide_continuation(state: _State, pending: _OpenComment, number: int, text: str) -> str | None:
     """Consume a line that began inside a comment; return what follows its `-->`, if any."""
     end = text.find(_CLOSER)
@@ -109,14 +102,18 @@ def _hide_continuation(state: _State, pending: _OpenComment, number: int, text: 
 
 
 def _read_comments(state: _State, number: int, text: str, removed: bool) -> str:
-    spans = [m.span() for m in _CODE_SPAN.finditer(text)]
     kept: list[str] = []
     pos = 0
     while True:
-        at = _next_opener(text, pos, spans)
+        span = _CODE_SPAN.search(text, pos)
+        at = text.find(_OPENER, pos)
         if at < 0:
             kept.append(text[pos:])
             break
+        if span is not None and span.start() < at:
+            kept.append(text[pos : span.end()])
+            pos = span.end()
+            continue
         kept.append(text[pos:at])
         removed = True
         body = at + len(_OPENER)
@@ -135,20 +132,19 @@ def _read_commented(state: _State, pending: _OpenComment, number: int, line: str
     state.shown.append("" if rest is None else _read_comments(state, number, rest, True))
 
 
-def _open_fence(line: str) -> _OpenFence | None:
+def _open_fence(number: int, line: str) -> _OpenFence | None:
     found = _FENCE_OPEN.match(line)
     if found is None:
         return None
     run, rest = found.groups()
     if run[0] == "`" and "`" in rest:
         return None
-    return _OpenFence(0, run[0], len(run), rest.strip())
+    return _OpenFence(number, run[0], len(run), rest.strip())
 
 
 def _read_normal(state: _State, number: int, line: str) -> None:
-    opened = _open_fence(line)
+    opened = _open_fence(number, line)
     if opened is not None:
-        opened.line = number
         state.fence = opened
         state.shown.append(line)
         return

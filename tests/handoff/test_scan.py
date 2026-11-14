@@ -73,6 +73,10 @@ def test_fences(
     assert _fences(lines) == expected
 
 
+def test_fence_info_with_comment_opener_records_no_comment() -> None:
+    assert scan([BT * 3 + " <!-- x", "code", BT * 3]).comments == ()
+
+
 def test_fence_with_headings_inside_is_not_headings() -> None:
     assert scan([BT * 3, "# h1", "### h3", BT * 3]).headings == ()
 
@@ -124,6 +128,26 @@ def _comments(lines: list[str]) -> list[tuple[int, int, str]]:
         ),
         (["<!-- a", "b --> ## Not heading"], ("", " ## Not heading"), [(1, 2, "a\nb")]),
         (["<!-- x -->## Request"], ("## Request",), [(1, 1, "x")]),
+        (
+            ["<!-- " + BT + " --> <!-- y --> " + BT],
+            ("  " + BT,),
+            [(1, 1, BT), (1, 1, "y")],
+        ),
+        (
+            [BT + "a" + BT + " <!-- x --> " + BT + "b" + BT],
+            (BT + "a" + BT + "  " + BT + "b" + BT,),
+            [(1, 1, "x")],
+        ),
+        (
+            [BT + "<!--" + BT + " then <!-- real -->"],
+            (BT + "<!--" + BT + " then ",),
+            [(1, 1, "real")],
+        ),
+        (
+            ["<!-- " + BT + " -->" + BT + "x <!-- y --> z" + BT],
+            (BT + "x <!-- y --> z" + BT,),
+            [(1, 1, BT)],
+        ),
     ],
 )
 def test_comments(
@@ -132,6 +156,12 @@ def test_comments(
     result = scan(lines)
     assert result.shown == shown
     assert _comments(lines) == comments
+
+
+def test_hidden_fence_and_heading_inside_a_comment_leave_the_shown_heading_only() -> None:
+    result = scan(["<!--", "## Hidden", BT * 3, "-->", "## Shown"])
+    assert [(h.level, h.title, h.line) for h in result.headings] == [(2, "Shown", 5)]
+    assert result.fences == ()
 
 
 def test_comment_continuation_line_is_never_a_heading_or_fence() -> None:
