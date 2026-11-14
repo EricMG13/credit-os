@@ -37,6 +37,7 @@ describe("readSlice", () => {
         "unreachable",
         "no-sources",
         "nothing-followed",
+        "ai-capped",
       ]);
       expect(result.data.scenes[0].snapshot.viewer.name).toBe("Mara L");
       expect(result.data.scenes[3]?.snapshot.viewer.name).toBeNull();

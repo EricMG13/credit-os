@@ -1,5 +1,4 @@
-// One Signal address: picks the scene, then what the frame holds. Pages later tasks build replace
-// the "Not built yet" empty state.
+// One Signal address: picks the scene, then what the frame holds.
 import { useState, type ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";

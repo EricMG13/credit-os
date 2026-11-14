@@ -9,6 +9,7 @@ import { PageTitle } from "./parts/PageTitle";
 import type { SignalScene } from "./slice";
 import { GroupsSection } from "./settings/GroupsSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
+import { AiSection } from "./settings/AiSection";
 import { DigestsSection } from "./settings/DigestsSection";
 import { RulesSection } from "./settings/RulesSection";
 import { SourcesSection } from "./settings/SourcesSection";
@@ -111,7 +112,7 @@ export function SettingsPage({
         );
       }
       case "ai":
-        return state("Not built yet");
+        return <AiSection ai={settings.ai} />;
     }
   }
 

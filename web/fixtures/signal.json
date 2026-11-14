@@ -2923,6 +2923,160 @@
             }
           ]
         }
+      },
+      {
+        "id": "ai-capped",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "capped",
+              "notice": {
+                "title": "AI has reached its cap for November",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused until 1 December. Only the owner can raise the cap."
+              },
+              "spend": {
+                "title": "Spend in November",
+                "label": "USD 15.00 of USD 15.00",
+                "note": null,
+                "position": 1
+              },
+              "parts": [
+                {
+                  "id": "ai-line",
+                  "label": "AI line on stories",
+                  "hint": "One line on why a story matters, marked AI.",
+                  "on": true
+                },
+                {
+                  "id": "strength",
+                  "label": "Signal strength",
+                  "hint": "Three marks and a word on each story.",
+                  "on": true
+                },
+                { "id": "digests", "label": "Digests", "hint": "Scheduled briefs.", "on": true }
+              ]
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
       }
     ]
   },
@@ -2973,6 +3127,9 @@
       { "scene": "main", "section": "notifications" },
       { "scene": "main", "section": "topics" },
       { "scene": "main", "section": "digests" },
+      { "scene": "main", "section": "ai" },
+      { "scene": "ai-on", "section": "ai" },
+      { "scene": "ai-capped", "section": "ai" },
       { "scene": "reader", "section": "topics" },
       { "scene": "reader", "section": "notifications" },
       { "scene": "reader", "section": "groups" }
