@@ -151,6 +151,22 @@ export type DateState = keyof (typeof STATUS_SETS)["Dated records"];
 /** One issuer date to watch: `date` is delivered text, never parsed. */
 export type DatedItem = { date: string; state: DateState; title: string; text: string };
 
+/** The words of the Module state set. */
+export type ModuleState = keyof (typeof STATUS_SETS)["Module state"];
+
+/**
+ * One module item. `module` is the module's id, or `null` for an item that stands for several
+ * (a repeated state collapsed into one), which opens nothing.
+ */
+export type ModuleItem = { title: string; lead: string; state: ModuleState; module: string | null };
+
+/** What the run could not establish; `count` and the link's label are delivered text. */
+export type Limitations = {
+  count: string;
+  gapsLink: { label: string };
+  items: readonly { text: string; trace: string | null }[];
+};
+
 /** The Overview page of a run: bottom line, figures, for and against, findings and dates. */
 export type Overview = {
   bottomLine: BottomLineText;
@@ -165,6 +181,9 @@ export type Overview = {
   findings: readonly Finding[];
   changeView: ChangeView;
   dates: readonly DatedItem[];
+  /** `summary` is delivered text such as "12 of 13 delivered". */
+  modules: { summary: string; items: readonly ModuleItem[] };
+  limitations: Limitations;
 };
 
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };

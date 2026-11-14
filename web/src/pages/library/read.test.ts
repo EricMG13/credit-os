@@ -374,6 +374,8 @@ describe("readSlice, overview", () => {
     findings: Json[];
     changeView: Json;
     dates: Json[];
+    modules: { items: Json[] } & Json;
+    limitations: { items: Json[]; gapsLink: Json } & Json;
   };
   type Run = Json & { overview: Ov | null };
   const runOf = (slice: ReturnType<typeof fresh>, r: number) =>
@@ -395,6 +397,9 @@ describe("readSlice, overview", () => {
     expect(full.overview.dates.map((d) => d.state)).toEqual(["Past", "Next", "Later", "Later"]);
     expect(full.overview.changeView.title).toBe("Two triggers, either is enough");
     expect(capped.overview.changeView.trace).toBeNull();
+    expect(full.overview.modules.items).toHaveLength(13);
+    expect(capped.overview.modules.items[0]?.module).toBeNull();
+    expect(full.overview.limitations.count).toBe("4");
   });
 
   it.each([
@@ -447,6 +452,31 @@ describe("readSlice, overview", () => {
       "a date in a state outside Past, Next and Later",
       (o: Ov) => ((o.dates[1] as Json)["state"] = "Soon"),
       "overview.dates[1].state",
+    ],
+    [
+      "a module item in a state outside the Module state set",
+      (o: Ov) => ((o.modules.items[1] as Json)["state"] = "Done"),
+      "overview.modules.items[1].state",
+    ],
+    [
+      "a module item without its module field",
+      (o: Ov) => delete (o.modules.items[0] as Json)["module"],
+      "overview.modules.items[0].module",
+    ],
+    [
+      "a repeated module item",
+      (o: Ov) => (o.modules.items[2] = { ...o.modules.items[1] }),
+      "overview.modules.items[2].title",
+    ],
+    [
+      "limitations without the gaps link label",
+      (o: Ov) => delete o.limitations.gapsLink["label"],
+      "overview.limitations.gapsLink.label",
+    ],
+    [
+      "a limitation trace the run lacks",
+      (o: Ov) => ((o.limitations.items[0] as Json)["trace"] = "ghost"),
+      "overview.limitations.items[0].trace",
     ],
     [
       "a repeated finding number",
