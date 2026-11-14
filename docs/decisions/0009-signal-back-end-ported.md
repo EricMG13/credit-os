@@ -73,9 +73,10 @@ line that it would get its own plan once phase 4 is done.
 
 By the Signal session as controller, accepted by the coordinator under decision 0006 with the
 conditions shown. The full text is in the PR that carries each. The S-1 to S-11 table above
-is replaced by a split by file (about 18 PRs, each within the cap): the port takes the
-reviewed tip's files whole where they fit. Order: network pin, store, feeds, fetch, identity
-and topics, groups, feed view, threads, ingest, service, command line.
+is replaced by a split by file, each PR within the cap: the port takes the reviewed tip's
+files whole where they fit. The Signal session's estimate, by message and not a ruling, is
+about 18 PRs in the order network pin, store, feeds, fetch, identity and topics, groups, feed
+view, threads, ingest, service, command line.
 
 **Departures from the predecessor made for this repository's gates.**
 - No `assert` in source: an explicit check raises the module's own error.

@@ -131,10 +131,12 @@ In `main` since PR 2 (#63):
 - **Compactions, carrier and identity.** A compaction is attached to the reply of the call
   during which it is observed, or to the next call's reply; `Model.close()` returns those
   observed and not yet delivered. `Compaction` gains `event_id` (the envelope id of the SDK
-  event, as text; a repeat is ignored) and `outcome`: `done`, `failed`, or `unfinished` for a
+  event, as text; two in one reply with the same id are refused, and the PR 3 driver removes
+  repeats first) and `outcome`: `done`, `failed`, or `unfinished` for a
   compaction that started and had not reported when the call ended. An unknown charge is
   `None` in every case; an unfinished one has every count `None`. A compaction has no
-  reasoning-token count. A late compaction goes on the next reply that may carry one (a
+  reasoning-token count. The `Model` contract, which the PR 3 driver implements (the canned
+  adapter holds none): a late compaction goes on the next reply that may carry one (a
   `not_sent` reply carries none), else `close()` returns it.
 - **Replacement link.** `Compaction.supersedes` is the `event_id` of an unfinished compaction,
   delivered earlier, that this one completes, else `None`. The type refuses a self-link, a

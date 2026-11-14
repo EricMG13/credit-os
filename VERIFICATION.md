@@ -20,19 +20,22 @@ check green, and its diff read by the coordinator.
 | PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- |
 | #63 | `mx-precise` approved; `mx-adversary` PASS; scoped `mx-adversary` on the replacement link PASS, Info 3 | 0 confirmed defects | PASS on `b838513`: High 0, Medium 0, Low 4, Info 5 |
-| #74, #75 | `mx-precise` pass; `mx-adversary` Medium 1 (the handshake could take twice the time left; fixed in #74), Low 4, Info 6, re-review closed | no defect outside security | FAIL: Medium 1, a test gap on what `connect` hands to the socket budget |
+| #74, #75 | `mx-precise` pass; `mx-adversary` Medium 1 (the handshake could take twice the time left; fixed in #74), Low 4, Info 6, re-review closed | no defect outside security | FAIL at `a0f3adc`: Medium 1, a test gap on what `connect` hands to the socket budget |
 
 **The Medium on #75, and a second round.** The whole-branch Medium was closed by tests against
 the reviewer's four mutants, and no reviewer saw that fix. The coordinator dispatched a scoped
 `mx-adversary` re-review: FAIL, the gap was half closed. Four more mutants survived, one of
 them the per-operation timeout and the total deadline swapped, which would refuse every fetch
 in production. One test row was added (`ba60879`); the coordinator ran the reviewer's probe on
-that head: 21 of 21 mutants as expected, no survivor. The code did not change in either round.
+that head: 21 of 21 mutants as expected, no survivor. The first fix (`a0f3adc..16d20ec`) also
+deleted the unused `_BudgetedSocket.send` and `.recv` and added `close()` to `ResponseLike`; the
+re-review read that diff and found nothing at Medium or above. The second changed tests only.
+The re-review's report was returned as text and is not saved as a file; its two probes are.
 
 **Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #63
 on `b3d2b7f` (1,030 passed, coverage 100%), #75 on `ba60879`; `npm --prefix web run gates`
-exit 0 for the Signal PRs. CI green on Ubuntu, Windows and the review job on every head; #75
-ran again against `main` after #74 merged. Mutation on #63 (`mutmut`, `src/credit_os/provider/`):
+exit 0 for the Signal PRs. CI green on Ubuntu, Windows and the review job on each merged head; #75's
+run on `ba60879` after it was retargeted to `main` is the one the coordinator read before merging. Mutation on #63 (`mutmut`, `src/credit_os/provider/`):
 719 mutants, 710 killed, 9 equivalent. Signal: hand mutants only.
 
 **Ledger.**
