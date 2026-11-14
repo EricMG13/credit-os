@@ -559,6 +559,10 @@ describe("Module, the navigator", () => {
     other.runs[slot] = { ...structuredClone(earlier), id: "2026-09-30" };
     other.id = "halden-copy";
     other.name = "Halden copy";
+    // A Forecast address names its own issuer; the copy has none.
+    for (const copied of other.runs as unknown as { head: { forecastHref: unknown } }[]) {
+      copied.head.forecastHref = null;
+    }
     slice.issuers.push(other);
     const data: LibraryData = {
       schema: "credit-os-data/1",

@@ -185,6 +185,18 @@ describe("Evidence, Record", () => {
     );
   });
 
+  it("right-aligns the register's Rows and Open columns, as the mock draws them", () => {
+    renderRecord(FULL);
+    const heads = within(table("Registers as written")).getAllByRole("columnheader");
+    expect(heads[2]).toHaveClass("text-right");
+    expect(heads[4]).toHaveClass("text-right");
+    expect(heads[1]).not.toHaveClass("text-right");
+    const row = within(table("Registers as written")).getAllByRole("row")[1] as HTMLElement;
+    const cells = within(row).getAllByRole("cell");
+    expect(cells[1]).toHaveClass("text-right");
+    expect(cells[3]).toHaveClass("text-right");
+  });
+
   it("draws an Open with no address as a disabled button beside its reason, and nothing is generated", () => {
     renderRecord(FULL);
     const row = within(table("Registers as written")).getByRole("row", {
@@ -196,6 +208,7 @@ describe("Evidence, Record", () => {
       "The withheld register lists figures the sources marked confidential, so it is not published.";
     expect(within(row).getByText(reason)).toBeVisible();
     expect(open).toHaveAccessibleDescription(reason);
+    expect(open.parentElement).toHaveClass("justify-end");
     expect(within(row).queryByRole("link", { name: "Open" })).toBeNull();
   });
 

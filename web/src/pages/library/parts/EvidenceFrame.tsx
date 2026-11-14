@@ -19,6 +19,7 @@ export function EvidenceFrame({
   evidence,
   current,
   filter,
+  onSameAddress,
   children,
 }: {
   issuer: string;
@@ -27,6 +28,8 @@ export function EvidenceFrame({
   current: EvidenceTab;
   /** The module filter, drawn at the right of the heading by a page that narrows something. */
   filter?: ReactNode;
+  /** Restarts the page when the jump menu picks the address it already shows. */
+  onSameAddress?: (() => void) | undefined;
   children: ReactNode;
 }) {
   const Heading = SECTION_HEADING;
@@ -49,7 +52,12 @@ export function EvidenceFrame({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {filter}
-            <JumpMenu items={evidence.jump} issuer={issuer} run={run} />
+            <JumpMenu
+              items={evidence.jump}
+              issuer={issuer}
+              run={run}
+              {...(onSameAddress === undefined ? {} : { onSameAddress })}
+            />
           </div>
         </div>
         <nav

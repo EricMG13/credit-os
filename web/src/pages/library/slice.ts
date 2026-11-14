@@ -513,6 +513,9 @@ export type GapTable = {
   groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
 };
 
+/** Five column heads, as the reader guarantees them. */
+export type FiveHeads = readonly [string, string, string, string, string];
+
 /** One module's span in the run, in minutes from its start; a module that never ran has none. */
 export type TimingRow = {
   module: string;
@@ -548,7 +551,7 @@ export type RunRecord = {
     title: string;
     note: string;
     /** The heads: Module, State, Started, Accepted, Took. */
-    columns: readonly string[];
+    columns: FiveHeads;
     rows: readonly TimingRow[];
     /** The delivered sentence of a run that holds no module, so has no time; `null` when rows exist. */
     emptyText: string | null;
@@ -577,7 +580,7 @@ export type RunRecord = {
     count: string;
     note: string;
     /** The heads: Register, Written by, Rows, File, Open. */
-    columns: readonly string[];
+    columns: FiveHeads;
     downloadAll: Download;
     rows: readonly RecordRegister[];
   };

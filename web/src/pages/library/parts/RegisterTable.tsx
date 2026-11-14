@@ -49,9 +49,17 @@ const HEAD =
   "bg-surface-subtle px-5 py-2 text-left text-xs font-semibold whitespace-nowrap text-quaternary";
 
 /** A column head with no sort. */
-export function PlainHead({ children, srOnly = false }: { children: string; srOnly?: boolean }) {
+export function PlainHead({
+  children,
+  srOnly = false,
+  align = "left",
+}: {
+  children: string;
+  srOnly?: boolean;
+  align?: "left" | "right";
+}) {
   return (
-    <th scope="col" className={HEAD}>
+    <th scope="col" className={cx(HEAD, align === "right" && "text-right")}>
       {srOnly ? <span className="sr-only">{children}</span> : children}
     </th>
   );
