@@ -416,13 +416,13 @@ describe("readSlice, overview", () => {
     if (full?.loading !== false || capped?.loading !== false) throw new Error("runs are loaded");
     expect(full.overview.metrics).toHaveLength(6);
     expect(full.overview.metrics[5]?.value).toBeNull();
-    expect(full.overview.sides.columns.map((c) => c.items.length)).toEqual([3, 3]);
+    expect(full.overview.sides?.columns.map((c) => c.items.length)).toEqual([3, 3]);
     expect(capped.overview.metrics[0]?.value).toEqual({ kind: "value", text: "0", at: 0 });
     expect(capped.overview.metrics[1]?.value).toMatchObject({ kind: "withheld" });
     expect(full.overview.findings.map((f) => f.number)).toEqual(["01", "02", "03", "04", "05"]);
     expect(full.overview.dates.map((d) => d.state)).toEqual(["Past", "Next", "Later", "Later"]);
-    expect(full.overview.changeView.title).toBe("Two triggers, either is enough");
-    expect(capped.overview.changeView.trace).toBeNull();
+    expect(full.overview.changeView?.title).toBe("Two triggers, either is enough");
+    expect(capped.overview.changeView?.trace).toBeNull();
     expect(full.overview.modules.items).toHaveLength(13);
     expect(capped.overview.modules.items[0]?.module).toBeNull();
     expect(full.overview.limitations.count).toBe("4");
@@ -1978,5 +1978,27 @@ describe("readSlice, sweep fix batch 1", () => {
     const loading = fresh();
     runAt(loading, 0, 1).head.tabs["modulesCount"] = "0";
     expect(readSlice(loading).kind).toBe("ok");
+  });
+});
+
+describe("readSlice, an overview without For and against or a change view", () => {
+  type Ov = Json & { sides: unknown; changeView: unknown };
+  const ovOf = (slice: ReturnType<typeof fresh>) =>
+    ((slice.issuers[0]?.["runs"] as { overview: Ov }[])[0] as { overview: Ov }).overview;
+
+  it.each(["sides", "changeView"])("reads %s: null as null", (key) => {
+    const slice = fresh();
+    ovOf(slice)[key] = null;
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers[0]?.runs[0];
+    if (run?.loading !== false) throw new Error("run is loaded");
+    expect(run.overview[key as "sides" | "changeView"]).toBeNull();
+  });
+
+  it.each(["sides", "changeView"])("still refuses a missing %s key", (key) => {
+    const slice = fresh();
+    Reflect.deleteProperty(ovOf(slice), key);
+    expect(invalidReason(slice)).toContain(`issuers[0].runs[0].overview.${key}`);
   });
 });

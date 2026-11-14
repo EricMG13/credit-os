@@ -600,3 +600,44 @@ describe("Overview, another run", () => {
     expect(within(next).getAllByRole("listitem").length).toBeGreaterThan(0);
   });
 });
+
+describe("Overview, an absent For and against or change view", () => {
+  type Ov = { sides: unknown; changeView: unknown };
+  function withOverview(patch: Partial<Ov>): unknown {
+    const slice = structuredClone(fixture.slice) as { issuers: { runs: { overview: Ov }[] }[] };
+    Object.assign(
+      (slice.issuers[0] as { runs: { overview: Ov }[] }).runs[0]?.overview as Ov,
+      patch,
+    );
+    return slice;
+  }
+  const headings = () => screen.getAllByRole("heading").map((h) => h.textContent);
+
+  it("draws no For and against section when sides is null, and moves nothing into its place", () => {
+    renderOverview("2026-09-30");
+    const full = headings();
+    cleanup();
+    renderOverview("2026-09-30", withOverview({ sides: null }));
+    expect(screen.queryByRole("heading", { name: "For and against" })).toBeNull();
+    expect(screen.queryByText("Supports the view")).toBeNull();
+    expect(screen.queryByText("Against the view")).toBeNull();
+    expect(headings()).toEqual(
+      full.filter((h) => !["For and against", "Supports the view", "Against the view"].includes(h)),
+    );
+  });
+
+  it("draws no change-view heading or callout when changeView is null, and keeps Dates to watch", () => {
+    renderOverview("2026-09-30");
+    const full = headings();
+    cleanup();
+    renderOverview("2026-09-30", withOverview({ changeView: null }));
+    expect(screen.queryByRole("heading", { name: "What would change the view" })).toBeNull();
+    expect(screen.queryByRole("note")).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "Dates to watch" })).toBeVisible();
+    expect(headings()).toEqual(
+      full.filter(
+        (h) => h !== "What would change the view" && h !== "Two triggers, either is enough",
+      ),
+    );
+  });
+});

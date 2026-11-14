@@ -485,7 +485,11 @@ function some<T>(items: T[], path: string): T[] {
 }
 
 /** For and against has two columns, "supports" and "against", each with its own points. */
-function readColumns(sides: Rec, path: string, traces: Traces): Overview["sides"]["columns"] {
+function readColumns(
+  sides: Rec,
+  path: string,
+  traces: Traces,
+): NonNullable<Overview["sides"]>["columns"] {
   const columns = list(sides, "columns", path, (column, columnPath) => {
     const c = rec(column, columnPath);
     return {
@@ -586,10 +590,18 @@ function readModules(value: unknown, path: string): Overview["modules"] {
   };
 }
 
+function readSides(value: unknown, path: string, traces: Traces): Overview["sides"] {
+  if (value === null) return null;
+  const sides = rec(value, path);
+  return {
+    heading: str(sides, "heading", path),
+    note: str(sides, "note", path),
+    columns: readColumns(sides, path, traces),
+  };
+}
+
 function readOverview(value: unknown, path: string, traces: Traces): Overview {
   const o = rec(value, path);
-  const sidesPath = child(path, "sides");
-  const sides = rec(own(o, "sides"), sidesPath);
   return {
     bottomLine: readBottomLine(own(o, "bottomLine"), child(path, "bottomLine"), traces),
     metricsLabel: str(o, "metricsLabel", path),
@@ -599,11 +611,7 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       (m) => m.label,
       "label",
     ),
-    sides: {
-      heading: str(sides, "heading", sidesPath),
-      note: str(sides, "note", sidesPath),
-      columns: readColumns(sides, sidesPath, traces),
-    },
+    sides: readSides(own(o, "sides"), child(path, "sides"), traces),
     findings: some(
       unique(
         list(o, "findings", path, (f, p) => readFinding(f, p, traces)),
@@ -613,7 +621,7 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       ),
       child(path, "findings"),
     ),
-    changeView: readChangeView(own(o, "changeView"), child(path, "changeView"), traces),
+    changeView: optionalView(o, "changeView", path, traces),
     dates: some(
       unique(
         list(o, "dates", path, readDate),

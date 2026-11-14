@@ -173,13 +173,15 @@ export type Overview = {
   /** The accessible name of the headline figures. */
   metricsLabel: string;
   metrics: readonly Metric[];
+  /** `null` when the handoff has no For and against section. */
   sides: {
     heading: string;
     note: string;
     columns: readonly { name: string; items: readonly Point[] }[];
-  };
+  } | null;
   findings: readonly Finding[];
-  changeView: ChangeView;
+  /** `null` when the handoff has no passage on what would change the view. */
+  changeView: ChangeView | null;
   dates: readonly DatedItem[];
   /** `summary` is delivered text such as "12 of 13 delivered". */
   modules: { summary: string; items: readonly ModuleItem[] };
