@@ -239,6 +239,11 @@ HOME_PATHS: tuple[tuple[str, str], ...] = (
     ("/home/jane\\nnext", "<home>"),
     ("/home/jane:x C:\\Users\\Bob Smith\r\nnext", "<home>:x <home>\r\nnext"),
     ("C:\\Users\\" + "(a)a" * 30, "<home>"),
+    # a backslash inside a POSIX name takes the rest of the line: a second home after it is gone
+    ("/home/jane \\\\fs01\\share/Users/bob/x", "<home>"),
+    ("/home/jane \\\\fs01/share/Users/bob", "<home>"),
+    ("/home/jane \\Users/bob", "<home>"),
+    ("/home/jane \\\\?\\UNC\\fs01\\share/Users/bob", "<home>"),
     # an empty name is not a home
     ("dir C:\\Users\\", "dir C:\\Users\\"),
 )
