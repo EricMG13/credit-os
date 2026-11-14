@@ -81,15 +81,10 @@ describe("the section list", () => {
     ).toEqual(NAMES.map(() => "false"));
   });
 
-  it.each(["topics", "digests", "ai"])("says %s is not built yet", (id) => {
-    show(`/signal/main/settings/${id}`);
+  it("says AI and cost is not built yet", () => {
+    show("/signal/main/settings/ai");
     expect(page().getByText("Not built yet")).toBeTruthy();
     expect(page().getByRole("heading", { level: 1 }).textContent).toBe("Settings");
-  });
-
-  it("says a reader's Topics is not built yet", () => {
-    show("/signal/reader/settings/topics");
-    expect(page().getByText("Not built yet")).toBeTruthy();
   });
 });
 

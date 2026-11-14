@@ -73,7 +73,13 @@ export function SourcesSection({
         <div className="overflow-hidden rounded-xl ring-1 ring-border-hairline">
           <Table aria-label="Sources" size="sm" sortDescriptor={sort} onSortChange={setSort}>
             <Table.Header>
-              <Table.Head id="name" isRowHeader allowsSorting label="Source" />
+              <Table.Head
+                id="name"
+                isRowHeader
+                allowsSorting
+                className="max-xl:w-1/3"
+                label="Source"
+              />
               <Table.Head id="state" allowsSorting label="State" />
               <Table.Head id="health" allowsSorting label="Health" />
               <Table.Head id="check" className="max-xl:hidden" label="Last check and item" />

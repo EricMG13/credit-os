@@ -9,8 +9,10 @@ import { PageTitle } from "./parts/PageTitle";
 import type { SignalScene } from "./slice";
 import { GroupsSection } from "./settings/GroupsSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
+import { DigestsSection } from "./settings/DigestsSection";
 import { RulesSection } from "./settings/RulesSection";
 import { SourcesSection } from "./settings/SourcesSection";
+import { TopicsSection } from "./settings/TopicsSection";
 
 type SectionId =
   "groups" | "thread-rules" | "sources" | "topics" | "digests" | "notifications" | "ai";
@@ -40,6 +42,7 @@ export function SettingsPage({
 }) {
   const { settings } = scene.snapshot;
   const [flags, setFlags] = useState<ReadonlyMap<string, boolean>>(new Map());
+  const [typed, setTyped] = useState<ReadonlyMap<string, string>>(new Map());
   const [visible, setVisible] = useState<ReadonlyMap<string, string>>(new Map());
   const listed = SECTIONS.filter((s) => writer || s.reader);
   const current = SECTIONS.find((s) => s.id === section);
@@ -87,7 +90,26 @@ export function SettingsPage({
           <SourcesSection sources={settings.sources} weeksHeading={settings.sourceWeeksHeading} />
         );
       case "topics":
-      case "digests":
+        return <TopicsSection topics={settings.topics} writer={writer} />;
+      case "digests": {
+        const form = settings.digestForm;
+        const field = (key: string, delivered: string) => typed.get(key) ?? delivered;
+        return (
+          <DigestsSection
+            form={form}
+            value={{
+              name: field("name", form.name),
+              covers: field("covers", form.covers),
+              schedule: field("schedule", form.schedule),
+              length: field("length", form.length),
+              brief: field("brief", form.brief),
+            }}
+            onChange={(key, text) => {
+              setTyped(new Map(typed).set(key, text));
+            }}
+          />
+        );
+      }
       case "ai":
         return state("Not built yet");
     }

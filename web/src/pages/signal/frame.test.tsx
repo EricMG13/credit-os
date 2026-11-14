@@ -245,7 +245,7 @@ describe("the Signal frame", () => {
   );
 
   it("says Not built yet for pages later tasks add, inside the frame, under the page's own h1", () => {
-    show("/signal/main/settings/topics");
+    show("/signal/main/settings/ai");
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Not built yet" })).toBeInTheDocument();
   });
@@ -301,6 +301,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(36);
+    expect(visits).toBe(38);
   });
 });

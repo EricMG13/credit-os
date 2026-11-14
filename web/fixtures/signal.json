@@ -2972,6 +2972,8 @@
       { "scene": "main", "section": "thread-rules" },
       { "scene": "main", "section": "notifications" },
       { "scene": "main", "section": "topics" },
+      { "scene": "main", "section": "digests" },
+      { "scene": "reader", "section": "topics" },
       { "scene": "reader", "section": "notifications" },
       { "scene": "reader", "section": "groups" }
     ]
