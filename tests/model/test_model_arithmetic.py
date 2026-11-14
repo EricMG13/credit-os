@@ -497,6 +497,8 @@ def test_product_does_not_depend_on_the_int_str_limit(reverse: bool) -> None:
 
 
 def test_product_under_the_lowest_int_str_limit() -> None:
+    """`sys.set_int_max_str_digits` is an interpreter-wide setting. This test lowers it and
+    restores it in `finally`, so it must not run in parallel with other tests in one process."""
     items = [power(5, 54, -54)] * 12 + [power(2, 126)] * 5 + [power(2, 18)]
     old = sys.get_int_max_str_digits()
     try:
