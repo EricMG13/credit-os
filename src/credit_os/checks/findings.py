@@ -3,9 +3,9 @@
 A finding names one check, the 1-based file line of the offending text, its 1-based column in
 the text node as the parser shows it (for a paragraph or list line, the stripped line, not the
 file line), that text (each control, format, line and paragraph separator character replaced by
-one space, then cut to 80 code points by `echo`, so `message` is one line) and one sentence
-saying what to change. `ordered` sorts by line, then the position of the check in `CHECKS`,
-then column. A context is built per call; it is not dumped, copied or pickled.
+one space, then cut to 80 code points by `echo`) and one sentence saying what to change (the same
+characters replaced by one space, no cut), so `message` is always one line. `ordered` sorts by line, then the position of the check in
+`CHECKS`, then column. A context is built per call; it is not dumped, copied or pickled.
 """
 
 import unicodedata
@@ -58,6 +58,10 @@ CHECKS = (
 _BREAKS = frozenset({"Cc", "Cf", "Zl", "Zp"})
 
 
+def _one_line(text: str) -> str:
+    return "".join(" " if unicodedata.category(c) in _BREAKS else c for c in text)
+
+
 class Finding(Node):
     check: str
     severity: Literal["refusal", "warning"]
@@ -76,7 +80,12 @@ class Finding(Node):
     @field_validator("quoted")
     @classmethod
     def _cut(cls, quoted: str) -> str:
-        return echo("".join(" " if unicodedata.category(c) in _BREAKS else c for c in quoted))
+        return echo(_one_line(quoted))
+
+    @field_validator("reason")
+    @classmethod
+    def _flat(cls, reason: str) -> str:
+        return _one_line(reason)
 
     @property
     def message(self) -> str:

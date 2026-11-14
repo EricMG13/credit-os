@@ -125,6 +125,21 @@ def test_quoted_cut_by_code_points() -> None:
     assert _finding(quoted="é" * 81).quoted == "é" * 80 + "…"
 
 
+def test_reason_newline_is_a_space() -> None:
+    assert _finding(reason="Fix\nthis now.").reason == "Fix this now."
+
+
+def test_reason_plain_unchanged() -> None:
+    reason = "Close the code block with a line of three backticks."
+    assert _finding(reason=reason).reason == reason
+
+
+def test_message_is_one_line() -> None:
+    message = _finding(quoted="a\nb\u2028c", reason="Fix\r\nthis\u2029now\x85.").message
+    for separator in ("\n", "\r", "\u2028", "\u2029", "\x85"):
+        assert separator not in message
+
+
 def test_ordered() -> None:
     a = _finding(check="structure.reader-summary", line=3, column=1)
     b = _finding(check="structure.format", line=3, column=9)
