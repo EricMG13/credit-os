@@ -8,11 +8,11 @@ const fixture = JSON.parse(
   readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
 ) as { slice: unknown };
 
-function show(hash: string) {
+function show(hash: string, run: unknown = fixture.slice) {
   window.location.hash = `#${hash}`;
   const result: LoadResult = {
     kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], run: fixture.slice },
+    data: { schema: "credit-os-data/1", issuers: [], run },
   };
   return render(<App result={result} />);
 }
@@ -50,6 +50,30 @@ describe("Start (frame 06)", () => {
       screen.getByRole("heading", { level: 3, name: "Submit starts a paid run" }),
     ).toBeVisible();
     expect(
+      screen.getByRole("heading", { level: 3, name: "Submit starts a paid run" }).parentElement,
+    ).toHaveTextContent(
+      "Submit starts a paid runIt can spend up to USD 20.00 and stops there. You confirm once more before anything is spent.",
+    );
+  });
+
+  it("draws the amount in the paid sentence in bold, and the sentence whole", () => {
+    const strong = screen.getByText("USD 20.00", { selector: "strong" });
+    expect(strong.parentElement).toHaveTextContent(
+      "It can spend up to USD 20.00 and stops there. You confirm once more before anything is spent.",
+    );
+  });
+
+  it("draws the paid text unchanged when it lacks the amount", () => {
+    cleanup();
+    const slice = JSON.parse(JSON.stringify(fixture.slice)) as {
+      drafts: { id: string; paid?: { amount: string } }[];
+    };
+    const paid = slice.drafts.find((d) => d.id === "start")?.paid;
+    if (paid === undefined) throw new Error("fixture has no start draft");
+    paid.amount = "USD 99.00";
+    show("/run/start/start", slice);
+    expect(document.querySelector("strong")).toBeNull();
+    expect(
       screen.getByText(
         "It can spend up to USD 20.00 and stops there. You confirm once more before anything is spent.",
       ),
@@ -74,6 +98,21 @@ describe("Start (frame 06)", () => {
     expect(
       within(dialog).getByRole("button", { name: "Start run, up to USD 20.00" }),
     ).toBeEnabled();
+  });
+
+  it("stacks the two dialog buttons in one column at the plain md size (probe: label must fit)", () => {
+    fireEvent.click(screen.getByRole("button", { name: SUBMIT }));
+    const dialog = screen.getByRole("dialog");
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    const start = within(dialog).getByRole("button", { name: "Start run, up to USD 20.00" });
+    const actions = start.parentElement;
+    expect(actions).toBe(cancel.parentElement);
+    expect(actions).toHaveClass("flex-col");
+    expect(actions).not.toHaveClass("grid-cols-2");
+    for (const b of [cancel, start]) {
+      expect(b).toHaveClass("px-3.5"); // kit md; lg is px-4 text-md
+      expect(b).not.toHaveClass("text-md");
+    }
   });
 
   it("closes on Escape and returns focus to Submit", async () => {
@@ -137,6 +176,17 @@ describe("Run started (frame 08)", () => {
     ).toBeVisible();
   });
 
+  it("names the run started once, in the alert, with no hidden heading", () => {
+    expect(screen.getAllByText("Run started")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Run started" })).toBeNull();
+  });
+
+  it("draws Back to the library in the grey secondary link colour", () => {
+    const link = screen.getByRole("link", { name: "Back to the library" });
+    expect(link).toHaveClass("text-text-tertiary");
+    expect(link).not.toHaveClass("text-brand-secondary");
+  });
+
   it("draws the cap bar and the two links", () => {
     const alert = screen.getByRole("status");
     expect(within(alert).getByRole("progressbar", { name: "USD 0.00 of USD 20.00" })).toBeVisible();
@@ -178,8 +228,11 @@ describe("the run pages reach no service, storage or timer", () => {
     const files = sources(path.join(import.meta.dirname, ".."));
     expect(files.length).toBeGreaterThan(5);
     const banned =
-      /\b(fetch|XMLHttpRequest|localStorage|sessionStorage|setTimeout|setInterval|requestAnimationFrame|WebSocket|EventSource)\b/;
-    for (const f of files)
-      expect([f, banned.exec(readFileSync(f, "utf8"))?.[0]]).toEqual([f, undefined]);
+      /\b(fetch|XMLHttpRequest|localStorage|sessionStorage|setTimeout|setInterval|requestAnimationFrame|requestIdleCallback|sendBeacon|indexedDB|WebSocket|EventSource)\b/;
+    for (const f of files) {
+      const text = readFileSync(f, "utf8");
+      expect([f, banned.exec(text)?.[0]]).toEqual([f, undefined]);
+      expect([f, /document\.cookie/.exec(text)?.[0]]).toEqual([f, undefined]);
+    }
   });
 });

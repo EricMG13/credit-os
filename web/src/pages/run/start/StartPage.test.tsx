@@ -216,7 +216,7 @@ describe("Run start, draft started", () => {
     });
     expect(screen.queryByText("Previous")).toBeNull();
     expect(screen.queryByText("Step 5 of 5")).toBeNull();
-    expect(screen.getByRole("heading", { level: 2, name: "Run started" })).toBeVisible();
+    expect(screen.getAllByText("Run started")).toHaveLength(1);
   });
 });
 

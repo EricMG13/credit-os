@@ -9,6 +9,19 @@ import { DetailsList } from "./DetailsList";
 
 type Step = Extract<StartDraft, { step: "start" }>;
 
+/** The paid sentence with its amount in bold; text lacking the amount is drawn unchanged. */
+function PaidText({ text, amount }: Step["paid"]) {
+  const at = amount === "" ? -1 : text.indexOf(amount);
+  if (at < 0) return text;
+  return (
+    <>
+      {text.slice(0, at)}
+      <strong className="font-semibold tabular-nums text-text-primary">{amount}</strong>
+      {text.slice(at + amount.length)}
+    </>
+  );
+}
+
 /** The Start step: the recap and what Submit does. Submit itself is the step action. */
 export function Start({ recap, paid }: Pick<Step, "recap" | "paid">) {
   return (
@@ -22,7 +35,9 @@ export function Start({ recap, paid }: Pick<Step, "recap" | "paid">) {
       <DetailsList rows={recap} />
       <div className="flex flex-col gap-1 border-t border-border-hairline pt-4">
         <h3 className="text-md font-semibold text-text-primary">Submit starts a paid run</h3>
-        <p className="max-w-140 text-body text-text-secondary">{paid.text}</p>
+        <p className="max-w-140 text-body text-text-secondary">
+          <PaidText {...paid} />
+        </p>
       </div>
     </div>
   );
@@ -58,12 +73,11 @@ export function Submit({ label, confirm }: { label: string; confirm: Step["confi
                     <p className="text-sm text-text-tertiary">{confirm.text}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button color="secondary" size="lg" onPress={close}>
+                <div className="flex flex-col gap-3">
+                  <Button color="secondary" onPress={close}>
                     Cancel
                   </Button>
                   <Button
-                    size="lg"
                     onPress={() => {
                       window.location.hash = `#/run/start/${confirm.started}`;
                     }}

@@ -6,11 +6,27 @@ import type { StartDraft } from "../slice";
 
 type Step = Extract<StartDraft, { step: "started" }>;
 
-function TextLink({ href, children }: { href: string; children: string }) {
+const GREY = "text-text-tertiary hover:text-text-secondary hover:*:data-text:decoration-current";
+
+/** The mock's `lnk` (brand) or, with `grey`, its `lnk-g` secondary form. */
+function TextLink({
+  href,
+  children,
+  grey = false,
+}: {
+  href: string;
+  children: string;
+  grey?: boolean;
+}) {
   return (
     <a
       href={href}
-      className={cx(styles.common.root, styles.colors["link-color"].root, styles.sizes.md.linkRoot)}
+      className={cx(
+        styles.common.root,
+        styles.colors["link-color"].root,
+        styles.sizes.md.linkRoot,
+        grey && GREY,
+      )}
     >
       <span data-text>{children}</span>
     </a>
@@ -22,7 +38,6 @@ function TextLink({ href, children }: { href: string; children: string }) {
 export function Started({ issuer, draft }: { issuer: string; draft: Step }) {
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="sr-only">{draft.title}</h2>
       <Alert
         tone="info"
         title={draft.title}
@@ -31,7 +46,9 @@ export function Started({ issuer, draft }: { issuer: string; draft: Step }) {
             <ProgressBar value={draft.cap.value} max={draft.cap.max} label={draft.cap.label} />
             <div className="flex flex-wrap gap-3">
               <TextLink href={`#/run/activity/${draft.activity}`}>Watch run activity</TextLink>
-              <TextLink href="#/">Back to the library</TextLink>
+              <TextLink href="#/" grey>
+                Back to the library
+              </TextLink>
             </div>
           </div>
         }
