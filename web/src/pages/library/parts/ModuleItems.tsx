@@ -31,7 +31,7 @@ function Row({ item }: { item: Entry }) {
 }
 
 /**
- * The module items (R7), two columns from the medium width, column by column. An item with a module
+ * The module items (R7), two explicit columns from the medium width, split as the slice orders the items, one when narrow. An item with a module
  * opens that module's page; one without (a repeated state collapsed into one item) is plain. The
  * Overview's items carry a Module state; the Changes page's carry a Change state.
  */
@@ -52,24 +52,29 @@ export function ModuleItems(props: Props) {
           ...item,
           badge: <StatusBadge set="Module state" state={item.state} />,
         }));
+  const split = Math.ceil(entries.length / 2);
   return (
-    <ul className="md:columns-2 md:gap-x-12">
-      {entries.map((item) => (
-        <li key={item.title} className="break-inside-avoid">
-          {item.module === null ? (
-            <div className={ROW}>
-              <Row item={item} />
-            </div>
-          ) : (
-            <Link
-              href={modulesHref(issuer, run, item.module)}
-              className={`${ROW} outline-hidden hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset`}
-            >
-              <Row item={item} />
-            </Link>
-          )}
-        </li>
+    <div className="grid grid-cols-1 gap-x-12 md:grid-cols-2">
+      {[entries.slice(0, split), entries.slice(split)].map((column) => (
+        <ul key={column[0]?.title ?? "none"}>
+          {column.map((item) => (
+            <li key={item.title} className="last:[&>*]:border-b-0">
+              {item.module === null ? (
+                <div className={ROW}>
+                  <Row item={item} />
+                </div>
+              ) : (
+                <Link
+                  href={modulesHref(issuer, run, item.module)}
+                  className={`${ROW} outline-hidden hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset`}
+                >
+                  <Row item={item} />
+                </Link>
+              )}
+            </li>
+          ))}
+        </ul>
       ))}
-    </ul>
+    </div>
   );
 }

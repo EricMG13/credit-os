@@ -1,5 +1,4 @@
 import { ChevronDown, ChevronUp } from "@untitledui/icons";
-import { useId } from "react";
 import { Button, Disclosure, DisclosurePanel, Link } from "react-aria-components";
 import type { Overview } from "../slice";
 import { SECTION_HEADING } from "./heading";
@@ -18,17 +17,16 @@ export function Limitations({
   gapsHref: string;
 }) {
   const Heading = SECTION_HEADING;
-  const headingId = useId();
   return (
     <section
-      aria-labelledby={headingId}
+      aria-label="Limitations"
       className="rounded-[14px] border border-border-hairline bg-surface-card p-6 shadow-sm"
     >
       <Disclosure defaultExpanded className="flex flex-col gap-4">
         {({ isExpanded }) => (
           <>
             <div className="flex items-center justify-between gap-3">
-              <Heading id={headingId} className="flex items-center gap-2 text-body font-semibold">
+              <Heading className="flex items-center gap-2 text-body font-semibold">
                 Limitations
                 <span className="rounded-ds-full border border-border-hairline bg-surface-subtle px-2 py-0.5 text-xs font-medium text-text-secondary tabular-nums">
                   {limitations.count}

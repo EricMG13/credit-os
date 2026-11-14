@@ -1101,7 +1101,7 @@
                 {
                   "label": "Recovery, senior notes",
                   "value": null,
-                  "note": "Recovery was not assessable",
+                  "note": "Recovery did not run before the cap",
                   "trace": null
                 }
               ],
@@ -1125,8 +1125,8 @@
                     "items": [
                       {
                         "figure": null,
-                        "text": "The financial performance, cash flow and recovery modules did not run before the cap, so the pace of cash conversion, the cost of the 2028 refinancing and the recovery for the senior notes are all open questions that a reader should not infer from the nine modules that did run.",
-                        "qualifier": "Not assessable",
+                        "text": "The financial performance, cash flow, recovery and forecast modules did not run before the cap, so the pace of cash conversion, the cost of the 2028 refinancing and the recovery for the senior notes are all open questions that a reader should not infer from the nine modules that did run.",
+                        "qualifier": "Not run",
                         "trace": null
                       }
                     ]
@@ -1156,7 +1156,7 @@
                 {
                   "date": "14 May 2026",
                   "state": "Past",
-                  "title": "First-quarter results",
+                  "title": "Second-quarter results",
                   "text": "Published after the cut-off of this run."
                 },
                 {
@@ -1167,11 +1167,11 @@
                 }
               ],
               "modules": {
-                "summary": "8 of 13 delivered",
+                "summary": "9 of 13 delivered",
                 "items": [
                   {
-                    "title": "6 modules delivered",
-                    "lead": "Business profile, Industry and competition, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance.",
+                    "title": "7 modules delivered",
+                    "lead": "Business profile, Industry and competition, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance, Credit snapshot.",
                     "state": "Delivered",
                     "module": null
                   },
@@ -1188,10 +1188,28 @@
                     "module": "peer-comparison"
                   },
                   {
+                    "title": "Financial performance",
+                    "lead": "Did not run before the cost cap, so earnings and margins are not established for this run.",
+                    "state": "Not run",
+                    "module": "financial-performance"
+                  },
+                  {
+                    "title": "Cash flow and liquidity",
+                    "lead": "Did not run before the cost cap, so cash conversion and liquidity are not established for this run.",
+                    "state": "Not run",
+                    "module": "cash-flow-and-liquidity"
+                  },
+                  {
                     "title": "Recovery",
-                    "lead": "The security package documents were not among the files provided, so recovery by class could not be assessed.",
-                    "state": "Not assessable",
+                    "lead": "Did not run before the cost cap, so recovery by class is not established for this run.",
+                    "state": "Not run",
                     "module": "recovery"
+                  },
+                  {
+                    "title": "Forecast",
+                    "lead": "Did not run before the cost cap, and it needs the financial performance and cash flow modules.",
+                    "state": "Not run",
+                    "module": "forecast"
                   }
                 ]
               },
@@ -1200,11 +1218,11 @@
                 "gapsLink": { "label": "See the 3 gaps in Evidence" },
                 "items": [
                   {
-                    "text": "Recovery by class was not assessable: the security and intercreditor documents were not provided.",
+                    "text": "The recovery module did not run before the cost cap, so no recovery by class is given for the senior notes.",
                     "trace": null
                   },
                   {
-                    "text": "The financial performance and cash flow modules did not run before the cost cap, so no view of earnings, cash conversion or liquidity is given here; a reader should not infer one from the modules that did run, and the nine modules delivered do not stand in for them.",
+                    "text": "The financial performance, cash flow and forecast modules did not run before the cost cap, so no view of earnings, cash conversion or liquidity is given here; a reader should not infer one from the modules that did run, and the nine modules delivered do not stand in for them.",
                     "trace": null
                   }
                 ]
@@ -1261,7 +1279,7 @@
                   },
                   {
                     "title": "Recovery",
-                    "lead": "Not assessable in this run or the earlier one, so there is nothing to compare.",
+                    "lead": "Did not run before the cost cap, so there is nothing to compare.",
                     "state": "Not assessable",
                     "module": "recovery"
                   }
