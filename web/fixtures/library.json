@@ -1821,7 +1821,736 @@
                 { "id": "forecast", "name": "Forecast", "initials": "FC" },
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
-              "tabs": { "trace": "148", "sources": "9", "gaps": "7" },
+              "tabs": { "trace": "60", "sources": "9", "gaps": "7" },
+              "trace": {
+                "title": "Trace",
+                "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "columns": {
+                  "id": "Item",
+                  "item": "Statement",
+                  "value": "Value",
+                  "module": "Module",
+                  "kind": "Kind",
+                  "sources": "Sources"
+                },
+                "rows": [
+                  {
+                    "id": "T-0001",
+                    "item": "Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing.",
+                    "module": "Overview",
+                    "moduleId": null,
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "6",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0005",
+                    "item": "Aftermarket share 61%",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "61%", "at": 61 },
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0006",
+                    "item": "Engine programme 34%",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "34%", "at": 34 },
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0014",
+                    "item": "Net leverage 4.6x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                    "sources": "3",
+                    "calc": {
+                      "label": "Result",
+                      "value": "Net leverage",
+                      "note": "4.6x · C-0412",
+                      "children": [
+                        {
+                          "label": "Formula",
+                          "value": "Net debt ÷ EBITDA",
+                          "note": "2,236 ÷ 486",
+                          "children": [
+                            {
+                              "label": "Input",
+                              "value": "Net debt = gross debt − cash",
+                              "note": "2,236 · C-0398",
+                              "children": [
+                                {
+                                  "label": "Source",
+                                  "value": "Gross debt 2,398",
+                                  "note": "annual-report-2026.pdf · p. 112, note 18",
+                                  "children": []
+                                },
+                                {
+                                  "label": "Source",
+                                  "value": "Cash 162",
+                                  "note": "annual-report-2026.pdf · p. 84",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "label": "Input",
+                              "value": "EBITDA, company-adjusted",
+                              "note": "486",
+                              "children": [
+                                {
+                                  "label": "Source",
+                                  "value": "EBITDA 486",
+                                  "note": "lender-presentation-nov-2026.pdf · p. 9",
+                                  "children": [
+                                    {
+                                      "label": "Excerpt",
+                                      "value": "“Adjusted EBITDA for the twelve months ended 30 September 2026 was USD 486 million (2025: USD 441 million).”",
+                                      "note": null,
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "note": null
+                  },
+                  {
+                    "id": "T-0015",
+                    "item": "Interest cover 2.4x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "2.4x", "at": 2.4 },
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0016",
+                    "item": "Runway 18 months",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "18 months", "at": 18 },
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0017",
+                    "item": "2028 notes USD 310m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "USD 310m", "at": 310 },
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0021",
+                    "item": "Revenue USD 2,105m",
+                    "module": "Financial performance",
+                    "moduleId": "financial-performance",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "USD 2,105m", "at": 2105 },
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0022",
+                    "item": "EBITDA margin 23.1%",
+                    "module": "Financial performance",
+                    "moduleId": "financial-performance",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "23.1%", "at": 23.1 },
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0023",
+                    "item": "Liquidity USD 412m",
+                    "module": "Cash flow and liquidity",
+                    "moduleId": "cash-flow-and-liquidity",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "USD 412m", "at": 412 },
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0031",
+                    "item": "Three customers bring 58% of revenue and one engine programme 34%.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0042",
+                    "item": "Working capital absorbed USD 71m as inventory was built for the engine ramp.",
+                    "module": "Cash flow and liquidity",
+                    "moduleId": "cash-flow-and-liquidity",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0045",
+                    "item": "A first-lien covenant applies only when the facility is more than 40% drawn.",
+                    "module": "Covenants and documentation",
+                    "moduleId": "covenants-and-documentation",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0046",
+                    "item": "Net leverage above 5.0x at a year end, or no agreed refinancing of the 2028 notes by 30 June 2027, moves the view to negative.",
+                    "module": "Rating outlook",
+                    "moduleId": "rating-outlook",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0047",
+                    "item": "Maturities by year",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "5",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0048",
+                    "item": "New-build contracts run five to seven years at fixed prices.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0049",
+                    "item": "Four small purchases since 2023 added product lines.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0050",
+                    "item": "Two airlines have begun certifying alternative parts; none has passed certification.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0051",
+                    "item": "One certified alternative on a top-ten part, or a third slip in the engine programme’s ramp, would move the view from stable to weakening.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0052",
+                    "item": "Receivables facility availability",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0053",
+                    "item": "Medium probability",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0054",
+                    "item": "Low probability",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0055",
+                    "item": "Medium probability",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0056",
+                    "item": "High probability",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0057",
+                    "item": "Probability not recorded",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0058",
+                    "item": "Below 40 a month",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0059",
+                    "item": "Below 3%",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0060",
+                    "item": "Any top-ten part",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0061",
+                    "item": "Below 55%",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0062",
+                    "item": "Aftermarket pricing is durable for the parts where Halden is the only certified source.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0063",
+                    "item": "About four fifths of the order book is under firm contracts.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0064",
+                    "item": "A sole-source aftermarket franchise carries a thinner, more cyclical original-equipment business.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0065",
+                    "item": "Five risks placed",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Row",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0068",
+                    "item": "Management says no alternative part has passed certification.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "0",
+                    "calc": null,
+                    "note": "The module gave no source for this claim."
+                  },
+                  {
+                    "id": "T-0101",
+                    "item": "Gross debt USD 2,398m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "USD 2,398m", "at": 2398 },
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0102",
+                    "item": "Net debt USD 2,236m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "USD 2,236m", "at": 2236 },
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0103",
+                    "item": "Net leverage 4.6x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0104",
+                    "item": "Secured leverage 3.3x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "3.3x", "at": 3.3 },
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0105",
+                    "item": "Average cost of debt withheld",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "withheld", "reason": null },
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0106",
+                    "item": "Next maturity Mar 2028",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "Mar 2028", "at": null },
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0107",
+                    "item": "Liquidity USD 412m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "USD 412m", "at": 412 },
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0108",
+                    "item": "Interest cover 2.4x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Figure",
+                    "value": { "kind": "value", "text": "2.4x", "at": 2.4 },
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0111",
+                    "item": "Term loan B USD 1,150m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Row",
+                    "value": { "kind": "value", "text": "USD 1,150m", "at": 1150 },
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0112",
+                    "item": "Revolving facility USD 250m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Row",
+                    "value": { "kind": "value", "text": "USD 250m", "at": 250 },
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0113",
+                    "item": "Receivables facility withheld",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Row",
+                    "value": { "kind": "withheld", "reason": null },
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0114",
+                    "item": "Gross debt USD 2,398m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0115",
+                    "item": "Next maturity Mar 2028",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0116",
+                    "item": "Springing covenant 6.5x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0117",
+                    "item": "Liquidity USD 412m",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0118",
+                    "item": "Five listed peers",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0119",
+                    "item": "Interest cover 2.4x",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Chart",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0121",
+                    "item": "Nothing above USD 50m falls due before March 2028, and one springing covenant stands between lenders and a debt-funded purchase.",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0122",
+                    "item": "Baskets allow roughly USD 400m of further secured debt, which the sponsor has used for purchases before.",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-01",
+                    "item": "The security and intercreditor documents were not provided.",
+                    "module": "Recovery",
+                    "moduleId": "recovery",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-03",
+                    "item": "Peer figures for two companies are on a reported basis while the issuer is company-adjusted.",
+                    "module": "Peer comparison",
+                    "moduleId": "peer-comparison",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-04",
+                    "item": "Customer names and contract terms come from management presentations, not from contracts.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "1",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-05",
+                    "item": "The share of revenue under cost pass-through clauses is not established for this run.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-11",
+                    "item": "The hedge schedule was not among the files provided.",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Passage",
+                    "value": {
+                      "kind": "gap",
+                      "reason": "Hedge expiries are not established for this run."
+                    },
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-12",
+                    "item": "The only source for the average cost of debt is marked confidential.",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Passage",
+                    "value": { "kind": "withheld", "reason": null },
+                    "sources": "3",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "G-13",
+                    "item": "The lease maturity schedule is not in the files, so leases appear in the stack but not by year.",
+                    "module": "Capital structure",
+                    "moduleId": "capital-structure",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "4",
+                    "calc": null,
+                    "note": null
+                  }
+                ]
+              },
               "summary": {
                 "delivered": {
                   "note": "Recovery was not assessable",
@@ -2227,7 +2956,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "T-0031"
+                "evidenceItem": "T-0023"
               },
               "aftermarket-share": {
                 "title": "Sources for aftermarket share",
@@ -2302,7 +3031,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "T-0047"
+                "evidenceItem": "T-0064"
               },
               "bp-finding-2": {
                 "title": "Sources for original equipment pricing",
@@ -2407,7 +3136,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "T-0052"
+                "evidenceItem": "T-0065"
               },
               "bp-risk-1": {
                 "title": "Sources for engine programme delay",
@@ -3544,7 +4273,20 @@
                 },
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
-              "tabs": { "trace": "31", "sources": "3", "gaps": "3" },
+              "tabs": { "trace": "0", "sources": "3", "gaps": "3" },
+              "trace": {
+                "title": "Trace",
+                "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "columns": {
+                  "id": "Item",
+                  "item": "Statement",
+                  "value": "Value",
+                  "module": "Module",
+                  "kind": "Kind",
+                  "sources": "Sources"
+                },
+                "rows": []
+              },
               "summary": {
                 "delivered": {
                   "note": "Four modules were not run: the run reached its cost cap",
@@ -4306,7 +5048,20 @@
                 { "id": "forecast", "name": "Forecast", "initials": "FC" },
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
-              "tabs": { "trace": "52", "sources": "2", "gaps": "2" },
+              "tabs": { "trace": "0", "sources": "2", "gaps": "2" },
+              "trace": {
+                "title": "Trace",
+                "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "columns": {
+                  "id": "Item",
+                  "item": "Statement",
+                  "value": "Value",
+                  "module": "Module",
+                  "kind": "Kind",
+                  "sources": "Sources"
+                },
+                "rows": []
+              },
               "summary": {
                 "delivered": {
                   "note": null,

@@ -44,7 +44,7 @@ describe("readSlice, evidence", () => {
     if (result.kind !== "ok") throw new Error(result.kind);
     const evidence = result.data.issuers[0]?.runs[0]?.evidence;
     expect(evidence?.intro).toBe("Where every figure and claim in this run comes from.");
-    expect(evidence?.tabs).toEqual({ trace: "148", sources: "9", gaps: "7" });
+    expect(evidence?.tabs).toEqual({ trace: "60", sources: "9", gaps: "7" });
     expect(evidence?.summary.delivered).toEqual({
       note: "Recovery was not assessable",
       progress: { text: "12 of 13", value: 12, max: 13 },
