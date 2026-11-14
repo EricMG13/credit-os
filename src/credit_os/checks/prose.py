@@ -26,14 +26,19 @@ _PASSAGE_WORDS = 180
 _OPENERS = ('"', "\u201c", "\u2018", "'")
 
 _SENTENCE_END = re.compile(r"[.!?][\"')\]\u201d\u2019*`]*(?:\s|$)")
-_MODULE_CODE = re.compile(r"\bCP-[A-Z0-9]+\b")
-_PAGE = re.compile(r"\bpp?\.\s*\d|\bpages?\s+\d|\bpg\.?\s*\d", re.IGNORECASE)
-_HASH = re.compile(r"\b[0-9a-fA-F]{12,}\b|sha256", re.IGNORECASE)
+# An underscore is not a word character here: a letter or digit may not touch a match, `_` may.
+_B = r"(?<![^\W_])"
+_A = r"(?![^\W_])"
+_MODULE_CODE = re.compile(_B + r"CP-[A-Z0-9]+" + _A)
+_PAGE = re.compile(rf"{_B}pp?\.\s*\d|{_B}pages?\s+\d|{_B}pg\.?\s*\d", re.IGNORECASE)
+_HASH = re.compile(rf"{_B}[0-9a-fA-F]{{12,}}{_A}|sha256", re.IGNORECASE)
 _BRACKET = re.compile(r"\[[^\[\]]{0,80}\]|\u3010[^\u3010\u3011]{0,80}\u3011|[\[\]\u3010\u3011]")
+_PHRASES = (
+    "handoffs?|this transport|the pack|fact pack|source pack|canonical|helper scripts?"
+    "|upstream modules?|downstream (?:modules?|owners?|work|analys[ie]s|use)"
+)
 _WORDING = re.compile(
-    r"(?i:\bhandoffs?\b|\bthis transport\b|\bthe pack\b|\bfact pack\b|\bsource pack\b"
-    r"|\bcanonical\b|\bre-anchor\w*|\bhelper scripts?\b|\bupstream modules?\b"
-    r"|\bdownstream (?:modules?|owners?|work|analys[ie]s|use)\b)"
+    rf"(?i:{_B}(?:{_PHRASES}){_A}|{_B}re-anchor\w*)"
     r"|\b\w*[a-z]_[a-z]\w*"
     r"|\b(?=[A-Z0-9_]*[A-Z])[A-Z0-9]+(?:_[A-Z0-9]+)+\b"
 )
@@ -139,7 +144,7 @@ def check_page(document: HandoffDocument, context: CheckContext) -> tuple[Findin
         shown_text(document),
         "prose.page",
         _PAGE,
-        "Remove the page locator; sources and pages belong on the Evidence page.",
+        "Remove the page locator; give the page on the Basis line.",
     )
 
 
@@ -148,7 +153,7 @@ def check_hash(document: HandoffDocument, context: CheckContext) -> tuple[Findin
         shown_text(document),
         "prose.hash",
         _HASH,
-        "Remove the hash; file identities belong on the Evidence page.",
+        "Remove the hash; give the source on the Basis line.",
     )
 
 
@@ -162,7 +167,7 @@ def check_pipeline_wording(document: HandoffDocument, context: CheckContext) -> 
 
 
 def check_bracket(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
-    reason = "Remove the bracketed reference; sources belong on the Evidence page."
+    reason = "Remove the bracketed reference; give the source on the Basis line."
     found: list[Finding] = []
     for line in shown_text(document):
         for match in _BRACKET.finditer(line.text):
@@ -187,6 +192,8 @@ def _block_nodes(section: Section) -> Iterable[tuple[int, str]]:
         if isinstance(block, Table):
             yield from _table_nodes(block)
             continue
+        if isinstance(block, CodeBlock):
+            yield block.line, block.info
         first = block.line + 1 if isinstance(block, CodeBlock) else block.line
         for offset, text in enumerate(block.lines):
             yield first + offset, text
