@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from checks_context_support import build_context, expand_digests
+from checks_context_support import build_context, expand_digests, without_held
 
 from credit_os.checks import passages, sources
 from credit_os.checks.findings import CheckContext, Finding
@@ -13,6 +13,7 @@ from credit_os.handoff.document import HandoffDocument, parse
 from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.reader import read_reader
 
+_COLUMN_CHECKS = ("prose.register-id", "figure.not-held", "figure.mismatch")
 KEY: dict[str, Any] = json.loads(
     (Path(__file__).resolve().parent / "expected" / "passages.json").read_text("utf-8")
 )
@@ -80,7 +81,7 @@ def _ctx(**fields: Any) -> CheckContext:
 @pytest.mark.parametrize("name", list(CASES))
 def test_case(name: str) -> None:
     document, context, expected = _build(CASES[name])
-    assert [_row(finding) for finding in check_handoff(document, context)] == expected
+    assert [_row(finding) for finding in without_held(check_handoff(document, context))] == expected
 
 
 @pytest.mark.parametrize("name", list(CASES))
@@ -89,7 +90,7 @@ def test_finding_shape(name: str) -> None:
     for finding in check_handoff(document, context):
         assert finding.reason.strip() != ""
         assert "\n" not in finding.reason
-        assert finding.column == 1 or finding.check == "prose.register-id"
+        assert finding.column == 1 or finding.check in _COLUMN_CHECKS
 
 
 @pytest.mark.parametrize("name", list(CASES))

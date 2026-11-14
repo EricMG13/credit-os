@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from checks_context_support import build_context
+from checks_context_support import build_context, without_held
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -75,7 +75,7 @@ def test_reader(row: dict[str, Any], side: str) -> None:
 )
 def test_case(name: str) -> None:
     case = FIGURE_CASES[name]
-    found = check_handoff(_document(case), _context(case))
+    found = without_held(check_handoff(_document(case), _context(case)))
     assert [_row(finding) for finding in found] == case["expect"]
     if "columns" in case:
         assert [finding.column for finding in found] == case["columns"]
