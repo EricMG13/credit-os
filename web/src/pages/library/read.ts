@@ -7,6 +7,9 @@ import type {
   IssuerCard,
   LibraryHome,
   LibrarySlice,
+  Measure,
+  MeasureKey,
+  MeasureSpec,
   RunState,
 } from "./slice";
 import { APPLIED_LABELS } from "./slice";
@@ -119,6 +122,53 @@ function readProgress(value: unknown, path: string): IssuerCard["progress"] {
   return progress;
 }
 
+function readMeasure(o: Rec, key: string, path: string): Measure {
+  const at = child(path, key);
+  const value = own(o, key);
+  if (value === null) return null;
+  const m = rec(value, at);
+  return {
+    text: str(m, "text", at),
+    at: num(m, "at", at),
+    basis: oneOf(m, "basis", at, ["reported", "adjusted"]),
+    description: str(m, "description", at),
+  };
+}
+
+/** One value for each measure, read by `read` at `path.<measure>`. */
+function eachMeasure<T>(
+  o: Rec,
+  key: string,
+  path: string,
+  read: (m: Rec, k: MeasureKey, p: string) => T,
+): Record<MeasureKey, T> {
+  const at = child(path, key);
+  const m = rec(own(o, key), at);
+  return {
+    leverage: read(m, "leverage", at),
+    netLeverage: read(m, "netLeverage", at),
+    interestCoverage: read(m, "interestCoverage", at),
+  };
+}
+
+function readSpec(o: Rec, key: MeasureKey, path: string): MeasureSpec {
+  const at = child(path, key);
+  const m = rec(own(o, key), at);
+  return {
+    name: str(m, "name", at),
+    countLine: str(m, "countLine", at),
+    bands: list(m, "bands", at, (item, itemPath) => {
+      const b = rec(item, itemPath);
+      const min = numOrNull(b, "min", itemPath);
+      const max = numOrNull(b, "max", itemPath);
+      if (min !== null && max !== null && min >= max) {
+        throw new SliceError(child(itemPath, "max"), "a number above min");
+      }
+      return { label: str(b, "label", itemPath), min, max };
+    }),
+  };
+}
+
 function readCard(value: unknown, path: string, issuerIds: ReadonlySet<string>): HomeCard {
   const c = rec(value, path);
   if (oneOf(c, "kind", path, ["issuer", "loading"]) === "loading") return { kind: "loading" };
@@ -136,6 +186,7 @@ function readCard(value: unknown, path: string, issuerIds: ReadonlySet<string>):
     pathway: str(c, "pathway", path),
     progress: readProgress(own(c, "progress"), child(path, "progress")),
     href: strOrNull(c, "href", path),
+    measures: eachMeasure(c, "measures", path, readMeasure),
   };
 }
 
@@ -156,6 +207,14 @@ function readHome(value: unknown, path: string, issuerIds: ReadonlySet<string>):
       appliedLabels,
     },
     cards: list(h, "cards", path, (card, cardPath) => readCard(card, cardPath, issuerIds)),
+    list: {
+      measures: eachMeasure(
+        rec(own(h, "list"), child(path, "list")),
+        "measures",
+        child(path, "list"),
+        readSpec,
+      ),
+    },
   };
 }
 
