@@ -155,7 +155,7 @@ export type Overview = {
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
 
 /** A run still loading carries no overview; every other run carries one. */
-type LoadedRun = RunBase & { loading: false; overview: Overview };
+export type LoadedRun = RunBase & { loading: false; overview: Overview };
 type LoadingRun = RunBase & { loading: true; overview: null };
 
 /** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */

@@ -5,6 +5,7 @@
 import type { Route } from "../route-table";
 import { History } from "./History";
 import { Home } from "./Home";
+import { Overview } from "./Overview";
 
 export { readSlice } from "./read";
 
@@ -14,5 +15,10 @@ export const routes: readonly Route[] = [
     path: "/library/:issuer/history",
     title: "Report history",
     render: (params) => <History issuer={params["issuer"]} />,
+  },
+  {
+    path: "/library/:issuer/:run/overview",
+    title: "Overview",
+    render: (params) => <Overview issuer={params["issuer"]} run={params["run"]} />,
   },
 ];
