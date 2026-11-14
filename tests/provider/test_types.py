@@ -144,7 +144,11 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
             },
             _SAME,
         )
-        for build in (_ok, partial(_sent, billed_usd=Decimal(1)))
+        for build in (
+            _ok,
+            partial(_sent, billed_usd=Decimal(1)),
+            partial(_reply, kind="sent_unknown"),
+        )
     ),
     (_ok, {"compactions": []}, _COMPACTIONS),
     (_ok, {"compactions": ({"usage": {}},)}, _COMPACTIONS),
