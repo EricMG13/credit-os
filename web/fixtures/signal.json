@@ -266,7 +266,7 @@
             "views": {
               "for-you": {
                 "top": ["corvane", "tessaly", "halvorsen", "brightwell"],
-                "latest": ["corvane", "tessaly", "halvorsen", "brightwell"],
+                "latest": ["corvane", "tessaly", "brightwell", "halvorsen"],
                 "waiting": {
                   "label": "4 new stories",
                   "ids": ["oakhaven", "pellant", "brightwell-clearance", "oakhaven-affirm"]
