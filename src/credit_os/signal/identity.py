@@ -41,7 +41,9 @@ class User:
     role: str
 
 
-def _printable(ch: str) -> str:
+def _printable(ch: str, keep_newline: bool = False) -> str:
+    if ch == "\n" and keep_newline:
+        return ch
     if ch in _WHITESPACE_CONTROLS:
         return " "
     if _IGNORABLE.fullmatch(ch):
@@ -77,6 +79,24 @@ def cleaned(raw: str) -> str:
     text = unicodedata.normalize("NFC", "".join(_printable(ch) for ch in _require_str(raw, "name")))
     text = _cut_mark_runs(" ".join(text.split()))
     return text if _has_base(text) else ""
+
+
+def cleaned_text(raw: str, *, multiline: bool) -> str:
+    """Free text cleaned by the name rules (controls and invisible characters dropped, NFC, mark
+    runs cut to MAX_MARKS) but with its spacing kept and, when `multiline`, its newlines (CRLF and
+    CR become LF). Trimmed; empty when nothing but marks and spaces is left. A single-line text
+    that holds a line break (LF, CR, U+2028, U+2029, or any character `str.splitlines` splits on
+    that cleaning keeps) is a StoreError, not a text with the break turned into a space."""
+    text = _require_str(raw, "text")
+    if multiline:
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+    elif "\n" in text or "\r" in text:
+        raise StoreError("text must be one line")
+    kept = "".join(_printable(ch, multiline) for ch in text)
+    if not multiline and "".join(kept.splitlines()) != kept:
+        raise StoreError("text must be one line")
+    out = _cut_mark_runs(unicodedata.normalize("NFC", kept)).strip()
+    return out if _has_base(out.replace("\n", " ")) else ""
 
 
 def _clean(raw: str) -> str:

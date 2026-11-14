@@ -7,8 +7,10 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from contextlib import closing
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -28,6 +30,7 @@ from credit_os.signal.store import (
     new_row_id,
     open_db,
     propose_source,
+    read_snapshot,
     record_check,
     require_id,
     require_text,
@@ -726,3 +729,132 @@ def test_set_meta_refuses_the_key_the_migrations_own(tmp_path: Path, value: str)
     assert get_meta(db, "schema_version") == "3"
     db.close()
     open_db(tmp_path).close()  # the refused write left a database that still opens
+
+
+# R42: `read_snapshot`, the public read transaction the feed view reads a page in.
+def _stories(db: sqlite3.Connection) -> int:
+    return int(db.execute("SELECT count(*) FROM stories").fetchone()[0])
+
+
+def _new_story(db: sqlite3.Connection, source: int, name: str) -> None:
+    at = datetime(2026, 11, 13, 9, tzinfo=UTC)
+    entry = Entry(f"{name} one two three", f"https://e.org/{name}", at, "")
+    assert add_story(db, source, entry, at) == "new"
+
+
+def test_two_reads_in_a_snapshot_see_one_state_while_another_connection_commits(
+    tmp_path: Path,
+) -> None:
+    with closing(open_db(tmp_path)) as db, closing(open_db(tmp_path)) as other:
+        source = propose_source(db, "S1", "news", "https://s1.example/feed", "t")
+        _new_story(db, source, "first")
+        with read_snapshot(db):
+            assert _stories(db) == 1
+            _new_story(other, source, "second")  # committed between the two reads
+            assert _stories(other) == 2
+            assert _stories(db) == 1
+        assert _stories(db) == 2  # the next read, outside the snapshot, sees it
+
+
+def test_a_store_writer_inside_a_snapshot_is_refused_before_it_writes(tmp_path: Path) -> None:
+    # What happens: the snapshot's BEGIN is a transaction `write_transaction` did not begin, so
+    # it raises StoreUnusable at entry (the rule of R13); the writer's body never runs.
+    with closing(open_db(tmp_path)) as db, closing(open_db(tmp_path)) as other:
+        with read_snapshot(db):
+            with pytest.raises(StoreUnusable, match="transaction"):
+                add_user(db, "late", "writer")
+            with pytest.raises(StoreUnusable, match="transaction"), write_transaction(db):
+                db.execute("INSERT INTO users(name, role) VALUES('late', 'writer')")
+            assert db.in_transaction  # the refusal left the snapshot as it was
+            assert db.execute("SELECT count(*) FROM users").fetchone()[0] == 0
+        assert other.execute("SELECT count(*) FROM users").fetchone()[0] == 0
+        assert not db.in_transaction
+
+
+class _Boom(Exception):
+    pass
+
+
+@pytest.mark.parametrize("raises", [False, True])
+def test_a_snapshot_commits_nothing_on_exit_and_when_the_body_raises(
+    tmp_path: Path, raises: bool
+) -> None:
+    with closing(open_db(tmp_path)) as db, closing(open_db(tmp_path)) as other:
+        try:
+            with read_snapshot(db):
+                db.execute("INSERT INTO users(name, role) VALUES('raw', 'writer')")  # a raw write
+                if raises:
+                    raise _Boom
+        except _Boom:
+            assert raises
+        assert not db.in_transaction
+        assert db.execute("SELECT count(*) FROM users").fetchone()[0] == 0
+        assert other.execute("SELECT count(*) FROM users").fetchone()[0] == 0
+        add_user(db, "after", "reader")  # the connection is a normal one again
+        assert role_of(other, "after") == "reader"
+
+
+def _open_a_transaction(db: sqlite3.Connection, how: str) -> None:
+    if how == "begin":
+        db.execute("BEGIN")
+    elif how == "begin immediate":
+        db.execute("BEGIN IMMEDIATE")
+    else:  # an implicit transaction: a legacy-mode write that was never committed
+        db.execute("INSERT INTO meta(key, value) VALUES('pending', '1')")
+
+
+@pytest.mark.parametrize("how", ["begin", "begin immediate", "implicit write"])
+def test_a_snapshot_inside_a_transaction_it_did_not_open_is_refused(
+    tmp_path: Path, how: str
+) -> None:
+    with closing(open_db(tmp_path)) as db:
+        _open_a_transaction(db, how)
+        with pytest.raises(StoreUnusable, match="transaction"), read_snapshot(db):
+            pytest.fail("the block must not run")
+        assert db.in_transaction  # not rolled back: it is the caller's
+        db.execute("ROLLBACK")
+
+
+def test_a_snapshot_inside_a_write_transaction_or_another_snapshot_is_refused(
+    tmp_path: Path,
+) -> None:
+    with closing(open_db(tmp_path)) as db, closing(open_db(tmp_path)) as other:
+        with write_transaction(db):
+            add_user(db, "kept", "reader")
+            with pytest.raises(StoreUnusable, match="transaction"), read_snapshot(db):
+                pytest.fail("the block must not run")
+            assert db.in_transaction
+        assert role_of(other, "kept") == "reader"  # the outer block still committed
+        with read_snapshot(db):
+            with pytest.raises(StoreUnusable, match="transaction"), read_snapshot(db):
+                pytest.fail("the block must not run")
+            assert db.in_transaction  # the outer snapshot is intact
+            assert _stories(db) == 0
+        assert not db.in_transaction
+
+
+class _InterruptAfterBegin(sqlite3.Connection):
+    """CPython raises a pending signal as a C call returns: an interrupt that lands while BEGIN
+    runs surfaces right after it, before the next Python statement. Simulated, not timed."""
+
+    armed = False
+
+    def execute(self, sql: str, *args: Any) -> sqlite3.Cursor:
+        cursor = super().execute(sql, *args)
+        if self.armed and sql.startswith("BEGIN"):
+            self.armed = False
+            raise KeyboardInterrupt("delivered as BEGIN returns")
+        return cursor
+
+
+def test_an_interrupt_delivered_as_begin_returns_leaves_no_snapshot_open(tmp_path: Path) -> None:
+    open_db(tmp_path).close()
+    db = sqlite3.connect(tmp_path / "signal" / "signal.db", factory=_InterruptAfterBegin)
+    with closing(db):
+        db.armed = True
+        with pytest.raises(KeyboardInterrupt), read_snapshot(db):
+            pytest.fail("the block must not run")
+        assert not db.in_transaction
+        with read_snapshot(db):  # the connection works again
+            assert _stories(db) == 0
+        assert not db.in_transaction

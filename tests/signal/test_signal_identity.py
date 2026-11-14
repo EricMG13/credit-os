@@ -20,6 +20,7 @@ from credit_os.signal.identity import (
     User,
     clean_name,
     cleaned,
+    cleaned_text,
     cookie_for,
     current_user,
     require_name,
@@ -350,3 +351,48 @@ def test_marks_that_expand_under_nfc_are_cut_after_it() -> None:
 )
 def test_a_cookies_name_is_cut_to_sixty(db: sqlite3.Connection, value: str, want: str) -> None:
     assert current_user(db, "signal_name=" + value) == User(want, "reader")
+
+
+@pytest.mark.parametrize("first,last", IGNORABLE_RANGES)
+def test_cleaned_text_drops_every_ignorable_character_and_keeps_the_newline(
+    first: str, last: str
+) -> None:
+    for code in range(ord(first), ord(last) + 1):
+        assert cleaned_text("A" + chr(code) + "\nB", multiline=True) == "A\nB", hex(code)
+
+
+@pytest.mark.parametrize("mark", ["\u0316", "\u0903", "\u0489"])
+def test_cleaned_text_cuts_a_run_of_marks_to_eight(mark: str) -> None:
+    assert cleaned_text("a" + mark * 8, multiline=True) == "a" + mark * 8
+    assert cleaned_text("a" + mark * 9, multiline=True) == "a" + mark * 8
+
+
+@pytest.mark.parametrize(
+    "raw,want",
+    [
+        ("  hi \r\n there\x00\u202e ", "hi \n there"),
+        ("a\rb", "a\nb"),
+        ("e\u0301", "\u00e9"),
+        ("plain text, unchanged.", "plain text, unchanged."),
+        ("two  spaces\n\nand a gap", "two  spaces\n\nand a gap"),
+        ("\u0301\u0301", ""),
+        ("\u3164 \n", ""),
+    ],
+    ids=["controls", "bare_cr", "nfc", "clean", "spacing", "marks_only", "blank"],
+)
+def test_cleaned_text_keeps_the_text_that_is_clean(raw: str, want: str) -> None:
+    assert cleaned_text(raw, multiline=True) == want
+    assert cleaned_text(want, multiline=True) == want
+
+
+@pytest.mark.parametrize("raw", ["a\nb", "a\rb", "a\r\nb"], ids=["lf", "cr", "crlf"])
+def test_cleaned_text_refuses_a_newline_in_a_single_line_text(raw: str) -> None:
+    with pytest.raises(StoreError, match="^text must be one line$"):
+        cleaned_text(raw, multiline=False)
+    assert cleaned_text("a b\u200b", multiline=False) == "a b"
+
+
+@pytest.mark.parametrize("bad", [None, 3, b"x"], ids=["none", "int", "bytes"])
+def test_cleaned_text_refuses_what_is_not_text(bad: Any) -> None:
+    with pytest.raises(StoreError, match="must be text"):
+        cleaned_text(bad, multiline=True)
