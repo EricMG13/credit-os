@@ -458,7 +458,7 @@ files; the Halden Forecast link against a model fixture holding Halden; any slic
 delivered run (step 3B does not exist); whether the fixture's invented issuer names match a real
 company; any report kept only in the git-ignored `.superpowers/` folders of eight finished
 design-track worktrees (`agent-a72a…`, `agent-aeee…`, `agent-a44c…`, `agent-ac21…`, `d2c-pr-a`,
-`d2c-pr-b`, `d2c-split`, `kit-link-toggle`): the coordinator removed them at about 20:15 UTC after
+`d2c-pr-b`, `d2c-split`, `kit-link-toggle`): the coordinator removed them at about 19:50 UTC after
 checking only for uncommitted tracked files, so such reports were deleted unread (the D2b, D2c and
 D2e records cited in the entries were copied to the notes folder before and are not affected).
 **Corrected, the Windows web gates on the merged tree.** On `main` `4a0cbdbb`, `python` push run
