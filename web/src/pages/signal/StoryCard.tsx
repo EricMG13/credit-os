@@ -22,7 +22,16 @@ const LINK = `text-text-link ${FOCUS}`;
 const isWebLink = (url: string) => /^https?:\/\//i.test(url);
 const ROW = "mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-tertiary";
 
-export function StoryCard({ story, writer }: { story: SignalStory; writer: boolean }) {
+/** `inGroup`: the card sits in a group view, where "Open thread" is the way in, so a writer's Comment and Share to group are left out. */
+export function StoryCard({
+  story,
+  writer,
+  inGroup = false,
+}: {
+  story: SignalStory;
+  writer: boolean;
+  inGroup?: boolean;
+}) {
   const link = story.url !== null && isWebLink(story.url) ? story.url : null;
   const { headline } = story;
   // Save is in memory only: nothing is written; a reload shows the slice's own state again.
@@ -103,7 +112,7 @@ export function StoryCard({ story, writer }: { story: SignalStory; writer: boole
           >
             {saved ? "Saved" : "Save"}
           </Button>
-          {writer ? (
+          {writer && !inGroup ? (
             // Wired by the thread and share tasks (8 and 9); until then these act on nothing.
             <>
               <Button

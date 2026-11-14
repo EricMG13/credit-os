@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent, type SignalFollow } from "./SignalFrame";
+import { GroupPage } from "./GroupPage";
 import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
 import type { EmptyContext } from "./FeedStates";
 import { PageTitle } from "./parts/PageTitle";
@@ -200,18 +201,22 @@ function Body({
     case "group":
     case "thread": {
       const id = param(params, "group");
-      const group = scene.snapshot.channels.groups.find((g) => g.id === id);
+      const group = scene.snapshot.groups.find((g) => g.id === id);
       if (group === undefined) {
         return {
           current: { kind: "none" },
           body: (
-            <Empty page title="No such group">
+            <Empty page title="This group does not exist or is not open to you.">
               {back}
             </Empty>
           ),
         };
       }
-      return { current: { kind: "group", id }, body: <NotBuilt title={group.name} /> };
+      // The thread route draws the group view until the thread panel exists (a later task).
+      return {
+        current: { kind: "group", id },
+        body: <GroupPage scene={scene} group={group} writer={writer} />,
+      };
     }
     case "digest": {
       const id = param(params, "digest");
