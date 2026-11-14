@@ -53,6 +53,24 @@ def test_home_paths_rows(text: str, expected: str) -> None:
         ("msg\\n\\\\fs01\\share\\Users\\jane\\x", "msg\\n<home>\\x"),
         ("C:\\Users\\Mary  O'Brien\\x", "<home>\\x"),
         ("\\\\home\\x\\Users\\ y", "<home>"),
+        # A written-out escaped apostrophe is part of the name, not a separator.
+        ("""'open "C:\\\\Users\\\\Pat O\\'Hara Jones" failed'""", """'open "<home>" failed'"""),
+        (
+            """'\\'open "C:\\\\\\\\Users\\\\\\\\Pat O\\\\\\'Hara Jones" failed\\''""",
+            """'\\'open "<home>" failed\\''""",
+        ),
+        ("""open "C:/Users/Pat O\\'Hara Jones" failed""", 'open "<home>" failed'),
+        (
+            """'open "\\\\\\\\srv\\\\share\\\\Users\\\\Pat O\\'Hara Jones" failed'""",
+            """'open "\\\\<home>" failed'""",
+        ),
+        (
+            """'open "\\\\\\\\?\\\\UNC\\\\srv\\\\share\\\\Users\\\\Pat O\\'Hara Jones" failed'""",
+            """'open "\\\\<home>" failed'""",
+        ),
+        ("open /mnt/c/Users/Pat O\\'Hara Jones failed", "open <home>"),
+        # A real separator still ends the name (same as the base's output).
+        ("C:\\Users\\mary\\Documents\\x", "<home>\\Documents\\x"),
     ],
 )
 def test_home_paths_mutation_rows(text: str, expected: str) -> None:

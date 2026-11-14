@@ -48,7 +48,8 @@ _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # one; "file:///home/<user>" is. The user name fails closed: it ends only at a character no such
 # name can hold, else at the line's end. On a Windows form that is a slash or a character Windows
 # reserves in a name (< > : " | ? *) or the line's end; on a POSIX form a "/", a ":" (the passwd
-# field separator) or the line's end. Prose after a name on the same line goes with it.
+# field separator) or the line's end. A run of backslashes straight before an apostrophe is a
+# written-out "\'" (repr, or JSON of a repr), not a separator: it stays in the name. Prose after a name on the same line goes with it.
 _WIN_PREFIX = (
     r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
     r"[\\/]+|\\)"
@@ -56,7 +57,7 @@ _WIN_PREFIX = (
 _HOME_PATH = re.compile(
     r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
     rf"(?:{_WIN_PREFIX}|/)"
-    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
+    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
     rf"|root(?!{_NAME}))"
 )
 
