@@ -93,6 +93,13 @@ not `pyproject.toml` (standard library and pydantic 2.13.4 only), not `VERIFICAT
 - **Typed data sections** by heading prefix: "Chart data: ", "Events: ", "Map: ",
   "Forecast inputs" (fenced JSON kept as text, not interpreted), "Confidence inputs" (the
   Input | Value table as rows; no score is computed here).
+- **Registers and Sources (predecessor rulings of 2026-11-12 and 2026-11-13,
+  `docs/legacy/methodology-updates.md`):** the parser requires no register. Ten modules no
+  longer write certain registers, and which register a module owes is a rule for steps 2B and
+  3A, not for the grammar. A register that is present is exposed with its id (from a heading
+  that starts with the id, or a table-id tag). The Sources table is exposed with its own column
+  names, whatever they are, including a `Source type` column when present; whether a row needs
+  one is a check for step 2B.
 - A parse failure is an error type carrying the line number and a plain message. No
   catch-all; nothing is guessed.
 - Amounts, units, periods and source names are kept as the exact text; nothing is converted
