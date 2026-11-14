@@ -46,6 +46,8 @@ _CURRENCY = (
     "currency CP-1 reports its figures in."
 )
 _OTHER = "base {key} {amount} is not CP-1's cell at {where} ({cell})"
+_NEGATIVE = "; wc is stated as the negative of its cell"
+_MAGNITUDE = "; {key} is stated as a magnitude, without a sign"
 
 
 def _plain(text: str) -> str:
@@ -178,7 +180,18 @@ def _problem(
         return _many(key, where, cells)
     if _agrees(key, only, Decimal(amount)):
         return None
-    return _OTHER.format(key=key, amount=amount, where=where, cell=echo(min(cells)))
+    message = _OTHER.format(key=key, amount=amount, where=where, cell=echo(min(cells)))
+    return message + _sign_clause(key, only, Decimal(amount))
+
+
+def _sign_clause(key: str, cell: Decimal, amount: Decimal) -> str:
+    if cell.copy_abs() != amount.copy_abs():
+        return ""
+    if key == "wc":
+        return _NEGATIVE
+    if key in _MAGNITUDES:
+        return _MAGNITUDE.format(key=key)
+    return ""
 
 
 def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str]]:
