@@ -63,8 +63,7 @@ def issues_of(document: dict[str, Any]) -> str:
     return error.message.removeprefix("forecast inputs: ")
 
 
-ACCEPTED = KEY["accepted"]
-REFUSED = KEY["refused"]
+ACCEPTED, REFUSED = KEY["accepted"], KEY["refused"]
 
 
 def label(row: dict[str, Any]) -> str:
@@ -285,7 +284,8 @@ def failed_item(index: int) -> Any:
 DROPS = [  # errors, indexes of the errors kept
     ([length_error(1, 0), failed_item(0)], [1]),
     ([length_error(2, 0), failed_item(0)], [0, 1]),
-    ([length_error(1, 0)], [0]),
+    ([length_error(1, 1)], [0]),
+    ([{**length_error(1, 0), "ctx": {"min_length": 1}}, failed_item(0)], [0, 1]),
     ([length_error(2, 0), failed_item(0), failed_item(1), failed_item(1)], [1, 2, 3]),
     ([length_error(1, 0, type_="value_error"), failed_item(0)], [0, 1]),
     ([length_error(1, 0, kind="List"), failed_item(0)], [1]),
