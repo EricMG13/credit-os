@@ -178,7 +178,8 @@ export function FeedPage({
   const [revealed, setRevealed] = useState(false);
   const [olderShown, setOlderShown] = useState(false);
   // Share to group writes nothing: this sentence is the in-memory stand-in for the service's reply.
-  const [shared, setShared] = useState(false);
+  // It counts the shares, so each one draws a fresh status node and is announced again.
+  const [shared, setShared] = useState(0);
   // After the list grows, focus goes to the first story the change brought in (its headline); when
   // the kind or search hides every one of them, it goes to the page title instead.
   const list = useRef<HTMLDivElement>(null);
@@ -223,8 +224,8 @@ export function FeedPage({
         </div>
       )}
       {error === null ? null : <FeedAlert error={error} />}
-      {shared ? (
-        <div className="mt-4">
+      {shared > 0 ? (
+        <div key={shared} className="mt-4">
           <Alert tone="success" title="Sample data: the story was not shared." />
         </div>
       ) : null}
@@ -236,7 +237,7 @@ export function FeedPage({
           scene={scene}
           writer={writer}
           onShared={() => {
-            setShared(true);
+            setShared(shared + 1);
           }}
           listRef={list}
         />

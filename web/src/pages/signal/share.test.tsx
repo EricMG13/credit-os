@@ -106,6 +106,25 @@ describe("Share to group", () => {
     expect(document.activeElement).toBe(shareButton(CORVANE));
   });
 
+  it("makes a fresh status announcement on each successful share, not the identical node", async () => {
+    show(FEED);
+    const share = async (headline: string) => {
+      fireEvent.click(shareButton(headline));
+      fireEvent.click(within(dialog()).getByRole("button", { name: /Group/ }));
+      fireEvent.click(screen.getByRole("option", { name: "Shipping desk" }));
+      fireEvent.click(within(dialog()).getByRole("button", { name: "Share" }));
+      await gone();
+      await settled();
+    };
+    await share(CORVANE);
+    const first = screen.getByText("Sample data: the story was not shared.");
+    await share(TESSALY);
+    const second = screen.getByText("Sample data: the story was not shared.");
+    expect(second.closest('[role="status"]')).not.toBeNull();
+    expect(second).not.toBe(first);
+    expect(first.isConnected).toBe(false);
+  });
+
   it("closes on Cancel with focus back on the story's Share to group button", async () => {
     show(FEED);
     fireEvent.click(shareButton(TESSALY));
