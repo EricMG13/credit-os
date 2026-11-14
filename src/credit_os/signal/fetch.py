@@ -291,9 +291,11 @@ def _read_body(response: ResponseLike, budget: _Budget) -> bytes:
 def _redirect_url(current: str, response: ResponseLike, hops: int) -> str:
     if hops >= MAX_REDIRECTS:
         raise FetchRefused(f"more than {MAX_REDIRECTS} redirects")
-    location = (response.getheader("Location") or "").strip()
+    location = response.getheader("Location") or ""
     if not location:
         raise FetchRefused("the redirect has no usable location")
+    if _ADDRESS.fullmatch(location) is None:  # as sent: urljoin drops TAB, CR and LF unseen
+        raise FetchRefused("feed address is not valid")
     try:
         return urljoin(current, location)
     except ValueError as error:

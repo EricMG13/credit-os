@@ -188,6 +188,38 @@ def test_a_redirect_to_an_address_that_is_not_valid_gives_no_text_of_it(
     assert len(wire.targets) == 1
 
 
+@pytest.mark.parametrize(
+    "location",
+    [
+        "https://next.example.org/x\tyz",
+        "https://next.exa\tmple.org/x",
+        "https://next.example.org/x ",
+        "https://next.example.org/x\r\ny",
+        "https://next.example.org/caf\u00e9",
+        "https://next.example.org/" + "a" * (2049 - len("https://next.example.org/")),
+    ],
+    ids=["tab in path", "tab in host", "trailing space", "crlf", "non-ascii", "2049 long"],
+)
+def test_a_redirect_is_checked_as_the_server_sent_it(location: str) -> None:
+    wire = Wire(redirect(location), ok())
+    with pytest.raises(FetchRefused) as refused:
+        run(wire)
+    assert str(refused.value) == NOT_VALID
+    assert len(wire.targets) == 1
+
+
+@pytest.mark.parametrize(
+    ("location", "path"),
+    [("/other?a=1", "/other?a=1"), ("https://other.example.org/y", "/y")],
+    ids=["relative", "absolute"],
+)
+def test_a_normal_redirect_is_still_followed(location: str, path: str) -> None:
+    wire = Wire(redirect(location), ok())
+    run(wire)
+    assert len(wire.targets) == 2
+    assert wire.requests[1][0] == path
+
+
 # R30 port: the first hop uses 443, as every redirect hop does
 @pytest.mark.parametrize("port", ["8443", "80", "444", "65535", "0", "00"])
 def test_the_first_hop_must_use_port_443(port: str) -> None:
