@@ -54,12 +54,14 @@ interface AlertProps {
   children?: ReactNode;
   /** One action under the text; the alert has no dismiss button. */
   action?: ReactNode;
+  /** False when the caller's own live region holds the alert, so no status sits inside a status. */
+  live?: boolean;
 }
 
-export function Alert({ tone, title, children, action }: AlertProps) {
+export function Alert({ tone, title, children, action, live = true }: AlertProps) {
   const t = TONES[tone];
   return (
-    <div role={t.role} className={`rounded-md border p-4 shadow-sm ${t.box}`}>
+    <div role={live ? t.role : undefined} className={`rounded-md border p-4 shadow-sm ${t.box}`}>
       <div className="flex items-start gap-4">
         <span className={`-mt-0.5 flex size-6 items-center justify-center ${t.mark}`}>
           <StatusShape shape={t.shape} />

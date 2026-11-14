@@ -178,7 +178,8 @@ export function FeedPage({
   const [revealed, setRevealed] = useState(false);
   const [olderShown, setOlderShown] = useState(false);
   // Share to group writes nothing: this sentence is the in-memory stand-in for the service's reply.
-  // It counts the shares, so each one draws a fresh status node and is announced again.
+  // It counts the shares: the one live region stays mounted and each share replaces its keyed child,
+  // so a repeated sentence is a content change and is announced again.
   const [shared, setShared] = useState(0);
   // After the list grows, focus goes to the first story the change brought in (its headline); when
   // the kind or search hides every one of them, it goes to the page title instead.
@@ -224,11 +225,13 @@ export function FeedPage({
         </div>
       )}
       {error === null ? null : <FeedAlert error={error} />}
-      {shared > 0 ? (
-        <div key={shared} className="mt-4">
-          <Alert tone="success" title="Sample data: the story was not shared." />
-        </div>
-      ) : null}
+      <div role="status" aria-live="polite" data-share-status>
+        {shared > 0 ? (
+          <div key={shared} className="mt-4">
+            <Alert live={false} tone="success" title="Sample data: the story was not shared." />
+          </div>
+        ) : null}
+      </div>
       {loading ? (
         <FeedSkeleton />
       ) : shown.length > 0 ? (

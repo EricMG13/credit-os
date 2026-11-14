@@ -116,13 +116,23 @@ describe("Share to group", () => {
       await gone();
       await settled();
     };
+    const sentence = "Sample data: the story was not shared.";
+    const find = () => document.querySelector("[data-share-status]");
+    const region = find();
+    if (region === null) throw new Error("the feed keeps its share status region mounted");
+    expect(region).toHaveAttribute("role", "status");
+    expect(region).toBeEmptyDOMElement();
     await share(CORVANE);
-    const first = screen.getByText("Sample data: the story was not shared.");
+    expect(find()).toBe(region);
+    expect(region).toHaveTextContent(sentence);
+    const first = screen.getByText(sentence);
     await share(TESSALY);
-    const second = screen.getByText("Sample data: the story was not shared.");
-    expect(second.closest('[role="status"]')).not.toBeNull();
+    expect(find()).toBe(region);
+    expect(region).toHaveTextContent(sentence);
+    const second = screen.getByText(sentence);
     expect(second).not.toBe(first);
     expect(first.isConnected).toBe(false);
+    expect(region.querySelectorAll('[role="status"]')).toHaveLength(0);
   });
 
   it("closes on Cancel with focus back on the story's Share to group button", async () => {
