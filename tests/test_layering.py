@@ -366,6 +366,15 @@ def test_package_root_importing_the_isolated_package(tmp_path: Path) -> None:
     assert "signal" in found[0]
 
 
+def test_isolation_does_not_depend_on_the_isolated_package_being_last(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"delivery/a.py": "from credit_os import signal\n"})
+    layers = ("signal", *(name for name in credit_os.LAYERS if name != "signal"))
+    found = violations(root, layers, credit_os.ISOLATED)
+    assert len(found) == 1
+    assert "delivery" in found[0] and "signal" in found[0]
+    assert violations(root, layers, frozenset()) == []
+
+
 def test_empty_isolated_set_changes_nothing_for_ordinary_layers(tmp_path: Path) -> None:
     root = _tree(tmp_path, {"delivery/a.py": "from credit_os import sources\n"})
     assert violations(root, credit_os.LAYERS, frozenset()) == []

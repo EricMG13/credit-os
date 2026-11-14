@@ -28,9 +28,9 @@ line that it would get its own plan once phase 4 is done.
    cookie, and the role comes from the `users` table (predecessor's Signal design, 5.2). Anyone
    who can reach the port can type a writer's name, post as them and read an invited group.
    The service starts on `127.0.0.1` by default, refuses a wildcard host, and answers only
-   requests whose `Host` matches the address it was started on; those three behaviours are
-   carried and tested. No owner action is offered over HTTP. Serving Signal to other machines
-   is the owner's choice at launch and carries this limit with it.
+   requests whose `Host` matches the address it was started on; the port carries those three
+   behaviours with tests (S-6, S-7). No owner action is offered over HTTP. Serving Signal to
+   other machines is the owner's choice at launch and carries this limit with it.
 
 ## What does not change
 

@@ -86,7 +86,8 @@ map or recorded below as left behind.
 Changes under these legacy paths are not adapted; the roadmap says why.
 
 - `src/deploy_workflow/run_pathway.py`, `owner_workflow.py`, `financial_workflow.py`,
-  `earnings_workflow.py`, `host.py`, `workflow.py`, `replay.py`, `research/`, `owners/cp*.py`
+  `earnings_workflow.py`, `host.py`, `workflow.py`, `replay.py`, `research/` (other than the part of `webfetch.py` carried for Signal, decision 0009),
+  `owners/cp*.py`
   other than `cpos*.py` and `cp2g.py`, `model_testing/` other than `configs.py`
 - `src/deploy_workflow/model/providers.py` other than the helpers the Copilot adapter shares, `transport.py`
 - `src/deploy_vii/live/schema.py`, `live/prompts.py`, `live/tools.py`, `execution.py` (traced for step 1C on 2026-11-14: the structured runtime, not the provider)
@@ -145,7 +146,8 @@ behind).
 
 **Ruled by the owner, 2026-11-14 ("Leave it out"):** the rebuild does not carry CP-DR's web
 lookup. The live launcher imports `research/weblookup.py` since #110; step 3A's port drops
-that import and the lookup's instructions, and `research/` stays left behind.
+that import and the lookup's instructions, and `research/` stays left behind,
+except the part of `webfetch.py` carried for Signal (decision 0009).
 
 The 1A parser also adapts grammar rules that live in other rows' files
 (`model_handoff_delivery.py`, `prose_checks.py`, `confidence.py`,
