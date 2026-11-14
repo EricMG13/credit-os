@@ -23,6 +23,8 @@ import {
   type Reader,
 } from "./reader-kit";
 import { analysis, checkAnalysis } from "./read-analysis";
+import { checkForecast, forecast } from "./read-forecast";
+import { checkPortfolioFit, portfolioFit } from "./read-portfolio";
 import { checkSections, sections } from "./read-sections";
 import type {
   Fact,
@@ -289,7 +291,9 @@ const runFields = object<ModelRun>({
   front,
   analysis,
   statements,
+  portfolioFit,
   limitations,
+  forecast,
 });
 const run: Reader<ModelRun> = (value, path) => {
   const read = runFields(value, path);
@@ -304,9 +308,11 @@ const run: Reader<ModelRun> = (value, path) => {
   checkFront(read.front, child(path, "front"));
   checkLimitations(read.limitations, child(path, "limitations"));
   checkAnalysis(read.analysis, child(path, "analysis"));
+  checkPortfolioFit(read.portfolioFit, child(path, "portfolioFit"));
   checkStatements(read.statements, read.cases.length, child(path, "statements"));
   checkSections(read.statements, read.cases, child(path, "statements"));
   checkStatementNames(read.statements, read.cases, child(path, "cases"), child(path, "statements"));
+  checkForecast(read.forecast, read.cases, child(path, "forecast"));
   return read;
 };
 const sliceFields = object<ModelSlice>({ runs: arrayOf(run) });
