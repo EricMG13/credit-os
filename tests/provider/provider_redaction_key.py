@@ -8,6 +8,8 @@ MARK = "[redacted]"
 _SK = "sk-"
 _GH36 = "A" * 36
 GLUED = _SK + "proj-QQQQQQFAKEKEY"
+_TOK = "gh" + "o_" + "Q" * 30 + "abc123"
+_PAT = "github_" + "pat_" + "x" * 22
 
 # (exact values given to the redactor, input text, expected text). The same table holds for
 # bytes: encode the input and the expected text as UTF-8.
@@ -46,6 +48,22 @@ REDACT_TEXT: tuple[tuple[tuple[str, ...], str, str], ...] = (
     ((), "github_pat_" + "x" * 21, "github_pat_" + "x" * 21),
     (("abc123XYZ",), "abc123XYZabc123XYZ", "[redacted][redacted]"),
     ((), "no secret here", "no secret here"),
+    # a key straight after an escape sequence (JSON, repr, ANSI colour, double URL-encoding)
+    (
+        (),
+        '{"message": "bad credentials\\n' + _TOK + '"}',
+        '{"message": "bad credentials\\n[redacted]"}',
+    ),
+    ((), "a\\t" + _TOK, "a\\t[redacted]"),
+    ((), "a\\r" + _TOK, "a\\r[redacted]"),
+    ((), "\\u0022" + _TOK, "\\u0022[redacted]"),
+    ((), "\\x0a" + _TOK, "\\x0a[redacted]"),
+    ((), "\x1b[31m" + _TOK, "\x1b[31m[redacted]"),
+    ((), "\x1b[1;31m" + _TOK, "\x1b[1;31m[redacted]"),
+    ((), "token%253D" + _TOK, "token%253D[redacted]"),
+    ((), "\\n" + _PAT, "\\n[redacted]"),
+    ((), "\\n" + GLUED, "\\n[redacted]"),
+    ((), "\\nrisk-or-abcdefgh", "\\nrisk-or-abcdefgh"),
 )
 
 # (environment mapping, input text, expected text) for a redactor built from a mapping.
@@ -61,6 +79,9 @@ REDACT_ENVIRON: tuple[tuple[dict[str, str], str, str], ...] = (
         "[redacted] [redacted] [redacted] tok-four",
     ),
     ({"GH_TOKEN": ""}, "x", "x"),
+    # a value read with its line ending still hides the token itself
+    ({"GH_TOKEN": "tok-two\r\n"}, "a tok-two b", "a [redacted] b"),
+    ({"GITHUB_TOKEN": "tok-3\n"}, "a tok-3\n b", "a [redacted] b"),
     ({}, "x", "x"),
 )
 
