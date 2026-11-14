@@ -90,9 +90,28 @@ describe("the library routes adopt the shell", () => {
     expectOneH1AndNoSkip();
   });
 
-  it("keeps one h1 when the library data is absent from a page rendered alone", () => {
+  it("keeps one h1 and the notice when the library member is absent", () => {
+    window.location.hash = "#/library/home";
+    render(
+      <App
+        result={{ kind: "ok", data: { schema: "credit-os-data/1", issuers: fixture.issuers } }}
+      />,
+    );
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByText("This data file holds no library pages")).toBeVisible();
+  });
+
+  it("keeps one h1 when the library member is invalid", () => {
     visit("#/library/home", null);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByText("This part of the library could not be read")).toBeVisible();
+  });
+
+  it("rules the home header under title, subtitle and action like the mock's .u-ph", () => {
+    visit("#/library/home");
+    const h1 = screen.getByRole("heading", { level: 1, name: "Library" });
+    const header = h1.parentElement?.parentElement;
+    expect(header).toHaveClass("border-b", "border-secondary", "pb-4", "items-start");
   });
 
   it("pads the page itself with p-8 on one wrapper", () => {
