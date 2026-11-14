@@ -1,7 +1,7 @@
 // After sources/uui/tags.tsx, plain and non-interactive: a story's topic tags, as drawn.
-export function Tags({ tags }: { tags: string[] }) {
+export function Tags({ tags, label }: { tags: string[]; label?: string }) {
   return (
-    <ul className="flex flex-wrap items-center gap-2">
+    <ul aria-label={label} className="flex flex-wrap items-center gap-2">
       {tags.map((tag, index) => (
         <li
           key={index}

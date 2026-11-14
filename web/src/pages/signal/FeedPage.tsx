@@ -3,13 +3,16 @@
 // An entry is a story or a digest card. Order, filter, search, the pill and Show older all act on
 // in-memory state over the entries the slice supplied; nothing is fetched or stored.
 import { useEffect, useRef, useState, type Ref } from "react";
+import { Star01 } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { DigestCard } from "./DigestCard";
 import { FeedControls, OrderToggle, type FeedKind, type FeedOrder } from "./FeedControls";
+import { FeedAlert, FeedEmpty, FeedSkeleton, type EmptyContext } from "./FeedStates";
 import { FreshnessBadge } from "./parts/FreshnessBadge";
 import { PageTitle } from "./parts/PageTitle";
 import { Pill } from "./parts/Pill";
+import { Tags } from "./parts/Tags";
 import type { SignalDigestCard, SignalFreshness, SignalStory } from "./slice";
 import { StoryCard } from "./StoryCard";
 
@@ -25,28 +28,53 @@ export type FeedEntries = {
   older: FeedEntry[];
 };
 
+/** A topic view's own header parts: the follow state and the keywords it follows. */
+export type FeedTopic = { on: boolean; onToggle: () => void; keywords: string[] };
+
 function FeedHeader({
   title,
+  titleRef,
   freshness,
   order,
   onOrder,
+  topic,
 }: {
   title: string;
+  titleRef: Ref<HTMLHeadingElement>;
   freshness: SignalFreshness;
   order: FeedOrder;
   /** Absent where the view has one order only (Latest and Saved draw no switch). */
   onOrder: ((order: FeedOrder) => void) | null;
+  topic: FeedTopic | null;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <PageTitle>{title}</PageTitle>
-      <FreshnessBadge freshness={freshness} />
-      {onOrder === null ? null : (
-        <div className="ml-auto">
-          <OrderToggle order={order} onOrder={onOrder} />
+    <>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <PageTitle titleRef={titleRef}>{title}</PageTitle>
+        {topic === null ? null : (
+          <Button
+            color={topic.on ? "secondary" : "tertiary"}
+            size="sm"
+            iconLeading={<Star01 data-icon className={topic.on ? "fill-current" : undefined} />}
+            aria-pressed={topic.on}
+            onPress={topic.onToggle}
+          >
+            {topic.on ? "Following" : "Follow"}
+          </Button>
+        )}
+        <FreshnessBadge freshness={freshness} />
+        {onOrder === null ? null : (
+          <div className="ml-auto">
+            <OrderToggle order={order} onOrder={onOrder} />
+          </div>
+        )}
+      </div>
+      {topic === null || topic.keywords.length === 0 ? null : (
+        <div className="mt-3">
+          <Tags tags={topic.keywords} label="Topic keywords" />
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -106,12 +134,16 @@ function EntryList({
 }
 
 export function FeedPage({
-  title,
+  title: heading,
   freshness,
   entries,
   startOn,
   switchable,
   writer,
+  loading,
+  error,
+  empty,
+  topic,
 }: {
   title: string;
   freshness: SignalFreshness;
@@ -120,20 +152,29 @@ export function FeedPage({
   startOn: FeedOrder;
   switchable: boolean;
   writer: boolean;
+  /** The feed is still loading: the skeleton stands in for the list. */
+  loading: boolean;
+  error: "unreachable" | "request" | "unreadable" | null;
+  empty: EmptyContext;
+  /** Set on a topic's view only. */
+  topic: FeedTopic | null;
 }) {
   const [order, setOrder] = useState<FeedOrder>(startOn);
   const [kind, setKind] = useState<FeedKind>("all");
   const [query, setQuery] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [olderShown, setOlderShown] = useState(false);
-  // After the list grows, focus goes to the first story the change brought in (its headline).
+  // After the list grows, focus goes to the first story the change brought in (its headline); when
+  // the kind or search hides every one of them, it goes to the page title instead.
   const list = useRef<HTMLDivElement>(null);
-  const focusAt = useRef<number | null>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const focusAt = useRef<number | "title" | null>(null);
   useEffect(() => {
     const at = focusAt.current;
     focusAt.current = null;
     if (at === null) return;
-    list.current?.querySelectorAll("article")[at]?.querySelector("h2")?.focus();
+    if (at === "title") title.current?.focus();
+    else list.current?.querySelectorAll("article")[at]?.querySelector("h2")?.focus();
   }, [revealed, olderShown]);
   const { waiting, older } = entries;
   const needle = query.trim();
@@ -146,25 +187,30 @@ export function FeedPage({
   return (
     <>
       <FeedHeader
-        title={title}
+        title={heading}
+        titleRef={title}
+        topic={topic}
         freshness={freshness}
         order={order}
         onOrder={switchable ? setOrder : null}
       />
       <FeedControls kind={kind} onKind={setKind} query={query} onQuery={setQuery} />
-      {waiting === null || revealed ? null : (
+      {loading || waiting === null || revealed ? null : (
         <div className="mt-4 flex justify-center">
           <Pill
             label={waiting.label}
             action="Show"
             onAction={() => {
-              focusAt.current = 0;
+              focusAt.current = visible(waiting.entries, kind, needle).length > 0 ? 0 : "title";
               setRevealed(true);
             }}
           />
         </div>
       )}
-      {shown.length > 0 ? (
+      {error === null ? null : <FeedAlert error={error} />}
+      {loading ? (
+        <FeedSkeleton />
+      ) : shown.length > 0 ? (
         <EntryList entries={shown} writer={writer} listRef={list} />
       ) : needle !== "" ? (
         <NoMatch
@@ -173,14 +219,16 @@ export function FeedPage({
         />
       ) : kind !== "all" ? (
         <NoMatch title="No stories of this kind here" hint="Choose All to see every kind." />
-      ) : null}
-      {older.length === 0 || olderShown ? null : (
+      ) : (
+        <FeedEmpty context={empty} />
+      )}
+      {loading || older.length === 0 || olderShown ? null : (
         <div className="mt-4 flex justify-center">
           <Button
             color="secondary"
             size="sm"
             onPress={() => {
-              focusAt.current = shown.length;
+              focusAt.current = visible(older, kind, needle).length > 0 ? shown.length : "title";
               setOlderShown(true);
             }}
           >
