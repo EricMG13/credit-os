@@ -84,7 +84,7 @@ function Heading({ children }: { children: string }) {
 function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCurrent }) {
   const { channels } = scene.snapshot;
   // Follow is in-memory only: nothing is written; a reload shows the slice's own state again.
-  const [followed, setFollowed] = useState<Record<string, boolean>>({});
+  const [followed, setFollowed] = useState<ReadonlyMap<string, boolean>>(new Map());
   const views = [
     { id: "for-you", label: "For you", icon: Stars01, count: null },
     { id: "latest", label: "Latest", icon: Clock, count: null },
@@ -117,7 +117,7 @@ function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCu
       ) : (
         <ul>
           {channels.topics.map((topic) => {
-            const on = followed[topic.id] ?? topic.followed;
+            const on = followed.get(topic.id) ?? topic.followed;
             return (
               <Row
                 key={topic.id}
@@ -132,7 +132,7 @@ function ChannelList({ scene, current }: { scene: SignalScene; current: SignalCu
                     className={on ? "text-action hover:text-action-hover" : undefined}
                     icon={<Star01 data-icon className={on ? "fill-current" : undefined} />}
                     onPress={() => {
-                      setFollowed({ ...followed, [topic.id]: !on });
+                      setFollowed(new Map(followed).set(topic.id, !on));
                     }}
                   />
                 }

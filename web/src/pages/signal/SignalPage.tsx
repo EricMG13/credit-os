@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent } from "./SignalFrame";
-import { readSlice, type SignalScene } from "./slice";
+import { FeedPage } from "./FeedPage";
+import { readSlice, type SignalScene, type SignalStory } from "./slice";
 
 export type SignalPageKind = "feed" | "topic" | "group" | "thread" | "digest" | "settings";
 
@@ -22,6 +23,25 @@ function Empty({ title, children }: { title: string; children?: ReactNode }) {
       {children}
     </EmptyState>
   );
+}
+
+/** The stories a view lists, in its order; an id the feed lacks cannot reach here (the reader refuses it). */
+function ordered(scene: SignalScene, ids: string[]): SignalStory[] {
+  const byId = new Map(scene.snapshot.feed.stories.map((story) => [story.id, story]));
+  return ids.map((id) => {
+    const story = byId.get(id);
+    if (story === undefined)
+      throw new Error(`the slice reader let through an unknown story "${id}"`);
+    return story;
+  });
+}
+
+/** The reader gives every channel topic an order; a missing one is a wiring fault, so it is loud. */
+function topicOrder(scene: SignalScene, id: string): string[] {
+  const order = scene.snapshot.feed.topics[id];
+  if (order === undefined)
+    throw new Error(`the slice reader let through topic "${id}" with no order`);
+  return order.top;
 }
 
 /** The route pattern guarantees these segments; a missing one is a wiring fault, so it is loud. */
@@ -62,7 +82,13 @@ function Body({
       const id = view as keyof typeof VIEWS;
       return {
         current: { kind: "view", id },
-        body: <h2 className="text-xl font-semibold text-text-primary">{VIEWS[id]}</h2>,
+        body: (
+          <FeedPage
+            title={VIEWS[id]}
+            stories={ordered(scene, scene.snapshot.feed.views[id].top)}
+            writer={scene.snapshot.viewer.role === "writer"}
+          />
+        ),
       };
     }
     case "topic": {
@@ -75,7 +101,13 @@ function Body({
       }
       return {
         current: { kind: "topic", id: topic.id },
-        body: <h2 className="text-xl font-semibold text-text-primary">{topic.name}</h2>,
+        body: (
+          <FeedPage
+            title={topic.name}
+            stories={ordered(scene, topicOrder(scene, topic.id))}
+            writer={scene.snapshot.viewer.role === "writer"}
+          />
+        ),
       };
     }
     case "group":
