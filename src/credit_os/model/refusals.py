@@ -10,6 +10,8 @@ class RefusalKind(StrEnum):
     SCALE = "scale"
     REPAYMENT = "repayment"
     CELL = "cell"
+    UNIT = "unit"
+    CURRENCY = "currency"
 
 
 class ForecastRefused(Exception):

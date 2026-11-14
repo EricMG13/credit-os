@@ -51,6 +51,8 @@ MESSAGES = {
     "none": "base {key}: no table cell of CP-1 is at {where}",
     "many": "base {key}: {where} is not one number in CP-1 ({count} cells: {shown}{more})",
     "other": "base {key} {amount} is not CP-1's cell at {where} ({cell})",
+    "negative": "; wc is stated as the negative of its cell",
+    "magnitude": "; {key} is stated as a magnitude, without a sign",
 }
 Doc = dict[str, Any]
 
@@ -168,7 +170,10 @@ def problem(key: str, operand: Doc, read: list[Any]) -> str | None:
     reads = -value if key == "wc" else abs(value) if key in MAGNITUDES else value
     if reads == Fraction(amount):
         return None
-    return MESSAGES["other"].format(key=key, amount=amount, where=where, cell=echo(min(found)))
+    text = MESSAGES["other"].format(key=key, amount=amount, where=where, cell=echo(min(found)))
+    if key in [*MAGNITUDES, "wc"] and abs(value) == abs(Fraction(amount)):  # R45: only the sign
+        text += MESSAGES["negative"] if key == "wc" else MESSAGES["magnitude"].format(key=key)
+    return text
 
 
 def edited(name: str, edits: list[list[str]]) -> str:
