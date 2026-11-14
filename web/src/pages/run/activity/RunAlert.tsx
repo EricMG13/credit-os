@@ -15,11 +15,21 @@ const MARK = {
  * The alert of an ended run, marked with the run state's own shape. Failed says "alert";
  * the others say "status". The state's word is read out before the title.
  */
-export function RunAlert({ state, alert }: { state: RunRecord["state"]; alert: Alert }) {
-  const { shape, tone, word } = STATUS_SETS["Run states"][state];
+export function RunAlert({
+  state,
+  alert,
+}: {
+  state: RunRecord["state"] | "unreadable";
+  alert: Alert;
+}) {
+  // A record that cannot be read has no run state to name: it is an error, drawn as Failed's diamond.
+  const { shape, tone, word } =
+    state === "unreadable"
+      ? { ...STATUS_SETS["Run states"].Failed, word: "Error" }
+      : STATUS_SETS["Run states"][state];
   return (
     <div
-      role={state === "Failed" ? "alert" : "status"}
+      role={state === "Failed" || state === "unreadable" ? "alert" : "status"}
       className="flex items-start gap-4 rounded-ds-lg border border-border-container bg-surface-card p-4 shadow-xs"
     >
       <span

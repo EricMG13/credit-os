@@ -2,15 +2,16 @@ import { Button, styles } from "@/components/base/buttons/button";
 import { Badge } from "@/components/base/badges/badges";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
-import { Alert } from "@/components/alert/Alert";
 import { Card } from "@/components/card/Card";
+import { Skeleton } from "@/components/gap/Skeleton";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { PageHeader } from "@/shell/PageHeader";
 import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
 import { TextLink } from "../TextLink";
 import { readSlice } from "../slice";
-import type { RunRecord } from "../slice-activity";
+import type { StartDraft } from "../slice-start";
+import type { ActivityRecord, RunRecord } from "../slice-activity";
 import { Feed } from "./Feed";
 import { RunAlert } from "./RunAlert";
 import { ModuleSteps } from "./ModuleSteps";
@@ -24,9 +25,20 @@ function Frame({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-6 p-8">{children}</div>;
 }
 
-function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
+function Empty({
+  title,
+  trail = false,
+  action,
+  children,
+}: {
+  title: string;
+  trail?: boolean;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
     <Frame>
+      {trail ? <span className="text-sm text-text-tertiary">Runs</span> : null}
       <PageHeader title="Run activity" />
       <EmptyState>
         <EmptyState.Header>
@@ -36,7 +48,65 @@ function Empty({ title, children }: { title: string; children?: React.ReactNode 
           <EmptyState.Title>{title}</EmptyState.Title>
           {children}
         </EmptyState.Content>
+        {action === undefined ? null : <EmptyState.Footer>{action}</EmptyState.Footer>}
       </EmptyState>
+    </Frame>
+  );
+}
+
+function NoRun({ draft }: { draft: StartDraft | undefined }) {
+  return (
+    <Empty
+      title="No run to watch"
+      trail
+      action={
+        draft === undefined ? undefined : (
+          <a
+            href={`#/run/start/${draft.id}`}
+            className={cx(styles.common.root, styles.sizes.lg.root, styles.colors.primary.root)}
+          >
+            <span data-text className="px-0.5">
+              Start a run
+            </span>
+          </a>
+        )
+      }
+    >
+      <EmptyState.Description>
+        Nothing is running and no run has been started here yet. A run appears on this page as soon
+        as you submit it.
+      </EmptyState.Description>
+    </Empty>
+  );
+}
+
+// The summary and the two panels, as static blocks: no figure is known.
+function Unreadable({ run }: { run: Extract<ActivityRecord, { kind: "unreadable" }> }) {
+  return (
+    <Frame>
+      <PageHeader
+        title={run.issuer}
+        badges={
+          <>
+            <StatusBadge set="Activity that cannot be read" state="State not known" />
+            {run.labels.map((label, i) => (
+              <Badge key={`${label}-${String(i)}`}>{label}</Badge>
+            ))}
+          </>
+        }
+      />
+      <RunAlert state="unreadable" alert={run.alert} />
+      <Card>
+        <Skeleton lines={3} />
+      </Card>
+      <div className="grid items-start gap-6 min-[1101px]:grid-cols-[minmax(0,1fr)_400px]">
+        <Card>
+          <Skeleton lines={5} />
+        </Card>
+        <Card>
+          <Skeleton lines={4} />
+        </Card>
+      </div>
     </Frame>
   );
 }
@@ -84,8 +154,8 @@ function Run({ run }: { run: RunRecord }) {
         badges={
           <>
             <StatusBadge set="Run states" state={run.state} live={live} />
-            {run.labels.map((label) => (
-              <Badge key={label}>{label}</Badge>
+            {run.labels.map((label, i) => (
+              <Badge key={`${label}-${String(i)}`}>{label}</Badge>
             ))}
           </>
         }
@@ -131,11 +201,13 @@ function Run({ run }: { run: RunRecord }) {
   );
 }
 
-/** One run's activity, read from the slice by the address's run id. */
-export function ActivityPage({ run: id }: { run: string }) {
+/** One run's activity: the run the address names, or (no id) the one the slice names as current. */
+export function ActivityPage({ run: id }: { run: string | null }) {
   const slice = readSlice(useSource().run);
   if (slice.kind !== "ok") return <Empty title="No run data in this library" />;
-  const record = slice.data.runs.find((r) => r.id === id);
+  const wanted = id ?? slice.data.current;
+  const record = slice.data.runs.find((r) => r.id === wanted);
+  if (wanted === null) return <NoRun draft={slice.data.drafts[0]} />;
   if (record === undefined) {
     return (
       <Empty title="No run has this address">
@@ -143,30 +215,7 @@ export function ActivityPage({ run: id }: { run: string }) {
       </Empty>
     );
   }
-  if (record.kind === "none") {
-    return (
-      <Empty title="No run to watch">
-        <EmptyState.Description>
-          Nothing is running and no run has been started here yet. A run appears on this page as
-          soon as you submit it.
-        </EmptyState.Description>
-      </Empty>
-    );
-  }
-  if (record.kind === "unreadable") {
-    return (
-      <Frame>
-        <PageHeader
-          title={record.issuer}
-          badges={record.labels.map((label) => (
-            <Badge key={label}>{label}</Badge>
-          ))}
-        />
-        <Alert tone="error" title={record.alert.title}>
-          {record.alert.text}
-        </Alert>
-      </Frame>
-    );
-  }
+  if (record.kind === "none") return <NoRun draft={slice.data.drafts[0]} />;
+  if (record.kind === "unreadable") return <Unreadable run={record} />;
   return <Run run={record} />;
 }

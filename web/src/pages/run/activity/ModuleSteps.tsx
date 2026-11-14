@@ -1,7 +1,45 @@
+import { useEffect, useRef, useState } from "react";
 import { Check } from "@untitledui/icons";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { cx } from "@/utils/cx";
 import type { ModuleStep, ModuleWord } from "../slice-activity";
+import "./activity.css";
+
+type Row = {
+  key: string;
+  name: string;
+  state: ModuleWord;
+  detail: string | null;
+  group: { index: number; showAll: string } | null;
+  revealedFirst: boolean;
+};
+
+// An opened group is replaced by its modules; nothing is counted, every title is the slice's.
+function rowsOf(steps: ModuleStep[], opened: ReadonlySet<number>, last: number | null): Row[] {
+  return steps.flatMap((step, i): Row[] => {
+    if (step.kind === "module") {
+      return [{ key: `m${String(i)}`, ...step, group: null, revealedFirst: false }];
+    }
+    if (!opened.has(i)) {
+      return [
+        {
+          key: `g${String(i)}`,
+          name: step.title,
+          state: step.state,
+          detail: null,
+          group: { index: i, showAll: step.showAll },
+          revealedFirst: false,
+        },
+      ];
+    }
+    return step.modules.map((m, j) => ({
+      key: `g${String(i)}-${String(j)}`,
+      ...m,
+      group: null,
+      revealedFirst: j === 0 && i === last,
+    }));
+  });
+}
 
 function ModuleBadge({ word, live }: { word: ModuleWord; live: boolean }) {
   if (word === "Not assessable" || word === "Not run") {
@@ -38,18 +76,39 @@ function Marker({ word }: { word: ModuleWord }) {
   );
 }
 
+function ShowAll({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-expanded="false"
+      onClick={onPress}
+      className="w-fit rounded-xs text-sm text-text-link underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-focus"
+    >
+      {label}
+    </button>
+  );
+}
+
 /** Vertical progress steps, one per module, each with its state as a trailing badge. */
 export function ModuleSteps({ steps, live }: { steps: ModuleStep[]; live: boolean }) {
+  const [opened, setOpened] = useState<ReadonlySet<number>>(new Set());
+  // The group just opened: its first module's name takes focus, so the button that went does not
+  // leave keyboard focus on nothing.
+  const [lastOpened, setLastOpened] = useState<number | null>(null);
+  const target = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    if (lastOpened !== null) target.current?.focus();
+  }, [lastOpened]);
+  const rows = rowsOf(steps, opened, lastOpened);
   return (
     <ol aria-label="Modules in this run">
-      {steps.map((step, i) => {
-        const last = i === steps.length - 1;
-        const name = step.kind === "module" ? step.name : step.title;
-        const detail = step.kind === "module" ? step.detail : null;
+      {rows.map((step, i) => {
+        const last = i === rows.length - 1;
+        const { name, detail, group } = step;
         const waiting = live && step.state === "Queued";
         return (
           <li
-            key={`${name}-${String(i)}`}
+            key={step.key}
             aria-current={step.state === "Running" ? "step" : undefined}
             className="flex items-start gap-3"
           >
@@ -73,13 +132,24 @@ export function ModuleSteps({ steps, live }: { steps: ModuleStep[]; live: boolea
             >
               <div className="flex min-w-0 flex-1 flex-col">
                 <span
+                  ref={step.revealedFirst ? target : undefined}
+                  tabIndex={step.revealedFirst ? -1 : undefined}
                   className={cx(
-                    "text-sm font-semibold",
+                    "rounded-xs text-sm font-semibold focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-focus",
                     step.state === "Running" ? "text-action" : "text-text-secondary",
                   )}
                 >
                   {name}
                 </span>
+                {group === null ? null : (
+                  <ShowAll
+                    label={group.showAll}
+                    onPress={() => {
+                      setOpened(new Set(opened).add(group.index));
+                      setLastOpened(group.index);
+                    }}
+                  />
+                )}
                 {detail === null ? null : (
                   <span className="text-sm text-pretty text-text-tertiary">{detail}</span>
                 )}

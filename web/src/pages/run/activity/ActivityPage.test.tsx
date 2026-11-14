@@ -151,6 +151,8 @@ describe("Run activity, ended states", () => {
     show("/run/activity/finished");
     expect(screen.getAllByText("Finished", { selector: "span" }).length).toBeGreaterThan(0);
     expect(badgeCount("Not assessable")).toBeGreaterThan(0);
+    expect(screen.queryByText("Running", { selector: "span" })).toBeNull();
+    expect(screen.queryByText("Queued", { selector: "span" })).toBeNull();
   });
 
   it("rejected: says no module ran", () => {
@@ -196,6 +198,12 @@ describe("Run activity, every address", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("TransDigm Group");
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain("Error: ");
+    expect(within(alert).getByText("Run activity cannot be read")).toBeTruthy();
+    expect(
+      within(alert).getByText(
+        "The run record could not be opened. This does not stop the run or change what it spends; the cap still applies.",
+      ),
+    ).toBeTruthy();
   });
 
   it("an unknown run id says so, with a link back", () => {
