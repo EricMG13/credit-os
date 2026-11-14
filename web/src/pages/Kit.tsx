@@ -21,6 +21,7 @@ import { MetricCard } from "@/components/metric/MetricCard";
 import { Timeline } from "@/components/timeline/Timeline";
 import { KitInputSelect } from "@/pages/Kit7c";
 import { KitTableProgress } from "@/pages/Kit7d";
+import { KitOverlays } from "@/pages/Kit7e";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
@@ -138,7 +139,6 @@ export function Kit() {
         </Row>
         <Row>
           <Button isDisabled>Disabled</Button>
-          <Button isLoading>Loading</Button>
           <Button iconLeading={Plus}>Leading icon</Button>
           <Button iconTrailing={Plus}>Trailing icon</Button>
         </Row>
@@ -203,6 +203,10 @@ export function Kit() {
           </Row>
           <div className="queued-shimmer w-64" />
           <LoadingIndicator label="Waiting for the first module" />
+          <div className="flex flex-col items-start gap-2">
+            <span className="text-small text-text-secondary">Loading button</span>
+            <Button isLoading>Loading</Button>
+          </div>
         </div>
       </section>
 
@@ -380,6 +384,7 @@ export function Kit() {
 
       <KitInputSelect />
       <KitTableProgress />
+      <KitOverlays />
 
       <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
         <h2 id="kit-trend-chart" className="font-display text-h2 text-text-primary">

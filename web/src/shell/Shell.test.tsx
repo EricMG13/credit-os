@@ -20,6 +20,14 @@ describe("Shell", () => {
     expect(links.map((a) => a.getAttribute("href"))).toEqual(AREAS.map(([, , href]) => href));
   });
 
+  it("draws the current item in the selected surface and no other item", () => {
+    render(<Shell current="run">content</Shell>);
+    const selected = screen
+      .getAllByRole("link")
+      .filter((a) => a.className.includes("bg-surface-selected"));
+    expect(selected.map((a) => a.getAttribute("aria-label"))).toEqual(["Run"]);
+  });
+
   it.each(AREAS)("marks only %s as the current page", (area, name) => {
     render(<Shell current={area}>content</Shell>);
     const marked = screen

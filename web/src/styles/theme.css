@@ -225,8 +225,8 @@
   --background-color-border-secondary: var(--color-border-hairline);
   --outline-color-focus-ring: var(--color-focus);
 
-  /* Sidebar rail: selected item, the card's inset ring, the page header's rule */
-  --background-color-secondary: var(--color-surface-selected);
+  /* Sidebar rail: the subtle surface (table head and row hover), the card's inset ring, the page header's rule */
+  --background-color-secondary: var(--color-surface-subtle);
   --ring-color-secondary: var(--color-border-subtle);
   --border-color-secondary: var(--color-border-hairline);
 
@@ -240,6 +240,10 @@
   --text-color-error-primary: var(--color-error-text);
   --text-color-brand-tertiary: var(--color-action);
   --text-color-fg-brand-primary: var(--color-action);
+
+  /* Drawer and modal: the scrim is Navy (it takes the source's alpha at the use site); the footer's top rule is the hairline */
+  --background-color-overlay: var(--color-surface-inverse);
+  --color-border-secondary: var(--color-border-hairline);
 
   /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
   --text-xs: calc(var(--spacing) * 3);
@@ -257,6 +261,9 @@
   --shadow-lg:
     0px 12px 16px -4px rgb(0 5 51 / 0.08), 0px 4px 6px -2px rgb(0 5 51 / 0.03),
     0px 2px 2px -1px rgb(0 5 51 / 0.04);
+  --shadow-xl:
+    0px 20px 24px -4px rgb(0 5 51 / 0.08), 0px 8px 8px -4px rgb(0 5 51 / 0.03),
+    0px 3px 3px -1.5px rgb(0 5 51 / 0.04);
   --shadow-skeuomorphic:
     0px 0px 0px 1px rgb(0 5 51 / 0.18) inset, 0px -2px 0px 0px rgb(0 5 51 / 0.05) inset;
   --shadow-xs-skeuomorphic: var(--shadow-skeuomorphic), var(--shadow-xs);

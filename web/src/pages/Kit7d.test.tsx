@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
 import { Kit } from "./Kit";
 
 const designSystem = readFileSync(
@@ -86,8 +87,13 @@ describe("Table on the kit page", () => {
     render(<Kit />);
     const md = screen.getByRole("grid", { name: "Modules, md rows" });
     expect(within(md).getByRole("row", { name: /Liquidity/ }).className).toContain(
-      "hover:bg-primary_hover",
+      "hover:bg-secondary",
     );
+    const css = readFileSync(
+      path.resolve(import.meta.dirname, "..", "styles", "theme.css"),
+      "utf8",
+    );
+    expect(css).toContain("--background-color-secondary: var(--color-surface-subtle)");
   });
 });
 
@@ -112,6 +118,26 @@ describe("Progress bar on the kit page", () => {
   });
 });
 
+describe("ProgressBar guards", () => {
+  it.each([
+    ["not finite", Number.NaN],
+    ["infinite", Number.POSITIVE_INFINITY],
+    ["negative", -1],
+    ["above max", 9],
+  ])("throws a RangeError for a value that is %s", (_name, value) => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() => render(<ProgressBar value={value} max={8} label="x" />)).toThrow(RangeError);
+    spy.mockRestore();
+  });
+
+  it("accepts the bounds 0 and max", () => {
+    render(<ProgressBar value={0} max={8} label="none" />);
+    render(<ProgressBar value={8} max={8} label="all" />);
+    expect(screen.getByRole("progressbar", { name: "none" })).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByRole("progressbar", { name: "all" })).toHaveAttribute("aria-valuenow", "8");
+  });
+});
+
 describe("Loading indicator on the kit page", () => {
   it("is a labelled spinner inside the live run state block", () => {
     render(<Kit />);
@@ -124,13 +150,23 @@ describe("Loading indicator on the kit page", () => {
   it("adds no looping animation outside the live block", () => {
     const { container } = render(<Kit />);
     const live = screen.getByRole("group", { name: "Live run state" });
-    const loops = [...container.querySelectorAll("[class*='animate-']")].filter(
-      (el) => !live.contains(el) && !/\banimate-(in|out)\b/.test(el.getAttribute("class") ?? ""),
+    const loops = [...container.querySelectorAll("*")].filter(
+      (el) =>
+        !live.contains(el) &&
+        (el.getAttribute("class") ?? "")
+          .split(/\s+/)
+          .some((token) => /animate-(?!in\b|out\b)|status-halo|queued-shimmer/.test(token)),
     );
-    // The only other loop is the button's own loading state, from an earlier task (reported).
-    expect(loops.map((el) => el.closest("button")?.textContent)).toEqual(["Loading"]);
+    expect(loops).toEqual([]);
     expect(within(live).getByRole("status").querySelectorAll("[class*='animate-']")).toHaveLength(
       1,
     );
+  });
+
+  it("shows the loading button demo inside the live block, captioned", () => {
+    render(<Kit />);
+    const live = screen.getByRole("group", { name: "Live run state" });
+    expect(within(live).getByText("Loading button")).toBeInTheDocument();
+    expect(within(live).getByRole("button", { name: "Loading" })).toBeInTheDocument();
   });
 });
