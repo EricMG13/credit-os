@@ -42,10 +42,14 @@ function ShareForm({ headline, groups, onShare, onCancel, onGone }: Props) {
   useOnGone(onGone);
   const [group, setGroup] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const select = useRef<HTMLDivElement>(null);
   const submit = (event: SyntheticEvent) => {
     event.preventDefault();
-    if (group === null) setError(true);
-    else onShare();
+    if (group === null) {
+      setError(true);
+      // The kit's Select takes no focus ref for its trigger, so it is found inside the field's root.
+      select.current?.querySelector("button")?.focus();
+    } else onShare();
   };
   return (
     <form noValidate onSubmit={submit} className="flex flex-col">
@@ -70,6 +74,7 @@ function ShareForm({ headline, groups, onShare, onCancel, onGone }: Props) {
         ) : (
           <>
             <Select
+              ref={select}
               label="Group"
               placeholder="Choose a group"
               items={groups.map((g) => ({ id: g.id, label: g.name }))}

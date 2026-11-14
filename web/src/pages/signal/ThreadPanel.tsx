@@ -281,7 +281,12 @@ export function ThreadPanel({
         <CloseButton label="Close thread" className="absolute top-3 right-3" />
       </header>
       {thread === null ? null : (
-        <Conversation key={thread.id} thread={thread} story={story} writer={writer} />
+        <Conversation
+          key={`${thread.groupId}/${thread.id}`}
+          thread={thread}
+          story={story}
+          writer={writer}
+        />
       )}
     </SlideoutMenu>
   );

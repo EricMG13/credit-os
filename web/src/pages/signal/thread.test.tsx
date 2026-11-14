@@ -388,3 +388,48 @@ describe("the thread panel", () => {
     );
   });
 });
+
+describe("the thread panel across groups", () => {
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  /** The "main" scene with a second group holding a thread that has the same id as Corvane's. */
+  function twinned() {
+    return withMain((main) => {
+      const { snapshot } = main;
+      const first = snapshot.threads.find((t) => t.id === "corvane-thread");
+      if (first === undefined) throw new Error("the fixture has the Corvane thread");
+      // The fixture's JSON types give these arrays no common element type, so they are pushed to as lists of anything.
+      (snapshot.threads as unknown[]).push({ ...structuredClone(first), groupId: "shipping-desk" });
+      const item = snapshot.groups[0]?.threads.find((t) => t.id === "corvane-thread");
+      const other = snapshot.groups.find((g) => g.id === "shipping-desk");
+      if (item === undefined || other === undefined) throw new Error("the fixture has both groups");
+      (other.threads as unknown[]).push(structuredClone(item));
+    });
+  }
+
+  it("does not carry a posted comment, a reaction or a draft from one group's thread to another's of the same id", async () => {
+    show(CORVANE_PATH, twinned());
+    type("Checked the filing.");
+    send();
+    type("A half-written reply");
+    const seen = within(panel()).getAllByRole("button", { name: /^Seen: comment by/ })[0];
+    if (seen === undefined) throw new Error("the thread has a comment to react to");
+    const before = seen.getAttribute("aria-pressed");
+    fireEvent.click(seen);
+    expect(within(panel()).getByText("Checked the filing.")).toBeInTheDocument();
+
+    window.location.hash = "#/signal/main/group/shipping-desk/thread/corvane-thread";
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Shipping desk", hidden: true }),
+      ).toBeInTheDocument();
+    });
+    expect(within(panel()).queryByText("Checked the filing.")).toBeNull();
+    expect(box()).toHaveValue("");
+    expect(within(panel()).getByRole("status")).toBeEmptyDOMElement();
+    const other = within(panel()).getAllByRole("button", { name: /^Seen: comment by/ })[0];
+    expect(other?.getAttribute("aria-pressed")).toBe(before);
+  });
+});
