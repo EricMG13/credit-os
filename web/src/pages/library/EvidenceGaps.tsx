@@ -138,11 +138,15 @@ export function EvidenceGaps({
           }
         >
           {groups.map((group) => (
-            <tbody key={group.severity}>
+            <tbody key={group.severity ?? "none"}>
               <tr className="border-b border-border-hairline bg-surface-subtle">
                 <th scope="rowgroup" colSpan={5} className="px-5 py-2 text-left font-semibold">
                   <span className="flex items-center gap-2">
-                    <StatusBadge set="Gap severity" state={group.severity} />
+                    {group.severity === null ? (
+                      "Not ranked"
+                    ) : (
+                      <StatusBadge set="Gap severity" state={group.severity} />
+                    )}
                     {module === null ? (
                       <Badge size="sm" color="gray">
                         {group.count}

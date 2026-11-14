@@ -4993,7 +4993,7 @@
               },
               "limitations": {
                 "count": "2",
-                "gapsLink": { "label": "See the 2 gaps in Evidence" },
+                "gapsLink": { "label": "See the 3 gaps in Evidence" },
                 "items": [
                   {
                     "text": "The security package documents were incomplete, so recovery for the senior notes is a range and not a figure.",
@@ -5506,7 +5506,7 @@
                 { "id": "forecast", "name": "Forecast", "initials": "FC" },
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
-              "tabs": { "trace": "0", "sources": "2", "gaps": "2" },
+              "tabs": { "trace": "0", "sources": "2", "gaps": "3" },
               "record": {
                 "timings": {
                   "title": "Module timings",
@@ -5575,7 +5575,7 @@
                     {
                       "name": "Gap ledger",
                       "writtenBy": "Every module",
-                      "rows": "2",
+                      "rows": "3",
                       "file": "registers/gaps.md",
                       "href": "downloads/halden-aerostructures-2025-09-30-registers/gaps.md",
                       "reason": null
@@ -5625,8 +5625,8 @@
                   },
                   {
                     "label": "Gaps",
-                    "value": { "kind": "value", "text": "2", "at": null },
-                    "note": "1 medium, 1 low",
+                    "value": { "kind": "value", "text": "3", "at": null },
+                    "note": "1 medium, 1 low, 1 not ranked",
                     "trace": null
                   }
                 ],
@@ -5682,6 +5682,24 @@
                         "module": "Capital structure",
                         "moduleId": "capital-structure",
                         "reason": "The fixed and floating split of interest is an estimate.",
+                        "shownAs": "missing",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Capital structure page"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "severity": null,
+                    "count": "1",
+                    "rows": [
+                      {
+                        "id": "G-03",
+                        "gap": "Lease maturity schedule",
+                        "module": "Capital structure",
+                        "moduleId": "capital-structure",
+                        "reason": "Leases appear in the debt stack but not by year.",
                         "shownAs": "missing",
                         "where": {
                           "page": "module",

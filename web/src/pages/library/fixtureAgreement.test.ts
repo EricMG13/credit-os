@@ -31,7 +31,7 @@ type Run = {
   evidence: {
     tabs: { trace: string; gaps: string };
     trace: { rows: TraceRow[]; emptyText?: string };
-    gaps: { groups: { severity: string; count: string; rows: Gap[] }[] };
+    gaps: { groups: { severity: string | null; count: string; rows: Gap[] }[] };
     summary: { counts: { label: string; value: { text: string }; note: string }[] };
     record: { registers: { rows: { name: string; rows: string }[] } };
   };
@@ -121,7 +121,9 @@ describe("the fixture's runs agree with themselves", () => {
 
   it("has a Summary gaps note that names each Gaps group's delivered count and severity word", () => {
     for (const run of loaded) {
-      const groups = run.evidence.gaps.groups.map((g) => `${g.count} ${g.severity.toLowerCase()}`);
+      const groups = run.evidence.gaps.groups.map(
+        (g) => `${g.count} ${(g.severity ?? "Not ranked").toLowerCase()}`,
+      );
       expect(count(run, "Gaps").note, run.id).toBe(groups.join(", "));
     }
   });

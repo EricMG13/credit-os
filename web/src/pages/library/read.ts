@@ -1723,10 +1723,15 @@ function readGapGroup(value: unknown, path: string, seats: Seats): GapTable["gro
       `${String(rows.length)}, the number of rows it holds`,
     );
   }
-  return { severity: oneOf(g, "severity", path, GAP_SEVERITIES), count, rows };
+  const severity = own(g, "severity") === null ? null : oneOf(g, "severity", path, GAP_SEVERITIES);
+  return { severity, count, rows };
 }
 
-/** A run with no gap has no group. Groups run High, Medium, Low as delivered, none twice; a gap's id is the run's own, in one group only. */
+/** Where a group stands in the order: High, Medium, Low, then the one group with no severity. */
+const gapRank = (severity: GapSeverity | null): number =>
+  severity === null ? GAP_SEVERITIES.length : GAP_SEVERITIES.indexOf(severity);
+
+/** A run with no gap has no group. Groups run High, Medium, Low as delivered, none twice, then at most one with no severity, last; a gap's id is the run's own, in one group only. */
 function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
   const t = rec(value, path);
   const columnsPath = child(path, "columns");
@@ -1736,10 +1741,7 @@ function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
   const seen = new Set<string>();
   groups.forEach((group, g) => {
     const before = groups[g - 1];
-    if (
-      before !== undefined &&
-      GAP_SEVERITIES.indexOf(group.severity) <= GAP_SEVERITIES.indexOf(before.severity)
-    ) {
+    if (before !== undefined && gapRank(group.severity) <= gapRank(before.severity)) {
       throw new SliceError(
         child(nth(groupsPath, g), "severity"),
         "a severity after the one before it",
