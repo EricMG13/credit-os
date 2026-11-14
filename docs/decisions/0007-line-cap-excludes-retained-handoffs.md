@@ -28,3 +28,7 @@ review rounds with nothing to review.
 
 Not verified: that nothing but copied files is ever placed in the folder is checked by review,
 not by a gate.
+
+Note, 2026-11-14: the 800-changed-line check moved, unchanged, from
+`.github/workflows/python.yml` to `.github/workflows/review.yml`, so that it runs on every
+pull request when the Python gates skip a change to front-end files alone.
