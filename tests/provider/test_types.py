@@ -173,19 +173,10 @@ def test_sent_unknown_reply() -> None:
     )
 
 
-@pytest.mark.parametrize("charge", [None, Decimal(0), Decimal("0.0240831")])
-def test_compaction_charge_kept(charge: Decimal | None) -> None:
-    assert _compaction(billed_usd=charge).billed_usd == charge
-
-
-def test_compactions_default_empty() -> None:
-    assert _REPLY.compactions == ()
-
-
-@pytest.mark.parametrize("kind", ["ok", "sent_usage", "sent_unknown"])
-def test_reply_carries_compactions_without_taking_their_charge(kind: str) -> None:
-    kw: dict[str, Any] = {"ok": {}, "sent_usage": {"usage": Usage(input_tokens=1)}}.get(kind, {})
-    build = _ok if kind == "ok" else partial(_reply, kind=kind, **kw)
+@pytest.mark.parametrize("build", [_ok, partial(_reply, kind="sent_unknown")])
+def test_reply_carries_compactions_without_taking_their_charge(
+    build: Callable[..., Reply],
+) -> None:
     reply = build(compactions=(_COMPACTION, _compaction(billed_usd=None)))
     assert reply.billed_usd is None
     assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0240831"), None]

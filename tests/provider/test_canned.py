@@ -33,26 +33,18 @@ def test_recorded_replies_match_key(at: tuple[str, int]) -> None:
     assert dataclasses.asdict(_ask(model, at)) == key.CANNED_REPLIES[at]
 
 
-@pytest.mark.parametrize(("at", "text"), list(key.CANNED_BILLED_TEXT.items()))
-def test_billed_digits(at: tuple[str, int], text: str) -> None:
-    assert str(_ask(canned_model("c", RECORDING), at).billed_usd) == text
-
-
-def test_tool_argument_keeps_decimal_digits() -> None:
-    turn = _ask(canned_model("c", RECORDING), CP1_1).turn
+def test_digits_kept() -> None:
+    model = canned_model("c", RECORDING)
+    for at, text in key.CANNED_BILLED_TEXT.items():
+        assert str(_ask(model, at).billed_usd) == text
+    for at, texts in key.CANNED_COMPACTION_BILLED_TEXT.items():
+        charges = [c.billed_usd for c in _ask(model, at).compactions]
+        assert tuple(None if x is None else str(x) for x in charges) == texts
+    turn = _ask(model, CP1_1).turn
     assert turn is not None
     scale = turn.tool_calls[0].arguments["scale"]
     assert isinstance(scale, Decimal)
     assert str(scale) == key.CANNED_SCALE_TEXT
-
-
-@pytest.mark.parametrize(("at", "texts"), list(key.CANNED_COMPACTION_BILLED_TEXT.items()))
-def test_compaction_charges(at: tuple[str, int], texts: tuple[str | None, ...]) -> None:
-    reply = _ask(canned_model("c", RECORDING), at)
-    assert (
-        tuple(None if c.billed_usd is None else str(c.billed_usd) for c in reply.compactions)
-        == texts
-    )
 
 
 def test_missing_count_is_not_zero() -> None:
@@ -193,16 +185,15 @@ def test_blank_lines_count(tmp_path: Path) -> None:
 
 
 def test_unreadable_paths(tmp_path: Path) -> None:
-    for path in (tmp_path / "absent.jsonl", tmp_path):
-        with pytest.raises(RecordingError, match=rf"{path.name}: unreadable: \w+"):
+    (tmp_path / "bad.jsonl").write_bytes(b"\xff\n")
+    for name, error in (
+        ("absent.jsonl", r"\w+"),
+        ("", r"\w+"),
+        ("bad.jsonl", "UnicodeDecodeError"),
+    ):
+        path = tmp_path / name
+        with pytest.raises(RecordingError, match=rf"^{path.name}: unreadable: {error}$"):
             canned_model("c", path)
-
-
-def test_not_utf8_refused(tmp_path: Path) -> None:
-    path = tmp_path / "rec.jsonl"
-    path.write_bytes(b"\xff\n")
-    with pytest.raises(RecordingError, match=r"rec\.jsonl: unreadable: UnicodeDecodeError"):
-        canned_model("c", path)
 
 
 class _NoEnvironment:
