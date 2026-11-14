@@ -10,6 +10,11 @@ def shown_name(name: str) -> str:
     return name[:_SHOWN_NAME_CHARACTERS] + "\u2026"
 
 
+def reason_of(error: BaseException) -> str:
+    """Return the error's strerror, else its text, else its class name (the one reason rule)."""
+    return getattr(error, "strerror", None) or str(error) or type(error).__name__
+
+
 class SourceError(Exception):
     """Base of every sources error."""
 
