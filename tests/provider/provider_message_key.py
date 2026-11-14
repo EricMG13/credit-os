@@ -15,6 +15,8 @@ The contract (0012, with the controller's readings marked):
   percent-encoded (the percent itself up to twice), in NFC or NFD; any letter case (no case map
   that changes length). Each separator is any run of up to 16 of `/`, `\\`, `%2F`, `%5C`, the
   percent of the last two also encoded up to twice (reading: a separator is a character too).
+  Case applies before the encoding, and a character's case forms are every character
+  `re.IGNORECASE` holds the same letter, final sigma included (owner, 2026-11-14).
 - Not guaranteed, and pinned here as the net alone gives it: another user's home; 8.3 short names;
   a case map that changes length; a bare user name; a value split across strings; octal, HTML or
   base64; the text of an ok reply.
@@ -33,6 +35,17 @@ _MUL = "C:\\Users\\M\u00fcller"
 _RT = "/opt/acme/bin/copilot"
 _ELISE = "D:\\Profiles\\\u00c9lise"
 _PJ, _PF, _JO = "D:\\Profiles\\%5cjane", "D:\\Profiles\\%2Fjane", "/srv/people/%252Fjo"
+_PE, _PFE, _PD = (
+    "D:\\Profiles\\%5c\u00e9lise",
+    "/srv/people/%2F\u00e9lise",
+    "/srv/people/%252Fj\u00f6rg",
+)
+_JP = "D:" + B * 2 + "Profiles" + B * 2  # D:\Profiles\ as JSON writes it
+_NIKOS = "D:\\Profiles\\\u039d\u0399\u039a\u039f\u03a3"  # ends in a capital sigma
+_ODOS = "/srv/\u039f\u0394\u039f\u03a3/\u0391\u0398\u0397\u039d\u0391"
+_ODOS_UTF8 = (
+    "\\xce\\xbf\\xce\\xb4\\xce\\xbf\\xcf\\x82/\\xce\\xb1\\xce\\xb8\\xce\\xb7\\xce\\xbd\\xce\\xb1"
+)
 
 # (exact values, known paths, text, expected message)
 MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
@@ -142,6 +155,38 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), (_JO,), "x people/%252Fjo y", "x <home> y"),
     ((), (_JO,), "x %2Fsrv%2Fpeople%2F%25252Fjo y", "x <home> y"),
     ((), (_JO,), "x people%2F%25252Fjo y", "x <home> y"),
+    # --- whole-branch review M1: what no test held (a non-BMP pair, %25 twice, _SHARED, prefixes)
+    ((), ("D:\\Profiles\\\U00020000ko",), "x " + _JP + "\\ud840\\udc00ko y", "x <home> y"),
+    ((), ("D:\\Profiles\\ko\U0001f600",), "x " + _JP + "ko\\uD83D\\uDE00 y", "x <home> y"),
+    ((), ("D:\\Profiles\\MAX",), "x D:\\Profiles\\MAX y", "x <home> y"),
+    ((), ("/srv/people/%25252Fjo",), "x /srv/people/%25252Fjo y", "x <home> y"),
+    ((), ("/srv/people/%25252Fjo",), "x people/%25252Fjo y", "x <home> y"),
+    ((), ("\\\\?\\vol\\jane",), "x E:\\old\\vol\\jane y", "x E:\\old\\<home> y"),
+    ((), (H2,), "x D%25253A%25255CProfiles%25255CM%2525C3%2525A9lanie y", "x <home> y"),
+    ((), (_ELISE,), "x D:%5CProfiles%5C\\u00e9lise y", "x <home> y"),
+    ((), (_ELISE,), "x D:%255CProfiles%255C\\xe9lise y", "x <home> y"),
+    ((), (_ELISE,), "x D:%25255CProfiles%25255C\\u00c9lise y", "x <home> y"),
+    ((), ("\\\\srv\\share\\team\\jane",), "x \\\\srv\\share\\team\\jane y", "x <home> y"),
+    ((), ("D:\\Profiles\\\udc80x",), "x D:\\Profiles\\\udc80x y", "x <home> y"),
+    # --- whole-branch review L1: a token-led name whose next character is escaped
+    ((), (_PE,), "x " + _JP + "%5c\\u00e9lise y", "x <home> y"),
+    ((), (_PE,), "x " + _JP + "%5c\\xc3\\xa9lise y", "x <home> y"),
+    ((), (_PE,), "x D:\\Profiles\\%5c\\u00e9lise y", "x <home> y"),
+    ((), (_PE,), "x E:\\old\\Profiles\\%5c\\u00e9lise y", "x E:\\old\\<home> y"),
+    ((), (_PE,), "x D:\\Profiles\\%5C\\u00C9LISE y", "x <home> y"),
+    ((), (_PFE,), "x people/%2f\\xc3\\xa9lise y", "x <home> y"),
+    ((), (_PD,), "x /srv/people/%252F\\u006a\\u00f6rg y", "x <home> y"),
+    # --- whole-branch review L2 (owner: inside): every letter re.IGNORECASE holds the same
+    (
+        (),
+        (_NIKOS,),
+        "x d:" + B * 2 + "profiles" + B * 2 + "\\u03bd\\u03b9\\u03ba\\u03bf\\u03c2 y",
+        "x <home> y",
+    ),
+    ((), (_NIKOS,), "x d%3A%5CpROFILES%5C%CE%BD%CE%B9%CE%BA%CE%BF%CF%82 y", "x <home> y"),
+    ((), (_ODOS,), "x /srv/" + _ODOS_UTF8 + " y", "x <home> y"),
+    ((), ("D:\\Profiles\\Jens",), "x " + _JP + "Jen\\u017f y", "x <home> y"),
+    ((), ("D:\\Profiles\\Kai",), "x D%3A%5CProfiles%5C%E2%84%AAai y", "x <home> y"),
     # --- not guaranteed: pinned as the net alone gives it
     ((), (H2,), "C:\\Users\\bob\\x", "<home>\\x"),
     ((), (H2,), "D:\\Profiles\\bob\\x", "D:\\Profiles\\bob\\x"),
@@ -163,6 +208,9 @@ REFUSED: tuple[str, ...] = (
     "\\\\",
     "\\\\?\\",
     "\\\\?\\C:\\",
+    "\\\\.\\",
+    "\\\\.\\C:\\",
+    "//./",
 )  # a long-path prefix is no folder
 
 # The frozen net, two rows the whole-branch review of #187 found no test held (`_nested_spans`
