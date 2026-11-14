@@ -310,13 +310,13 @@ describe("Trace drawer", () => {
     });
   });
 
-  it("offers Open in Evidence, which goes to the run's Evidence Trace page and closes the drawer", async () => {
+  it("offers Open in Evidence, which goes to the figure's own item on the run's Evidence Trace page and closes the drawer", async () => {
     renderFrame();
     openDrawer();
     const link = screen.getByRole("link", { name: "Open in Evidence" });
     expect(link).toHaveAttribute(
       "href",
-      "#/library/halden-aerostructures/2026-09-30/evidence/trace",
+      "#/library/halden-aerostructures/2026-09-30/evidence/trace/T-0014",
     );
     fireEvent.click(link);
     await waitFor(() => {

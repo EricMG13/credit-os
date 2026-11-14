@@ -37,3 +37,7 @@ export const evidenceHref = (
   run: string,
   page: "summary" | "trace" | "sources" | "gaps" | "record",
 ): string => `#/library/${seg(issuer)}/${seg(run)}/evidence/${page}`;
+
+/** One traced item on the Trace tab: where a trace's "Open in Evidence" goes, with that row open. */
+export const traceItemHref = (issuer: string, run: string, item: string): string =>
+  `#/library/${seg(issuer)}/${seg(run)}/evidence/trace/${seg(item)}`;
