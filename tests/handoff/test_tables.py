@@ -95,8 +95,16 @@ def test_later_dash_row_is_ordinary() -> None:
 
 def test_label() -> None:
     lines = _numbered(["| A | B |", "| --- | --- |"], 1)
-    assert read_table(lines, label="Leverage").label == "Leverage"
-    assert read_table(lines).label is None
+    table = read_table(lines, label="Leverage", label_line=7)
+    assert (table.label, table.label_line) == ("Leverage", 7)
+    assert (read_table(lines).label, read_table(lines).label_line) == (None, None)
+
+
+@pytest.mark.parametrize(("label", "label_line"), [("Leverage", None), (None, 7)])
+def test_label_and_label_line_come_together(label: str | None, label_line: int | None) -> None:
+    lines = _numbered(["| A | B |", "| --- | --- |"], 1)
+    with pytest.raises(ValueError, match="label and label_line are given together or not at all"):
+        read_table(lines, label=label, label_line=label_line)
 
 
 @pytest.mark.parametrize("text", ["| a |", "   | a", "|"])
