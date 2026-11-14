@@ -135,10 +135,10 @@ def _parse_line(line: str) -> tuple[tuple[str, int], Reply]:
         raise RecordingError(str(error)) from None
 
 
-def _exact(value: object, keys: tuple[str, ...], what: str, optional: str = "") -> dict[str, Any]:
+def _exact(value: object, keys: tuple[str, ...], what: str, *optional: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RecordingError(f"{what} must be an object")
-    if not set(keys) <= set(value) <= {*keys, optional}:
+    if not set(keys) <= set(value) <= {*keys, *optional}:
         raise RecordingError(f"{what} must have exactly the keys {', '.join(keys)}")
     return value
 
