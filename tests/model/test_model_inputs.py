@@ -93,7 +93,7 @@ def test_key_constants() -> None:
     assert list(inputs.OPERANDS) == KEY["operands"]
     assert list(typing.get_args(inputs.Category)) == KEY["categories"]
     assert inputs.SCHEMA_VERSION == VALID["schema_version"]
-    assert [kind.value for kind in RefusalKind][2:] == ["schema", "scale", "repayment"]
+    assert [kind.value for kind in RefusalKind][2:] == ["schema", "scale", "repayment", "cell"]
 
 
 def one_facility(**changes: Any) -> dict[str, Any]:
