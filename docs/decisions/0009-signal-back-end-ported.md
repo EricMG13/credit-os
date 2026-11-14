@@ -69,6 +69,56 @@ line that it would get its own plan once phase 4 is done.
 - A port is new code here: a defect that is the same in the predecessor is fixed in the port,
   not carried.
 
+## Addendum, 2026-11-14: rulings made while porting
+
+By the Signal session as controller, accepted by the coordinator under decision 0006 with the
+conditions shown. The full text is in the PR that carries each. The S-1 to S-11 table above
+is replaced by a split by file (about 18 PRs, each within the cap): the port takes the
+reviewed tip's files whole where they fit. Order: network pin, store, feeds, fetch, identity
+and topics, groups, feed view, threads, ingest, service, command line.
+
+**Departures from the predecessor made for this repository's gates.**
+- No `assert` in source: an explicit check raises the module's own error.
+- No SQL assembled from strings: every statement is static with `?` parameters. Where a
+  statement becomes "fixed statement, filter in Python", order, limits and paging give the
+  predecessor's rows, and a differential test covers them.
+- Feeds are parsed with the standard library's `xml.parsers.expat`; a document type
+  declaration and every kind of entity or notation declaration is refused. No `defusedxml`.
+- The part of `research/webfetch.py` Signal uses is `signal/netpin.py`.
+
+**In `main` (#74, #75): the network pin.**
+- `is_public` takes an exact `str`, refuses a zone id, and refuses 2002::/16, 3fff::/20 and
+  192.0.0.0/24 (except .9 and .10) by explicit range, so the verdict does not rest on the
+  interpreter's tables. An ISATAP address is public only if the IPv4 it embeds is.
+- `tls_context` adds `ssl.VERIFY_X509_STRICT`. `connect` refuses a pinned address that is not
+  public, bounds the handshake by the time left on the total deadline (a defect in the
+  predecessor), and closes the socket on any exception.
+- Accepted limits: special ranges IANA marks globally reachable are public; a NAT64 prefix
+  chosen by a network cannot be recognised; a certificate may match on its common name;
+  strict X.509 refuses a few legacy trust anchors, so a feed whose chain ends only there is
+  unreachable.
+
+**Ruled, not yet in `main`.**
+- Feeds: a link is usable only when its host is a DNS name of ASCII labels (no IP literal in
+  any spelling, no `\`, `@`, `%`); titles and summaries drop control and format characters;
+  a body over 2 MiB or nested deeper than 64 is refused; feed text in an error is cut to 120
+  characters; block elements never fuse in a summary; Atom `html` and `xhtml` text is
+  stripped.
+- Feed parser memory: the predecessor's peak of about 400 MiB on a hostile 2 MiB feed is a
+  defect, not a limit. Peak memory stays under 64 MiB, with a committed `tracemalloc` test;
+  ingest does not merge without it.
+- Store: `write_transaction` joins only its own outer transaction; a database with a newer
+  schema is refused before any write; bad input is refused with `StoreError` only; a new
+  database file is owner-only where the platform supports it.
+- Fetch: port 0 is refused; time is spent at `clock >= deadline`; the response is closed on
+  every path; one test goes through the real pinned connection with a loopback peer.
+- Reactions are `agree`, `disagree`, `seen` (decision 0006, ruling 19); the predecessor's
+  four are not carried or migrated. Only a writer comments, shares, starts a thread or
+  attaches a story (ruling 18). D2e's slice types on `main` are the contract for route JSON.
+- Carried as accepted limits and listed in each PR: sequential ids reveal hidden-group
+  counts; a demoted writer still edits their own comment; `link_key` drops the fragment and
+  scheme; deleted text stays in the write-ahead log while a connection is open.
+
 ## What it costs if wrong
 
 Two tracks now draw on the same reviewers and the same `main`, so phase 1 may merge later. If
