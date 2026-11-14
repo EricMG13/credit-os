@@ -1,3 +1,4 @@
+import { Badge } from "@/components/base/badges/badges";
 import { ChartTable, type TableRowData } from "@/components/chart/ChartTable";
 import { FOCUS } from "./Section";
 import { SUBSECTION_HEADING } from "./heading";
@@ -12,6 +13,7 @@ import { TRACE_HOST, TraceControl } from "./TraceControl";
  */
 export function TableCard({
   title,
+  count,
   note,
   label,
   size,
@@ -23,6 +25,8 @@ export function TableCard({
   tableClass = "",
 }: {
   title: string;
+  /** The delivered count beside the title (a register's rows), or `null`. */
+  count?: string | null;
   note: string | null;
   /** The card's name as a region. */
   label: string;
@@ -48,6 +52,14 @@ export function TableCard({
         <div>
           <Heading tabIndex={-1} className={`font-display ${size} text-text-primary ${FOCUS}`}>
             {title}
+            {count == null ? null : (
+              <>
+                {" "}
+                <Badge size="sm" color="gray">
+                  {count}
+                </Badge>
+              </>
+            )}
           </Heading>
           {note === null ? null : <p className="text-small text-text-tertiary">{note}</p>}
         </div>

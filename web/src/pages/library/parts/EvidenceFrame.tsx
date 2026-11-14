@@ -9,8 +9,7 @@ export type EvidenceTab = "summary" | "trace" | "sources" | "gaps" | "record";
 
 /**
  * The frame of every Evidence page, inside the run's frame: the heading and its one sentence, the
- * module filter where the page has one, the five tabs with their delivered counts, and the page. The
- * Record tab leads to a page a later step adds.
+ * module filter where the page has one, the five tabs with their delivered counts, and the page.
  */
 export function EvidenceFrame({
   issuer,
