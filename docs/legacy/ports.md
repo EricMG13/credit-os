@@ -110,6 +110,15 @@ coordinator traces that phase's files one level further and adds what the port a
 
 Newest first. A check records what moved; it adapts nothing.
 
+### 2026-11-14, second check, legacy `main` at `0f16bad`
+
+One merge since `cbf4400` (#121, a synthetic market-data test pack). No mapped path changed.
+The predecessor's methodology updates since the pin are listed, with the step that owns each,
+in `docs/legacy/methodology-updates.md`. The plans for 1A, 1C and 1D were written against
+`cbf4400` and so already read the updated code; the 1A plan now states the two rules that
+file asks of the parser. Steps 1B, 2B and 3A are not planned yet and take their rows when
+they are. Nothing is ported, so no row has anything pending.
+
 ### 2026-11-14, legacy `main` at `cbf4400` (pin `8e3954a`, 20 merges, #99 to #120)
 
 No row is ported yet, so nothing is pending: each phase plan is written against legacy `main`
