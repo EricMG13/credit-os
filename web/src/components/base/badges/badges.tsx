@@ -28,6 +28,10 @@ const colors: Record<BadgeColors, { root: string; addon: string }> = {
     root: "bg-utility-sky-50 text-utility-sky-700 ring-utility-sky-200",
     addon: "text-utility-sky-500",
   },
+  gap: {
+    root: "bg-white text-gap-text border border-dashed border-border-gap ring-0",
+    addon: "text-gap-text",
+  },
 };
 
 const common = "size-max flex items-center whitespace-nowrap rounded-full ring-1 ring-inset";
@@ -37,23 +41,35 @@ interface BadgeProps {
   size?: Sizes;
   /** The color palette used for the badge background, text, and ring. */
   color?: BadgeColors;
+  /** A leading mark, such as a status shape, drawn before the label. */
+  icon?: ReactNode;
   /** The content of the badge, usually a short text label. */
   children: ReactNode;
   /** Additional CSS classes merged onto the badge element. */
   className?: string;
 }
 
-export const Badge = ({ size = "md", color = "gray", children, className }: BadgeProps) => {
+export const Badge = ({ size = "md", color = "gray", icon, children, className }: BadgeProps) => {
   const sizes = {
     sm: "py-0.5 px-2 text-xs font-medium",
     md: "py-0.5 px-2.5 text-sm font-medium",
     lg: "py-1 px-3 text-sm font-medium",
   };
 
-  return <span className={cx(common, sizes[size], colors[color].root, className)}>{children}</span>;
+  return (
+    <span className={cx(common, sizes[size], colors[color].root, className)}>
+      {icon}
+      {children}
+    </span>
+  );
 };
 
-export const BadgeWithDot = ({ size = "md", color = "gray", children, className }: BadgeProps) => {
+export const BadgeWithDot = ({
+  size = "md",
+  color = "gray",
+  children,
+  className,
+}: Omit<BadgeProps, "icon">) => {
   const sizes = {
     sm: "gap-1 py-0.5 pl-1.5 pr-2 text-xs font-medium",
     md: "gap-1.5 py-0.5 pl-2 pr-2.5 text-sm font-medium",

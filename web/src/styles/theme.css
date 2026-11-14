@@ -288,3 +288,63 @@ body {
   background-color: var(--color-surface-canvas);
   color: var(--color-text-primary);
 }
+
+/* Live run state: the only loops. Each lives inside no-preference, and the global reduce rule in
+   index.css stops them as well. */
+.queued-shimmer {
+  min-height: 1.5rem;
+  border-radius: var(--radius-ds-xs);
+  background-color: var(--color-surface-subtle);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes status-halo {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-action) 45%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-action) 0%, transparent);
+    }
+  }
+
+  @keyframes queued-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  .status-halo {
+    animation: status-halo 1.6s ease-in-out infinite;
+  }
+
+  .queued-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-surface-subtle) 25%,
+      var(--color-surface-selected) 50%,
+      var(--color-surface-subtle) 75%
+    );
+    background-size: 200% 100%;
+    animation: queued-shimmer 1.8s linear infinite;
+  }
+}
+
+/* Gap states: static fills, no motion. */
+.gap-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-card) 0 8px,
+    var(--color-surface-canvas) 8px 16px
+  );
+}
+
+.withheld-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-subtle) 0 6px,
+    var(--color-border-container) 6px 12px
+  );
+}

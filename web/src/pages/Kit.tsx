@@ -5,6 +5,13 @@ import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import { Button, styles } from "@/components/base/buttons/button";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
+import { Blocked } from "@/components/gap/Blocked";
+import { GapBadge, GapPanel } from "@/components/gap/GapPanel";
+import { Missing } from "@/components/gap/Missing";
+import { Skeleton } from "@/components/gap/Skeleton";
+import { Withheld } from "@/components/gap/Withheld";
+import { STATUS_SETS, type SetName } from "@/components/status/sets";
+import { StatusBadge } from "@/components/status/StatusBadge";
 
 function label(slug: string): string {
   const words = slug.replace("-", " ");
@@ -104,6 +111,29 @@ export function Kit() {
         </Row>
       </section>
 
+      <section aria-labelledby="kit-status-badge" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-status-badge" className="font-display text-h2 text-text-primary">
+          Status badge
+        </h2>
+        {(Object.keys(STATUS_SETS) as SetName[]).map((name) => (
+          <div key={name} className="flex flex-col gap-2">
+            <h3 className="font-display text-h4 text-text-primary">{name}</h3>
+            <Row>
+              {Object.keys(STATUS_SETS[name]).map((state) => (
+                <StatusBadge key={state} set={name as "Status"} state={state as "Success"} />
+              ))}
+            </Row>
+          </div>
+        ))}
+        <div role="group" aria-label="Live run state" className="flex flex-col gap-3">
+          <h3 className="font-display text-h4 text-text-primary">Live run state</h3>
+          <Row>
+            <StatusBadge set="Run states" state="Running" live />
+          </Row>
+          <div className="queued-shimmer w-64" />
+        </div>
+      </section>
+
       <section aria-labelledby="kit-tabs" className="mt-8 flex flex-col gap-4">
         <h2 id="kit-tabs" className="font-display text-h2 text-text-primary">
           Tabs
@@ -154,6 +184,24 @@ export function Kit() {
             <ButtonGroupItem id="table">Table</ButtonGroupItem>
           </ButtonGroup>
         </Row>
+      </section>
+
+      <section aria-labelledby="kit-gap-states" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-gap-states" className="font-display text-h2 text-text-primary">
+          Gap states
+        </h2>
+        <GapPanel reason="No filing in the sources covers this period." />
+        <Row>
+          <GapBadge />
+        </Row>
+        <Row>
+          <Missing />
+        </Row>
+        <Withheld reason="The issuer has not released this figure." />
+        <Blocked reason="The cash-flow statement is missing from the sources." />
+        <div className="w-64">
+          <Skeleton lines={3} />
+        </div>
       </section>
     </main>
   );
