@@ -69,6 +69,13 @@ def test_home_paths_rows(text: str, expected: str) -> None:
             """'open "\\\\<home>" failed'""",
         ),
         ("open /mnt/c/Users/Pat O\\'Hara Jones failed", "open <home>"),
+        # JSON of a repr: exactly two backslashes before the apostrophe.
+        ("""'open "C:\\\\Users\\\\Pat O\\\\'Hara Jones" failed'""", """'open "<home>" failed'"""),
+        # A UNC host that starts with an apostrophe begins the next home path; its user goes too.
+        (
+            "C:\\Users\\mary\\'s \\\\'srv\\share\\Users\\bob smith\\x",
+            "<home><home>\\x",
+        ),
         # A real separator still ends the name (same as the base's output).
         ("C:\\Users\\mary\\Documents\\x", "<home>\\Documents\\x"),
     ],
