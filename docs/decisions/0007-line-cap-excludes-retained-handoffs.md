@@ -19,7 +19,9 @@ review rounds with nothing to review.
 ## Limits
 
 - Only copied handoff files, their `SHA256SUMS` and a `.gitattributes` may live in that folder.
-- A test checks every file against `SHA256SUMS` and fails on a mismatch.
+- A test checks every file against `SHA256SUMS` and fails on a mismatch. It also fails on any file
+  in the folder that `SHA256SUMS` does not list (other than `SHA256SUMS` itself and
+  `.gitattributes`), so a written file cannot sit there uncounted.
 - Expected values and any written test data stay outside the folder and count toward the cap.
 - This is a change to a gate's scope made by decision record, not a loosening to pass one pull
   request, and the owner can reverse it.
