@@ -532,6 +532,12 @@ describe("readSlice, changes", () => {
     if (found === undefined) throw new Error(`no change ${String(i)}`);
     return found;
   };
+  const itemAt = (slice: ReturnType<typeof fresh>, i: number): Json => {
+    const found = comparedOf(slice).modules.items[i];
+    if (found === undefined) throw new Error(`no module item ${String(i)}`);
+    return found;
+  };
+
   it("reads the compared run, the first run's none, and a loading run's null", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -558,6 +564,31 @@ describe("readSlice, changes", () => {
     expect(invalidReason(kind)).toContain("issuers[0].runs[0].changes.kind");
   });
 
+  it("rejects a blank figure text, which the table cannot draw, but keeps a zero", () => {
+    const blank = fresh();
+    changeAt(blank, 0)["current"] = { kind: "value", text: "", at: null };
+    expect(invalidReason(blank)).toContain("issuers[0].runs[0].changes.changes[0].current.text");
+    const earlier = fresh();
+    changeAt(earlier, 1)["from"] = { kind: "value", text: "", at: null };
+    expect(invalidReason(earlier)).toContain("issuers[0].runs[0].changes.changes[1].from.text");
+    expect(readSlice(fixture.slice).kind).toBe("ok");
+  });
+
+  it("rejects a direction or change text beside a missing earlier figure", () => {
+    const dir = fresh();
+    changeAt(dir, 3)["direction"] = "up";
+    expect(invalidReason(dir)).toContain("issuers[0].runs[0].changes.changes[3].direction");
+    const text = fresh();
+    changeAt(text, 3)["change"] = "Higher by 2.4x";
+    expect(invalidReason(text)).toContain("issuers[0].runs[0].changes.changes[3].change");
+  });
+
+  it("rejects a direction mark with no delivered words", () => {
+    const slice = fresh();
+    changeAt(slice, 0)["change"] = null;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].changes.changes[0].change");
+  });
+
   it("rejects an empty changes list, a repeated measure, a trace the run lacks", () => {
     const empty = fresh();
     comparedOf(empty).changes.length = 0;
@@ -568,5 +599,23 @@ describe("readSlice, changes", () => {
     const trace = fresh();
     changeAt(trace, 0)["trace"] = "nothing";
     expect(invalidReason(trace)).toContain("issuers[0].runs[0].changes.changes[0].trace");
+  });
+
+  it("names the path of a malformed module item and a state outside the Change state set", () => {
+    const state = fresh();
+    itemAt(state, 0)["state"] = "Delivered";
+    expect(invalidReason(state)).toContain("issuers[0].runs[0].changes.modules.items[0].state");
+    const repeated = fresh();
+    itemAt(repeated, 1)["title"] = itemAt(repeated, 0)["title"];
+    expect(invalidReason(repeated)).toContain("issuers[0].runs[0].changes.modules.items[1].title");
+  });
+
+  it("rejects a finished run with no changes and a loading run that carries them", () => {
+    const missing = fresh();
+    runOf(missing, 0).changes = null;
+    expect(invalidReason(missing)).toContain("issuers[0].runs[0].changes");
+    const loaded = fresh();
+    runOf(loaded, 1).changes = runOf(fresh(), 0).changes;
+    expect(invalidReason(loaded)).toContain("issuers[0].runs[1].changes");
   });
 });
