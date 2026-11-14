@@ -618,6 +618,7 @@ def test_public_surface() -> None:
         "check_kind",
         "csv_pages",
         "cut_pages",
+        "cut_stream",
         "kind_of",
         "pin_folder",
         "read_capped",

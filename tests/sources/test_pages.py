@@ -1,5 +1,6 @@
 """Pages, the paging rule and the page models."""
 
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -7,7 +8,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
-from credit_os.sources.pages import Page, SourcePages, cut_pages
+from credit_os.sources.pages import Page, SourcePages, cut_pages, cut_stream
 
 
 def _p(number: int, text: str) -> Page:
@@ -32,6 +33,43 @@ def _p(number: int, text: str) -> Page:
 )
 def test_cut_pages_rows(text: str, size: int, pages: tuple[str, ...]) -> None:
     assert cut_pages(text, size) == pages
+    assert tuple(cut_stream([text], size)) == pages
+    assert tuple(cut_stream(list(text), size)) == pages
+
+
+def test_cut_stream_pieces() -> None:
+    assert tuple(cut_stream([], 5)) == ()
+    assert tuple(cut_stream(["", ""], 5)) == ()
+    assert tuple(cut_stream(["ab", "", " cd"], 5)) == ("ab cd",)
+
+
+def test_cut_stream_size_below_one_raises() -> None:
+    with pytest.raises(ValueError, match="^size must be at least 1$"):
+        tuple(cut_stream(["x" * 5], 0))
+
+
+@given(
+    pieces=st.lists(
+        st.text(alphabet="abc xyz\n\r\N{LATIN SMALL LETTER E WITH ACUTE}", max_size=30),
+        max_size=12,
+    ),
+    size=st.integers(min_value=1, max_value=40),
+)
+def test_cut_stream_property(pieces: list[str], size: int) -> None:
+    assert tuple(cut_stream(pieces, size)) == cut_pages("".join(pieces), size)
+
+
+def test_cut_stream_is_lazy() -> None:
+    def pieces() -> Iterator[str]:
+        for _ in range(5):
+            yield "a\n"
+        raise RuntimeError("read on")
+
+    pages = cut_stream(pieces(), 4)
+    assert next(pages) == "a\na\n"
+    assert next(pages) == "a\na\n"
+    with pytest.raises(RuntimeError):
+        next(pages)
 
 
 def test_cut_pages_size_below_one_raises() -> None:

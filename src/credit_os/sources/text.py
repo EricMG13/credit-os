@@ -1,12 +1,11 @@
 """Readers of text and csv bytes into pages. Pure functions of a name and bytes."""
 
 import csv
-import io
 import re
 from collections.abc import Iterator
 
 from credit_os.sources.errors import SourceUnreadable, shown_name
-from credit_os.sources.pages import SourcePages, cut_pages, text_state_pages
+from credit_os.sources.pages import SourcePages, cut_pages, cut_stream, text_state_pages
 
 PAGE_CHARACTERS = 12_000
 # The csv module builds a whole row before it returns it, so a row is capped: the characters
@@ -67,26 +66,36 @@ def csv_pages(name: str, raw: bytes) -> SourcePages:
     """Read comma-separated text: one line per row, cells joined by " | ", cut into pages."""
     text, encoding = _decode(name, raw)
     held = 0
+    has_text = False
 
     def lines() -> Iterator[str]:
         nonlocal held
-        for line in io.StringIO(text, newline=""):
-            held += len(line)
+        start = 0
+        for match in _LINE_BREAK.finditer(text):
+            held += match.end() - start
             if held > MAX_ROW_CHARACTERS:
                 raise _RowTooLong
-            yield line
+            yield text[start : match.end()]
+            start = match.end()
+        held += len(text) - start
+        if held > MAX_ROW_CHARACTERS:
+            raise _RowTooLong
+        if start < len(text):
+            yield text[start:]
 
-    out = io.StringIO()
-    has_text = False
-    try:
+    def written() -> Iterator[str]:
+        nonlocal held, has_text
         for row in csv.reader(lines(), strict=True):
             held = 0
             has_text = has_text or any(cell.strip() for cell in row)
-            out.write(" | ".join(_LINE_BREAK.sub(" ", cell) for cell in row) + "\n")
+            yield " | ".join(_LINE_BREAK.sub(" ", cell) for cell in row) + "\n"
+
+    try:
+        pieces = tuple(cut_stream(written(), PAGE_CHARACTERS))
     except csv.Error as error:
         raise _refuse(name, "not valid csv") from error
     except _RowTooLong as error:
         raise _refuse(name, f"a row is longer than {MAX_ROW_CHARACTERS:,} characters") from error
     if not has_text:
         raise _refuse(name, "has no text")
-    return text_state_pages(cut_pages(out.getvalue(), PAGE_CHARACTERS), encoding)
+    return text_state_pages(pieces, encoding)

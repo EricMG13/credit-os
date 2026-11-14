@@ -8,7 +8,7 @@ from credit_os.sources.errors import (
     SourceUnreadable,
 )
 from credit_os.sources.files import MAX_BYTES, read_capped, read_pinned, source_path
-from credit_os.sources.pages import Page, SourcePages, cut_pages
+from credit_os.sources.pages import Page, SourcePages, cut_pages, cut_stream
 from credit_os.sources.pins import (
     SUFFIX_KINDS,
     SourceKind,
@@ -37,6 +37,7 @@ __all__ = [
     "check_kind",
     "csv_pages",
     "cut_pages",
+    "cut_stream",
     "kind_of",
     "pin_folder",
     "read_capped",

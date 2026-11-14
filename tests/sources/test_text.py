@@ -187,6 +187,29 @@ def test_csv_row_cap_counts_one_row_at_a_time() -> None:
     assert "".join(p.text for p in many_rows.pages) == "a\n" * 524_289
 
 
+def test_csv_row_cap_counts_lines_and_line_ends() -> None:
+    cell = b'"' + (b"x" * 99 + b"\n") * 1_000 + b'y"'
+    with pytest.raises(SourceUnreadable) as caught:
+        csv_pages("t.csv", b",".join([cell] * 11) + b"\n")
+    assert str(caught.value) == "t.csv: a row is longer than 1,048,576 characters"
+    with pytest.raises(SourceUnreadable) as caught:
+        csv_pages("t.csv", b"a," * 524_287 + b"bb\n")
+    assert str(caught.value) == "t.csv: a row is longer than 1,048,576 characters"
+    accepted = csv_pages("t.csv", b"a," * 524_287 + b"b\n")
+    assert len(accepted.pages) > 0
+    assert accepted.pages[0].text.startswith("a | a | ")
+
+
+@pytest.mark.parametrize(
+    ("raw", "line"),
+    [(b"a\x1b\r\nb\r", 1), (b"a\r\x1b", 2), (b"a\r\x1b\n", 2)],
+)
+def test_control_line_after_a_carriage_return(raw: bytes, line: int) -> None:
+    with pytest.raises(SourceUnreadable) as caught:
+        text_pages("n.txt", raw)
+    assert str(caught.value) == f"n.txt: control character U+001B on line {line}"
+
+
 def test_csv_text_in_an_earlier_row_counts() -> None:
     assert csv_pages("t.csv", b"a\n , \n") == SourcePages(
         pages=(_p(1, "a\n  |  \n"),), encoding="utf-8"
