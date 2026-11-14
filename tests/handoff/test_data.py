@@ -229,8 +229,41 @@ def _regs(extra: str) -> list[tuple[str, str, int, int | None]]:
             [],
         ),
         ("<!-- table-id: cp2g.drivers -->\n" + TB, [("cp2g.drivers", "tag", 6, 8)]),
-        ("<!-- table-id: x -->\nwords\n" + TB, [("x", "tag", 6, None)]),
-        ("<!-- table-id: x -->\n**Label**\n" + TB, [("x", "tag", 6, None)]),
+        ("<!-- table-id: x -->\nwords\n" + TB, [("x", "tag", 6, 9)]),
+        ("<!-- table-id: x -->\n**Label**\n" + TB, [("x", "tag", 6, 9)]),
+        ("<!-- table-id: x -->\n- item\n" + TB, [("x", "tag", 6, 9)]),
+        ("<!-- table-id: x -->\n```\nc\n```\n" + TB, [("x", "tag", 6, 11)]),
+        ("<!-- table-id: x --> Some text\n" + TB, [("x", "tag", 6, 8)]),
+        ("<!-- table-id: x -->\n" + TB + TB, [("x", "tag", 6, 8)]),
+        (
+            "#### T4.12 — Model comparator register\n<!-- table-id: m.cmp -->\n\n"
+            "Annual comparison is full-year.\n" + TB,
+            [("T4.12", "heading", 6, 11), ("m.cmp", "tag", 7, 11)],
+        ),
+        (
+            "<!-- table-id: a -->\nwords\n<!-- table-id: b -->\n" + TB,
+            [("a", "tag", 6, None), ("b", "tag", 8, 10)],
+        ),
+        ("<!-- table-id: x -->\nwords\n### H\n" + TB, [("x", "tag", 6, None)]),
+        ("### T1 — Source inventory\n" + TB, [("T1", "heading", 6, 8)]),
+        ("### P3 — Preparation record\n" + TB, [("P3", "heading", 6, 8)]),
+        ("### T12 — x\n", [("T12", "heading", 6, None)]),
+        (
+            "### downstream_readiness — Consumer readiness\n" + TB,
+            [("downstream_readiness", "heading", 6, 8)],
+        ),
+        ("### a_1 — x\n", [("a_1", "heading", 6, None)]),
+        (
+            (
+                "### t1 — x\n### T1 - x\n### T1 —x\n### readiness — x\n### T1a — x\n"
+                "### Downstream_readiness — x\n### _a_b — x\n### 1_a — x\n### T — x\n"
+            ),
+            [],
+        ),
+        (
+            "".join(f"### T{n} — Register {n}\n" + TB for n in range(1, 9)),
+            [(f"T{n}", "heading", 1 + 5 * n, 3 + 5 * n) for n in range(1, 9)],
+        ),
         ("<!-- table-id: x -->\n### H\n" + TB, [("x", "tag", 6, None)]),
         (
             "<!-- table-id: a -->\n<!-- table-id: b -->\n" + TB,

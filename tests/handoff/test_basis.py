@@ -186,7 +186,7 @@ def test_property_basis_line_reaches_items(fragments: list[str], body: list[str]
     assert all(item.text for item in result.items)
 
 
-KNOWN = ("context", "context notes", "Annual report (CP-0)", "a; b")
+KNOWN = ("context", "context notes", "Annual report (CP-0)", "calculation C9", "a; b")
 
 
 def _known(x: str, known: tuple[str, ...] = KNOWN) -> tuple[BasisItem, ...]:
@@ -210,7 +210,8 @@ def _known(x: str, known: tuple[str, ...] = KNOWN) -> tuple[BasisItem, ...]:
         ("context , page 1", (txt("context , page 1"),)),
         ("context, page", (txt("context, page"),)),
         ("context, page 1, 2", (txt("context, page 1, 2"),)),
-        ("Annual report (CP-0)", (src("Annual report (CP-0)"),)),
+        ("Annual report (CP-0)", (mod("Annual report", "CP-0"),)),
+        ("calculation C9", (calc("C9"),)),
         ("Annual report (CP-1)", (mod("Annual report", "CP-1"),)),
         ("a; b", (txt("a"), txt("b"))),
         ("x.pdf, page 2; calculation C1", (src("x.pdf", (2, 2), text="x.pdf, page 2"), calc("C1"))),

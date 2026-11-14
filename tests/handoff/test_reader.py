@@ -261,7 +261,7 @@ def test_repeated_reader_summary_is_not_special_in_the_new_format() -> None:
     assert (reader.format, reader.summary, reader.summary_section) == ("new", None, None)
 
 
-def _blocked(findings: str) -> bool:
+def _blocked(findings: str) -> bool | None:
     return _read(findings).blocked
 
 
@@ -286,8 +286,12 @@ def test_blocked_true(findings: str) -> None:
         "### Bottom line\n- Not assessable: x\n",
         "### Bottom line\n",
         "### Bottom line\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nNot assessable: x\n",
-        "### Reader summary\nNot assessable: x\n",
     ],
 )
 def test_blocked_false(findings: str) -> None:
     assert _blocked(findings) is False
+
+
+def test_blocked_is_unknown_in_the_earlier_format() -> None:
+    assert _blocked("### Reader summary\nNot assessable: x\n") is None
+    assert _blocked("") is None
