@@ -292,3 +292,57 @@ function pick(name: string) {
   if (!select) throw new Error("no module select");
   fireEvent.change(select, { target: { value: name === "All" ? "all" : `option:${name}` } });
 }
+
+describe("Evidence, Gaps, at a gap's address", () => {
+  const ITEM = "/library/:issuer/:run/evidence/gaps/:item";
+  const scrolled = vi.fn();
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = scrolled;
+  });
+  afterEach(() => {
+    scrolled.mockReset();
+  });
+
+  function renderItem(run: string, item: string) {
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: fixture.slice,
+    };
+    const found = routes.find((r) => r.path === ITEM);
+    if (found === undefined) throw new Error("no gap item route");
+    return render(
+      <SourceContext.Provider value={data}>
+        {found.render({ issuer: "halden-aerostructures", run, item })}
+      </SourceContext.Provider>,
+    );
+  }
+
+  it("is titled Evidence, full bleed, and the fixture visits a gap, one no row holds and a loading run", () => {
+    const found = routes.find((r) => r.path === ITEM);
+    expect(found?.title).toBe("Evidence");
+    expect(found?.layout).toBe("bleed");
+    expect(fixture.params[ITEM]?.map((p) => [p["run"], p["item"]])).toEqual([
+      [FULL, "G-03"],
+      [FULL, "G-99"],
+      ["2026-06-30", "G-03"],
+    ]);
+  });
+
+  it("marks the gap the address names, scrolls it into view and focuses it", () => {
+    renderItem(FULL, "G-03");
+    const row = rowOf("G-03");
+    expect(row).toHaveAttribute("aria-current", "location");
+    expect(row).toHaveFocus();
+    expect(scrolled).toHaveBeenCalledOnce();
+    expect(rowOf("G-01")).not.toHaveAttribute("aria-current");
+    expect(screen.queryByText("No gap has this address")).toBeNull();
+  });
+
+  it("says so above the table when no gap has the address, and draws every gap", () => {
+    renderItem(FULL, "G-99");
+    expect(screen.getByText("No gap has this address")).toBeVisible();
+    expect(allRows().filter((r) => r.hasAttribute("aria-current"))).toHaveLength(0);
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+});
