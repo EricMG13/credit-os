@@ -133,58 +133,67 @@ export function IssuerList({
       {shown.length === 0 ? (
         empty
       ) : (
-        <Table
+        <div
+          role="region"
           aria-label="Issuers"
-          size="sm"
-          className="overflow-x-visible"
-          sortDescriptor={sort}
-          onSortChange={setSort}
+          // A horizontally scrolling region must take focus so a keyboard user can scroll it (WCAG 2.1.1).
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          className="overflow-x-auto rounded-ds-xs outline-none focus-visible:ring-2 focus-visible:ring-brand [&>div]:w-max [&>div]:min-w-full [&>div]:overflow-x-visible"
         >
-          <Table.Header>
-            <Table.Head id="issuer" isRowHeader className={CELL} label="Issuer" />
-            <Table.Head id="sector" className={CELL} label="Sector" />
-            <Table.Head id="state" className={CELL} label="State" />
-            <Table.Head id="asOf" className={CELL} label="As of" />
-            <Table.Head id="pathway" className={CELL} label="Pathway" />
-            <Table.Head id="modules" className={CELL} label="Modules" />
-            {MEASURES.map((k) => (
-              <Table.Head
-                key={k}
-                id={k}
-                allowsSorting
-                numeric
-                className={CELL}
-                label={specs[k].name}
-              />
-            ))}
-          </Table.Header>
-          <Table.Body>
-            {shown.map((r) => (
-              <Table.Row key={r.issuer} id={r.issuer}>
-                <Table.Cell className={NOWRAP}>
-                  <Link href={cardHref(r.issuer, r.href)} className="text-text-primary underline">
-                    {r.name}
-                  </Link>
-                </Table.Cell>
-                <Table.Cell className={CELL}>{r.sector}</Table.Cell>
-                <Table.Cell className={NOWRAP}>
-                  <StatusBadge set="Run states" state={r.state} />
-                </Table.Cell>
-                <Table.Cell className={NOWRAP}>{r.asOf}</Table.Cell>
-                <Table.Cell className={CELL}>{r.pathway}</Table.Cell>
-                <Table.Cell className={CELL}>{r.progress.text}</Table.Cell>
-                {MEASURES.map((k) => {
-                  const m = r.measures[k];
-                  return (
-                    <Table.Cell key={k} numeric className={NOWRAP}>
-                      {m === null ? null : <Figure measure={m} />}
-                    </Table.Cell>
-                  );
-                })}
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
+          <Table
+            aria-label="Issuers"
+            size="sm"
+            className="w-max min-w-full"
+            sortDescriptor={sort}
+            onSortChange={setSort}
+          >
+            <Table.Header>
+              <Table.Head id="issuer" isRowHeader className={CELL} label="Issuer" />
+              <Table.Head id="sector" className={CELL} label="Sector" />
+              <Table.Head id="state" className={CELL} label="State" />
+              <Table.Head id="asOf" className={CELL} label="As of" />
+              <Table.Head id="pathway" className={CELL} label="Pathway" />
+              <Table.Head id="modules" className={CELL} label="Modules" />
+              {MEASURES.map((k) => (
+                <Table.Head
+                  key={k}
+                  id={k}
+                  allowsSorting
+                  numeric
+                  className={CELL}
+                  label={specs[k].name}
+                />
+              ))}
+            </Table.Header>
+            <Table.Body>
+              {shown.map((r) => (
+                <Table.Row key={r.issuer} id={r.issuer}>
+                  <Table.Cell className={NOWRAP}>
+                    <Link href={cardHref(r.issuer, r.href)} className="text-text-primary underline">
+                      {r.name}
+                    </Link>
+                  </Table.Cell>
+                  <Table.Cell className={CELL}>{r.sector}</Table.Cell>
+                  <Table.Cell className={NOWRAP}>
+                    <StatusBadge set="Run states" state={r.state} />
+                  </Table.Cell>
+                  <Table.Cell className={NOWRAP}>{r.asOf}</Table.Cell>
+                  <Table.Cell className={CELL}>{r.pathway}</Table.Cell>
+                  <Table.Cell className={CELL}>{r.progress.text}</Table.Cell>
+                  {MEASURES.map((k) => {
+                    const m = r.measures[k];
+                    return (
+                      <Table.Cell key={k} numeric className={NOWRAP}>
+                        {m === null ? null : <Figure measure={m} />}
+                      </Table.Cell>
+                    );
+                  })}
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        </div>
       )}
       {MEASURES.map((k) => {
         const hidden = hiddenBy(k);

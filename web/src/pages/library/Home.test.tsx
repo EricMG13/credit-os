@@ -536,7 +536,12 @@ describe("Library home, List side", () => {
 
   it("lets all nine columns fit: no clipping, dates and figures unbroken, tight padding", () => {
     toList();
-    expect(table().className).toMatch(/overflow-x-visible/);
+    const region = screen.getByRole("region", { name: "Issuers" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region.className).toMatch(/overflow-x-auto/);
+    expect(region.className).toMatch(/focus-visible:ring-2/);
+    expect(region).toContainElement(table());
+    expect(table().className).toMatch(/w-max/);
     const cells = within(row("Halden Aerostructures")).getAllByRole("gridcell");
     for (const cell of cells) expect(cell.className).toMatch(/\bpx-3\b/);
     for (const text of ["As of 30 Sep 2026", "3.4x"]) {
