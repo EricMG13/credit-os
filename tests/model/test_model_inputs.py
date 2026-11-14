@@ -318,6 +318,8 @@ NOT_PLAIN = [
     (["years", 0, "year"], {1}, "years.0.year is a set"),
     (["base", 7], "x", "base has a key that is a int"),
     ([7], "x", "\\(root\\) has a key that is a int"),
+    (["base", "k" * 81], MODEL, "base." + "k" * 80 + "\u2026 is a Operand"),
+    (["base", Text("zzz")], "x", "base has a key that is a Text"),
 ]
 
 
@@ -350,3 +352,8 @@ def test_unrelated_error_keeps_the_empty_facility_length_issue() -> None:
 def test_scale_message_has_no_code_for_a_long_currency() -> None:
     message = refusal(build([[["scale"], 2], [["currency"], "EURO"]])).message
     assert message == "`scale` must be 1 (CP-1 prints millions) or 1000 (thousands)"
+
+
+def test_missing_scale_is_a_schema_refusal_not_a_conversion() -> None:
+    document = build([[["scale"]], [["base", "cash", "amount"], "132.65"]])
+    assert issues_of(document) == "scale: Field required"
