@@ -311,8 +311,9 @@ def test_an_attribute_without_a_prefix_is_in_no_namespace() -> None:
     assert [e.link for e in parse_feed(body)] == ["https://e.org/yes"]
 
 
+# R45: declarations have their own cap (MAX_ATTRIBUTES, the feed's own xmlns included).
 def test_namespace_declarations_are_not_attributes() -> None:
-    declarations = "".join(f' xmlns:p{n}="urn:{n}"' for n in range(MAX_ATTRIBUTES + 40))
+    declarations = "".join(f' xmlns:p{n}="urn:{n}"' for n in range(MAX_ATTRIBUTES - 1))
     plain = "".join(f' a{n}=""' for n in range(MAX_ATTRIBUTES))
     body = _atom("<entry><title>T</title>" + _ENTRY.format(n="1") + "</entry>", declarations)
     assert len(parse_feed(body)) == 1

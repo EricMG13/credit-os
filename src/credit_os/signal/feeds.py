@@ -233,31 +233,41 @@ class _TreeBuilder:
         self._name_chars += len(name) + sum(map(len, attrs))
         if self._name_chars > MAX_NAME_CHARS:
             raise FeedError("feed element names are too long")
+        if attrs:
+            self._count(attrs)
         self._declared.append(self._bind(attrs) if attrs else ())
         prefix, local = _split(name)
         self._open.append(self._enter(self._scope.uri(prefix), local, attrs))
 
+    @staticmethod
+    def _count(attrs: dict[str, str]) -> None:
+        """R45: refuse an element with too many attributes or declarations before building
+        anything from them; the pass makes no list, tuple, set or string."""
+        declarations = sum(key == "xmlns" or key.startswith("xmlns:") for key in attrs)
+        if declarations > MAX_ATTRIBUTES:
+            raise FeedError(
+                f"feed has an element with more than {MAX_ATTRIBUTES} namespace declarations"
+            )
+        if len(attrs) - declarations > MAX_ATTRIBUTES:
+            raise FeedError(f"feed has an element with more than {MAX_ATTRIBUTES} attributes")
+
     def _bind(self, attrs: dict[str, str]) -> tuple[str, ...]:
         """Bind the element's namespace declarations, then check its other attributes.
 
-        The declarations are not attributes (they are not counted against MAX_ATTRIBUTES), and
+        The declarations are not attributes (MAX_ATTRIBUTES caps each kind, see _count), and
         an attribute with a prefix must have a bound one and, with its URI, be unique on the
         element. An attribute with no prefix is in no namespace, whatever the default is.
         """
         declared: list[str] = []
         prefixed: list[tuple[str, str]] = []
-        count = 0
         for key, value in attrs.items():
             prefix, local = _split(key)
             if key == "xmlns" or prefix == "xmlns":
-                count += 1
                 bound = local if prefix else ""
                 if self._scope.declare(bound, value):
                     declared.append(bound)
             elif prefix:
                 prefixed.append((prefix, local))
-        if len(attrs) - count > MAX_ATTRIBUTES:
-            raise FeedError(f"feed has an element with more than {MAX_ATTRIBUTES} attributes")
         self._check_prefixed(prefixed)
         return tuple(declared)
 
