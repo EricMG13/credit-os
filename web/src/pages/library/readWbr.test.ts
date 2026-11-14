@@ -42,7 +42,7 @@ function reasonOf(source: unknown): string {
 describe("WBR-02 a home figure with blank text", () => {
   it("is refused at the measure's text, as every other drawn figure is", () => {
     const slice = fresh();
-    const card = slice.home.cards as unknown as { measures: Record<string, Json> }[];
+    const card = slice.home.cards as { measures: Record<string, Json> }[];
     (card[0]?.measures["netLeverage"] as Json)["text"] = "";
     expect(reasonOf(slice)).toContain("home.cards[0].measures.netLeverage.text");
   });
