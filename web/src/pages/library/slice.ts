@@ -513,6 +513,76 @@ export type GapTable = {
   groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
 };
 
+/** One module's span in the run, in minutes from its start; a module that never ran has none. */
+export type TimingRow = {
+  module: string;
+  state: ModuleState;
+  started: Cell;
+  accepted: Cell;
+  took: Cell;
+};
+
+/** A row of the model-calls table: the module's name, then the text of each column after it, `null` where missing. */
+export type CallRow = { label: string; cells: readonly (string | null)[] };
+
+/**
+ * One register a module wrote: its file and delivered row count. `href` is where it opens, or `null`
+ * when none can be offered, then `reason` is the sentence drawn beside the disabled button.
+ */
+export type RecordRegister = {
+  name: string;
+  writtenBy: string;
+  rows: string;
+  file: string;
+  href: string | null;
+  reason: string | null;
+};
+
+/**
+ * The Record tab. `timings` is the module timings table (the mock's gantt Chart side is not drawn);
+ * `hashes` are values to copy; `spend` is delivered text and the bar's position; `calls` is the model
+ * calls table with its total row as delivered; `registers` are the files the modules wrote.
+ */
+export type RunRecord = {
+  timings: {
+    title: string;
+    note: string;
+    /** The heads: Module, State, Started, Accepted, Took. */
+    columns: readonly string[];
+    rows: readonly TimingRow[];
+    /** The delivered sentence of a run that holds no module, so has no time; `null` when rows exist. */
+    emptyText: string | null;
+  };
+  hashes: {
+    title: string;
+    items: readonly {
+      label: string;
+      kind: string;
+      value: string;
+      copyLabel: string;
+      what: string;
+    }[];
+  };
+  spend: { title: string; progress: { text: string; value: number; max: number }; note: string };
+  calls: {
+    title: string;
+    count: string;
+    note: string;
+    columns: readonly string[];
+    rows: readonly CallRow[];
+    total: CallRow;
+  };
+  registers: {
+    title: string;
+    count: string;
+    note: string;
+    /** The heads: Register, Written by, Rows, File, Open. */
+    columns: readonly string[];
+    downloadAll: Download;
+    rows: readonly RecordRegister[];
+  };
+};
+
 /** The groups of the jump menu, in the order it draws them. */
 export const JUMP_GROUPS = ["Figures", "Calculations", "Gaps"] as const;
 
@@ -545,6 +615,7 @@ export type Evidence = {
   sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
   trace: TraceTable;
   gaps: GapTable;
+  record: RunRecord;
   jump: readonly JumpItem[];
 };
 
