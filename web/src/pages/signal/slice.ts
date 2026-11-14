@@ -118,11 +118,45 @@ export type SignalGroup = {
   moreMembers: string | null;
   threads: SignalThreadSummary[];
 };
+/** One reaction a comment holds: the word, the delivered count and whether the viewer's own is set. */
+type SignalReaction = { word: "Agree" | "Disagree" | "Seen"; count: string; mine: boolean };
+/**
+ * A comment. A removed comment holds no text and no reactions; any other holds text. A reply is one
+ * level deep: its own `replies` is empty. `time` is delivered ("10:02"); the page adds ", edited".
+ */
+export type SignalComment = {
+  id: string;
+  author: { initials: string; name: string };
+  own: boolean;
+  time: string | null;
+  text: string | null;
+  edited: boolean;
+  removed: boolean;
+  reactions: SignalReaction[];
+  replies: SignalComment[];
+};
+/**
+ * The thread a group's item opens. Every item of a group names exactly one thread (same group, story,
+ * note and archived state) and every thread is named by an item (the reader checks both ways).
+ * `title`, `subline` and `archivedLine` are delivered text.
+ */
+export type SignalThread = {
+  id: string;
+  groupId: string;
+  storyId: string | null;
+  note: string | null;
+  archived: boolean;
+  title: string;
+  subline: string;
+  archivedLine: string | null;
+  comments: SignalComment[];
+};
 type SignalSnapshot = {
   viewer: SignalViewer;
   channels: SignalChannels;
   feed: SignalFeed;
   groups: SignalGroup[];
+  threads: SignalThread[];
 };
 export type SignalScene = { id: string; snapshot: SignalSnapshot };
 export type SignalSlice = { scenes: [SignalScene, ...SignalScene[]] };
@@ -474,7 +508,131 @@ const feed: Reader<SignalFeed> = (v, path) => {
   }
   return got;
 };
-const snapshotBase = shape<SignalSnapshot>({ viewer, channels, feed, groups: list(group) });
+
+const reaction = shape<SignalReaction>({
+  word: oneOf(["Agree", "Disagree", "Seen"], '"Agree", "Disagree" or "Seen"'),
+  count: str,
+  mine: bool,
+});
+/** A reply is the last level: it holds no replies of its own. */
+const noReplies: Reader<SignalComment[]> = (v, path) =>
+  Array.isArray(v) && v.length === 0 ? good([]) : bad(path, "no replies on a reply");
+/** A removed comment has no text and no reactions; any other has text; a word is used once. */
+function comment(replies: Reader<SignalComment[]>): Reader<SignalComment> {
+  const base = shape<SignalComment>({
+    id: str,
+    author: shape({ initials: str, name: str }),
+    own: bool,
+    time: strOrNull,
+    text: strOrNull,
+    edited: bool,
+    removed: bool,
+    reactions: list(reaction),
+    replies,
+  });
+  return (v, path) => {
+    const got = base(v, path);
+    if (!got.ok) return got;
+    const one = got.value;
+    if (one.removed && one.text !== null) return bad(`${path}.text`, "null on a removed comment");
+    if (one.removed && one.reactions.length > 0) {
+      return bad(`${path}.reactions`, "no reactions on a removed comment");
+    }
+    if (!one.removed && one.text === null) {
+      return bad(`${path}.text`, "the comment's text (only a removed comment has none)");
+    }
+    const words = new Set<string>();
+    for (const [index, held] of one.reactions.entries()) {
+      if (words.has(held.word)) {
+        return bad(
+          `${path}.reactions[${String(index)}].word`,
+          "a word the comment does not already hold",
+        );
+      }
+      words.add(held.word);
+    }
+    return got;
+  };
+}
+const topComment = comment(list(comment(noReplies)));
+
+/** Comment ids are used once in a thread, replies included; an archived line belongs to an archived thread. */
+const threadRecord: Reader<SignalThread> = (v, path) => {
+  const got = shape<SignalThread>({
+    id: str,
+    groupId: str,
+    storyId: strOrNull,
+    note: strOrNull,
+    archived: bool,
+    title: str,
+    subline: str,
+    archivedLine: strOrNull,
+    comments: list(topComment),
+  })(v, path);
+  if (!got.ok) return got;
+  if (!got.value.archived && got.value.archivedLine !== null) {
+    return bad(`${path}.archivedLine`, "null when the thread is not archived");
+  }
+  const seen = new Set<string>();
+  for (const [index, top] of got.value.comments.entries()) {
+    const at = `${path}.comments[${String(index)}]`;
+    const ones = [
+      { one: top, where: `${at}.id` },
+      ...top.replies.map((r, i) => ({ one: r, where: `${at}.replies[${String(i)}].id` })),
+    ];
+    for (const { one, where } of ones) {
+      if (seen.has(one.id)) return bad(where, "an id the thread does not already use");
+      seen.add(one.id);
+    }
+  }
+  return got;
+};
+const snapshotBase = shape<SignalSnapshot>({
+  viewer,
+  channels,
+  feed,
+  groups: list(group),
+  threads: list(threadRecord),
+});
+
+/** A thread is named by (group, id); the key is a pair so no id can run into another's. */
+const threadKey = (groupId: string, id: string) => JSON.stringify([groupId, id]);
+
+/** Each group item names exactly one thread and each thread is named by an item, with the same story, note and state. */
+function threadProblem(snap: SignalSnapshot, path: string): string | null {
+  const held = new Map<string, SignalThread>();
+  for (const [index, one] of snap.threads.entries()) {
+    const key = threadKey(one.groupId, one.id);
+    if (held.has(key)) {
+      return `${path}.threads[${String(index)}].id: expected an id no other thread in its group uses`;
+    }
+    held.set(key, one);
+  }
+  const named = new Set<string>();
+  for (const [g, one] of snap.groups.entries()) {
+    for (const [t, item] of one.threads.entries()) {
+      const at = `${path}.groups[${String(g)}].threads[${String(t)}]`;
+      const key = threadKey(one.id, item.id);
+      const own = held.get(key);
+      if (own === undefined)
+        return `${at}.id: expected the id of a thread in the snapshot's threads`;
+      named.add(key);
+      const same: [string, boolean][] = [
+        ["storyId", own.storyId === item.storyId],
+        ["note", own.note === item.note],
+        ["archived", own.archived === item.archived],
+      ];
+      const differs = same.find(([, ok]) => !ok);
+      if (differs !== undefined) {
+        return `${at}.${differs[0]}: expected the ${differs[0]} the thread itself holds`;
+      }
+    }
+  }
+  const stray = snap.threads.findIndex((one) => !named.has(threadKey(one.groupId, one.id)));
+  return stray === -1
+    ? null
+    : `${path}.threads[${String(stray)}].id: expected the id of an item in its group's threads`;
+}
 
 /** A group id is used once; each thread id once in its group; each thread's story is in the feed. */
 function groupProblem(groups: SignalGroup[], stories: Set<string>, path: string): string | null {
@@ -522,7 +680,9 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
   if (!got.ok) return got;
   const stories = new Set(got.value.feed.stories.map((s) => s.id));
   const problem =
-    groupProblem(got.value.groups, stories, path) ?? channelGroupProblem(got.value, path);
+    groupProblem(got.value.groups, stories, path) ??
+    channelGroupProblem(got.value, path) ??
+    threadProblem(got.value, path);
   if (problem !== null) return { ok: false, reason: problem };
   const { channels: lists, feed: items } = got.value;
   const where = `${path}.feed.topics`;

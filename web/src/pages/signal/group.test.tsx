@@ -16,7 +16,7 @@ function show(hash: string, slice: unknown = fixture.slice) {
 const LEV = "/signal/main/group/leveraged-credit";
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
 const HALVORSEN = "Northgate Ratings downgrades Halvorsen Marine to B+";
-const BRIGHTWELL = "Brightwell Foods extends its term loan by three years";
+const BRIGHTWELL = "Authority clears Brightwell Foods' dairy purchase with conditions";
 const NOTE =
   "Has anyone looked at how the packaging closures read across to the two issuers we hold? Worth a slot on Thursday.";
 
@@ -143,7 +143,7 @@ describe("the group view", () => {
       card.getByRole("link", { name: `Open source: ${CORVANE} (opens in a new tab)` }),
     ).toHaveAttribute("href", "https://example.com/corvane");
     const footer = row(CORVANE);
-    expect(footer.getByText("3 comments")).toBeInTheDocument();
+    expect(footer.getByText("4 comments")).toBeInTheDocument();
     expect(footer.getByText("1 h ago", { selector: "time" })).toBeInTheDocument();
     expect(footer.getByText("Unread")).toBeInTheDocument();
   });
@@ -228,6 +228,7 @@ describe("the group view", () => {
     const first = reader.snapshot.groups[0];
     if (first === undefined) throw new Error("reader has a first group");
     first.threads = [];
+    reader.snapshot.threads = [];
     show("/signal/reader/group/leveraged-credit", copy);
     expect(
       screen.getByText("Threads appear here when a writer shares a story or starts a note."),
@@ -243,11 +244,14 @@ describe("the group view", () => {
   });
 
   it("draws a story's note under the story card, outside it", () => {
-    const slice = withGroup((group) => {
-      const first = group.threads[0];
-      if (first === undefined) throw new Error("the group has a thread");
-      first.note = "Read the second paragraph.";
-    });
+    const slice = structuredClone(fixture.slice);
+    const snapshot = slice.scenes[0]?.snapshot;
+    const first = snapshot?.groups[0]?.threads[0];
+    const own = snapshot?.threads[0];
+    if (first === undefined || own === undefined) throw new Error("the group has a thread");
+    // The item and the thread it opens name the same note.
+    first.note = "Read the second paragraph.";
+    own.note = "Read the second paragraph.";
     show(LEV, slice);
     expect(within(item(CORVANE)).queryByText("Read the second paragraph.")).toBeNull();
     expect(row(CORVANE).getByText("Read the second paragraph.")).toBeInTheDocument();
