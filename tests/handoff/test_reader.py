@@ -217,7 +217,6 @@ DOCUMENTS: dict[str, Any] = json.loads((HERE / "expected" / "document.json").rea
         ("### Reader summary\n" + T1_TWO_ROWS + "\n" + T2, 4, False),
         ("### Reader summary\n" + T1 + "\n" + T2_NO_ROW, 4, False),
         ("### Reader summary\n", 4, False),
-        ("### Reader summary\nx\n### Reader summary\n" + T1 + "\n" + T2, 4, False),
         (f"{BT}\n### Reader summary\n" + T1 + "\n" + T2, None, False),
         ("### Bottom line\nx\n### Reader summary\n" + T1 + "\n" + T2, None, False),
     ],
@@ -240,3 +239,23 @@ def test_golden_summary_section(name: str) -> None:
         assert reader.summary_section is None
     else:
         assert [_lines(reader.summary_section)] == lines
+
+
+@pytest.mark.parametrize(
+    ("findings", "line"),
+    [
+        ("### Reader summary\nx\n### Reader summary\n" + T1 + "\n" + T2, 6),
+        ("### Reader summary\n" + T1 + "\n" + T2 + "### Reader summary\n" + T1 + "\n" + T2, 13),
+        ("### Other\n### Reader summary\n### Reader summary\n### Reader summary\n", 6),
+    ],
+)
+def test_repeated_reader_summary_refused(findings: str, line: int) -> None:
+    with pytest.raises(HandoffError) as caught:
+        _read(findings)
+    assert caught.value.line == line
+    assert caught.value.message == "heading `Reader summary` is repeated"
+
+
+def test_repeated_reader_summary_is_not_special_in_the_new_format() -> None:
+    reader = _read("### Bottom line\nx\n### Reader summary\n### Reader summary\n")
+    assert (reader.format, reader.summary, reader.summary_section) == ("new", None, None)
