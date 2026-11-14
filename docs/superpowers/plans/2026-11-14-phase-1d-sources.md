@@ -106,16 +106,31 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   ASCII space is refused (it is `Zs`).
 - **Echo bound (#61).** Every message that echoes a name shows its first 120 characters, then
   `…`; a path is shown whole. A deep name can lose its file part: accepted.
-- **Ruled for the capped read (#59, not yet in `main`).** `source_path` refuses a name that
+- **Links (#59, #82).** `source_path` refuses a name that
   is, or passes through, a symbolic link or a Windows junction, even inside the source folder;
   each component below the resolved folder is tested. A failure of that test is refused, not
-  raised untyped. A link swapped in between the check and the open is not closed by this; the
-  pin's size and hash guard the content.
-- **Ruled for PR 1c, not yet in `main`.** `COM0` and `LPT0` are refused as reserved device
+  raised untyped. `read_capped` refuses a final link on every platform: by `O_NOFOLLOW` where
+  it exists, else by a test before the open (Windows). A link swapped in between a check and
+  the open is not closed by this; the pin's size and hash guard the content.
+- **An unsearchable directory below the folder** is `SourceRefused` "cannot be resolved" from
+  `source_path`, not `SourceUnreadable` from the open.
+- **`read_capped` is at the complexity cap (15).** The next change that adds a branch to it
+  carries the split, with an `mx-adversary` pass.
+- **Reserved names (#82).** `COM0` and `LPT0` are refused as reserved device
   names (CPython 3.12's table omits them; that Microsoft's naming page lists them is from memory,
   not fetched).
 - **For the first layer that loads pin records (store).** pydantic's `errors()` and `json()`
-  carry the whole refused name; that layer bounds it before it prints one.
+  carry the whole refused name; that layer bounds it before it prints one. A path with a lone
+  surrogate gives a message that cannot be encoded as UTF-8: the first layer that prints or
+  stores a `SourceError` encodes with `backslashreplace`.
+- **Ruled for the folder walk (#100, not yet in `main`).** A pin carries its name exactly as
+  the directory listing gives it. A folder where two listed names are equal after case folding
+  or after NFC normalisation is refused, naming both: the work PC is Windows. A skipped entry
+  whose name fails `validate_name` is listed with its reason and its name written with ASCII
+  backslash escapes; a file with an accepted suffix and an invalid name still raises. A
+  listing failure is `SourceUnreadable` and the walk returns nothing. On a case-insensitive
+  volume `read_pinned` may read a file whose name differs by case: accepted, the digest
+  guards content.
 - **Kind.** The pin checks the first bytes only. Each reader proves the structure of its kind
   and raises "unreadable" when it does not hold: a zip that is not a docx, an xlsx offered as a
   docx, OLE or executable bytes offered as text or csv. The NUL refusal covers HTML as well as
@@ -143,7 +158,8 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 | 1 | Errors, `SourcePin`, name and kind rules (#41) |
 | 1b-names (#61) | The amended name rules and the bounded name echo |
 | 1b (#59) | Capped read, path resolution and the symbolic-link refusal (`files.py`) |
-| 1c | Folder walk |
+| 1c (#82) | `read_capped` refuses a final link on Windows; `COM0` and `LPT0` |
+| 1d (#100) | Folder walk |
 | 2 | Text, csv and HTML readers |
 | 3 | Zip and XML guards; xlsx reader |
 | 4 | docx reader |
