@@ -4,6 +4,7 @@ import ast
 import json
 import sqlite3
 import tempfile
+import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -22,6 +23,7 @@ from credit_os.signal.store import (
     add_story,
     open_db,
     propose_source,
+    write_transaction,
 )
 from credit_os.signal.topics import (
     add_topic,
@@ -345,7 +347,7 @@ BAD_CALLS: list[Callable[[Any], object]] = [
     lambda db: follow(db, untyped(7), 1),
     lambda db: match_story(db, 2**63),
     lambda db: match_story(db, untyped("1")),
-    lambda db: list_topics(db, untyped(None)),
+    lambda db: list_topics(db, untyped(7)),
     lambda db: follow(db, "Eve ", 1),
     lambda db: follow(db, "", 1),
     lambda db: unfollow(db, "E\u202eve", 1),
@@ -556,6 +558,7 @@ def test_a_long_list_of_kinds_is_accepted_and_filters_like_the_short_one(
     assert rows(db_two_sources, "SELECT story_id FROM topic_stories WHERE topic_id=?", tid) == [
         (1,)
     ]
+    assert rows(db_two_sources, "SELECT kinds FROM topics WHERE id=?", tid) == [('["regulator"]',)]
 
 
 def test_the_duplicate_name_error_does_not_repeat_a_long_name(
@@ -565,3 +568,126 @@ def test_the_duplicate_name_error_does_not_repeat_a_long_name(
     with pytest.raises(StoreError) as caught:
         add_topic(db_two_sources, "n" * 200, ["j"], [], "ak")
     assert str(caught.value) == "a topic with that name already exists"
+
+
+def test_a_list_of_duplicate_kinds_is_stored_as_the_distinct_ones_in_first_seen_order(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    huge = add_topic(db_two_sources, "Huge", ["k"], ["news", "regulator"] * 50_000, "ak")
+    mixed = add_topic(db_two_sources, "Mixed", ["k"], ["regulator", "news", "regulator"], "ak")
+    none = add_topic(db_two_sources, "None", ["k"], [], "ak")
+    stored = {
+        row[0]: json.loads(row[1]) for row in rows(db_two_sources, "SELECT id, kinds FROM topics")
+    }
+    assert stored == {huge: ["news", "regulator"], mixed: ["regulator", "news"], none: []}
+
+
+def test_list_topics_for_no_user_marks_nothing_followed(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    first = add_topic(db_two_sources, "First", ["k"], [], "ak")
+    add_topic(db_two_sources, "Second", ["k"], [], "ak")
+    follow(db_two_sources, "ak", first)
+    listed = list_topics(db_two_sources, None)
+    assert [(r["id"], r["name"], r["following"], r["stories"]) for r in listed] == [
+        (1, "First", 0, 0),
+        (2, "Second", 0, 0),
+    ]
+
+
+@pytest.mark.parametrize("name", ["", " ak", "a  k", "ak\n"])
+def test_list_topics_still_refuses_an_unclean_name(
+    db_two_sources: sqlite3.Connection, name: str
+) -> None:
+    with pytest.raises(StoreError):
+        list_topics(db_two_sources, name)
+
+
+def test_a_later_story_matching_only_a_later_keyword_is_linked(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    tid = add_topic(db_two_sources, "Two words", ["alpha", "beta"], ["regulator"], "ak")
+    add_story(db_two_sources, 1, Entry("Only beta here", "https://a.org/1", T0, ""), T0)
+    assert match_story(db_two_sources, 1) == [tid]
+    assert rows(db_two_sources, "SELECT keywords, kinds FROM topics") == [
+        ('["alpha", "beta"]', '["regulator"]')
+    ]
+
+
+def test_a_topic_stores_its_creator_and_the_time_of_the_call(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    before = datetime.now(UTC).replace(microsecond=0)
+    add_topic(db_two_sources, "Two words", ["alpha"], [], "ak")
+    after = datetime.now(UTC)
+    [(created_by, created_at)] = rows(db_two_sources, "SELECT created_by, created_at FROM topics")
+    assert created_by == "ak"
+    assert created_at.endswith("+00:00")
+    assert before <= datetime.fromisoformat(created_at) <= after
+
+
+def test_a_database_error_at_the_insert_is_not_reported_as_a_duplicate_name(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    db_two_sources.execute(
+        "CREATE TEMP TRIGGER broken BEFORE INSERT ON topics"
+        " BEGIN SELECT * FROM table_that_is_not_there; END"
+    )
+    with pytest.raises(sqlite3.OperationalError):
+        add_topic(db_two_sources, "Broken", ["k"], [], "ak")
+    assert not db_two_sources.in_transaction
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+
+
+@pytest.mark.parametrize("kind", ["News", "NEWS", " news", "news "])
+def test_a_kind_is_spelled_exactly(db_two_sources: sqlite3.Connection, kind: str) -> None:
+    with pytest.raises(StoreError, match="invalid kind"):
+        add_topic(db_two_sources, "Kind", ["k"], [kind], "ak")
+
+
+@pytest.mark.parametrize("other", ["AK", "%", "a_", "a%"])
+def test_names_compare_exactly_in_list_topics_and_unfollow(
+    db_two_sources: sqlite3.Connection, other: str
+) -> None:
+    tid = add_topic(db_two_sources, "Followed", ["k"], [], "ak")
+    follow(db_two_sources, "ak", tid)
+    assert [r["following"] for r in list_topics(db_two_sources, other)] == [0]
+    unfollow(db_two_sources, other, tid)
+    assert rows(db_two_sources, "SELECT user_name FROM topic_follows") == [("ak",)]
+    assert [r["following"] for r in list_topics(db_two_sources, "ak")] == [1]
+
+
+def test_the_topic_count_is_read_under_the_write_lock(tmp_path: Path) -> None:
+    a = open_db(tmp_path)
+    for number in range(199):
+        add_topic(a, f"Topic {number}", ["k"], [], "ak")
+    outcome: dict[str, str] = {}
+    started = threading.Event()
+
+    def late() -> None:
+        b = open_db(tmp_path)
+        try:
+            started.set()
+            try:
+                add_topic(b, "Late", ["k"], [], "ak")
+                outcome["added"] = "yes"
+            except StoreError as error:
+                outcome["refused"] = str(error)
+        finally:
+            b.close()
+
+    worker = threading.Thread(target=late)
+    try:
+        with write_transaction(a):
+            add_topic(a, "The two hundredth", ["k"], [], "ak")
+            worker.start()
+            assert started.wait(timeout=30)
+            worker.join(timeout=0.5)
+            assert worker.is_alive()
+            assert outcome == {}
+        worker.join(timeout=30)
+        assert not worker.is_alive()
+        assert "at most 200 topics" in outcome.get("refused", "")
+        assert rows(a, "SELECT count(*) FROM topics") == [(200,)]
+    finally:
+        a.close()

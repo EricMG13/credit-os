@@ -82,6 +82,7 @@ def _clean_keywords(keywords: object) -> list[str]:
 
 def _clean_kinds(kinds: object) -> list[str]:
     texts = [_text(kind, "kind", _MAX_KIND) for kind in _listed(kinds, "kinds")]
+    texts = list(dict.fromkeys(texts))
     for kind in texts:
         if kind not in KINDS:
             raise StoreError(f"invalid kind; expected one of {', '.join(KINDS)}")
@@ -205,9 +206,12 @@ def unfollow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
         )
 
 
-def list_topics(db: sqlite3.Connection, user_name: str) -> list[sqlite3.Row]:
-    """Every topic with whether `user_name` follows it and how many stories it holds."""
-    require_name(user_name)
+def list_topics(db: sqlite3.Connection, user_name: str | None) -> list[sqlite3.Row]:
+    """Every topic with whether `user_name` follows it and how many stories it holds.
+
+    `None` is nobody: every topic is listed and none is marked followed."""
+    if user_name is not None:
+        require_name(user_name)
     return db.execute(
         "SELECT t.id, t.name,"
         " EXISTS(SELECT 1 FROM topic_follows f WHERE f.topic_id = t.id AND f.user_name = ?)"
