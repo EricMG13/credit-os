@@ -34,7 +34,7 @@ reviewed and gated like any other.
 - If Recharts fails the open-from-disk check, it is removed and charts are drawn as SVG
   written here; this record is then amended.
 
-## Components the free tier does not include (coordinator's ruling, 2026-11-14; owner to confirm)
+## Components the free tier does not include (coordinator's ruling, confirmed by the owner, 2026-11-14)
 
 Untitled UI's CLI refuses three kit components as paid: the metric card (`metrics`), alerts
 and progress steps. Nothing is bought (decision 0003, review 2, ruling 3), and that ruling
