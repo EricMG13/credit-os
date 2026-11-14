@@ -15,19 +15,6 @@ from credit_os.sources.pins import SourceKind, SourcePin, kind_of
 HANDOFFS = Path(__file__).resolve().parents[1] / "fixtures" / "handoffs"
 _DIGEST = re.compile(r"\{d:(.)(!?)\}")
 _FIELDS = tuple(CheckContext.model_fields)
-# What a key's case holds besides context fields: the text it builds and what it expects.
-_KEY_ONLY = (
-    "name",
-    "findings",
-    "front",
-    "tail",
-    "sources",
-    "expect",
-    "reason",
-    "reason_has",
-    "columns",
-    "reason_lacks",
-)
 
 
 def expand_digests(text: str) -> str:
@@ -47,10 +34,6 @@ def _fixture_bytes(path: str) -> bytes:
     return (HANDOFFS / path).read_bytes()
 
 
-def _text_bytes(text: str) -> bytes:
-    return text.encode("utf-8")
-
-
 def _kind(name: str) -> SourceKind:
     kind = kind_of(name)
     if kind is None:
@@ -59,15 +42,17 @@ def _kind(name: str) -> SourceKind:
 
 
 def build_context(
-    base: Mapping[str, Any], case: Mapping[str, Any], accepted_is_text: bool = False
+    base: Mapping[str, Any], case: Mapping[str, Any], key_only: tuple[str, ...] = ()
 ) -> CheckContext:
     """A context from `base`, overridden field by field by `case`.
 
-    A name in either that is neither a context field nor a key-only name is an error.
+    `key_only` is what the calling test module reads of its key besides context fields (the text
+    it builds, what it expects). A name in either mapping that is neither is an error, so a key
+    line the test never reads cannot sit unnoticed.
     """
-    for name in (*base, *case):
-        if name not in _FIELDS and name not in _KEY_ONLY:
-            raise ValueError(f"a key's context names an unknown field: {name!r}")
+    unknown = sorted({name for name in (*base, *case) if name not in _FIELDS + key_only})
+    if unknown:
+        raise ValueError(f"a key's context names unknown fields: {unknown!r}")
     fields = {**base, **{name: case[name] for name in _FIELDS if name in case}}
     if "pins" in fields:
         fields["pins"] = tuple(
@@ -77,7 +62,5 @@ def build_context(
     if "upstream" in fields:
         fields["upstream"] = _documents(fields["upstream"], _fixture_bytes)
     if "accepted" in fields:
-        fields["accepted"] = _documents(
-            fields["accepted"], _text_bytes if accepted_is_text else _fixture_bytes
-        )
+        fields["accepted"] = _documents(fields["accepted"], _fixture_bytes)
     return CheckContext(**fields)

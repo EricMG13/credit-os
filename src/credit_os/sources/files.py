@@ -10,6 +10,7 @@ from credit_os.sources.errors import (
     SourceRefused,
     SourceTooLarge,
     SourceUnreadable,
+    reason_of,
     shown_name,
 )
 from credit_os.sources.pins import SourcePin, check_kind, validate_name
@@ -33,8 +34,7 @@ def read_capped(path: Path) -> bytes:
             raise SourceUnreadable(f"{path}: is a symbolic link")
         fd = os.open(path, _OPEN_FLAGS)
     except (OSError, ValueError) as error:
-        reason = getattr(error, "strerror", None) or str(error)
-        raise SourceUnreadable(f"{path}: cannot open ({reason})") from error
+        raise SourceUnreadable(f"{path}: cannot open ({reason_of(error)})") from error
     try:
         raw = _read_descriptor(fd, path)
     except BaseException as first:
@@ -43,17 +43,13 @@ def read_capped(path: Path) -> bytes:
         try:
             os.close(fd)
         except OSError as closing:
-            first.add_note(f"{path}: close also failed ({_reason(closing)})")
+            first.add_note(f"{path}: close also failed ({reason_of(closing)})")
         raise
     try:
         os.close(fd)
     except OSError as error:
-        raise SourceUnreadable(f"{path}: cannot read ({_reason(error)})") from error
+        raise SourceUnreadable(f"{path}: cannot read ({reason_of(error)})") from error
     return raw
-
-
-def _reason(error: OSError) -> str:
-    return error.strerror or str(error)
 
 
 def _read_descriptor(fd: int, path: Path) -> bytes:
@@ -61,7 +57,7 @@ def _read_descriptor(fd: int, path: Path) -> bytes:
     try:
         info = os.fstat(fd)
     except OSError as error:
-        raise SourceUnreadable(f"{path}: cannot read ({error.strerror})") from error
+        raise SourceUnreadable(f"{path}: cannot read ({reason_of(error)})") from error
     if not stat.S_ISREG(info.st_mode):
         raise SourceUnreadable(f"{path}: not a regular file")
     if info.st_size > MAX_BYTES:
@@ -71,7 +67,7 @@ def _read_descriptor(fd: int, path: Path) -> bytes:
         try:
             chunk = os.read(fd, MAX_BYTES + 1 - len(raw))
         except OSError as error:
-            raise SourceUnreadable(f"{path}: cannot read ({error.strerror})") from error
+            raise SourceUnreadable(f"{path}: cannot read ({reason_of(error)})") from error
         if not chunk:
             break
         raw += chunk
@@ -91,8 +87,9 @@ def source_path(folder: Path, name: str) -> Path:
     if not is_folder:
         raise SourceRefused(f"{folder}: not a folder")
     # The check and the later open are two steps: a link swapped in between them is not
-    # closed here. The pin's size and SHA-256 remain the guard on content. The resolve and
-    # containment check below the walk stay as the second guard for that case.
+    # closed here. When an existing pin is read, its size and SHA-256 guard the content; when a
+    # pin is created no digest exists yet, and that gap is an accepted limit (see pin_folder).
+    # The resolve and containment check below the walk stay as the second guard for that case.
     walked = root
     for segment in name.split("/"):
         walked = walked / segment

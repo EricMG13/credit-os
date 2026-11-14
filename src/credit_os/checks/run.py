@@ -3,7 +3,7 @@
 Later pull requests add steps here; each step is one plain line of this function.
 """
 
-from credit_os.checks import prose, structure
+from credit_os.checks import passages, prose, sources, structure
 from credit_os.checks.findings import CheckContext, Finding, ordered
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import HandoffError
@@ -22,6 +22,15 @@ def _prose_text(document: HandoffDocument, context: CheckContext) -> tuple[Findi
     )
 
 
+def _sources(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
+    """The Sources checks that read the table alone."""
+    return (
+        *sources.check_name(document, context),
+        *sources.check_sha256(document, context),
+        *sources.check_type(document, context),
+    )
+
+
 def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
     try:
         reader = read_reader(document)
@@ -32,6 +41,7 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
                 *structure.check_fence(document, context),
                 *structure.check_register_id(document, context),
                 *_prose_text(document, context),
+                *_sources(document, context),
             )
         )
     if reader.format == "earlier":
@@ -50,5 +60,9 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
             *prose.check_bottom_line(document, context),
             *prose.check_bottom_line_length(document, context),
             *_prose_text(document, context),
+            *passages.check_register_id(document, context),
+            *passages.check_limitation_repeat(document, context),
+            *sources.check_table(document, context),
+            *_sources(document, context),
         )
     )
