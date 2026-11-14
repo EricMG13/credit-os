@@ -278,8 +278,15 @@ type QuestionsRecord = {
   }[];
 };
 
+/** How one thing leads to another: the steps in order, each a title and one line. */
+type EdgesRecord = {
+  kind: "edges";
+  title: string;
+  steps: readonly { title: string; text: string }[];
+};
+
 /** One block of a module's records. Tasks 10 and 11 add the chart and table kinds. */
-export type RecordBlock = MatrixRecord | WatchRecord | QuestionsRecord;
+export type RecordBlock = MatrixRecord | WatchRecord | QuestionsRecord | EdgesRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {

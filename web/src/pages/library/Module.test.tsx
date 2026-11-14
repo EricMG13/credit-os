@@ -77,6 +77,7 @@ describe("Module, a delivered prose module", () => {
       ["H3", "Risks by probability and impact"],
       ["H3", "Indicators to watch"],
       ["H3", "Questions this module set out to answer"],
+      ["H3", "How a programme delay reaches the credit"],
       ["H3", "Limitations2"],
     ]);
   });
@@ -371,6 +372,39 @@ describe("Module, the questions", () => {
     expect(answer.textContent).toMatch(/which the files do not show\.$/);
     expect(answer.className).toMatch(/max-w-\[72ch\]/);
     expect(long.innerHTML).not.toMatch(/truncate|line-clamp|text-ellipsis/);
+  });
+});
+
+describe("Module, the pathway", () => {
+  const pathway = () => region("How a programme delay reaches the credit");
+
+  it("draws the mock's four steps in order as an ordered list, each with its title and line", () => {
+    renderModule("business-profile");
+    const steps = within(within(pathway()).getByRole("list")).getAllByRole("listitem");
+    expect(within(pathway()).getByRole("list").tagName).toBe("OL");
+    expect(steps.map((i) => i.textContent)).toEqual([
+      "Ramp slipsDeliveries fall short of plan",
+      "Inventory staysCash tied up for longer",
+      "Cash flow fallsLess debt repaid from operations",
+      "Leverage holdsRefinancing on weaker terms",
+    ]);
+  });
+
+  it("numbers the steps by the list and not by a figure the page makes", () => {
+    renderModule("business-profile");
+    const first = within(pathway()).getAllByRole("listitem")[0] as HTMLElement;
+    const ring = first.querySelector("[aria-hidden=true]") as HTMLElement;
+    expect(ring.textContent).toBe("");
+    expect(ring.className).toMatch(/content-\[counter\(step\)\]/);
+  });
+
+  it("sets the steps in one row from 901px wide and stacks them below, with no trace control", () => {
+    renderModule("business-profile");
+    expect(within(pathway()).getByRole("list")).toHaveClass(
+      "grid-cols-1",
+      "min-[901px]:grid-flow-col",
+    );
+    expect(within(pathway()).queryByRole("button")).toBeNull();
   });
 });
 

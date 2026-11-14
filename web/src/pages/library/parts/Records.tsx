@@ -1,4 +1,5 @@
 import type { RecordBlock } from "../slice";
+import { EdgesBlock } from "./EdgesBlock";
 import { MatrixBlock } from "./MatrixBlock";
 import { QuestionsBlock } from "./QuestionsBlock";
 import { WatchBlock } from "./WatchBlock";
@@ -11,6 +12,8 @@ function Block({ block }: { block: RecordBlock }) {
       return <WatchBlock block={block} />;
     case "questions":
       return <QuestionsBlock block={block} />;
+    case "edges":
+      return <EdgesBlock block={block} />;
   }
 }
 

@@ -720,6 +720,23 @@ describe("readSlice, modules", () => {
   const item = (s: ReturnType<typeof fresh>, kind: string, i: number) =>
     (block(s, kind)["items"] as Json[])[i] as Json;
 
+  const step = (s: ReturnType<typeof fresh>, i: number) =>
+    (block(s, "edges")["steps"] as Json[])[i] as Json;
+
+  it("reads the pathway's four steps as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const edges = body.records[3];
+    expect(edges?.kind === "edges" && edges.steps.map((x) => [x.title, x.text])).toEqual([
+      ["Ramp slips", "Deliveries fall short of plan"],
+      ["Inventory stays", "Cash tied up for longer"],
+      ["Cash flow falls", "Less debt repaid from operations"],
+      ["Leverage holds", "Refinancing on weaker terms"],
+    ]);
+  });
+
   it("reads the watch list and the questions as the mock words them", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -1007,6 +1024,30 @@ describe("readSlice, modules", () => {
       (s: ReturnType<typeof fresh>) => (item(s, "questions", 1)["trace"] = "bp-risk-1"),
       "business-profile",
       "body.records[2].items[1].trace",
+    ],
+    [
+      "a pathway with no steps",
+      (s: ReturnType<typeof fresh>) => (block(s, "edges")["steps"] = []),
+      "business-profile",
+      "body.records[3].steps",
+    ],
+    [
+      "a pathway step with an empty line",
+      (s: ReturnType<typeof fresh>) => (step(s, 1)["text"] = ""),
+      "business-profile",
+      "body.records[3].steps[1].text",
+    ],
+    [
+      "a pathway step named twice",
+      (s: ReturnType<typeof fresh>) => (step(s, 2)["title"] = "Ramp slips"),
+      "business-profile",
+      "body.records[3].steps[2].title",
+    ],
+    [
+      "two blocks with one title",
+      (s: ReturnType<typeof fresh>) => (block(s, "edges")["title"] = "Indicators to watch"),
+      "business-profile",
+      "body.records[3].title",
     ],
     [
       "a record that is not an object",

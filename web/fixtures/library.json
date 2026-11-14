@@ -914,6 +914,16 @@
                           "trace": "bp-answer-2"
                         }
                       ]
+                    },
+                    {
+                      "kind": "edges",
+                      "title": "How a programme delay reaches the credit",
+                      "steps": [
+                        { "title": "Ramp slips", "text": "Deliveries fall short of plan" },
+                        { "title": "Inventory stays", "text": "Cash tied up for longer" },
+                        { "title": "Cash flow falls", "text": "Less debt repaid from operations" },
+                        { "title": "Leverage holds", "text": "Refinancing on weaker terms" }
+                      ]
                     }
                   ],
                   "limitations": {

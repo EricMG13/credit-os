@@ -755,16 +755,38 @@ function readQuestions(q: Rec, path: string, traces: Traces): RecordBlock {
   };
 }
 
-/** Tasks 10 and 11 add the chart and table kinds; the pathway is next. */
+function readEdges(e: Rec, path: string): RecordBlock {
+  const stepsPath = child(path, "steps");
+  return {
+    kind: "edges",
+    title: named(e, "title", path),
+    steps: some(
+      unique(
+        list(e, "steps", path, (item, p) => {
+          const step = rec(item, p);
+          return { title: named(step, "title", p), text: named(step, "text", p) };
+        }),
+        stepsPath,
+        (step) => step.title,
+        "title",
+      ),
+      stepsPath,
+    ),
+  };
+}
+
+/** Tasks 10 and 11 add the chart and table kinds. */
 function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   const r = rec(value, path);
-  switch (oneOf(r, "kind", path, ["matrix", "watch", "questions"])) {
+  switch (oneOf(r, "kind", path, ["matrix", "watch", "questions", "edges"])) {
     case "matrix":
       return readMatrix(r, path, traces);
     case "watch":
       return readWatch(r, path, traces);
     case "questions":
       return readQuestions(r, path, traces);
+    case "edges":
+      return readEdges(r, path);
   }
 }
 
