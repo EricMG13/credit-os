@@ -7,10 +7,40 @@
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
-              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
-              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
-              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
-              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["plant closures", "volumes", "resin"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "spectrum"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": ["downgrade", "outlook"]
+              }
             ],
             "groups": [
               { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
@@ -297,7 +327,8 @@
               "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
               "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
-            "digests": []
+            "digests": [],
+            "sources": { "approved": true }
           }
         }
       },
@@ -307,10 +338,34 @@
           "viewer": { "name": "Mara L", "initials": "ML", "role": "reader", "roleLabel": "Reader" },
           "channels": {
             "topics": [
-              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
-              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
-              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
-              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": ["charter rates", "tanker"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["plant closures", "volumes"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "spectrum"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": ["downgrade", "outlook"]
+              }
             ],
             "groups": [
               { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
@@ -392,7 +447,8 @@
               "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
               "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
-            "digests": []
+            "digests": [],
+            "sources": { "approved": true }
           }
         }
       },
@@ -402,10 +458,34 @@
           "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
-              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
-              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
-              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
-              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": ["charter rates", "tanker"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["plant closures", "volumes"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "spectrum"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": ["downgrade", "outlook"]
+              }
             ],
             "groups": [
               { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
@@ -601,7 +681,8 @@
                 "title": "Rating actions: 11 November",
                 "date": "Wed 11 Nov"
               }
-            ]
+            ],
+            "sources": { "approved": true }
           }
         }
       },
@@ -611,10 +692,34 @@
           "viewer": { "name": null, "initials": null, "role": "writer", "roleLabel": "Writer" },
           "channels": {
             "topics": [
-              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
-              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
-              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
-              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": ["charter rates", "tanker"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["plant closures", "volumes"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "spectrum"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": ["downgrade", "outlook"]
+              }
             ],
             "groups": [
               { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
@@ -642,7 +747,8 @@
               "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
               "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
-            "digests": []
+            "digests": [],
+            "sources": { "approved": true }
           }
         }
       },
@@ -678,7 +784,8 @@
               "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {},
-            "digests": []
+            "digests": [],
+            "sources": { "approved": true }
           }
         }
       },
@@ -714,7 +821,234 @@
               "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {},
-            "digests": []
+            "digests": [],
+            "sources": { "approved": true }
+          }
+        }
+      },
+      {
+        "id": "loading",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": {
+            "status": "loading",
+            "error": null,
+            "freshness": { "state": "checking", "checked": null, "failing": null, "error": null },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          }
+        }
+      },
+      {
+        "id": "unreachable",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": {
+            "status": "ready",
+            "error": "unreachable",
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": "3",
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
+              }
+            ],
+            "views": {
+              "for-you": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "latest": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          }
+        }
+      },
+      {
+        "id": "no-sources",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "not-checked",
+              "checked": null,
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": false }
+          }
+        }
+      },
+      {
+        "id": "nothing-followed",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": false,
+                "keywords": ["charter rates", "tanker"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": false,
+                "keywords": ["plant closures", "volumes"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "spectrum"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": false,
+                "keywords": ["downgrade", "outlook"]
+              }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "digests": [],
+            "sources": { "approved": true }
           }
         }
       }
@@ -730,9 +1064,19 @@
       { "scene": "ai-on", "view": "for-you" },
       { "scene": "no-name", "view": "for-you" },
       { "scene": "no-topics", "view": "for-you" },
-      { "scene": "not-checked", "view": "for-you" }
+      { "scene": "not-checked", "view": "for-you" },
+      { "scene": "loading", "view": "for-you" },
+      { "scene": "unreachable", "view": "for-you" },
+      { "scene": "no-sources", "view": "for-you" },
+      { "scene": "nothing-followed", "view": "for-you" },
+      { "scene": "no-sources", "view": "latest" },
+      { "scene": "nothing-followed", "view": "saved" },
+      { "scene": "not-checked", "view": "latest" }
     ],
-    "/signal/:scene/topic/:topic": [{ "scene": "main", "topic": "shipping" }],
+    "/signal/:scene/topic/:topic": [
+      { "scene": "main", "topic": "shipping" },
+      { "scene": "main", "topic": "telecoms" }
+    ],
     "/signal/:scene/group/:group": [{ "scene": "main", "group": "leveraged-credit" }],
     "/signal/:scene/group/:group/thread/:thread": [
       { "scene": "main", "group": "leveraged-credit", "thread": "thread-1" }

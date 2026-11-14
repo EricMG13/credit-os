@@ -13,6 +13,8 @@ type SignalTopicChannel = {
   name: string;
   count: string | null;
   followed: boolean;
+  /** The words the topic follows, drawn as tags in its view's header. */
+  keywords: string[];
 };
 type SignalGroupChannel = { id: string; name: string; unread: string | null };
 type SignalDigestChannel = { id: string; name: string; unread: boolean; paused: boolean };
@@ -82,6 +84,8 @@ export type SignalFreshness = {
 type SignalFeed = {
   status: "loading" | "ready";
   error: null | "unreachable" | "request" | "unreadable";
+  /** False when no source is approved yet (the empty states say so). */
+  sources: { approved: boolean };
   freshness: SignalFreshness;
   stories: SignalStory[];
   digests: SignalDigestCard[];
@@ -263,7 +267,15 @@ const viewer = shape<SignalViewer>({
   roleLabel: str,
 });
 const channels = shape<SignalChannels>({
-  topics: list(shape<SignalTopicChannel>({ id: str, name: str, count: strOrNull, followed: bool })),
+  topics: list(
+    shape<SignalTopicChannel>({
+      id: str,
+      name: str,
+      count: strOrNull,
+      followed: bool,
+      keywords: list(str),
+    }),
+  ),
   groups: list(shape<SignalGroupChannel>({ id: str, name: str, unread: strOrNull })),
   digests: list(shape<SignalDigestChannel>({ id: str, name: str, unread: bool, paused: bool })),
   savedCount: strOrNull,
@@ -275,6 +287,7 @@ const feedBase = shape<SignalFeed>({
     [null, "unreachable", "request", "unreadable"],
     'null, "unreachable", "request" or "unreadable"',
   ),
+  sources: shape({ approved: bool }),
   freshness,
   stories: list(story),
   digests: list(digestCard),
@@ -366,6 +379,21 @@ const feed: Reader<SignalFeed> = (v, path) => {
     const problem = viewIdProblem(view, known);
     if (problem !== null) {
       return bad(`${path}.${where}.${problem.at}`, problem.expected);
+    }
+  }
+  if (got.value.status === "loading") {
+    // A loading feed draws a skeleton in place of every list, so an entry would be accepted and never drawn.
+    for (const [where, view] of views) {
+      const held: [string, string[]][] = [
+        ["top", view.top],
+        ["latest", view.latest],
+        ["waiting.ids", view.waiting?.ids ?? []],
+        ["older", view.older],
+      ];
+      const full = held.find(([, ids]) => ids.length > 0);
+      if (full !== undefined) {
+        return bad(`${path}.${where}.${full[0]}[0]`, "no entries while the feed is loading");
+      }
     }
   }
   return got;

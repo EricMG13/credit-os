@@ -33,6 +33,10 @@ describe("readSlice", () => {
         "no-name",
         "no-topics",
         "not-checked",
+        "loading",
+        "unreachable",
+        "no-sources",
+        "nothing-followed",
       ]);
       expect(result.data.scenes[0].snapshot.viewer.name).toBe("Mara L");
       expect(result.data.scenes[3]?.snapshot.viewer.name).toBeNull();
@@ -55,6 +59,30 @@ describe("readSlice", () => {
       ["snapshot", "channels", "topics", 1, "followed"],
       "yes",
       "scenes[2].snapshot.channels.topics[1].followed: expected true or false",
+    ],
+    [
+      "a topic with no keywords list",
+      ["snapshot", "channels", "topics", 1, "keywords"],
+      undefined,
+      "scenes[2].snapshot.channels.topics[1].keywords: expected a list",
+    ],
+    [
+      "a topic keyword that is a number",
+      ["snapshot", "channels", "topics", 0, "keywords", 0],
+      4,
+      "scenes[2].snapshot.channels.topics[0].keywords[0]: expected a string",
+    ],
+    [
+      "a feed with no sources record",
+      ["snapshot", "feed", "sources"],
+      undefined,
+      "scenes[2].snapshot.feed.sources: expected an object",
+    ],
+    [
+      "a feed whose approved is a string",
+      ["snapshot", "feed", "sources", "approved"],
+      "yes",
+      "scenes[2].snapshot.feed.sources.approved: expected true or false",
     ],
     [
       "a viewer role outside the two",
@@ -406,6 +434,61 @@ describe("readSlice", () => {
     expect(readSlice(copy)).toEqual({
       kind: "invalid",
       reason: 'scenes: expected a scene with id "main"',
+    });
+  });
+});
+
+describe("a loading feed", () => {
+  /** A copy of the fixture whose loading scene holds `change`d views (the story ids come from scene "unreachable"). */
+  function loadingWith(change: (views: Record<string, Record<string, unknown>>) => void): unknown {
+    const copy = structuredClone(fixture.slice);
+    const loading = copy.scenes.find((s) => s.id === "loading");
+    const stories = copy.scenes.find((s) => s.id === "unreachable")?.snapshot.feed.stories;
+    if (loading === undefined || stories === undefined) throw new Error("the fixture's scenes");
+    Object.assign(loading.snapshot.feed, { stories });
+    change(loading.snapshot.feed.views);
+    return copy;
+  }
+
+  it("is accepted by the fixture's loading scenes, which hold no entry", () => {
+    expect(readSlice(fixture.slice).kind).toBe("ok");
+  });
+
+  it.each([
+    ["top", ["corvane"], "top[0]"],
+    ["latest", ["corvane"], "top[0]"],
+    ["older", ["corvane"], "older[0]"],
+    ["waiting", { label: "1 new story", ids: ["corvane"] }, "waiting.ids[0]"],
+  ])("rejects an entry held in %s, with its path", (member, value, at) => {
+    const result = readSlice(
+      loadingWith((views) => {
+        const view = views["for-you"];
+        if (view === undefined) throw new Error("the loading scene has For you");
+        view[member] = value;
+        if (member === "top") view["latest"] = ["corvane"];
+        if (member === "latest") view["top"] = ["corvane"];
+      }),
+    );
+    expect(result).toEqual({
+      kind: "invalid",
+      reason: `scenes[6].snapshot.feed.views.for-you.${at}: expected no entries while the feed is loading`,
+    });
+  });
+
+  it("rejects an entry in a topic's order while loading", () => {
+    const copy = structuredClone(fixture.slice);
+    const scene = copy.scenes.find((s) => s.id === "no-name");
+    const stories = copy.scenes.find((s) => s.id === "reader")?.snapshot.feed.stories;
+    if (scene === undefined || stories === undefined) throw new Error("the fixture's scenes");
+    Object.assign(scene.snapshot.feed, { stories });
+    Object.assign(scene.snapshot.feed.topics["shipping"] ?? {}, {
+      top: ["corvane"],
+      latest: ["corvane"],
+    });
+    expect(readSlice(copy)).toEqual({
+      kind: "invalid",
+      reason:
+        "scenes[3].snapshot.feed.topics.shipping.top[0]: expected no entries while the feed is loading",
     });
   });
 });
