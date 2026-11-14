@@ -1,10 +1,11 @@
 // One Signal address: picks the scene, then what the frame holds. Pages later tasks build replace
 // the "Not built yet" empty state.
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
-import { SignalFrame, sceneHref, type SignalCurrent } from "./SignalFrame";
+import { SignalFrame, sceneHref, type SignalCurrent, type SignalFollow } from "./SignalFrame";
 import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
+import type { EmptyContext } from "./FeedStates";
 import { PageTitle } from "./parts/PageTitle";
 import { readSlice, type SignalFeedView, type SignalScene } from "./slice";
 
@@ -82,14 +83,38 @@ function param(params: Record<string, string>, name: string): string {
   return value;
 }
 
+/** What a feed view needs to say why it is empty, with the follow state it shares with the channel list. */
+function emptyContext(
+  scene: SignalScene,
+  view: EmptyContext["view"],
+  follow: SignalFollow,
+  writer: boolean,
+): EmptyContext {
+  const { channels, feed } = scene.snapshot;
+  return {
+    view,
+    approved: feed.sources.approved,
+    propose: writer ? sceneHref(scene, "settings/sources") : null,
+    noneFollowed: !channels.topics.some((t) => t.followed),
+    topics: channels.topics.map((t) => ({ id: t.id, name: t.name, on: follow.on(t) })),
+    onFollow: (id) => {
+      const topic = channels.topics.find((t) => t.id === id);
+      if (topic === undefined) throw new Error(`the empty state named an unknown topic "${id}"`);
+      follow.toggle(topic);
+    },
+  };
+}
+
 function Body({
   scene,
   kind,
   params,
+  follow,
 }: {
   scene: SignalScene;
   kind: SignalPageKind;
   params: Record<string, string>;
+  follow: SignalFollow;
 }): {
   current: SignalCurrent;
   body: ReactNode;
@@ -101,6 +126,7 @@ function Body({
       </a>
     </EmptyState.Footer>
   );
+  const writer = scene.snapshot.viewer.role === "writer";
   switch (kind) {
     case "feed": {
       const view = Object.keys(VIEWS).find((id) => id === params["view"]);
@@ -125,7 +151,11 @@ function Body({
             entries={entriesOf(scene, scene.snapshot.feed.views[id])}
             startOn={id === "for-you" ? "top" : "latest"}
             switchable={id === "for-you"}
-            writer={scene.snapshot.viewer.role === "writer"}
+            writer={writer}
+            loading={scene.snapshot.feed.status === "loading"}
+            error={scene.snapshot.feed.error}
+            empty={emptyContext(scene, id, follow, writer)}
+            topic={null}
           />
         ),
       };
@@ -152,7 +182,17 @@ function Body({
             entries={entriesOf(scene, topicView(scene, topic.id))}
             startOn="top"
             switchable
-            writer={scene.snapshot.viewer.role === "writer"}
+            writer={writer}
+            loading={scene.snapshot.feed.status === "loading"}
+            error={scene.snapshot.feed.error}
+            empty={emptyContext(scene, "topic", follow, writer)}
+            topic={{
+              on: follow.on(topic),
+              onToggle: () => {
+                follow.toggle(topic);
+              },
+              keywords: topic.keywords,
+            }}
           />
         ),
       };
@@ -235,9 +275,30 @@ export function SignalPage({
       </div>
     );
   }
-  const { current, body } = Body({ scene, kind, params });
+  return <SceneView key={scene.id} scene={scene} kind={kind} params={params} />;
+}
+
+/** One scene's page: the follow state lives here, so the channel list and the page share it. */
+function SceneView({
+  scene,
+  kind,
+  params,
+}: {
+  scene: SignalScene;
+  kind: SignalPageKind;
+  params: Record<string, string>;
+}) {
+  // In memory only: nothing is written; a reload shows the slice's own state again.
+  const [chosen, setChosen] = useState<ReadonlyMap<string, boolean>>(new Map());
+  const follow: SignalFollow = {
+    on: (topic) => chosen.get(topic.id) ?? topic.followed,
+    toggle: (topic) => {
+      setChosen(new Map(chosen).set(topic.id, !(chosen.get(topic.id) ?? topic.followed)));
+    },
+  };
+  const { current, body } = Body({ scene, kind, params, follow });
   return (
-    <SignalFrame scene={scene} current={current}>
+    <SignalFrame scene={scene} current={current} follow={follow}>
       {body}
     </SignalFrame>
   );
