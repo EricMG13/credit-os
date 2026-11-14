@@ -3,6 +3,145 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: step 1A complete (PR 5); 1D PRs 1b and 1c
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green, and its diff read by the coordinator. Step 1A (the handoff parser) is complete.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #78 | 1A PR 5 | `15c1321`, `db5219a` | Gaps, typed data sections, registers, blocked flag, known source names, one synthetic new-format fixture (744 counted lines) |
+| #59 | 1D PR 1b | `5dec6a3`, `7bf6fd0` | Capped read, path resolution, symbolic-link refusal (707 lines) |
+| #82 | 1D PR 1c | `1c09ce2`, `302f5d7` | `read_capped` refuses a final link on Windows; `COM0` and `LPT0` reserved (89 lines) |
+| #81 | records | `e95ef49`, `56cced5` | The entry below this one, the addendum to decision 0009, the 1C plan rules |
+
+**Reviews.**
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #78 | `mx-precise`: both approved, Low 1 fixed | 0 confirmed defects | FAIL on `430e5b4`: Medium 1, Low 5, Info 7. Fixed in one round; scoped `mx-precise` re-review on `15c1321` approved |
+| #59 | `mx-adversary` on the link refusal: FAIL, Medium 1, fixed and re-reviewed | 1 confirmed defect, Low, fixed test first | FAIL on `5b094bc`: High 1, Low 2, Info 4. Fixed; `mx-adversary` re-review on `5dec6a3` PASS |
+| #82 | scoped `mx-adversary` PASS, Low 1, Info 3 | 0 confirmed | PASS on `1c09ce2`: High 0, Medium 0, Low 1, Info 5 |
+
+- #78's Medium: a register heading id was recognised only in dotted form, fitted to the 25
+  fixtures; a real new-format reply has `T1` to `T8`, which were silently missed.
+- #59's Medium: an `OSError` from the link test escaped untyped. Its High: the Windows gate was
+  red on the reviewed head, because a key row written by the controller asserted the error
+  type Linux raises; the production code was right. The controller had dispatched the review
+  before reading Windows CI.
+- #78's reviewers each rebuilt the answer keys with their own reader: no difference on the 25
+  fixtures or the new one.
+
+**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller, on
+`15c1321`, `5dec6a3` and `1c09ce2`. CI green on Ubuntu, Windows and the review job on each
+merged head. On Windows every symbolic-link and junction row ran in #59 and #82; rows still
+skipped there are a FIFO, opening a directory and two `chmod` rows. Mutation on #59
+(`mutmut`, at `5b094bc`): 173 of 173 killed.
+
+**Ledger.**
+- `1A-5 task=0 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1A-5 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `1A-5 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `1A-5 task=whole-branch-M1 agent=mx-feature fix-rounds=1 gates-first-pass=n/a` (not reported)
+- `1D-1b task=2(link refusal) agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1D-1b task=low-batch-2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1D-1b task=sweep-defect(NUL folder) agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1D-1c task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+
+**Rulings by the coordinator.** In the 1A and 1D plans. The ones a later step depends on:
+- A module citation `name (CP-X)` is read as a module before the Sources-table names are
+  tried. Citations inside table cells have no reader; delivery's trace control (phase 4) needs
+  one before it draws them.
+- `Reader.blocked` is unknown, not false, for an earlier-format handoff.
+- Step 2B refuses a repeated register id and checks Sources-table names against pinned sources.
+- Ruled for the folder walk (#100, open, not in `main`): it refuses a folder with two names
+  that differ only by case or Unicode form.
+  The coordinator first ruled both are pinned as listed, against an earlier ruling; the 1D
+  controller raised the conflict and the earlier ruling stands.
+- The first layer that prints or stores a `SourceError` encodes with `backslashreplace`.
+
+**A committed answer key was edited once.** #78's `data.json`: `blocked` false to null for
+the 20 earlier-format files, by the controller after the coordinator's ruling; the re-review
+confirmed only those 20 values changed.
+
+**For the owner.** `main` has no branch protection: the Windows job is read by hand before
+each merge.
+
+**Not verified.**
+- `npm --prefix web run gates` for #78: it fails in the 1A worktree on lint errors in web
+  files the PR does not touch, cause not found; CI ran no web job on these PRs.
+- No mutation tool ran on #78 or #82 (hand mutants by reviewers on #82).
+- Nothing ran on a real Windows work PC: long paths, 8.3 names, OneDrive placeholders and
+  other reparse points. That Windows treats `COM0` and `LPT0` as devices.
+- No fixture or retained reply holds an empty cell or text on a tag's own line; the 14-row
+  form of Confidence inputs is tested by synthetic rows only.
+- The gap between a link check and the open is not closed.
+
+## 2026-11-14 Roadmap back end: 1C PR 2 and Signal's network pin
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #63 | 1C PR 2 | `b3d2b7f`, `ee28e4a` | Compaction outcome, event id and replacement link; `close()` returns compactions; float tool arguments (339 lines) |
+| #74 | Signal S-2a, 1 of 2 | `110b273`, `6489c01` | `signal/netpin.py`: public-address check and pinned https connection, carried (785 lines) |
+| #75 | Signal S-2a, 2 of 2 | `ba60879`, `94c0dc3` | Review fixes: explicit ranges, strict X.509, the pin re-checks its address (380 lines) |
+| #68 | records | `16a1fc6` | The entry below this one and the 1A and 1D plan rules |
+
+**Reviews.**
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #63 | `mx-precise` approved; `mx-adversary` PASS; scoped `mx-adversary` on the replacement link PASS, Info 3 | 0 confirmed defects | PASS on `b838513`: High 0, Medium 0, Low 4, Info 5 |
+| #74, #75 | `mx-precise` pass; `mx-adversary` Medium 1 (the handshake could take twice the time left; fixed in #74), Low 4, Info 6, re-review closed | no defect outside security | FAIL at `a0f3adc`: Medium 1, a test gap on what `connect` hands to the socket budget |
+
+**The Medium on #75, and a second round.** The whole-branch Medium was closed by tests against
+the reviewer's four mutants, and no reviewer saw that fix. The coordinator dispatched a scoped
+`mx-adversary` re-review: FAIL, the gap was half closed. Four more mutants survived, one of
+them the per-operation timeout and the total deadline swapped, which would refuse every fetch
+in production. One test row was added (`ba60879`); the coordinator ran the reviewer's probe on
+that head: 21 of 21 mutants as expected, no survivor. The first fix (`a0f3adc..16d20ec`) also
+deleted the unused `_BudgetedSocket.send` and `.recv` and added `close()` to `ResponseLike`; the
+re-review read that diff and found nothing at Medium or above. The second changed tests only.
+The re-review's report was returned as text and is not saved as a file; its two probes are.
+
+**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #63
+on `b3d2b7f` (1,030 passed, coverage 100%), #75 on `ba60879`; `npm --prefix web run gates`
+exit 0 for the Signal PRs. CI green on Ubuntu, Windows and the review job on each merged head; #75's
+run on `ba60879` after it was retargeted to `main` is the one the coordinator read before merging. Mutation on #63 (`mutmut`, `src/credit_os/provider/`):
+719 mutants, 710 killed, 9 equivalent. Signal: hand mutants only.
+
+**Ledger.**
+- `1C-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1C-2 task=1-lows agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `1C-2 task=1b agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `S-2a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `S-2a task=2 agent=mx-feature fix-rounds=2 gates-first-pass=n`
+
+**Rulings by the coordinator.** In the 1C plan and the addendum to decision 0009. The ones a
+later step depends on:
+- A completed compaction names the unfinished one it replaces only when exactly one is
+  outstanding. Step 3A drops a replaced entry only when it is unfinished and its completing
+  entry is present; the completing entry's own charge then counts, and an unknown one keeps
+  the spend unknown.
+- In SDK 1.0.8 a call routed to another model that succeeds first time gives no signal; the
+  routing refusals can only be read from a failed call.
+- Signal's fetcher tests go through the real pinned connection at least once.
+- A Signal ready message says which review ran on which head, and whether any fix after the
+  last review was itself reviewed.
+
+**Not verified.**
+- That runtime 1.0.108 never runs two compactions at once, and that a complete always follows
+  its own start. Nothing in `provider/` has run against a live session.
+- `netpin.py` on CPython 3.12.0 to 3.12.3 (simulated by patched tables), against a public
+  certificate authority, or against a corporate inspection root on the work PC.
+- `mutmut` on the Signal PRs. `confidence-review` and `rewrite-tournament` were not run on
+  their diff.
+- The Signal session reported 14 probes at exit 0 after its first fix round with wrong exit
+  codes (a shell loop printed another command's status); it re-ran them through the
+  reviewer's seam and reports every result holds. The coordinator did not re-run those.
+
 ## 2026-11-14 Roadmap back end: 1A PR 4 and 1D PR 1b-names
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
