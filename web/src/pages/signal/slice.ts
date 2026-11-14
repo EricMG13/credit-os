@@ -61,11 +61,28 @@ export type SignalDigestCard = {
   summary: string | null;
   nothing: string | null;
 };
-/** Entry ids (story or digest card) in each order the service supplies; the page orders by them and ranks nothing. */
-type SignalFeedView = { top: string[]; latest: string[] };
+/**
+ * Entry ids (story or digest card) in each order the service supplies; the page orders by them and
+ * ranks nothing. `waiting` is the delivered pill label ("4 new stories") with the entries it reveals;
+ * `older` holds the entries Show older reveals (none: no button). `top` and `latest` hold the same ids; `waiting` and `older` hold others, and no id repeats (the reader checks).
+ */
+type SignalFeedView = {
+  top: string[];
+  latest: string[];
+  waiting: { label: string; ids: string[] } | null;
+  older: string[];
+};
+/** The freshness line: `checked` is the delivered time, `failing` and `error` the delivered suffix texts. */
+export type SignalFreshness = {
+  state: "checking" | "checked" | "not-checked" | "unavailable";
+  checked: string | null;
+  failing: string | null;
+  error: string | null;
+};
 type SignalFeed = {
   status: "loading" | "ready";
   error: null | "unreachable" | "request" | "unreadable";
+  freshness: SignalFreshness;
   stories: SignalStory[];
   digests: SignalDigestCard[];
   views: { "for-you": SignalFeedView; latest: SignalFeedView; saved: SignalFeedView };
@@ -156,7 +173,7 @@ const unit: Reader<number> = (v, path) =>
     ? good(v)
     : bad(path, "a number from 0 to 1");
 
-/** A case stage names its four steps and marks exactly one of them as the current one. */
+/** A case stage lists its steps (the count is not fixed) and marks exactly one of them as the current one. */
 const stageSteps: Reader<{ name: string; current: boolean }[]> = (v, path) => {
   const got = list(shape({ name: str, current: bool }))(v, path);
   if (!got.ok) return got;
@@ -216,7 +233,28 @@ const digestCard: Reader<SignalDigestCard> = (v, path) => {
   if (got.value.ai) return bad(`${path}.ai`, "false on a nothing-to-report card");
   return got;
 };
-const feedView = shape<SignalFeedView>({ top: list(str), latest: list(str) });
+const feedView = shape<SignalFeedView>({
+  top: list(str),
+  latest: list(str),
+  waiting: orNull(shape({ label: str, ids: list(str) })),
+  older: list(str),
+});
+/** Checked sources always come with the delivered time to show. */
+const freshness: Reader<SignalFreshness> = (v, path) => {
+  const got = shape<SignalFreshness>({
+    state: oneOf(
+      ["checking", "checked", "not-checked", "unavailable"],
+      '"checking", "checked", "not-checked" or "unavailable"',
+    ),
+    checked: strOrNull,
+    failing: strOrNull,
+    error: strOrNull,
+  })(v, path);
+  if (!got.ok) return got;
+  return got.value.state === "checked" && got.value.checked === null
+    ? bad(`${path}.checked`, "the delivered time when the state is checked")
+    : got;
+};
 
 const viewer = shape<SignalViewer>({
   name: strOrNull,
@@ -237,11 +275,76 @@ const feedBase = shape<SignalFeed>({
     [null, "unreachable", "request", "unreadable"],
     'null, "unreachable", "request" or "unreadable"',
   ),
+  freshness,
   stories: list(story),
   digests: list(digestCard),
   views: shape({ "for-you": feedView, latest: feedView, saved: feedView }),
   topics: record(feedView),
 });
+type IdProblem = { at: string; expected: string };
+
+/**
+ * One coherent id set per view: every id is in the feed; none repeats inside `top`, `latest`,
+ * `waiting.ids` or `older`; `top` and `latest` hold the same ids; `waiting.ids` and `older` are
+ * disjoint from them and from each other. The first failing id is named by its list and position.
+ */
+function viewIdProblem(view: SignalFeedView, known: Set<string>): IdProblem | null {
+  const lists: [string, string[]][] = [
+    ["top", view.top],
+    ["latest", view.latest],
+    ["older", view.older],
+    ["waiting.ids", view.waiting?.ids ?? []],
+  ];
+  const found = (name: string, ids: string[], fails: (id: string) => boolean, expected: string) => {
+    const index = ids.findIndex((id) => fails(id));
+    return index === -1 ? null : { at: `${name}[${String(index)}]`, expected };
+  };
+  const seen = () => {
+    const once = new Set<string>();
+    return (id: string) => (once.has(id) ? true : (once.add(id), false));
+  };
+  const checks: (() => IdProblem | null)[] = [
+    ...lists.map(
+      ([name, ids]) =>
+        () =>
+          found(name, ids, (id) => !known.has(id), "the id of a story or digest in the feed"),
+    ),
+    ...lists.map(
+      ([name, ids]) =>
+        () =>
+          found(name, ids, seen(), "an id the list does not already hold"),
+    ),
+    () => found("latest", view.latest, (id) => !view.top.includes(id), "an id in the view's top"),
+    () => found("top", view.top, (id) => !view.latest.includes(id), "an id in the view's latest"),
+    () =>
+      found(
+        "older",
+        view.older,
+        (id) => view.top.includes(id),
+        "an id the view does not already list",
+      ),
+    () =>
+      found(
+        "waiting.ids",
+        view.waiting?.ids ?? [],
+        (id) => view.top.includes(id),
+        "an id the view does not already list",
+      ),
+    () =>
+      found(
+        "older",
+        view.older,
+        (id) => view.waiting?.ids.includes(id) ?? false,
+        "an id the view does not already list",
+      ),
+  ];
+  for (const check of checks) {
+    const problem = check();
+    if (problem !== null) return problem;
+  }
+  return null;
+}
+
 const feed: Reader<SignalFeed> = (v, path) => {
   const got = feedBase(v, path);
   if (!got.ok) return got;
@@ -260,14 +363,9 @@ const feed: Reader<SignalFeed> = (v, path) => {
     ]),
   ];
   for (const [where, view] of views) {
-    for (const order of ["top", "latest"] as const) {
-      const at = view[order].findIndex((id) => !known.has(id));
-      if (at !== -1) {
-        return bad(
-          `${path}.${where}.${order}[${String(at)}]`,
-          "the id of a story or digest in the feed",
-        );
-      }
+    const problem = viewIdProblem(view, known);
+    if (problem !== null) {
+      return bad(`${path}.${where}.${problem.at}`, problem.expected);
     }
   }
   return got;
@@ -298,8 +396,21 @@ function nonEmpty<T>(each: Reader<T>): Reader<[T, ...T[]]> {
   };
 }
 
+/** The home route names the scene "main", so the slice must hold it. */
+function withMain(
+  each: Reader<[SignalScene, ...SignalScene[]]>,
+): Reader<[SignalScene, ...SignalScene[]]> {
+  return (v, path) => {
+    const got = each(v, path);
+    if (!got.ok) return got;
+    return got.value.some((scene) => scene.id === "main")
+      ? got
+      : bad(path, 'a scene with id "main"');
+  };
+}
+
 const scenes = shape<SignalSlice>({
-  scenes: nonEmpty(shape<SignalScene>({ id: str, snapshot })),
+  scenes: withMain(nonEmpty(shape<SignalScene>({ id: str, snapshot }))),
 });
 
 export function readSlice(source: unknown): SliceResult<SignalSlice> {

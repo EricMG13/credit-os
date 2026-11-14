@@ -32,6 +32,7 @@ describe("readSlice", () => {
         "ai-on",
         "no-name",
         "no-topics",
+        "not-checked",
       ]);
       expect(result.data.scenes[0].snapshot.viewer.name).toBe("Mara L");
       expect(result.data.scenes[3]?.snapshot.viewer.name).toBeNull();
@@ -100,20 +101,144 @@ describe("readSlice", () => {
     [
       "a channel topic with no order in the feed",
       ["snapshot", "feed", "topics"],
-      { shipping: { top: [], latest: [] } },
+      { shipping: { top: [], latest: [], waiting: null, older: [] } },
       "scenes[2].snapshot.feed.topics.packaging: expected an order for this channel topic",
     ],
     [
       "an order for a topic the channel list lacks",
       ["snapshot", "feed", "topics", "ghost"],
-      { top: [], latest: [] },
+      { top: [], latest: [], waiting: null, older: [] },
       "scenes[2].snapshot.feed.topics.ghost: expected the id of a channel topic",
     ],
     [
       "a topic order naming a story the feed does not hold",
       ["snapshot", "feed", "topics"],
-      { shipping: { top: [], latest: ["ghost"] } },
+      { shipping: { top: [], latest: ["ghost"], waiting: null, older: [] } },
       "scenes[2].snapshot.feed.topics.shipping.latest[0]: expected the id of a story or digest in the feed",
+    ],
+    [
+      "a freshness state outside the four",
+      ["snapshot", "feed", "freshness", "state"],
+      "idle",
+      'scenes[2].snapshot.feed.freshness.state: expected "checking", "checked", "not-checked" or "unavailable"',
+    ],
+    [
+      "a freshness with no failing member",
+      ["snapshot", "feed", "freshness", "failing"],
+      undefined,
+      "scenes[2].snapshot.feed.freshness.failing: expected a string or null",
+    ],
+    [
+      "a freshness error that is a number",
+      ["snapshot", "feed", "freshness", "error"],
+      1,
+      "scenes[2].snapshot.feed.freshness.error: expected a string or null",
+    ],
+    [
+      "checked sources with no delivered time",
+      ["snapshot", "feed", "freshness", "checked"],
+      null,
+      "scenes[2].snapshot.feed.freshness.checked: expected the delivered time when the state is checked",
+    ],
+    [
+      "a waiting pill whose label is a number",
+      ["snapshot", "feed", "views", "for-you", "waiting"],
+      { label: 4, ids: [] },
+      "scenes[2].snapshot.feed.views.for-you.waiting.label: expected a string",
+    ],
+    [
+      "a waiting pill naming a story the feed does not hold",
+      ["snapshot", "feed", "views", "for-you", "waiting"],
+      { label: "1 new story", ids: ["ghost"] },
+      "scenes[2].snapshot.feed.views.for-you.waiting.ids[0]: expected the id of a story or digest in the feed",
+    ],
+    [
+      "a waiting pill naming an entry the view already lists",
+      ["snapshot", "feed", "views", "for-you", "waiting"],
+      { label: "1 new story", ids: ["corvane"] },
+      "scenes[2].snapshot.feed.views.for-you.waiting.ids[0]: expected an id the view does not already list",
+    ],
+    [
+      "an older list naming an entry the feed does not hold",
+      ["snapshot", "feed", "views", "latest", "older"],
+      ["ghost"],
+      "scenes[2].snapshot.feed.views.latest.older[0]: expected the id of a story or digest in the feed",
+    ],
+    [
+      "an older list naming an entry the view already lists",
+      ["snapshot", "feed", "views", "for-you", "older"],
+      ["corvane"],
+      "scenes[2].snapshot.feed.views.for-you.older[0]: expected an id the view does not already list",
+    ],
+    [
+      "a view with no older list",
+      ["snapshot", "feed", "views", "saved", "older"],
+      undefined,
+      "scenes[2].snapshot.feed.views.saved.older: expected a list",
+    ],
+    [
+      "a view with no waiting member",
+      ["snapshot", "feed", "views", "saved", "waiting"],
+      undefined,
+      "scenes[2].snapshot.feed.views.saved.waiting: expected an object",
+    ],
+    [
+      "a topic older list naming an entry the feed does not hold",
+      ["snapshot", "feed", "topics", "shipping", "older"],
+      ["ghost"],
+      "scenes[2].snapshot.feed.topics.shipping.older[0]: expected the id of a story or digest in the feed",
+    ],
+    [
+      "an id repeated inside top",
+      ["snapshot", "feed", "views", "saved", "top"],
+      ["halvorsen", "halvorsen"],
+      "scenes[2].snapshot.feed.views.saved.top[1]: expected an id the list does not already hold",
+    ],
+    [
+      "an id repeated inside latest",
+      ["snapshot", "feed", "views", "saved", "latest"],
+      ["halvorsen", "halvorsen"],
+      "scenes[2].snapshot.feed.views.saved.latest[1]: expected an id the list does not already hold",
+    ],
+    [
+      "a latest order holding an id top lacks",
+      ["snapshot", "feed", "views", "latest"],
+      { top: ["corvane"], latest: ["corvane", "tessaly"], waiting: null, older: [] },
+      "scenes[2].snapshot.feed.views.latest.latest[1]: expected an id in the view's top",
+    ],
+    [
+      "a top order holding an id latest lacks",
+      ["snapshot", "feed", "views", "latest"],
+      { top: ["corvane", "tessaly"], latest: ["corvane"], waiting: null, older: [] },
+      "scenes[2].snapshot.feed.views.latest.top[1]: expected an id in the view's latest",
+    ],
+    [
+      "an id repeated inside older",
+      ["snapshot", "feed", "views", "latest"],
+      { top: [], latest: [], waiting: null, older: ["tessaly", "tessaly"] },
+      "scenes[2].snapshot.feed.views.latest.older[1]: expected an id the list does not already hold",
+    ],
+    [
+      "an id repeated inside waiting",
+      ["snapshot", "feed", "views", "latest"],
+      {
+        top: [],
+        latest: [],
+        waiting: { label: "2 new stories", ids: ["tessaly", "tessaly"] },
+        older: [],
+      },
+      "scenes[2].snapshot.feed.views.latest.waiting.ids[1]: expected an id the list does not already hold",
+    ],
+    [
+      "an id both waiting and older",
+      ["snapshot", "feed", "views", "latest"],
+      {
+        top: [],
+        latest: [],
+        waiting: { label: "1 new story", ids: ["tessaly"] },
+        older: ["tessaly"],
+      },
+      "scenes[2].snapshot.feed.views.latest.older[0]: expected an id the view does not already list",
     ],
     [
       "signal strength marks of 4",
@@ -273,5 +398,14 @@ describe("readSlice", () => {
     [{ scenes: [3] }, "scenes[0]: expected an object"],
   ])("is invalid for %j", (source, reason) => {
     expect(readSlice(source)).toEqual({ kind: "invalid", reason });
+  });
+
+  it("requires a scene called main, naming the path", () => {
+    const copy = structuredClone(fixture.slice) as { scenes: { id: string }[] };
+    for (const scene of copy.scenes) scene.id = `x-${scene.id}`;
+    expect(readSlice(copy)).toEqual({
+      kind: "invalid",
+      reason: 'scenes: expected a scene with id "main"',
+    });
   });
 });

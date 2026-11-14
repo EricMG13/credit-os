@@ -203,7 +203,10 @@ export function SignalPage({
       <div className="p-8">
         <Empty page title="No such sample scene">
           <EmptyState.Footer>
-            <a className="text-sm font-semibold text-text-link" href="#/signal">
+            <a
+              className="text-sm font-semibold text-text-link"
+              href={sceneHref(slice.data.scenes[0], "feed/for-you")}
+            >
               Back to the sample scenes
             </a>
           </EmptyState.Footer>

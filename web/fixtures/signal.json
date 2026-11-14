@@ -25,6 +25,12 @@
           "feed": {
             "status": "ready",
             "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
             "stories": [
               {
                 "id": "corvane",
@@ -217,27 +223,79 @@
                 "source": { "name": "Northgate Ratings", "monogram": "NR" },
                 "time": "28 Oct",
                 "summary": "The agency points to contract cover through 2028."
+              },
+              {
+                "id": "lenmark",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Lenmark Retail secures a covenant waiver from its banks",
+                "url": "https://example.com/lenmark",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "3 days ago",
+                "summary": "The waiver runs to the end of the financial year. Lenmark pays a small fee for it.",
+                "tags": ["Retail"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "karsten",
+                "kind": "regulator",
+                "kindLabel": "Regulator",
+                "headline": "Karsten Power files its annual report with the securities regulator",
+                "url": "https://example.com/karsten",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "4 days ago",
+                "summary": "The filing lists two new related-party loans.",
+                "tags": ["Power"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
               }
             ],
             "views": {
               "for-you": {
                 "top": ["corvane", "tessaly", "halvorsen", "brightwell"],
-                "latest": ["corvane", "tessaly", "halvorsen", "brightwell"]
+                "latest": ["corvane", "tessaly", "halvorsen", "brightwell"],
+                "waiting": {
+                  "label": "4 new stories",
+                  "ids": ["oakhaven", "pellant", "brightwell-clearance", "oakhaven-affirm"]
+                },
+                "older": ["lenmark", "karsten"]
               },
-              "latest": { "top": ["oakhaven", "pellant"], "latest": ["oakhaven", "pellant"] },
+              "latest": {
+                "top": ["oakhaven", "pellant"],
+                "latest": ["oakhaven", "pellant"],
+                "waiting": null,
+                "older": []
+              },
               "saved": {
                 "top": ["halvorsen", "brightwell-clearance"],
-                "latest": ["halvorsen", "brightwell-clearance"]
+                "latest": ["halvorsen", "brightwell-clearance"],
+                "waiting": null,
+                "older": []
               }
             },
             "topics": {
               "shipping": {
                 "top": ["halvorsen", "oakhaven-affirm"],
-                "latest": ["halvorsen", "oakhaven-affirm"]
+                "latest": ["halvorsen", "oakhaven-affirm"],
+                "waiting": null,
+                "older": []
               },
-              "packaging": { "top": [], "latest": [] },
-              "telecoms": { "top": [], "latest": [] },
-              "rating-actions": { "top": [], "latest": [] }
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "digests": []
           }
@@ -267,6 +325,12 @@
           "feed": {
             "status": "ready",
             "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
             "stories": [
               {
                 "id": "corvane",
@@ -308,15 +372,25 @@
               }
             ],
             "views": {
-              "for-you": { "top": ["corvane", "brightwell"], "latest": ["corvane", "brightwell"] },
-              "latest": { "top": [], "latest": [] },
-              "saved": { "top": [], "latest": [] }
+              "for-you": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "latest": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [] },
-              "packaging": { "top": [], "latest": [] },
-              "telecoms": { "top": [], "latest": [] },
-              "rating-actions": { "top": [], "latest": [] }
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "digests": []
           }
@@ -346,6 +420,12 @@
           "feed": {
             "status": "ready",
             "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
             "stories": [
               {
                 "id": "corvane",
@@ -464,16 +544,18 @@
                   "brightwell",
                   "daily-ratings-12-nov",
                   "daily-ratings-11-nov"
-                ]
+                ],
+                "waiting": null,
+                "older": []
               },
-              "latest": { "top": [], "latest": [] },
-              "saved": { "top": [], "latest": [] }
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [] },
-              "packaging": { "top": [], "latest": [] },
-              "telecoms": { "top": [], "latest": [] },
-              "rating-actions": { "top": [], "latest": [] }
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "digests": [
               {
@@ -547,17 +629,18 @@
           "feed": {
             "status": "loading",
             "error": null,
+            "freshness": { "state": "checking", "checked": null, "failing": null, "error": null },
             "stories": [],
             "views": {
-              "for-you": { "top": [], "latest": [] },
-              "latest": { "top": [], "latest": [] },
-              "saved": { "top": [], "latest": [] }
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [] },
-              "packaging": { "top": [], "latest": [] },
-              "telecoms": { "top": [], "latest": [] },
-              "rating-actions": { "top": [], "latest": [] }
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "digests": []
           }
@@ -582,11 +665,53 @@
           "feed": {
             "status": "ready",
             "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
             "stories": [],
             "views": {
-              "for-you": { "top": [], "latest": [] },
-              "latest": { "top": [], "latest": [] },
-              "saved": { "top": [], "latest": [] }
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": []
+          }
+        }
+      },
+      {
+        "id": "not-checked",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "not-checked",
+              "checked": null,
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {},
             "digests": []
@@ -601,9 +726,11 @@
       { "scene": "main", "view": "latest" },
       { "scene": "main", "view": "saved" },
       { "scene": "reader", "view": "for-you" },
+      { "scene": "reader", "view": "latest" },
       { "scene": "ai-on", "view": "for-you" },
       { "scene": "no-name", "view": "for-you" },
-      { "scene": "no-topics", "view": "for-you" }
+      { "scene": "no-topics", "view": "for-you" },
+      { "scene": "not-checked", "view": "for-you" }
     ],
     "/signal/:scene/topic/:topic": [{ "scene": "main", "topic": "shipping" }],
     "/signal/:scene/group/:group": [{ "scene": "main", "group": "leveraged-credit" }],
