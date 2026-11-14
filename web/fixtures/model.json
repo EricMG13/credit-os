@@ -1,1 +1,84 @@
-{}
+{
+  "slice": {
+    "runs": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30",
+        "header": {
+          "issuerName": "TransDigm Group",
+          "asOf": "As of 30 June 2025",
+          "purpose": "Annual review",
+          "state": "Finished",
+          "sample": true
+        },
+        "links": {
+          "library": "#/",
+          "report": "#/library/transdigm/2025-06-30/overview",
+          "evidence": "#/library/transdigm/2025-06-30/evidence",
+          "evidenceGaps": "#/library/transdigm/2025-06-30/evidence"
+        },
+        "limitations": {
+          "count": "6",
+          "gapsLinkText": "See the 3 gaps in Evidence",
+          "lead": "Six qualifications apply to this model. Each is stated in full and stays open; none changes the bottom line on its own.",
+          "items": [
+            {
+              "title": "EBITDA is the company’s own measure",
+              "label": "Earnings",
+              "text": "EBITDA as defined adds back items the company chooses. No independent adjustment was made, so leverage on a stricter measure would be higher.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "FY23 cash interest is missing",
+              "label": "Data",
+              "text": "Cash interest for FY23 was not split out in the sources. Interest cover and free cash flow for that year are shown as n.a., not estimated.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "FY22 inventories are missing",
+              "label": "Data",
+              "text": "The FY22 balance sheet in the sources does not show inventories separately. The figure is n.a. and FY22 working capital ratios are not stated.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "No acquisitions or shareholder returns after FY25",
+              "label": "Forecast",
+              "text": "Both cases assume no acquisitions and forecast no dividends or buybacks. The company has made both in most years, so cash and leverage are likely to be worse than shown.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "The downside case is a single scenario",
+              "label": "Downside case",
+              "text": "One traffic shock was modelled. It does not combine lower traffic with a loss of pricing power, and it assumes the 2028 maturities can still be refinanced.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Revolver terms are withheld",
+              "label": "Downside case",
+              "text": "The amount drawn and the terms of the revolving facility are shown to the deal team only. Liquidity under the downside case could not be measured.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            }
+          ],
+          "notEstablished": {
+            "count": "3",
+            "items": [
+              {
+                "title": "Pension deficit",
+                "reason": "No source in this run states the funded position of the pension plans."
+              },
+              {
+                "title": "Quarterly cash flow",
+                "reason": "The sources give annual figures only, so no quarter-by-quarter path was built."
+              },
+              {
+                "title": "Months of liquidity, downside case",
+                "reason": "The revolver terms are withheld, so the chart could not be drawn."
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "params": {}
+}
