@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
+import { cx } from "@/utils/cx";
 import { RunContext } from "./RunContext";
 
 /** Put on the element that holds a control, so hovering the figure reveals it. */
@@ -10,7 +11,14 @@ export const TRACE_HOST = "group/trace relative";
  * on keyboard focus, always on touch, and for every control while the frame's Show sources is on.
  * `null` is a figure with no trace: it draws nothing.
  */
-export function TraceControl({ trace }: { trace: string | null }) {
+export function TraceControl({
+  trace,
+  onDark = false,
+}: {
+  trace: string | null;
+  /** Set on the navy bottom-line band: a transparent control with a white outline. */
+  onDark?: boolean;
+}) {
   const run = useContext(RunContext);
   if (run === null) throw new Error("TraceControl was drawn outside a RunFrame");
   if (trace === null) return null;
@@ -24,7 +32,12 @@ export function TraceControl({ trace }: { trace: string | null }) {
         onPress={() => {
           run.open(trace);
         }}
-        className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-ds-sm border border-border-hairline bg-surface-card text-text-tertiary opacity-0 transition-opacity duration-150 group-hover/trace:opacity-100 hover:border-action-subtle-hover hover:bg-action-subtle hover:text-action focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 in-data-[sources=on]:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100"
+        className={cx(
+          "flex size-7 flex-none cursor-pointer items-center justify-center rounded-ds-sm border opacity-0 transition-opacity duration-150 group-hover/trace:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 in-data-[sources=on]:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100",
+          onDark
+            ? "border-white/30 bg-transparent text-white hover:bg-white/10 focus-visible:ring-offset-surface-inverse"
+            : "border-border-hairline bg-surface-card text-text-tertiary hover:border-action-subtle-hover hover:bg-action-subtle hover:text-action",
+        )}
       >
         <span
           aria-hidden="true"

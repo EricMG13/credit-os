@@ -4,7 +4,7 @@ import { Badge } from "@/components/base/badges/badges";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { PageHeader } from "@/shell/PageHeader";
 import { cx } from "@/utils/cx";
-import type { Run, RunHead } from "../slice";
+import type { LoadedRun, Run, RunHead } from "../slice";
 import { ButtonLink } from "./ButtonLink";
 import { LibraryPage } from "./LibraryPage";
 import { NotHeld } from "./NotHeld";
@@ -181,8 +181,9 @@ function RunSkeleton() {
 
 /**
  * Wraps every run page: the run header, the Show sources switch, the run tabs, and the trace
- * drawer that a page's trace controls open. `children` is the page body; a run still loading
- * draws the skeleton in its place.
+ * drawer that a page's trace controls open. `children` is the page body, or a function of the run
+ * when the body reads the run's own record; a run still loading draws the skeleton in its place
+ * and the function is not called.
  */
 export function RunFrame({
   issuer: issuerId,
@@ -193,7 +194,7 @@ export function RunFrame({
   issuer: string | undefined;
   run: string | undefined;
   tab: RunTab;
-  children: ReactNode;
+  children: ReactNode | ((run: LoadedRun) => ReactNode);
 }) {
   const [sources, setSources] = useSourcesOn();
   const [drawer, setDrawer] = useState<{ key: string | null; open: boolean }>({
@@ -240,7 +241,13 @@ export function RunFrame({
                 />
                 <RunTabs issuer={issuer.id} run={run} tab={tab} />
               </div>
-              {run.loading ? <RunSkeleton /> : children}
+              {run.loading ? (
+                <RunSkeleton />
+              ) : typeof children === "function" ? (
+                children(run)
+              ) : (
+                children
+              )}
             </div>
             {trace === undefined ? null : (
               <TraceDrawer
