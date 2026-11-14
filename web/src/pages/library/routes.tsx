@@ -6,6 +6,7 @@ import type { Route } from "../route-table";
 import { History } from "./History";
 import { Home } from "./Home";
 import { Overview } from "./Overview";
+import { PAGE_NAME } from "./parts/PageTitle";
 
 export { readSlice } from "./read";
 
@@ -14,19 +15,19 @@ export const routes: readonly Route[] = [
     path: "/library/home",
     home: "/library/home",
     layout: "bleed",
-    title: "Library",
+    title: PAGE_NAME.home,
     render: () => <Home />,
   },
   {
     path: "/library/:issuer/history",
     layout: "bleed",
-    title: "Report history",
+    title: PAGE_NAME.history,
     render: (params) => <History issuer={params["issuer"]} />,
   },
   {
     path: "/library/:issuer/:run/overview",
     layout: "bleed",
-    title: "Overview",
+    title: PAGE_NAME.overview,
     render: (params) => <Overview issuer={params["issuer"]} run={params["run"]} />,
   },
 ];
