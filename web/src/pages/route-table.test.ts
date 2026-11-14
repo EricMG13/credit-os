@@ -1,7 +1,14 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { declaredPaths, declaresHome, fillParams, pathsIn } from "../../scripts/route-paths.mjs";
+import {
+  declaredPaths,
+  declaresHome,
+  fillParams,
+  homesIn,
+  pathsIn,
+} from "../../scripts/route-paths.mjs";
 import { SLICE_KEYS } from "../data";
-import { homeProblems, matchRoute, routeTable, type Route } from "./route-table";
+import { areaOf, homeProblems, matchRoute, routeTable, type Route } from "./route-table";
 
 function route(pathPattern: string): Route {
   return { path: pathPattern, title: pathPattern, render: () => null as never };
@@ -69,6 +76,26 @@ describe("declaresHome", () => {
   });
 });
 
+describe("homesIn", () => {
+  it("lists the double-quoted literal homes, in order, and only those", () => {
+    expect(homesIn('{ home: "/run/a" }, { path: "/run/b", home: "/run/b" }')).toEqual([
+      "/run/a",
+      "/run/b",
+    ]);
+    expect(homesIn('// home: "/run/a"\n{ path: "/run/a" }')).toEqual([]);
+  });
+
+  it.each([
+    ["a constant", "{ home: HOME }"],
+    ["a single-quoted string", "{ home: '/run/a' }"],
+    ["a template string", "{ home: `/run/a` }"],
+    ["a quoted key", '{ "home": "/run/a" }'],
+  ])("does not see %s, so the per-group check below fails for it", (_, source) => {
+    expect(homesIn(source)).toEqual([]);
+    expect(declaresHome(source)).toBe(false);
+  });
+});
+
 describe("fillParams", () => {
   it("replaces the whole segment after a colon, as matchRoute reads it", () => {
     const pattern = "/library/:issuer-id/:run_2/overview";
@@ -88,6 +115,20 @@ describe("the real page groups", () => {
     const declared = routeTable.routes.filter((r) => r.path.split("/")[1] === group);
     expect(declaredPaths(dir)).toEqual(declared.map((r) => r.path));
   });
+
+  it.each(SLICE_KEYS)(
+    "%s: every home is a double-quoted literal in routes.tsx, so the script sees it",
+    (group) => {
+      const source = readFileSync(path.join(import.meta.dirname, group, "routes.tsx"), "utf8");
+      const declared = routeTable.routes
+        .filter((r) => r.path.split("/")[1] === group)
+        .flatMap((r) => (r.home === undefined ? [] : [r.home]));
+      expect(homesIn(source), `home in ${group}/routes.tsx must be a "…" literal`).toEqual(
+        declared,
+      );
+      expect(declaresHome(source)).toBe(declared.length > 0);
+    },
+  );
 
   it("every route belongs to a group folder", () => {
     const seen = SLICE_KEYS.flatMap((group) =>
@@ -115,9 +156,26 @@ describe("declared homes", () => {
     ["a home its path does not match", withHome(sig, "/signal/main/other"), 1],
     ["a home another route matches first", withHome("/signal/b/c", "/signal/b/c"), 1],
     ["a home outside the group", withHome("/signal/x", "/model/x"), 1],
+    ["a home with a query", withHome("/signal/:q", "/signal/a?b"), 1],
+    ["a home with an encoded colon", withHome("/signal/:q", "/signal/a%3Ab"), 0],
   ])("%s: %i problem(s)", (_, candidate, count) => {
     const earlier = candidate.path === "/signal/b/c" ? [route("/signal/:p/c")] : [];
     expect(homeProblems([...earlier, candidate])).toHaveLength(count);
+  });
+
+  it("names the group when a home leaves it though its route matches", () => {
+    const stray = withHome("/:group/x", "/signal/x");
+    expect(areaOf(stray.path)).toBe("library");
+    expect(homeProblems([stray])).toEqual(["/:group/x: home /signal/x is outside /library/"]);
+  });
+
+  it("flags a second home in one group, and only in the same group", () => {
+    const first = withHome("/signal/a", "/signal/a");
+    const second = withHome("/signal/b", "/signal/b");
+    expect(homeProblems([first, second])).toEqual([
+      "/signal/b: group signal already has a home, /signal/a",
+    ]);
+    expect(homeProblems([first, withHome("/run/b", "/run/b")])).toEqual([]);
   });
 
   it("finds no problem in the real route table", () => {

@@ -13,9 +13,14 @@ export function pathsIn(source) {
   return [...withoutComments(source).matchAll(/\bpath:\s*"(\/[^"]*)"/g)].map((match) => match[1]);
 }
 
+/** The `home: "/…"` literals in the source, in order. A home written any other way is not seen. */
+export function homesIn(source) {
+  return [...withoutComments(source).matchAll(/\bhome:\s*"(\/[^"]*)"/g)].map((match) => match[1]);
+}
+
 /** True when a route object in the source declares `home: "/…"`; the group then has a bare address. */
 export function declaresHome(source) {
-  return /\bhome:\s*"\//.test(withoutComments(source));
+  return homesIn(source).length > 0;
 }
 
 export function groupDeclaresHome(groupDir) {
