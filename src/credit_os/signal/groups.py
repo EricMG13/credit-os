@@ -62,7 +62,7 @@ def _name_key(name: str) -> str:
     return unicodedata.normalize("NFKC", folded)
 
 
-def _user(user: object) -> User:
+def require_user(user: object) -> User:
     if not isinstance(user, User):
         raise StoreError("the user must be a User")
     return user
@@ -70,20 +70,20 @@ def _user(user: object) -> User:
 
 def may_post(user: User) -> bool:
     """A writer or the owner may create groups and manage members."""
-    return _user(user).role in ("writer", "owner")
+    return require_user(user).role in ("writer", "owner")
 
 
-def _stamp(now: object) -> str:
+def require_stamp(now: object) -> str:
     if not isinstance(now, datetime):
         raise StoreError("time must be a datetime")
     return utc_text(now)
 
 
-def _act(by: object) -> tuple[User, str]:
+def require_act(by: object) -> tuple[User, str]:
     """The acting user and the time as UTC text, or a StoreError for anything else."""
     if not isinstance(by, Act):
         raise StoreError("the actor must be an Act holding a User")
-    return _user(by.user), _stamp(by.now)
+    return require_user(by.user), require_stamp(by.now)
 
 
 def _group_id(group_id: object) -> int:
@@ -134,7 +134,7 @@ def create_group(
     topic_ids: list[int] | tuple[int, ...],
 ) -> int:
     """Create a group with the actor as its first member; return its id."""
-    user, stamp = _act(by)
+    user, stamp = require_act(by)
     if not may_post(user):
         raise Forbidden("only writers and the owner can create groups")
     group_name = _group_name(name)
@@ -201,7 +201,7 @@ def require_visible(db: sqlite3.Connection, user_name: str, group_id: int) -> sq
 
 def can_manage(db: sqlite3.Connection, user: User, group_id: int) -> bool:
     """The user may manage the group's members: a writer or the owner who can see it."""
-    who = _who(_user(user).name)
+    who = _who(require_user(user).name)
     gid = _group_id(group_id)
     return may_post(user) and _visible_row(db, who, gid) is not None
 
@@ -209,7 +209,7 @@ def can_manage(db: sqlite3.Connection, user: User, group_id: int) -> bool:
 def join(db: sqlite3.Connection, user_name: str, group_id: int, now: datetime) -> None:
     """Join an open group; an invited group is only joined by being added (or already in)."""
     member = require_name(user_name)
-    stamp = _stamp(now)
+    stamp = require_stamp(now)
     gid = _group_id(group_id)
     with write_transaction(db):
         require_visible(db, member, gid)
@@ -254,7 +254,7 @@ def leave(db: sqlite3.Connection, user_name: str, group_id: int) -> None:
 
 def add_member(db: sqlite3.Connection, by: Act, group_id: int, name: str) -> str:
     """Add a member to a group the actor can see; return the name. Needs a writer or the owner."""
-    actor, stamp = _act(by)
+    actor, stamp = require_act(by)
     gid = _group_id(group_id)
     actor_name = _who(actor.name)
     with write_transaction(db):

@@ -183,7 +183,7 @@ def _text(value: object, what: str) -> str:
     return value
 
 
-def _id(number: str, what: str) -> int:
+def parse_id(number: str, what: str) -> int:
     """A decimal id that SQLite can hold, else ViewError."""
     if (
         not number.isascii()
@@ -195,7 +195,7 @@ def _id(number: str, what: str) -> int:
     return int(number)
 
 
-def _instant(text: str, what: str) -> str:
+def parse_instant(text: str, what: str) -> str:
     """The stored UTC text of a zoned ISO time, else ViewError."""
     try:
         parsed = datetime.fromisoformat(text)
@@ -219,11 +219,12 @@ def _after(after: object) -> int:
     return after
 
 
-def _cursor(before: str) -> tuple[str, int]:
-    stamp, bar, number = before.rpartition("|")
-    if not bar:
+def parse_cursor(before: str, separator: str) -> tuple[str, int]:
+    """A `<zoned time><separator><id>` cursor as (UTC text, id), else ViewError."""
+    stamp, found, number = before.rpartition(separator)
+    if not found:
         raise ViewError(f"malformed cursor {_shown(before)}")
-    return _instant(stamp, "cursor time"), _id(number, "cursor id")
+    return parse_instant(stamp, "cursor time"), parse_id(number, "cursor id")
 
 
 def _story_id(story_id: object) -> int:
@@ -248,7 +249,7 @@ def _view(db: sqlite3.Connection, view: object) -> tuple[str, int | None]:
         return text, None
     prefix, _, number = text.partition(":")
     if prefix == "topic" and number.isascii() and number.isdecimal():
-        topic_id = _id(number, "topic id")
+        topic_id = parse_id(number, "topic id")
         if db.execute("SELECT 1 FROM topics WHERE id=?", (topic_id,)).fetchone() is None:
             raise ViewError(f"no topic with id {topic_id}")
         return "topic", topic_id
@@ -278,7 +279,7 @@ def _filter_params(filters: Filters) -> dict[str, object]:
     stamp: str | None = None
     cursor_id = 0
     if before is not None:
-        stamp, cursor_id = _cursor(_text(before, "before"))
+        stamp, cursor_id = parse_cursor(_text(before, "before"), "|")
     return {
         "kind": kind,
         "match": match,
@@ -317,20 +318,31 @@ def _card(db: sqlite3.Connection, visible: str, row: sqlite3.Row) -> Card:
     )
 
 
-def _visible_json(db: sqlite3.Connection, user_name: str) -> str:
-    """The ids of the groups the user can see, as JSON: read once per page, in its snapshot."""
+def visible_json(db: sqlite3.Connection, user_name: str) -> str:
+    """The ids of the groups the user can see, as JSON for `json_each(?)`: read once per request,
+    in its snapshot."""
     return json.dumps(visible_group_ids(db, user_name))
+
+
+def card_in_snapshot(db: sqlite3.Connection, user_name: str, story_id: int) -> Card:
+    """The card of one story as the user sees it, read inside the caller's transaction (a
+    `read_snapshot` or a write transaction; none open is `StoreUnusable`), else ViewError."""
+    who = require_name(user_name)
+    sid = _story_id(story_id)
+    if not db.in_transaction:
+        raise StoreUnusable("a card is read inside the caller's snapshot")
+    row = db.execute(_CARD_ONE, (who, sid)).fetchone()
+    if row is None:
+        raise ViewError(f"no story with id {sid}")
+    return _card(db, visible_json(db, who), row)
 
 
 def card_for(db: sqlite3.Connection, user_name: str, story_id: int) -> Card:
     """The card of one story as the user sees it, else ViewError."""
-    who = require_name(user_name)
-    sid = _story_id(story_id)
+    require_name(user_name)
+    _story_id(story_id)
     with read_snapshot(db):
-        row = db.execute(_CARD_ONE, (who, sid)).fetchone()
-        if row is None:
-            raise ViewError(f"no story with id {sid}")
-        return _card(db, _visible_json(db, who), row)
+        return card_in_snapshot(db, user_name, story_id)
 
 
 def feed(
@@ -356,7 +368,7 @@ def feed(
                 "limit": PAGE + 1,
             },
         ).fetchall()
-        visible = _visible_json(db, who)
+        visible = visible_json(db, who)
         cards = tuple(_card(db, visible, row) for row in rows[:PAGE])
         newest = int(db.execute("SELECT COALESCE(MAX(id), 0) FROM stories").fetchone()[0])
     last = cards[-1] if len(rows) > PAGE else None
