@@ -452,6 +452,13 @@ const thread: Reader<SignalThreadSummary> = (v, path) => {
     ? bad(`${path}.note`, "a note when the thread names no story")
     : got;
 };
+/** A name is listed once in a group: the avatars and the screen-reader list key on it. */
+function repeatedName(members: { name: string }[], path: string): Got<never> | null {
+  const at = repeatAt(members.map((m) => m.name));
+  return at === -1
+    ? null
+    : bad(`${path}.members[${String(at)}].name`, "a name the group does not repeat");
+}
 const groupBase = shape<SignalGroup>({
   id: str,
   name: str,
@@ -465,6 +472,8 @@ const groupBase = shape<SignalGroup>({
 const group: Reader<SignalGroup> = (v, path) => {
   const got = groupBase(v, path);
   if (!got.ok) return got;
+  const twice = repeatedName(got.value.members, path);
+  if (twice !== null) return twice;
   return got.value.members.length === 0 && got.value.moreMembers !== null
     ? bad(`${path}.moreMembers`, "null when the group lists no members")
     : got;
@@ -708,6 +717,8 @@ const settingsGroup: Reader<SignalSettingsGroup> = (v, path) => {
       "an option the list does not repeat",
     );
   }
+  const twice = repeatedName(members, path);
+  if (twice !== null) return twice;
   if (!options.includes(visibility)) {
     return bad(`${path}.visibility`, "one of the group's visibilityOptions");
   }
@@ -850,6 +861,35 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
     if (held.name !== channel.name) {
       const index = snap.settings.groups.indexOf(held);
       return `${at}.groups[${String(index)}].name: expected the name the channel list gives this group`;
+    }
+  }
+  return settingsMembersProblem(snap, path);
+}
+
+/**
+ * A group in both lists has one membership: the same member line, the same names in the same order
+ * (Settings' initials may be the frame's one-letter form) and, where both carry a "+N", the same one.
+ * Visibility is not compared: the two pages use two vocabularies (an open product question).
+ */
+function settingsMembersProblem(snap: SignalSnapshot, path: string): string | null {
+  for (const [i, held] of snap.settings.groups.entries()) {
+    const page = snap.groups.find((g) => g.id === held.id);
+    if (page === undefined) continue;
+    const at = `${path}.settings.groups[${String(i)}]`;
+    if (held.memberSummary !== page.memberSummary) {
+      return `${at}.memberSummary: expected the member line the group page gives this group`;
+    }
+    const names = (g: { members: { name: string }[] }) =>
+      JSON.stringify(g.members.map((m) => m.name));
+    if (names(held) !== names(page)) {
+      return `${at}.members: expected the member names, in order, the group page gives this group`;
+    }
+    if (
+      held.moreMembers !== null &&
+      page.moreMembers !== null &&
+      held.moreMembers !== page.moreMembers
+    ) {
+      return `${at}.moreMembers: expected the "+N" the group page gives this group`;
     }
   }
   return null;

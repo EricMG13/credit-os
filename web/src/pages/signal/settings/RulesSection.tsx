@@ -17,21 +17,22 @@ export function RulesSection({
     <Section title="Thread rules" hint="These apply to every group.">
       {rules.length === 0 ? (
         <p className="text-sm text-text-tertiary">No thread rules yet.</p>
-      ) : null}
-      <ul className="flex flex-col gap-5">
-        {rules.map((rule) => (
-          <li key={rule.id}>
-            <Toggle
-              label={rule.label}
-              hint={rule.hint}
-              isSelected={on(rule)}
-              onChange={(value) => {
-                onChange(rule, value);
-              }}
-            />
-          </li>
-        ))}
-      </ul>
+      ) : (
+        <ul className="flex flex-col gap-5">
+          {rules.map((rule) => (
+            <li key={rule.id}>
+              <Toggle
+                label={rule.label}
+                hint={rule.hint}
+                isSelected={on(rule)}
+                onChange={(value) => {
+                  onChange(rule, value);
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </Section>
   );
 }

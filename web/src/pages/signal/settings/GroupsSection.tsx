@@ -55,9 +55,13 @@ function Row({
       >
         {(item) => <Select.Item id={item.id} label={item.label} />}
       </Select>
-      <Button color="tertiary" isDisabled aria-describedby={REASON_ID}>
+      <Button
+        color="tertiary"
+        isDisabled
+        aria-label={`Edit members: ${group.name}`}
+        aria-describedby={REASON_ID}
+      >
         Edit members
-        <span className="sr-only">{`: ${group.name}`}</span>
       </Button>
     </li>
   );
@@ -85,19 +89,22 @@ export function GroupsSection({
       <p id={REASON_ID} className="mb-3 text-sm text-text-tertiary">
         Sample data: groups and their members cannot be changed here.
       </p>
-      {groups.length === 0 ? <p className="text-sm text-text-tertiary">No groups yet.</p> : null}
-      <ul>
-        {groups.map((group) => (
-          <Row
-            key={group.id}
-            group={group}
-            visibility={visibility(group)}
-            onVisibility={(value) => {
-              onVisibility(group, value);
-            }}
-          />
-        ))}
-      </ul>
+      {groups.length === 0 ? (
+        <p className="text-sm text-text-tertiary">No groups yet.</p>
+      ) : (
+        <ul>
+          {groups.map((group) => (
+            <Row
+              key={group.id}
+              group={group}
+              visibility={visibility(group)}
+              onVisibility={(value) => {
+                onVisibility(group, value);
+              }}
+            />
+          ))}
+        </ul>
+      )}
     </Section>
   );
 }
