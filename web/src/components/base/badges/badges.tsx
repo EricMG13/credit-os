@@ -29,7 +29,7 @@ const colors: Record<BadgeColors, { root: string; addon: string }> = {
     addon: "text-utility-sky-500",
   },
   gap: {
-    root: "bg-white text-gap-text border border-dashed border-border-gap ring-0",
+    root: "bg-white text-gap-text text-caption border border-dashed border-border-gap ring-0",
     addon: "text-gap-text",
   },
 };

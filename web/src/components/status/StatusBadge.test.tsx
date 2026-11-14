@@ -54,6 +54,22 @@ describe("StatusBadge", () => {
     }
   });
 
+  it("adds no halo to other half-filled action states even when live", () => {
+    const cases = [
+      ["Dated records", "Next"],
+      ["File state", "Uploading"],
+      ["Signal source states", "Proposed"],
+    ] as const;
+    for (const [set, state] of cases) {
+      const { container, unmount } = render(
+        <StatusBadge set={set as "Status"} state={state as "Success"} live />,
+      );
+      expect(container.querySelector('[data-shape="half-filled circle"]'), state).not.toBeNull();
+      expect(container.querySelector(".status-halo"), state).toBeNull();
+      unmount();
+    }
+  });
+
   it("gives every state of every set visible text and a shape", () => {
     for (const [name, set] of Object.entries(STATUS_SETS)) {
       for (const state of Object.values(set)) {

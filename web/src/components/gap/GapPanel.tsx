@@ -1,12 +1,6 @@
-import { ToneBadge } from "@/components/status/StatusBadge";
 import { StatusShape } from "@/components/status/shapes";
 
 const GAP_WORDS = "Not established for this run";
-
-/** The inline form of a gap, for a table cell or a chart. */
-export function GapBadge() {
-  return <ToneBadge shape="dashed ring" tone="gap" word={GAP_WORDS} />;
-}
 
 export function GapPanel({ reason }: { reason: string }) {
   return (

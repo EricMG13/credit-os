@@ -1,7 +1,8 @@
 export function Missing() {
   return (
-    <span aria-label="not available" className="tabular-nums text-text-tertiary">
-      n.a.
+    <span className="tabular-nums text-text-tertiary">
+      <span aria-hidden="true">n.a.</span>
+      <span className="sr-only">not available</span>
     </span>
   );
 }

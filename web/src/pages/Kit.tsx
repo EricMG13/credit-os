@@ -5,14 +5,15 @@ import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import { Button, styles } from "@/components/base/buttons/button";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
+import { TrendChart } from "@/components/chart/TrendChart";
 import { Blocked } from "@/components/gap/Blocked";
-import { GapBadge, GapPanel } from "@/components/gap/GapPanel";
+import { GapPanel } from "@/components/gap/GapPanel";
 import { Missing } from "@/components/gap/Missing";
 import { Skeleton } from "@/components/gap/Skeleton";
 import { Withheld } from "@/components/gap/Withheld";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
-import { StatusBadge } from "@/components/status/StatusBadge";
+import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
 
 function label(slug: string): string {
   const words = slug.replace("-", " ");
@@ -38,6 +39,43 @@ function Plus({ className, "data-icon": slot }: IconProps) {
     </svg>
   );
 }
+
+const PERIODS = ["FY21", "FY22", "FY23", "FY24", "FY25", "FY26"];
+
+// Sample data, written out: the page computes and formats no figure.
+const TREND = {
+  series: [
+    { name: "Net debt", values: [412, 398, 377, 361, 340, 322] },
+    { name: "Gross debt", values: [520, 511, null, 478, 455, 431] },
+    { name: "Cash", values: [108, 113, 118, 117, 115, 109] },
+  ],
+  table: [
+    { name: "Net debt", cells: ["412", "398", "377", "361", "340", "322"] },
+    { name: "Gross debt", cells: ["520", "511", null, "478", "455", "431"] },
+    { name: "Cash", cells: ["108", "113", "118", "117", "115", "109"] },
+  ],
+};
+
+const EIGHT = [
+  "Term loan",
+  "Notes",
+  "Revolver",
+  "Leases",
+  "Pensions",
+  "Overdraft",
+  "Bonds",
+  "Other debt",
+];
+const FOLDED = {
+  series: EIGHT.map((name, i) => ({
+    name,
+    values: PERIODS.map((_, p) => 10 * (i + 1) + 3 * p),
+  })),
+  table: EIGHT.map((name, i) => ({
+    name,
+    cells: PERIODS.map((_, p) => String(10 * (i + 1) + 3 * p)),
+  })),
+};
 
 function Row({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-4">{children}</div>;
@@ -185,6 +223,26 @@ export function Kit() {
             <ButtonGroupItem id="table">Table</ButtonGroupItem>
           </ButtonGroup>
         </Row>
+      </section>
+
+      <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
+        <h2 id="kit-trend-chart" className="font-display text-h2 text-text-primary">
+          Trend chart
+        </h2>
+        <TrendChart
+          title="Debt by period"
+          note="Sample figures in millions. Gross debt is missing for FY23."
+          periods={PERIODS}
+          series={TREND.series}
+          table={TREND.table}
+        />
+        <TrendChart
+          title="Eight series"
+          note="The seventh and later series take the Other style."
+          periods={PERIODS}
+          series={FOLDED.series}
+          table={FOLDED.table}
+        />
       </section>
 
       <section aria-labelledby="kit-gap-states" className="mt-8 flex flex-col gap-4">

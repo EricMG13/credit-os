@@ -113,6 +113,21 @@ describe("theme.css", () => {
     expect(declared("color-gap-text")?.toUpperCase()).toBe(hex.toUpperCase());
   });
 
+  it("defines the seven chart palette colours from the Chart palette table", () => {
+    const rows = section("Chart palette", "##")
+      .split("\n")
+      .filter((l) => /^\|\s*(\d|Other)\s*\|/.test(l));
+    expect(rows).toHaveLength(7);
+    for (const row of rows) {
+      const cells = row.split("|").map((c) => c.trim());
+      const slot = need(cells[1], "slot").toLowerCase();
+      const hex = need(/#[0-9A-Fa-f]{6}/.exec(cells[3] ?? "")?.[0], `chart ${slot}`);
+      expect(declared(`color-chart-${slot}`)?.toUpperCase(), `chart-${slot}`).toBe(
+        hex.toUpperCase(),
+      );
+    }
+  });
+
   it("defines the radius, shadow and type tokens from the design system", () => {
     const space = section("Space, radius, elevation, borders", "##");
     const radii = [...space.matchAll(/\|\s*`radius-(xs|sm|md|lg|full)`\s*\|\s*([0-9]+px)/g)];
