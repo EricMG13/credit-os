@@ -61,13 +61,37 @@ export type LibraryHome = {
     sector: readonly string[];
     pathway: readonly string[];
     state: readonly string[];
-    /** One label per number of filters applied, from none to the search and all three selects. */
+    /** One label per number of filters applied, from none to the search, all three selects and all three bands. */
     appliedLabels: readonly string[];
   };
   cards: readonly HomeCard[];
   list: { measures: Record<MeasureKey, MeasureSpec> };
 };
 
-export type Issuer = { id: string; name: string };
+/** One run in an issuer's history. `report` and `changes` are absent for a run with nothing to read. */
+export type HistoryEntry = {
+  asOf: string;
+  ran: string;
+  state: RunState;
+  pathway: string;
+  text: string;
+  /** The run id its Overview opens on, or `null`. */
+  report: string | null;
+  /** The delivered "What changed since …" label and the run whose Changes page it opens. */
+  changes: { label: string; run: string } | null;
+};
+
+/**
+ * Newest first, as delivered. `latest` is the run "Open latest report" opens; when it is `null`
+ * nothing can be read and `empty` carries the sentence the page shows in place of the feed.
+ */
+export type History = {
+  subtitle: string;
+  latest: string | null;
+  empty: string | null;
+  entries: readonly HistoryEntry[];
+};
+
+export type Issuer = { id: string; name: string; history: History };
 
 export type LibrarySlice = { home: LibraryHome; issuers: readonly Issuer[] };

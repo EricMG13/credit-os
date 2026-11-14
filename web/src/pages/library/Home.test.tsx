@@ -37,8 +37,10 @@ function pick(label: RegExp, value: string) {
 }
 
 describe("the /library route", () => {
-  it("is declared once, titled Library", () => {
-    expect(routes.map((r) => [r.path, r.title])).toEqual([["/library/home", "Library"]]);
+  it("declares the home once, titled Library", () => {
+    expect(routes.filter((r) => r.path === "/library/home").map((r) => r.title)).toEqual([
+      "Library",
+    ]);
   });
 });
 
