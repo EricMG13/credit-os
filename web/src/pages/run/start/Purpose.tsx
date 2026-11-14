@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { RadioButton, RadioField, RadioGroup } from "react-aria-components";
+import { RadioButton, RadioField, RadioGroup, Text } from "react-aria-components";
 import { Check, FileCheck02 } from "@untitledui/icons";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { cx } from "@/utils/cx";
@@ -36,7 +36,7 @@ export function Purpose({
         className="flex flex-col gap-3"
       >
         {purposes.map((p) => (
-          <RadioField key={p.id} value={p.id}>
+          <RadioField key={p.id} value={p.id} aria-label={p.title}>
             <RadioButton
               className={({ isSelected, isFocusVisible }) =>
                 cx(
@@ -48,8 +48,8 @@ export function Purpose({
             >
               {({ isSelected }) => (
                 <>
-                  <div className="flex items-center gap-3 rounded-t-xl py-3 pr-5 pl-3">
-                    <FeaturedIcon icon={FileCheck02} color="brand" size="md" />
+                  <div className="flex items-center gap-3 rounded-t-xl border-b border-border-hairline py-3 pr-5 pl-3">
+                    <FeaturedIcon icon={FileCheck02} color="brand" size="sm" />
                     <span className="text-md font-semibold text-secondary">{p.title}</span>
                     <span
                       aria-hidden="true"
@@ -61,12 +61,16 @@ export function Purpose({
                       {isSelected ? <Check className="size-3" strokeWidth={3} /> : null}
                     </span>
                   </div>
-                  <div className="flex items-start justify-between gap-4 p-4">
+                  <Text
+                    slot="description"
+                    elementType="div"
+                    className="flex items-start justify-between gap-4 p-4"
+                  >
                     <p className="text-sm text-tertiary">{p.description}</p>
                     <span className="flex-none rounded-md bg-primary px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-secondary ring-1 ring-primary ring-inset">
                       {p.modules}
                     </span>
-                  </div>
+                  </Text>
                 </>
               )}
             </RadioButton>

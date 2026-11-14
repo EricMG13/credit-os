@@ -9,6 +9,8 @@ import { Context } from "./Context";
 import { Documents } from "./Documents";
 import { Purpose } from "./Purpose";
 import { Readiness } from "./Readiness";
+import { Start, Submit } from "./Start";
+import { Started } from "./Started";
 import { Stepper } from "./Stepper";
 
 function LinkButton({
@@ -49,7 +51,9 @@ function Actions({ draft }: { draft: StartDraft }) {
         <LinkButton href={`#/run/start/${previous}`}>Previous</LinkButton>
       )}
       <span className="text-sm text-text-tertiary">{draft.position}</span>
-      {draft.step === "start" ? null : (
+      {draft.step === "start" ? (
+        <Submit label={draft.nextLabel} confirm={draft.confirm} />
+      ) : (
         <div className="flex flex-wrap items-center gap-3">
           {nextBlocked === null ? null : (
             <span id={reasonId} className="text-sm text-text-secondary">
@@ -116,11 +120,8 @@ export function StartPage({ draft: id }: { draft: string }) {
           ) : null}
           {draft.step === "confirm" ? <Confirm groups={draft.groups} /> : null}
           {draft.step === "context" ? <Context key={draft.id} note={draft.note} /> : null}
-          {draft.step === "start" || draft.step === "started" ? (
-            <h2 className="font-display text-h3 text-text-primary">
-              {draft.step === "started" ? draft.title : "Start"}
-            </h2>
-          ) : null}
+          {draft.step === "start" ? <Start recap={draft.recap} paid={draft.paid} /> : null}
+          {draft.step === "started" ? <Started issuer={draft.issuer} draft={draft} /> : null}
           {draft.step === "started" ? null : <Actions draft={draft} />}
         </div>
         <Readiness data={draft.readiness} />

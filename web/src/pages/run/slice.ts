@@ -173,7 +173,14 @@ function draft(v: unknown, path: string): StartDraft {
         const go = obj(g, p);
         return { name: str(go, "name", p), rows: list(go, "rows", p, row) };
       };
-      return { ...base, step: "confirm", groups: list(o, "groups", path, group) };
+      const groups = list(o, "groups", path, group);
+      const names = new Set<string>();
+      groups.forEach((g, i) => {
+        if (names.has(g.name))
+          fail(`${path}.groups[${String(i)}].name`, "a name no other group uses");
+        names.add(g.name);
+      });
+      return { ...base, step: "confirm", groups };
     }
     case "context":
       return { ...base, step: "context", note: str(o, "note", path) };

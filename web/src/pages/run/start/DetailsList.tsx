@@ -9,7 +9,7 @@ export function DetailsList({ rows }: { rows: Row[] }) {
       {rows.map((row, i) => (
         <div
           key={`${String(i)}-${row.label}`}
-          className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4 border-t border-border-subtle py-3 first:border-t-0"
+          className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4 border-t border-border-hairline py-3 first:border-t-0"
         >
           <dt className="font-medium text-text-primary">{row.label}</dt>
           <dd className="wrap-anywhere text-text-secondary">

@@ -20,7 +20,7 @@ export function Confirm({ groups }: { groups: Groups }) {
       <div className="flex flex-col gap-7">
         {groups.map((group) => (
           <section key={group.name} className="flex flex-col gap-2">
-            <h3 className="text-xs font-medium text-text-tertiary">{group.name}</h3>
+            <h3 className="text-caption text-text-tertiary">{group.name}</h3>
             <DetailsList rows={group.rows} />
           </section>
         ))}
