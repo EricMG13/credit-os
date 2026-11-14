@@ -518,7 +518,7 @@ def test_a_denial_the_writable_check_cannot_see_fails_at_the_first_write(
         with pytest.raises(Exception) as raised:
             open_store(folder, migrations=(M1,))
         assert type(raised.value).__name__ == key.UNSEEN_DENIAL_ERROR
-        assert "not writable" not in str(raised.value)  # the write refused it, not the check
+        assert getattr(raised.value.__cause__, "sqlite_errorcode", 0) == key.UNSEEN_DENIAL_CODE
         assert _file(folder).read_bytes() == before
     finally:
         _file(folder).chmod(0o600)
