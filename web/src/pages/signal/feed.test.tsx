@@ -129,7 +129,8 @@ describe("the feed list and the story card", () => {
   it("gives a writer Comment (with its count), Share to group and Save", () => {
     show("/signal/main/feed/for-you");
     const card = story(CORVANE);
-    const comment = card.getByRole("button", { name: `Comment 3: ${CORVANE}` });
+    // Corvane has a thread, so its Comment is a link to it
+    const comment = card.getByRole("link", { name: `Comment 3: ${CORVANE}` });
     expect(within(comment).getByText("3")).toBeInTheDocument();
     // label and count badge share one nowrap box, so the badge cannot drop under the word
     const label = within(comment).getByText("Comment");
@@ -217,7 +218,7 @@ describe("the feed list and the story card", () => {
     (url) => {
       show("/signal/main/feed/for-you", withFirstStory({ url }));
       const card = story(CORVANE);
-      expect(card.queryByRole("link")).not.toBeInTheDocument();
+      expect(card.queryByRole("link", { name: CORVANE })).not.toBeInTheDocument();
       expect(card.queryByText("Open source")).not.toBeInTheDocument();
     },
   );

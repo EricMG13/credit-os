@@ -6,6 +6,7 @@ import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
 import type { LoadResult } from "../../data";
 import { FeedPage, type FeedEntry } from "./FeedPage";
+import { readSlice } from "./slice";
 
 function show(hash: string, slice: unknown = fixture.slice) {
   window.location.hash = `#${hash}`;
@@ -312,7 +313,11 @@ describe("a loading feed has no list controls", () => {
       waiting: { label: "2 new stories", entries: [entry("a")] },
       older: [entry("b")],
     };
+    const read = readSlice(fixture.slice);
+    const scene = read.kind === "ok" ? read.data.scenes[0] : undefined;
+    if (scene === undefined) throw new Error("the fixture reads");
     const props: Omit<ComponentProps<typeof FeedPage>, "loading"> = {
+      scene,
       title: "For you",
       freshness: { state: "checking", checked: null, failing: null, error: null },
       entries,
