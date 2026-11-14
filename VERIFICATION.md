@@ -3,6 +3,85 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Design track: component kit and page scaffolding (step D2a)
+
+**Merged**, on the owner's instruction (merge when the whole-branch review has no High or
+Medium finding), 17 stacked PRs in order, each retargeted to `main` and merged at the head
+named: #17 `a6e6c3d`, #19 `f0a6d9b`, #20 `ff3628f`, #21 `168078c`, #22 `b74ec48`, #23
+`bcbe736`, #25 `6c55a41`, #27 `c3e5bbc`, #28 `27c23e6`, #30 `95b9abe`, #31 `db410ed`, #32
+`03aa989`, #37 `13dc9e9`, #38 `3d182dc`, #39 `46fdaf4`, #40 `b12f99f`, #43 `891a91c` (merge
+`bd534dd`). After the last merge `web/` on `main` is byte-identical to the reviewed head
+`891a91c` (`git diff --quiet origin/main 891a91c -- web`, exit 0).
+
+**Delivers.** Design tokens as Tailwind `@theme`, fonts, the app shell, the component kit on
+`#/kit` (button, tooltip, badge, tabs, status shapes and gap states, cards, timeline, alert,
+empty state, input, select, table, progress, drawer, modal, progress steps, file upload,
+chart frame and trend chart on Recharts), the class coverage check, and the scaffolding for
+D2b to D2e: route table, four empty page groups with slice readers, four fixtures, the
+fixture data writer and the route visits in the open-from-disk check.
+
+**Gates and CI.** `npm --prefix web run gates` exit 0 at each task and at `891a91c`, by the
+controller. Every PR's last CI run was green on `ubuntu-latest` and `windows-latest` before
+merge, read by the coordinator. The stack was built on `d0ca6f3`; the merged `main` also
+holds the back-end PRs merged since, and its own CI run on `bd534dd` had not finished when
+this entry was written.
+
+**Reviews.**
+
+| Level | Reviewer | Result |
+| :--- | :--- | :--- |
+| Task | `mx-precise`, 14 tasks | 8 approved with no fix round, 6 after one fix round and a re-review |
+| Sweep discovery | `mx-autonomous`, on `d0ca6f3..b12f99f` | 5 confirmed defects (Medium 1, Low 4), 8 structural costs. D-1 (Medium), D-2, D-3, S-1, S-2 fixed in `4a7d851` |
+| Whole-branch | fresh `mx-architect`, adversarial, on `d0ca6f3..4a7d851` | Needs fixes: High 0, Medium 3, Low 6, Info 3 |
+| Re-review of the Medium fixes | `mx-precise`, on `891a91c` | Approved: High 0, Medium 0. Final verdict Pass |
+
+The three Medium findings were accessibility defects that unit tests passed for the wrong
+reason, because jsdom computes names differently from Chrome and applies no stylesheet: table
+column headers had an empty accessible name; focus on an invalid input or select only
+thickened the ring in the same colour; a loading button had no name. The open-from-disk gate
+now reads names and the invalid field's focus ring in headless Chrome
+(`web/scripts/kit-chrome.mjs`). The first whole-branch review agent died in a usage outage
+and left nothing; the review recorded here was run from scratch. Reports and probes are in
+the D2a worktree's `.superpowers/sdd/2026-11-13-design-d2a-kit/` (git-ignored, not in the
+repository); the verdicts are in #43's body.
+
+**Ledger.** One line per task, `agent=mx-feature` unless named.
+- `D2a task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
+- `D2a task=2, 3, 4b, 5, 7b fix-rounds=0 gates-first-pass=y`
+- `D2a task=4a, 7d fix-rounds=0 gates-first-pass=n`
+- `D2a task=6, 7a, 7c, 7e, 7f, 8 fix-rounds=1 gates-first-pass=y`
+- `D2a sweep fixes fix-rounds=0 gates-first-pass=y`
+- `D2a whole-branch fixes fix-rounds=1 gates-first-pass=y`
+
+**Rulings by the coordinator.**
+- A focused invalid input or select draws the `focus` token ring at 2px; the error edge stays
+  at rest. This replaces the controller's earlier ruling that kept the source's error ring.
+- Disabled input and select stay at 50% opacity, as decision 0006 ruling 17 for the button.
+
+The controller's rulings (a loading button stays focusable with `aria-disabled`; the chart
+keeps Recharts' accessibility layer, named by its title) stand.
+
+**Parked**, for the next phase sweep: sweep rows D-4 and D-5 (the class and focus-outline
+checks miss some crafted forms; the shipped tree matches a TypeScript-parser oracle) and S-3
+to S-8; kit files named after task numbers (`Kit7c.tsx` and others); the kit shows a state as
+a dot badge; no error boundary, so a component that throws blanks the page; two names for one
+text colour. **For the owner:** no licence notice travels with the 27 files copied from
+Untitled UI React and the three pieces after HyperUI (both recorded as MIT, the texts not
+read); the selected segment and the hovered tab are faint as the source draws them; six early
+commits carry a Sonnet co-author trailer. **Before the first Bar or Pie chart:** `react-is`
+17.0.2 is chosen by a test tool's dependency and needs a decision record. **Before the Run
+group's live page:** 22 horizontal progress steps do not fit a 1280 or 1920 row.
+
+**Not verified.**
+- Edge, and any browser on Windows: CI runs the gates on Windows in Chrome only.
+- Any screen reader; mobile widths; the focus ring outside the kit page; the error mark and
+  hint text while a field is focused (read in the code, not measured).
+- The coordinator read the whole-branch report, the fix diff `4a7d851..891a91c` and each PR's
+  check status; it did not rerun the gates or the reviewers' probes itself.
+- Each stacked PR's size against the 800-line cap rests on CI; three PRs exceed 800 with lock
+  files counted, and the coordinator did not recount them without.
+- The route and slice scaffolding has no page built on it yet; D2b to D2e are its first use.
+
 ## 2026-11-14 Roadmap back end: 1A PR 2 and 1D PR 1
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with CI green
