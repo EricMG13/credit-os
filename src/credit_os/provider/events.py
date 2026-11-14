@@ -83,7 +83,9 @@ def _as_events(events: object) -> list[Any] | None:
     if not isinstance(events, list):
         return None
     ok = all(isinstance(e, dict) and _non_empty(e.get("id")) for e in events)
-    ok = ok and all(isinstance(e["type"], str) and isinstance(e.get("data"), dict) for e in events)
+    ok = ok and all(
+        isinstance(e.get("type"), str) and isinstance(e.get("data"), dict) for e in events
+    )
     return events if ok else None
 
 
@@ -107,11 +109,9 @@ def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     out: list[dict[str, Any]] = []
     for e in events:
-        if e["id"] in seen:
-            continue
-        seen.add(e["id"])
-        if e["type"] == "assistant.usage":
+        if e["id"] not in seen and e["type"] == "assistant.usage":
             out.append(e["data"])
+        seen.add(e["id"])
     return out
 
 
@@ -211,12 +211,9 @@ def _tool_call(data: dict[str, Any]) -> ToolCall | str:
         return "toolName is not a non-empty string"
     if data.get("parentToolCallId") is not None:
         return "sub-agent tool call"
-    arguments = data.get("arguments")
-    if arguments is None or isinstance(arguments, dict):
-        return ToolCall(
-            data["toolCallId"], data["toolName"], {} if arguments is None else arguments
-        )
-    return ToolCall(data["toolCallId"], data["toolName"], {}, json.dumps(arguments))
+    args = data.get("arguments")
+    bad = None if args is None or isinstance(args, dict) else json.dumps(args)
+    return ToolCall(data["toolCallId"], data["toolName"], args if bad is None and args else {}, bad)
 
 
 def _tool_calls(events: list[Any]) -> list[ToolCall] | str:
@@ -238,13 +235,15 @@ def _requested_ids(events: list[Any]) -> set[str | None] | None:
         for d in _of_type(events, "assistant.message")
         if isinstance(r := d.get("toolRequests"), list)
     ]
-    if not lists:
-        return None
-    return {
-        r.get("toolCallId") if isinstance(r, dict) and _non_empty(r.get("toolCallId")) else None
-        for requests in lists
-        for r in requests
-    }
+    return (
+        {
+            r.get("toolCallId") if isinstance(r, dict) and _non_empty(r.get("toolCallId")) else None
+            for requests in lists
+            for r in requests
+        }
+        if lists
+        else None
+    )
 
 
 def _tool_problem(calls: list[ToolCall], events: list[Any], stop: str) -> _Problem | None:

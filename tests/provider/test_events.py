@@ -46,7 +46,7 @@ def test_event_cases(events: list[Any], want: dict[str, Any]) -> None:
     assert turn.usage == reply.usage
 
 
-@pytest.mark.parametrize("events", [*key.BAD_SHAPES, None, "x", {}, 7])
+@pytest.mark.parametrize("events", [*key.BAD_SHAPES, None, "x", {}, 7, [{"id": "e", "data": {}}]])
 def test_bad_shapes(events: Any) -> None:
     reply = _reply(events)
     assert (reply.kind, reply.error_class) == ("sent_unknown", "UnparsableReply")
