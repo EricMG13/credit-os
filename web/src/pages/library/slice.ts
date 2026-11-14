@@ -311,9 +311,46 @@ type MeasuresRecord = Navigable & {
   }[];
 };
 
+/** The words of the Met or not met set. */
+export type TestState = keyof (typeof STATUS_SETS)["Met or not met"];
+
+/**
+ * Terms as labelled values in named groups (`name` is `null` for a group with no heading). A zero
+ * reads as zero, a missing value as `null` ("n.a.") and a withheld one as a `withheld` cell.
+ */
+type FactsRecord = Navigable & {
+  kind: "facts";
+  title: string;
+  groups: readonly {
+    name: string | null;
+    rows: readonly { label: string; value: Cell; trace: string | null }[];
+  }[];
+};
+
+/**
+ * Tests that are met or not, in the order delivered, one group for each state. `count` is the
+ * delivered text beside the state; `note` is a line under the test, or `null`.
+ */
+type StatusRecord = Navigable & {
+  kind: "status";
+  title: string;
+  groups: readonly {
+    state: TestState;
+    count: string;
+    items: readonly { text: string; note: string | null; value: Cell; trace: string | null }[];
+  }[];
+};
+
 /** One block of a module's records. Task 11 adds the chart kinds. */
 export type RecordBlock =
-  MatrixRecord | WatchRecord | QuestionsRecord | EdgesRecord | MetricsRecord | MeasuresRecord;
+  | MatrixRecord
+  | WatchRecord
+  | QuestionsRecord
+  | EdgesRecord
+  | MetricsRecord
+  | MeasuresRecord
+  | FactsRecord
+  | StatusRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {

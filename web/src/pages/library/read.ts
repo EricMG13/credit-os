@@ -36,6 +36,7 @@ import type {
   RunHead,
   RunState,
   Trace,
+  TestState,
   TreeNode,
 } from "./slice";
 import { APPLIED_LABELS } from "./slice";
@@ -839,10 +840,111 @@ function readMeasures(m: Rec, path: string, traces: Traces): RecordBlock {
   };
 }
 
+function readFact(item: unknown, path: string, traces: Traces) {
+  const f = rec(item, path);
+  return {
+    label: named(f, "label", path),
+    value: shownCell(f, "value", path),
+    trace: traceKey(f, "trace", path, traces),
+  };
+}
+
+function readFactGroup(value: unknown, path: string, traces: Traces) {
+  const g = rec(value, path);
+  const rowsPath = child(path, "rows");
+  return {
+    name: gradeOrNull(g, "name", path),
+    rows: some(
+      unique(
+        list(g, "rows", path, (item, p) => readFact(item, p, traces)),
+        rowsPath,
+        (row) => row.label,
+        "label",
+      ),
+      rowsPath,
+    ),
+  };
+}
+
+function readFacts(f: Rec, path: string, traces: Traces): RecordBlock {
+  const groupsPath = child(path, "groups");
+  return {
+    kind: "facts",
+    nav: navLabel(f, "nav", path),
+    title: named(f, "title", path),
+    groups: some(
+      unique(
+        list(f, "groups", path, (item, p) => readFactGroup(item, p, traces)),
+        groupsPath,
+        (group) => group.name ?? "",
+        "name",
+      ),
+      groupsPath,
+    ),
+  };
+}
+
+const TEST_STATES = Object.keys(STATUS_SETS["Met or not met"]) as TestState[];
+
+function readTest(item: unknown, path: string, traces: Traces) {
+  const t = rec(item, path);
+  return {
+    text: named(t, "text", path),
+    note: gradeOrNull(t, "note", path),
+    value: shownCell(t, "value", path),
+    trace: traceKey(t, "trace", path, traces),
+  };
+}
+
+function readTestGroup(value: unknown, path: string, traces: Traces) {
+  const g = rec(value, path);
+  const itemsPath = child(path, "items");
+  return {
+    state: oneOf(g, "state", path, TEST_STATES),
+    count: named(g, "count", path),
+    items: some(
+      unique(
+        list(g, "items", path, (item, p) => readTest(item, p, traces)),
+        itemsPath,
+        (item) => item.text,
+        "text",
+      ),
+      itemsPath,
+    ),
+  };
+}
+
+function readStatus(s: Rec, path: string, traces: Traces): RecordBlock {
+  const groupsPath = child(path, "groups");
+  return {
+    kind: "status",
+    nav: navLabel(s, "nav", path),
+    title: named(s, "title", path),
+    groups: some(
+      unique(
+        list(s, "groups", path, (item, p) => readTestGroup(item, p, traces)),
+        groupsPath,
+        (group) => group.state,
+        "state",
+      ),
+      groupsPath,
+    ),
+  };
+}
+
 function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   const r = rec(value, path);
   switch (
-    oneOf(r, "kind", path, ["matrix", "watch", "questions", "edges", "metrics", "measures"])
+    oneOf(r, "kind", path, [
+      "matrix",
+      "watch",
+      "questions",
+      "edges",
+      "metrics",
+      "measures",
+      "facts",
+      "status",
+    ])
   ) {
     case "matrix":
       return readMatrix(r, path, traces);
@@ -856,6 +958,10 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
       return readMetrics(r, path, traces);
     case "measures":
       return readMeasures(r, path, traces);
+    case "facts":
+      return readFacts(r, path, traces);
+    case "status":
+      return readStatus(r, path, traces);
   }
 }
 

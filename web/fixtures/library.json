@@ -1155,6 +1155,114 @@
                           "trace": "cs-interest-cover"
                         }
                       ]
+                    },
+                    {
+                      "kind": "facts",
+                      "nav": "Terms and tests",
+                      "title": "Facility terms",
+                      "groups": [
+                        {
+                          "name": "Term loan B",
+                          "rows": [
+                            {
+                              "label": "Amount",
+                              "value": { "kind": "value", "text": "USD 1,150m", "at": 1150 },
+                              "trace": "cs-term-loan"
+                            },
+                            {
+                              "label": "Margin",
+                              "value": {
+                                "kind": "value",
+                                "text": "Reference rate plus 3.25%",
+                                "at": null
+                              },
+                              "trace": "cs-term-loan"
+                            },
+                            {
+                              "label": "Maturity",
+                              "value": { "kind": "value", "text": "September 2030", "at": null },
+                              "trace": "cs-term-loan"
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Revolving facility",
+                          "rows": [
+                            {
+                              "label": "Size",
+                              "value": { "kind": "value", "text": "USD 250m", "at": 250 },
+                              "trace": "cs-revolver"
+                            },
+                            {
+                              "label": "Drawn",
+                              "value": { "kind": "value", "text": "USD 0m", "at": 0 },
+                              "trace": "cs-revolver"
+                            },
+                            { "label": "Commitment fee", "value": null, "trace": "cs-revolver" }
+                          ]
+                        },
+                        {
+                          "name": "Receivables facility",
+                          "rows": [
+                            {
+                              "label": "Availability",
+                              "value": { "kind": "withheld", "reason": null },
+                              "trace": "cs-receivables"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "status",
+                      "nav": "Terms and tests",
+                      "title": "Documentation tests",
+                      "groups": [
+                        {
+                          "state": "Not met",
+                          "count": "1",
+                          "items": [
+                            {
+                              "text": "Compliance certificate on time",
+                              "note": null,
+                              "value": {
+                                "kind": "value",
+                                "text": "Delivered 12 days late",
+                                "at": null
+                              },
+                              "trace": null
+                            }
+                          ]
+                        },
+                        {
+                          "state": "Met",
+                          "count": "3",
+                          "items": [
+                            {
+                              "text": "First-lien net leverage",
+                              "note": null,
+                              "value": { "kind": "value", "text": "3.3x against 6.5x", "at": null },
+                              "trace": null
+                            },
+                            {
+                              "text": "Restricted payments basket",
+                              "note": null,
+                              "value": {
+                                "kind": "value",
+                                "text": "USD 20m of USD 75m used",
+                                "at": null
+                              },
+                              "trace": null
+                            },
+                            {
+                              "text": "Receivables facility availability",
+                              "note": null,
+                              "value": { "kind": "withheld", "reason": null },
+                              "trace": null
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ],
                   "limitations": {
@@ -2107,6 +2215,51 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0108"
+              },
+              "cs-term-loan": {
+                "title": "Sources for the term loan",
+                "heading": "Term loan B USD 1,150m",
+                "subtitle": "Capital structure · term · as of 30 Sep 2026",
+                "statement": "A USD 1,150m term loan B at the reference rate plus 3.25% falls due in September 2030.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Term loan B USD 1,150m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0111"
+              },
+              "cs-revolver": {
+                "title": "Sources for the revolving facility",
+                "heading": "Revolving facility USD 250m",
+                "subtitle": "Capital structure · term · as of 30 Sep 2026",
+                "statement": "A USD 250m revolving facility, undrawn at 30 September 2026; the commitment fee is not stated in the files.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Revolving facility USD 250m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0112"
+              },
+              "cs-receivables": {
+                "title": "Sources for the receivables facility",
+                "heading": "Receivables facility withheld",
+                "subtitle": "Capital structure · term · as of 30 Sep 2026",
+                "statement": "The availability of the receivables facility is marked confidential in the source and delivery does not show it.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Receivables facility withheld",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0113"
               }
             }
           },

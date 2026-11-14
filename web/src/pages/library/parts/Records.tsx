@@ -1,9 +1,11 @@
 import type { RecordBlock } from "../slice";
 import { EdgesBlock } from "./EdgesBlock";
+import { FactsBlock } from "./FactsBlock";
 import { MatrixBlock } from "./MatrixBlock";
 import { MeasuresBlock } from "./MeasuresBlock";
 import { MetricsBlock } from "./MetricsBlock";
 import { QuestionsBlock } from "./QuestionsBlock";
+import { StatusBlock } from "./StatusBlock";
 import { WatchBlock } from "./WatchBlock";
 import { recordSections } from "./recordNav";
 
@@ -21,15 +23,26 @@ function Block({ block }: { block: RecordBlock }) {
       return <MetricsBlock block={block} />;
     case "measures":
       return <MeasuresBlock block={block} />;
+    case "facts":
+      return <FactsBlock block={block} />;
+    case "status":
+      return <StatusBlock block={block} />;
   }
 }
 
-/** The mock sets the watch list and the questions side by side: two adjacent blocks of those kinds share a row. */
+/** The mock sets some blocks side by side: the watch list with the questions, the terms with the tests. */
+const BESIDE: Partial<Record<RecordBlock["kind"], RecordBlock["kind"]>> = {
+  watch: "questions",
+  facts: "status",
+};
+
+/** Two adjacent blocks of a pair share a row. */
 function rows(blocks: readonly RecordBlock[]): RecordBlock[][] {
   const out: RecordBlock[][] = [];
   for (const block of blocks) {
     const last = out.at(-1);
-    if (block.kind === "questions" && last?.length === 1 && last[0]?.kind === "watch") {
+    const first = last?.[0];
+    if (last?.length === 1 && first !== undefined && BESIDE[first.kind] === block.kind) {
       last.push(block);
     } else {
       out.push([block]);
