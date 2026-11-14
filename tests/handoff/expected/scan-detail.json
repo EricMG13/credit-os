@@ -1,0 +1,89 @@
+{
+  "fragments/CP-1C-head.md": {
+    "headings": [
+      [2, "Request", 17]
+    ],
+    "fences": [],
+    "comments": []
+  },
+  "fragments/CP-2G-forecast-block.md": {
+    "headings": [
+      [3, "Forecast inputs (machine-readable)", 1]
+    ],
+    "fences": [{"open": 3, "close": 43, "char": "`", "length": 3, "info": "json", "unclosed": false}],
+    "comments": []
+  },
+  "synthetic-new-format/SYNTHETIC-CP-1A.md": {
+    "headings": [
+      [1, "CP-1A handoff", 1],
+      [2, "Request", 3],
+      [2, "Sources", 6],
+      [2, "Findings", 13],
+      [3, "Bottom line", 15],
+      [3, "Key findings", 20],
+      [3, "Contrary evidence and what would change the view", 28],
+      [3, "Limitations", 32],
+      [3, "Events: issuer calendar", 38],
+      [2, "Calculations", 52],
+      [2, "Gaps", 55],
+      [2, "Next module", 61]
+    ],
+    "fences": [],
+    "comments": []
+  },
+  "tdg-2026-11-09/CP-2A.md": {
+    "headings": [
+      [2, "Request", 17],
+      [2, "Sources", 25],
+      [3, "Source register", 27],
+      [3, "Every supplied current handoff", 36],
+      [2, "Findings", 50],
+      [3, "Reader summary", 52],
+      [3, "Downside view", 64],
+      [3, "Dependency re-anchor and stop decision", 68],
+      [3, "Method-scope disagreement requiring controlled resolution", 81],
+      [3, "Analytical appendix — complete canonical registers", 87],
+      [3, "cp2b.cp_model_catalysts — blocked interface", 110],
+      [2, "Calculations", 120],
+      [2, "Gaps", 126],
+      [3, "Gate and evidence remediation ledger", 128],
+      [3, "QA validation and execution limits", 143],
+      [2, "Next module", 149]
+    ],
+    "fences": [],
+    "comments": [{"start": 112, "end": 112, "text": "table-id: cp2b.cp_model_catalysts"}]
+  },
+  "tdg-2026-11-09/CP-2G.md": {
+    "headings": [
+      [2, "Request", 19],
+      [2, "Sources", 27],
+      [3, "Relied-on issuer lineage and settings", 29],
+      [3, "Every supplied current handoff", 36],
+      [2, "Findings", 55],
+      [3, "Reader summary", 57],
+      [3, "Forward model view", 70],
+      [3, "Gate decision and strongest contrary case", 74],
+      [3, "Definition continuity and future modeling restrictions", 80],
+      [3, "Scenario, inflection and challenge disposition", 88],
+      [3, "Forecast inputs (machine-readable)", 98],
+      [3, "Analytical appendix — complete canonical registers", 142],
+      [3, "T2H.1 — Source and upstream gate", 146],
+      [3, "T2H.2 — Historical-to-base bridge", 154],
+      [3, "T2H.3 — Assumption register disposition", 172],
+      [3, "T2H.4 — Operating forecast disposition", 180],
+      [3, "T2H.5 — Debt and cash roll-forward disposition", 186],
+      [3, "T2H.6 — Credit metrics disposition", 192],
+      [3, "T2H.7 — Breakpoint disposition", 198],
+      [3, "T2H.8 — Trajectory and consumer readiness", 204],
+      [3, "T2H.9 — Model gaps", 210],
+      [3, "cp2g.cp_model_forecast_drivers — blocked interface", 222],
+      [2, "Calculations", 232],
+      [2, "Gaps", 238],
+      [3, "Resolution order and bounded research needs", 240],
+      [3, "QA validation and execution limits", 248],
+      [2, "Next module", 265]
+    ],
+    "fences": [{"open": 100, "close": 140, "char": "`", "length": 3, "info": "json", "unclosed": false}],
+    "comments": [{"start": 224, "end": 224, "text": "table-id: cp2g.cp_model_forecast_drivers"}]
+  }
+}
