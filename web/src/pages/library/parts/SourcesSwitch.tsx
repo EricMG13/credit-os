@@ -1,4 +1,30 @@
+import { useSyncExternalStore } from "react";
 import { SwitchButton, SwitchField } from "react-aria-components";
+
+// Show sources is kept in memory for the session, so moving between a run's pages keeps it.
+let sourcesOn = false;
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** The session's Show sources state and its setter, shared by every run frame. */
+export function useSourcesOn(): [boolean, (on: boolean) => void] {
+  const on = useSyncExternalStore(subscribe, () => sourcesOn);
+  return [
+    on,
+    (next) => {
+      sourcesOn = next;
+      listeners.forEach((listener) => {
+        listener();
+      });
+    },
+  ];
+}
 
 /** The page-level "Show sources" switch (Untitled UI toggle look); the kit's toggle replaces this file. */
 export function SourcesSwitch({

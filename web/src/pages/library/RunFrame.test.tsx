@@ -164,7 +164,7 @@ describe("Trace drawer", () => {
     renderFrame();
     openDrawer();
     const drawer = screen.getByRole("dialog", { name: "Sources for net leverage" });
-    expect(within(drawer).getByRole("heading", { name: "Sources for net leverage" })).toBeVisible();
+    expect(within(drawer).getByRole("heading", { name: "Net leverage 4.6x" })).toBeVisible();
     expect(
       within(drawer).getByText(
         "Net debt of USD 2,236m against company-adjusted EBITDA of USD 486m for the year to 30 September 2026.",
@@ -223,14 +223,16 @@ describe("Trace drawer", () => {
     expect(screen.queryByText("Qualification")).toBeNull();
   });
 
-  it("collapses and expands a branch with the native details control", () => {
+  it("collapses and expands a branch with a click on its summary", () => {
     renderFrame();
     openDrawer();
     const drawer = screen.getByRole("dialog");
     const formula = within(drawer).getByText("Formula").closest("details");
-    expect(formula).toHaveAttribute("open");
-    formula?.removeAttribute("open");
-    expect(formula).not.toHaveAttribute("open");
+    expect(formula?.open).toBe(true);
+    fireEvent.click(formula?.querySelector("summary") as Element);
+    expect(formula?.open).toBe(false);
+    fireEvent.click(formula?.querySelector("summary") as Element);
+    expect(formula?.open).toBe(true);
     expect(within(drawer).getAllByText("Source").length).toBe(3);
   });
 
@@ -284,6 +286,31 @@ describe("Trace drawer", () => {
     renderFrame({ library: slice });
     openDrawer();
     expect(within(screen.getByRole("dialog")).getByText("n.a.")).toBeInTheDocument();
+  });
+});
+
+describe("RunFrame details", () => {
+  it("draws the tabs with the mock's 6px side padding", () => {
+    renderFrame();
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveClass("px-1.5", "pb-2.5");
+  });
+
+  it("keeps Show sources on across frames for the session", () => {
+    const first = renderFrame();
+    fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
+    first.unmount();
+    renderFrame({ tab: "modules" });
+    expect(screen.getByRole("switch", { name: "Show sources" })).toBeChecked();
+    fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
+    expect(screen.getByRole("switch", { name: "Show sources" })).not.toBeChecked();
+  });
+
+  it("lays the loading skeleton out as the mock: 24px stack, one joined metrics card, bordered items", () => {
+    const { container } = renderFrame({ run: "2026-06-30" });
+    const busy = container.querySelector("[aria-busy='true']");
+    expect(busy).toHaveClass("gap-6");
+    expect(busy?.querySelector(".rounded-xl")?.children).toHaveLength(3);
+    expect(busy?.querySelectorAll(".border.p-4")).toHaveLength(2);
   });
 });
 

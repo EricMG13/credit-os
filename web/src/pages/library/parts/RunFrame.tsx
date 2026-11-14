@@ -9,7 +9,7 @@ import { ButtonLink } from "./ButtonLink";
 import { LibraryPage } from "./LibraryPage";
 import { NotHeld } from "./NotHeld";
 import { RunContext } from "./RunContext";
-import { SourcesSwitch } from "./SourcesSwitch";
+import { SourcesSwitch, useSourcesOn } from "./SourcesSwitch";
 import { TraceDrawer } from "./TraceDrawer";
 import { ISSUER_HEADING } from "./heading";
 import {
@@ -26,7 +26,7 @@ import {
 export type RunTab = "overview" | "changes" | "modules" | "forecast" | "evidence";
 
 const TAB =
-  "inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-0.5 pb-2.5 text-md font-semibold whitespace-nowrap";
+  "inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-1.5 pb-2.5 text-md font-semibold whitespace-nowrap";
 
 /** One tab: a link between routes, or plain disabled text when the run has nowhere to send it. */
 function RunTabLink({
@@ -145,33 +145,33 @@ function RunHeader({
 
 const BAR = "rounded-ds-xs bg-surface-subtle";
 
-/** The static skeleton of a run still loading: the shape of what will arrive, nothing moving. */
+/** The static skeleton of a run still loading (States mock, "Any run page"): nothing moves. */
 function RunSkeleton() {
   const metric = (title: string, value: string, note: string) => (
-    <div className="flex flex-1 flex-col gap-2 rounded-ds-md border border-border-hairline p-4">
-      <div className={cx(BAR, "h-4", title)} />
+    <div className="flex flex-col gap-2 border-t border-l border-border-hairline p-5">
+      <div className={cx(BAR, "h-3.5", title)} />
       <div className={cx(BAR, "h-9.5", value)} />
-      <div className={cx(BAR, "h-4", note)} />
+      <div className={cx(BAR, "h-3.5", note)} />
     </div>
   );
   const item = (title: string, text: string) => (
-    <div className="flex gap-3">
-      <div className={cx(BAR, "h-4 w-5")} />
-      <div className="flex flex-1 flex-col gap-2">
-        <div className={cx(BAR, "h-4", title)} />
-        <div className={cx(BAR, "h-4", text)} />
+    <div className="flex items-start gap-4 rounded-lg border border-border-hairline bg-surface-card p-4">
+      <div className={cx(BAR, "h-3.5 w-5 flex-none")} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className={cx(BAR, "h-3.5", title)} />
+        <div className={cx(BAR, "h-3.5", text)} />
       </div>
     </div>
   );
   return (
-    <div aria-busy="true" className="flex flex-col gap-5">
+    <div aria-busy="true" className="flex flex-col gap-6">
       <div className={cx(BAR, "h-33 rounded-[10px]")} />
-      <div className="flex gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] overflow-hidden rounded-xl border border-border-subtle bg-surface-card shadow-xs">
         {metric("w-1/2", "w-[70%]", "w-4/5")}
         {metric("w-1/2", "w-3/5", "w-[70%]")}
         {metric("w-1/2", "w-[70%]", "w-3/5")}
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2.5">
         {item("w-[30%]", "w-[85%]")}
         {item("w-[36%]", "w-[70%]")}
       </div>
@@ -195,7 +195,7 @@ export function RunFrame({
   tab: RunTab;
   children: ReactNode;
 }) {
-  const [sources, setSources] = useState(false);
+  const [sources, setSources] = useSourcesOn();
   const [drawer, setDrawer] = useState<{ key: string | null; open: boolean }>({
     key: null,
     open: false,

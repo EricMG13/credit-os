@@ -383,9 +383,7 @@
               "asOf": "As of 30 Sep 2026",
               "pathway": "Full review",
               "state": "Finished",
-              "tabs": {
-                "modulesCount": "13"
-              },
+              "tabs": { "modulesCount": "13" },
               "firstModule": "capital-structure",
               "forecastHref": null
             },
@@ -393,6 +391,7 @@
             "traces": {
               "net-leverage": {
                 "title": "Sources for net leverage",
+                "heading": "Net leverage 4.6x",
                 "subtitle": "Capital structure · figure · as of 30 Sep 2026",
                 "statement": "Net debt of USD 2,236m against company-adjusted EBITDA of USD 486m for the year to 30 September 2026.",
                 "derivation": {
@@ -457,9 +456,7 @@
               "asOf": "As of 30 Jun 2026",
               "pathway": "Full review",
               "state": "Finished",
-              "tabs": {
-                "modulesCount": "13"
-              },
+              "tabs": { "modulesCount": "13" },
               "firstModule": "capital-structure",
               "forecastHref": null
             },
