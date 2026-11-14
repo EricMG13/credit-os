@@ -407,11 +407,13 @@ def test_home_path_plain_is_mains_pattern() -> None:
         ("D:\\data\\Users\\Pat O\\'Hara Jones\\x", "D:\\data<home>\\x"),
         # repr-escaped separators
         ("D:\\\\data\\\\Users\\\\bob smith\\\\x", "D:\\\\data<home>\\\\x"),
-        # segments with spaces: the reach cannot be told, so it fails closed
-        ("D:\\my data\\Users\\bob", "D:\\my data<home>"),
-        ("D:\\a then foo/Users/bob", "D:\\a then foo<home>"),
-        # a character Windows reserves ends the reach: this relative path is not under the drive
-        ('D:\\a" then foo/Users/bob', 'D:\\a" then foo/Users/bob'),
+        ("D:\\a\nD:\\b\\Users\\bob", "D:\\a\nD:\\b<home>"),
+        ("D:\\a\\n\\Users\\bob", "D:\\a\\n<home>"),
+        # a name runs through spaces as before, but the reach ended at its first space: a folder
+        # after that space is not looked for. A drive later on the line has its own reach.
+        ("D:\\a\\Users\\bob C:\\b\\home\\carol", "D:\\a<home>:\\b<home>"),
+        ("D:\\data\\Users\\bob smith\\home\\al\\x", "D:\\data<home>\\home\\al\\x"),
+        ("/home/jane/a/home/bob smith/home/al", "<home>/a<home>/home/al"),
         # a drive with doubled slashes is still a drive path
         ("C://srv/share/Users/bob", "C://srv/share<home>"),
         # a POSIX name ends at "/", a backslash in it takes the rest of the line
@@ -464,6 +466,23 @@ def test_nested_home_rows(text: str, expected: str) -> None:
         ("D:\\data\\root\\x", "D:\\data\\root\\x"),
         ("/home/jane/backup/homework/x", "<home>/backup/homework/x"),
         ("D:\\data\\Users\\", "D:\\data\\Users\\"),
+        # the reach ends at the first whitespace: a folder past a space is not looked for
+        ("D:\\my data\\Users\\bob", "D:\\my data\\Users\\bob"),
+        ("D:\\a then foo/Users/bob", "D:\\a then foo/Users/bob"),
+        ("D:\\a\tUsers\\bob", "D:\\a\tUsers\\bob"),
+        (
+            "Saved to D:\\reports. See docs/home/bobq for details",
+            "Saved to D:\\reports. See docs/home/bobq for details",
+        ),
+        (
+            "Wrote C:\\tmp\\out.txt; then read ../home/bobq/notes",
+            "Wrote C:\\tmp\\out.txt; then read ../home/bobq/notes",
+        ),
+        ("['D:\\\\x', 'b/home/cq']", "['D:\\\\x', 'b/home/cq']"),
+        # the POSIX rest of a home reaches to the first whitespace too
+        ("/home/jane/x and docs/home/bobq", "<home>/x and docs/home/bobq"),
+        # a character Windows reserves ends the reach: this relative path is not under the drive
+        ('D:\\a" then foo/Users/bob', 'D:\\a" then foo/Users/bob'),
     ],
 )
 def test_nested_home_leaves_other_shapes_unchanged(text: str, expected: str) -> None:

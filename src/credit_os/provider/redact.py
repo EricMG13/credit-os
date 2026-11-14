@@ -97,9 +97,12 @@ _HOME_PATH_FWD = re.compile(
 # one: reached through path segments from a drive, a UNC share (either slash, long-path form
 # included) or "/mnt/<drive>/", or from the end of a home the three patterns above matched. It is
 # its own pass whose spans join the union, so it never redacts less than they do. A path reaches
-# as far as the user-name rule of its form: a Windows path to a reserved character (< > : " | ? *)
-# or the line's end, a POSIX path to ":" or the line's end; a space does not end it, since a
-# folder name may hold one and the two cannot be told apart, so it fails closed. The span is the
+# (owner ruling, 2026-11-14) to the first whitespace, a reserved character on a Windows path (< >
+# : " | ? *), ":" on a POSIX path, or the line's end: a folder past a space is not looked for. A
+# user name does not stop there: once a folder is found its name follows the rule of the path's form
+# (a Windows name runs through spaces to a slash, a reserved character or the line's end), but the
+# reach does not continue past the first space inside it, so the tail of a name never starts a
+# search in the prose after it. The span is the
 # separators before the folder, the folder, its separators and the user name; the name follows the
 # rule of the path's form. A folder must be a whole segment, and "root" has no nested form. A path
 # is scanned once: a start inside an earlier start's reach is skipped, since the scan of that reach
@@ -113,8 +116,8 @@ _NEST_WIN_NAME = re.compile(
     rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
 )
 _NEST_POSIX_NAME = re.compile(r"(?:[^/:\\\r\n]|\\[^\r\n]*)+")
-_NEST_WIN_REACH = re.compile(r"[^<>:\"|?*\r\n]*")
-_NEST_POSIX_REACH = re.compile(r"[^:\r\n]*")
+_NEST_WIN_REACH = re.compile(r"[^\s<>:\"|?*]*")
+_NEST_POSIX_REACH = re.compile(r"[^\s:]*")
 _NEST_FORMS = {
     True: (_NEST_WIN_REACH, _NEST_WIN_NAME),
     False: (_NEST_POSIX_REACH, _NEST_POSIX_NAME),
