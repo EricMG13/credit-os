@@ -3,6 +3,89 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: Signal's feed reader complete, the store opens, decision 0012, CI paths
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #215 | Signal S-3a part 7a | `bbb6d42`, `5ff2a0a` | `signal/feeds.py`: the attribute count that bounds memory (R45) (105 lines) |
+| #207 | Signal S-3a part 7b | `27b9252`, `9286842` | `signal/feeds.py`: a text field read in pieces equals the whole-field reading (R46, R47); test Lows (387) |
+| #256 | 2A PR 1e | `db74bf1`, `667e1c1` | `store/db.py`: `open_store` and `open_reader`, the library check, identity, pragmas, the integrity check, the stamp (796) |
+| #259 | 1B Lows | `1621ea8`, `9f900d5` | key rows and written cases for the test gaps of #243 and #214 (105, tests only) |
+| #305 | decision 0012 | `9b6b8ac`, `c3b8249` | failure text is redacted by masking known paths; the claim is bounded; the 1C plan note (68) |
+| #307 | CI | `3d66c4c`, `620437d` | `python.yml` skips changes to front-end files alone; the review job moves to `review.yml` (88) |
+
+With #215 and #207 all eight parts of Signal's feed reader are on `main`. #207 showed a red
+Windows check twice before it merged: both runs were built at the moment its base changed,
+on the old base, and ran Python 3.12.10. Closed and reopened, it ran on the merge with
+`main` on 3.12.14 and passed. A stacked PR is retargeted first and its CI triggered after.
+
+**Reviews.** As each controller reported.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #215 | `mx-adversary` scoped re-review: pass, Low 2 (two test gaps, parked with #207's RR7-1 and RR7-2 for the next feeds change) | none (a fix ordered after the whole-branch review) | the review of the feeds stack that ordered it |
+| #207 | `mx-adversary` scoped re-review: no High or Medium; 0 differences in 140,146 piece readings | none | the same |
+| #256 | `mx-precise` pass on `85c44c6`; Low batch by `mx-scaffold` | 7 rows, 0 defects | Pass on `db74bf1`: High 0, Medium 0, Low 6, Info 6 |
+| #259 | batched `mx-feature`: pass, Info 1 | none (tests only) | none |
+| #305 | batched `mx-feature`: pass, Low 1 (fixed) | none (record) | none; the design itself is from a read-only `mx-architect` review |
+| #307 | batched `mx-feature`: pass, Low 2 (left for the next change to `tests/test_gates.py`) | none (config) | none |
+
+- #256's first whole-branch review stopped at the account's usage limit with no report; it
+  was rerun on the same model, not another, as the owner chose for #187 ("Wait for Fable", the reviewer's model).
+  Its 6 Lows ride with PR 2b.
+- #259 closes the two money test gaps of #243: 48 of 48 hand mutants killed (24 survived
+  before), and 5 of 5 of #214's.
+- #207 was reviewed on Python 3.12.14 only and fails on 3.12.10 (decision 0011).
+
+**Gates and CI.** CI green on both runners at every head above (both on CPython 3.12.14).
+`tools/gates.py` exit 0 as reported for #259 and #307. #256: the controller's local run
+fails only on the known `web/node_modules` link in its worktree; CI passes. Mutation,
+counts of record run by the reviewer with the validity checks: #256, `db.py` 284 mutants,
+233 killed, 51 survived (2 killed elsewhere, 13 equivalent, 23 wording, 8 step names, 5
+behaviour gaps parked as Lows for PR 2b).
+
+**Ledger.**
+- `S-3a part 7a (R45) agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `S-3a part 7b (R46+W-5/W-6) agent=mx-feature fix-rounds=1 gates-first-pass=y` (3.12.14; it failed Windows CI on 3.12.10, out of range by decision 0011)
+- `2A-1e task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`; `2A-1e task=2 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
+- `1B-lows task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+
+**The owner's answers recorded here.**
+- Redaction: "Design review first", then "Adopt, rework #187" (decision 0012).
+- 2B PR 4: "Yes, test-only round" for a fourth round; then, to the lead coordinator, "Yes,
+  keys PR" for a tests-only PR stacked on #254 (#308, not merged). A progress guard for the
+  figure reader's loop: "Own small PR after PR 4".
+
+**What went wrong on the machine, and the rules made.**
+- At about 16:08 UTC a controller's shell loop ran `rm -rf` on a path whose variable was
+  empty and emptied the sessions' shared temporary folder, every session's scratch included. No
+  committed work and nothing an open finding depends on was lost. Rule: no delete on a path
+  built from a variable; probes and reports live under `.superpowers/sdd/`.
+- A mutation run of the figure reader grew about 70 MB a second (one mutant stalls the
+  reader loop, which then appends without end). It ended by itself. Rule: mutation runs
+  have a short per-test timeout and at most 2 children.
+- Over 100 CI runs queued for more than an hour, most of them Python gates on front-end
+  pull requests; #307 is the remedy.
+
+**Open, for the owner.**
+- Signal's store (same in the predecessor, stated in #114's body): the duplicate lookup
+  reads every stored story sharing a title key under the write lock; one hostile 2 MiB feed
+  takes about 58 s. A cap per pass bounds one pass only; the read needs narrowing. Nothing
+  caps new stories per source per pass. A locked database aborts a whole ingest pass.
+- `CLAUDE.md` says CI runs the same two commands; a front-end-only pull request now runs the
+  web gates and the review job only. Its Python row still says `>=3.12,<3.13`.
+- 2A: no SQLite other than 3.53.1 was run, the 3.37 floor included.
+
+**Not verified.**
+- That GitHub skips `python.yml` on a front-end-only pull request: no such pull request has
+  run since #307.
+- #256: Windows beyond the one CI job; races beyond two processes; power loss.
+- #207, #215: feeds from real publishers; other expat builds; Python 3.12.11 to 3.12.13
+  never tried.
+
 ## 2026-11-14 Design track: library pages (step D2b)
 
 **Merged** into `main` in stack order by the coordinator, 57 PRs as merge commits: #57, #58,
@@ -822,95 +905,3 @@ and on #197 (its body, macOS). Mutation (`mutmut`) on `forecast.py`: 279 mutants
   `main` was not built before merging (no commit since its base touched the model).
 - #197: a new mapped class with no new code in the error key would not be seen. No test
   applies to a test-only change.
-
-## 2026-11-14 Roadmap back end: 1B arithmetic, 2A codecs, 2B prose checks, the home-directory redactor
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #182 | 1B PR 1b | `0944788`, `cd3a6a0` (squashed) | `model/arithmetic.py`: exact sum, difference and product; the rounded ratio; `half_unit`, `beyond_rounding` (675 lines) |
-| #169 | 2A PR 1b | `4aa92d5`, `0405fc4` | `store/codec.py`: money, time and event-detail codecs (675) |
-| #177 | 2B PR 2 | `1856dd3`, `4c6af80` | `checks/prose.py`: the two Bottom line checks and six text checks (760) |
-| #171 | 1C PR 2d | `02d244c`, `5407308` | `provider/redact.py`: the home-directory rewrite; closes the open Medium M2 of #36 (195) |
-| #191 | 1C, owner's review-fix process | `52adbca`, `cdd6949` | `provider/redact.py`: a written-out apostrophe no longer ends a Windows user name (83) |
-
-#182 was squashed at its controller's request: one commit on the branch fails a key row that a
-later one corrects.
-
-**Reviews.** Verdicts and counts are as each controller, or for #191 the PR body, reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #182 | `mx-precise` pass; `mx-adversary` Medium 1, fixed, re-review pass | 0 open, 2 deferred | Pass on `3620669`: High 0, Medium 0, Low 4, closed in `0944788` |
-| #169 | `mx-precise` and `mx-adversary` before the split, Medium 1 each, fixed, re-review PASS | 0 defects, 0 costs | PASS on `4aa92d5`: High 0, Medium 0, Low 2, Info 4 |
-| #177 | `mx-precise` approved after one batch | 0 defects, 3 costs deferred | Pass on `1856dd3`: High 0, Medium 0, Low 6, Info 6 |
-| #171 | `mx-adversary` check of the one authorised change: PASS, Low 2 | 0 defects | PASS on `02d244c`: High 0, Medium 0, Low 2, Info 3 |
-| #191 | `mx-adversary`, five rounds in the owner's process; final PASS against `5407308` | not run | not run |
-
-- #182's Medium: `product` made text of an unbounded integer and met Python's 4,300-digit
-  limit. It now strips zeros and tests the 38-digit bound on integers, and never changes the
-  interpreter's limit.
-- #169's first push failed on Windows only: two test ids of 100,000 characters passed
-  Windows' 32,767-character limit on an environment variable, where `pytest` keeps the id.
-  The same cause failed 1D's #161 once.
-- #171 is the one further round the owner authorised. One Low is a difference against the
-  `main` before it: an empty-named home glued to a second home after a written-out `\n`,
-  `\r` or `\t` keeps the second name (657 of about 8 million sampled strings).
-- **Correction to the entry below.** #160 and #191 came from a review-fix process the owner
-  runs in agent worktrees, not from the Signal or 1C controllers (asked whether those PRs were
-  from a process they started, the owner answered "Yes, mine"). The adversarial pass recorded
-  for #160 is that process's. #191 redacts the union of its pattern's matches and those of
-  the pattern #171 left, so it cannot redact less than #171 did.
-
-**Gates and CI.** As each controller reported. `uv run --locked python tools/gates.py` exit 0:
-#182 on `3620669`; #171 on `02d244c` (2,426 passed); #177 on `3eb0a6a` (its last commit adds
-four key cases); #169 on the same store files at `3707bf8` (its controller's scratch worktree
-failed one unrelated path test). Mutation (`mutmut`): #171, 1,438 mutants, 1,428 killed, 10
-equivalent; #169 at `959ab82`, 192, 183 killed, 9 equivalent; #182 at `3620669`, 43 not killed
-(33 change message text only, 7 equivalent, 3 timeouts). Not run on #177 (not sensitive code)
-or by the coordinator on #191.
-
-**Ledger.**
-- `1B-1b task=2 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `2A-1b task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `2A-1b task=ci-fix agent=mx-scaffold fix-rounds=0 gates-first-pass=n/a`
-- `2B-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `2B-2 task=assembly agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1C-2d task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y` (the owner-authorised round)
-
-**Rulings by the coordinator.** In the plans. The ones the owner may want to see:
-- 2B figure reader (PR 4, not merged): its first review found the patterns carried from the
-  predecessor read money wrongly (`(USD 1,250)` as positive; `.5%` as 5%; `A$5m` as USD;
-  `$5mn` with no unit). Ruled: a currency or scale that is written but not recognised matches
-  nothing held, and only a figure written with none can match any; the reader reads every
-  currency code the form check accepts; U+2212 is a minus.
-- 1D: the measured bounds of the text readers are stated as measured: csv 17 times the file
-  plus 64 MiB, text 12 times plus 4 MiB, HTML (design) 4.5 times plus 6 MiB, with the 50 MiB
-  cap kept. Step 3A may set a lower cap for text and csv.
-- 2A: a time is an aware datetime or epoch seconds as an int or float, never a bool; the
-  coordinator's earlier "never a float" was wrong and is corrected in the plan. The store does
-  not refuse a state folder owned by another user.
-- 1B: the kernel sets no cap on the number of operands; the calculate tool's 128 is 3A's.
-
-**Open, for the owner.**
-- Signal's feeds (six PRs, not merged): the fresh whole-branch review found the parser's peak
-  at 79.4 MiB on one element with many prefixed attributes, and 65.1 MiB on a feed of
-  namespace declarations that is then read, against the 64 MiB bound. A fourth fix round is
-  running, which the Signal controller reports the owner ordered.
-- Signal's feed view, from the predecessor: the For you page and the new-story count cost
-  stories times memberships (about 0.6 s and up to 2.5 s at 20,000 stories and 500 groups);
-  the count ignores filters and counts by id while pages order by date.
-- The work PC's exact Python 3.12 patch level: the HTML reader and the feed text reader follow
-  3.12.14's `html.parser`.
-
-**Not verified.**
-- #191 by this track's own reviewers; a forward-slash network path and a home glued after a
-  word character are still not redacted (its body).
-- 2A: no caller reaches a real column or `CHECK` until PRs 2 and 3. 2B: timing above 10,000
-  characters; no retained reply in the new format exists.
-- 1B: the full gates were not rerun locally on `0944788`; mutation not rerun after the last
-  commit.
-- Every memory figure above is `tracemalloc` on macOS; nothing above 4 MiB was run for the
-  readers.
