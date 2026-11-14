@@ -1,6 +1,6 @@
 // The layout every Signal page sits in: the channel list on the left, the page's content on the
 // right, each scrolling on its own, filling the full-bleed page region after mock/signal.js (SgShell) and `.sub`, `.ni`, `.cnt`, `.dot`, `.me`.
-import { useId, useRef, useState, type FC, type ReactNode, type RefObject } from "react";
+import { useCallback, useId, useRef, useState, type FC, type ReactNode, type RefObject } from "react";
 import {
   Bookmark,
   Clock,
@@ -19,7 +19,7 @@ import { Tooltip } from "@/components/base/tooltip/tooltip";
 import { cx } from "@/utils/cx";
 import { AvatarLabelGroup } from "./parts/Avatar";
 import { NameDialog, initialsOf } from "./NameDialog";
-import { SignalViewerContext } from "./viewer";
+import { SignalAnnounceContext, SignalViewerContext } from "./viewer";
 import type { SignalScene } from "./slice";
 
 /** Which channel the page is on; the item with the same key is marked current. */
@@ -275,7 +275,11 @@ export function SignalFrame({
   // In memory only: a typed name lasts until the page is left; nothing is written.
   const [typed, setTyped] = useState<string | null>(null);
   const [open, setOpen] = useState(viewer.name === null);
-  const [said, setSaid] = useState("");
+  // What the one status region says; the count keys its child so a repeated sentence is new content.
+  const [said, setSaidState] = useState({ text: "", count: 0 });
+  const setSaid = useCallback((text: string) => {
+    setSaidState((last) => ({ text, count: last.count + 1 }));
+  }, []);
   const name = typed ?? viewer.name;
   // A typed name with no letter or digit has no initials: the avatar draws "?" as it does with no name.
   const typedInitials = typed === null ? "" : initialsOf(typed);
@@ -327,7 +331,7 @@ export function SignalFrame({
         onGone={() => chipRef.current?.focus()}
       />
       <div role="status" className="sr-only">
-        {said}
+        {said.count === 0 ? null : <span key={said.count}>{said.text}</span>}
       </div>
       <div
         id="signal-content"
@@ -335,7 +339,9 @@ export function SignalFrame({
         tabIndex={-1}
         className="min-w-0 flex-1 overflow-y-auto p-8 outline-none"
       >
-        <SignalViewerContext value={{ name, initials }}>{children}</SignalViewerContext>
+        <SignalAnnounceContext value={setSaid}>
+          <SignalViewerContext value={{ name, initials }}>{children}</SignalViewerContext>
+        </SignalAnnounceContext>
       </div>
     </div>
   );

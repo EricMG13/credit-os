@@ -16,6 +16,9 @@ import { Pill } from "./parts/Pill";
 import { Tags } from "./parts/Tags";
 import type { SignalDigestCard, SignalFreshness, SignalScene, SignalStory } from "./slice";
 import { StoryCard } from "./StoryCard";
+import { useSignalAnnounce } from "./viewer";
+
+const NOT_SHARED = "Sample data: the story was not shared.";
 
 export type FeedEntry =
   | { kind: "story"; story: SignalStory }
@@ -178,9 +181,10 @@ export function FeedPage({
   const [revealed, setRevealed] = useState(false);
   const [olderShown, setOlderShown] = useState(false);
   // Share to group writes nothing: this sentence is the in-memory stand-in for the service's reply.
-  // It counts the shares: the one live region stays mounted and each share replaces its keyed child,
-  // so a repeated sentence is a content change and is announced again.
+  // The frame's one status region announces it (each call is new content there); the visible alert
+  // below is not a second live region.
   const [shared, setShared] = useState(0);
+  const announce = useSignalAnnounce();
   // After the list grows, focus goes to the first story the change brought in (its headline); when
   // the kind or search hides every one of them, it goes to the page title instead.
   const list = useRef<HTMLDivElement>(null);
@@ -225,13 +229,11 @@ export function FeedPage({
         </div>
       )}
       {error === null ? null : <FeedAlert error={error} />}
-      <div role="status" aria-live="polite" data-share-status>
-        {shared > 0 ? (
-          <div key={shared} className="mt-4">
-            <Alert live={false} tone="success" title="Sample data: the story was not shared." />
-          </div>
-        ) : null}
-      </div>
+      {shared > 0 ? (
+        <div className="mt-4">
+          <Alert live={false} tone="success" title={NOT_SHARED} />
+        </div>
+      ) : null}
       {loading ? (
         <FeedSkeleton />
       ) : shown.length > 0 ? (
@@ -241,6 +243,7 @@ export function FeedPage({
           writer={writer}
           onShared={() => {
             setShared(shared + 1);
+            announce(NOT_SHARED);
           }}
           listRef={list}
         />

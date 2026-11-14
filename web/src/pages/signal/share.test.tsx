@@ -100,8 +100,9 @@ describe("Share to group", () => {
     fireEvent.click(screen.getByRole("option", { name: "Shipping desk" }));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Share" }));
     await gone();
-    const note = screen.getByText("Sample data: the story was not shared.");
-    expect(note.closest('[role="status"]')).not.toBeNull();
+    // Said once by the frame's status region and drawn once as the visible confirmation.
+    expect(screen.getByRole("status")).toHaveTextContent("Sample data: the story was not shared.");
+    expect(screen.getAllByText("Sample data: the story was not shared.")).toHaveLength(2);
     await settled();
     expect(document.activeElement).toBe(shareButton(CORVANE));
   });
@@ -117,22 +118,19 @@ describe("Share to group", () => {
       await settled();
     };
     const sentence = "Sample data: the story was not shared.";
-    const find = () => document.querySelector("[data-share-status]");
-    const region = find();
-    if (region === null) throw new Error("the feed keeps its share status region mounted");
-    expect(region).toHaveAttribute("role", "status");
+    const region = screen.getByRole("status");
     expect(region).toBeEmptyDOMElement();
     await share(CORVANE);
-    expect(find()).toBe(region);
+    expect(screen.getByRole("status")).toBe(region);
     expect(region).toHaveTextContent(sentence);
-    const first = screen.getByText(sentence);
+    const first = region.firstElementChild;
+    if (first === null) throw new Error("the region holds the sentence in a child");
     await share(TESSALY);
-    expect(find()).toBe(region);
+    expect(screen.getByRole("status")).toBe(region);
     expect(region).toHaveTextContent(sentence);
-    const second = screen.getByText(sentence);
-    expect(second).not.toBe(first);
+    expect(region.firstElementChild).not.toBe(first);
     expect(first.isConnected).toBe(false);
-    expect(region.querySelectorAll('[role="status"]')).toHaveLength(0);
+    expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 
   it("closes on Cancel with focus back on the story's Share to group button", async () => {

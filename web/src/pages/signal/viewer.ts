@@ -11,3 +11,12 @@ export function useSignalViewer(): SignalViewerName {
   if (viewer === null) throw new Error("a Signal page was drawn outside the Signal frame");
   return viewer;
 }
+
+/** Says a sentence in the frame's one status region; a repeated sentence is announced again. */
+export const SignalAnnounceContext = createContext<((text: string) => void) | null>(null);
+
+export function useSignalAnnounce(): (text: string) => void {
+  const announce = useContext(SignalAnnounceContext);
+  if (announce === null) throw new Error("a Signal page was drawn outside the Signal frame");
+  return announce;
+}
