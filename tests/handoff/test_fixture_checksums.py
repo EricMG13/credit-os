@@ -12,6 +12,9 @@ def problems(folder: Path) -> list[str]:
     listed: set[str] = set()
     for entry in entries:
         digest, relative = entry.split()
+        if relative in listed:
+            found.append(f"duplicate: {relative}")
+            continue
         listed.add(relative)
         target = folder / relative
         if not target.is_file():
@@ -44,7 +47,14 @@ def test_an_unlisted_file_at_any_depth_and_extension_is_reported(tmp_path: Path)
 
 def test_a_listed_file_with_different_bytes_is_reported(tmp_path: Path) -> None:
     folder = _folder(tmp_path, b"listed", b"changed")
-    assert "mismatch: sub/a.md" in problems(folder)
+    assert problems(folder) == ["mismatch: sub/a.md", "unlisted: sub/extra.txt"]
+
+
+def test_a_path_listed_twice_is_reported_once_as_a_duplicate(tmp_path: Path) -> None:
+    (tmp_path / "a.md").write_bytes(b"x")
+    line = f"{hashlib.sha256(b'x').hexdigest()}  a.md\n"
+    (tmp_path / "SHA256SUMS").write_text(line * 2, encoding="utf-8")
+    assert problems(tmp_path) == ["duplicate: a.md"]
 
 
 def test_the_real_fixtures_are_all_listed_and_match() -> None:

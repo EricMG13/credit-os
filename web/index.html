@@ -7,6 +7,9 @@
       content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Claims the id React Aria looks up before it injects a style element, which the policy forbids.
+         The rule it would inject is in src/index.css. -->
+    <meta id="react-aria-pressable-style" />
     <title>Credit OS</title>
   </head>
   <body>

@@ -1,7 +1,12 @@
-type LibraryData = {
+/** The page groups, each owning one optional member of the data file. */
+export const SLICE_KEYS = ["library", "model", "run", "signal"] as const;
+export type SliceKey = (typeof SLICE_KEYS)[number];
+
+/** A group's member is whatever the data file held, unread: the group's own reader checks it. */
+export type LibraryData = {
   schema: "credit-os-data/1";
   issuers: readonly { id: string; name: string }[];
-};
+} & { [Key in SliceKey]?: unknown };
 
 export type LoadResult =
   { kind: "ok"; data: LibraryData } | { kind: "missing" } | { kind: "newer"; schema: string };
@@ -35,5 +40,9 @@ export function readLibraryData(source: unknown): LoadResult {
   if (source["schema"] !== KNOWN_SCHEMA) return { kind: "newer", schema: source["schema"] };
   const issuers = readIssuers(source["issuers"]);
   if (issuers === undefined) return { kind: "missing" };
-  return { kind: "ok", data: { schema: KNOWN_SCHEMA, issuers } };
+  const data: LibraryData = { schema: KNOWN_SCHEMA, issuers };
+  for (const key of SLICE_KEYS) {
+    if (Object.hasOwn(source, key) && source[key] !== undefined) data[key] = source[key];
+  }
+  return { kind: "ok", data };
 }

@@ -6,7 +6,10 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { assetProblems, referencedAssets } from "./assets.mjs";
+import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
+import { classProblems, focusOutlineProblems } from "./classes.mjs";
+import { checkKitInChrome } from "./kit-chrome.mjs";
+import { checkRoutes } from "./route-visits.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 // A hung browser must fail the run, not hold the CI job until the runner limit.
@@ -43,9 +46,9 @@ function findBrowser() {
   return undefined;
 }
 
-function dumpPage(browser, folder) {
+function dumpPage(browser, folder, hash = "") {
   const profile = mkdtempSync(path.join(tmpdir(), "credit-os-profile-"));
-  const url = pathToFileURL(path.join(folder, "index.html")).href;
+  const url = pathToFileURL(path.join(folder, "index.html")).href + hash;
   const args = [
     "--headless=new",
     "--dump-dom",
@@ -92,14 +95,42 @@ function checkAssets(folder) {
   return ok;
 }
 
-function check(label, browser, folder, expected) {
-  const { dom, log } = dumpPage(browser, folder);
+function checkStyleUrls(folder) {
+  const problems = fontProblems(folder);
+  const ok = problems.length === 0;
+  console.log(`${ok ? "PASS" : "FAIL"} every url() in the stylesheet is relative and exists`);
+  for (const problem of problems) console.log(`  ${problem}`);
+  return ok;
+}
+
+// Strings in the source that look like colour, shadow, radius or size classes but are not.
+// Each entry carries its reason. Empty today.
+const NOT_CLASSES = [];
+
+// A class with no rule in the built stylesheet draws nothing, because the default palette is off.
+function checkClasses(folder) {
+  const css = referencedAssets(folder)
+    .assets.filter(({ kind, ref }) => kind === "stylesheet" && ref !== undefined)
+    .map(({ ref }) => readFileSync(path.join(folder, ...ref.split("/")), "utf8"))
+    .join("\n");
+  const srcDir = path.resolve(import.meta.dirname, "..", "src");
+  const problems = [...classProblems(srcDir, css, NOT_CLASSES), ...focusOutlineProblems(srcDir)];
+  const ok = problems.length === 0;
+  console.log(`${ok ? "PASS" : "FAIL"} every colour, shadow, radius and size class has a rule`);
+  for (const problem of problems) console.log(`  ${problem}`);
+  return ok;
+}
+
+function check(label, browser, folder, expected, hash = "", forbidden = []) {
+  const { dom, log } = dumpPage(browser, folder, hash);
   const found = problems(log);
-  const ok = dom.includes(expected) && found.length === 0;
+  const present = forbidden.filter((text) => dom.includes(text));
+  const ok = dom.includes(expected) && found.length === 0 && present.length === 0;
   console.log(`${ok ? "PASS" : "FAIL"} ${label}: expects "${expected}"`);
   if (!ok) {
     if (!dom.includes(expected)) console.log(`  the page text did not contain it`);
     for (const needle of found) console.log(`  stderr contains "${needle}"`);
+    for (const text of present) console.log(`  the live DOM contains "${text}"`);
     console.log(`  stderr:\n${log}\n  dom:\n${dom}`);
   }
   return ok;
@@ -147,8 +178,14 @@ try {
   cpSync(distDir, folder, { recursive: true });
   const dataFile = path.join(folder, "data.js");
   const original = readFileSync(dataFile, "utf8");
-  const results = [checkAssets(folder)];
+  const results = [checkAssets(folder), checkStyleUrls(folder), checkClasses(folder)];
   results.push(check("data.js present", browser, folder, "No runs yet"));
+  // The dump is the live DOM: a style element injected by a library would appear in it.
+  results.push(
+    check("component kit, no injected style", browser, folder, "Component kit", "#/kit", [
+      "<style",
+    ]),
+  );
   rmSync(dataFile);
   results.push(check("data.js deleted", browser, folder, "Library data is missing"));
   writeFileSync(dataFile, original.replace("credit-os-data/1", "credit-os-data/2"));
@@ -168,6 +205,8 @@ try {
   writeFileSync(dataFile, populated);
   results.push(check("data.js with one issuer", browser, folder, "TransDigm"));
   writeFileSync(dataFile, original);
+  results.push(await checkKitInChrome({ browser, folder }));
+  results.push(checkRoutes({ browser, folder, work, dumpPage, problems }));
   results.push(canary(browser, folder, work));
   allOk = results.every(Boolean);
 } finally {

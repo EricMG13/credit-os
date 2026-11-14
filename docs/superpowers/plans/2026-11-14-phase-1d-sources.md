@@ -89,6 +89,38 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   computed in this layer.
 - Paths are handled with `pathlib`; every rule above holds on Windows (CI runs both).
 
+**Amendments (coordinator, 2026-11-14; each is a test):**
+
+- **A reason per name rule.** `validate_name` says which rule refused the name: an empty or
+  dot segment or one that leaves the folder; a trailing dot or space; a reserved device name;
+  a forbidden character, named as `U+XXXX`; too long. The file name stays in the message.
+- **More names refused.** Private-use and unassigned characters (categories `Co`, `Cn`); a
+  segment that starts or ends with any space character (`Zs`, so U+3000 and U+00A0); `CLOCK$`
+  in any case, with or without a suffix. Key rows use noncharacters (U+FDD0, U+FFFE), which
+  are unassigned on every Python patch level; what counts as unassigned otherwise follows the
+  interpreter's Unicode table.
+- **Length.** A segment is at most 255 bytes in UTF-8 and a whole name at most 1,024 bytes;
+  a longer one is refused before any file system call.
+- **Order and wording (#61).** Characters first, then the whole-name length, then per segment:
+  empty or dot, edge space or trailing dot, reserved device name, segment length. A leading
+  ASCII space is refused (it is `Zs`).
+- **Echo bound (#61).** Every message that echoes a name shows its first 120 characters, then
+  `…`; a path is shown whole. A deep name can lose its file part: accepted.
+- **Ruled for the capped read (#59, not yet in `main`).** `source_path` refuses a name that
+  is, or passes through, a symbolic link or a Windows junction, even inside the source folder;
+  each component below the resolved folder is tested. A failure of that test is refused, not
+  raised untyped. A link swapped in between the check and the open is not closed by this; the
+  pin's size and hash guard the content.
+- **Ruled for PR 1c, not yet in `main`.** `COM0` and `LPT0` are refused as reserved device
+  names (CPython 3.12's table omits them; that Microsoft's naming page lists them is from memory,
+  not fetched).
+- **For the first layer that loads pin records (store).** pydantic's `errors()` and `json()`
+  carry the whole refused name; that layer bounds it before it prints one.
+- **Kind.** The pin checks the first bytes only. Each reader proves the structure of its kind
+  and raises "unreadable" when it does not hold: a zip that is not a docx, an xlsx offered as a
+  docx, OLE or executable bytes offered as text or csv. The NUL refusal covers HTML as well as
+  csv and text.
+
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
 1. Fixtures are built in the tests from literal bytes: hand-written zips for docx and xlsx,
@@ -108,7 +140,10 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 
 | PR | Delivers |
 | :--- | :--- |
-| 1 | `SourcePin`, folder walk, capped read, path and kind rules, errors |
+| 1 | Errors, `SourcePin`, name and kind rules (#41) |
+| 1b-names (#61) | The amended name rules and the bounded name echo |
+| 1b (#59) | Capped read, path resolution and the symbolic-link refusal (`files.py`) |
+| 1c | Folder walk |
 | 2 | Text, csv and HTML readers |
 | 3 | Zip and XML guards; xlsx reader |
 | 4 | docx reader |

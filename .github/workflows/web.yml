@@ -38,3 +38,13 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run gates
+      - name: Open from disk in Edge (Windows)
+        if: runner.os == 'Windows'
+        run: node scripts/open-from-disk.mjs
+        env:
+          CHROME_PATH: 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+      - name: Open from disk in Chrome (Windows)
+        if: runner.os == 'Windows'
+        run: node scripts/open-from-disk.mjs
+        env:
+          CHROME_PATH: 'C:\Program Files\Google\Chrome\Application\chrome.exe'

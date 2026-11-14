@@ -86,12 +86,38 @@ class Turn:
             raise ProviderDataError(f"unknown stop_reason {self.stop_reason!r}")
 
 
+def _check_charge_value(value: Decimal | None) -> None:
+    """The one check of a charge: a `Decimal` that is finite and not negative, or `None`."""
+    if value is None:
+        return
+    if not isinstance(value, Decimal):
+        raise ProviderDataError("billed_usd must be a Decimal")
+    if not value.is_finite() or value.is_signed():
+        raise ProviderDataError("billed_usd must be finite and not negative")
+
+
+@dataclass(frozen=True)
+class Compaction:
+    """One context compaction the runtime reported during a call: its own counts and its own
+    charge (`None` when it could not be read)."""
+
+    usage: Usage
+    billed_usd: Decimal | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.usage, Usage):
+            raise ProviderDataError("usage must be a Usage")
+        _check_charge_value(self.billed_usd)
+
+
 @dataclass(frozen=True)
 class Reply:
     """`ok`: a turn came back. `not_sent`: the call never left. `sent_usage`: sent, failed,
     at least one count in usage or the charge known. `sent_unknown`: may have been sent, cost
     unknown. `started_at` and `finished_at` are epoch seconds, `None` when the call never
-    started."""
+    started or the reply was read from a recording (no times). `billed_usd` is the call's own
+    charge only: a compaction's charge is never added to it and nothing in this layer sums
+    them (a total with any `None` is unknown; step 3A decides)."""
 
     kind: ReplyKind
     turn: Turn | None
@@ -102,6 +128,7 @@ class Reply:
     raw: bytes | None
     started_at: float | None
     finished_at: float | None
+    compactions: tuple[Compaction, ...] = ()
 
     def __post_init__(self) -> None:
         if self.kind not in get_args(ReplyKind):
@@ -111,6 +138,7 @@ class Reply:
         self._check_outcome()
         self._check_usage()
         self._check_charge()
+        self._check_compactions()
 
     def _check_outcome(self) -> None:
         if self.kind == "ok":
@@ -144,10 +172,15 @@ class Reply:
             return
         if self.kind in ("not_sent", "sent_unknown"):
             raise ProviderDataError(f"a {self.kind} reply has no charge")
-        if not isinstance(self.billed_usd, Decimal):
-            raise ProviderDataError("billed_usd must be a Decimal")
-        if not self.billed_usd.is_finite() or self.billed_usd < 0:
-            raise ProviderDataError("billed_usd must be finite and not negative")
+        _check_charge_value(self.billed_usd)
+
+    def _check_compactions(self) -> None:
+        if not isinstance(self.compactions, tuple) or not all(
+            isinstance(c, Compaction) for c in self.compactions
+        ):
+            raise ProviderDataError("compactions must be a tuple of Compaction")
+        if self.compactions and self.kind == "not_sent":
+            raise ProviderDataError("a not_sent reply has no compactions")
 
 
 class Model(Protocol):
