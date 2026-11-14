@@ -231,10 +231,25 @@ export type Changes =
     };
 
 /**
- * One block of a module's records (tables, charts and the like). Tasks 9 to 11 add its kinds; until
- * then no kind is known, so the reader accepts only an empty list.
+ * A risk matrix: `columns` heads the Table side (the risk, then the two grades); a grade that is
+ * not recorded is `null` and draws "n.a.". `trace` is the block's own, each row has its own.
  */
-type RecordBlock = never;
+type MatrixRecord = {
+  kind: "matrix";
+  title: string;
+  note: string | null;
+  columns: readonly string[];
+  rows: readonly {
+    risk: string;
+    probability: string | null;
+    impact: string | null;
+    trace: string | null;
+  }[];
+  trace: string | null;
+};
+
+/** One block of a module's records. Tasks 10 and 11 add the chart and table kinds. */
+export type RecordBlock = MatrixRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {
