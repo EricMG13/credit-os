@@ -310,7 +310,9 @@ describe("readSlice, a run not yet compared", () => {
   it("refuses a pending run that is the issuer's only history entry, at changes.kind", () => {
     const slice = fresh();
     brevane(slice).history.entries = brevane(slice).history.entries.slice(0, 1);
-    expect(invalidReason(slice)).toContain("issuers[6].runs[0].changes.kind");
+    expect(invalidReason(slice)).toContain(
+      "issuers[6].runs[0].changes.kind: expected a history of at least two entries for a run not yet compared",
+    );
   });
 
   it("keeps the none state's rules: a first run with one history entry still reads", () => {

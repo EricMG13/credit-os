@@ -5877,7 +5877,7 @@
               "bottomLine": {
                 "label": "Bottom line",
                 "lead": "Stable credit: leverage is high but the maturities are long-dated.",
-                "rest": "This is the first run on the issuer, so the view has no earlier run to be compared with.",
+                "rest": "Charter cover is well spread, and the next vessel financing falls due after the period the view covers.",
                 "trace": null
               },
               "metricsLabel": "Headline figures",
@@ -5905,7 +5905,7 @@
                 "items": [
                   {
                     "title": "Business profile",
-                    "lead": "x",
+                    "lead": "Charter cover is spread across several operators.",
                     "state": "Delivered",
                     "module": "business-profile"
                   }
@@ -5936,15 +5936,15 @@
                   "kind": "delivered",
                   "bottomLine": {
                     "label": "Bottom line",
-                    "lead": "A sole-source aftermarket franchise carries a thinner original-equipment business.",
-                    "rest": "The aftermarket earns most of the profit and held through the last two downturns in build rates.",
+                    "lead": "Long-dated charters on a modern fleet carry a thinner spot-market business.",
+                    "rest": "Chartered vessels earn most of the profit and kept their rates through the last two downturns in freight.",
                     "trace": null
                   },
                   "findings": [
                     {
                       "number": "01",
-                      "lead": "The aftermarket leads",
-                      "body": "Aftermarket parts were 59% of gross profit in the year, on the company-adjusted basis.",
+                      "lead": "Charters lead",
+                      "body": "Time-charter hire was 64% of operating profit in the year, on the company-adjusted basis.",
                       "trace": null
                     }
                   ],
@@ -5956,7 +5956,7 @@
                     "gapsLink": { "label": "See this module\u2019s gaps in Evidence" },
                     "items": [
                       {
-                        "text": "Customer terms come from management presentations.",
+                        "text": "Charter terms come from management presentations.",
                         "trace": null
                       }
                     ]
@@ -5992,7 +5992,7 @@
                     {
                       "label": "Method texts",
                       "kind": "SHA-256",
-                      "value": "c3d8a1f5069e42b7d0a95c1e83f7b2640d19e5a8c7b3f06d2e4a91c8b5073f6e",
+                      "value": "5e1b7a40c9d2368f0a4be7153d9c82f6b0a37e41d58c9f2607be3a1d4c8f9520",
                       "copyLabel": "Copy hash",
                       "what": "The hash of the method texts"
                     }
@@ -6017,7 +6017,10 @@
                     "Cost, USD"
                   ],
                   "rows": [
-                    { "label": "Recovery", "cells": ["CP-3B", "3", "1", "73,100", "2,260", "0.34"] }
+                    {
+                      "label": "Business profile",
+                      "cells": ["CP-1", "31", "3", "1,512,000", "79,800", "10.25"]
+                    }
                   ],
                   "total": {
                     "label": "Total",
@@ -6031,7 +6034,7 @@
                   "columns": ["Register", "Written by", "Rows", "File", "Open"],
                   "downloadAll": {
                     "label": "Download all",
-                    "href": "downloads/halden-aerostructures-2025-09-30-registers.zip",
+                    "href": "downloads/brevane-marine-r-0412-registers.zip",
                     "reason": null
                   },
                   "rows": [
@@ -6040,7 +6043,7 @@
                       "writtenBy": "Every module",
                       "rows": "2",
                       "file": "registers/gaps.md",
-                      "href": "downloads/halden-aerostructures-2025-09-30-registers/gaps.md",
+                      "href": "downloads/brevane-marine-r-0412-registers/gaps.md",
                       "reason": null
                     }
                   ]
@@ -6064,7 +6067,7 @@
               "summary": {
                 "delivered": {
                   "note": null,
-                  "progress": { "text": "13 of 13", "value": 13, "max": 13 }
+                  "progress": { "text": "1 of 1", "value": 1, "max": 1 }
                 },
                 "counts": [
                   {
@@ -6075,14 +6078,14 @@
                   }
                 ],
                 "run": {
-                  "code": "HAE-20250930-FR-0001",
-                  "hash": "baff884f3b3df9e7aeaf322aa72a7120a53cc8ef296001bf9c61d11c539bdc72"
+                  "code": "BRM-20261231-FR-0001",
+                  "hash": "2f9a64d1e7b03c85a1d4f7098b6e2c35d0a8f1749e3b5c26a7d08f4e1b93c6a2"
                 },
                 "take": {
                   "text": "The module handoffs are the record this library was written from. Download them to read a module exactly as it was delivered.",
                   "download": {
                     "label": "Download handoffs",
-                    "href": "downloads/halden-aerostructures-2025-09-30-handoffs.zip",
+                    "href": "downloads/brevane-marine-r-0412-handoffs.zip",
                     "reason": null
                   }
                 }
@@ -6128,7 +6131,7 @@
                     "why": null,
                     "readersLabel": "Read by 1 module",
                     "readers": { "shown": ["business-profile"], "more": null },
-                    "hash": "6120d88ebaaf49cd86326f24b301a7c937141ef51e2fe0d12ed5df254000f9e2"
+                    "hash": "9b04e6c2a81d5f37e0c9a4b6d2183f75a6e0b1c94d27f853e1a0c6b9d4725f8e"
                   }
                 ],
                 "visible": 1,
@@ -6155,9 +6158,9 @@
             {
               "asOf": "30 Sep 2026",
               "ran": "20 Nov 2026",
-              "state": "Rejected",
+              "state": "Finished",
               "pathway": "Full review",
-              "text": "Not started: the files provided did not include the annual report the run needs.",
+              "text": "Stable.",
               "report": null,
               "changes": null
             }
