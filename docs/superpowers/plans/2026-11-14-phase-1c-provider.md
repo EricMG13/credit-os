@@ -142,7 +142,7 @@ Ruled for PR 2 (not yet in `main`; #50 merged without them):
   their ids must match, and a call with a parent tool call is refused. The parser takes
   `{"id", "type", "data"}` objects and imports nothing from the SDK.
 
-Already in `main`:
+Ruled for PR 3 (not yet in `main`):
 - **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
   Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
   with the reviewer's probe as the answer key, no later than PR 3, which does not merge while
