@@ -109,6 +109,31 @@ REDACT_TEXT: tuple[tuple[tuple[str, ...], str, str], ...] = (
     ((), "x " + _TOK + _TOK + _PAT + " y", "x " + MARK + " y"),
     # ... and the rest of the token's word, "-" and "_" included, goes with it
     ((), "Bearer " + _TOK + "-retry-2.", "Bearer " + MARK + "."),
+    # an exact value is also found as JSON writes it inside a string (json.dumps with and
+    # without ensure_ascii), once or twice escaped; each row's text is written by hand
+    (
+        ("p\u00e4ss-4711",),
+        r'{"k":"p\u00e4ss-4711"} {"k":"p' + "\u00e4" + 'ss-4711"}',
+        '{"k":"[redacted]"} {"k":"[redacted]"}',
+    ),
+    (("p\u00e4ss-4711",), r'"{\"k\":\"p\\u00e4ss-4711\"}"', r'"{\"k\":\"[redacted]\"}"'),
+    (
+        ('pa"ss-4711',),
+        r'{"k":"pa\"ss-4711"} "{\"k\":\"pa\\\"ss-4711\"}"',
+        r'{"k":"[redacted]"} "{\"k\":\"[redacted]\"}"',
+    ),
+    (
+        (r"C:\Users\jane",),
+        r"at C:\\Users\\jane\\x and C:\\\\Users\\\\jane\\\\x",
+        r"at [redacted]\\x and [redacted]\\\\x",
+    ),
+    (("pa\x01ss-4711",), r'"pa\u0001ss-4711"', '"[redacted]"'),
+    (
+        ("tok\U0001f600en-4711",),
+        r'"tok\ud83d\ude00en-4711" "tok' + "\U0001f600" + 'en-4711"',
+        '"[redacted]" "[redacted]"',
+    ),
+    (("line\nbreak-4711",), r'"line\nbreak-4711"', '"[redacted]"'),
 )
 
 # (environment mapping, input text, expected text) for a redactor built from a mapping.
@@ -151,6 +176,21 @@ HOME_PATHS: tuple[tuple[str, str], ...] = (
         "./home/x ../Users/y /usr/lib/x /tmp/home /opt/Users C:\\Program Files\\x",
         "./home/x ../Users/y /usr/lib/x /tmp/home /opt/Users C:\\Program Files\\x",
     ),
+    # a Windows user name may hold spaces, "'", "(" and ")": it runs to the next slash of either
+    # kind, to a closing quote, or (with spaces, on a drive, UNC or /mnt path) to the line's end
+    ("C:/Users/Jane Doe/AppData/x.js", "<home>/AppData/x.js"),
+    ("cwd: C:\\Users\\Jane Doe", "cwd: <home>"),
+    ("cwd: C:\\Users\\Jane Doe\nnext line", "cwd: <home>\nnext line"),
+    ("cwd: C:\\Users\\Jane Doe\r\nnext line", "cwd: <home>\r\nnext line"),
+    ("C:\\Users\\Jane Doe/AppData", "<home>/AppData"),
+    ("C:\\Users\\O'Brien\\AppData\\x", "<home>\\AppData\\x"),
+    ("C:\\Users\\John(Work)\\AppData", "<home>\\AppData"),
+    ("file:///C:/Users/Jane Doe/x", "file:///<home>/x"),
+    # words after a Windows home at the end of a line go with it: the name cannot be told apart
+    ("open C:\\Users\\jane and retry", "open <home>"),
+    # not so on a POSIX path, nor before a closing bracket or a sentence's full stop
+    ("/home/jane and more", "<home> and more"),
+    ("(see C:\\Users\\jane) at C:\\Users\\jane.", "(see <home>) at <home>."),
     (
         "/homework/x /rootfs/y /home https://example.com/Users/jane/p",
         "/homework/x /rootfs/y /home https://example.com/Users/jane/p",
