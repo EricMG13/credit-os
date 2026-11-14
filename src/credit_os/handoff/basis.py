@@ -4,12 +4,16 @@ The line starts `Basis: `; its items are split on `; ` and each is a calculation
 upstream module, a source file with optional pages, or plain text. Nothing is guessed: a piece
 that does not fit is kept as text.
 
-Known limit: source file names are not matched against the Sources table, so a name without an
-extension is read as text and a name holding `; ` is split. Page numbers are one to nine
-digits; only spaces may surround the dash of a span.
+Known source names may be passed in; they are tried after a calculation id and `name (CP-X)`, so
+a Sources-table row naming a module is not a source file. An item equal to a name, or a name followed by `, page ` or
+`, pages ` and a page list, is that source, longest name first and compared exactly. Known limit:
+a known name holding `; ` is still split, and a known name ending in a full stop never
+matches as the last item of a line, because the line's final full stop is dropped first. Page
+numbers are one to nine digits; only spaces may surround the dash of a span.
 """
 
 import re
+from collections.abc import Sequence
 from typing import Literal
 
 from credit_os.handoff.blocks import ListItem, Paragraph
@@ -63,7 +67,19 @@ def _source(piece: str) -> BasisItem | None:
     return None
 
 
-def _item(piece: str) -> BasisItem:
+def _known_source(piece: str, known: Sequence[str]) -> BasisItem | None:
+    for name in sorted(known, key=len, reverse=True):
+        if piece == name:
+            return BasisItem(kind="source", text=piece, file=name)
+        opened = _PAGES_OPEN.match(piece, len(name))
+        if piece.startswith(name) and opened is not None:
+            found = _with_pages(piece, len(name), opened)
+            if found is not None:
+                return found
+    return None
+
+
+def _item(piece: str, known: Sequence[str]) -> BasisItem:
     calculation = _CALCULATION.fullmatch(piece)
     if calculation is not None:
         return BasisItem(kind="calculation", text=piece, calculation=calculation.group(1))
@@ -72,10 +88,10 @@ def _item(piece: str) -> BasisItem:
         return BasisItem(
             kind="module", text=piece, name=module.group(1), code=f"CP-{module.group(2)}"
         )
-    return _source(piece) or BasisItem(kind="text", text=piece)
+    return _known_source(piece, known) or _source(piece) or BasisItem(kind="text", text=piece)
 
 
-def read_basis(block: Paragraph | ListItem) -> Basis | None:
+def read_basis(block: Paragraph | ListItem, known: Sequence[str] = ()) -> Basis | None:
     last = block.lines[-1] if block.lines else ""
     if not last.startswith(_PREFIX):
         return None
@@ -84,5 +100,5 @@ def read_basis(block: Paragraph | ListItem) -> Basis | None:
     return Basis(
         line=block.line + len(block.lines) - 1,
         body=block.lines[:-1],
-        items=tuple(_item(piece) for piece in pieces if piece),
+        items=tuple(_item(piece, known) for piece in pieces if piece),
     )

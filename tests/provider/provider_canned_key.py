@@ -68,7 +68,7 @@ _COMPACTION_4 = {
     "billed_usd": Decimal("0.0214050"),
     "outcome": "failed",
     "event_id": "evt-synthetic-4",
-    "supersedes": "evt-synthetic-0",
+    "supersedes": "evt-synthetic-3",
 }
 _COMPACTIONS = (
     {
@@ -150,7 +150,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
         "usage": _USAGE_3,
         "billed_usd": Decimal("0.1305870"),
         **_NOT_TIMED,
-        "compactions": (_COMPACTION_4,),
+        "compactions": (_UNFINISHED,),
     },
     ("cp2-synthetic", 2): {
         "kind": "sent_unknown",
@@ -160,7 +160,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
         "usage": None,
         "billed_usd": None,
         **_NOT_TIMED,
-        "compactions": (_UNFINISHED,),
+        "compactions": (_COMPACTION_4,),
     },
 }
 
@@ -173,8 +173,8 @@ CANNED_SCALE = 1.5
 # reply's own billed_usd (CANNED_BILLED_TEXT) is the call's charge only: nothing is summed.
 CANNED_COMPACTION_BILLED_TEXT: dict[tuple[str, int], tuple[str | None, ...]] = {
     ("cp1-synthetic", 0): ("0.0214050", None),
-    ("cp2-synthetic", 1): ("0.0214050",),
-    ("cp2-synthetic", 2): (None,),
+    ("cp2-synthetic", 1): (None,),
+    ("cp2-synthetic", 2): ("0.0214050",),
 }
 
 # A request the recording has no reply for: complete() raises, never a default reply.
