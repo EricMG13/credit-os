@@ -99,6 +99,33 @@ the PR.
   constructor arguments so tests use short ones.
 - The runtime sees only an allow-listed environment.
 
+**Amendments (coordinator, 2026-11-14), each a test where it names behaviour:**
+
+- **PR 1 is split.** #36 carries the types, the protocol and redaction; the canned adapter is
+  PR 1b (line cap). Redaction ports `text`, `bytes_`, `from_environ` and `home_paths` only.
+  `Usage` has the five counts SDK 1.0.8 reports. A `sent_usage` reply knows a count or a charge.
+- **GitHub token shapes** are redacted with no left boundary and run to the end of their word,
+  `_` and `-` included; `sk-` shapes keep the word rule. The rest of a token's word goes with it.
+- **Compactions.** `Compaction(usage: Usage, billed_usd: Decimal | None)`;
+  `Reply.compactions: tuple[Compaction, ...] = ()`. A compaction's charge is never folded into
+  `Reply.billed_usd`, and nothing in this layer sums charges: step 3A's budget treats a total
+  with any `None` in it as unknown. A recording writes `compactions` in every reply. A
+  `not_sent` reply with a compaction is refused.
+- **`totalNanoAiu` as a float** is converted only when finite and integer-valued (through
+  `int`, then `Decimal` times 1E-11). Non-integer, negative, non-finite or above 2**53 is an
+  unreadable charge: `billed_usd=None`, the raw body kept.
+- **End of a call (SDK 1.0.8 source read, `generated/session_events.py`, `session.py`):** the
+  ruling above stands. `finishReason` (optional, on the usage event only) and
+  `assistant.turn_end` (a turn id and model, no usage) are kept in `raw` and are never the stop
+  condition. A `session.idle` with `aborted` true is never an `ok` reply. One turn can hold
+  several model calls (`assistant.turn_retry`), so usage is taken from every usage event of
+  the call.
+- **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
+  Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
+  with the reviewer's probe as the answer key, no later than PR 3, which does not merge while
+  that probe fails. PR 3's driver also gives the home directory and the runtime path to the
+  redactor as exact values; that alone is not enough.
+
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
 1. Synthetic event scripts written by the controller before each task, from the event shapes
@@ -113,7 +140,8 @@ the PR.
 
 | PR | Delivers |
 | :--- | :--- |
-| 1 | Types, protocol, redaction, canned adapter |
+| 1 | Types, protocol, redaction (#36) |
+| 1b | Canned adapter, with `Compaction` and `Reply.compactions` |
 | 2 | Pure Copilot event parser and cost reading |
 | 3 | Session driver against a fake client: one turn, errors, timeouts |
 | 3b | Tool-call turns (handlers parked until the next request), if 3 would pass 800 lines |
