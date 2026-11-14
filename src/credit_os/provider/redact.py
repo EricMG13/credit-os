@@ -55,10 +55,12 @@ _WIN_PREFIX = (
     r"(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
     r"[\\/]+|\\)"
 )
+_HOME_DIRS = r"(?i:users|home|var[\\/]+home)"  # the one list of home folders: head and lookahead
 _HOME_PATH = re.compile(
     r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
     rf"(?:{_WIN_PREFIX}|/)"
-    r"(?:(?i:users|home|var[\\/]+home)[\\/]++(?(win)(?!\\*\\\\[^\s\\/]+[\\/]+[^\s\\/]+[\\/]+(?i:users|home)[\\/])"
+    rf"(?:{_HOME_DIRS}(?(win)[\\/]++|[\\/]+)"
+    rf"(?(win)(?!\\*\\\\[^\s\\/]+[\\/]+[^\s\\/]+[\\/]+{_HOME_DIRS}[\\/])"
     r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
     rf"|root(?!{_NAME}))"
 )

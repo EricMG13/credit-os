@@ -76,6 +76,15 @@ def test_home_paths_rows(text: str, expected: str) -> None:
             "C:\\Users\\mary\\'s \\\\'srv\\share\\Users\\bob smith\\x",
             "<home><home>\\x",
         ),
+        # The same, with the second head under var/home.
+        (
+            "C:\\Users\\mary\\'s \\\\'srv\\share\\var\\home\\bob smith\\x",
+            "<home><home>\\x",
+        ),
+        # POSIX heads: a backslash after the separator stays in the name (base output).
+        ("/home/\\:x", "<home>:x"),
+        ("/Users\\\\:y", "<home>:y"),
+        ("/var/home/\\:z", "<home>:z"),
         # A real separator still ends the name (same as the base's output).
         ("C:\\Users\\mary\\Documents\\x", "<home>\\Documents\\x"),
     ],
