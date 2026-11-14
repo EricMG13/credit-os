@@ -258,6 +258,10 @@ CANNED_BAD_LINES: tuple[dict[str, Any] | str, ...] = (
     *(_line({**_OK, "billed_usd": bad}) for bad in _BAD_CHARGES),
     *(_line({**_OK, "compactions": [{**_COMPACTION, "billed_usd": bad}]}) for bad in _BAD_CHARGES),
     _line({**_OK, "turn": {**_OK_TURN, "tool_calls": [{**_CALL, "bad_arguments": None}]}}),
+    # an extra key named "" is an extra key, at any depth
+    {**_line(_OK), "": 1},
+    _line({**_OK, "": 1}),
+    _line({**_OK, "turn": {**_OK_TURN, "usage": {**_USAGE_1, "": 1}}}),
     # a number too large to read is a refused line, not another exception
     _line({**_ERR, "usage": {**_USAGE_3, "input_tokens": 10**18}}),
     '{"exchange_id":"e","call_index":0,"reply":{"x":1e9999999999999999999999999}}',
