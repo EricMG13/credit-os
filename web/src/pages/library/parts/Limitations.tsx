@@ -1,22 +1,25 @@
 import { ChevronDown, ChevronUp } from "@untitledui/icons";
 import { Button, Disclosure, DisclosurePanel, Link } from "react-aria-components";
-import type { Overview } from "../slice";
-import { SECTION_HEADING } from "./heading";
+import type { Limitations as LimitationsData } from "../slice";
+import type { SECTION_HEADING, SUBSECTION_HEADING } from "./heading";
 import { TEXT_LINK } from "./links";
 import { TRACE_HOST, TraceControl } from "./TraceControl";
 
 /**
- * What the run could not establish (P5): the only collapsible block of a library page. Open by
- * default and always open in print; the link goes to the Evidence gaps.
+ * What the run or module could not establish (P5): the only collapsible block of a library page.
+ * Open by default and always open in print; the link goes to the Evidence gaps. `level` is the
+ * heading's level.
  */
 export function Limitations({
   limitations,
   gapsHref,
+  level,
 }: {
-  limitations: Overview["limitations"];
+  limitations: LimitationsData;
   gapsHref: string;
+  level: typeof SECTION_HEADING | typeof SUBSECTION_HEADING;
 }) {
-  const Heading = SECTION_HEADING;
+  const Heading = level;
   return (
     <section
       aria-label="Limitations"
