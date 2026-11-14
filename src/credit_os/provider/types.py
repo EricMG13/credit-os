@@ -80,6 +80,8 @@ class Turn:
     request_id: str | None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.usage, Usage):
+            raise ProviderDataError("usage must be a Usage")
         if self.stop_reason not in get_args(StopReason):
             raise ProviderDataError(f"unknown stop_reason {self.stop_reason!r}")
 
@@ -88,7 +90,8 @@ class Turn:
 class Reply:
     """`ok`: a turn came back. `not_sent`: the call never left. `sent_usage`: sent, failed,
     at least one count in usage or the charge known. `sent_unknown`: may have been sent, cost
-    unknown."""
+    unknown. `started_at` and `finished_at` are epoch seconds, `None` when the call never
+    started."""
 
     kind: ReplyKind
     turn: Turn | None
@@ -103,6 +106,8 @@ class Reply:
     def __post_init__(self) -> None:
         if self.kind not in get_args(ReplyKind):
             raise ProviderDataError(f"unknown reply kind {self.kind!r}")
+        if self.usage is not None and not isinstance(self.usage, Usage):
+            raise ProviderDataError("usage must be a Usage or None")
         self._check_outcome()
         self._check_usage()
         self._check_charge()
@@ -146,6 +151,12 @@ class Reply:
 
 
 class Model(Protocol):
+    """One model adapter. `complete` returns a `Reply` for every outcome of a call, a provider
+    failure included; it raises only when it cannot answer at all (the canned adapter, for a
+    request it has no reply for). `exchange_id` is the caller's name for one exchange and
+    `call_index` the position of the call within it, counted from 0; together they name one
+    call. `message` and `raw` are already redacted when a `Reply` leaves an adapter."""
+
     @property
     def config_id(self) -> str: ...
 

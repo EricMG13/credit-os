@@ -19,7 +19,13 @@ from credit_os.provider.types import (
     Usage,
 )
 
-USAGE_FIELDS = tuple(f.name for f in dataclasses.fields(Usage))
+USAGE_FIELDS = (
+    "input_tokens",
+    "cached_read_tokens",
+    "cache_write_tokens",
+    "output_tokens",
+    "reasoning_tokens",
+)
 CALL = ToolCall(call_id="c1", name="f", arguments={})
 _TURN = Turn("t", (), Usage(input_tokens=5), "end", None, None)
 _REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
@@ -80,6 +86,10 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_sent, {"billed_usd": Decimal("NaN")}, _FINITE),
     (_sent, {"billed_usd": Decimal("Infinity")}, _FINITE),
     (_sent, {"billed_usd": Decimal("-0.1")}, _FINITE),
+    (_turn, {"usage": None}, "usage must be a Usage"),
+    (_turn, {"usage": {"input_tokens": 5}}, "usage must be a Usage"),
+    (_sent, {"usage": {"input_tokens": 5}}, "usage must be a Usage or None"),
+    (_sent, {"usage": Message("user", "x")}, "usage must be a Usage or None"),
 ]
 BAD_COUNTS = [-1, True, False, 1.0, "1"]
 REFUSALS += [
@@ -87,6 +97,10 @@ REFUSALS += [
     for f in USAGE_FIELDS
     for v in BAD_COUNTS
 ]
+
+
+def test_usage_has_the_five_counts() -> None:
+    assert tuple(f.name for f in dataclasses.fields(Usage)) == USAGE_FIELDS
 
 
 @pytest.mark.parametrize(("build", "kw", "fragment"), REFUSALS)
