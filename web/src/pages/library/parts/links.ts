@@ -41,3 +41,7 @@ export const evidenceHref = (
 /** One traced item on the Trace tab: where a trace's "Open in Evidence" goes, with that row open. */
 export const traceItemHref = (issuer: string, run: string, item: string): string =>
   `#/library/${seg(issuer)}/${seg(run)}/evidence/trace/${seg(item)}`;
+
+/** One gap on the Gaps tab: where a jump to a gap goes, with that row marked. */
+export const gapItemHref = (issuer: string, run: string, item: string): string =>
+  `#/library/${seg(issuer)}/${seg(run)}/evidence/gaps/${seg(item)}`;

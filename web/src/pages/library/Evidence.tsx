@@ -48,7 +48,7 @@ export function Evidence({
   issuer: string | undefined;
   run: string | undefined;
   page: Extract<EvidenceTab, "summary" | "sources" | "trace" | "gaps" | "record">;
-  /** The trace item the address names, on the Trace page only. */
+  /** The row the address names, on the Trace and Gaps pages only. */
   item?: string | undefined;
 }) {
   return (
@@ -84,12 +84,14 @@ export function Evidence({
               <FilteredTab key="gaps" run={loaded} issuer={issuerId} current="gaps">
                 {(chosen, clear) => (
                   <EvidenceGaps
+                    key={item ?? ""}
                     table={evidence.gaps}
                     count={evidence.tabs.gaps}
                     module={chosen}
                     onClear={clear}
                     issuer={issuerId}
                     run={loaded.id}
+                    item={item ?? null}
                   />
                 )}
               </FilteredTab>
