@@ -912,6 +912,12 @@ describe("readSlice, modules", () => {
       "body.records[0].kind",
     ],
     [
+      "a matrix with an empty-string note",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["note"] = ""),
+      "business-profile",
+      "body.records[0].note",
+    ],
+    [
       "a matrix with no rows",
       (s: ReturnType<typeof fresh>) => (matrix(s)["rows"] = []),
       "business-profile",

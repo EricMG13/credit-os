@@ -686,7 +686,7 @@ function readMatrix(m: Rec, path: string, traces: Traces): RecordBlock {
   return {
     kind: "matrix",
     title: named(m, "title", path),
-    note: strOrNull(m, "note", path),
+    note: gradeOrNull(m, "note", path),
     columns,
     rows,
     trace: traceKey(m, "trace", path, traces),
