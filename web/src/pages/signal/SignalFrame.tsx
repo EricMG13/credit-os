@@ -1,6 +1,14 @@
 // The layout every Signal page sits in: the channel list on the left, the page's content on the
 // right, each scrolling on its own, filling the full-bleed page region after mock/signal.js (SgShell) and `.sub`, `.ni`, `.cnt`, `.dot`, `.me`.
-import { useCallback, useId, useRef, useState, type FC, type ReactNode, type RefObject } from "react";
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  type FC,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import {
   Bookmark,
   Clock,
