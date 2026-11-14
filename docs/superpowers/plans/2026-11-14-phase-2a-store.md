@@ -194,7 +194,13 @@ Written by the controller before each task from invented values only. No databas
 
 PR 1 is split to hold the 800-line cap: 1a (#162) the errors, the SQLite error mapping and
 the CI version print; 1b (#169) the codecs; then 1c `location.py` (path rules), 1d `txn.py`
-(the write transaction and the migration runner) and 1e `db.py` (open).
+(the write transaction and the migration runner) and 1e `db.py` (open). 1c (#201) is merged.
+The errors-test additions (value-free messages, the literal-SQL scan, the hooks scan) and one
+POSIX row for `prepare(kept/new/../alink)` go in a tests-only PR 1d-b, merged before 1e is
+ready. In 1d an interrupt that arrives while a body statement runs leaves as `StoreUnusable`
+with nothing committed; the owner chose to document and pin it, and a caller treats
+`StoreUnusable` as ending its work. 1e's brief says where a store error message, which
+carries the operating system's text and so the folder path, may be shown or stored.
 
 Ruled by the controller in PR 1 and confirmed: a SQLite error maps by primary result code (5
 and 6 busy; 19 conflict; 11 and 26 corrupt; anything else unusable); an error message never
