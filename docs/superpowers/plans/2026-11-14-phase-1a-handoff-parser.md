@@ -136,6 +136,36 @@ Blocks (PR 2, #42):
   (any leading whitespace other than up to three spaces: four spaces, a tab, a no-break space)
   is refused; it is never read as a paragraph.
 - Lists are flat. `read_blocks` takes whole heading-to-heading ranges.
+- A table given a `label` has a `label_line` and the reverse; one without the other is an error.
+
+Document (PR 3, #47):
+1. Front matter exists only when line 1 is `---` (trailing spaces or tabs allowed) and ends at
+   the next such line; one that is never closed is refused at line 1.
+2. Every line between is `key: value`: key `[A-Za-z_][A-Za-z0-9_-]*`, a colon, then the end of
+   the line or whitespace and the value, stripped and never interpreted. A blank or other line
+   is refused at its line, a repeated key at the later line.
+3. The scan runs on the lines with the front matter blanked, so line numbers are the file's.
+4. `parse` takes bytes in strict UTF-8 and is the package's one entry; an invalid byte is
+   refused with its line.
+5. The skeleton is checked first. A wrong, repeated or extra level-2 heading is refused at its
+   line, a missing one at the last line of the file.
+6. One level-1 heading is allowed before `## Request` and is the document title. A second, one
+   after Request, or any other heading or text before Request is refused.
+7. A section ends before the next heading of the same or a shallower level; its parent is the
+   nearest earlier shallower heading; a skipped level is allowed.
+8. Whitespace of any kind around a heading title is ignored.
+9. An unclosed fence is a flag on its code block, not an error; nothing inside it is classified
+   by a later layer, and step 2B refuses a handoff that has one.
+
+Ruled for PR 4 (#53, not yet in `main`):
+- Every `HandoffError` message that echoes text from the file shows at most 80 characters of
+  it, then `…`.
+- A `Reader summary` section that is present but not in the expected shape is never read as
+  absent. The reader carries the raw section, so the summary being unreadable is an explicit
+  gap.
+
+Known real case (one retained run): a table split by a blank line, or a header and separator
+of different widths, is refused; the predecessor accepted the first and turned rows into prose.
 
 ## PR sequence
 
