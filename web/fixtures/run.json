@@ -750,6 +750,484 @@
             "state": "Queued"
           }
         ]
+      },
+      {
+        "kind": "run",
+        "id": "capped",
+        "issuer": "TransDigm Group",
+        "state": "Capped",
+        "labels": ["Full credit review", "As of Q3 FY2026"],
+        "line": null,
+        "alert": {
+          "title": "The run reached its USD 20.00 cap",
+          "text": "Nine modules finished and are in the library. Recovery was stopped part-way and three modules did not run. A new run has its own cap.",
+          "action": { "label": "Open what finished", "href": "#/" },
+          "alt": { "label": "Start a new run", "href": "#/run/start/no-documents" }
+        },
+        "open": null,
+        "spend": {
+          "value": "USD 20.00",
+          "bar": { "label": "USD 20.00 of USD 20.00", "value": 20, "max": 20 }
+        },
+        "finished": {
+          "value": "9 of 13",
+          "bar": { "label": "9 of 13 modules", "value": 9, "max": 13 }
+        },
+        "elapsed": { "value": "31 min 20 s", "note": "Stopped today at 15:09" },
+        "modules": {
+          "kind": "steps",
+          "steps": [
+            {
+              "kind": "module",
+              "name": "Documentation review",
+              "state": "Finished",
+              "detail": "Finished in 3 min 02 s, USD 1.00"
+            },
+            {
+              "kind": "module",
+              "name": "Business profile",
+              "state": "Finished",
+              "detail": "Finished in 2 min 41 s, USD 1.05"
+            },
+            {
+              "kind": "module",
+              "name": "Financial analysis",
+              "state": "Finished",
+              "detail": "Finished in 4 min 10 s after a second attempt, USD 2.35"
+            },
+            {
+              "kind": "module",
+              "name": "Capital structure",
+              "state": "Finished",
+              "detail": "Finished in 2 min 48 s, USD 1.38"
+            },
+            {
+              "kind": "module",
+              "name": "Liquidity",
+              "state": "Finished",
+              "detail": "Finished in 3 min 20 s, USD 1.62"
+            },
+            {
+              "kind": "module",
+              "name": "Covenants",
+              "state": "Finished",
+              "detail": "Finished in 2 min 05 s, USD 1.10"
+            },
+            {
+              "kind": "module",
+              "name": "Peer comparison",
+              "state": "Finished",
+              "detail": "Finished in 3 min 44 s, USD 1.90"
+            },
+            {
+              "kind": "module",
+              "name": "Management and ownership",
+              "state": "Finished",
+              "detail": "Finished in 1 min 52 s, USD 0.85"
+            },
+            {
+              "kind": "module",
+              "name": "Financial model and forecast",
+              "state": "Finished",
+              "detail": "Finished in 6 min 31 s, USD 3.40"
+            },
+            {
+              "kind": "module",
+              "name": "Recovery",
+              "state": "Not assessable",
+              "detail": "Stopped part-way when the run reached its cap."
+            },
+            {
+              "kind": "module",
+              "name": "Rating view",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            {
+              "kind": "module",
+              "name": "Risks and watch list",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            {
+              "kind": "module",
+              "name": "Credit snapshot",
+              "state": "Not run",
+              "detail": "Did not run."
+            }
+          ]
+        },
+        "feed": [
+          { "who": "Run", "time": "15:09", "text": "Capped at USD 20.00.", "state": "Capped" },
+          {
+            "who": "Recovery",
+            "time": "15:09",
+            "text": "Stopped part-way at the cap.",
+            "state": "Not assessable"
+          },
+          {
+            "who": "Financial model and forecast",
+            "time": "15:07",
+            "text": "Finished in 6 min 31 s, USD 3.40.",
+            "state": "Finished"
+          },
+          {
+            "who": "Liquidity",
+            "time": "14:54",
+            "text": "Finished in 3 min 20 s, USD 1.62.",
+            "state": "Finished"
+          },
+          {
+            "who": "Capital structure",
+            "time": "14:51",
+            "text": "Finished in 2 min 48 s, USD 1.38.",
+            "state": "Finished"
+          }
+        ]
+      },
+      {
+        "kind": "run",
+        "id": "rejected",
+        "issuer": "TransDigm Group",
+        "state": "Rejected",
+        "labels": ["Full credit review", "As of Q3 FY2026"],
+        "line": null,
+        "alert": {
+          "title": "The run was rejected before it started",
+          "text": "One document changed after the summary was approved, so the approval no longer matches what would be read. Nothing was spent.",
+          "action": { "label": "Back to Documents", "href": "#/run/start/documents" },
+          "alt": null
+        },
+        "open": null,
+        "spend": {
+          "value": "USD 0.00",
+          "bar": { "label": "USD 0.00 of USD 20.00", "value": 0, "max": 20 }
+        },
+        "finished": {
+          "value": "0 of 13",
+          "bar": { "label": "0 of 13 modules", "value": 0, "max": 13 }
+        },
+        "elapsed": { "value": null, "note": "Rejected today at 14:37" },
+        "modules": {
+          "kind": "none",
+          "title": "No module ran",
+          "text": "The run was rejected before it started, so there is nothing to show and nothing was spent."
+        },
+        "feed": [
+          {
+            "who": "Run",
+            "time": "14:37",
+            "text": "Rejected: a document changed after approval.",
+            "state": "Rejected"
+          },
+          { "who": "Run", "time": "14:37", "text": "Submitted.", "state": "Queued" }
+        ]
+      },
+      {
+        "kind": "run",
+        "id": "interrupted",
+        "issuer": "TransDigm Group",
+        "state": "Interrupted",
+        "labels": ["Full credit review", "As of Q3 FY2026"],
+        "line": null,
+        "alert": {
+          "title": "The run was interrupted",
+          "text": "The run stopped at 14:56 while Covenants was running. Five modules finished and are kept. Resuming goes through Start and asks before it spends.",
+          "action": { "label": "Review and resume", "href": "#/run/start/start" },
+          "alt": { "label": "Open what finished", "href": "#/" }
+        },
+        "open": null,
+        "spend": {
+          "value": "USD 7.40",
+          "bar": { "label": "USD 7.40 of USD 20.00", "value": 7.4, "max": 20 }
+        },
+        "finished": {
+          "value": "5 of 13",
+          "bar": { "label": "5 of 13 modules", "value": 5, "max": 13 }
+        },
+        "elapsed": { "value": "18 min 03 s", "note": "Interrupted today at 14:56" },
+        "modules": {
+          "kind": "steps",
+          "steps": [
+            {
+              "kind": "module",
+              "name": "Documentation review",
+              "state": "Finished",
+              "detail": "Finished in 3 min 02 s, USD 1.00"
+            },
+            {
+              "kind": "module",
+              "name": "Business profile",
+              "state": "Finished",
+              "detail": "Finished in 2 min 41 s, USD 1.05"
+            },
+            {
+              "kind": "module",
+              "name": "Financial analysis",
+              "state": "Finished",
+              "detail": "Finished in 4 min 10 s after a second attempt, USD 2.35"
+            },
+            {
+              "kind": "module",
+              "name": "Capital structure",
+              "state": "Finished",
+              "detail": "Finished in 2 min 48 s, USD 1.38"
+            },
+            {
+              "kind": "module",
+              "name": "Liquidity",
+              "state": "Finished",
+              "detail": "Finished in 3 min 20 s, USD 1.62"
+            },
+            {
+              "kind": "module",
+              "name": "Covenants",
+              "state": "Interrupted",
+              "detail": "Was running when the run stopped; its work so far is not kept."
+            },
+            {
+              "kind": "module",
+              "name": "Peer comparison",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            {
+              "kind": "module",
+              "name": "Management and ownership",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            {
+              "kind": "module",
+              "name": "Financial model and forecast",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            { "kind": "module", "name": "Recovery", "state": "Not run", "detail": "Did not run." },
+            {
+              "kind": "module",
+              "name": "Rating view",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            {
+              "kind": "module",
+              "name": "Risks and watch list",
+              "state": "Not run",
+              "detail": "Did not run."
+            },
+            {
+              "kind": "module",
+              "name": "Credit snapshot",
+              "state": "Not run",
+              "detail": "Did not run."
+            }
+          ]
+        },
+        "feed": [
+          {
+            "who": "Run",
+            "time": "14:56",
+            "text": "Interrupted while Covenants was running.",
+            "state": "Interrupted"
+          },
+          {
+            "who": "Liquidity",
+            "time": "14:54",
+            "text": "Finished in 3 min 20 s, USD 1.62.",
+            "state": "Finished"
+          },
+          {
+            "who": "Capital structure",
+            "time": "14:51",
+            "text": "Finished in 2 min 48 s, USD 1.38.",
+            "state": "Finished"
+          },
+          {
+            "who": "Financial analysis",
+            "time": "14:48",
+            "text": "Finished in 4 min 10 s after a second attempt, USD 2.35.",
+            "state": "Finished"
+          },
+          {
+            "who": "Business profile",
+            "time": "14:44",
+            "text": "Finished in 2 min 41 s, USD 1.05.",
+            "state": "Finished"
+          },
+          {
+            "who": "Documentation review",
+            "time": "14:41",
+            "text": "Finished in 3 min 02 s, USD 1.00.",
+            "state": "Finished"
+          },
+          {
+            "who": "Run",
+            "time": "14:38",
+            "text": "Started. 13 modules queued, cap USD 20.00.",
+            "state": "Queued"
+          }
+        ]
+      },
+      {
+        "kind": "run",
+        "id": "many-modules",
+        "issuer": "TransDigm Group",
+        "state": "Running",
+        "labels": ["Full credit review", "As of Q3 FY2026"],
+        "line": null,
+        "alert": null,
+        "open": null,
+        "spend": {
+          "value": "USD 11.85",
+          "bar": { "label": "USD 11.85 of USD 20.00", "value": 11.85, "max": 20 }
+        },
+        "finished": {
+          "value": "12 of 22",
+          "bar": { "label": "12 of 22 modules", "value": 12, "max": 22 }
+        },
+        "elapsed": { "value": "29 min 40 s", "note": "Started today at 14:38" },
+        "modules": {
+          "kind": "steps",
+          "steps": [
+            {
+              "kind": "group",
+              "title": "12 modules finished",
+              "state": "Finished",
+              "showAll": "Show all 12",
+              "modules": [
+                {
+                  "name": "Documentation review",
+                  "state": "Finished",
+                  "detail": "Finished in 3 min 02 s, USD 1.00"
+                },
+                {
+                  "name": "Business profile",
+                  "state": "Finished",
+                  "detail": "Finished in 2 min 41 s, USD 1.05"
+                },
+                {
+                  "name": "Financial analysis",
+                  "state": "Finished",
+                  "detail": "Finished in 4 min 10 s after a second attempt, USD 2.35"
+                },
+                {
+                  "name": "Capital structure",
+                  "state": "Finished",
+                  "detail": "Finished in 2 min 48 s, USD 1.38"
+                },
+                {
+                  "name": "Liquidity",
+                  "state": "Finished",
+                  "detail": "Finished in 3 min 20 s, USD 1.62"
+                },
+                {
+                  "name": "Covenants",
+                  "state": "Finished",
+                  "detail": "Finished in 2 min 05 s, USD 1.10"
+                },
+                {
+                  "name": "Peer comparison",
+                  "state": "Finished",
+                  "detail": "Finished in 3 min 44 s, USD 1.90"
+                },
+                {
+                  "name": "Management and ownership",
+                  "state": "Finished",
+                  "detail": "Finished in 1 min 52 s, USD 0.85"
+                },
+                {
+                  "name": "Financial model and forecast",
+                  "state": "Finished",
+                  "detail": "Finished in 6 min 31 s, USD 3.40"
+                },
+                {
+                  "name": "Customer concentration",
+                  "state": "Finished",
+                  "detail": "Finished in 2 min 02 s, USD 0.70"
+                },
+                {
+                  "name": "Debt maturity profile",
+                  "state": "Finished",
+                  "detail": "Finished in 2 min 15 s, USD 0.90"
+                },
+                {
+                  "name": "Industry and market position",
+                  "state": "Finished",
+                  "detail": "Finished in 2 min 30 s, USD 1.00"
+                }
+              ]
+            },
+            {
+              "kind": "module",
+              "name": "Recovery",
+              "state": "Running",
+              "detail": "Started at 15:06"
+            },
+            { "kind": "module", "name": "Rating view", "state": "Queued", "detail": null },
+            { "kind": "module", "name": "Risks and watch list", "state": "Queued", "detail": null },
+            {
+              "kind": "module",
+              "name": "Environmental and social factors",
+              "state": "Queued",
+              "detail": null
+            },
+            {
+              "kind": "group",
+              "title": "6 more modules queued",
+              "state": "Queued",
+              "showAll": "Show all 6",
+              "modules": [
+                { "name": "Pension and lease obligations", "state": "Queued", "detail": null },
+                { "name": "Tax position", "state": "Queued", "detail": null },
+                { "name": "Segment outlook", "state": "Queued", "detail": null },
+                { "name": "Scenario analysis", "state": "Queued", "detail": null },
+                { "name": "Sources of liquidity", "state": "Queued", "detail": null },
+                { "name": "Credit snapshot", "state": "Queued", "detail": null }
+              ]
+            }
+          ]
+        },
+        "feed": [
+          { "who": "Recovery", "time": "15:06", "text": "Started.", "state": "Running" },
+          {
+            "who": "Financial model and forecast",
+            "time": "15:06",
+            "text": "Finished in 6 min 31 s, USD 3.40.",
+            "state": "Finished"
+          },
+          {
+            "who": "Customer concentration",
+            "time": "14:59",
+            "text": "Finished in 2 min 02 s, USD 0.70.",
+            "state": "Finished"
+          },
+          {
+            "who": "Liquidity",
+            "time": "14:54",
+            "text": "Finished in 3 min 20 s, USD 1.62.",
+            "state": "Finished"
+          },
+          {
+            "who": "Capital structure",
+            "time": "14:51",
+            "text": "Finished in 2 min 48 s, USD 1.38.",
+            "state": "Finished"
+          }
+        ]
+      },
+      { "kind": "none", "id": "none" },
+      {
+        "kind": "unreadable",
+        "id": "unreadable",
+        "issuer": "TransDigm Group",
+        "labels": ["Full credit review", "As of Q3 FY2026"],
+        "alert": {
+          "title": "Run activity cannot be read",
+          "text": "The run record could not be opened. This does not stop the run or change what it spends; the cap still applies.",
+          "action": { "label": "Try again", "href": "#/run/activity/unreadable" },
+          "alt": { "label": "Back to the library", "href": "#/" }
+        }
       }
     ],
     "current": "running"
