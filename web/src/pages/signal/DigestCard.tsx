@@ -3,6 +3,7 @@
 // summary and a link to the digest. A nothing-to-report card is one sentence: no points, no AI label,
 // no link, since no model made it.
 import { ArrowRight } from "@untitledui/icons";
+import { Button } from "@/components/base/buttons/button";
 import { Badge } from "@/components/base/badges/badges";
 import { MediaObject } from "./parts/MediaObject";
 import { NumberedPanel } from "./parts/NumberedPanel";
@@ -41,14 +42,15 @@ export function DigestCard({ digest, href }: { digest: SignalDigestCard; href: s
               <p className="mt-3 text-sm text-text-tertiary">{digest.summary}</p>
             )}
             <div className="mt-3">
-              <a
+              <Button
+                size="sm"
+                color="link-color"
+                iconTrailing={ArrowRight}
                 href={href}
                 aria-label={`Read the digest: ${title}`}
-                className={`inline-flex items-center gap-1 text-sm font-semibold text-text-link ${FOCUS}`}
               >
                 Read the digest
-                <ArrowRight aria-hidden="true" className="size-4" />
-              </a>
+              </Button>
             </div>
           </>
         ) : (
