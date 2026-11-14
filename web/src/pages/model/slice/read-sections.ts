@@ -192,6 +192,7 @@ function checkBridge(b: Bridge, cases: readonly CaseCard[], path: string): void 
     });
   });
 }
+
 function checkComparison(c: Comparison, path: string): void {
   if (c.rowLabels[0] === c.rowLabels[1]) {
     fail(`${path}.rowLabels[1]`, "expected a label the other row does not have");

@@ -7,7 +7,7 @@ import type { ModelRun } from "../slice/types";
 import { ModelShell, type ShellPage } from "./ModelShell";
 
 /** A key that two runs share only when issuer and run are both equal (a joined string could collide). */
-const runKey = (run: ModelRun): string => JSON.stringify([run.issuer, run.run]);
+export const runKey = (run: ModelRun): string => JSON.stringify([run.issuer, run.run]);
 
 /**
  * The run a Model route's address names, inside the Model shell; an issuer or run the slice does
