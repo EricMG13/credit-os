@@ -122,6 +122,8 @@ _ROW_A14 = _row(
     "a\nb\n",
 )
 
+# Ids a1 to e2 are rows of the design's section 11 (the reader's design of 1D PR 2b); a, b, c, d
+# and e group them: a reading across steps, b long tags, c tag names, d references, e end tags.
 _SECTION_11_ROWS = [
     _ROW_A1,
     _row("a2", b"<p>" + b"x" * 8188 + b"\xc3\xa9y</p>", "x" * 8188 + E_ACUTE + "y\n"),
@@ -337,70 +339,92 @@ def test_rows_in_small_pieces(
 
 _NOT_SIGN = "\N{NOT SIGN}"
 _SMALL = (1, 34, 35)
+# Rows m1 to m30 each kill a mutant of the engine that the rows above let survive (m23 to m30:
+# an edit of a pattern); the comment on each names the rule it guards. m31 is the same kind.
 _MUTANT_ROWS = [
+    # m1: only a style attribute hides: another attribute naming display:none does not
     pytest.param(b'<p title="display:none">shown</p>', None, "shown\n", id="m1"),
+    # m2: nested hidden elements: each end tag closes one level, so text after them stays hidden
     pytest.param(NESTED, None, "shown\n", id="m2"),
+    # m3: a self-closing tag breaks the line and opens no element
     pytest.param(b"<p>a<br/>b</p>", None, "a\nb\n", id="m3"),
+    # m4: an empty comment is closed at its own end, not held for a later comment end
     pytest.param(
         b"<!---->" + b"shown " * 3000 + b"<!-- x -->", None, "shown " * 2999 + "shown\n", id="m4"
     ),
+    # m5: a quoted value with > in an end tag is held across steps
     pytest.param(b"<p>a</p a = 'b>" + b" " * 9000 + b"'>c", None, "a\nc\n", id="m5"),
+    # m6: the same, with text before the end tag: that text is released, the tag kept
     pytest.param(
         b"<p>a</p>xx<p>y</p a = 'b>" + b" " * 9000 + b"'>c", None, "a\nxx\ny\nc\n", id="m6"
     ),
+    # m7: a flood of unfinished references is decoded as the whole document would be
     pytest.param(b"&notin" * 3000, None, (_NOT_SIGN + "in") * 3000 + "\n", id="m7"),
+    # m8: hidden text stays hidden: a held comment keeps its first 9 and last 3 characters
     pytest.param(
         b"<!---><p>inside</p>" + b" " * 20000 + b"<!-- c --><p>after</p>", None, "after\n", id="m8"
     ),
+    # m9: references in a textarea are decoded across steps, as the whole document would be
     pytest.param(
         b"<textarea>&#x41;&#65;&notin&not;&amp</textarea>e",
         _SMALL,
         "AA" + _NOT_SIGN + "in" + _NOT_SIGN + "&e\n",
         id="m9",
     ),
+    # m10: xmp content is literal: its references are not decoded
     pytest.param(
         b"<xmp>" + b"<b>&amp;</b> " * 2000 + b"</xmp>after",
         None,
         "<b>&amp;</b> " * 2000 + "after\n",
         id="m10",
     ),
+    # m11: a replaced long tag leaves the reader's lookahead cleared for what follows
     pytest.param(
         b"<X\"y data-x='" + X + b"'  >a<p>b</p>" + b" " * 20000 + b'"', None, 'a\nb\n"\n', id="m11"
     ),
+    # m12: a long style of exactly 4 bytes a character at the limit is read, not refused
     pytest.param(
         b'<div data-x="' + X + b'" style="' + ASTRAL * 16384 + b'">t</div>', None, "t\n", id="m12"
     ),
+    # m13: in a long tag only the style attribute can hide
     pytest.param(
         b'<div data-x="' + X + b'" title="display:none">shown</div>', None, "shown\n", id="m13"
     ),
+    # m14: a long unquoted style value is read whole
     pytest.param(
         b'<div data-x="' + X + b'" style=display:noned>hidden</div>shown', None, "shown\n", id="m14"
     ),
+    # m15: a long plain style that hides: the text after it is still decoded correctly
     pytest.param(
         b'<div style="' + Q + b';display:none">hidden</div><p>shown &amp; caf\xc3\xa9</p>',
         None,
         "shown & caf" + E_ACUTE + "\n",
         id="m15",
     ),
+    # m16: a long style that does not hide leaves its element shown and the next one hidden
     pytest.param(
         b'<div style="' + Q + b')">shown</div><p style="display:none">h</p>',
         None,
         "shown\n",
         id="m16",
     ),
+    # m17: a long tag never closed drops the rest of the document
     pytest.param(b'<p>before</p><a b="' + b"x " * 10000, None, "before\n", id="m17"),
+    # m18: a long void tag with a non-ASCII style is not refused: it opens nothing
     pytest.param(
         b'<img data-x="' + X + b'" style="' + b"x" * 20000 + b'\xc3\xa9">after',
         None,
         "after\n",
         id="m18",
     ),
+    # m19: at small steps, the comment end --!> is looked for ahead as well as -->
     pytest.param(
         b"<div style='display:none'>hidden<!---></div>revealed?<!-- c --!>after",
         _SMALL,
         "",
         id="m19",
     ),
+    # m20: a comment end --!> far ahead is found, so <!--> waits for it
     pytest.param(
         b"<!-- a --!><div style='display:none'>hidden<!--></div>revealed"
         + b" " * 9000
@@ -409,7 +433,9 @@ _MUTANT_ROWS = [
         "",
         id="m20",
     ),
+    # m21: a quote lookahead: an apostrophe value with > inside, across steps
     pytest.param(b"<p title = '" + b"a>" * 5000 + b"'>shown</p>", None, "shown\n", id="m21"),
+    # m22: two-byte letters before a long tag: the byte position after it stays exact
     pytest.param(
         b'<div data-x="'
         + "\N{LATIN SMALL LETTER E WITH ACUTE}".encode() * 10000
@@ -418,39 +444,54 @@ _MUTANT_ROWS = [
         "s\n",
         id="m22",
     ),
+    # m23: the ASCII style check ignores case
     pytest.param(
         b'<div style="' + Q + b';DISPLAY:NONE">hidden</div><p>shown</p>', None, "shown\n", id="m23"
     ),
+    # m24: the ASCII style check allows a space after the colon
     pytest.param(
         b'<div style="' + Q + b';display: none">hidden</div><p>shown</p>', None, "shown\n", id="m24"
     ),
+    # m25: the ASCII style check allows the characters 0x1c to 0x1f as space
     pytest.param(
         b'<div style="' + Q + b';display\x1c:none">hidden</div><p>shown</p>',
         None,
         "shown\n",
         id="m25",
     ),
+    # m26: the ASCII style check allows a tab and a line feed as space
     pytest.param(
         b'<div style="' + Q + b';display\t:\nnone">hidden</div><p>shown</p>',
         None,
         "shown\n",
         id="m26",
     ),
+    # m27: a long end tag is held too (the open pattern matches </ as well)
     pytest.param(
         b"<blockquote style=display:none>hidden</blockquote" + b" a" * 10000 + b">shown",
         None,
         "shown\n",
         id="m27",
     ),
+    # m28: a double quote in an end tag is a quote
     pytest.param(b'<p>a</p a = "b>' + b" " * 9000 + b'">c', None, "a\nc\n", id="m28"),
+    # m29: the comment end --!> counts as a comment end
     pytest.param(
         b"<!-- a --!><p>shown</p>" + b" " * 20000 + b"<!-- b --><p>after</p>",
         None,
         "shown\nafter\n",
         id="m29",
     ),
+    # m30: title and textarea both decode their references
     pytest.param(
         b"<textarea>" + b"w &amp; " * 3000 + b"</textarea>", None, "w & " * 2999 + "w &\n", id="m30"
+    ),
+    # m31: a reference name read twice, at small steps, is decoded both times (from 2b-2's review)
+    pytest.param(
+        b"<body><title>&CounterClockwiseContourIntegral;&CounterClockwiseContourIntegral;",
+        _SMALL,
+        "\N{ANTICLOCKWISE CONTOUR INTEGRAL}" * 2 + "\n",
+        id="m31",
     ),
 ]
 
