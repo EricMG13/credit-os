@@ -279,4 +279,95 @@ describe("Evidence, Trace", () => {
     fireEvent.click(within(head("Item")).getByRole("button"));
     expect(screen.getByRole("list", { name: "How Net leverage 4.6x was derived" })).toBeVisible();
   });
+
+  it("opens at an address: that row open, scrolled into view and focused", () => {
+    renderTrace(FULL, "T-0014");
+    expect(expander("T-0014")).toHaveAttribute("aria-expanded", "true");
+    expect(expander("T-0014")).toHaveFocus();
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("opens at the address of a row with no calculation: the row is focused and nothing opens", () => {
+    renderTrace(FULL, "T-0042");
+    expect(rowOf("T-0042")).toHaveFocus();
+    expect(rowOf("T-0042")).toHaveAttribute("tabindex", "-1");
+    expect(expander("T-0014")).toHaveAttribute("aria-expanded", "false");
+    expect(scrolled).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens at an address no item has: the whole table and a warning, nothing opened or focused", () => {
+    renderTrace(FULL, "T-9999");
+    expect(screen.getByRole("alert")).toHaveTextContent("No item has this address");
+    expect(ids()).toEqual(rowsOf().map((r) => r.id));
+    expect(expander("T-0014")).toHaveAttribute("aria-expanded", "false");
+    expect(scrolled).not.toHaveBeenCalled();
+    expect(table().contains(document.activeElement)).toBe(false);
+  });
+
+  const pick = (name: string) => {
+    const trigger = screen.getByRole("button", { name: /^Module:/ });
+    const select = trigger.closest("div")?.querySelector("select");
+    if (!select) throw new Error("no module select");
+    fireEvent.change(select, { target: { value: name === "All" ? "all" : `option:${name}` } });
+  };
+
+  it("narrows the table to one module, and drops the count it can no longer vouch for", () => {
+    renderTrace(FULL);
+    pick("Recovery");
+    expect(ids()).toEqual(
+      rowsOf()
+        .filter((r) => r.moduleId === "recovery")
+        .map((r) => r.id),
+    );
+    expect(screen.queryByRole("heading", { name: "Trace 60" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Trace" })).toBeVisible();
+    pick("All");
+    expect(ids()).toHaveLength(60);
+  });
+
+  it("draws an empty state for a module no item sits in, and its way back", () => {
+    renderTrace(FULL);
+    const held = new Set(rowsOf().map((r) => r.moduleId));
+    expect(held.has("industry-and-competition")).toBe(false);
+    pick("Industry and competition");
+    expect(
+      screen.getByRole("heading", { name: "No traced item sits in Industry and competition" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("table")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show all items" }));
+    expect(ids()).toHaveLength(60);
+  });
+
+  it("draws an empty state for a run that traces nothing, with the delivered count", () => {
+    renderTrace("2026-03-31");
+    expect(screen.getByRole("heading", { name: "Nothing is traced in this run" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Trace0" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("keeps one h1 and no skipped level in every state", () => {
+    const states: [string, string | undefined][] = [
+      [FULL, undefined],
+      [FULL, "T-0014"],
+      [FULL, "T-9999"],
+      ["2026-03-31", undefined],
+      ["2026-06-30", "T-0014"],
+      ["1999-01-01", undefined],
+    ];
+    for (const [run, item] of states) {
+      const { container } = renderTrace(run, item);
+      const levels = [...container.querySelectorAll("h1,h2,h3,h4,h5,h6")].map((h) =>
+        Number(h.tagName[1]),
+      );
+      expect(
+        levels.filter((l) => l === 1),
+        `${run} ${item ?? ""}`,
+      ).toHaveLength(1);
+      levels.forEach((l, i) => {
+        if (i > 0) expect(l - (levels[i - 1] ?? 1), `${run} ${item ?? ""}`).toBeLessThanOrEqual(1);
+      });
+      cleanup();
+    }
+  });
 });

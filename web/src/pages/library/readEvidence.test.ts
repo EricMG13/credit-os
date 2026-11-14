@@ -386,3 +386,213 @@ describe("readSlice, trace", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.evidenceItem");
   });
 });
+
+type GapGroups = { rows: Json[] }[];
+const gapGroups = (e: ReturnType<typeof evidenceOf>) => (e["gaps"] as { groups: GapGroups }).groups;
+const gapOf = (e: ReturnType<typeof evidenceOf>, g: number, r: number): Json => {
+  const found = gapGroups(e)[g]?.rows[r];
+  if (found === undefined) throw new RangeError(`no gap ${String(g)}.${String(r)}`);
+  return found;
+};
+
+describe("readSlice, gaps", () => {
+  const read = () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    return result.data.issuers[0]?.runs ?? [];
+  };
+
+  it("reads the full run's gaps as the mock words them: three groups, the last column's forms", () => {
+    const gaps = read()[0]?.evidence?.gaps;
+    expect(gaps?.title).toBe("Gaps");
+    expect(gaps?.description).toBe(
+      "What this run could not establish, by how much it bears on the view.",
+    );
+    expect(gaps?.columns).toEqual({
+      id: "Gap",
+      gap: "What is missing",
+      module: "Module",
+      reason: "Effect on the view",
+      shownAs: "Shown as",
+    });
+    expect(gaps?.groups.map((g) => [g.severity, g.count, g.rows.length])).toEqual([
+      ["High", "2", 2],
+      ["Medium", "3", 3],
+      ["Low", "2", 2],
+    ]);
+    expect(
+      gaps?.groups.flatMap((g) => g.rows.map((r) => [r.id, r.gap, r.module, r.reason, r.shownAs])),
+    ).toEqual([
+      [
+        "G-01",
+        "Security and intercreditor documents",
+        "Recovery",
+        "Recovery by class is not assessable; the view on the unsecured notes rests on rank alone.",
+        "blocked",
+      ],
+      [
+        "G-02",
+        "Hedge schedule",
+        "Capital structure",
+        "The fixed and floating split of interest is an estimate; hedge expiries are not drawn.",
+        "gap",
+      ],
+      [
+        "G-03",
+        "Peer figures on the same basis",
+        "Peer comparison",
+        "The comparison overstates Halden by an amount the module could not size.",
+        "gap",
+      ],
+      [
+        "G-04",
+        "Share of revenue under cost pass-through",
+        "Business profile",
+        "The finding on input costs rests on the margin record, not on contract terms.",
+        "gap",
+      ],
+      [
+        "G-05",
+        "Average cost of debt",
+        "Capital structure",
+        "None on the view: interest cover is computed from cash interest paid.",
+        "withheld",
+      ],
+      [
+        "G-06",
+        "EBITDA for 2022 on the current basis",
+        "Financial performance",
+        "Five-year trends start in 2023.",
+        "missing",
+      ],
+      [
+        "G-07",
+        "Lease maturity schedule",
+        "Capital structure",
+        "Leases appear in the debt stack but not by year.",
+        "missing",
+      ],
+    ]);
+    expect(gaps?.groups.flatMap((g) => g.rows.map((r) => r.where.page))).toContain("overview");
+  });
+
+  it("agrees with what the run says elsewhere: its tab, the Overview's link and every module with gaps", () => {
+    for (const run of read()) {
+      if (run.evidence === null) continue;
+      const rows = run.evidence.gaps.groups.flatMap((g) => g.rows);
+      expect(run.evidence.tabs.gaps).toBe(String(rows.length));
+      expect(run.overview.limitations.gapsLink.label).toBe(
+        `See the ${String(rows.length)} gaps in Evidence`,
+      );
+      for (const module of run.modules) {
+        if (module.state === "Delivered with gaps" || module.state === "Not assessable") {
+          expect(
+            rows.map((r) => r.moduleId),
+            `${run.id} ${module.id}`,
+          ).toContain(module.id);
+        }
+      }
+    }
+    expect(read().map((run) => run.evidence?.gaps.groups.map((g) => g.severity))).toEqual([
+      ["High", "Medium", "Low"],
+      undefined,
+      ["High", "Medium"],
+      ["Medium", "Low"],
+    ]);
+  });
+
+  const brokenGaps: [string, (e: ReturnType<typeof evidenceOf>) => unknown, string][] = [
+    [
+      "a severity that is not one of the three",
+      (e) => ((gapGroups(e)[0] as Json)["severity"] = "Critical"),
+      "gaps.groups[0].severity",
+    ],
+    ["groups out of order", (e) => gapGroups(e).reverse(), "gaps.groups[1].severity"],
+    [
+      "a group count that is not its rows",
+      (e) => ((gapGroups(e)[1] as Json)["count"] = "2"),
+      "gaps.groups[1].count",
+    ],
+    [
+      "a group with no rows",
+      (e) => ((gapGroups(e)[2] as Json)["rows"] = []),
+      "gaps.groups[2].rows",
+    ],
+    [
+      "no groups beside a tab that counts gaps",
+      (e) => ((e["gaps"] as Json)["groups"] = []),
+      "tabs.gaps",
+    ],
+    ["an id given twice", (e) => (gapOf(e, 1, 0)["id"] = "G-01"), "gaps.groups[1].rows[0].id"],
+    [
+      "a module the run does not hold",
+      (e) => (gapOf(e, 0, 0)["moduleId"] = "treasury"),
+      "gaps.groups[0].rows[0].moduleId",
+    ],
+    ["no module id", (e) => (gapOf(e, 0, 0)["moduleId"] = null), "gaps.groups[0].rows[0].moduleId"],
+    [
+      "a module named otherwise",
+      (e) => (gapOf(e, 0, 1)["module"] = "Capital"),
+      "gaps.groups[0].rows[1].module",
+    ],
+    [
+      "a form that is not one of the four",
+      (e) => (gapOf(e, 1, 2)["shownAs"] = "error"),
+      "gaps.groups[1].rows[2].shownAs",
+    ],
+    [
+      "a reason that is an empty string",
+      (e) => (gapOf(e, 2, 0)["reason"] = ""),
+      "gaps.groups[2].rows[0].reason",
+    ],
+    [
+      "a page the gap sits on that is not held",
+      (e) => ((gapOf(e, 0, 0)["where"] as Json)["page"] = "changes"),
+      "gaps.groups[0].rows[0].where.page",
+    ],
+    [
+      "a link with no label",
+      (e) => delete (gapOf(e, 0, 0)["where"] as Json)["label"],
+      "gaps.groups[0].rows[0].where.label",
+    ],
+    [
+      "a head that is missing",
+      (e) => delete ((e["gaps"] as Json)["columns"] as Json)["shownAs"],
+      "gaps.columns.shownAs",
+    ],
+    [
+      "a tab count that is not the number of gaps",
+      (e) => ((e["tabs"] as Json)["gaps"] = "6"),
+      "tabs.gaps",
+    ],
+  ];
+  it.each(brokenGaps)("is invalid for %s, with its path", (_, edit, expected) => {
+    const slice = fresh();
+    edit(evidenceOf(slice));
+    expect(invalidReason(slice)).toContain(`${at(0)}.${expected}`);
+  });
+
+  it("is invalid for an Overview link that names another number of gaps, with its path", () => {
+    const slice = fresh();
+    const limits = (
+      (slice.issuers[0]?.runs[0] as Json)["overview"] as { limitations: { gapsLink: Json } }
+    ).limitations;
+    limits.gapsLink["label"] = "See the 6 gaps in Evidence";
+    expect(invalidReason(slice)).toContain(
+      "issuers[0].runs[0].overview.limitations.gapsLink.label",
+    );
+  });
+
+  it("reads a run with no gap: no group, a tab that says 0 and an Overview link that names 0", () => {
+    const slice = fresh();
+    const run = slice.issuers[0]?.runs[0] as Json;
+    const evidence = evidenceOf(slice);
+    (evidence["gaps"] as Json)["groups"] = [];
+    (evidence["tabs"] as Json)["gaps"] = "0";
+    const limits = (run["overview"] as { limitations: { gapsLink: Json } }).limitations;
+    limits.gapsLink["label"] = "See the 0 gaps in Evidence";
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.issuers[0]?.runs[0]?.evidence?.gaps.groups).toEqual([]);
+  });
+});
