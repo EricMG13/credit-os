@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
 import type { Evidence } from "./slice";
@@ -20,15 +21,16 @@ export function EvidenceSummary({
   run: string;
 }) {
   const Heading = SUBSECTION_HEADING;
+  const deliveredId = useId();
   const { delivered, counts, run: code, take } = evidence.summary;
   return (
     <div className="flex flex-col gap-8">
       <section
-        aria-labelledby="delivered-heading"
+        aria-labelledby={deliveredId}
         className="flex flex-col gap-4 rounded-xl border border-border-subtle bg-surface-card p-5 shadow-xs"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <Heading id="delivered-heading" className="font-display text-h4 text-text-primary">
+          <Heading id={deliveredId} className="font-display text-h4 text-text-primary">
             Modules delivered
           </Heading>
           {delivered.note === null ? null : (
