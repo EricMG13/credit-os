@@ -12,7 +12,7 @@ export function CellValue({ cell, figureClass }: { cell: Cell; figureClass: stri
   if (cell === null) {
     return (
       <div>
-        <span className={`${figureClass} font-normal`}>
+        <span className={`font-normal ${figureClass}`}>
           <Missing />
         </span>
       </div>
