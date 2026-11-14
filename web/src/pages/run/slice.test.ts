@@ -442,12 +442,18 @@ describe("committed fixture, run activity", () => {
       "As of Q3 FY2026",
       "Full credit review with every optional module and a late cut-off",
     ]);
-    expect(r.feed).toHaveLength(6);
-    expect(r.feed[4]).toMatchObject({
+    expect(r.feed).toHaveLength(7);
+    expect(r.feed[0]).toEqual({
+      who: "Recovery",
+      time: "15:06",
+      text: "Started.",
+      state: "Running",
+    });
+    expect(r.feed[5]).toMatchObject({
       who: "Credit agreement review",
       text: "Finished the review of the credit agreement and its latest amendment, then compared the stated leverage tests with the quarterly report and the segment data. Two tests were read from the amendment itself and one from its summary table, and each is stated with its period so a reader can see which was tested and when.",
     });
-    expect(r.feed[5]).toMatchObject({
+    expect(r.feed[6]).toMatchObject({
       who: "Business profile",
       text: "Stopped to wait for the model service, then carried on once it answered. The module that was waiting kept every figure it had already read, so nothing was read twice, and the time spent waiting counts in the elapsed time shown above, not in the spend. The run did not need to start the module again.",
     });

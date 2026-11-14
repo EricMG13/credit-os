@@ -1208,6 +1208,7 @@
           ]
         },
         "feed": [
+          { "who": "Recovery", "time": "15:06", "text": "Started.", "state": "Running" },
           {
             "who": "Financial model and forecast",
             "time": "15:06",
