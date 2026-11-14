@@ -21,8 +21,15 @@ STATES = ("proposed", "approved", "paused")
 
 
 class StoreError(ValueError):
-    """Bad input: an invalid role, kind, state, id, time or text, an empty name, a duplicate or a
-    nested transaction the store does not own."""
+    """A refusal by the store. A plain `StoreError` is bad input (an invalid role, kind, state,
+    id, time or text, an empty name, a duplicate); `StoreUnusable`, its subclass, is a refusal
+    that is not bad input."""
+
+
+class StoreUnusable(StoreError):
+    """A refusal that is not bad input: a programming error (a transaction the store does not
+    own is open) or an unusable database (WAL refused, a schema newer than this code's
+    migrations). A route answers it with a server error, never with its text."""
 
 
 _MIGRATION_1 = """
@@ -184,6 +191,7 @@ CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_name);
 # Ordered; later slices append. Index i holds the script that brings the schema to version i + 1.
 MIGRATIONS = [_MIGRATION_1, _MIGRATION_2, _MIGRATION_3]
 _BUSY_SECONDS = 30
+_SCHEMA_KEY = "schema_version"
 
 
 def _schema_version(db: sqlite3.Connection) -> int:
@@ -196,9 +204,10 @@ def _schema_version(db: sqlite3.Connection) -> int:
     return int(row[0]) if row else 0
 
 
-# Connections (by id) inside a `write_transaction` block that began their transaction. The id is
-# added before BEGIN and removed in `finally`, so it cannot outlive the block or its exception;
-# another connection has another id, so ownership cannot leak between connections.
+# Connections (by id) inside a `write_transaction` block that began their transaction. The add is
+# the first statement of the `try` whose `finally` removes the id, so an exception raised at the
+# add (an interrupt delivered after it) still removes it; ids are per connection, and a removed
+# id cannot be inherited by a later connection that reuses the address.
 _OWNED: set[int] = set()
 
 
@@ -210,17 +219,20 @@ def write_transaction(db: sqlite3.Connection) -> Iterator[None]:
     began; it neither begins, commits nor rolls back, so only the outermost block does and an
     exception that reaches the outermost block undoes the joined blocks' writes too. A joined
     block's exception that the caller catches inside the outer block leaves its writes pending.
-    Entered while any other transaction is open, it raises `StoreError` and writes nothing."""
+    Entered while any other transaction is open, it raises `StoreError` and writes nothing.
+
+    Not detected: a block whose body ends its own transaction and begins another. Callers must
+    not issue raw BEGIN, COMMIT or ROLLBACK inside a block."""
     key = id(db)
     if key in _OWNED:
         if not db.in_transaction:
-            raise StoreError("the enclosing write_transaction's transaction has already ended")
+            raise StoreUnusable("the enclosing write_transaction's transaction has already ended")
         yield
         return
     if db.in_transaction:
-        raise StoreError("a transaction this store did not begin is open on the connection")
-    _OWNED.add(key)
+        raise StoreUnusable("a transaction this store did not begin is open on the connection")
     try:
+        _OWNED.add(key)
         db.execute("BEGIN IMMEDIATE")
         yield
         db.execute("COMMIT")
@@ -269,7 +281,7 @@ def _enable_wal(db: sqlite3.Connection) -> None:
                 raise
             time.sleep(0.02)
     if str(mode).lower() != "wal":
-        raise StoreError(f"could not enable WAL mode; database reports {mode!r}")
+        raise StoreUnusable(f"could not enable WAL mode; database reports {mode!r}")
 
 
 def open_db(root: Path) -> sqlite3.Connection:
@@ -283,16 +295,19 @@ def open_db(root: Path) -> sqlite3.Connection:
     db = sqlite3.connect(path, timeout=_BUSY_SECONDS)
     try:
         db.row_factory = sqlite3.Row
+        # Read-only, and before the first write: the WAL switch rewrites the file header. A file
+        # with no meta table yet (new, zero-length, or another opener still initialising it) reads
+        # as version 0 and is not refused; a busy read waits on the connection's timeout.
+        version = _schema_version(db)
+        if version > len(MIGRATIONS):
+            raise StoreUnusable(
+                f"database schema version {version} is newer than this code's {len(MIGRATIONS)}"
+            )
         _enable_wal(db)
         db.execute("PRAGMA foreign_keys=ON")
         # The text leaves the database file at the next checkpoint and can remain in the
         # write-ahead log while other connections are open.
         db.execute("PRAGMA secure_delete=ON")
-        version = _schema_version(db)
-        if version > len(MIGRATIONS):
-            raise StoreError(
-                f"database schema version {version} is newer than this code's {len(MIGRATIONS)}"
-            )
         _migrate(db)
     except BaseException:
         db.close()
@@ -301,13 +316,15 @@ def open_db(root: Path) -> sqlite3.Connection:
 
 
 def set_meta(db: sqlite3.Connection, key: str, value: str) -> None:
-    _require_text(key, value)
+    if key == _SCHEMA_KEY:
+        raise StoreError(f"the meta key {_SCHEMA_KEY!r} belongs to the migrations")
+    require_text(key, value)
     with write_transaction(db):
         db.execute("INSERT OR REPLACE INTO meta(key, value) VALUES(?, ?)", (key, value))
 
 
 def get_meta(db: sqlite3.Connection, key: str) -> str | None:
-    _require_text(key)
+    require_text(key)
     row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
     return str(row["value"]) if row else None
 
@@ -326,7 +343,7 @@ def utc_text(at: datetime) -> str:
         raise StoreError("time is outside the range UTC can hold") from exc
 
 
-def _require_text(*values: str | None) -> None:
+def require_text(*values: str | None) -> None:
     """Refuse text SQLite cannot encode (a lone surrogate) before it reaches a statement."""
     for value in values:
         if value is None:
@@ -347,22 +364,33 @@ def _require_name(name: str) -> None:
         raise StoreError("name must not be empty")
 
 
-def add_user(db: sqlite3.Connection, name: str, role: str) -> int:
-    _require_name(name)
-    _require(role, ROLES, "role")
-    _require_text(name)
-    try:
-        with write_transaction(db):
-            cur = db.execute("INSERT INTO users(name, role) VALUES(?, ?)", (name, role))
-    except sqlite3.IntegrityError as exc:
-        raise StoreError(f"user {name!r} already exists") from exc
+def require_id(number: int, what: str) -> None:
+    """Refuse an id SQLite cannot hold: no row of this kind has it."""
+    if not in_range(number):
+        raise StoreError(f"no {what} with id {number}")
+
+
+def new_row_id(cur: sqlite3.Cursor) -> int:
+    """The id of the row the cursor's INSERT created."""
     if cur.lastrowid is None:
         raise StoreError("the database did not report the new row's id")
     return cur.lastrowid
 
 
+def add_user(db: sqlite3.Connection, name: str, role: str) -> int:
+    _require_name(name)
+    _require(role, ROLES, "role")
+    require_text(name)
+    try:
+        with write_transaction(db):
+            cur = db.execute("INSERT INTO users(name, role) VALUES(?, ?)", (name, role))
+    except sqlite3.IntegrityError as exc:
+        raise StoreError(f"user {name!r} already exists") from exc
+    return new_row_id(cur)
+
+
 def role_of(db: sqlite3.Connection, name: str) -> str:
-    _require_text(name)
+    require_text(name)
     row = db.execute("SELECT role FROM users WHERE name=?", (name,)).fetchone()
     return str(row["role"]) if row else "reader"
 
@@ -372,7 +400,7 @@ def propose_source(db: sqlite3.Connection, name: str, kind: str, url: str, propo
     _require(kind, KINDS, "kind")
     if not url.strip():
         raise StoreError("url must not be empty")
-    _require_text(name, url, proposed_by)
+    require_text(name, url, proposed_by)
     try:
         with write_transaction(db):
             cur = db.execute(
@@ -382,15 +410,12 @@ def propose_source(db: sqlite3.Connection, name: str, kind: str, url: str, propo
             )
     except sqlite3.IntegrityError as exc:
         raise StoreError(f"source url {url!r} already exists") from exc
-    if cur.lastrowid is None:
-        raise StoreError("the database did not report the new row's id")
-    return cur.lastrowid
+    return new_row_id(cur)
 
 
 def set_source_state(db: sqlite3.Connection, source_id: int, state: str) -> None:
     _require(state, STATES, "state")
-    if not in_range(source_id):
-        raise StoreError(f"no source with id {source_id}")
+    require_id(source_id, "source")
     with write_transaction(db):
         cur = db.execute("UPDATE sources SET state=? WHERE id=?", (state, source_id))
     if cur.rowcount == 0:
@@ -418,11 +443,10 @@ class Check:
 
 def record_check(db: sqlite3.Connection, source_id: int, check: Check) -> None:
     stamp = utc_text(check.at)
-    if not in_range(source_id):
-        raise StoreError(f"no source with id {source_id}")
+    require_id(source_id, "source")
     if not in_range(check.new_stories):
         raise StoreError("new_stories is outside the range SQLite can hold")
-    _require_text(check.reason, check.etag, check.modified)
+    require_text(check.reason, check.etag, check.modified)
     try:
         with write_transaction(db):
             db.execute(
@@ -443,6 +467,7 @@ def record_check(db: sqlite3.Connection, source_id: int, check: Check) -> None:
 
 
 def last_check(db: sqlite3.Connection, source_id: int) -> sqlite3.Row | None:
+    require_id(source_id, "source")
     row: sqlite3.Row | None = db.execute(
         "SELECT * FROM source_checks WHERE source_id=? ORDER BY at DESC, id DESC LIMIT 1",
         (source_id,),
@@ -454,7 +479,8 @@ def _earliest_match(
     db: sqlite3.Connection, source_id: int, lkey: str, tkey: str, published: datetime
 ) -> int | None:
     """Id of the earliest story with this link key (as a story or a folded duplicate), or, from
-    another source, this title key within the window. A source never folds into itself by title."""
+    another source, this title key within the window. A source never folds into itself by title,
+    and the duplicate-link branch skips the caller's own source."""
     rows = db.execute(
         "SELECT id, published_at, link_key = ? AS same_link FROM stories"
         " WHERE link_key = ? OR (title_key = ? AND source_id != ?)"
@@ -476,12 +502,10 @@ def _check_story_input(
     db: sqlite3.Connection, source_id: int, entry: Entry, fetched_at: datetime
 ) -> str:
     """Refuse bad input before the first write; return `fetched_at` as UTC text."""
-    if (
-        not in_range(source_id)
-        or db.execute("SELECT 1 FROM sources WHERE id=?", (source_id,)).fetchone() is None
-    ):
+    require_id(source_id, "source")
+    if db.execute("SELECT 1 FROM sources WHERE id=?", (source_id,)).fetchone() is None:
         raise StoreError(f"no source with id {source_id}")
-    _require_text(entry.title, entry.link, entry.summary)
+    require_text(entry.title, entry.link, entry.summary)
     if entry.published is not None:
         utc_text(entry.published)  # refuses a time without a zone
     return utc_text(fetched_at)
@@ -493,7 +517,9 @@ def _fold_or_insert(
     fetched_stamp = _check_story_input(db, source_id, entry, fetched_at)
     try:
         lkey = link_key(entry.link)
-    except ValueError as exc:  # urlsplit refuses a port outside 0-65535
+    except ValueError as exc:
+        # link_key raises ValueError for a port outside 0-65535, a port that is not an integer,
+        # an invalid IPv6 URL and a netloc that NFKC normalisation changes.
         raise StoreError(f"unusable link {entry.link!r}") from exc
     tkey = title_key(entry.title)
     if db.execute(

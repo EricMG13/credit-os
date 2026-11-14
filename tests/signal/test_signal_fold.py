@@ -178,3 +178,11 @@ def test_a_title_folds_from_four_words_and_not_from_three(
 def test_link_key_keeps_a_parameter_with_an_empty_value() -> None:
     assert link_key("https://www.e.org:8443/a/?y=1&x=&utm_source=q") == "e.org:8443/a?x=&y=1"
     assert link_key("https://e.org/a?x=") != link_key("https://e.org/a")
+
+
+def test_title_key_treats_an_underscore_as_a_separator() -> None:
+    assert title_key("Phase_two  begins") == "phase two begins"
+
+
+def test_link_key_trims_surrounding_white_space() -> None:
+    assert link_key("  https://e.org/a \n") == "e.org/a"

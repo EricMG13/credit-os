@@ -18,15 +18,19 @@ from credit_os.signal.store import (
     MIGRATIONS,
     Check,
     StoreError,
+    StoreUnusable,
     _enable_wal,
     add_story,
     add_user,
     get_meta,
     in_range,
     last_check,
+    new_row_id,
     open_db,
     propose_source,
     record_check,
+    require_id,
+    require_text,
     role_of,
     set_meta,
     set_source_state,
@@ -124,12 +128,13 @@ def test_a_database_with_a_newer_schema_is_refused_untouched_and_closed(
 ) -> None:
     db = open_db(tmp_path)
     add_user(db, "A", "owner")
-    set_meta(db, "schema_version", version)
+    db.execute("UPDATE meta SET value=? WHERE key='schema_version'", (version,))
+    db.commit()
     db.close()
     path = tmp_path / "signal" / "signal.db"
     before = path.read_bytes()
     opened.clear()
-    with pytest.raises(StoreError, match="newer"):
+    with pytest.raises(StoreUnusable, match="newer"):
         open_db(tmp_path)
     assert path.read_bytes() == before
     assert len(opened) == 1
@@ -266,8 +271,6 @@ def test_a_file_that_is_not_a_database_is_refused_and_closed(
 
 
 def test_story_keys_ignore_tracking_www_and_slash_but_not_ports(tmp_path: Path) -> None:
-    from credit_os.signal.feeds import Entry
-    from credit_os.signal.store import add_story
 
     db = open_db(tmp_path)
     for n in (1, 2):
@@ -302,7 +305,7 @@ def test_last_check_with_equal_times_returns_the_one_recorded_later(tmp_path: Pa
 def test_wal_refused_where_the_connection_cannot_have_it() -> None:
     db = sqlite3.connect(":memory:")
     try:
-        with pytest.raises(StoreError, match="'memory'"):
+        with pytest.raises(StoreUnusable, match="'memory'"):
             _enable_wal(db)
     finally:
         db.close()
@@ -342,13 +345,28 @@ def test_wal_switch_gives_up_at_the_deadline(
 ) -> None:
     monkeypatch.setattr(store, "_BUSY_SECONDS", 0.2)
     holder = _hold_exclusive(tmp_path / "y.db")
-    waiter = sqlite3.connect(tmp_path / "y.db", timeout=0)
-    try:
-        with pytest.raises(sqlite3.OperationalError, match="locked"):
+    waiter = sqlite3.connect(tmp_path / "y.db", timeout=0, check_same_thread=False)
+    raised: list[BaseException] = []
+
+    def attempt() -> None:
+        try:
             _enable_wal(waiter)
-    finally:
-        waiter.close()
-        holder.close()
+        except sqlite3.OperationalError as exc:
+            raised.append(exc)
+
+    # Without a deadline the retry loop never ends while the holder keeps the lock; the join
+    # bound turns that hang into a failure.
+    thread = threading.Thread(target=attempt, daemon=True)
+    thread.start()
+    thread.join(timeout=10)
+    still_running = thread.is_alive()
+    holder.execute("COMMIT")  # lets a loop without a deadline end so cleanup can close
+    thread.join(timeout=10)
+    waiter.close()
+    holder.close()
+    assert not still_running, "the WAL switch did not give up at the deadline"
+    assert len(raised) == 1
+    assert "locked" in str(raised[0])
 
 
 # R13: a block joins only a transaction an outer write_transaction on this connection began.
@@ -361,9 +379,9 @@ def test_a_block_entered_inside_a_callers_own_transaction_is_refused_and_writes_
     t = datetime(2026, 11, 13, 9, tzinfo=UTC)
     db.execute("BEGIN")
     db.execute("SELECT count(*) FROM stories").fetchone()
-    with pytest.raises(StoreError, match="transaction"):
+    with pytest.raises(StoreUnusable, match="transaction"):
         add_story(db, source, Entry("Alpha beta gamma delta", "https://e.org/a", t, ""), t)
-    with pytest.raises(StoreError, match="transaction"), write_transaction(db):
+    with pytest.raises(StoreUnusable, match="transaction"), write_transaction(db):
         _insert(db, "never")
     assert db.in_transaction  # the caller's transaction is still the caller's
     db.execute("ROLLBACK")
@@ -408,7 +426,7 @@ def test_a_block_does_not_join_another_connections_block(tmp_path: Path) -> None
     other = open_db(tmp_path)
     with write_transaction(db):
         other.execute("BEGIN")
-        with pytest.raises(StoreError, match="transaction"), write_transaction(other):
+        with pytest.raises(StoreUnusable, match="transaction"), write_transaction(other):
             _insert(other, "never")
         other.execute("ROLLBACK")
 
@@ -418,7 +436,7 @@ def test_a_block_that_raised_leaves_no_ownership_behind(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="boom"), write_transaction(db):
         raise ValueError("boom")
     db.execute("BEGIN")
-    with pytest.raises(StoreError, match="transaction"), write_transaction(db):
+    with pytest.raises(StoreUnusable, match="transaction"), write_transaction(db):
         _insert(db, "never")
     db.execute("ROLLBACK")
     with write_transaction(db):
@@ -426,15 +444,56 @@ def test_a_block_that_raised_leaves_no_ownership_behind(tmp_path: Path) -> None:
     assert _count(db) == 1
 
 
+class _InterruptedAdd(set[int]):
+    """A marker set whose `add` stores the id and then raises, as a signal delivered right
+    after the call would."""
+
+    def add(self, element: int) -> None:
+        super().add(element)
+        raise KeyboardInterrupt
+
+
+def test_an_exception_where_the_marker_is_added_leaves_no_marker_behind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = open_db(tmp_path)
+    marks = _InterruptedAdd()
+    monkeypatch.setattr(store, "_OWNED", marks)
+    with pytest.raises(KeyboardInterrupt), write_transaction(db):
+        pytest.fail("the block body must not run")
+    assert marks == set()
+    assert not db.in_transaction
+    monkeypatch.setattr(store, "_OWNED", set())
+    add_user(db, "after", "reader")
+    assert role_of(db, "after") == "reader"
+
+
 def test_a_nested_block_after_the_outer_one_ended_the_transaction_is_refused(
     tmp_path: Path,
 ) -> None:
     db = open_db(tmp_path)
-    with pytest.raises(StoreError, match="transaction"), write_transaction(db):
+    with pytest.raises(StoreUnusable, match="transaction"), write_transaction(db):
         db.execute("COMMIT")
         with write_transaction(db):
             _insert(db, "never")
     assert _count(db) == 0
+
+
+# R14: a newer database is refused before any write, journal mode included.
+def test_a_newer_database_in_delete_mode_is_refused_untouched(tmp_path: Path) -> None:
+    open_db(tmp_path).close()
+    path = tmp_path / "signal" / "signal.db"
+    raw = sqlite3.connect(path, isolation_level=None)
+    raw.execute("UPDATE meta SET value=? WHERE key='schema_version'", (str(len(MIGRATIONS) + 1),))
+    assert raw.execute("PRAGMA journal_mode=DELETE").fetchone()[0] == "delete"
+    raw.close()
+    before = path.read_bytes()
+    names = sorted(p.name for p in path.parent.iterdir())
+    with pytest.raises(StoreUnusable, match="newer"):
+        open_db(tmp_path)
+    assert path.read_bytes() == before
+    assert (before[18], before[19]) == (1, 1)  # rollback journal, not WAL
+    assert sorted(p.name for p in path.parent.iterdir()) == names
 
 
 # R15: bad input is a StoreError and nothing else.
@@ -457,6 +516,8 @@ def _bad_calls(db: sqlite3.Connection, source: int) -> dict[str, Callable[[], ob
     return {
         "state id too large": lambda: set_source_state(db, _FAR, "approved"),
         "check id too large": lambda: record_check(db, _FAR, check()),
+        "last check id too large": lambda: last_check(db, _FAR),
+        "last check id too small": lambda: last_check(db, -_FAR - 1),
         "check count too large": lambda: record_check(db, source, check(_FAR)),
         "story source too large": lambda: add_story(db, _FAR, _entry(), _T),
         "story unknown source": lambda: add_story(db, 999, _entry(), _T),
@@ -469,9 +530,25 @@ def _bad_calls(db: sqlite3.Connection, source: int) -> dict[str, Callable[[], ob
         "story unencodable summary": lambda: add_story(
             db, source, Entry("a b c d", "https://e.org/s", _T, _BAD), _T
         ),
+        "story unencodable link": lambda: add_story(
+            db, source, Entry("a b c d", f"https://e.org/{_BAD}", _T, ""), _T
+        ),
         "user unencodable": lambda: add_user(db, _BAD, "reader"),
         "source unencodable": lambda: propose_source(db, "n", "news", f"https://{_BAD}", "x"),
+        "source unencodable name": lambda: propose_source(
+            db, _BAD, "news", "https://n.example/feed", "x"
+        ),
+        "source unencodable proposer": lambda: propose_source(
+            db, "n", "news", "https://p.example/feed", _BAD
+        ),
         "check unencodable": lambda: record_check(db, source, Check(_T, True, _BAD, None, None, 0)),
+        "check unencodable etag": lambda: record_check(
+            db, source, Check(_T, True, "", _BAD, None, 0)
+        ),
+        "check unencodable modified": lambda: record_check(
+            db, source, Check(_T, True, "", None, _BAD, 0)
+        ),
+        "meta unencodable key": lambda: set_meta(db, _BAD, "v"),
         "meta unencodable": lambda: set_meta(db, "k", _BAD),
         "role lookup unencodable": lambda: role_of(db, _BAD),
         "meta lookup unencodable": lambda: get_meta(db, _BAD),
@@ -484,8 +561,9 @@ def test_bad_input_is_a_store_error_and_leaves_nothing_behind(tmp_path: Path) ->
     db = open_db(tmp_path)
     source = propose_source(db, "S", "news", "https://s.example/feed", "t")
     for label, call in _bad_calls(db, source).items():
-        with pytest.raises(StoreError):
+        with pytest.raises(StoreError) as refused:
             call()
+        assert not isinstance(refused.value, StoreUnusable), label
         assert not db.in_transaction, label
     counts = db.execute(
         "SELECT (SELECT count(*) FROM users), (SELECT count(*) FROM stories),"
@@ -497,10 +575,21 @@ def test_bad_input_is_a_store_error_and_leaves_nothing_behind(tmp_path: Path) ->
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
 def test_a_database_file_open_db_creates_is_owner_only(tmp_path: Path) -> None:
-    open_db(tmp_path).close()
-    files = sorted((tmp_path / "signal").glob("signal.db*"))
-    assert files[0].name == "signal.db"
-    assert {stat.S_IMODE(f.stat().st_mode) for f in files} == {0o600}
+    def modes() -> dict[str, int]:
+        found = (tmp_path / "signal").glob("signal.db*")
+        return {f.name: stat.S_IMODE(f.stat().st_mode) for f in found}
+
+    db = open_db(tmp_path)
+    try:
+        opened_modes = modes()
+        add_user(db, "writer", "reader")
+        written_modes = modes()
+    finally:
+        db.close()
+    for seen in (opened_modes, written_modes):
+        assert set(seen) == {"signal.db", "signal.db-wal", "signal.db-shm"}
+        assert set(seen.values()) == {0o600}
+    assert set(modes().values()) == {0o600}
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
@@ -510,3 +599,118 @@ def test_a_database_file_that_already_exists_keeps_its_mode(tmp_path: Path) -> N
     path.chmod(0o640)
     open_db(tmp_path).close()
     assert stat.S_IMODE(path.stat().st_mode) == 0o640
+
+
+def test_require_id_refuses_an_unholdable_id_with_the_kind_named() -> None:
+    require_id(1, "source")
+    with pytest.raises(StoreError, match=r"^no widget with id 9223372036854775808$"):
+        require_id(2**63, "widget")
+
+
+def test_new_row_id_returns_the_insert_id_and_refuses_a_missing_one(tmp_path: Path) -> None:
+    db = open_db(tmp_path)
+    with write_transaction(db):
+        cur = db.execute("INSERT INTO users(name, role) VALUES('a', 'reader')")
+    assert new_row_id(cur) == 1
+    with pytest.raises(StoreError, match="did not report the new row's id"):
+        new_row_id(db.cursor())  # a cursor that has run no INSERT reports None
+
+
+_CET = timezone(timedelta(hours=1))
+
+
+def test_what_the_writers_store_is_read_back_column_by_column(tmp_path: Path) -> None:
+    db = open_db(tmp_path)
+    propose_source(db, "Authority Press", "regulator", "https://s1.example/feed", "A. Kovac")
+    propose_source(db, "Wire Desk", "news", "https://s2.example/feed", "M. Lind")
+    assert [
+        tuple(r) for r in db.execute("SELECT id, name, kind, url, state, proposed_by FROM sources")
+    ] == [
+        (1, "Authority Press", "regulator", "https://s1.example/feed", "proposed", "A. Kovac"),
+        (2, "Wire Desk", "news", "https://s2.example/feed", "proposed", "M. Lind"),
+    ]
+    first = Entry(
+        "Wholesale Access Remedy enters Phase Two",
+        "https://www.Example.org/News/a/?utm_source=x&b=2",
+        datetime(2026, 11, 13, 8, 0, tzinfo=_CET),
+        "Phase two begins.",
+    )
+    assert add_story(db, 1, first, datetime(2026, 11, 13, 9, 30, tzinfo=UTC)) == "new"
+    second = Entry(
+        "Wholesale access remedy enters phase two",
+        "https://other.example/x?id=7",
+        datetime(2026, 11, 13, 10, 0, tzinfo=UTC),
+        "Other words.",
+    )
+    assert add_story(db, 2, second, datetime(2026, 11, 13, 11, 15, tzinfo=UTC)) == "duplicate"
+    assert [tuple(r) for r in db.execute("SELECT * FROM stories")] == [
+        (
+            1,
+            1,
+            "Wholesale Access Remedy enters Phase Two",
+            "https://www.Example.org/News/a/?utm_source=x&b=2",
+            "example.org/News/a?b=2",
+            "wholesale access remedy enters phase two",
+            "2026-11-13T07:00:00+00:00",
+            "2026-11-13T09:30:00+00:00",
+            "Phase two begins.",
+        )
+    ]
+    assert [tuple(r) for r in db.execute("SELECT * FROM story_duplicates")] == [
+        (
+            1,
+            2,
+            "https://other.example/x?id=7",
+            "other.example/x?id=7",
+            "2026-11-13T10:00:00+00:00",
+            "2026-11-13T11:15:00+00:00",
+        )
+    ]
+    hits = db.execute("SELECT rowid FROM stories_fts WHERE stories_fts MATCH 'begins'").fetchall()
+    assert [r[0] for r in hits] == [1]
+
+
+def test_last_check_is_the_latest_by_time_not_the_latest_recorded(tmp_path: Path) -> None:
+    db = open_db(tmp_path)
+    sid = propose_source(db, "A", "news", "https://e.org/f", "x")
+    late = datetime(2026, 11, 13, 10, 0, tzinfo=UTC)
+    early = datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+    record_check(db, sid, Check(late, True, "later time, recorded first", None, None, 0))
+    record_check(db, sid, Check(early, False, "earlier time, recorded second", None, None, 0))
+    row = last_check(db, sid)
+    assert row is not None
+    assert (row["id"], row["at"]) == (1, "2026-11-13T10:00:00+00:00")
+
+
+def test_store_unusable_is_a_store_error() -> None:
+    assert issubclass(StoreUnusable, StoreError)
+
+
+def test_the_refusals_that_are_not_bad_input_are_not_bad_input_errors(tmp_path: Path) -> None:
+    db = open_db(tmp_path)
+    add_user(db, "taken", "reader")
+    with pytest.raises(StoreError, match="already exists") as duplicate:
+        add_user(db, "taken", "writer")
+    with pytest.raises(StoreError, match="no source with id 99") as unknown:
+        set_source_state(db, 99, "approved")
+    assert not isinstance(duplicate.value, StoreUnusable)
+    assert not isinstance(unknown.value, StoreUnusable)
+
+
+def test_require_text_refuses_unencodable_text_and_accepts_the_rest() -> None:
+    require_text("plain", None, "caf\u00e9")
+    with pytest.raises(StoreError, match="encodable") as refused:
+        require_text("plain", None, _BAD)
+    assert not isinstance(refused.value, StoreUnusable)
+
+
+@pytest.mark.parametrize("value", ["99", "three", "0"])
+def test_set_meta_refuses_the_key_the_migrations_own(tmp_path: Path, value: str) -> None:
+    db = open_db(tmp_path)
+    with pytest.raises(StoreError, match="schema_version") as refused:
+        set_meta(db, "schema_version", value)
+    assert not isinstance(refused.value, StoreUnusable)
+    assert not db.in_transaction
+    assert get_meta(db, "schema_version") == "3"
+    db.close()
+    open_db(tmp_path).close()  # the refused write left a database that still opens
