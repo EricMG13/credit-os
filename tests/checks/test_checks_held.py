@@ -49,6 +49,9 @@ def _pair(findings: str, tail: str) -> HandoffDocument:
     return parse((KEY["head"] + findings + tail).encode("utf-8"))
 
 
+_TABLE = "| Item | Value |\n| --- | --- |\n"
+
+
 def _calculations(body: str) -> str:
     return "## Calculations\n" + body + "## Gaps\nNone.\n## Next module\nNone.\n"
 
@@ -144,7 +147,7 @@ def _figure_text(negative: bool, currency: str, number: int, unit: str) -> str:
 def _judged(passage: str, held_text: str) -> tuple[list[Finding], list[Finding]]:
     document = _pair(
         f"### Bottom line\nDebt was {passage}.\n",
-        _calculations(f"| Item | Value |\n| --- | --- |\n| Debt | {held_text} |\n"),
+        _calculations(_TABLE + f"| Debt | {held_text} |\n"),
     )
     context = _context({})
     return list(held.check_not_held(document, context)), list(
@@ -248,9 +251,7 @@ def test_a_thousand_held_figures_and_a_thousand_judged_figures_run_in_time() -> 
         "- " + " ".join(f"{n}%" for n in range(start, start + 10)) + "\n"
         for start in range(1, 1001, 10)
     )
-    document = _pair(
-        "### Bottom line\n" + lines, _calculations("| Item | Value |\n| --- | --- |\n" + rows)
-    )
+    document = _pair("### Bottom line\n" + lines, _calculations(_TABLE + rows))
     start = time.perf_counter()
     found = _both(document)
     _within(SECONDS, start)
@@ -300,17 +301,31 @@ def test_r59_refuses_the_currency_after_a_hyphen_that_is_no_currency() -> None:
     assert [(f.check, f.quoted, f.column) for f in found] == [("figure.form", "USD-5", 19)]
 
 
-def test_a_held_spelling_over_eighty_characters_is_cut_by_echo_in_the_mismatch_reason() -> None:
-    long_shown = "5" + " " * 100 + "million"
-    document = _pair(
-        "### Bottom line\nDebt was USD 5 million.\n",
-        _calculations(f"| Item | Value |\n| --- | --- |\n| Debt | EUR {long_shown} |\n"),
-    )
+@pytest.mark.parametrize(
+    ("passage", "calculations", "spellings"),
+    [
+        # echo's rule: the first 80 characters of a spelling, then one ellipsis.
+        (
+            "Debt was USD 5 million.",
+            _TABLE + "| Debt | EUR 5" + " " * 99 + "million |\n",
+            "5" + " " * 79 + "\u2026",
+        ),
+        # R62: a comment above a table comes first in the file, so its spelling comes first.
+        (
+            "Margin fell 5%.",
+            "<!-- was (5.0%) -->\n" + _TABLE + "| Margin | (5%) |\n",
+            "(5.0%), (5%)",
+        ),
+    ],
+    ids=["long-spelling-cut-by-echo", "comment-above-table-first"],
+)
+def test_the_mismatch_reason_gives_spellings_cut_and_in_file_order(
+    passage: str, calculations: str, spellings: str
+) -> None:
+    document = _pair(f"### Bottom line\n{passage}\n", _calculations(calculations))
     found = held.check_mismatch(document, _context({}))
-    assert len(found) == 1
-    # echo's rule: the first 80 characters of the spelling, then one ellipsis.
-    cut = "5" + " " * 79 + "\u2026"
-    assert found[0].reason == f"Keep the sign, unit and currency as the handoff writes it: {cut}."
+    written = f"Keep the sign, unit and currency as the handoff writes it: {spellings}."
+    assert [f.reason for f in found] == [written]
 
 
 def test_a_figure_held_only_in_an_accepted_or_an_upstream_document_is_not_held() -> None:
@@ -320,38 +335,17 @@ def test_a_figure_held_only_in_an_accepted_or_an_upstream_document_is_not_held()
         CheckContext(kind="data", accepted={"CP-1": other}),
         CheckContext(kind="data", upstream={"CP-0": other}),
     ):
-        assert [(f.check, f.quoted) for f in held.check_not_held(this, context)] == [
-            ("figure.not-held", "12%")
-        ]
+        found = held.check_not_held(this, context)
+        assert [(f.check, f.quoted) for f in found] == [("figure.not-held", "12%")]
         assert held.check_mismatch(this, context) == ()
 
 
 def test_without_held_drops_exactly_the_two_held_checks_and_keeps_the_rest_in_order() -> None:
-    names = [
-        "figure.form",
-        "figure.not-held",
-        "prose.provider-marker",
-        "figure.mismatch",
-        "figure.form",
-    ]
+    names = ("figure.form", "figure.not-held", "prose.provider-marker", "figure.mismatch")
+    names += ("figure.form",)
     findings = [
         Finding(check=name, severity="refusal", line=index + 1, column=1, quoted="q", reason="r")
         for index, name in enumerate(names)
     ]
-    kept = without_held(findings)
-    assert [(f.check, f.line) for f in kept] == [
-        ("figure.form", 1),
-        ("prose.provider-marker", 3),
-        ("figure.form", 5),
-    ]
-
-
-def test_a_comment_above_a_table_gives_its_spelling_before_the_tables() -> None:
-    document = _pair(
-        "### Bottom line\nMargin fell 5%.\n",
-        _calculations("<!-- was (5.0%) -->\n| Item | Value |\n| --- | --- |\n| Margin | (5%) |\n"),
-    )
-    found = held.check_mismatch(document, _context({}))
-    assert [f.reason for f in found] == [
-        "Keep the sign, unit and currency as the handoff writes it: (5.0%), (5%)."
-    ]
+    kept = [(f.check, f.line) for f in without_held(findings)]
+    assert kept == [("figure.form", 1), ("prose.provider-marker", 3), ("figure.form", 5)]
