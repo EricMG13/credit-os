@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent } from "./SignalFrame";
-import { FeedPage } from "./FeedPage";
-import { readSlice, type SignalScene, type SignalStory } from "./slice";
+import { FeedPage, type FeedEntry } from "./FeedPage";
+import { readSlice, type SignalScene } from "./slice";
 
 export type SignalPageKind = "feed" | "topic" | "group" | "thread" | "digest" | "settings";
 
@@ -25,14 +25,21 @@ function Empty({ title, children }: { title: string; children?: ReactNode }) {
   );
 }
 
-/** The stories a view lists, in its order; an id the feed lacks cannot reach here (the reader refuses it). */
-function ordered(scene: SignalScene, ids: string[]): SignalStory[] {
-  const byId = new Map(scene.snapshot.feed.stories.map((story) => [story.id, story]));
+/** The entries a view lists, in its order; an id the feed lacks cannot reach here (the reader refuses it). */
+function ordered(scene: SignalScene, ids: string[]): FeedEntry[] {
+  const { stories, digests } = scene.snapshot.feed;
+  const byId = new Map<string, FeedEntry>([
+    ...stories.map((story): [string, FeedEntry] => [story.id, { kind: "story", story }]),
+    ...digests.map((digest): [string, FeedEntry] => [
+      digest.id,
+      { kind: "digest", digest, href: sceneHref(scene, `digest/${encodeURIComponent(digest.id)}`) },
+    ]),
+  ]);
   return ids.map((id) => {
-    const story = byId.get(id);
-    if (story === undefined)
-      throw new Error(`the slice reader let through an unknown story "${id}"`);
-    return story;
+    const entry = byId.get(id);
+    if (entry === undefined)
+      throw new Error(`the slice reader let through an unknown entry "${id}"`);
+    return entry;
   });
 }
 
@@ -86,7 +93,7 @@ function Body({
         body: (
           <FeedPage
             title={VIEWS[id]}
-            stories={ordered(scene, scene.snapshot.feed.views[id].top)}
+            entries={ordered(scene, scene.snapshot.feed.views[id].top)}
             writer={scene.snapshot.viewer.role === "writer"}
           />
         ),
@@ -105,7 +112,7 @@ function Body({
         body: (
           <FeedPage
             title={topic.name}
-            stories={ordered(scene, topicOrder(scene, topic.id))}
+            entries={ordered(scene, topicOrder(scene, topic.id))}
             writer={scene.snapshot.viewer.role === "writer"}
           />
         ),

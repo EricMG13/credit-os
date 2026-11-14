@@ -201,7 +201,7 @@ describe("the feed list and the story card", () => {
 
   it("draws no tag list for a story with no tags", () => {
     show("/signal/main/feed/latest");
-    expect(story(OAKHAVEN).queryByRole("list")).not.toBeInTheDocument();
+    expect(story(PELLANT).queryByRole("list")).not.toBeInTheDocument();
   });
 
   it("draws the tag list for a story with tags", () => {

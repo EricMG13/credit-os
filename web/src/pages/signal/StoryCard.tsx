@@ -10,7 +10,9 @@ import { Announcement } from "./parts/Announcement";
 import { Avatar } from "./parts/Avatar";
 import { AvatarGroup } from "./parts/AvatarGroup";
 import { MediaObject } from "./parts/MediaObject";
+import { BadgeGroup } from "./parts/BadgeGroup";
 import { Rating } from "./parts/Rating";
+import { StageProgress } from "./parts/StageProgress";
 import { Tags } from "./parts/Tags";
 import type { SignalStory } from "./slice";
 
@@ -50,6 +52,14 @@ export function StoryCard({ story, writer }: { story: SignalStory; writer: boole
         {story.summary === null ? null : (
           <p className="mt-0.5 max-w-[72ch] text-text-secondary">{story.summary}</p>
         )}
+        {story.ratingMoves.length === 0 ? null : (
+          <div className={ROW}>
+            {story.ratingMoves.map((move) => (
+              <BadgeGroup key={`${move.from}>${move.to}`} {...move} />
+            ))}
+          </div>
+        )}
+        {story.stage === null ? null : <StageProgress stage={story.stage} />}
         {story.ai === null ? null : (
           <div className={ROW}>
             <Announcement>{story.ai.line}</Announcement>
