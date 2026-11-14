@@ -137,7 +137,8 @@ def test_validate_name_accepts(name: str) -> None:
 def test_validate_name_refuses(name: str, reason: str) -> None:
     with pytest.raises(SourceRefused) as caught:
         validate_name(name)
-    assert str(caught.value) == f"{name!r}: {reason}"
+    shown = name if len(name) <= 120 else name[:120] + "\u2026"
+    assert str(caught.value) == f"{shown!r}: {reason}"
 
 
 def test_error_hierarchy() -> None:
@@ -352,3 +353,67 @@ def test_pin_rejects(fields: dict[str, object]) -> None:
 def test_check_kind_refuses_a_value_that_is_no_kind() -> None:
     with pytest.raises(ValueError):
         check_kind("x.bin", cast("SourceKind", "pptx"), b"hello")
+
+
+CUT = "a" * 120 + "\u2026"
+
+
+@pytest.mark.parametrize(
+    ("name", "message"),
+    [
+        ("a" * 2000, "'" + CUT + "': longer than 1,024 bytes"),
+        ("a" * 130 + "\x00", "'" + CUT + "': forbidden character U+0000"),
+        (
+            "a" * 120 + ".",
+            "'" + CUT + "': segment starts or ends with a space or ends with a dot",
+        ),
+        (
+            "a" * 119 + ".",
+            "'" + "a" * 119 + ".': segment starts or ends with a space or ends with a dot",
+        ),
+    ],
+)
+def test_validate_name_shows_at_most_120_characters(name: str, message: str) -> None:
+    with pytest.raises(SourceRefused) as caught:
+        validate_name(name)
+    assert str(caught.value) == message
+
+
+@pytest.mark.parametrize(
+    ("name", "kind", "raw", "message"),
+    [
+        ("a" * 130 + ".pdf", SourceKind.PDF, b"hello", CUT + ": does not start with %PDF-"),
+        (
+            "a" * 130 + ".docx",
+            SourceKind.DOCX,
+            b"hello",
+            CUT + ": does not start with a zip signature",
+        ),
+        ("a" * 130 + ".txt", SourceKind.TEXT, b"%PDF-1.4\n", CUT + ": starts with a PDF signature"),
+        (
+            "a" * 130 + ".csv",
+            SourceKind.CSV,
+            b"PK\x03\x04rest",
+            CUT + ": starts with a zip signature",
+        ),
+    ],
+)
+def test_check_kind_shows_at_most_120_characters(
+    name: str, kind: SourceKind, raw: bytes, message: str
+) -> None:
+    with pytest.raises(SourceUnreadable) as caught:
+        check_kind(name, kind, raw)
+    assert str(caught.value) == message
+
+
+def test_pin_kind_mismatch_shows_at_most_120_characters() -> None:
+    with pytest.raises(ValidationError) as caught:
+        SourcePin.model_validate(
+            {
+                "name": "a" * 130 + ".txt",
+                "sha256": README_SHA,
+                "size_bytes": 16,
+                "kind": SourceKind.PDF,
+            }
+        )
+    assert "'" + CUT + "': kind 'pdf' does not match the name" in str(caught.value)

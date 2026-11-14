@@ -9,7 +9,7 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from credit_os.sources.errors import SourceRefused, SourceUnreadable
+from credit_os.sources.errors import SourceRefused, SourceUnreadable, shown_name
 
 
 class SourceKind(StrEnum):
@@ -85,7 +85,7 @@ def validate_name(name: str) -> str:
     """Return the name unchanged, or refuse it as not a portable relative forward-slash path."""
     reason = _name_reason(name)
     if reason is not None:
-        raise SourceRefused(f"{name!r}: {reason}")
+        raise SourceRefused(f"{shown_name(name)!r}: {reason}")
     return name
 
 
@@ -101,14 +101,14 @@ def check_kind(name: str, kind: SourceKind, raw: bytes) -> None:
     is_zip = raw.startswith(_ZIP_SIGNATURE)
     if kind is SourceKind.PDF:
         if not is_pdf:
-            raise SourceUnreadable(f"{name}: does not start with %PDF-")
+            raise SourceUnreadable(f"{shown_name(name)}: does not start with %PDF-")
     elif kind in (SourceKind.DOCX, SourceKind.XLSX):
         if not is_zip:
-            raise SourceUnreadable(f"{name}: does not start with a zip signature")
+            raise SourceUnreadable(f"{shown_name(name)}: does not start with a zip signature")
     elif is_pdf:
-        raise SourceUnreadable(f"{name}: starts with a PDF signature")
+        raise SourceUnreadable(f"{shown_name(name)}: starts with a PDF signature")
     elif is_zip:
-        raise SourceUnreadable(f"{name}: starts with a zip signature")
+        raise SourceUnreadable(f"{shown_name(name)}: starts with a zip signature")
 
 
 class SourcePin(BaseModel):
@@ -129,5 +129,7 @@ class SourcePin(BaseModel):
     @model_validator(mode="after")
     def _kind_matches_suffix(self) -> Self:
         if kind_of(self.name) is not self.kind:
-            raise ValueError(f"{self.name!r}: kind {self.kind.value!r} does not match the name")
+            raise ValueError(
+                f"{shown_name(self.name)!r}: kind {self.kind.value!r} does not match the name"
+            )
         return self

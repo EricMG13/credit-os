@@ -403,3 +403,35 @@ def test_source_path_name_too_long(tmp_path: Path) -> None:
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, "readme.txt")
     assert str(caught.value) == f"{folder}: not a folder"
+
+
+CUT = "a" * 120 + "\u2026"
+LONG = "a" * 130 + ".txt"
+
+
+def test_source_path_long_name_self_loop(folder: Path) -> None:
+    _symlink(folder / LONG, folder / LONG)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, LONG)
+    assert str(caught.value) == CUT + ": cannot be resolved"
+
+
+def test_source_path_long_name_escape(
+    folder: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    outside = tmp_path_factory.mktemp("outside") / "secret.txt"
+    outside.write_bytes(b"secret\n")
+    _symlink(folder / LONG, outside)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, LONG)
+    assert str(caught.value) == CUT + ": leaves the source folder"
+
+
+def test_read_pinned_long_name_changed_content(folder: Path) -> None:
+    (folder / LONG).write_bytes(b"other bytes\n")
+    pin = SourcePin(
+        name=LONG, sha256=FIXTURES["readme.txt"][1], size_bytes=16, kind=SourceKind.TEXT
+    )
+    with pytest.raises(SourceChanged) as caught:
+        read_pinned(folder, pin)
+    assert str(caught.value) == CUT + ": content differs from the pin"
