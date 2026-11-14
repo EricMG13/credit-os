@@ -172,7 +172,7 @@ def read_run(connection: sqlite3.Connection, run_id: object) -> RunRecord:
     ).fetchall()[0]
     try:
         as_of = None if row[2] is None else date.fromisoformat(row[2])
-    except ValueError:
+    except (TypeError, ValueError):
         raise StoreCorrupt("stored as_of is not a date") from None
     return RunRecord(
         run_id=checked,
