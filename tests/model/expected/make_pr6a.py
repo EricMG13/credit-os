@@ -127,6 +127,8 @@ ROWS = rf"""
 {{"label": "a row naming no unit is accepted", "edits": [["{CALC}", "{CALC}\n| Line item | FY2024 |\n| --- | --- |\n| Revenue check | 1,456 |\n"]], "ops": [[["base", "revenue", "row"], "Revenue check"]]}}
 {{"label": "a second table printing the row in the other unit", "edits": [["{CALC}", "{CALC}\n| Line item | FY2024 | Unit |\n| --- | --- | --- |\n| Revenue | 1,456 | USD thousands |\n"]]}}
 {{"label": "the first issue by column name, then text", "edits": [["{CALC}", "{CALC}\n| Line item | FY2024 | Unit | Note |\n| --- | --- | --- | --- |\n| Revenue check | 1,456 | USD thousands | in thousands |\n"]], "ops": [[["base", "revenue", "row"], "Revenue check"]]}}
+{{"label": "two rows of the label, the second in the other unit", "edits": [["{CALC}", "{CALC}\n| Line item | FY2024 | Unit |\n| --- | --- | --- |\n| Revenue check | 1,456 | USD millions |\n| Revenue check | 1,456 | USD thousands |\n"]], "ops": [[["base", "revenue", "row"], "Revenue check"]]}}
+{{"label": "two rows of the label, the first in the other unit", "edits": [["{CALC}", "{CALC}\n| Line item | FY2024 | Unit |\n| --- | --- | --- |\n| Revenue check | 1,456 | USD thousands |\n| Revenue check | 1,456 | USD millions |\n"]], "ops": [[["base", "revenue", "row"], "Revenue check"]]}}
 {{"label": "a thousands block over a balance row printed in US$m", "foundation": "foundation-thousands.md", "ops": [[["base", "cash", "row"], "FY2024"], [["base", "cash", "period"], null], [["base", "cash", "column"], "Cash"], [["base", "cash", "amount"], "283"]]}}
 {{"label": "a millions block reads the same US$m balance row", "ops": [[["base", "cash", "row"], "FY2024"], [["base", "cash", "period"], null], [["base", "cash", "column"], "Cash"]]}}
 {{"label": "the unit message names the block's currency", "edits": [["| 391 | USD millions |", "| 391 | USD thousands |"]], "ops": [[["currency"], "EUR"]]}}
@@ -226,7 +228,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 32 and len(accepted) == 12
+    assert len(labels) == len(set(labels)) == 34 and len(accepted) == 12
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
