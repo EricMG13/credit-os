@@ -116,11 +116,14 @@ describe("RunFrame tabs", () => {
       trace: { rows: { id: string; module: string; moduleId: string | null }[] };
       gaps: { groups: unknown[] };
       jump: unknown[];
+      record: { timings: Json };
       tabs: Json;
     };
     evidence.moduleFilter = [];
     evidence.gaps.groups = [];
     evidence.jump = [];
+    evidence.record.timings["rows"] = [];
+    evidence.record.timings["emptyText"] = "No module ran, so no module has a time.";
     evidence.tabs["gaps"] = "0";
     (run.overview as { limitations: { gapsLink: Json } }).limitations.gapsLink["label"] =
       "See the 0 gaps in Evidence";

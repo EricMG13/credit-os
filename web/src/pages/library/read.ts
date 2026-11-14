@@ -2,6 +2,7 @@ import { STATUS_SETS } from "@/components/status/sets";
 import type { SliceResult } from "../route-table";
 import type {
   BottomLineText,
+  CallRow,
   Cell,
   Change,
   ChangeModuleItem,
@@ -41,12 +42,15 @@ import type {
   Point,
   RecordBlock,
   Reader,
+  RecordRegister,
   Run,
   RunHead,
+  RunRecord,
   RunState,
   SourceFile,
   Trace,
   TestState,
+  TimingRow,
   TraceRow,
   TraceTable,
   TreeNode,
@@ -1393,8 +1397,8 @@ function readFile(value: unknown, path: string, held: Held): SourceFile {
   };
 }
 
-function readDownload(value: unknown, path: string): Download {
-  const d = rec(value, path);
+/** An address, or the reason there is none: exactly one of the two. */
+function readOffer(d: Rec, path: string): { href: string | null; reason: string | null } {
   const href = gradeOrNull(d, "href", path);
   const reason = gradeOrNull(d, "reason", path);
   if (href === null && reason === null) {
@@ -1403,7 +1407,12 @@ function readDownload(value: unknown, path: string): Download {
   if (href !== null && reason !== null) {
     throw new SliceError(child(path, "reason"), "null beside a download that is offered");
   }
-  return { label: named(d, "label", path), href, reason };
+  return { href, reason };
+}
+
+function readDownload(value: unknown, path: string): Download {
+  const d = rec(value, path);
+  return { ...readOffer(d, path), label: named(d, "label", path) };
 }
 
 function readSummary(value: unknown, path: string, traces: Traces): Evidence["summary"] {
@@ -1666,6 +1675,147 @@ function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
   };
 }
 
+/** The heads of a table: each a name the table draws; `width` of them, or any number from two when `null`. */
+function readHeads(o: Rec, key: string, path: string, width: number | null): string[] {
+  const heads = list(o, key, path, (item, p) => {
+    if (typeof item !== "string" || item === "") throw new SliceError(p, "a non-empty string");
+    return item;
+  });
+  if (width === null ? heads.length < 2 : heads.length !== width) {
+    throw new SliceError(
+      child(path, key),
+      `${width === null ? "at least 2" : String(width)} column heads`,
+    );
+  }
+  return heads;
+}
+
+/** A module's span: the module is one the run holds and the state is that module's own. */
+function readTiming(value: unknown, path: string, states: ReadonlyMap<string, ModuleState>) {
+  const r = rec(value, path);
+  const module = named(r, "module", path);
+  const held = states.get(module);
+  if (held === undefined) throw new SliceError(child(path, "module"), "a module this run holds");
+  const state = oneOf(r, "state", path, MODULE_STATES);
+  if (state !== held) throw new SliceError(child(path, "state"), `${held}, that module's state`);
+  const [started, accepted, took] = ["started", "accepted", "took"].map((key) =>
+    shownCell(r, key, path),
+  ) as [Cell, Cell, Cell];
+  return { module, state, started, accepted, took } satisfies TimingRow;
+}
+
+/** A row of the model-calls table: a name, then one figure for each column after the first. */
+function readCallRow(value: unknown, path: string, width: number): CallRow {
+  const r = rec(value, path);
+  const cells = list(r, "cells", path, (item, p) => {
+    if (item !== null && (typeof item !== "string" || item === "")) {
+      throw new SliceError(p, "a non-empty string or null");
+    }
+    return item;
+  });
+  if (cells.length !== width - 1) {
+    throw new SliceError(child(path, "cells"), `${String(width - 1)} cells, one for each column`);
+  }
+  return { label: named(r, "label", path), cells };
+}
+
+function readRegister(value: unknown, path: string): RecordRegister {
+  const r = rec(value, path);
+  return {
+    name: named(r, "name", path),
+    writtenBy: named(r, "writtenBy", path),
+    rows: named(r, "rows", path),
+    file: named(r, "file", path),
+    ...readOffer(r, path),
+  };
+}
+
+function readRunRecord(value: unknown, path: string, modules: readonly Module[]): RunRecord {
+  const r = rec(value, path);
+  const states = new Map(modules.map((m) => [m.name, m.state]));
+  const timingsPath = child(path, "timings");
+  const timings = rec(own(r, "timings"), timingsPath);
+  const timingRows = child(timingsPath, "rows");
+  const emptyText = gradeOrNull(timings, "emptyText", timingsPath);
+  const spans = unique(
+    list(timings, "rows", timingsPath, (item, p) => readTiming(item, p, states)),
+    timingRows,
+    (row) => row.module,
+    "module",
+  );
+  if ((spans.length === 0) !== (emptyText !== null)) {
+    throw new SliceError(
+      child(timingsPath, "emptyText"),
+      "text exactly when the run holds no module",
+    );
+  }
+  if (spans.length === 0 && modules.length > 0) {
+    throw new SliceError(timingRows, "at least one module's time");
+  }
+  const hashesPath = child(path, "hashes");
+  const hashes = rec(own(r, "hashes"), hashesPath);
+  const spendPath = child(path, "spend");
+  const spend = rec(own(r, "spend"), spendPath);
+  const callsPath = child(path, "calls");
+  const calls = rec(own(r, "calls"), callsPath);
+  const columns = readHeads(calls, "columns", callsPath, null);
+  const registersPath = child(path, "registers");
+  const registers = rec(own(r, "registers"), registersPath);
+  const registerRows = some(
+    list(registers, "rows", registersPath, readRegister),
+    child(registersPath, "rows"),
+  );
+  return {
+    timings: {
+      title: named(timings, "title", timingsPath),
+      note: named(timings, "note", timingsPath),
+      columns: readHeads(timings, "columns", timingsPath, 5),
+      rows: spans,
+      emptyText,
+    },
+    hashes: {
+      title: named(hashes, "title", hashesPath),
+      items: some(
+        list(hashes, "items", hashesPath, (item, p) => {
+          const h = rec(item, p);
+          return {
+            label: named(h, "label", p),
+            kind: named(h, "kind", p),
+            value: named(h, "value", p),
+            copyLabel: named(h, "copyLabel", p),
+            what: named(h, "what", p),
+          };
+        }),
+        child(hashesPath, "items"),
+      ),
+    },
+    spend: {
+      title: named(spend, "title", spendPath),
+      progress: readProgress(own(spend, "progress"), child(spendPath, "progress")),
+      note: named(spend, "note", spendPath),
+    },
+    calls: {
+      title: named(calls, "title", callsPath),
+      count: named(calls, "count", callsPath),
+      note: named(calls, "note", callsPath),
+      columns,
+      rows: some(
+        list(calls, "rows", callsPath, (item, p) => readCallRow(item, p, columns.length)),
+        child(callsPath, "rows"),
+      ),
+      total: readCallRow(own(calls, "total"), child(callsPath, "total"), columns.length),
+    },
+    registers: {
+      title: named(registers, "title", registersPath),
+      count: countsRows(registers, "count", registersPath, registerRows.length),
+      note: named(registers, "note", registersPath),
+      columns: readHeads(registers, "columns", registersPath, 5),
+      downloadAll: readDownload(own(registers, "downloadAll"), child(registersPath, "downloadAll")),
+      rows: registerRows,
+    },
+  };
+}
+
 /** Each item of the jump menu opens a row the run's Trace tab or Gaps tab holds. */
 function readJump(e: Rec, path: string, trace: TraceTable, gaps: GapTable): JumpItem[] {
   const rows = {
@@ -1718,6 +1868,7 @@ function readEvidence(value: unknown, path: string, traces: Traces, modules: Mod
     sources: readSources(own(e, "sources"), child(path, "sources"), held),
     trace,
     gaps,
+    record: readRunRecord(own(e, "record"), child(path, "record"), modules),
     jump: readJump(e, path, trace, gaps),
   };
 }
