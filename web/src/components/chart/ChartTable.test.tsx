@@ -51,6 +51,7 @@ describe("ChartTable", () => {
       <ChartTable
         caption="C"
         head={HEAD}
+        endHeading="Sources"
         rows={[
           { label: "A", cells: ["1", "2"], end: <button type="button">Trace A</button> },
           { label: "B", cells: ["3", "4"] },
@@ -61,6 +62,79 @@ describe("ChartTable", () => {
     expect(screen.getAllByRole("row").map((r) => r.children.length)).toEqual([4, 4, 4]);
     rerender(<ChartTable caption="C" head={HEAD} rows={[{ label: "A", cells: ["1", "2"] }]} />);
     expect(screen.getAllByRole("row").map((r) => r.children.length)).toEqual([3, 3]);
+  });
+
+  it("heads the end column with a column header whose text the caller supplies", () => {
+    render(
+      <ChartTable
+        caption="C"
+        head={HEAD}
+        endHeading="Trace"
+        rows={[{ label: "A", cells: ["1", "2"], end: <button type="button">Trace A</button> }]}
+      />,
+    );
+    const heading = screen.getByRole("columnheader", { name: "Trace" });
+    expect(heading).toHaveAttribute("scope", "col");
+    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual([
+      ...HEAD,
+      "Trace",
+    ]);
+  });
+
+  it("throws when a row has end and no end heading is given", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() =>
+      render(
+        <ChartTable
+          caption="C"
+          head={HEAD}
+          rows={[{ label: "A", cells: ["1", "2"], end: <button type="button">Trace A</button> }]}
+        />,
+      ),
+    ).toThrow(/endHeading/);
+    quiet.mockRestore();
+  });
+
+  it("throws on an empty rows array", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() => render(<ChartTable caption="C" head={HEAD} rows={[]} />)).toThrow(
+      /at least one row/,
+    );
+    quiet.mockRestore();
+  });
+
+  it("throws, naming the row, on an empty-string cell", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() =>
+      render(
+        <ChartTable caption="C" head={HEAD} rows={[{ label: "Blank row", cells: ["", "2"] }]} />,
+      ),
+    ).toThrow(/Blank row/);
+    quiet.mockRestore();
+  });
+
+  it("throws on a cell of an unknown shape instead of drawing a gap", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const odd = { reason: "x" } as unknown as TableCell;
+    expect(() =>
+      render(<ChartTable caption="C" head={HEAD} rows={[{ label: "A", cells: ["1", odd] }]} />),
+    ).toThrow(/unknown cell/);
+    quiet.mockRestore();
+  });
+
+  it("positions the scroll wrapper so hidden text cannot widen the page", () => {
+    render(<ChartTable caption="C" head={HEAD} rows={[{ label: "A", cells: ["1", null] }]} />);
+    const wrapper = screen.getByRole("table").parentElement;
+    expect(wrapper).toHaveClass("relative", "overflow-x-auto");
+  });
+
+  it("keeps the row label sticky on the card colour and heads columns in tertiary text", () => {
+    render(<ChartTable caption="C" head={HEAD} rows={[{ label: "A", cells: ["1", "2"] }]} />);
+    const rowLabel = screen.getByRole("rowheader", { name: "A" });
+    expect(rowLabel).toHaveClass("sticky", "left-0", "bg-surface-card");
+    const heads = screen.getAllByRole("columnheader");
+    for (const h of heads) expect(h).toHaveClass("text-text-tertiary");
+    expect(heads[0]).toHaveClass("sticky", "left-0", "bg-surface-card");
   });
 
   it("throws, naming the row, when a row has the wrong number of cells", () => {
