@@ -32,7 +32,7 @@ def test_recorded_replies_match_key(at: tuple[str, int]) -> None:
     assert dataclasses.asdict(_ask(model, at)) == key.CANNED_REPLIES[at]
 
 
-def test_digits_kept() -> None:
+def test_digits_kept_and_missing_count_not_zero() -> None:
     model = canned_model("c", RECORDING)
     for at, text in key.CANNED_BILLED_TEXT.items():
         assert str(_ask(model, at).billed_usd) == text
@@ -44,10 +44,7 @@ def test_digits_kept() -> None:
     scale = turn.tool_calls[0].arguments["scale"]
     assert isinstance(scale, Decimal)
     assert str(scale) == key.CANNED_SCALE_TEXT
-
-
-def test_missing_count_is_not_zero() -> None:
-    usage = _ask(canned_model("c", RECORDING), CP1_1).usage
+    usage = _ask(model, CP1_1).usage
     assert usage is not None
     assert usage.cached_read_tokens == 0
     assert usage.input_tokens is None
@@ -68,7 +65,6 @@ def test_bad_lines_refused(tmp_path: Path, line: dict[str, Any] | str) -> None:
 
 
 _BASE = key.CANNED_GOOD_LINES[0]
-_TURN = _BASE["reply"]["turn"]
 _CALL = {"call_id": "c", "name": "n", "arguments": {}}
 _EXACTLY = "{} must have exactly the keys {}".format
 _USAGE_TEXT = (
@@ -82,7 +78,7 @@ def _reply(**changes: Any) -> dict[str, Any]:
 
 
 def _turn(**changes: Any) -> dict[str, Any]:
-    return _reply(turn={**_TURN, **changes})
+    return _reply(turn={**_BASE["reply"]["turn"], **changes})
 
 
 def _call(**changes: Any) -> dict[str, Any]:
@@ -142,13 +138,6 @@ def test_refusal_text(tmp_path: Path, line: dict[str, Any] | str, message: str) 
         canned_model("c", _file(tmp_path, line))
 
 
-def test_null_text_fields_accepted(tmp_path: Path) -> None:
-    line = _turn(reported_model=None, request_id=None, tool_calls=[_CALL])
-    reply = _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
-    assert reply.turn is not None
-    assert (reply.turn.reported_model, reply.turn.tool_calls[0].bad_arguments) == (None, None)
-
-
 @pytest.mark.parametrize("line", key.CANNED_GOOD_LINES)
 def test_good_lines_accepted(tmp_path: Path, line: dict[str, Any]) -> None:
     reply = _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
@@ -156,21 +145,26 @@ def test_good_lines_accepted(tmp_path: Path, line: dict[str, Any]) -> None:
 
 
 def test_good_line_details(tmp_path: Path) -> None:
-    bad = _ask(canned_model("c", _file(tmp_path, key.CANNED_GOOD_LINES[2])), ("e", 0))
+    def load(line: dict[str, Any]) -> Reply:
+        return _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
+
+    bad = load(key.CANNED_GOOD_LINES[2])
     assert bad.turn is not None
     assert bad.turn.tool_calls[0].bad_arguments == "[1]"
-    two = _ask(canned_model("c", _file(tmp_path, key.CANNED_GOOD_LINES[3])), ("e", 0))
+    two = load(key.CANNED_GOOD_LINES[3])
     assert [c.billed_usd for c in two.compactions] == [Decimal("0.0240831"), None]
+    null = load(_turn(reported_model=None, request_id=None, tool_calls=[_CALL]))
+    assert null.turn is not None
+    assert (null.turn.reported_model, null.turn.tool_calls[0].bad_arguments) == (None, None)
 
 
-def test_duplicate_refused_at_second_line(tmp_path: Path) -> None:
-    with pytest.raises(RecordingError, match=r"^rec\.jsonl line 2: 'e' call_index 0 is recorded"):
-        canned_model("c", _file(tmp_path, *key.CANNED_DUPLICATE))
-
-
-def test_blank_lines_count(tmp_path: Path) -> None:
-    with pytest.raises(RecordingError, match=r"rec\.jsonl line 2: "):
-        canned_model("c", _file(tmp_path, "", "{not json"))
+@pytest.mark.parametrize(
+    ("lines", "text"),
+    [(key.CANNED_DUPLICATE, "'e' call_index 0 is recorded"), (("", "{not json"), "not JSON")],
+)
+def test_error_names_its_line(tmp_path: Path, lines: tuple[Any, ...], text: str) -> None:
+    with pytest.raises(RecordingError, match=rf"^rec\.jsonl line 2: {text}"):
+        canned_model("c", _file(tmp_path, *lines))
 
 
 def test_unreadable_paths(tmp_path: Path) -> None:
