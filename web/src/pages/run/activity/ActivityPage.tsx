@@ -80,10 +80,20 @@ function NoRun({ draft }: { draft: StartDraft | undefined }) {
   );
 }
 
+function Trail({ issuer }: { issuer: string }) {
+  return (
+    <nav aria-label="Breadcrumb" className="text-sm text-text-tertiary">
+      <TextLink href="#/run">Runs</TextLink>
+      {` / ${issuer}`}
+    </nav>
+  );
+}
+
 // The summary and the two panels, as static blocks: no figure is known.
 function Unreadable({ run }: { run: Extract<ActivityRecord, { kind: "unreadable" }> }) {
   return (
     <Frame>
+      <Trail issuer={run.issuer} />
       <PageHeader
         title={run.issuer}
         badges={
@@ -145,10 +155,7 @@ function Run({ run }: { run: RunRecord }) {
   const live = run.state === "Queued" || run.state === "Running";
   return (
     <Frame>
-      <nav aria-label="Breadcrumb" className="text-sm text-text-tertiary">
-        <TextLink href="#/run">Runs</TextLink>
-        {` / ${run.issuer}`}
-      </nav>
+      <Trail issuer={run.issuer} />
       <PageHeader
         title={run.issuer}
         badges={
@@ -216,6 +223,7 @@ export function ActivityPage({ run: id }: { run: string | null }) {
     );
   }
   if (record.kind === "none") return <NoRun draft={slice.data.drafts[0]} />;
-  if (record.kind === "unreadable") return <Unreadable run={record} />;
-  return <Run run={record} />;
+  if (record.kind === "unreadable") return <Unreadable key={record.id} run={record} />;
+  // The key keeps one run's opened groups from carrying over to another run's page.
+  return <Run key={record.id} run={record} />;
 }

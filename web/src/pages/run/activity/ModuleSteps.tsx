@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check } from "@untitledui/icons";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { cx } from "@/utils/cx";
+import { textLinkClass } from "../TextLink";
 import type { ModuleStep, ModuleWord } from "../slice-activity";
 import "./activity.css";
 
@@ -82,9 +83,9 @@ function ShowAll({ label, onPress }: { label: string; onPress: () => void }) {
       type="button"
       aria-expanded="false"
       onClick={onPress}
-      className="w-fit rounded-xs text-sm text-text-link underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-focus"
+      className={cx(textLinkClass(), "self-start")}
     >
-      {label}
+      <span data-text>{label}</span>
     </button>
   );
 }

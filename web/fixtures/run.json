@@ -87,6 +87,14 @@
             "state": "Unreadable",
             "progress": null,
             "reason": "This PDF is a scan with no readable text, so the run cannot read it. Replace it with a text version, or remove it to continue."
+          },
+          {
+            "name": "Synthetic annual report with supplementary schedules and notes for the year AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA final.pdf",
+            "kind": "PDF",
+            "size": "6.2 MB",
+            "state": "Read in full",
+            "progress": { "label": "100%", "value": 100, "max": 100 },
+            "reason": null
           }
         ]
       },
@@ -133,6 +141,12 @@
             "title": "Event review",
             "description": "Looks at one event, such as a refinancing, an acquisition or a rating action, and what it changes.",
             "modules": "4 modules"
+          },
+          {
+            "id": "long-label",
+            "title": "Long label review",
+            "description": "A synthetic purpose whose module label is long, to show that the label wraps.",
+            "modules": "14 modules, from documents and business profile to forecast, recovery and rating"
           }
         ]
       },
@@ -1075,7 +1089,11 @@
         "id": "many-modules",
         "issuer": "TransDigm Group",
         "state": "Running",
-        "labels": ["Full credit review", "As of Q3 FY2026"],
+        "labels": [
+          "Full credit review",
+          "As of Q3 FY2026",
+          "Full credit review with every optional module and a late cut-off"
+        ],
         "line": null,
         "alert": null,
         "open": null,
@@ -1169,13 +1187,13 @@
             { "kind": "module", "name": "Risks and watch list", "state": "Queued", "detail": null },
             {
               "kind": "module",
-              "name": "Environmental and social factors",
+              "name": "Environmental, social and governance factors, with supplier, customer and regulatory exposure",
               "state": "Queued",
               "detail": null
             },
             {
               "kind": "group",
-              "title": "6 more modules queued",
+              "title": "6 more modules queued, each one starting only once the module before it has finished running",
               "state": "Queued",
               "showAll": "Show all 6",
               "modules": [
@@ -1213,6 +1231,18 @@
             "who": "Capital structure",
             "time": "14:51",
             "text": "Finished in 2 min 48 s, USD 1.38.",
+            "state": "Finished"
+          },
+          {
+            "who": "Credit agreement review",
+            "time": "14:47",
+            "text": "Finished the review of the credit agreement and its latest amendment, then compared the stated leverage tests with the quarterly report and the segment data. Two tests were read from the amendment itself and one from its summary table, and each is stated with its period so a reader can see which was tested and when.",
+            "state": "Finished"
+          },
+          {
+            "who": "Business profile",
+            "time": "14:41",
+            "text": "Stopped to wait for the model service, then carried on once it answered. The module that was waiting kept every figure it had already read, so nothing was read twice, and the time spent waiting counts in the elapsed time shown above, not in the spend. The run did not need to start the module again.",
             "state": "Finished"
           }
         ]

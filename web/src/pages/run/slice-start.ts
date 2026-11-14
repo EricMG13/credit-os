@@ -3,6 +3,7 @@ import {
   type Bar,
   bar,
   fail,
+  fileName,
   id,
   idOrNull,
   list,
@@ -59,7 +60,7 @@ const items = (v: unknown, path: string): Items => {
 const file = (v: unknown, path: string): StartFile => {
   const o = obj(v, path);
   return {
-    name: str(o, "name", path),
+    name: fileName(o, "name", path),
     kind: str(o, "kind", path),
     size: str(o, "size", path),
     state: oneOf(o, "state", path, FILE_STATES),

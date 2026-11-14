@@ -99,10 +99,13 @@ describe.each(CASES)("Run activity, $id", (c) => {
     const links = within(alert).getAllByRole("link");
     expect(links).toHaveLength(c.alt === null ? 1 : 2);
     if (c.alt !== null) {
-      expect(within(alert).getByRole("link", { name: c.alt[0] }).getAttribute("href")).toBe(
-        c.alt[1],
-      );
+      const second = within(alert).getByRole("link", { name: c.alt[0] });
+      expect(second.getAttribute("href")).toBe(c.alt[1]);
+      expect(second).toHaveClass("text-text-tertiary");
+      expect(second).not.toHaveClass("text-brand-secondary");
     }
+    expect(first).toHaveClass("font-semibold", "text-brand-secondary");
+    expect(first).not.toHaveClass("underline");
   });
 
   it("has no Open the library link, no motion and no Stop run", () => {
@@ -149,6 +152,17 @@ describe("Run activity, ended modules", () => {
   });
 });
 
+describe("Run activity, the sentence of a module that did not finish", () => {
+  it.each([
+    ["failed", "Stopped after three attempts: the model service returned no usable answer."],
+    ["capped", "Stopped part-way when the run reached its cap."],
+    ["interrupted", "Was running when the run stopped; its work so far is not kept."],
+  ])("%s", (id, sentence) => {
+    show(`/run/activity/${id}`);
+    expect(steps().getAllByText(sentence)).toHaveLength(1);
+  });
+});
+
 describe("Run activity, finished", () => {
   beforeEach(() => show("/run/activity/finished"));
 
@@ -178,6 +192,6 @@ describe("Run activity, figures and trail", () => {
   it("gives the Runs trail link a visible focus ring", () => {
     show("/run/activity/running");
     expect(link("Runs").className).toContain("focus-visible:outline-2");
-    expect(link("Runs").className).toContain("focus-visible:outline-focus");
+    expect(link("Runs").className).toContain("outline-brand");
   });
 });

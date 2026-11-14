@@ -58,6 +58,7 @@ describe("Start (frame 06)", () => {
 
   it("draws the amount in the paid sentence in bold, and the sentence whole", () => {
     const strong = screen.getByText("USD 20.00", { selector: "strong" });
+    expect(strong).not.toHaveClass("text-text-primary"); // keeps the sentence's colour
     expect(strong.parentElement).toHaveTextContent(
       "It can spend up to USD 20.00 and stops there. You confirm once more before anything is spent.",
     );

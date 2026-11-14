@@ -16,7 +16,7 @@ function PaidText({ text, amount }: Step["paid"]) {
   return (
     <>
       {text.slice(0, at)}
-      <strong className="font-semibold tabular-nums text-text-primary">{amount}</strong>
+      <strong className="font-semibold tabular-nums">{amount}</strong>
       {text.slice(at + amount.length)}
     </>
   );

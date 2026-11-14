@@ -20,6 +20,8 @@ afterEach(() => {
   window.location.hash = "";
 });
 
+const GROUP =
+  "6 more modules queued, each one starting only once the module before it has finished running";
 const LIVE = ".status-halo, .queued-shimmer, .animate-spin, .feed-rise";
 const list = () => within(screen.getByRole("region", { name: "Modules" })).getByRole("list");
 const steps = () => within(list()).getAllByRole("listitem");
@@ -30,7 +32,7 @@ describe("Run activity, many modules", () => {
   it("draws six steps, two of them collapsed groups", () => {
     expect(steps()).toHaveLength(6);
     expect(screen.getByText("12 modules finished")).toBeTruthy();
-    expect(screen.getByText("6 more modules queued")).toBeTruthy();
+    expect(screen.getByText(GROUP)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Show all 12" }).getAttribute("aria-expanded")).toBe(
       "false",
     );
@@ -44,12 +46,12 @@ describe("Run activity, many modules", () => {
     expect(steps()).toHaveLength(17);
     expect(screen.getByText("Covenants")).toBeTruthy();
     expect(screen.getByText("Industry and market position")).toBeTruthy();
-    expect(screen.getByText("6 more modules queued")).toBeTruthy();
+    expect(screen.getByText(GROUP)).toBeTruthy();
   });
 
   it("Show all 6 reveals six queued modules", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show all 6" }));
-    expect(screen.queryByText("6 more modules queued")).toBeNull();
+    expect(screen.queryByText(GROUP)).toBeNull();
     expect(steps()).toHaveLength(11);
     expect(screen.getByText("Credit snapshot")).toBeTruthy();
     expect(screen.getByText("12 modules finished")).toBeTruthy();
@@ -66,6 +68,8 @@ describe("Run activity, many modules", () => {
     const button = screen.getByRole("button", { name: "Show all 12" });
     expect(button.tagName).toBe("BUTTON");
     expect(button.getAttribute("type")).toBe("button");
+    expect(button).toHaveClass("font-semibold", "text-brand-secondary");
+    expect(button.className).toContain("outline-brand");
     button.focus();
     expect(document.activeElement).toBe(button);
     fireEvent.click(button);
@@ -77,6 +81,38 @@ describe("Run activity, many modules", () => {
     expect((document.activeElement as HTMLElement).textContent).toBe(
       "Pension and lease obligations",
     );
+  });
+});
+
+describe("Run activity, long text from the fixture", () => {
+  beforeEach(() => show("/run/activity/many-modules"));
+
+  it("draws the long label, module name and group title in full, cut by nothing", () => {
+    const label = "Full credit review with every optional module and a late cut-off";
+    const name =
+      "Environmental, social and governance factors, with supplier, customer and regulatory exposure";
+    for (const text of [label, name, GROUP]) {
+      const el = screen.getByText(text);
+      expect(el).toBeVisible();
+      expect(el.className).not.toMatch(/truncate|line-clamp|text-ellipsis/);
+    }
+    // the module name and group title sit in text that may wrap
+    expect(screen.getByText(name).className).not.toContain("whitespace-nowrap");
+    expect(screen.getByText(GROUP).className).not.toContain("whitespace-nowrap");
+  });
+
+  it("draws the two long feed lines in full", () => {
+    const feed = within(screen.getByRole("region", { name: "Activity" }));
+    expect(
+      feed.getByText(
+        "Finished the review of the credit agreement and its latest amendment, then compared the stated leverage tests with the quarterly report and the segment data. Two tests were read from the amendment itself and one from its summary table, and each is stated with its period so a reader can see which was tested and when.",
+      ),
+    ).toBeVisible();
+    expect(
+      feed.getByText(
+        "Stopped to wait for the model service, then carried on once it answered. The module that was waiting kept every figure it had already read, so nothing was read twice, and the time spent waiting counts in the elapsed time shown above, not in the spend. The run did not need to start the module again.",
+      ),
+    ).toBeVisible();
   });
 });
 
@@ -113,6 +149,12 @@ describe("Run activity, cannot be read", () => {
     expect(screen.queryByText("Running")).toBeNull();
     expect(screen.queryByText("Finished")).toBeNull();
     expect(screen.getByText("Full credit review")).toBeTruthy();
+  });
+
+  it("draws the Runs trail the other run records draw", () => {
+    const trail = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(within(trail).getByRole("link", { name: "Runs" }).getAttribute("href")).toBe("#/run");
+    expect(trail.textContent).toBe("Runs / TransDigm Group");
   });
 
   it("the alert has the record's title, text and two links", () => {
