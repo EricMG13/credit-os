@@ -195,6 +195,13 @@ Written by the controller before each task from invented values only. No databas
 PR 1 is split to hold the 800-line cap: 1a (#162) the errors, the SQLite error mapping and
 the CI version print; 1b (#169) the codecs; then 1c `location.py` (path rules), 1d `txn.py`
 (the write transaction and the migration runner) and 1e `db.py` (open). 1c (#201) is merged.
+1d (#226) and 1d-b (#246) are merged. The remaining PRs are cut 2a, 2b, 2c, 3a, 3b, 3c,
+4a, 4b, 5a, 5b, each under 800 lines; the controller may work up to two PRs ahead, stacked;
+the key for a whole numbered PR is written before its first part; migration 1 is never
+edited once merged. An interrupt during a write leaves as `StoreUnusable` (the owner: "Yes,
+document it"); a second path through the authorizer (`not authorized`) is accepted under the
+same answer. A whole-branch review that stops at a usage limit is rerun on `mx-architect`
+when the limit clears, never on another model.
 The errors-test additions (value-free messages, the literal-SQL scan, the hooks scan) and one
 POSIX row for `prepare(kept/new/../alink)` go in a tests-only PR 1d-b, merged before 1e is
 ready. In 1d an interrupt that arrives while a body statement runs leaves as `StoreUnusable`
