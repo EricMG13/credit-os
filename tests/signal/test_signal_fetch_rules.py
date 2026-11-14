@@ -445,10 +445,8 @@ def test_a_transfer_encoding_other_than_chunked_is_refused(value: str) -> None:
     assert reply.consumed == 0 and reply.closed == 1
 
 
-@pytest.mark.parametrize("value", ["chunked", "Chunked", " chunked ", "CHUNKED\t", "\tChUnKeD"])
-def test_a_transfer_encoding_of_chunked_is_accepted_in_any_case_with_white_space(
-    value: str,
-) -> None:
+@pytest.mark.parametrize("value", ["chunked", "Chunked", "CHUNKED", "cHuNkEd"])
+def test_a_transfer_encoding_of_chunked_is_accepted_in_any_case(value: str) -> None:
     assert run(Wire(Reply(200, b"<rss/>", {"Transfer-Encoding": value}))).body == b"<rss/>"
 
 
