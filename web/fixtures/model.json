@@ -1,1 +1,2234 @@
-{}
+{
+  "slice": {
+    "runs": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30",
+        "forecast": {
+          "tabs": [
+            {
+              "label": "Overview",
+              "href": "#/library/transdigm/2025-06-30/overview",
+              "count": null,
+              "current": false
+            },
+            {
+              "label": "Changes",
+              "href": "#/library/transdigm/2025-06-30/changes",
+              "count": "5",
+              "current": false
+            },
+            {
+              "label": "Modules",
+              "href": "#/library/transdigm/2025-06-30/modules",
+              "count": "11",
+              "current": false
+            },
+            {
+              "label": "Forecast",
+              "href": "#/model/transdigm/2025-06-30/forecast",
+              "count": null,
+              "current": true
+            },
+            {
+              "label": "Evidence",
+              "href": "#/library/transdigm/2025-06-30/evidence",
+              "count": null,
+              "current": false
+            }
+          ],
+          "periods": ["FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"],
+          "drivers": {
+            "title": "What drives each case",
+            "subtitle": "Each FY26 assumption against the range seen over the past five years",
+            "note": "Working capital days could not be set for FY26. No five-year range exists for aftermarket share, so no strip is drawn.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "rangeLabel": "Range over five years",
+            "head": ["Driver, FY26", "Range low", "Range high", "Base case", "Downside case"],
+            "rows": [
+              {
+                "label": "Organic revenue growth",
+                "rangeText": "Past five years: -12% to 18%",
+                "range": { "low": -12, "high": 18 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 8, "text": "8.0%" },
+                  { "name": "Downside case assumption", "value": -4, "text": "-4.0%" }
+                ],
+                "axis": { "min": -15, "max": 20 },
+                "cells": ["-12%", "18%", "8.0%", "-4.0%"]
+              },
+              {
+                "label": "EBITDA margin",
+                "rangeText": "Past five years: 44% to 53%",
+                "range": { "low": 44, "high": 53 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 53.4, "text": "53.4%" },
+                  { "name": "Downside case assumption", "value": 46.9, "text": "46.9%" }
+                ],
+                "axis": { "min": 40, "max": 56 },
+                "cells": ["44%", "53%", "53.4%", "46.9%"]
+              },
+              {
+                "label": "Capital expenditure, share of revenue",
+                "rangeText": "Past five years: 1.6% to 2.4%",
+                "range": { "low": 1.6, "high": 2.4 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 2.1, "text": "2.1%" },
+                  { "name": "Downside case assumption", "value": 1.7, "text": "1.7%" }
+                ],
+                "axis": { "min": 1, "max": 3 },
+                "cells": ["1.6%", "2.4%", "2.1%", "1.7%"]
+              },
+              {
+                "label": "Cash interest rate on debt",
+                "rangeText": "Past five years: 5.2% to 7.1%",
+                "range": { "low": 5.2, "high": 7.1 },
+                "markers": [
+                  { "name": "Base case assumption", "value": 5.3, "text": "5.3%" },
+                  { "name": "Downside case assumption", "value": 6, "text": "6.0%" }
+                ],
+                "axis": { "min": 4, "max": 8 },
+                "cells": ["5.2%", "7.1%", "5.3%", "6.0%"]
+              },
+              {
+                "label": "Working capital days",
+                "rangeText": "Past five years: 92 to 118",
+                "range": { "low": 92, "high": 118 },
+                "markers": [
+                  { "name": "Base case assumption", "value": null, "text": null },
+                  { "name": "Downside case assumption", "value": null, "text": null }
+                ],
+                "axis": { "min": 80, "max": 130 },
+                "cells": ["92", "118", null, null]
+              },
+              {
+                "label": "Aftermarket share of revenue",
+                "rangeText": "Range n.a.",
+                "range": null,
+                "markers": [
+                  { "name": "Base case assumption", "value": 55, "text": "55%" },
+                  { "name": "Downside case assumption", "value": 52, "text": "52%" }
+                ],
+                "axis": { "min": 0, "max": 100 },
+                "cells": [null, null, "55%", "52%"]
+              }
+            ]
+          },
+          "driverKeys": [
+            { "label": "Base case assumption", "case": "Base case" },
+            { "label": "Downside case assumption", "case": "Downside case" }
+          ],
+          "interestCover": {
+            "title": "Interest cover",
+            "subtitle": "EBITDA as defined divided by cash interest, times",
+            "note": "Cash interest for FY23 was not split out, so the line breaks there. It is not joined across the gap.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "divider": { "period": "LTM", "at": "after", "label": "Forecast" },
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 1, "label": "1x" },
+              { "value": 2, "label": "2x" },
+              { "value": 3, "label": "3x" },
+              { "value": 4, "label": "4x" }
+            ],
+            "cases": [
+              {
+                "values": [2.6, null, 2.8, 2.9, 3, 3.3, 3.6],
+                "labels": ["2.6x", null, "2.8x", "2.9x", "3.0x", "3.3x", "3.6x"]
+              },
+              {
+                "values": [2.6, null, 2.8, 2.9, 2.9, 2.3, 2.4],
+                "labels": ["2.6x", null, "2.8x", "2.9x", "2.9x", "2.3x", "2.4x"]
+              }
+            ],
+            "head": ["Interest cover", "FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"],
+            "rows": [
+              {
+                "label": "Base case",
+                "cells": ["2.6x", null, "2.8x", "2.9x", "3.0x", "3.3x", "3.6x"]
+              },
+              {
+                "label": "Downside case",
+                "cells": ["2.6x", null, "2.8x", "2.9x", "2.9x", "2.3x", "2.4x"]
+              }
+            ]
+          },
+          "ebitda": {
+            "title": "EBITDA by case",
+            "subtitle": "EBITDA as defined, USD millions",
+            "note": "Both cases start from the twelve months to June 2025.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "divider": { "period": "LTM", "at": "on", "label": "Last actual" },
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 1500, "label": "1,500" },
+              { "value": 3000, "label": "3,000" },
+              { "value": 4500, "label": "4,500" },
+              { "value": 6000, "label": "6,000" }
+            ],
+            "series": [
+              {
+                "name": "Actual, then base case",
+                "values": [2646, 3395, 4173, 4560, 4690, 5080, 5460],
+                "labels": ["2,646", null, null, "4,560", null, null, "5,460"]
+              },
+              {
+                "name": "Downside case",
+                "values": [null, null, null, null, 4560, 4120, 4350],
+                "labels": [null, null, null, null, null, "4,120", "4,350"]
+              }
+            ],
+            "head": ["EBITDA as defined", "FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"],
+            "rows": [
+              {
+                "label": "Base case",
+                "cells": ["2,646", "3,395", "4,173", "4,560", "4,690", "5,080", "5,460"]
+              },
+              {
+                "label": "Downside case",
+                "cells": ["2,646", "3,395", "4,173", "4,560", "4,560", "4,120", "4,350"]
+              }
+            ]
+          },
+          "walk": {
+            "title": "From EBITDA to free cash flow",
+            "subtitle": "FY26, USD millions",
+            "note": "Other cash items were not forecast: the slot stays empty and is not counted as zero.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 1500, "label": "1,500" },
+              { "value": 3000, "label": "3,000" },
+              { "value": 4500, "label": "4,500" },
+              { "value": 6000, "label": "6,000" }
+            ],
+            "caseSteps": [
+              [
+                {
+                  "label": "EBITDA",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 5080,
+                  "text": "5,080"
+                },
+                {
+                  "label": "Interest",
+                  "kind": "down",
+                  "from": 5080,
+                  "to": 3520,
+                  "text": "-1,560"
+                },
+                {
+                  "label": "Tax",
+                  "kind": "down",
+                  "from": 3520,
+                  "to": 2910,
+                  "text": "-610"
+                },
+                {
+                  "label": "Working capital",
+                  "kind": "down",
+                  "from": 2910,
+                  "to": 2740,
+                  "text": "-170"
+                },
+                {
+                  "label": "Capex",
+                  "kind": "down",
+                  "from": 2740,
+                  "to": 2540,
+                  "text": "-200"
+                },
+                { "label": "Other", "kind": "missing" },
+                {
+                  "label": "Free cash flow",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 2540,
+                  "text": "2,540"
+                }
+              ],
+              [
+                {
+                  "label": "EBITDA",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 4120,
+                  "text": "4,120"
+                },
+                {
+                  "label": "Interest",
+                  "kind": "down",
+                  "from": 4120,
+                  "to": 2330,
+                  "text": "-1,790"
+                },
+                {
+                  "label": "Tax",
+                  "kind": "down",
+                  "from": 2330,
+                  "to": 1900,
+                  "text": "-430"
+                },
+                {
+                  "label": "Working capital",
+                  "kind": "up",
+                  "from": 1900,
+                  "to": 1960,
+                  "text": "+60"
+                },
+                {
+                  "label": "Capex",
+                  "kind": "down",
+                  "from": 1960,
+                  "to": 1810,
+                  "text": "-150"
+                },
+                { "label": "Other", "kind": "missing" },
+                {
+                  "label": "Free cash flow",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 1810,
+                  "text": "1,810"
+                }
+              ]
+            ],
+            "head": ["FY26, USD millions", "Base case", "Downside case"],
+            "rows": [
+              {
+                "label": "EBITDA as defined",
+                "cells": ["5,080", "4,120"],
+                "trace": null
+              },
+              {
+                "label": "Cash interest",
+                "cells": ["-1,560", "-1,790"],
+                "trace": null
+              },
+              { "label": "Cash tax", "cells": ["-610", "-430"], "trace": null },
+              {
+                "label": "Change in working capital",
+                "cells": ["-170", "60"],
+                "trace": null
+              },
+              {
+                "label": "Capital expenditure",
+                "cells": ["-200", "-150"],
+                "trace": null
+              },
+              { "label": "Other cash items", "cells": [null, null], "trace": null },
+              {
+                "label": "Free cash flow",
+                "cells": ["2,540", "1,810"],
+                "trace": null
+              }
+            ]
+          },
+          "gap": {
+            "title": "Quarterly cash flow",
+            "reason": "The sources give annual figures only, so no quarter-by-quarter path was built."
+          },
+          "watch": {
+            "title": "What would change the forecast",
+            "text": "A second debt-funded dividend of the size paid in 2024 would add about a turn of leverage in either case and remove the cash build the base case relies on.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "limitations": {
+            "title": "Limitations of the forecast",
+            "text": "Six qualifications apply, two of them to the downside case.",
+            "href": "#/model/transdigm/2025-06-30/limitations"
+          }
+        },
+        "portfolioFit": {
+          "limits": {
+            "title": "Exposure against limits",
+            "subtitle": "Share of the portfolio after the proposed position; each limit on its own scale",
+            "note": "No country limit is set (limit n.a.). Exposure to subordinated debt was not measured, so no bar is drawn.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "head": ["Limit", "Exposure", "Limit"],
+            "columns": [
+              {
+                "label": "Single issuer",
+                "exposure": 2.1,
+                "limit": 3.0,
+                "scaleMax": 3.75,
+                "exposureText": "2.1%",
+                "limitText": "limit 3.0%",
+                "cells": ["2.1%", "3.0%"]
+              },
+              {
+                "label": "Aerospace and defence",
+                "exposure": 9.4,
+                "limit": 12.0,
+                "scaleMax": 15,
+                "exposureText": "9.4%",
+                "limitText": "limit 12.0%",
+                "cells": ["9.4%", "12.0%"]
+              },
+              {
+                "label": "Rated single B",
+                "exposure": 31.0,
+                "limit": 35.0,
+                "scaleMax": 43.75,
+                "exposureText": "31.0%",
+                "limitText": "limit 35.0%",
+                "cells": ["31.0%", "35.0%"]
+              },
+              {
+                "label": "United States",
+                "exposure": 58.0,
+                "limit": null,
+                "scaleMax": 83,
+                "exposureText": "58.0%",
+                "limitText": null,
+                "cells": ["58.0%", null]
+              },
+              {
+                "label": "Subordinated debt",
+                "exposure": null,
+                "limit": 10.0,
+                "scaleMax": 12.5,
+                "exposureText": null,
+                "limitText": "limit 10.0%",
+                "cells": [null, "10.0%"]
+              }
+            ]
+          },
+          "ratings": {
+            "title": "Agency ratings",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "tiles": [
+              { "label": "Moody's, corporate family", "value": "B1", "caption": "Stable outlook" },
+              { "label": "S&P, issuer credit", "value": "B+", "caption": "Stable outlook" }
+            ]
+          },
+          "relativeValue": {
+            "title": "Relative value",
+            "part": "Spread against holdings",
+            "reason": "The pricing comparison failed in this run, so the spread paid for this risk could not be set against the rest of the portfolio."
+          },
+          "scatter": {
+            "title": "Leverage and margin against holdings",
+            "subtitle": "Latest twelve months, one mark per issuer held",
+            "note": "Holdings are shown without names in this sample.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "x": {
+              "title": "Net leverage",
+              "short": "net leverage",
+              "ticks": [
+                { "value": 2, "label": "2x" },
+                { "value": 3, "label": "3x" },
+                { "value": 4, "label": "4x" },
+                { "value": 5, "label": "5x" },
+                { "value": 6, "label": "6x" },
+                { "value": 7, "label": "7x" },
+                { "value": 8, "label": "8x" }
+              ]
+            },
+            "y": {
+              "title": "EBITDA margin",
+              "short": "EBITDA margin",
+              "ticks": [
+                { "value": 0, "label": "0" },
+                { "value": 15, "label": "15%" },
+                { "value": 30, "label": "30%" },
+                { "value": 45, "label": "45%" },
+                { "value": 60, "label": "60%" }
+              ]
+            },
+            "othersName": "Other holdings",
+            "head": ["Issuer", "Net leverage", "EBITDA margin"],
+            "points": [
+              {
+                "name": "TransDigm",
+                "x": 5.9,
+                "y": 53.1,
+                "xText": "5.9x",
+                "yText": "53.1%",
+                "emphasis": true,
+                "cells": ["5.9x", "53.1%"]
+              },
+              {
+                "name": "Holding A",
+                "x": 3.1,
+                "y": 22,
+                "xText": "3.1x",
+                "yText": "22%",
+                "emphasis": false,
+                "cells": ["3.1x", "22%"]
+              },
+              {
+                "name": "Holding B",
+                "x": 4.2,
+                "y": 31,
+                "xText": "4.2x",
+                "yText": "31%",
+                "emphasis": false,
+                "cells": ["4.2x", "31%"]
+              },
+              {
+                "name": "Holding C",
+                "x": 2.6,
+                "y": 14,
+                "xText": "2.6x",
+                "yText": "14%",
+                "emphasis": false,
+                "cells": ["2.6x", "14%"]
+              },
+              {
+                "name": "Holding D",
+                "x": 5.1,
+                "y": 27,
+                "xText": "5.1x",
+                "yText": "27%",
+                "emphasis": false,
+                "cells": ["5.1x", "27%"]
+              },
+              {
+                "name": "Holding E",
+                "x": 6.8,
+                "y": 19,
+                "xText": "6.8x",
+                "yText": "19%",
+                "emphasis": false,
+                "cells": ["6.8x", "19%"]
+              },
+              {
+                "name": "Holding F",
+                "x": 3.8,
+                "y": 41,
+                "xText": "3.8x",
+                "yText": "41%",
+                "emphasis": false,
+                "cells": ["3.8x", "41%"]
+              },
+              {
+                "name": "Holding G",
+                "x": 4.6,
+                "y": 9,
+                "xText": "4.6x",
+                "yText": "9%",
+                "emphasis": false,
+                "cells": ["4.6x", "9%"]
+              },
+              {
+                "name": "Holding H",
+                "x": 5.6,
+                "y": 36,
+                "xText": "5.6x",
+                "yText": "36%",
+                "emphasis": false,
+                "cells": ["5.6x", "36%"]
+              },
+              {
+                "name": "Holding I",
+                "x": 2.4,
+                "y": 18,
+                "xText": "2.4x",
+                "yText": "18%",
+                "emphasis": false,
+                "cells": ["2.4x", "18%"]
+              },
+              {
+                "name": "Holding J",
+                "x": 4.4,
+                "y": null,
+                "xText": "4.4x",
+                "yText": null,
+                "emphasis": false,
+                "cells": ["4.4x", null]
+              },
+              {
+                "name": "Holding K",
+                "x": null,
+                "y": 24,
+                "xText": null,
+                "yText": "24%",
+                "emphasis": false,
+                "cells": [null, "24%"]
+              }
+            ]
+          },
+          "strips": {
+            "title": "Where the issuer sits in the portfolio",
+            "subtitle": "The issuer against the range across holdings",
+            "note": "The issuer has the highest margin held and sits near the top of the leverage range. Its spread is missing because the pricing comparison failed.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "rangeLabel": "Range across holdings",
+            "head": ["Measure", "Lowest held", "Highest held", "TransDigm"],
+            "rows": [
+              {
+                "label": "Net leverage",
+                "rangeText": "Holdings: 2.4x to 6.8x",
+                "range": { "low": 2.4, "high": 6.8 },
+                "markers": [{ "name": "TransDigm", "value": 5.9, "text": "5.9x" }],
+                "axis": { "min": 0, "max": 8 },
+                "cells": ["2.4x", "6.8x", "5.9x"]
+              },
+              {
+                "label": "Interest cover",
+                "rangeText": "Holdings: 1.6x to 6.2x",
+                "range": { "low": 1.6, "high": 6.2 },
+                "markers": [{ "name": "TransDigm", "value": 2.9, "text": "2.9x" }],
+                "axis": { "min": 0, "max": 8 },
+                "cells": ["1.6x", "6.2x", "2.9x"]
+              },
+              {
+                "label": "EBITDA margin",
+                "rangeText": "Holdings: 9% to 53%",
+                "range": { "low": 9, "high": 53.1 },
+                "markers": [{ "name": "TransDigm", "value": 53.1, "text": "53.1%" }],
+                "axis": { "min": 0, "max": 60 },
+                "cells": ["9%", "53%", "53.1%"]
+              },
+              {
+                "label": "Spread over benchmark",
+                "rangeText": "Holdings: 180 to 520 basis points",
+                "range": { "low": 180, "high": 520 },
+                "markers": [{ "name": "TransDigm", "value": null, "text": null }],
+                "axis": { "min": 0, "max": 600 },
+                "cells": ["180 bp", "520 bp", null]
+              }
+            ]
+          }
+        },
+        "header": {
+          "issuerName": "TransDigm Group",
+          "asOf": "As of 30 June 2025",
+          "purpose": "Annual review",
+          "state": "Finished",
+          "sample": true
+        },
+        "links": {
+          "library": "#/",
+          "report": "#/library/transdigm/2025-06-30/overview",
+          "evidence": "#/library/transdigm/2025-06-30/evidence",
+          "evidenceGaps": "#/library/transdigm/2025-06-30/evidence"
+        },
+        "cases": [
+          {
+            "name": "Base case",
+            "tag": "Management plan, trimmed",
+            "assumption": "Aftermarket sales grow 8% a year and margins hold near 53%. Cash builds on the balance sheet.",
+            "leavesOut": "acquisitions and any further special dividend.",
+            "note": null,
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          {
+            "name": "Downside case",
+            "tag": "Traffic shock",
+            "assumption": "Flight hours fall 10% in FY26 and recover half in FY27; prices stay flat; floating debt costs 100 basis points more.",
+            "leavesOut": "covenant waivers and asset sales.",
+            "note": null,
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          }
+        ],
+        "front": {
+          "bottomLine": {
+            "lead": "Leverage falls only if the cash is kept: net debt drops from 5.9x to 3.8x EBITDA by FY27 in the base case, and cash flow covers interest about three times throughout.",
+            "rest": "The downside case holds leverage above 5x and still funds interest from operations. Debt is not repaid in either case, and about USD 17 billion falls due between 2028 and 2030.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "headline": {
+            "period": "Latest twelve months to 30 June 2025",
+            "metrics": [
+              {
+                "label": "Revenue",
+                "definition": "Net sales, latest twelve months",
+                "value": {
+                  "text": "$8,580m"
+                },
+                "delta": "↗ 8.1% on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "EBITDA as defined",
+                "definition": "EBITDA as the company defines it in its credit agreement",
+                "value": {
+                  "text": "$4,560m"
+                },
+                "delta": "↗ 9.3% on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "EBITDA margin",
+                "definition": "EBITDA as defined divided by revenue",
+                "value": {
+                  "text": "53.1%"
+                },
+                "delta": "↗ 0.5 pts on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Net leverage",
+                "definition": "Net debt divided by EBITDA as defined",
+                "value": {
+                  "text": "5.9x"
+                },
+                "delta": "↗ from 4.5x",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Interest cover",
+                "definition": "EBITDA as defined divided by cash interest",
+                "value": {
+                  "text": "2.9x"
+                },
+                "delta": "↗ from 2.8x",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Free cash flow",
+                "definition": "EBITDA as defined less cash interest, cash tax, working capital and capital expenditure",
+                "value": {
+                  "text": "$1,950m"
+                },
+                "delta": "↗ 10.3% on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Secured net leverage",
+                "definition": "Secured net debt divided by EBITDA as defined",
+                "value": {
+                  "text": null
+                },
+                "delta": null,
+                "note": "The secured share of debt was not split out in the sources.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Revolver drawn",
+                "definition": "Amount drawn on the revolving credit facility",
+                "value": {
+                  "withheld": true
+                },
+                "delta": null,
+                "note": "Shown to the deal team only.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "covers": {
+            "facts": [
+              {
+                "label": "Currency and units",
+                "value": "US dollars, millions",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Fiscal year end",
+                "value": "30 September",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Historic periods",
+                "value": "FY22 to FY24, as reported",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Latest twelve months",
+                "value": "To 30 June 2025",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Forecast periods",
+                "value": "FY25 to FY27",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Cases",
+                "value": "Base and downside",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Earnings measure",
+                "value": "EBITDA as the company defines it",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "parts": [
+            {
+              "title": "Analysis",
+              "text": "Deleveraging depends on keeping the cash, not on repaying debt.",
+              "to": "analysis",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Model",
+              "text": "Statements for FY22 to FY27, two cases, bridges and the debt stack.",
+              "to": "statements",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Portfolio fit",
+              "text": "Within every limit that could be tested, with 0.9 points of room under the single-issuer limit.",
+              "to": "portfolio-fit",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Relative value",
+              "text": "The pricing comparison failed in this run, so the model's spread view is missing.",
+              "to": null,
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            }
+          ]
+        },
+        "analysis": {
+          "findings": [
+            {
+              "number": "01",
+              "title": "Deleveraging depends on keeping the cash",
+              "text": "Gross debt stays at USD 29.7 billion in both cases. Net leverage falls from 5.9x to 3.8x by FY27 only because free cash flow is left on the balance sheet.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "number": "02",
+              "title": "Earnings quality is high",
+              "text": "Margins have risen every year since FY22, and aftermarket sales, the most profitable part of the business, are over half of revenue.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "number": "03",
+              "title": "Interest is covered with room to spare",
+              "text": "Cover stays between 2.3x and 3.6x across both cases. The low point is FY26 in the downside case.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "number": "04",
+              "title": "Refinancing is concentrated in 2028 to 2030",
+              "text": "About USD 17 billion, 57% of debt, falls due in those three years. The model assumes it is refinanced at current spreads.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            }
+          ],
+          "measures": {
+            "period": "Latest twelve months against FY24",
+            "stats": [
+              {
+                "label": "Net leverage",
+                "value": "5.9x",
+                "delta": "↗ from 4.5x in FY24",
+                "text": "The 2024 special dividend was funded with new debt; a year of earnings growth has not yet absorbed it.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Interest cover",
+                "value": "2.9x",
+                "delta": "↗ from 2.8x in FY24",
+                "text": "Higher earnings have more than offset the larger debt load.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Free cash flow to debt",
+                "value": "6.6%",
+                "delta": "↘ from 7.1% in FY24",
+                "text": "Cash generation grew more slowly than debt.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Secured net leverage",
+                "value": null,
+                "delta": "3.1x in FY24",
+                "text": "The secured share of debt was not split out in the latest sources, so no change can be stated.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "headroom": {
+            "title": "Headroom to covenants and rating triggers",
+            "subtitle": "Latest twelve months; the dashed line is the level that matters",
+            "note": "Secured net leverage could not be measured, so no bar is drawn against its covenant.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "head": ["Measure", "Latest twelve months", "Level that matters"],
+            "rows": [
+              {
+                "label": "Net leverage",
+                "sub": "Downgrade trigger above 7.0x",
+                "value": 5.9,
+                "target": 7,
+                "axisMax": 8,
+                "text": "5.9x of 7.0x",
+                "cells": ["5.9x", "Downgrade above 7.0x"]
+              },
+              {
+                "label": "Interest cover",
+                "sub": "Downgrade trigger below 2.0x",
+                "value": 2.9,
+                "target": 2,
+                "axisMax": 4,
+                "text": "2.9x against 2.0x",
+                "cells": ["2.9x", "Downgrade below 2.0x"]
+              },
+              {
+                "label": "Free cash flow to debt",
+                "sub": "Upgrade trigger above 10%",
+                "value": 6.6,
+                "target": 10,
+                "axisMax": 12,
+                "text": "6.6% of 10%",
+                "cells": ["6.6%", "Upgrade above 10%"]
+              },
+              {
+                "label": "Secured net leverage",
+                "sub": "Covenant limit 7.25x",
+                "value": null,
+                "target": 7.25,
+                "axisMax": 8,
+                "text": null,
+                "cells": [null, "Covenant limit 7.25x"]
+              }
+            ]
+          },
+          "segments": {
+            "title": "EBITDA margin by segment",
+            "subtitle": "FY24 against the latest twelve months",
+            "note": "The acquired businesses were not owned in FY24: only the latest mark is drawn.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "names": ["FY24", "Latest twelve months"],
+            "axis": { "min": 30, "max": 60 },
+            "head": ["Segment", "FY24", "Latest twelve months"],
+            "rows": [
+              {
+                "label": "Power and control",
+                "from": 55.8,
+                "to": 57.5,
+                "text": "55.8% to 57.5%",
+                "cells": ["55.8%", "57.5%"]
+              },
+              {
+                "label": "Airframe",
+                "from": 51.9,
+                "to": 53.4,
+                "text": "51.9% to 53.4%",
+                "cells": ["51.9%", "53.4%"]
+              },
+              {
+                "label": "Non-aviation",
+                "from": 41.2,
+                "to": 38.6,
+                "text": "41.2% to 38.6%",
+                "cells": ["41.2%", "38.6%"]
+              },
+              {
+                "label": "Acquired businesses",
+                "from": null,
+                "to": 44,
+                "text": "n.a. to 44.0%",
+                "cells": [null, "44.0%"]
+              }
+            ]
+          },
+          "contrary": {
+            "title": "The cash may not stay",
+            "text": "The company has paid out its cash build three times in five years. If it does so again, leverage stays near 6x and the base case deleveraging does not happen.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "watch": {
+            "title": "Two levels to watch",
+            "text": "Net leverage above 7.0x for two quarters, or interest cover below 2.0x, would turn this view negative. A public commitment to hold leverage below 5x would improve it.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "limitations": {
+            "count": "2 of 6",
+            "linkText": "See all six limitations",
+            "href": "#/model/transdigm/2025-06-30/limitations",
+            "items": [
+              {
+                "title": "EBITDA is the company’s own measure",
+                "text": "EBITDA as defined adds back items the company chooses. No independent adjustment was made, so leverage on a stricter measure would be higher.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "title": "FY23 cash interest is missing",
+                "text": "Cash interest for FY23 was not split out in the sources. Interest cover and free cash flow for that year are shown as n.a., not estimated.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          }
+        },
+        "limitations": {
+          "count": "6",
+          "gapsLinkText": "See the 3 gaps in Evidence",
+          "lead": "Six qualifications apply to this model. Each is stated in full and stays open; none changes the bottom line on its own.",
+          "items": [
+            {
+              "title": "EBITDA is the company’s own measure",
+              "label": "Earnings",
+              "text": "EBITDA as defined adds back items the company chooses. No independent adjustment was made, so leverage on a stricter measure would be higher.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "FY23 cash interest is missing",
+              "label": "Data",
+              "text": "Cash interest for FY23 was not split out in the sources. Interest cover and free cash flow for that year are shown as n.a., not estimated.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "FY22 inventories are missing",
+              "label": "Data",
+              "text": "The FY22 balance sheet in the sources does not show inventories separately. The figure is n.a. and FY22 working capital ratios are not stated.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "No acquisitions or shareholder returns after FY25",
+              "label": "Forecast",
+              "text": "Both cases assume no acquisitions and forecast no dividends or buybacks. The company has made both in most years, so cash and leverage are likely to be worse than shown.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "The downside case is a single scenario",
+              "label": "Downside case",
+              "text": "One traffic shock was modelled. It does not combine lower traffic with a loss of pricing power, and it assumes the 2028 maturities can still be refinanced.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Revolver terms are withheld",
+              "label": "Downside case",
+              "text": "The amount drawn and the terms of the revolving facility are shown to the deal team only. Liquidity under the downside case could not be measured.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            }
+          ],
+          "notEstablished": {
+            "count": "3",
+            "items": [
+              {
+                "title": "Pension deficit",
+                "reason": "No source in this run states the funded position of the pension plans."
+              },
+              {
+                "title": "Quarterly cash flow",
+                "reason": "The sources give annual figures only, so no quarter-by-quarter path was built."
+              },
+              {
+                "title": "Months of liquidity, downside case",
+                "reason": "The revolver terms are withheld, so the chart could not be drawn."
+              }
+            ]
+          }
+        },
+        "statements": {
+          "intro": "USD millions unless a unit is shown. Fiscal years end 30 September.",
+          "columns": [
+            {
+              "period": "FY22",
+              "kind": "actual",
+              "note": "Actual"
+            },
+            {
+              "period": "FY23",
+              "kind": "actual",
+              "note": "Actual"
+            },
+            {
+              "period": "FY24",
+              "kind": "actual",
+              "note": "Actual"
+            },
+            {
+              "period": "LTM",
+              "kind": "actual",
+              "note": "To June 2025"
+            },
+            {
+              "period": "FY25E",
+              "kind": "forecast",
+              "notes": [
+                {
+                  "text": "Base"
+                },
+                {
+                  "text": "Downside"
+                }
+              ]
+            },
+            {
+              "period": "FY26E",
+              "kind": "forecast",
+              "notes": [
+                {
+                  "text": "Base"
+                },
+                {
+                  "text": "Downside"
+                }
+              ]
+            },
+            {
+              "period": "FY27E",
+              "kind": "forecast",
+              "notes": [
+                {
+                  "text": "Base"
+                },
+                {
+                  "text": "Downside"
+                }
+              ]
+            }
+          ],
+          "statements": [
+            {
+              "name": "Income statement",
+              "rows": [
+                {
+                  "label": "Revenue",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "5,429", "pos": 0.5328 },
+                    { "kind": "figure", "text": "6,585", "pos": 0.6462 },
+                    { "kind": "figure", "text": "7,940", "pos": 0.7792 },
+                    { "kind": "figure", "text": "8,580", "pos": 0.842 },
+                    [
+                      { "kind": "figure", "text": "8,840", "pos": 0.8675 },
+                      { "kind": "figure", "text": "8,650", "pos": 0.8489 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "9,520", "pos": 0.9342 },
+                      { "kind": "figure", "text": "8,780", "pos": 0.8616 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "10,190", "pos": 1.0 },
+                      { "kind": "figure", "text": "9,050", "pos": 0.8881 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Gross profit",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "3,099", "pos": 0.5122 },
+                    { "kind": "figure", "text": "3,840", "pos": 0.6347 },
+                    { "kind": "figure", "text": "4,670", "pos": 0.7719 },
+                    { "kind": "figure", "text": "5,060", "pos": 0.8364 },
+                    [
+                      { "kind": "figure", "text": "5,220", "pos": 0.8628 },
+                      { "kind": "figure", "text": "5,080", "pos": 0.8397 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,640", "pos": 0.9322 },
+                      { "kind": "figure", "text": "5,040", "pos": 0.8331 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "6,050", "pos": 1.0 },
+                      { "kind": "figure", "text": "5,250", "pos": 0.8678 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "EBITDA as defined",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2,646", "pos": 0.4846 },
+                    { "kind": "figure", "text": "3,395", "pos": 0.6218 },
+                    { "kind": "figure", "text": "4,173", "pos": 0.7643 },
+                    { "kind": "figure", "text": "4,560", "pos": 0.8352 },
+                    [
+                      { "kind": "figure", "text": "4,690", "pos": 0.859 },
+                      { "kind": "figure", "text": "4,560", "pos": 0.8352 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,080", "pos": 0.9304 },
+                      { "kind": "figure", "text": "4,120", "pos": 0.7546 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,460", "pos": 1.0 },
+                      { "kind": "figure", "text": "4,350", "pos": 0.7967 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Depreciation and amortisation",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-253", "pos": -0.6571 },
+                    { "kind": "figure", "text": "-268", "pos": -0.6961 },
+                    { "kind": "figure", "text": "-310", "pos": -0.8052 },
+                    { "kind": "figure", "text": "-345", "pos": -0.8961 },
+                    [
+                      { "kind": "figure", "text": "-355", "pos": -0.9221 },
+                      { "kind": "figure", "text": "-355", "pos": -0.9221 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-370", "pos": -0.961 },
+                      { "kind": "figure", "text": "-370", "pos": -0.961 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-385", "pos": -1.0 },
+                      { "kind": "figure", "text": "-385", "pos": -1.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Operating income",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2,220", "pos": 0.4723 },
+                    { "kind": "figure", "text": "2,920", "pos": 0.6213 },
+                    { "kind": "figure", "text": "3,540", "pos": 0.7532 },
+                    { "kind": "figure", "text": "3,880", "pos": 0.8255 },
+                    [
+                      { "kind": "figure", "text": "3,990", "pos": 0.8489 },
+                      { "kind": "figure", "text": "3,860", "pos": 0.8213 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "4,350", "pos": 0.9255 },
+                      { "kind": "figure", "text": "3,400", "pos": 0.7234 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "4,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "3,610", "pos": 0.7681 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Net interest expense",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-1,076", "pos": -0.5978 },
+                    { "kind": "figure", "text": "-1,164", "pos": -0.6467 },
+                    { "kind": "figure", "text": "-1,286", "pos": -0.7144 },
+                    { "kind": "figure", "text": "-1,540", "pos": -0.8556 },
+                    [
+                      { "kind": "figure", "text": "-1,560", "pos": -0.8667 },
+                      { "kind": "figure", "text": "-1,570", "pos": -0.8722 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-1,560", "pos": -0.8667 },
+                      { "kind": "figure", "text": "-1,790", "pos": -0.9944 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-1,530", "pos": -0.85 },
+                      { "kind": "figure", "text": "-1,800", "pos": -1.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Income tax",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-261", "pos": -0.3434 },
+                    { "kind": "figure", "text": "-417", "pos": -0.5487 },
+                    { "kind": "figure", "text": "-500", "pos": -0.6579 },
+                    { "kind": "figure", "text": "-560", "pos": -0.7368 },
+                    [
+                      { "kind": "figure", "text": "-583", "pos": -0.7671 },
+                      { "kind": "figure", "text": "-550", "pos": -0.7237 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-670", "pos": -0.8816 },
+                      { "kind": "figure", "text": "-390", "pos": -0.5132 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-760", "pos": -1.0 },
+                      { "kind": "figure", "text": "-430", "pos": -0.5658 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Net income",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "866", "pos": 0.3654 },
+                    { "kind": "figure", "text": "1,298", "pos": 0.5477 },
+                    { "kind": "figure", "text": "1,714", "pos": 0.7232 },
+                    { "kind": "figure", "text": "1,740", "pos": 0.7342 },
+                    [
+                      { "kind": "figure", "text": "1,810", "pos": 0.7637 },
+                      { "kind": "figure", "text": "1,700", "pos": 0.7173 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,080", "pos": 0.8776 },
+                      { "kind": "figure", "text": "1,180", "pos": 0.4979 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,370", "pos": 1.0 },
+                      { "kind": "figure", "text": "1,340", "pos": 0.5654 }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Cash flow",
+              "rows": [
+                {
+                  "label": "EBITDA as defined",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2,646", "pos": 0.4846 },
+                    { "kind": "figure", "text": "3,395", "pos": 0.6218 },
+                    { "kind": "figure", "text": "4,173", "pos": 0.7643 },
+                    { "kind": "figure", "text": "4,560", "pos": 0.8352 },
+                    [
+                      { "kind": "figure", "text": "4,690", "pos": 0.859 },
+                      { "kind": "figure", "text": "4,560", "pos": 0.8352 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,080", "pos": 0.9304 },
+                      { "kind": "figure", "text": "4,120", "pos": 0.7546 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,460", "pos": 1.0 },
+                      { "kind": "figure", "text": "4,350", "pos": 0.7967 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Cash interest",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-1,010", "pos": -0.5611 },
+                    { "kind": "missing", "reason": null },
+                    { "kind": "figure", "text": "-1,480", "pos": -0.8222 },
+                    { "kind": "figure", "text": "-1,560", "pos": -0.8667 },
+                    [
+                      { "kind": "figure", "text": "-1,570", "pos": -0.8722 },
+                      { "kind": "figure", "text": "-1,580", "pos": -0.8778 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-1,560", "pos": -0.8667 },
+                      { "kind": "figure", "text": "-1,790", "pos": -0.9944 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-1,530", "pos": -0.85 },
+                      { "kind": "figure", "text": "-1,800", "pos": -1.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Cash tax",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-240", "pos": -0.3429 },
+                    { "kind": "figure", "text": "-390", "pos": -0.5571 },
+                    { "kind": "figure", "text": "-470", "pos": -0.6714 },
+                    { "kind": "figure", "text": "-530", "pos": -0.7571 },
+                    [
+                      { "kind": "figure", "text": "-560", "pos": -0.8 },
+                      { "kind": "figure", "text": "-530", "pos": -0.7571 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-610", "pos": -0.8714 },
+                      { "kind": "figure", "text": "-430", "pos": -0.6143 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-700", "pos": -1.0 },
+                      { "kind": "figure", "text": "-400", "pos": -0.5714 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Change in working capital",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-260", "pos": -0.7647 },
+                    { "kind": "figure", "text": "-310", "pos": -0.9118 },
+                    { "kind": "figure", "text": "-290", "pos": -0.8529 },
+                    { "kind": "figure", "text": "-340", "pos": -1.0 },
+                    [
+                      { "kind": "figure", "text": "-230", "pos": -0.6765 },
+                      { "kind": "figure", "text": "-150", "pos": -0.4412 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-170", "pos": -0.5 },
+                      { "kind": "figure", "text": "60", "pos": 0.1765 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-180", "pos": -0.5294 },
+                      { "kind": "figure", "text": "-120", "pos": -0.3529 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Capital expenditure",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-119", "pos": -0.5561 },
+                    { "kind": "figure", "text": "-139", "pos": -0.6495 },
+                    { "kind": "figure", "text": "-165", "pos": -0.771 },
+                    { "kind": "figure", "text": "-180", "pos": -0.8411 },
+                    [
+                      { "kind": "figure", "text": "-186", "pos": -0.8692 },
+                      { "kind": "figure", "text": "-170", "pos": -0.7944 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-200", "pos": -0.9346 },
+                      { "kind": "figure", "text": "-150", "pos": -0.7009 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-214", "pos": -1.0 },
+                      { "kind": "figure", "text": "-160", "pos": -0.7477 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Free cash flow",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "1,017", "pos": 0.3586 },
+                    { "kind": "missing", "reason": null },
+                    { "kind": "figure", "text": "1,768", "pos": 0.6234 },
+                    { "kind": "figure", "text": "1,950", "pos": 0.6876 },
+                    [
+                      { "kind": "figure", "text": "2,144", "pos": 0.756 },
+                      { "kind": "figure", "text": "2,130", "pos": 0.7511 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,540", "pos": 0.8956 },
+                      { "kind": "figure", "text": "1,810", "pos": 0.6382 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,836", "pos": 1.0 },
+                      { "kind": "figure", "text": "1,870", "pos": 0.6594 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Acquisitions",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-437", "pos": -0.1862 },
+                    { "kind": "figure", "text": "-762", "pos": -0.3247 },
+                    { "kind": "figure", "text": "-2,347", "pos": -1.0 },
+                    { "kind": "figure", "text": "-650", "pos": -0.2769 },
+                    [
+                      { "kind": "withheld", "reason": null },
+                      { "kind": "withheld", "reason": null }
+                    ],
+                    [
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Dividends and buybacks",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-1,091", "pos": -0.2508 },
+                    { "kind": "figure", "text": "0", "pos": 0.0 },
+                    { "kind": "figure", "text": "-2,038", "pos": -0.4685 },
+                    { "kind": "figure", "text": "-4,350", "pos": -1.0 },
+                    [
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Balance sheet",
+              "rows": [
+                {
+                  "label": "Cash",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "3,001", "pos": 0.342 },
+                    { "kind": "figure", "text": "3,472", "pos": 0.3956 },
+                    { "kind": "figure", "text": "6,261", "pos": 0.7134 },
+                    { "kind": "figure", "text": "2,790", "pos": 0.3179 },
+                    [
+                      { "kind": "figure", "text": "3,400", "pos": 0.3874 },
+                      { "kind": "figure", "text": "3,380", "pos": 0.3851 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "5,940", "pos": 0.6768 },
+                      { "kind": "figure", "text": "5,190", "pos": 0.5914 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "8,776", "pos": 1.0 },
+                      { "kind": "figure", "text": "7,060", "pos": 0.8045 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Trade receivables",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "967", "pos": 0.5622 },
+                    { "kind": "figure", "text": "1,230", "pos": 0.7151 },
+                    { "kind": "figure", "text": "1,381", "pos": 0.8029 },
+                    { "kind": "figure", "text": "1,460", "pos": 0.8488 },
+                    [
+                      { "kind": "figure", "text": "1,500", "pos": 0.8721 },
+                      { "kind": "figure", "text": "1,470", "pos": 0.8547 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "1,610", "pos": 0.936 },
+                      { "kind": "figure", "text": "1,480", "pos": 0.8605 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "1,720", "pos": 1.0 },
+                      { "kind": "figure", "text": "1,530", "pos": 0.8895 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Inventories",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "missing", "reason": null },
+                    { "kind": "figure", "text": "1,616", "pos": 0.6906 },
+                    { "kind": "figure", "text": "1,876", "pos": 0.8017 },
+                    { "kind": "figure", "text": "2,010", "pos": 0.859 },
+                    [
+                      { "kind": "figure", "text": "2,060", "pos": 0.8803 },
+                      { "kind": "figure", "text": "2,050", "pos": 0.8761 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,200", "pos": 0.9402 },
+                      { "kind": "figure", "text": "2,000", "pos": 0.8547 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,340", "pos": 1.0 },
+                      { "kind": "figure", "text": "2,080", "pos": 0.8889 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Goodwill and intangibles",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "11,360", "pos": 0.7624 },
+                    { "kind": "figure", "text": "11,900", "pos": 0.7987 },
+                    { "kind": "figure", "text": "14,500", "pos": 0.9732 },
+                    { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                    [
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Total assets",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "18,107", "pos": 0.6076 },
+                    { "kind": "figure", "text": "19,970", "pos": 0.6701 },
+                    { "kind": "figure", "text": "25,586", "pos": 0.8586 },
+                    { "kind": "figure", "text": "23,100", "pos": 0.7752 },
+                    [
+                      { "kind": "figure", "text": "23,900", "pos": 0.802 },
+                      { "kind": "figure", "text": "23,800", "pos": 0.7987 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "26,700", "pos": 0.896 },
+                      { "kind": "figure", "text": "25,600", "pos": 0.8591 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "29,800", "pos": 1.0 },
+                      { "kind": "figure", "text": "27,700", "pos": 0.9295 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Gross debt",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "19,795", "pos": 0.6665 },
+                    { "kind": "figure", "text": "19,750", "pos": 0.665 },
+                    { "kind": "figure", "text": "24,880", "pos": 0.8377 },
+                    { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                    [
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Other liabilities",
+                  "kind": "subtotal",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2,150", "pos": 0.7414 },
+                    { "kind": "figure", "text": "2,190", "pos": 0.7552 },
+                    { "kind": "figure", "text": "2,680", "pos": 0.9241 },
+                    { "kind": "figure", "text": "2,760", "pos": 0.9517 },
+                    [
+                      { "kind": "figure", "text": "2,800", "pos": 0.9655 },
+                      { "kind": "figure", "text": "2,800", "pos": 0.9655 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,850", "pos": 0.9828 },
+                      { "kind": "figure", "text": "2,850", "pos": 0.9828 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "2,900", "pos": 1.0 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Pension deficit",
+                  "kind": "subtotal",
+                  "gap": true,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "missing", "reason": null },
+                    { "kind": "missing", "reason": null },
+                    { "kind": "missing", "reason": null },
+                    { "kind": "missing", "reason": null },
+                    [
+                      { "kind": "missing", "reason": null },
+                      { "kind": "missing", "reason": null }
+                    ],
+                    [
+                      { "kind": "missing", "reason": null },
+                      { "kind": "missing", "reason": null }
+                    ],
+                    [
+                      { "kind": "missing", "reason": null },
+                      { "kind": "missing", "reason": null }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Shareholders’ equity",
+                  "kind": "total",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "-3,838", "pos": -0.41 },
+                    { "kind": "figure", "text": "-1,970", "pos": -0.2105 },
+                    { "kind": "figure", "text": "-1,974", "pos": -0.2109 },
+                    { "kind": "figure", "text": "-9,360", "pos": -1.0 },
+                    [
+                      { "kind": "figure", "text": "-8,600", "pos": -0.9188 },
+                      { "kind": "figure", "text": "-8,700", "pos": -0.9295 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-5,850", "pos": -0.625 },
+                      { "kind": "figure", "text": "-6,950", "pos": -0.7425 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "-2,800", "pos": -0.2991 },
+                      { "kind": "figure", "text": "-4,900", "pos": -0.5235 }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Key measures",
+              "rows": [
+                {
+                  "label": "Revenue growth",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "missing", "reason": null },
+                    { "kind": "figure", "text": "21.3%", "pos": 1.0 },
+                    { "kind": "figure", "text": "20.6%", "pos": 0.9671 },
+                    { "kind": "figure", "text": "8.1%", "pos": 0.3803 },
+                    [
+                      { "kind": "figure", "text": "11.3%", "pos": 0.5305 },
+                      { "kind": "figure", "text": "8.9%", "pos": 0.4178 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "7.7%", "pos": 0.3615 },
+                      { "kind": "figure", "text": "1.5%", "pos": 0.0704 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "7.0%", "pos": 0.3286 },
+                      { "kind": "figure", "text": "3.1%", "pos": 0.1455 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "EBITDA margin",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "48.7%", "pos": 0.9086 },
+                    { "kind": "figure", "text": "51.6%", "pos": 0.9627 },
+                    { "kind": "figure", "text": "52.6%", "pos": 0.9813 },
+                    { "kind": "figure", "text": "53.1%", "pos": 0.9907 },
+                    [
+                      { "kind": "figure", "text": "53.1%", "pos": 0.9907 },
+                      { "kind": "figure", "text": "52.7%", "pos": 0.9832 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "53.4%", "pos": 0.9963 },
+                      { "kind": "figure", "text": "46.9%", "pos": 0.875 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "53.6%", "pos": 1.0 },
+                      { "kind": "figure", "text": "48.1%", "pos": 0.8974 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Net leverage",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "6.3x", "pos": 1.0 },
+                    { "kind": "figure", "text": "4.8x", "pos": 0.7619 },
+                    { "kind": "figure", "text": "4.5x", "pos": 0.7143 },
+                    { "kind": "figure", "text": "5.9x", "pos": 0.9365 },
+                    [
+                      { "kind": "figure", "text": "5.6x", "pos": 0.8889 },
+                      { "kind": "figure", "text": "5.8x", "pos": 0.9206 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "4.7x", "pos": 0.746 },
+                      { "kind": "figure", "text": "5.9x", "pos": 0.9365 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "3.8x", "pos": 0.6032 },
+                      { "kind": "figure", "text": "5.2x", "pos": 0.8254 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Interest cover",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2.6x", "pos": 0.7222 },
+                    { "kind": "missing", "reason": null },
+                    { "kind": "figure", "text": "2.8x", "pos": 0.7778 },
+                    { "kind": "figure", "text": "2.9x", "pos": 0.8056 },
+                    [
+                      { "kind": "figure", "text": "3.0x", "pos": 0.8333 },
+                      { "kind": "figure", "text": "2.9x", "pos": 0.8056 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "3.3x", "pos": 0.9167 },
+                      { "kind": "figure", "text": "2.3x", "pos": 0.6389 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "3.6x", "pos": 1.0 },
+                      { "kind": "figure", "text": "2.4x", "pos": 0.6667 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Free cash flow to debt",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "5.1%", "pos": 0.5368 },
+                    { "kind": "missing", "reason": null },
+                    { "kind": "figure", "text": "7.1%", "pos": 0.7474 },
+                    { "kind": "figure", "text": "6.6%", "pos": 0.6947 },
+                    [
+                      { "kind": "figure", "text": "7.2%", "pos": 0.7579 },
+                      { "kind": "figure", "text": "7.2%", "pos": 0.7579 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "8.6%", "pos": 0.9053 },
+                      { "kind": "figure", "text": "6.1%", "pos": 0.6421 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "9.5%", "pos": 1.0 },
+                      { "kind": "figure", "text": "6.3%", "pos": 0.6632 }
+                    ]
+                  ]
+                },
+                {
+                  "label": "Capital expenditure to revenue",
+                  "kind": "plain",
+                  "gap": false,
+                  "trace": "#/library/transdigm/2025-06-30/evidence",
+                  "cells": [
+                    { "kind": "figure", "text": "2.2%", "pos": 1.0 },
+                    { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
+                    { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
+                    { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
+                    [
+                      { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
+                      { "kind": "figure", "text": "2.0%", "pos": 0.9091 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
+                      { "kind": "figure", "text": "1.7%", "pos": 0.7727 }
+                    ],
+                    [
+                      { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
+                      { "kind": "figure", "text": "1.8%", "pos": 0.8182 }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "bridges": [
+            {
+              "title": "EBITDA bridge",
+              "subtitle": "FY24 to FY25E, USD millions",
+              "note": "Costs include the first full year of the 2024 acquisitions.",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "yTicks": [
+                { "value": 0, "label": "0" },
+                { "value": 1500, "label": "1,500" },
+                { "value": 3000, "label": "3,000" },
+                { "value": 4500, "label": "4,500" },
+                { "value": 6000, "label": "6,000" }
+              ],
+              "caseSteps": [
+                [
+                  { "label": "FY24", "kind": "total", "from": 0, "to": 4173, "text": "4,173" },
+                  { "label": "Volume", "kind": "up", "from": 4173, "to": 4503, "text": "+330" },
+                  { "label": "Price", "kind": "up", "from": 4503, "to": 4793, "text": "+290" },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 4793,
+                    "to": 4913,
+                    "text": "+120"
+                  },
+                  { "label": "Costs", "kind": "down", "from": 4913, "to": 4690, "text": "-223" },
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 4690, "text": "4,690" }
+                ],
+                [
+                  { "label": "FY24", "kind": "total", "from": 0, "to": 4173, "text": "4,173" },
+                  { "label": "Volume", "kind": "up", "from": 4173, "to": 4323, "text": "+150" },
+                  { "label": "Price", "kind": "up", "from": 4323, "to": 4503, "text": "+180" },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 4503,
+                    "to": 4623,
+                    "text": "+120"
+                  },
+                  { "label": "Costs", "kind": "down", "from": 4623, "to": 4560, "text": "-63" },
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 4560, "text": "4,560" }
+                ]
+              ],
+              "head": ["USD millions", "Base case", "Downside case"],
+              "rows": [
+                {
+                  "label": "EBITDA as defined, FY24",
+                  "cells": ["4,173", "4,173"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Volume",
+                  "cells": ["330", "150"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Price",
+                  "cells": ["290", "180"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Acquisitions",
+                  "cells": ["120", "120"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Costs",
+                  "cells": ["-223", "-63"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "EBITDA as defined, FY25E",
+                  "cells": ["4,690", "4,560"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                }
+              ]
+            },
+            {
+              "title": "Net debt walk",
+              "subtitle": "FY25E to FY27E, USD millions",
+              "note": "Acquisitions are assumed at zero (0). Shareholder returns were not forecast (n.a.) and are not counted as zero.",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "yTicks": [
+                { "value": 0, "label": "0" },
+                { "value": 7500, "label": "7,500" },
+                { "value": 15000, "label": "15,000" },
+                { "value": 22500, "label": "22,500" },
+                { "value": 30000, "label": "30,000" }
+              ],
+              "caseSteps": [
+                [
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 26300, "text": "26,300" },
+                  {
+                    "label": "Cash flow FY26",
+                    "kind": "down",
+                    "from": 26300,
+                    "to": 23760,
+                    "text": "-2,540"
+                  },
+                  {
+                    "label": "Cash flow FY27",
+                    "kind": "down",
+                    "from": 23760,
+                    "to": 20924,
+                    "text": "-2,836"
+                  },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 20924,
+                    "to": 20924,
+                    "text": "0"
+                  },
+                  { "label": "Shareholder returns", "kind": "missing" },
+                  { "label": "FY27E", "kind": "total", "from": 0, "to": 20924, "text": "20,924" }
+                ],
+                [
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 26320, "text": "26,320" },
+                  {
+                    "label": "Cash flow FY26",
+                    "kind": "down",
+                    "from": 26320,
+                    "to": 24510,
+                    "text": "-1,810"
+                  },
+                  {
+                    "label": "Cash flow FY27",
+                    "kind": "down",
+                    "from": 24510,
+                    "to": 22640,
+                    "text": "-1,870"
+                  },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 22640,
+                    "to": 22640,
+                    "text": "0"
+                  },
+                  { "label": "Shareholder returns", "kind": "missing" },
+                  { "label": "FY27E", "kind": "total", "from": 0, "to": 22640, "text": "22,640" }
+                ]
+              ],
+              "head": ["USD millions", "Base case", "Downside case"],
+              "rows": [
+                {
+                  "label": "Net debt, FY25E",
+                  "cells": ["26,300", "26,320"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Free cash flow, FY26",
+                  "cells": ["-2,540", "-1,810"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Free cash flow, FY27",
+                  "cells": ["-2,836", "-1,870"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Acquisitions",
+                  "cells": ["0", "0"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Shareholder returns",
+                  "cells": [null, null],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Net debt, FY27E",
+                  "cells": ["20,924", "22,640"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                }
+              ]
+            }
+          ],
+          "comparison": {
+            "title": "The two cases side by side",
+            "subtitle": "FY27, each measure on its own scale",
+            "note": "Lowest cash balance was not worked out for the downside case because the revolver terms are withheld.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "rowLabels": ["Base", "Downside"],
+            "tableHead": "FY27",
+            "panels": [
+              {
+                "measure": "Revenue, USD millions",
+                "tableLabel": "Revenue, USD millions",
+                "max": 10190,
+                "values": [10190, 9050],
+                "texts": ["10,190", "9,050"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "EBITDA as defined, USD millions",
+                "tableLabel": "EBITDA as defined, USD millions",
+                "max": 5460,
+                "values": [5460, 4350],
+                "texts": ["5,460", "4,350"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Free cash flow, USD millions",
+                "tableLabel": "Free cash flow, USD millions",
+                "max": 2836,
+                "values": [2836, 1870],
+                "texts": ["2,836", "1,870"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Net leverage, times",
+                "tableLabel": "Net leverage",
+                "max": 5.2,
+                "values": [3.8, 5.2],
+                "texts": ["3.8x", "5.2x"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Interest cover, times",
+                "tableLabel": "Interest cover",
+                "max": 3.6,
+                "values": [3.6, 2.4],
+                "texts": ["3.6x", "2.4x"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Lowest cash balance, USD millions",
+                "tableLabel": "Lowest cash balance, USD millions",
+                "max": 2790,
+                "values": [2790, null],
+                "texts": ["2,790", null],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "debt": {
+            "stack": {
+              "title": "Debt by instrument",
+              "subtitle": "30 June 2025, USD 29,700 million in all",
+              "note": "Ranked by size. Term loans and secured notes share the same security.",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "head": ["Instrument", "USD millions", "Share"],
+              "parts": [
+                {
+                  "name": "Term loans",
+                  "value": 38,
+                  "text": "11,300",
+                  "share": "38%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "name": "Senior secured notes",
+                  "value": 35.2,
+                  "text": "10,450",
+                  "share": "35%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "name": "Senior subordinated notes",
+                  "value": 24.6,
+                  "text": "7,300",
+                  "share": "25%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "name": "Receivables facility",
+                  "value": 2.2,
+                  "text": "650",
+                  "share": "2%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                }
+              ]
+            },
+            "maturities": {
+              "title": "Maturities by year",
+              "subtitle": "Calendar years, USD millions",
+              "note": "Nothing falls due in 2026 on the notes (0). Loan repayments for 2026 were not established (n.a.).",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "yTicks": [
+                { "value": 0, "label": "0" },
+                { "value": 1250, "label": "1,250" },
+                { "value": 2500, "label": "2,500" },
+                { "value": 3750, "label": "3,750" },
+                { "value": 5000, "label": "5,000" }
+              ],
+              "head": "Year",
+              "groups": [
+                { "label": "2026", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2027", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2028", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2029", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2030", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2031 on", "trace": "#/library/transdigm/2025-06-30/evidence" }
+              ],
+              "series": [
+                {
+                  "name": "Term loans",
+                  "values": [null, 0, 3600, 0, 4500, 3200],
+                  "labels": [null, "0", "3,600", "0", "4,500", "3,200"]
+                },
+                {
+                  "name": "Secured notes",
+                  "values": [0, 0, 2100, 2750, 1450, 4150],
+                  "labels": ["0", "0", "2,100", "2,750", "1,450", "4,150"]
+                },
+                {
+                  "name": "Subordinated notes",
+                  "values": [0, 550, 0, 2650, 0, 4100],
+                  "labels": ["0", "550", "0", "2,650", "0", "4,100"]
+                }
+              ]
+            }
+          },
+          "recovery": {
+            "title": "Recovery by class and case",
+            "subtitle": "Share of the claim recovered if the company defaulted",
+            "note": "Recovery on the receivables facility was not worked out for the downside case.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 25, "label": "25%" },
+              { "value": 50, "label": "50%" },
+              { "value": 75, "label": "75%" },
+              { "value": 100, "label": "100%" }
+            ],
+            "head": "Class",
+            "groups": [
+              {
+                "label": "Term loans and secured notes",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Senior subordinated notes",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Receivables facility",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ],
+            "series": [
+              { "name": "Base case", "values": [100, 62, 100], "labels": ["100%", "62%", "100%"] },
+              {
+                "name": "Downside case",
+                "values": [100, 31, null],
+                "labels": ["100%", "31%", null]
+              }
+            ]
+          },
+          "gap": {
+            "title": "Months of liquidity under the downside case",
+            "reason": "The revolver terms are withheld, so the chart could not be drawn."
+          },
+          "checkFigure": {
+            "title": "Check a figure",
+            "text": "Every figure here traces to its source in the run's Evidence, filtered to the model.",
+            "href": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "published": null
+        }
+      }
+    ]
+  },
+  "params": {
+    "/model/:issuer/:run/portfolio-fit": [{ "issuer": "transdigm", "run": "2025-06-30" }],
+    "/model/:issuer/:run/limitations": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ],
+    "/model/:issuer/:run/front": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ],
+    "/model/:issuer/:run/analysis": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ],
+    "/model/:issuer/:run/forecast": [{ "issuer": "transdigm", "run": "2025-06-30" }],
+    "/model/:issuer/:run/statements": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ]
+  }
+}
