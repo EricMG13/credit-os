@@ -39,7 +39,7 @@ import type {
   TestState,
   TreeNode,
 } from "./slice";
-import { APPLIED_LABELS } from "./slice";
+import { APPLIED_LABELS, CHART_TABLE_LIMITS } from "./slice";
 
 type Rec = Record<string, unknown>;
 
@@ -993,6 +993,75 @@ function readStatement(s: Rec, path: string, traces: Traces): RecordBlock {
   };
 }
 
+const CHARTS = ["stack", "columns", "bullet", "bridge", "scatter", "range"] as const;
+
+function readChartColumns(c: Rec, path: string) {
+  const columnsPath = child(path, "columns");
+  const columns = some(
+    unique(
+      list(c, "columns", path, (item, p) => {
+        const column = rec(item, p);
+        return {
+          label: named(column, "label", p),
+          align: oneOf(column, "align", p, ["left", "right"]),
+        };
+      }),
+      columnsPath,
+      (column) => column.label,
+      "label",
+    ),
+    columnsPath,
+  );
+  if (columns.length > CHART_TABLE_LIMITS.columns) {
+    throw new SliceError(columnsPath, `at most ${String(CHART_TABLE_LIMITS.columns)} columns`);
+  }
+  return columns;
+}
+
+/** A table cell: text, or a figure; the label cell of a row is text. */
+function readChartCell(value: unknown, path: string): Cell | string {
+  if (typeof value !== "string") return shownOf(value, path);
+  if (value === "") throw new SliceError(path, "a non-empty string");
+  return value;
+}
+
+function readChartRow(value: unknown, path: string, width: number) {
+  const r = rec(value, path);
+  const cellsPath = child(path, "cells");
+  const cells = list(r, "cells", path, readChartCell);
+  if (cells.length !== width) {
+    throw new SliceError(cellsPath, `${String(width)} cells, one for each column`);
+  }
+  if (typeof cells[0] !== "string") throw new SliceError(nth(cellsPath, 0), "the row's label");
+  return { cells, emphasis: bool(r, "emphasis", path) };
+}
+
+function readChartTable(c: Rec, path: string, traces: Traces): RecordBlock {
+  const columns = readChartColumns(c, path);
+  const rowsPath = child(path, "rows");
+  const rows = some(
+    list(c, "rows", path, (item, p) => readChartRow(item, p, columns.length)),
+    rowsPath,
+  );
+  if (rows.length > CHART_TABLE_LIMITS.rows) {
+    throw new SliceError(rowsPath, `at most ${String(CHART_TABLE_LIMITS.rows)} rows`);
+  }
+  return {
+    kind: "chartTable",
+    nav: navLabel(c, "nav", path),
+    title: named(c, "title", path),
+    chart: oneOf(c, "chart", path, CHARTS),
+    note: gradeOrNull(c, "note", path),
+    columns,
+    rows,
+    footnotes: list(c, "footnotes", path, (item, p) => {
+      if (typeof item !== "string" || item === "") throw new SliceError(p, "a non-empty string");
+      return item;
+    }),
+    trace: traceKey(c, "trace", path, traces),
+  };
+}
+
 function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   const r = rec(value, path);
   switch (
@@ -1006,6 +1075,7 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
       "facts",
       "status",
       "statement",
+      "chartTable",
       "gap",
     ])
   ) {
@@ -1027,6 +1097,8 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
       return readStatus(r, path, traces);
     case "statement":
       return readStatement(r, path, traces);
+    case "chartTable":
+      return readChartTable(r, path, traces);
     case "gap":
       return {
         kind: "gap",

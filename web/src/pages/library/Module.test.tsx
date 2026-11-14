@@ -947,6 +947,146 @@ describe("Module, the statement by year", () => {
   });
 });
 
+describe("Module, the debt stack, maturities and headroom tables", () => {
+  const card = (name: string) => region(name);
+  const tableOf = (name: string) => within(card(name)).getByRole("table", { name });
+  const body = (name: string) =>
+    within(tableOf(name))
+      .getAllByRole("row")
+      .slice(1)
+      .map((r) => [
+        within(r).getByRole("rowheader").textContent,
+        ...within(r)
+          .getAllByRole("cell")
+          .map((c) => c.textContent),
+      ]);
+  const head = (name: string) =>
+    within(within(tableOf(name)).getAllByRole("row")[0] as HTMLElement)
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent);
+
+  it("draws the debt stack by rank with its basis note, its footnote and one trace control", () => {
+    renderModule("capital-structure");
+    expect(
+      within(card("Debt stack")).getByRole("heading", { level: 3, name: "Debt stack" }),
+    ).toBeVisible();
+    expect(
+      within(card("Debt stack")).getByText("USD 2,398m gross debt at 30 Sep 2026, by rank"),
+    ).toBeVisible();
+    expect(head("Debt stack")).toEqual(["Debt", "Rank and maturity", "Amount"]);
+    expect(body("Debt stack")).toEqual([
+      ["Term loan B", "Secured, due 2030", "USD 1,150m"],
+      ["Senior secured notes", "Secured, due 2031", "USD 600m"],
+      ["Senior unsecured notes", "Unsecured, due 2028", "USD 310m"],
+      ["Leases", "Schedule n.a.", "USD 298m"],
+      ["Other", "Due 2027", "USD 40m"],
+    ]);
+    expect(
+      within(card("Debt stack")).getByText(
+        "Basis: drawn amounts at face value; leases as reported.",
+      ),
+    ).toBeVisible();
+    expect(
+      within(card("Debt stack"))
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Show sources for the debt stack"]);
+  });
+
+  it("draws the maturities as the mock's table: 2029 as 0 beside leases as n.a., with no footnote", () => {
+    renderModule("capital-structure");
+    expect(head("Maturities by year")).toEqual(["Year", "Falls due", "Amount, USD m"]);
+    expect(body("Maturities by year")).toEqual([
+      ["2027", "Other debt", "40"],
+      ["2028", "Senior unsecured notes", "310"],
+      ["2029", "Nothing", "0"],
+      ["2030", "Term loan B", "1,150"],
+      ["2031", "Senior secured notes", "600"],
+      ["Leases", "Schedule not in the files", "n.a.not available"],
+    ]);
+    expect(within(card("Maturities by year")).getByText("USD m, calendar years")).toBeVisible();
+    expect(card("Maturities by year").querySelectorAll("p")).toHaveLength(1);
+    expect(
+      within(card("Maturities by year")).getByRole("button", {
+        name: "Show sources for maturities",
+      }),
+    ).toBeVisible();
+  });
+
+  it("draws the headroom with the receivables test as the kit's Withheld, and no note", () => {
+    renderModule("capital-structure");
+    const name = "Headroom against covenant and rating triggers";
+    expect(head(name)).toEqual(["Test", "Kind of limit", "Standing against the limit"]);
+    expect(body(name)).toEqual([
+      ["First-lien net leverage", "Springing covenant, maximum", "3.3x against 6.5x"],
+      ["Net leverage", "Downgrade trigger, maximum", "4.6x against 5.5x"],
+      ["Interest cover", "Downgrade trigger, minimum", "2.4x against 2.0x"],
+      ["Receivables facility", "Availability test", "Withheld"],
+    ]);
+    expect(card(name).querySelectorAll("p")).toHaveLength(0);
+    expect(
+      within(card(name)).getByRole("button", { name: "Show sources for headroom" }),
+    ).toBeVisible();
+  });
+
+  it("draws no Chart or Table toggle, since no chart side is drawn", () => {
+    renderModule("capital-structure");
+    expect(screen.queryByRole("radio", { name: /^(Chart|Table)$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Chart|Table)$/ })).toBeNull();
+  });
+
+  it("sets text columns to the left and figures to the right, as delivered", () => {
+    renderModule("capital-structure");
+    const wrapper = tableOf("Maturities by year").parentElement as HTMLElement;
+    expect(wrapper.parentElement).toHaveClass("[&_tr>:nth-child(2)]:text-left");
+    expect(wrapper.parentElement).not.toHaveClass("[&_tr>:nth-child(3)]:text-left");
+    expect(wrapper.parentElement).not.toHaveClass("[&_tr>:nth-child(1)]:text-left");
+    for (const cell of within(tableOf("Maturities by year")).getAllByRole("cell")) {
+      expect(cell).toHaveClass("tabular-nums");
+    }
+  });
+
+  it("sets the cards in the order of the mock, between the measures and the facility terms", () => {
+    renderModule("capital-structure");
+    const headings = screen.getAllByRole("heading").map((h) => h.textContent);
+    const order = [
+      "Measures and their consequence",
+      "Debt stack",
+      "Maturities by year",
+      "Headroom against covenant and rating triggers",
+      "Facility terms",
+    ].map((t) => headings.indexOf(t));
+    expect(order).not.toContain(-1);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it("draws an emphasised row semibold with n.a. regular, zero as zero, and a gap as the badge", () => {
+    const library = withRecords((records) => {
+      const block = records.find((r) => r["kind"] === "chartTable") as Json;
+      const rows = block["rows"] as Json[];
+      (rows[2] as Json)["cells"] = [
+        "Senior unsecured notes",
+        "Unsecured, due 2028",
+        { kind: "gap", reason: "Not read." },
+      ];
+      (rows[3] as Json)["cells"] = ["Leases", "Schedule n.a.", null];
+      (rows[3] as Json)["emphasis"] = true;
+      (rows[4] as Json)["cells"] = ["Other", "Due 2027", { kind: "value", text: "USD 0m", at: 0 }];
+      block["footnotes"] = [];
+      block["note"] = null;
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const wrapper = tableOf("Debt stack").parentElement?.parentElement as HTMLElement;
+    expect(wrapper.className).toContain("[&_tbody_tr:nth-child(4)>*]:font-semibold");
+    expect(wrapper.className).toContain("[&_tbody_tr:nth-child(4)_[aria-hidden=true]]:font-normal");
+    expect(wrapper.className).not.toContain("nth-child(3)>*");
+    expect(body("Debt stack")[2]?.[2]).toBe("Not established for this run");
+    expect(body("Debt stack")[3]).toEqual(["Leases", "Schedule n.a.", "n.a.not available"]);
+    expect(body("Debt stack")[4]).toEqual(["Other", "Due 2027", "USD 0m"]);
+    expect(card("Debt stack").querySelectorAll("p")).toHaveLength(0);
+  });
+});
+
 describe("Module, the hedge expiries gap", () => {
   const hedges = () => region("Hedge expiries");
 
@@ -974,6 +1114,9 @@ describe("Module, the data module as a whole", () => {
       ...Array<string>(3).fill("Show sources for this finding"),
       ...Array<string>(6).fill("Show sources for this figure"),
       ...Array<string>(3).fill("Show sources for this measure"),
+      "Show sources for the debt stack",
+      "Show sources for maturities",
+      "Show sources for headroom",
       ...Array<string>(7).fill("Show sources for this fact"),
       ...Array<string>(3).fill("Show sources for this limitation"),
     ]);
@@ -984,7 +1127,7 @@ describe("Module, the data module as a whole", () => {
     const toggle = screen.getByRole<HTMLInputElement>("switch", { name: "Show sources" });
     if (!toggle.checked) fireEvent.click(toggle);
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
-    expect(sourceButtons()).toHaveLength(23);
+    expect(sourceButtons()).toHaveLength(26);
   });
 
   it("opens the drawer of the bottom line, a finding and a limitation by their own traces", () => {
@@ -993,7 +1136,7 @@ describe("Module, the data module as a whole", () => {
     for (const [index, title] of [
       [0, "Sources for the capital structure bottom line"],
       [3, "Sources for the capacity finding"],
-      [22, "Sources for the lease schedule limitation"],
+      [25, "Sources for the lease schedule limitation"],
     ] as const) {
       fireEvent.click(buttons[index] as HTMLElement);
       expect(screen.getByRole("dialog", { name: title })).toBeVisible();
@@ -1014,6 +1157,8 @@ describe("Module, the navigator of the data module", () => {
     renderModule("capital-structure");
     Element.prototype.scrollIntoView = vi.fn();
     for (const [entry, heading] of [
+      ["Debt stack and maturities", "Debt stack"],
+      ["Headroom", "Headroom against covenant and rating triggers"],
       ["Terms and tests", "Facility terms"],
       ["Hedges", "Hedge expiries"],
     ] as const) {
@@ -1033,6 +1178,8 @@ describe("Module, the navigator of the data module", () => {
       "Bottom line",
       "Key findings",
       "Headline figures",
+      "Debt stack and maturities",
+      "Headroom",
       "Terms and tests",
       "Hedges",
       "Limitations",

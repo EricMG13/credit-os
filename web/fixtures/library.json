@@ -1157,6 +1157,109 @@
                       ]
                     },
                     {
+                      "kind": "chartTable",
+                      "nav": "Debt stack and maturities",
+                      "title": "Debt stack",
+                      "chart": "stack",
+                      "note": "USD 2,398m gross debt at 30 Sep 2026, by rank",
+                      "columns": [
+                        { "label": "Debt", "align": "left" },
+                        { "label": "Rank and maturity", "align": "left" },
+                        { "label": "Amount", "align": "right" }
+                      ],
+                      "rows": [
+                        {
+                          "cells": ["Term loan B", "Secured, due 2030", "USD 1,150m"],
+                          "emphasis": false
+                        },
+                        {
+                          "cells": ["Senior secured notes", "Secured, due 2031", "USD 600m"],
+                          "emphasis": false
+                        },
+                        {
+                          "cells": ["Senior unsecured notes", "Unsecured, due 2028", "USD 310m"],
+                          "emphasis": false
+                        },
+                        { "cells": ["Leases", "Schedule n.a.", "USD 298m"], "emphasis": false },
+                        { "cells": ["Other", "Due 2027", "USD 40m"], "emphasis": false }
+                      ],
+                      "footnotes": ["Basis: drawn amounts at face value; leases as reported."],
+                      "trace": "cs-debt-stack"
+                    },
+                    {
+                      "kind": "chartTable",
+                      "nav": "Debt stack and maturities",
+                      "title": "Maturities by year",
+                      "chart": "columns",
+                      "note": "USD m, calendar years",
+                      "columns": [
+                        { "label": "Year", "align": "left" },
+                        { "label": "Falls due", "align": "left" },
+                        { "label": "Amount, USD m", "align": "right" }
+                      ],
+                      "rows": [
+                        { "cells": ["2027", "Other debt", "40"], "emphasis": false },
+                        { "cells": ["2028", "Senior unsecured notes", "310"], "emphasis": false },
+                        { "cells": ["2029", "Nothing", "0"], "emphasis": false },
+                        { "cells": ["2030", "Term loan B", "1,150"], "emphasis": false },
+                        { "cells": ["2031", "Senior secured notes", "600"], "emphasis": false },
+                        {
+                          "cells": ["Leases", "Schedule not in the files", null],
+                          "emphasis": false
+                        }
+                      ],
+                      "footnotes": [],
+                      "trace": "cs-maturities"
+                    },
+                    {
+                      "kind": "chartTable",
+                      "nav": "Headroom",
+                      "title": "Headroom against covenant and rating triggers",
+                      "chart": "bullet",
+                      "note": null,
+                      "columns": [
+                        { "label": "Test", "align": "left" },
+                        { "label": "Kind of limit", "align": "left" },
+                        { "label": "Standing against the limit", "align": "right" }
+                      ],
+                      "rows": [
+                        {
+                          "cells": [
+                            "First-lien net leverage",
+                            "Springing covenant, maximum",
+                            "3.3x against 6.5x"
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "cells": [
+                            "Net leverage",
+                            "Downgrade trigger, maximum",
+                            "4.6x against 5.5x"
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "cells": [
+                            "Interest cover",
+                            "Downgrade trigger, minimum",
+                            "2.4x against 2.0x"
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "cells": [
+                            "Receivables facility",
+                            "Availability test",
+                            { "kind": "withheld", "reason": null }
+                          ],
+                          "emphasis": false
+                        }
+                      ],
+                      "footnotes": [],
+                      "trace": "cs-headroom"
+                    },
+                    {
                       "kind": "facts",
                       "nav": "Terms and tests",
                       "title": "Facility terms",
@@ -2287,6 +2390,51 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0108"
+              },
+              "cs-debt-stack": {
+                "title": "Sources for the debt stack in this module",
+                "heading": "Gross debt USD 2,398m",
+                "subtitle": "Capital structure · table · as of 30 Sep 2026",
+                "statement": "Gross debt of USD 2,398m at 30 September 2026 by rank, at face value, leases as reported.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Gross debt USD 2,398m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0114"
+              },
+              "cs-maturities": {
+                "title": "Sources for maturities in this module",
+                "heading": "Next maturity Mar 2028",
+                "subtitle": "Capital structure · table · as of 30 Sep 2026",
+                "statement": "Debt falling due by calendar year; the lease schedule is not in the files.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Next maturity Mar 2028",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0115"
+              },
+              "cs-headroom": {
+                "title": "Sources for headroom in this module",
+                "heading": "Springing covenant 6.5x",
+                "subtitle": "Capital structure · table · as of 30 Sep 2026",
+                "statement": "Each covenant and rating trigger against where the issuer stands; the receivables facility test is withheld.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Springing covenant 6.5x",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0116"
               },
               "cs-term-loan": {
                 "title": "Sources for the term loan",
