@@ -4,7 +4,7 @@
 import { useRef, useState } from "react";
 import { Bookmark, LinkExternal01, MessageSquare01, Share07 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
-import { Button, styles as buttonStyles } from "@/components/base/buttons/button";
+import { Button } from "@/components/base/buttons/button";
 import { cx } from "@/utils/cx";
 import { Announcement } from "./parts/Announcement";
 import { Avatar } from "./parts/Avatar";
@@ -19,7 +19,6 @@ import { ShareDialog } from "./ShareDialog";
 import type { SignalScene, SignalStory } from "./slice";
 
 const FOCUS = "outline-focus-ring focus-visible:outline-2";
-const LINK = `text-text-link ${FOCUS}`;
 /** The predecessor's safe-link test: only an http or https address is drawn as a link. */
 export const isWebLink = (url: string) => /^https?:\/\//i.test(url);
 const ROW = "mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-tertiary";
@@ -166,21 +165,18 @@ export function StoryCard(props: Props) {
                   {commentBody}
                 </Button>
               ) : (
-                <a
+                <Button
+                  size="sm"
+                  color="tertiary"
+                  iconLeading={MessageSquare01}
                   href={sceneHref(
                     scene,
                     `group/${encodeURIComponent(story.threadRef.groupId)}/thread/${encodeURIComponent(story.threadRef.threadId)}`,
                   )}
                   aria-label={commentLabel}
-                  className={cx(
-                    buttonStyles.common.root,
-                    buttonStyles.sizes.sm.root,
-                    buttonStyles.colors.tertiary.root,
-                  )}
                 >
-                  <MessageSquare01 data-icon="leading" aria-hidden="true" />
                   {commentBody}
-                </a>
+                </Button>
               )}
               <Button
                 size="sm"
@@ -196,16 +192,18 @@ export function StoryCard(props: Props) {
             </>
           ) : null}
           {link === null ? null : (
-            <a
+            <Button
+              size="sm"
+              color="link-color"
+              iconTrailing={LinkExternal01}
               href={link}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Open source: ${headline} (opens in a new tab)`}
-              className={cx("ml-3.5 inline-flex items-center gap-1 text-sm font-semibold", LINK)}
+              className="ml-3.5"
             >
               Open source
-              <LinkExternal01 aria-hidden="true" className="size-4" />
-            </a>
+            </Button>
           )}
         </div>
       </MediaObject>

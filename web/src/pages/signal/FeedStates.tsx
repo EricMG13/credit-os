@@ -1,6 +1,6 @@
 // What a feed shows instead of stories: the loading skeleton, the error alert and the empty states.
 // Wording is the predecessor's (behaviour list 2.2); the layout follows mock states frames 2 to 7.
-import { Star01 } from "@untitledui/icons";
+import { Plus, Star01 } from "@untitledui/icons";
 import { Alert } from "@/components/alert/Alert";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Button } from "@/components/base/buttons/button";
@@ -100,9 +100,9 @@ export function FeedEmpty({ context }: { context: EmptyContext }) {
       </EmptyState.Content>
       {!context.approved && context.propose !== null ? (
         <EmptyState.Footer>
-          <a className="text-sm font-semibold text-text-link" href={context.propose}>
+          <Button color="primary" size="md" iconLeading={Plus} href={context.propose}>
             Propose a source
-          </a>
+          </Button>
         </EmptyState.Footer>
       ) : null}
       {follow ? (

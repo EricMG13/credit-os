@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { LinkExternal01 } from "@untitledui/icons";
 import { SlideoutMenu } from "@/components/application/slideout-menus/slideout-menu";
 import { Badge } from "@/components/base/badges/badges";
+import { Button } from "@/components/base/buttons/button";
 import { CloseButton } from "@/components/base/buttons/close-button";
 import { cx } from "@/utils/cx";
 import { sceneHref } from "./SignalFrame";
@@ -84,19 +85,18 @@ function Quoted({ story }: { story: SignalStory }) {
           )}
         </h3>
         {link === null ? null : (
-          <a
+          <Button
+            size="sm"
+            color="link-color"
+            iconTrailing={LinkExternal01}
             href={link}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Open source: ${story.headline} (opens in a new tab)`}
-            className={cx(
-              "mt-2 inline-flex items-center gap-1 text-sm font-semibold text-text-link",
-              FOCUS,
-            )}
+            className="mt-2"
           >
             Open source
-            <LinkExternal01 aria-hidden="true" className="size-4" />
-          </a>
+          </Button>
         )}
       </MediaObject>
     </article>
