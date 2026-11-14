@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { Kit } from "./Kit";
 
 const designSystem = readFileSync(
@@ -15,16 +15,14 @@ const colours = [...(buttonRow.split(";")[0] ?? "").matchAll(/`([a-z-]+)`/g)].ma
 );
 const SIZES = ["sm", "md", "lg", "xl"];
 
-function label(slug: string): string {
-  const words = slug.replace("-", " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
+// The button names the page shows, in the order of the colours above.
+const BUTTON_NAMES = ["Primary", "Secondary", "Tertiary", "Primary destructive"];
 
 describe("Kit", () => {
   it("has the page heading and one heading per component", () => {
     render(<Kit />);
     expect(screen.getByRole("heading", { level: 1, name: "Component kit" })).toBeInTheDocument();
-    for (const name of ["Button", "Tooltip"]) {
+    for (const name of ["Button", "Tooltip", "Badge", "Tabs", "Button group"]) {
       expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
     }
   });
@@ -35,8 +33,8 @@ describe("Kit", () => {
 
   it("shows every button colour by its name", () => {
     render(<Kit />);
-    for (const colour of colours) {
-      expect(screen.getByRole("button", { name: label(colour) }), colour).toBeEnabled();
+    for (const name of BUTTON_NAMES) {
+      expect(screen.getByRole("button", { name }), name).toBeEnabled();
     }
   });
 
@@ -61,5 +59,51 @@ describe("Kit", () => {
   it("gives the tooltip trigger an accessible name", () => {
     render(<Kit />);
     expect(screen.getByRole("button", { name: "Tooltip trigger" })).toBeInTheDocument();
+  });
+
+  it("shows each badge colour with and without the dot, in each size", () => {
+    render(<Kit />);
+    const badges = screen.getByRole("region", { name: "Badge" });
+    for (const word of ["Gray", "Brand", "Error", "Warning", "Success", "Sky"]) {
+      expect(within(badges).getAllByText(word), word).toHaveLength(2);
+    }
+    for (const word of ["Size sm", "Size md", "Size lg"]) {
+      expect(within(badges).getByText(word), word).toBeInTheDocument();
+    }
+    expect(badges.querySelectorAll("svg")).toHaveLength(6);
+  });
+
+  it("shows the count on a tab and the panel of the tab selected", () => {
+    render(<Kit />);
+    const tabs = screen.getByRole("region", { name: "Tabs" });
+    const horizontal = within(tabs).getAllByRole("tablist")[0];
+    expect(horizontal).toHaveAttribute("aria-orientation", "horizontal");
+    const changes = within(horizontal as HTMLElement).getByRole("tab", { name: /^Changes/ });
+    expect(changes).toHaveTextContent(/^Changes\s*12$/);
+    expect(within(tabs).getAllByRole("tab", { name: /^(Overview|Evidence)$/ })).toHaveLength(2);
+    expect(within(tabs).getByText("Overview panel")).toBeVisible();
+    fireEvent.click(within(tabs).getByRole("tab", { name: "Evidence" }));
+    expect(within(tabs).getByText("Evidence panel")).toBeVisible();
+    expect(within(tabs).queryByText("Overview panel")).not.toBeInTheDocument();
+  });
+
+  it("shows a vertical tab list that switches panel", () => {
+    render(<Kit />);
+    const tabs = screen.getByRole("region", { name: "Tabs" });
+    const vertical = within(tabs).getAllByRole("tablist")[1];
+    expect(vertical).toHaveAttribute("aria-orientation", "vertical");
+    fireEvent.click(within(vertical as HTMLElement).getByRole("tab", { name: "Forecast" }));
+    expect(within(tabs).getByText("Forecast panel")).toBeVisible();
+  });
+
+  it("changes the selected segment of the Chart or Table toggle", () => {
+    render(<Kit />);
+    const chart = screen.getByRole("radio", { name: "Chart" });
+    const table = screen.getByRole("radio", { name: "Table" });
+    expect(chart).toHaveAttribute("aria-checked", "true");
+    expect(table).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(table);
+    expect(table).toHaveAttribute("aria-checked", "true");
+    expect(chart).toHaveAttribute("aria-checked", "false");
   });
 });

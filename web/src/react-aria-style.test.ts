@@ -26,9 +26,14 @@ describe("the React Aria pressable style", () => {
     expect(usePress).toContain("'react-aria-pressable-style'");
     expect(usePress).toMatch(/ownerDocument\.getElementById\([^)]*STYLE_ID\)\)\s*return;/);
     expect(usePress).toContain("'data-react-aria-pressable'");
-    expect(usePress).toMatch(
-      /\[\$\{[^}]*PRESSABLE_ATTRIBUTE\}\]\s*\{\s*touch-action: pan-x pan-y pinch-zoom;/,
-    );
+    // The whole injected text, so a property the library adds later fails here.
+    const injected = /style\.textContent = `([^`]*)`/.exec(usePress)?.[1] ?? "";
+    expect(
+      injected
+        .replace(/\$\{[^}]*PRESSABLE_ATTRIBUTE\}/, "ATTRIBUTE")
+        .replace(/\s+/g, " ")
+        .trim(),
+    ).toBe("@layer { [ATTRIBUTE] { touch-action: pan-x pan-y pinch-zoom; } }");
   });
 
   it("is claimed by an element in index.html that is not a style element", () => {

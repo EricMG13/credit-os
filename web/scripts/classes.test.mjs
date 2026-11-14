@@ -82,3 +82,37 @@ test("an allowlisted token is skipped", () => {
   const root = src({ "a.ts": 'export const c = "to-do";' });
   assert.deepEqual(classProblems(root, "", ["to-do"]), []);
 });
+
+test("a class inside a template interpolation is checked", () => {
+  assert.deepEqual(utilityTokens('const c = `p-2 ${on ? "bg-nope" : "p-1"} ${x}`;'), ["bg-nope"]);
+});
+
+test("a class in a template nested in an interpolation is checked", () => {
+  assert.deepEqual(utilityTokens("const c = `a ${f(`${g({ k: 1 })} text-nope`)} b`;"), [
+    "text-nope",
+  ]);
+});
+
+test("a template token next to an interpolation is not a class", () => {
+  assert.deepEqual(utilityTokens("const c = `bg-red-${n} text-${tone}-500 ring-ok`;"), ["ring-ok"]);
+});
+
+test("a lone backtick in a comment does not open a template", () => {
+  assert.deepEqual(
+    utilityTokens('// a lone ` here\nconst c = "bg-nope";\nconst d = `Size ${n}`;'),
+    ["bg-nope"],
+  );
+  assert.deepEqual(utilityTokens('/* one ` and one \' */ const c = "bg-nope";'), ["bg-nope"]);
+});
+
+test("a class named only in a comment is not checked", () => {
+  assert.deepEqual(utilityTokens('// bg-comment\n/* text-comment */ const c = "bg-real";'), [
+    "bg-real",
+  ]);
+});
+
+test("two slashes inside a string are not a comment", () => {
+  assert.deepEqual(utilityTokens('const u = "https://x.test/a"; const c = "bg-nope";'), [
+    "bg-nope",
+  ]);
+});
