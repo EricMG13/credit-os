@@ -19,7 +19,7 @@ from credit_os.handoff.errors import HandoffError
 _HEADING = re.compile(r"^(#{1,6}) (.*)$")
 _FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 _LEVEL_TWO = re.compile(r"^## ")
-_CODE_SPAN = re.compile(r"(`+).+?\1")
+_BACKTICKS = re.compile(r"`+")
 _OPENER = "<!--"
 _CLOSER = "-->"
 
@@ -112,18 +112,47 @@ def _hide_continuation(state: _State, pending: _OpenComment, number: int, text: 
     return text[end + len(_CLOSER) :]
 
 
+def _closers(runs: list[tuple[int, int]]) -> list[int | None]:
+    """For each run, the index of the next run of exactly its length, if any."""
+    latest: dict[int, int] = {}
+    closers: list[int | None] = [None] * len(runs)
+    for index in range(len(runs) - 1, -1, -1):
+        length = runs[index][1] - runs[index][0]
+        closers[index] = latest.get(length)
+        latest[length] = index
+    return closers
+
+
+def _next_span(
+    runs: list[tuple[int, int]], closers: list[int | None], first: int, pos: int, at: int
+) -> tuple[int, int | None]:
+    """From run `first`, find a code span opening in `pos..at`; return (next run, span end)."""
+    index = first
+    while index < len(runs) and runs[index][0] < at:
+        closer = closers[index]
+        if runs[index][0] >= pos and closer is not None:
+            return closer + 1, runs[closer][1]
+        index += 1
+    return index, None
+
+
 def _read_comments(state: _State, number: int, text: str, removed: bool) -> str:
     kept: list[str] = []
+    runs = [(found.start(), found.end()) for found in _BACKTICKS.finditer(text)]
+    closers = _closers(runs)
     pos = 0
+    next_run = 0
+    at = -1
     while True:
-        at = text.find(_OPENER, pos)
+        if at < pos:
+            at = text.find(_OPENER, pos)
         if at < 0:
             kept.append(text[pos:])
             break
-        span = _CODE_SPAN.search(text, pos)
-        if span is not None and span.start() < at:
-            kept.append(text[pos : span.end()])
-            pos = span.end()
+        next_run, span_end = _next_span(runs, closers, next_run, pos, at)
+        if span_end is not None:
+            kept.append(text[pos:span_end])
+            pos = span_end
             continue
         kept.append(text[pos:at])
         removed = True
