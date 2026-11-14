@@ -76,7 +76,7 @@ export function History({ issuer: id }: { issuer: string | undefined }) {
         if (issuer === undefined) {
           return (
             <NotHeld
-              page="Report history"
+              page={PAGE_NAME.history}
               title="No such issuer"
               description="The library holds no issuer at this address."
             />
