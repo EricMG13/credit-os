@@ -85,7 +85,7 @@ describe("the Evidence frame", () => {
     const links = tabs().getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual([
       "Summary",
-      "Trace148",
+      "Trace60",
       "Sources9",
       "Gaps7",
       "Record",
