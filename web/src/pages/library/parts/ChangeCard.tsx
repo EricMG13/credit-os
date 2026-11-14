@@ -1,30 +1,18 @@
 import { Badge } from "@/components/base/badges/badges";
 import type { Change } from "../slice";
 import { CellValue } from "./CellValue";
+import { DirectionMark } from "./DirectionMark";
 import { InlineCell } from "./InlineCell";
 import { TRACE_HOST, TraceControl } from "./TraceControl";
 
 const VALUE = "text-2xl/8 tabular-nums text-text-primary";
-
-const MARKS = {
-  // The mock's chevron (ds.css .chev, .chev-u) and its arrow (.arrow), drawn from borders.
-  down: "mx-1 mb-[3px] inline-block size-2 flex-none rotate-45 border-r-[1.5px] border-b-[1.5px] border-current",
-  up: "mx-1 mt-[3px] inline-block size-2 flex-none -rotate-135 border-r-[1.5px] border-b-[1.5px] border-current",
-  flat: "relative mx-1 inline-block h-[1.5px] w-3.5 flex-none bg-current after:absolute after:-top-[3px] after:right-0 after:size-1.5 after:rotate-45 after:border-t-[1.5px] after:border-r-[1.5px] after:border-current after:content-['']",
-} as const;
 
 /** The delivered direction: its words and, for up, down or flat, the mock's mark; "none" has no mark. */
 function Direction({ change }: { change: Change }) {
   if (change.change === null) return null;
   return (
     <span className="inline-flex items-center gap-2 self-end rounded-ds-xs bg-surface-subtle px-1.5 py-1 text-xs font-medium text-text-secondary">
-      {change.direction === "none" ? null : (
-        <span
-          aria-hidden="true"
-          data-direction={change.direction}
-          className={MARKS[change.direction]}
-        />
-      )}
+      {change.direction === "none" ? null : <DirectionMark direction={change.direction} />}
       {change.change}
     </span>
   );
