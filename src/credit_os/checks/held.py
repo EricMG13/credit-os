@@ -8,7 +8,8 @@ list lines with their Basis lines, table column names and cells, code lines, com
 node inside the four reader passages at any depth, Basis lines included, but a data section nested in
 a passage that is not `Forecast inputs` still holds; every node of a `Forecast inputs` section; a table
 cell that is a gap; and a paragraph or list item whose text is a gap (its Basis line with it). Held
-figures are kept in file line then column order and grouped by value once per document.
+figures are kept in file line order (cells left to right, a comment after the text of its line)
+and grouped by value once per document.
 
 Judged figures are the figures `read_figures(text, passage=True)` reads in each line of passage text,
 whatever `figure.form` says, one per distinct (value, sign, brackets, unit, currency, shown) per line.
@@ -109,12 +110,14 @@ def _nodes(document: HandoffDocument, reader: Reader) -> Iterable[tuple[int, str
 
 def _held(document: HandoffDocument, reader: Reader) -> list[Figure]:
     found = [
-        (line, figure.column, figure)
+        (line, figure)
         for line, text in _nodes(document, reader)
         for figure in read_figures(text, passage=False)
     ]
-    found.sort(key=lambda item: item[:2])
-    return [figure for _, _, figure in found]
+    # A figure's column is the column inside its node, so columns of different cells do not compare.
+    # `_nodes` yields cells left to right and comments last; a stable sort on the line keeps that order.
+    found.sort(key=lambda item: item[0])
+    return [figure for _, figure in found]
 
 
 def _judged(document: HandoffDocument, reader: Reader) -> Iterable[tuple[int, Figure]]:
