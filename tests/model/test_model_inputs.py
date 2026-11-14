@@ -363,7 +363,7 @@ def test_drop_rule_names_only_length_errors() -> None:
     not_length = {**length_error(1, 0), "type": "value_error"}
     kept = [not_length, failed_item(0)]
     assert inputs.without_echoes(kept) == kept
-    as_list = {
+    as_list: Any = {
         **length_error(1, 0),
         "msg": "List should have at least 1 item after validation, not 0",
     }
