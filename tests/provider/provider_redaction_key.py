@@ -43,7 +43,9 @@ REDACT_TEXT: tuple[tuple[tuple[str, ...], str, str], ...] = (
     ((), "Bearer ghp_" + _GH36 + ".", "Bearer [redacted]."),
     ((), "Bearer gho_" + "b1" * 18 + ".", "Bearer [redacted]."),
     ((), "Bearer github_pat_" + "x" * 22 + "_" + "y" * 40 + ".", "Bearer [redacted]."),
-    ((), "xghp_" + _GH36, "xghp_" + _GH36),
+    # a GitHub token is redacted wherever it stands, inside a word included
+    ((), "xghp_" + _GH36, "x[redacted]"),
+    ((), "word" + _TOK, "word[redacted]"),
     ((), "ghp_" + "A" * 35, "ghp_" + "A" * 35),
     ((), "github_pat_" + "x" * 21, "github_pat_" + "x" * 21),
     (("abc123XYZ",), "abc123XYZabc123XYZ", "[redacted][redacted]"),
@@ -64,6 +66,18 @@ REDACT_TEXT: tuple[tuple[tuple[str, ...], str, str], ...] = (
     ((), "\\n" + _PAT, "\\n[redacted]"),
     ((), "\\n" + GLUED, "\\n[redacted]"),
     ((), "\\nrisk-or-abcdefgh", "\\nrisk-or-abcdefgh"),
+    # ... and after any escape or control sequence, listed or not
+    ((), "\\u001b[31m" + _TOK, "\\u001b[31m[redacted]"),
+    ((), "\\x1b[31m" + _TOK, "\\x1b[31m[redacted]"),
+    ((), "\x1b[m" + _TOK, "\x1b[m[redacted]"),
+    ((), "\x1b[38;5;196m" + _TOK, "\x1b[38;5;196m[redacted]"),
+    ((), "\x1b[2K" + _TOK, "\x1b[2K[redacted]"),
+    ((), "\\U000e0001" + _TOK, "\\U000e0001[redacted]"),
+    ((), "\\012" + _TOK, "\\012[redacted]"),
+    ((), "%25253D" + _TOK, "%25253D[redacted]"),
+    ((), "\\e[31m" + _PAT, "\\e[31m[redacted]"),
+    # an sk- key keeps the word rule: "ask-", "risk-", "task-" are ordinary words
+    ((), "ask-" + "the-analyst-dashboard-x", "ask-" + "the-analyst-dashboard-x"),
 )
 
 # (environment mapping, input text, expected text) for a redactor built from a mapping.
@@ -82,6 +96,8 @@ REDACT_ENVIRON: tuple[tuple[dict[str, str], str, str], ...] = (
     # a value read with its line ending still hides the token itself
     ({"GH_TOKEN": "tok-two\r\n"}, "a tok-two b", "a [redacted] b"),
     ({"GITHUB_TOKEN": "tok-3\n"}, "a tok-3\n b", "a [redacted] b"),
+    # a value that is only whitespace is no value: it must not redact every space
+    ({"GH_TOKEN": " ", "GITHUB_TOKEN": "\r\n"}, "a b\r\nc", "a b\r\nc"),
     ({}, "x", "x"),
 )
 
