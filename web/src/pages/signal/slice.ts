@@ -769,7 +769,9 @@ const sourceWeek: Reader<SignalSourceWeek> = (v, path) => {
       "both a count and a height, or neither",
     );
   }
-  return items === "0" && height !== 0 ? bad(`${path}.height`, "0 for a reading of zero") : got;
+  return (items === "0") !== (height === 0)
+    ? bad(`${path}.height`, "0 exactly when the count is 0")
+    : got;
 };
 const sourceBase = shape<SignalSource>({
   id: str,
@@ -948,8 +950,8 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
 
 /**
  * Every source has as many weeks as the others that have any. The feed's own claims about sources
- * agree with the list: it says a source is approved exactly when one is listed Approved, and says
- * sources are failing only when one is listed Failing.
+ * agree with the list: it says a source is approved exactly when one is listed Approved, and gives the failing text exactly
+ * when one is listed Failing (the count inside the text is not parsed).
  */
 function settingsSourcesProblem(snap: SignalSnapshot, path: string): string | null {
   const { sources } = snap.settings;
@@ -964,9 +966,10 @@ function settingsSourcesProblem(snap: SignalSnapshot, path: string): string | nu
     return `${path}.feed.sources.approved: expected ${String(approved)}, as settings.sources lists`;
   }
   const failing = sources.some((o) => o.health === "Failing");
-  return snap.feed.freshness.failing !== null && !failing
-    ? `${path}.feed.freshness.failing: expected null, as settings.sources lists no failing source`
-    : null;
+  if ((snap.feed.freshness.failing !== null) === failing) return null;
+  return failing
+    ? `${path}.feed.freshness.failing: expected the failing text, as settings.sources lists a failing source`
+    : `${path}.feed.freshness.failing: expected null, as settings.sources lists no failing source`;
 }
 
 /**

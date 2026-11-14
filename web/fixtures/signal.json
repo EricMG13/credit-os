@@ -248,7 +248,7 @@
             "freshness": {
               "state": "checked",
               "checked": "6 min ago",
-              "failing": null,
+              "failing": "1 source failing",
               "error": null
             },
             "stories": [
@@ -1610,12 +1610,12 @@
                 "name": "Harbour Wire",
                 "kind": "News",
                 "state": "Approved",
-                "health": "Healthy",
+                "health": null,
                 "reason": null,
                 "stateNote": null,
                 "healthNote": null,
-                "lastCheck": "6 min ago",
-                "lastItem": "2 h ago",
+                "lastCheck": null,
+                "lastItem": null,
                 "weeks": [],
                 "sort": { "name": 1, "state": 1, "health": 1 }
               }
@@ -1869,12 +1869,12 @@
                 "name": "Harbour Wire",
                 "kind": "News",
                 "state": "Approved",
-                "health": "Healthy",
+                "health": null,
                 "reason": null,
                 "stateNote": null,
                 "healthNote": null,
-                "lastCheck": "6 min ago",
-                "lastItem": "2 h ago",
+                "lastCheck": null,
+                "lastItem": null,
                 "weeks": [],
                 "sort": { "name": 1, "state": 1, "health": 1 }
               }
@@ -1984,12 +1984,12 @@
                 "name": "Harbour Wire",
                 "kind": "News",
                 "state": "Approved",
-                "health": "Healthy",
+                "health": null,
                 "reason": null,
                 "stateNote": null,
                 "healthNote": null,
-                "lastCheck": "6 min ago",
-                "lastItem": "2 h ago",
+                "lastCheck": null,
+                "lastItem": null,
                 "weeks": [],
                 "sort": { "name": 1, "state": 1, "health": 1 }
               }

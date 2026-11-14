@@ -96,13 +96,19 @@ export function SettingsPage({
   return (
     <>
       <PageTitle>Settings</PageTitle>
-      <div className="mt-4 grid grid-cols-[200px_minmax(0,1fr)] gap-x-12">
+      <div className="mt-4 grid grid-cols-1 gap-y-4 xl:grid-cols-[200px_minmax(0,1fr)] xl:gap-x-12">
         <Tabs
           orientation="vertical"
           selectedKey={current !== undefined && listed.includes(current) ? current.id : ""}
           className="w-auto"
         >
-          <TabList aria-label="Settings sections" orientation="vertical" type="line" size="sm">
+          <TabList
+            aria-label="Settings sections"
+            orientation="vertical"
+            type="line"
+            size="sm"
+            className="w-full flex-row flex-wrap gap-x-4 xl:w-max xl:flex-col"
+          >
             {listed.map((s) => (
               <Tab key={s.id} id={s.id} href={sceneHref(scene, `settings/${s.id}`)}>
                 {s.name}

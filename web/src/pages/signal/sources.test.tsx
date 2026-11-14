@@ -20,16 +20,16 @@ const names = () =>
   within(table())
     .getAllByRole("row")
     .slice(1)
-    .map((r) => within(r).getAllByRole("rowheader")[0]?.textContent ?? "");
+    .map((r) => within(r).getAllByRole("rowheader")[0]?.querySelector("b")?.textContent ?? "");
 const rows = () => within(table()).getAllByRole("row").slice(1);
 const header = (name: string) => within(table()).getByRole("columnheader", { name });
 
 const MOCK_ORDER = [
-  "Harbour WireNews",
-  "Regulatory GazetteRegulatory cases",
-  "Northgate RatingsRating actions",
-  "The Meridian PostNews",
-  "Freight MonitorNews",
+  "Harbour Wire",
+  "Regulatory Gazette",
+  "Northgate Ratings",
+  "The Meridian Post",
+  "Freight Monitor",
 ];
 
 afterEach(() => {
@@ -73,7 +73,9 @@ describe("Sources (frame 3)", () => {
     for (const word of ["Proposed", "Approved", "Paused", "Healthy", "Quiet", "Failing"]) {
       expect(within(table()).getAllByText(word).length).toBeGreaterThan(0);
     }
+    // the last check is in the DOM twice (the column from xl up, the Source cell below it)
     expect(within(rows()[0] as HTMLElement).getByText("6 min ago")).toBeTruthy();
+    expect(within(rows()[0] as HTMLElement).getByText("Last check 6 min ago")).toBeTruthy();
     expect(text[0]).toContain("Last item 2 h ago");
     expect(text[2]).toContain("Last item yesterday");
   });
@@ -113,54 +115,54 @@ describe("Sources (frame 3)", () => {
         "Source",
         // name ranks 1..5: Freight, Harbour, Northgate, Regulatory, Meridian
         [
-          "Freight MonitorNews",
-          "Harbour WireNews",
-          "Northgate RatingsRating actions",
-          "Regulatory GazetteRegulatory cases",
-          "The Meridian PostNews",
+          "Freight Monitor",
+          "Harbour Wire",
+          "Northgate Ratings",
+          "Regulatory Gazette",
+          "The Meridian Post",
         ],
         [
-          "The Meridian PostNews",
-          "Regulatory GazetteRegulatory cases",
-          "Northgate RatingsRating actions",
-          "Harbour WireNews",
-          "Freight MonitorNews",
+          "The Meridian Post",
+          "Regulatory Gazette",
+          "Northgate Ratings",
+          "Harbour Wire",
+          "Freight Monitor",
         ],
       ],
       [
         "State",
         // state ranks: Approved 1 (three, slice order), Paused 2, Proposed 3
         [
-          "Harbour WireNews",
-          "Regulatory GazetteRegulatory cases",
-          "Northgate RatingsRating actions",
-          "The Meridian PostNews",
-          "Freight MonitorNews",
+          "Harbour Wire",
+          "Regulatory Gazette",
+          "Northgate Ratings",
+          "The Meridian Post",
+          "Freight Monitor",
         ],
         [
-          "Freight MonitorNews",
-          "The Meridian PostNews",
-          "Harbour WireNews",
-          "Regulatory GazetteRegulatory cases",
-          "Northgate RatingsRating actions",
+          "Freight Monitor",
+          "The Meridian Post",
+          "Harbour Wire",
+          "Regulatory Gazette",
+          "Northgate Ratings",
         ],
       ],
       [
         "Health",
         // health ranks Healthy 1, Quiet 2, Failing 3; no health last both ways
         [
-          "Harbour WireNews",
-          "Regulatory GazetteRegulatory cases",
-          "Northgate RatingsRating actions",
-          "The Meridian PostNews",
-          "Freight MonitorNews",
+          "Harbour Wire",
+          "Regulatory Gazette",
+          "Northgate Ratings",
+          "The Meridian Post",
+          "Freight Monitor",
         ],
         [
-          "Northgate RatingsRating actions",
-          "Regulatory GazetteRegulatory cases",
-          "Harbour WireNews",
-          "The Meridian PostNews",
-          "Freight MonitorNews",
+          "Northgate Ratings",
+          "Regulatory Gazette",
+          "Harbour Wire",
+          "The Meridian Post",
+          "Freight Monitor",
         ],
       ],
     ];
@@ -173,6 +175,30 @@ describe("Sources (frame 3)", () => {
       expect(names()).toEqual(down);
     }
     expect(header("State").getAttribute("aria-sort")).toBe("none");
+  });
+
+  it("fits 1024px by class contract: one column below xl, wrapping tab row, last check moves into the Source cell", () => {
+    show("/signal/main/settings/sources");
+    const list = page().getByRole("tablist", { name: "Settings sections" });
+    expect(list.className).toMatch(/(^| )flex-row( |$)/);
+    expect(list.className).toContain("flex-wrap");
+    expect(list.className).toContain("xl:flex-col");
+    expect(list.parentElement?.parentElement?.className).toContain(
+      "xl:grid-cols-[200px_minmax(0,1fr)]",
+    );
+    // the column and its copy under the kind are never both shown: each hidden by display
+    const column = header("Last check and item");
+    expect(column.className).toContain("max-xl:hidden");
+    const first = rows()[0] as HTMLElement;
+    const own = within(first).getAllByRole("rowheader")[0] as HTMLElement;
+    const copy = own.querySelector("[data-last-check]");
+    expect(copy?.className).toContain("xl:hidden");
+    expect(copy?.textContent).toBe("Last check 6 min agoLast item 2 h ago");
+    expect(within(first).getAllByRole("gridcell")[2]?.className).toContain("max-xl:hidden");
+    // the source name wraps
+    expect(within(own).getByText("Harbour Wire").className).not.toContain("nowrap");
+    const freight = within(rows()[4] as HTMLElement).getAllByRole("rowheader")[0] as HTMLElement;
+    expect(freight.querySelector("[data-last-check]")?.textContent).toBe("Last check n.a.");
   });
 
   it("has the propose button disabled with its reason in view and tied to it", () => {

@@ -76,24 +76,28 @@ export function SourcesSection({
               <Table.Head id="name" isRowHeader allowsSorting label="Source" />
               <Table.Head id="state" allowsSorting label="State" />
               <Table.Head id="health" allowsSorting label="Health" />
-              <Table.Head id="check" label="Last check and item" />
+              <Table.Head id="check" className="max-xl:hidden" label="Last check and item" />
               <Table.Head id="weeks" label={weeksHeading} />
             </Table.Header>
             <Table.Body items={order(sources, sort)}>
               {(source) => (
                 <Table.Row id={source.id}>
                   <Table.Cell>
-                    <b className="block font-medium whitespace-nowrap text-text-primary">
-                      {source.name}
-                    </b>
+                    <b className="block font-medium text-text-primary">{source.name}</b>
                     <Small>{source.kind}</Small>
+                    <div data-last-check className="xl:hidden">
+                      <Small>{`Last check ${source.lastCheck ?? "n.a."}`}</Small>
+                      {source.lastCheck === null ? null : (
+                        <Small>{`Last item ${source.lastItem ?? "n.a."}`}</Small>
+                      )}
+                    </div>
                   </Table.Cell>
                   <Table.Cell>
                     <StatusBadge set="Signal source states" state={source.state} />
                     {source.stateNote === null ? null : <Small>{source.stateNote}</Small>}
                   </Table.Cell>
                   <Table.Cell>{health(source)}</Table.Cell>
-                  <Table.Cell>
+                  <Table.Cell className="max-xl:hidden">
                     {source.lastCheck === null ? null : (
                       <>
                         {source.lastCheck}
