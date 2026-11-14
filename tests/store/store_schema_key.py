@@ -189,3 +189,189 @@ LATE_PIN_MESSAGE = "run_sources: a pin is added only while its run is created"
 # (or inserts an event with that seq) makes every later event insert fail with SQLITE_FULL (code
 # 13, StoreUnusable through the store). No trigger can be placed on `sqlite_sequence`, so the
 # schema cannot close it; the store itself never writes either value.
+
+# --- Migration 2 (PR 3a; controller, from the migration text it specified, rulings U4 to U15) ----
+# Migration 2 adds `attempts`, `calls` and `compactions`. Writes to all three (inserts and updates of
+# attempts and calls, inserts of compactions) are refused by trigger unless the run is `running` (U9):
+# a crashed run is taken over by `claim_run`, and its open attempt is failed while the run is still
+# running, before `end_run`; on resume, after `start_run`. PR 5's settle table (migration 3) writes
+# on a stopped run and is outside this gate by design. Stated limit (U12): provider text is stored
+# backslashreplace-escaped, so a lone surrogate escaped and a literal `\ud800` are one stored id.
+# Every CHECK on `calls` and `compactions` accepts every `Reply` and `Compaction` the provider's
+# constructors accept, as the codecs write them (U14).
+MIGRATION_SHA256[2] = "2a4c4f68900e3fa3cb9b49dfdce20770f806c5896f177dd6254fcf4f30ff862c"
+MIGRATION_STATEMENTS[2] = 39
+
+# Every table after migration 2, columns as in TABLES_AT_1; the three of migration 1 are unchanged.
+TABLES_AT_2: dict[str, tuple[tuple[str, str, bool, int], ...]] = {
+    **TABLES_AT_1,
+    "attempts": (
+        ("run_id", "TEXT", True, 1),
+        ("module_id", "TEXT", True, 2),
+        ("attempt", "INTEGER", True, 3),
+        ("request", "BLOB", True, 0),
+        ("request_sha256", "TEXT", True, 0),
+        ("state", "TEXT", True, 0),
+        ("reply", "BLOB", False, 0),
+        ("reply_sha256", "TEXT", False, 0),
+        ("issues", "TEXT", False, 0),
+        ("fail_reason", "TEXT", False, 0),
+        ("opened_at", "TEXT", True, 0),
+        ("replied_at", "TEXT", False, 0),
+        ("closed_at", "TEXT", False, 0),
+    ),
+    "calls": (
+        ("run_id", "TEXT", True, 1),
+        ("module_id", "TEXT", True, 2),
+        ("attempt", "INTEGER", True, 3),
+        ("call_index", "INTEGER", True, 4),
+        ("exchange_id", "TEXT", True, 0),
+        ("provider_call_index", "INTEGER", True, 0),
+        ("hold_usd", "TEXT", True, 0),
+        ("opened_at", "TEXT", True, 0),
+        ("closed_at", "TEXT", False, 0),
+        ("kind", "TEXT", False, 0),
+        ("error_class", "TEXT", False, 0),
+        ("message", "TEXT", False, 0),
+        ("input_tokens", "INTEGER", False, 0),
+        ("cached_read_tokens", "INTEGER", False, 0),
+        ("cache_write_tokens", "INTEGER", False, 0),
+        ("output_tokens", "INTEGER", False, 0),
+        ("reasoning_tokens", "INTEGER", False, 0),
+        ("billed_usd", "TEXT", False, 0),
+        ("started_at", "TEXT", False, 0),
+        ("finished_at", "TEXT", False, 0),
+        ("stop_reason", "TEXT", False, 0),
+        ("reported_model", "TEXT", False, 0),
+        ("request_id", "TEXT", False, 0),
+        ("raw", "BLOB", False, 0),
+    ),
+    "compactions": (
+        ("run_id", "TEXT", True, 1),
+        ("event_id", "TEXT", True, 2),
+        ("position", "INTEGER", True, 0),
+        ("module_id", "TEXT", False, 0),
+        ("attempt", "INTEGER", False, 0),
+        ("call_index", "INTEGER", False, 0),
+        ("input_tokens", "INTEGER", False, 0),
+        ("cached_read_tokens", "INTEGER", False, 0),
+        ("cache_write_tokens", "INTEGER", False, 0),
+        ("output_tokens", "INTEGER", False, 0),
+        ("billed_usd", "TEXT", False, 0),
+        ("outcome", "TEXT", True, 0),
+        ("supersedes", "TEXT", False, 0),
+    ),
+}
+
+# Every schema object after migration 2: (type, name, table), sorted. `sqlite_` objects excluded.
+OBJECTS_AT_2: tuple[tuple[str, str, str], ...] = (
+    ("index", "attempts_one_accepted", "attempts"),
+    ("index", "events_by_run", "events"),
+    ("table", "attempts", "attempts"),
+    ("table", "calls", "calls"),
+    ("table", "compactions", "compactions"),
+    ("table", "events", "events"),
+    ("table", "run_sources", "run_sources"),
+    ("table", "runs", "runs"),
+    ("trigger", "attempts_after_closed", "attempts"),
+    ("trigger", "attempts_final", "attempts"),
+    ("trigger", "attempts_fixed_columns", "attempts"),
+    ("trigger", "attempts_needs_run", "attempts"),
+    ("trigger", "attempts_no_delete", "attempts"),
+    ("trigger", "attempts_no_replace", "attempts"),
+    ("trigger", "attempts_numbered", "attempts"),
+    ("trigger", "attempts_open_only", "attempts"),
+    ("trigger", "attempts_reply_no_open_call", "attempts"),
+    ("trigger", "attempts_reply_once", "attempts"),
+    ("trigger", "attempts_running_run", "attempts"),
+    ("trigger", "attempts_running_run_update", "attempts"),
+    ("trigger", "attempts_state_moves", "attempts"),
+    ("trigger", "calls_close_open_attempt", "calls"),
+    ("trigger", "calls_closed_once", "calls"),
+    ("trigger", "calls_fixed_columns", "calls"),
+    ("trigger", "calls_needs_attempt", "calls"),
+    ("trigger", "calls_no_delete", "calls"),
+    ("trigger", "calls_no_replace", "calls"),
+    ("trigger", "calls_numbered", "calls"),
+    ("trigger", "calls_one_open", "calls"),
+    ("trigger", "calls_open_attempt", "calls"),
+    ("trigger", "calls_opened_only", "calls"),
+    ("trigger", "calls_running_run", "calls"),
+    ("trigger", "calls_running_run_update", "calls"),
+    ("trigger", "compactions_needs_call", "compactions"),
+    ("trigger", "compactions_needs_run", "compactions"),
+    ("trigger", "compactions_no_delete", "compactions"),
+    ("trigger", "compactions_no_replace", "compactions"),
+    ("trigger", "compactions_no_update", "compactions"),
+    ("trigger", "compactions_numbered", "compactions"),
+    ("trigger", "compactions_open_attempt", "compactions"),
+    ("trigger", "compactions_open_call", "compactions"),
+    ("trigger", "compactions_running_run", "compactions"),
+    ("trigger", "events_final_run", "events"),
+    ("trigger", "events_needs_run", "events"),
+    ("trigger", "events_no_delete", "events"),
+    ("trigger", "events_no_replace", "events"),
+    ("trigger", "events_no_update", "events"),
+    ("trigger", "run_sources_created_only", "run_sources"),
+    ("trigger", "run_sources_needs_run", "run_sources"),
+    ("trigger", "run_sources_no_delete", "run_sources"),
+    ("trigger", "run_sources_no_replace", "run_sources"),
+    ("trigger", "run_sources_no_update", "run_sources"),
+    ("trigger", "runs_created_only", "runs"),
+    ("trigger", "runs_final", "runs"),
+    ("trigger", "runs_fixed_columns", "runs"),
+    ("trigger", "runs_no_delete", "runs"),
+    ("trigger", "runs_no_replace", "runs"),
+    ("trigger", "runs_started_once", "runs"),
+    ("trigger", "runs_status_moves", "runs"),
+)
+
+# Every table is STRICT; every table but `events` is WITHOUT ROWID (no hidden rowid).
+STRICT_TABLES_AT_2: tuple[str, ...] = (
+    "attempts",
+    "calls",
+    "compactions",
+    "events",
+    "run_sources",
+    "runs",
+)
+WITHOUT_ROWID_TABLES_AT_2: tuple[str, ...] = (
+    "attempts",
+    "calls",
+    "compactions",
+    "run_sources",
+    "runs",
+)
+
+# Indexes on the new tables, from pragma_index_list joined with pragma_index_info, sorted:
+# (table, origin, unique, partial, key columns in seqno order). SQLite's own names are not part of
+# the key.
+INDEXES_AT_2: tuple[tuple[str, str, int, int, tuple[str, ...]], ...] = (
+    ("attempts", "c", 1, 1, ("run_id", "module_id")),
+    ("attempts", "pk", 1, 0, ("run_id", "module_id", "attempt")),
+    ("calls", "pk", 1, 0, ("run_id", "module_id", "attempt", "call_index")),
+    ("calls", "u", 1, 0, ("run_id", "exchange_id", "provider_call_index")),
+    ("compactions", "pk", 1, 0, ("run_id", "event_id")),
+    ("compactions", "u", 1, 0, ("run_id", "position")),
+)
+
+# Foreign keys on the new tables, from pragma_foreign_key_list grouped by id: table ->
+# (parent, columns, parent columns), sorted.
+FOREIGN_KEYS_AT_2: dict[str, tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...]] = {
+    "attempts": (("runs", ("run_id",), ("run_id",)),),
+    "calls": (
+        ("attempts", ("run_id", "module_id", "attempt"), ("run_id", "module_id", "attempt")),
+    ),
+    "compactions": (
+        (
+            "calls",
+            ("run_id", "module_id", "attempt", "call_index"),
+            ("run_id", "module_id", "attempt", "call_index"),
+        ),
+        ("runs", ("run_id",), ("run_id",)),
+    ),
+}
+
+# The partial index attempts_one_accepted holds only accepted attempts: its stored SQL in
+# sqlite_schema ends with this text.
+ONE_ACCEPTED_WHERE = "WHERE state = 'accepted'"
