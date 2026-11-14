@@ -54,16 +54,24 @@ describe("the freshness line", () => {
   });
 
   it("says Sources checked with the delivered time, with a filled circle", () => {
-    const { container } = show("/signal/main/feed/for-you");
+    const { container } = show("/signal/reader/feed/for-you");
     expect(screen.getByText("Sources checked 6 min ago")).toBeInTheDocument();
     expect(container.querySelector("[data-shape='filled circle']")).not.toBeNull();
+  });
+
+  it("says main's failing source in the line, with a triangle", () => {
+    const { container } = show("/signal/main/feed/for-you");
+    expect(screen.getByText("Sources checked 6 min ago · 1 source failing")).toBeInTheDocument();
+    expect(container.querySelector("[data-shape='triangle']")).not.toBeNull();
   });
 
   it("draws the title row as the title, then the freshness, then the order buttons", () => {
     show("/signal/main/feed/for-you");
     const title = screen.getByRole("heading", { level: 1, name: "For you" });
     const row = title.parentElement;
-    expect(row?.textContent).toMatch(/^For youSources checked 6 min agoTopLatest$/);
+    expect(row?.textContent).toMatch(
+      /^For youSources checked 6 min ago · 1 source failingTopLatest$/,
+    );
   });
 
   it("says Checking sources with a ring while the first check runs", () => {
@@ -84,7 +92,7 @@ describe("the freshness line", () => {
       "/signal/main/feed/for-you",
       withFreshness("main", { state: "unavailable", checked: null }),
     );
-    expect(screen.getByText("Source status unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Source status unavailable · 1 source failing")).toBeInTheDocument();
     expect(container.querySelector("[data-shape='triangle']")).not.toBeNull();
   });
 

@@ -5,18 +5,24 @@
 import type { SignalSourceWeek } from "../slice";
 
 function Slot({ week }: { week: SignalSourceWeek }) {
-  const state = week.items === null ? "empty" : week.height === 0 ? "zero" : "value";
+  // The reader accepts a count and a height together or neither, so either null is no reading.
+  const { items, height } = week;
+  if (items === null || height === null) {
+    return <span data-week-state="empty" className="flex h-full flex-1 items-end" />;
+  }
   return (
-    <span data-week-state={state} className="flex h-full flex-1 items-end">
-      {state === "zero" ? (
+    <span
+      data-week-state={height === 0 ? "zero" : "value"}
+      className="flex h-full flex-1 items-end"
+    >
+      {height === 0 ? (
         <span className="block h-0.5 w-full rounded-[2px] bg-brand-solid" />
-      ) : null}
-      {state === "value" ? (
+      ) : (
         <span
           className="block w-full rounded-[2px] bg-brand-solid"
-          style={{ height: `${String((week.height ?? 0) * 100)}%` }}
+          style={{ height: `${String(height * 100)}%` }}
         />
-      ) : null}
+      )}
     </span>
   );
 }

@@ -106,7 +106,13 @@ describe("the sources of a snapshot", () => {
       "a reading of zero with a bar height",
       [...P, 1, "weeks", 5, "height"],
       0.2,
-      `${S}[1].weeks[5].height: expected 0 for a reading of zero`,
+      `${S}[1].weeks[5].height: expected 0 exactly when the count is 0`,
+    ],
+    [
+      "a non-zero count with a zero height",
+      [...P, 0, "weeks", 1, "height"],
+      0,
+      `${S}[0].weeks[1].height: expected 0 exactly when the count is 0`,
     ],
     [
       "a sort rank that is a string",
@@ -152,6 +158,15 @@ describe("the sources of a snapshot", () => {
     expect(readSlice(change(1, ["snapshot", "settings", "sources"], []))).toEqual(
       invalid(
         "scenes[1].snapshot.feed.sources.approved: expected false, as settings.sources lists",
+      ),
+    );
+  });
+
+  it("rejects a Failing source when the feed names no failing source", () => {
+    const copy = change(0, ["snapshot", "feed", "freshness", "failing"], null);
+    expect(readSlice(copy)).toEqual(
+      invalid(
+        "scenes[0].snapshot.feed.freshness.failing: expected the failing text, as settings.sources lists a failing source",
       ),
     );
   });
