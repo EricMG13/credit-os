@@ -106,15 +106,12 @@ class _Reader:
 
 
 def read_blocks(scan: Scan, first: int = 1, last: int | None = None) -> tuple[Block, ...]:
+    if first < 1:
+        raise ValueError("first must be at least 1")
     reader = _Reader(scan)
     stop = len(scan.shown) if last is None else min(last, len(scan.shown))
     fences = {fence.open: fence for fence in scan.fences}
-    inside = {
-        number
-        for fence in scan.fences
-        for number in range(fence.open + 1, fence.end + 1)
-        if number >= first
-    }
+    inside = {number for fence in scan.fences for number in range(fence.open + 1, fence.end + 1)}
     number = first
     while number <= stop:
         shown = scan.shown[number - 1]

@@ -103,10 +103,24 @@ def _shape(lines: list[str], first: int = 1, last: int | None = None) -> list[An
             [HEAD, SEP, "    | 1 | 2 |"],
             [("T", 1, None, 0), ("P", 3, ("| 1 | 2 |",))],
         ),
+        (
+            ["**Label**", "more", "", HEAD, SEP],
+            [("P", 1, ("**Label**", "more")), ("T", 4, None, 0)],
+        ),
+        (["a", "   b   "], [("P", 1, ("a", "b"))]),
+        (["-    one  ", "   more  "], [("I", 1, "-", ("one", "more"))]),
+        (["**  Leverage  **", HEAD, SEP], [("T", 2, "Leverage", 0)]),
+        (["a", "   ", "b"], [("P", 1, ("a",)), ("P", 3, ("b",))]),
+        (["100. x", "1000. y"], [("I", 1, "100.", ("x", "1000. y"))]),
     ],
 )
 def test_examples(lines: list[str], expected: list[Any]) -> None:
     assert _shape(lines) == expected
+
+
+def test_first_below_one_is_a_caller_error() -> None:
+    with pytest.raises(ValueError, match="first must be at least 1"):
+        read_blocks(scan(["a"]), first=0)
 
 
 def test_refusal_propagates_with_its_line() -> None:
