@@ -13,9 +13,9 @@ import {
 } from "recharts";
 import { ChartFrame } from "./ChartFrame";
 import { ChartTable, type TableRowData } from "./ChartTable";
-import { cellText } from "./PathChart";
+import { cellText, useWrappedAxis, WrappedTick } from "./PathChart";
 import { assignSeries, type SeriesStyle } from "./series";
-import { BASELINE, HEIGHT, TICK, YAxisLabels, type YTick } from "./TrendChart";
+import { BASELINE, HEIGHT, YAxisLabels, type YTick } from "./TrendChart";
 
 interface ColumnsSeries {
   name: string;
@@ -197,7 +197,7 @@ function MissingMarks({
           const centre = start + area.width / groups.length / 2;
           return [
             <text
-              key={`${s.name}/${group}`}
+              key={`${String(i)}.${String(g)}`}
               data-missing=""
               data-series={s.name}
               data-group={group}
@@ -284,9 +284,10 @@ function Chart({
     group,
     ...Object.fromEntries(series.map((s, i) => [keyOf(i), s.values[index] ?? null])),
   }));
+  const axis = useWrappedAxis(groups, yTicks);
   return (
     <div className="flex flex-col gap-3 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-focus">
-      <ResponsiveContainer width="100%" height={HEIGHT}>
+      <ResponsiveContainer width="100%" height={HEIGHT} onResize={axis.onResize}>
         <BarChart
           title={title}
           data={data}
@@ -295,7 +296,15 @@ function Chart({
           barCategoryGap="20%"
         >
           <CartesianGrid vertical={false} stroke="var(--color-border-hairline)" />
-          <XAxis dataKey="group" tickLine={false} axisLine={BASELINE} tick={TICK} tickMargin={8} />
+          <XAxis
+            dataKey="group"
+            tickLine={false}
+            axisLine={BASELINE}
+            tick={WrappedTick}
+            interval={0}
+            height={axis.height}
+            tickMargin={8}
+          />
           <YAxisLabels yTicks={yTicks} />
           <Tooltip
             isAnimationActive={false}

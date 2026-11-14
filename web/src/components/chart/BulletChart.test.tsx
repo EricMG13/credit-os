@@ -2,15 +2,16 @@ import { render, within } from "@testing-library/react";
 import { BulletChart, type BulletRow } from "./BulletChart";
 import { noFocusStopInChart, num, rowOf, tableCells, throwsOn } from "./RowCharts.helpers";
 
+const NET_LEVERAGE: BulletRow = {
+  label: "Net leverage",
+  sub: "Downgrade trigger above 7.0x",
+  value: 5.9,
+  target: 7.0,
+  axisMax: 8,
+  text: "5.9x of 7.0x",
+};
 const BULLETS: BulletRow[] = [
-  {
-    label: "Net leverage",
-    sub: "Downgrade trigger above 7.0x",
-    value: 5.9,
-    target: 7.0,
-    axisMax: 8,
-    text: "5.9x of 7.0x",
-  },
+  NET_LEVERAGE,
   {
     label: "Interest cover",
     sub: "Downgrade trigger below 2.0x",
@@ -79,7 +80,7 @@ describe("BulletChart", () => {
   });
 
   it("throws on a value or target outside the axis, or a text that disagrees with the value", () => {
-    const first = BULLETS[0] as BulletRow;
+    const first = NET_LEVERAGE;
     throwsOn(ui([{ ...first, value: 9 }]), /"Net leverage".*axis/);
     throwsOn(ui([{ ...first, target: 9 }]), /"Net leverage".*axis/);
     throwsOn(ui([{ ...first, value: -1 }]), /"Net leverage".*axis/);

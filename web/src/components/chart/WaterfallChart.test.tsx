@@ -311,3 +311,18 @@ describe("WaterfallChart check", () => {
     });
   });
 });
+
+describe("WaterfallChart x-axis", () => {
+  it("names every step under its column and wraps a long name onto lines, never cutting it", () => {
+    const { container } = renderNetDebt();
+    const ticks = [...container.querySelectorAll(".recharts-wrapper [data-tick]")];
+    expect(ticks.map((t) => t.getAttribute("data-tick"))).toEqual(NET_DEBT.map((s) => s.label));
+    const lines = (label: string) =>
+      [
+        ...(ticks.find((t) => t.getAttribute("data-tick") === label)?.querySelectorAll("tspan") ??
+          []),
+      ].map((l) => l.textContent);
+    expect(lines("Shareholder returns")).toEqual(["Shareholder", "returns"]);
+    expect(lines("FY25E")).toEqual(["FY25E"]);
+  });
+});

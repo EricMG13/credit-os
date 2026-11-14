@@ -1,7 +1,45 @@
+import { createElement } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { BarLegend, ColumnsChart, topRounded } from "./ColumnsChart";
 import { barOf, bars, renderMat, renderRec } from "./ColumnsChart.fixtures";
 import { assignSeries } from "./series";
+
+describe("ColumnsChart keys", () => {
+  it("draws n.a. for series 'A/B' x group 'C' and series 'A' x group 'B/C' without a duplicate key", () => {
+    const seen: string[] = [];
+    const spy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      seen.push(args.map(String).join(" "));
+    });
+    const { container } = render(
+      createElement(ColumnsChart, {
+        title: "Keys",
+        groups: ["C", "B/C"],
+        series: [
+          { name: "A/B", values: [null, 10], labels: [null, "10"] },
+          { name: "A", values: [10, null], labels: ["10", null] },
+        ],
+        yTicks: [
+          { value: 0, label: "0" },
+          { value: 10, label: "10" },
+        ],
+        table: {
+          head: ["Group", "A/B", "A"],
+          rows: [
+            { label: "C", cells: [null, "10"] },
+            { label: "B/C", cells: ["10", null] },
+          ],
+        },
+      }),
+    );
+    spy.mockRestore();
+    expect(seen.filter((m) => m.includes("same key"))).toEqual([]);
+    expect(
+      [...container.querySelectorAll("[data-missing]")].map(
+        (t) => `${t.getAttribute("data-series") ?? ""}|${t.getAttribute("data-group") ?? ""}`,
+      ),
+    ).toEqual(["A/B|C", "A|B/C"]);
+  });
+});
 
 describe("ColumnsChart chart side", () => {
   it("draws a bar for every present value, zeros included, and none for the missing one", () => {
@@ -194,5 +232,24 @@ describe("BarLegend", () => {
     plain.unmount();
     render(<BarLegend names={names} styles={styles} centered />);
     expect(screen.getByRole("list", { name: "Legend" }).className).toContain("justify-center");
+  });
+});
+
+describe("ColumnsChart x-axis", () => {
+  it("names every group under its bars, the whole text of each", () => {
+    const { container } = renderRec();
+    const ticks = [...container.querySelectorAll(".recharts-wrapper [data-tick]")];
+    expect(ticks.map((t) => t.getAttribute("data-tick"))).toEqual([
+      "Term loans and secured notes",
+      "Senior subordinated notes",
+      "Receivables facility",
+    ]);
+    const words = (tick: Element | undefined) =>
+      [...(tick?.querySelectorAll("tspan") ?? [])].map((l) => l.textContent).join(" ");
+    expect(ticks.map((t) => words(t))).toEqual([
+      "Term loans and secured notes",
+      "Senior subordinated notes",
+      "Receivables facility",
+    ]);
   });
 });
