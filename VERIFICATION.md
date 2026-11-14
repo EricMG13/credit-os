@@ -3,6 +3,79 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 2B figures and held figures, 1D HTML engine and zip guards, 1B base operands
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #250 | 2B PR 4a | `3a69ea3`, `16e6eb8` | `checks/figures.py`: the figure reader (masks, figures, units, currencies) (773 lines) |
+| #254 | 2B PR 4b | `9cb41ab`, `4618b19` | `figure.form` and the test that `checks/` holds no float (605) |
+| #308 | 2B PR 4c | `4484ffe`, `75a0cd4` | 16 key rows for the witnessed mutation survivors of 4a and 4b (18, tests only) |
+| #301 | 2B PR 5 | `93dfede`, `489c360` | `checks/held.py`: held figures, `figure.not-held`, `figure.mismatch`, the note rule, R59 (799) |
+| #249 | 1D PR 2b-2 | `cb3bca9`, `308b8c0` | `sources/html.py`: the bounded `html.parser` engine behind `_visible_text`; no caller yet (794) |
+| #258 | 1D PR 3a | `2ba4b46`, `2d685b6` | `sources/ooxml.py`: the zip half of the OOXML guards (723) |
+| #306 | 1D PR 3a-2 | `1d840f1`, `9967624` | rows holding the end-record reading to zipfile's; an empty zip refused (124) |
+| #299 | 1B PR 5 | `971eb5f`, `853b152` | `model/foundation.py`: base operands against the foundation's named cells (798) |
+| #311 | CI | `bdecf4a`, `cb091af` | `web.yml`: the gates job may take 40 minutes (5) |
+| #313 | records | `042c672`, `9bb9e12` | the entry below |
+
+Stacked PRs (#254, #308, #301, #306) were retargeted to `main` and their CI rerun there
+before each merge.
+
+**Reviews.** As each controller reported; the coordinator read each quoted verdict line in
+its report file.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #250, #254, #308 | `mx-precise` Medium 1 and `mx-adversary` High 1, Medium 5 on the stack; round 3 re-review pass, Low 2, Info 2 | 0 defects each | #250: fix, Medium 2; round 4 closed two and left M-3 (test strength). #254: pass, Low 1, Info 6. M-3 re-review on #308: pass, Info 4 |
+| #301 | `mx-precise` and `mx-adversary`; fix round 1 re-review pass, Low 1, Info 2 | 0 defects | fix, Medium 1 (the PR body); re-review pass, Low 2, Info 6 |
+| #249 | `mx-precise` pass, Low 2; `mx-adversary` pass, Low 2, Info 5 | 0 defects | pass, Low 2, Info 5 |
+| #258, #306 | `mx-adversary` scoped re-review of 3a-2: pass, Low 1, Info 2 | 0 defects | pass on the pair as one change: Low 1, Info 3 |
+| #299 | `mx-precise` pass; `mx-adversary` Medium 3, re-review pass | S1 to S9, 0 defects | changes required, Medium 1 (three reader passages left out by no test); re-review at `971eb5f` pass |
+| #311, #313 | batched `mx-feature`: pass | none (config, record) | none |
+
+- 2B PR 4 took three counted rounds (the third on an `mx-autonomous` plan) and a fourth,
+  test-only round the owner approved; M-3 was closed by #308's key rows under the owner's
+  "Yes, keys PR", so the three merged together.
+- Mutation counts of record (mutmut 3.8.1, run by the reviewer, validity checked). #308:
+  823 mutants, 803 killed, 6 timeouts (none counted killed), 14 survived, of which 13 are
+  shown equivalent by running and one is unreachable. #249, new engine code: 426, 360
+  killed, 4 timeouts, 62 survived, of which 57 are equivalent and 5 are deferred to PR 2b-3
+  with a row each. #306 (`ooxml.py`): 278, 268 killed, 10 equivalent. #299: 202 of 202.
+  The earlier counts for #250 and #254 could not be shown valid and are not of record.
+- #301 was force-pushed before its merge (entry below); the diff merged has the patch id
+  of the diff reviewed.
+
+**Rulings.** 2B R59 to R64 and P1 to P9 (held figures, the note rule). 1B R41 to R44
+(operand order, a repeated passage heading, `CELL` refusals, no digit limit) and R45: a
+refusal that differs only by the sign rule names the rule in its message (PR 6a). 1D: an
+end record found in the archive comment is the conventional reading, pinned by a row in 3c;
+a declared charset name is matched against a literal table and refused if absent, with no
+codec lookup (PR 2b-3).
+
+**New refusals (1D zip guards).** A zip with no members; a directory over 4 MiB; an end
+record that disagrees with its directory; names that differ only by case or form; a member
+with two names; a member outside the file; bytes before the first member. Memory at the
+caps is measured at about 87.2 of the 96 MiB bound (extrapolated, macOS).
+
+**Ledger.**
+
+- `2B-4 task=round-4-ids(4a) agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `2B-4 task=round-4-ids(4b) agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `2B-4c task=key-rows agent=controller fix-rounds=0 gates-first-pass=y`
+- `1B-5 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
+
+**Lows carried.** 2B: `held._findings` runs once per check, twice per document; #254's
+I-1 to I-3; the reader's progress guard (its own PR, started). 1D: N1 and the five
+deferred survivors to 2b-3. 1B: four unpinned rules and an unguarded
+`document.sections[1]` to PR 6a.
+
+Not verified: a real CP-1 foundation and a caller of `check_base` (PR 7); costs of the HTML
+engine at its 50 MiB cap (probes read at most 4 MiB); the zip bound on Windows; #250's and
+#254's own mutation counts under the memory limits; the 13 equivalences beyond 1,000 lines each.
+
 ## 2026-11-14 Roadmap back end: Signal's store, the 1B model fixtures, the step 3A plan
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -908,52 +981,3 @@ test-only commits. Not run on #198 (hand mutants, 3 of 16 survive) or by the coo
   shapes ruled on (no retained reply in the new format exists; no provider run); how 3A fills
   `accepted`, `upstream` and `other_sources`.
 - #202 by this track's own reviewers; how Windows tools write `file:` URLs of UNC paths.
-
-## 2026-11-14 Roadmap back end: the 1B forecast engine; a store hierarchy test
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #194 | 1B PR 2 | `de9b901`, `2cb9537` | `model/forecast.py`: `Operands`, `Drivers`, `Shock`, `Year` and `forecast`, one case of three years; a key of 21 invented cases (755 lines) |
-| #197 | 2A, owner's review-fix process | `80934ce`, `1d74a2b` | One test: the four mapped store errors are the set `store_error` returns and none is a subclass of another (20) |
-
-**Reviews.** As the controller, or for #197 the PR body, reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #194 | `mx-precise` pass, Low 2; `mx-adversary` pass, Low 3, Info 4; closed in one batch | 0 open | Pass on `de9b901`: High 0, Medium 0, Low 3, Info 6 |
-| #197 | `mx-feature` PASS (test only, no production change) | not run | not run |
-
-- #194's whole-branch review checked the Low batch with six mutants, all killed, and an
-  independent oracle (36,000 figures over 600 cases, capped).
-- Two of its Lows are parked for the next change to `forecast.py`: under a schedule the
-  unused `debt_repayment` driver is still built into a `Value`, so one outside the range is
-  refused; the source does not say a schedule pair is interest then repayment, interest
-  before the shock.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0 on `de9b901` (controller)
-and on #197 (its body, macOS). Mutation (`mutmut`) on `forecast.py`: 279 mutants, 243 killed,
-36 not killed, all changes to exception message text.
-
-**Ledger.**
-- `1B-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-
-**Rulings by the coordinator.** In the 1B plan.
-- The engine refuses nothing about meaning: a repayment driver larger than the debt gives a
-  negative closing debt. PR 4b's schema check refuses, per case, a block whose
-  `debt_repayment` drivers pass that case's base debt on the running sum, with its own
-  refusal kind; equal is allowed, a missing debt is not read as zero and refuses nothing, a
-  negative driver is not refused by this rule. The scheduled path is decided in PR 6.
-- PR 4 is split into 4a (refusal types, the forecast block, strict JSON, the declined block)
-  and 4b (schema and scale). `ForecastRefused` derives from `Exception`; integers in the
-  block hold at most 15 digits and the block at most 200,000 characters; a repeated key is
-  compared after escape decoding.
-
-**Not verified.**
-- #194: `Overflow` and `Underflow` on a ratio inside `forecast`; exception message text;
-  driver ranges and the sign of closing debt and cash (later PRs); the merge result with
-  `main` was not built before merging (no commit since its base touched the model).
-- #197: a new mapped class with no new code in the error key would not be seen. No test
-  applies to a test-only change.
