@@ -813,7 +813,176 @@ describe("Module, the documentation tests", () => {
   });
 });
 
+describe("Module, the statement by year", () => {
+  const statement = () => region("Debt and leverage by year");
+  const table = () => within(statement()).getByRole("table", { name: "Debt and leverage by year" });
+  const cells = (row: HTMLElement) => within(row).getAllByRole("cell");
+
+  it("draws the mock's years and five lines, each figure as delivered, 2022 EBITDA as n.a.", () => {
+    renderModule("capital-structure");
+    const rows = within(table()).getAllByRole("row");
+    expect(
+      within(rows[0] as HTMLElement)
+        .getAllByRole("columnheader")
+        .map((h) => h.textContent),
+    ).toEqual(["USD m, year to 30 Sep", "2022", "2023", "2024", "2025", "2026"]);
+    expect(
+      rows
+        .slice(1)
+        .map((r) => [
+          within(r).getByRole("rowheader").textContent,
+          ...cells(r).map((c) => c.textContent),
+        ]),
+    ).toEqual([
+      ["Gross debt", "2,010", "2,120", "2,190", "2,310", "2,398"],
+      ["Cash", "95", "120", "88", "146", "162"],
+      ["Net debt", "1,915", "2,000", "2,102", "2,164", "2,236"],
+      ["EBITDA", "n.a.not available", "356", "398", "441", "486"],
+      ["Net leverage", "n.a.not available", "5.6x", "5.3x", "4.9x", "4.6x"],
+    ]);
+  });
+
+  it("holds the first column while the table scrolls inside its own region", () => {
+    renderModule("capital-structure");
+    const scroller = table().parentElement as HTMLElement;
+    expect(scroller).toHaveClass("overflow-x-auto");
+    expect(within(table()).getAllByRole("columnheader")[0]).toHaveClass("sticky", "left-0");
+    for (const header of within(table()).getAllByRole("rowheader")) {
+      expect(header).toHaveClass("sticky", "left-0", "bg-surface-card");
+    }
+    for (const cell of within(table()).getAllByRole("cell")) {
+      expect(cell).toHaveClass("text-right", "tabular-nums");
+    }
+  });
+
+  it("draws the basis note under the table, and no trend column or Bars toggle", () => {
+    renderModule("capital-structure");
+    expect(
+      within(statement()).getByText(
+        "EBITDA for 2022 is not available on the current basis, so that year’s leverage is n.a.",
+      ),
+    ).toBeVisible();
+    expect(within(statement()).queryByText(/trend/i)).toBeNull();
+    expect(screen.queryByRole("radio", { name: /bars|figures/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Bars|Figures)$/ })).toBeNull();
+  });
+
+  it("draws a trace control only where the block carries a trace", () => {
+    renderModule("capital-structure");
+    expect(within(statement()).queryAllByRole("button")).toHaveLength(0);
+    cleanup();
+    const library = withRecords((records) => {
+      (records.find((r) => r["kind"] === "statement") as Json)["trace"] = "cs-net-debt";
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const buttons = within(statement()).getAllByRole("button");
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Show sources for this table",
+    ]);
+  });
+
+  it("draws zero as zero, a withheld figure, a gap and an emphasised line as delivered", () => {
+    const library = withRecords((records) => {
+      const rows = (records.find((r) => r["kind"] === "statement") as Json)["rows"] as Json[];
+      (rows[1] as Json)["cells"] = [
+        { kind: "value", text: "0", at: 0 },
+        null,
+        { kind: "withheld", reason: null },
+        { kind: "gap", reason: "Not read." },
+        { kind: "value", text: "162", at: 162 },
+      ];
+      (rows[2] as Json)["emphasis"] = true;
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const rows = within(table()).getAllByRole("row");
+    expect(cells(rows[2] as HTMLElement).map((c) => c.textContent)).toEqual([
+      "0",
+      "n.a.not available",
+      "Withheld",
+      "Not established for this run",
+      "162",
+    ]);
+    expect(within(rows[3] as HTMLElement).getByRole("rowheader")).toHaveClass("font-semibold");
+    expect(within(rows[2] as HTMLElement).getByRole("rowheader")).not.toHaveClass("font-semibold");
+  });
+});
+
+describe("Module, the hedge expiries gap", () => {
+  const hedges = () => region("Hedge expiries");
+
+  it("draws the kit's gap panel with the module's reason, and no chart or figure", () => {
+    renderModule("capital-structure");
+    expect(
+      within(hedges()).getByRole("heading", { level: 3, name: "Hedge expiries" }),
+    ).toBeVisible();
+    expect(within(hedges()).getByText("Not established for this run")).toBeVisible();
+    expect(
+      within(hedges()).getByText(
+        "The hedge schedule was not among the files provided. The module states that interest rate swaps exist but could not establish their amounts or expiry dates, so no chart is drawn.",
+      ),
+    ).toBeVisible();
+    expect(within(hedges()).queryAllByRole("button")).toHaveLength(0);
+    expect(within(hedges()).queryByRole("table")).toBeNull();
+  });
+});
+
+describe("Module, the data module as a whole", () => {
+  it("draws the trace controls the mock shows, each named as the mock names it", () => {
+    renderModule("capital-structure");
+    expect(sourceButtons().map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Show sources for the bottom line",
+      ...Array<string>(3).fill("Show sources for this finding"),
+      ...Array<string>(6).fill("Show sources for this figure"),
+      ...Array<string>(3).fill("Show sources for this measure"),
+      ...Array<string>(7).fill("Show sources for this fact"),
+      ...Array<string>(3).fill("Show sources for this limitation"),
+    ]);
+  });
+
+  it("turns every control on with Show sources, as the mock draws this page", () => {
+    const { container } = renderModule("capital-structure");
+    const toggle = screen.getByRole<HTMLInputElement>("switch", { name: "Show sources" });
+    if (!toggle.checked) fireEvent.click(toggle);
+    expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
+    expect(sourceButtons()).toHaveLength(23);
+  });
+
+  it("opens the drawer of the bottom line, a finding and a limitation by their own traces", () => {
+    renderModule("capital-structure");
+    const buttons = sourceButtons();
+    for (const [index, title] of [
+      [0, "Sources for the capital structure bottom line"],
+      [3, "Sources for the capacity finding"],
+      [22, "Sources for the lease schedule limitation"],
+    ] as const) {
+      fireEvent.click(buttons[index] as HTMLElement);
+      expect(screen.getByRole("dialog", { name: title })).toBeVisible();
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    }
+  });
+
+  it("shows no audit material and no trace code", () => {
+    const { container } = renderModule("capital-structure");
+    expect([container.innerHTML, container.textContent].join(" ")).not.toMatch(
+      /T-\d{4}|C-\d{4}|\.pdf|hash|cs-/i,
+    );
+  });
+});
+
 describe("Module, the navigator of the data module", () => {
+  it("moves focus to the heading of the block each entry names", () => {
+    renderModule("capital-structure");
+    Element.prototype.scrollIntoView = vi.fn();
+    for (const [entry, heading] of [
+      ["Terms and tests", "Facility terms"],
+      ["Hedges", "Hedge expiries"],
+    ] as const) {
+      fireEvent.click(within(nav()).getByRole("button", { name: entry }));
+      expect(screen.getByRole("heading", { name: heading })).toHaveFocus();
+    }
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
   it("lists the entries the blocks name, once each, in page order", () => {
     renderModule("capital-structure");
     expect(
@@ -825,6 +994,7 @@ describe("Module, the navigator of the data module", () => {
       "Key findings",
       "Headline figures",
       "Terms and tests",
+      "Hedges",
       "Limitations",
     ]);
   });

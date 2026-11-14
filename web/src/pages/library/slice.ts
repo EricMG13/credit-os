@@ -341,6 +341,23 @@ type StatusRecord = Navigable & {
   }[];
 };
 
+/**
+ * A statement by period: `stub` heads the row-label column, each row has one cell for each of
+ * `periods`, and `emphasis` marks a line the module wrote as a total. `basis` is the note under it.
+ */
+type StatementRecord = Navigable & {
+  kind: "statement";
+  title: string;
+  stub: string;
+  basis: string | null;
+  periods: readonly string[];
+  rows: readonly { label: string; cells: readonly Cell[]; emphasis: boolean }[];
+  trace: string | null;
+};
+
+/** What the module could not establish, in place of a chart or table: the reason it gives. */
+type GapRecord = Navigable & { kind: "gap"; title: string; reason: string };
+
 /** One block of a module's records. Task 11 adds the chart kinds. */
 export type RecordBlock =
   | MatrixRecord
@@ -350,7 +367,9 @@ export type RecordBlock =
   | MetricsRecord
   | MeasuresRecord
   | FactsRecord
-  | StatusRecord;
+  | StatusRecord
+  | StatementRecord
+  | GapRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {

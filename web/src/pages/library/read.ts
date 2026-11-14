@@ -118,9 +118,8 @@ function strings(o: Rec, key: string, path: string): string[] {
   });
 }
 
-export function cell(o: Rec, key: string, path: string): Cell {
-  const at = child(path, key);
-  const value = own(o, key);
+/** The figure at `at`: `null` is missing, otherwise a value, a withheld figure or a gap. */
+function cellOf(value: unknown, at: string): Cell {
   if (value === null) return null;
   const c = rec(value, at);
   switch (oneOf(c, "kind", at, ["value", "withheld", "gap"])) {
@@ -131,6 +130,10 @@ export function cell(o: Rec, key: string, path: string): Cell {
     case "gap":
       return { kind: "gap", reason: str(c, "reason", at) };
   }
+}
+
+export function cell(o: Rec, key: string, path: string): Cell {
+  return cellOf(own(o, key), child(path, key));
 }
 
 const RUN_STATES = Object.keys(STATUS_SETS["Run states"]) as RunState[];
@@ -354,13 +357,16 @@ function readHead(value: unknown, path: string): RunHead {
 }
 
 /** A figure a page draws as written: a blank text would draw nothing and the tables refuse it. */
-function shownCell(o: Rec, key: string, path: string): Cell {
-  const c = cell(o, key, path);
+function shownOf(value: unknown, at: string): Cell {
+  const c = cellOf(value, at);
   if (c !== null && c.kind === "value" && c.text === "") {
-    throw new SliceError(child(child(path, key), "text"), "a non-empty string");
+    throw new SliceError(child(at, "text"), "a non-empty string");
   }
   return c;
 }
+
+const shownCell = (o: Rec, key: string, path: string): Cell =>
+  shownOf(own(o, key), child(path, key));
 
 /** A trace key is checked against the run's own traces, so it is read after them. */
 type Traces = Readonly<Record<string, Trace>>;
@@ -932,6 +938,52 @@ function readStatus(s: Rec, path: string, traces: Traces): RecordBlock {
   };
 }
 
+function bool(o: Rec, key: string, path: string): boolean {
+  const value = own(o, key);
+  if (typeof value !== "boolean") throw new SliceError(child(path, key), "true or false");
+  return value;
+}
+
+function readStatementRow(value: unknown, path: string, periods: number) {
+  const r = rec(value, path);
+  const cellsPath = child(path, "cells");
+  const cells = list(r, "cells", path, (item, p) => shownOf(item, p));
+  if (cells.length !== periods) {
+    throw new SliceError(cellsPath, `${String(periods)} cells, one for each period`);
+  }
+  return { label: named(r, "label", path), cells, emphasis: bool(r, "emphasis", path) };
+}
+
+function readStatement(s: Rec, path: string, traces: Traces): RecordBlock {
+  const periodsPath = child(path, "periods");
+  const periods = some(
+    list(s, "periods", path, (item, p) => {
+      if (typeof item !== "string" || item === "") throw new SliceError(p, "a non-empty string");
+      return item;
+    }),
+    periodsPath,
+  );
+  const rowsPath = child(path, "rows");
+  return {
+    kind: "statement",
+    nav: navLabel(s, "nav", path),
+    title: named(s, "title", path),
+    stub: named(s, "stub", path),
+    basis: gradeOrNull(s, "basis", path),
+    periods,
+    rows: some(
+      unique(
+        list(s, "rows", path, (item, p) => readStatementRow(item, p, periods.length)),
+        rowsPath,
+        (row) => row.label,
+        "label",
+      ),
+      rowsPath,
+    ),
+    trace: traceKey(s, "trace", path, traces),
+  };
+}
+
 function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   const r = rec(value, path);
   switch (
@@ -944,6 +996,8 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
       "measures",
       "facts",
       "status",
+      "statement",
+      "gap",
     ])
   ) {
     case "matrix":
@@ -962,6 +1016,15 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
       return readFacts(r, path, traces);
     case "status":
       return readStatus(r, path, traces);
+    case "statement":
+      return readStatement(r, path, traces);
+    case "gap":
+      return {
+        kind: "gap",
+        nav: navLabel(r, "nav", path),
+        title: named(r, "title", path),
+        reason: named(r, "reason", path),
+      };
   }
 }
 

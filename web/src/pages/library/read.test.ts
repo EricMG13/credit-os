@@ -1335,6 +1335,72 @@ describe("readSlice, the data module's records", () => {
       (b: Json) => (((b["groups"] as Json[])[1] as Json)["state"] = "Not met"),
       "groups[1].state",
     ],
+    ["a statement with no periods", "statement", (b: Json) => (b["periods"] = []), "periods"],
+    [
+      "a statement period that is blank",
+      "statement",
+      (b: Json) => ((b["periods"] as string[])[2] = ""),
+      "periods[2]",
+    ],
+    ["a statement with no rows", "statement", (b: Json) => (b["rows"] = []), "rows"],
+    ["a statement without its corner heading", "statement", (b: Json) => delete b["stub"], "stub"],
+    [
+      "a statement basis that is an empty string",
+      "statement",
+      (b: Json) => (b["basis"] = ""),
+      "basis",
+    ],
+    [
+      "a statement row with one cell too few",
+      "statement",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["cells"] = [null, null, null, null]),
+      "rows[1].cells",
+    ],
+    [
+      "a statement row with one cell too many",
+      "statement",
+      (b: Json) =>
+        (((b["rows"] as Json[])[0] as Json)["cells"] = [null, null, null, null, null, null]),
+      "rows[0].cells",
+    ],
+    [
+      "a statement cell that is an empty string",
+      "statement",
+      (b: Json) =>
+        ((((b["rows"] as Json[])[2] as Json)["cells"] as Json[])[3] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "rows[2].cells[3].text",
+    ],
+    [
+      "a statement cell of an unknown kind",
+      "statement",
+      (b: Json) =>
+        ((((b["rows"] as Json[])[2] as Json)["cells"] as Json[])[0] = { kind: "estimate" }),
+      "rows[2].cells[0].kind",
+    ],
+    [
+      "a statement row whose emphasis is not true or false",
+      "statement",
+      (b: Json) => (((b["rows"] as Json[])[0] as Json)["emphasis"] = "yes"),
+      "rows[0].emphasis",
+    ],
+    [
+      "a statement with an unknown trace",
+      "statement",
+      (b: Json) => (b["trace"] = "nothing"),
+      "trace",
+    ],
+    [
+      "a statement row named twice",
+      "statement",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["label"] = "Gross debt"),
+      "rows[1].label",
+    ],
+    ["a gap with no reason", "gap", (b: Json) => (b["reason"] = ""), "reason"],
+    ["a gap with a reason that is not text", "gap", (b: Json) => (b["reason"] = null), "reason"],
     ["measures with no items", "measures", (b: Json) => (b["items"] = []), "items"],
     [
       "a measure with an empty-string earlier figure",
@@ -1424,6 +1490,36 @@ describe("readSlice, the data module's records", () => {
         ],
       ],
     ]);
+  });
+
+  it("reads the statement and the gap as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const statement = body.records.find((r) => r.kind === "statement");
+    const gap = body.records.find((r) => r.kind === "gap");
+    expect(statement).toMatchObject({
+      title: "Debt and leverage by year",
+      stub: "USD m, year to 30 Sep",
+      periods: ["2022", "2023", "2024", "2025", "2026"],
+      trace: null,
+    });
+    const ebitda = statement?.kind === "statement" ? statement.rows[3] : undefined;
+    expect(ebitda).toEqual({
+      label: "EBITDA",
+      cells: [
+        null,
+        { kind: "value", text: "356", at: 356 },
+        { kind: "value", text: "398", at: 398 },
+        { kind: "value", text: "441", at: 441 },
+        { kind: "value", text: "486", at: 486 },
+      ],
+      emphasis: false,
+    });
+    expect(gap).toMatchObject({ title: "Hedge expiries", nav: "Hedges" });
   });
 
   it("accepts a measure with both periods as values and no delta, and counts the items read", () => {
