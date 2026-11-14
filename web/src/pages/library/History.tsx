@@ -42,7 +42,7 @@ function NoReport({ issuer, sentence }: { issuer: Issuer; sentence: string }) {
           <EmptyState.FeaturedIcon icon={BookOpen01} />
         </EmptyState.Header>
         <EmptyState.Content>
-          <EmptyState.Title>No report yet</EmptyState.Title>
+          <EmptyState.Title as="h3">No report yet</EmptyState.Title>
           <EmptyState.Description>{sentence}</EmptyState.Description>
         </EmptyState.Content>
         <EmptyState.Footer>

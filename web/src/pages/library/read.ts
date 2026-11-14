@@ -236,13 +236,20 @@ function readEntry(value: unknown, path: string): HistoryEntry {
           label: str(rec(changesValue, changesPath), "label", changesPath),
           run: str(rec(changesValue, changesPath), "run", changesPath),
         };
+  const state = oneOf(e, "state", path, RUN_STATES);
+  const report = strOrNull(e, "report", path);
+  // Nothing from a run that did not finish is shown: only Finished and Capped can be read.
+  if (state !== "Finished" && state !== "Capped") {
+    if (report !== null) throw new SliceError(child(path, "report"), `null for a ${state} run`);
+    if (changes !== null) throw new SliceError(changesPath, `null for a ${state} run`);
+  }
   return {
     asOf: str(e, "asOf", path),
     ran: str(e, "ran", path),
-    state: oneOf(e, "state", path, RUN_STATES),
+    state,
     pathway: str(e, "pathway", path),
     text: str(e, "text", path),
-    report: strOrNull(e, "report", path),
+    report,
     changes,
   };
 }
@@ -252,6 +259,17 @@ function readHistory(value: unknown, path: string): History {
   const latest = strOrNull(h, "latest", path);
   const empty = strOrNull(h, "empty", path);
   const entries = list(h, "entries", path, readEntry);
+  const seen = new Set<string>();
+  for (const [index, entry] of entries.entries()) {
+    const key = JSON.stringify([entry.asOf, entry.ran]);
+    if (seen.has(key)) {
+      throw new SliceError(
+        nth(child(path, "entries"), index),
+        "an asOf and ran not used by an earlier entry",
+      );
+    }
+    seen.add(key);
+  }
   if (latest === null && empty === null) {
     throw new SliceError(child(path, "empty"), "a sentence when there is no latest run");
   }
