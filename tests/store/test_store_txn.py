@@ -353,7 +353,9 @@ def test_a_body_that_closes_the_connection_leaves_a_typed_error(
         first = text.index(key.CLEAR_PROGRESS_NOTE_PREFIX)
         second = text.index(key.CLEAR_AUTH_NOTE_PREFIX)
         assert first < second
-        assert text[second + len(key.CLEAR_AUTH_NOTE_PREFIX) :].strip()
+        assert text[second + len(key.CLEAR_AUTH_NOTE_PREFIX) :].startswith(
+            key.CLOSED_CONNECTION_TEXT
+        )
 
 
 def test_a_commit_blocked_by_a_readers_lock_is_busy_and_nothing_is_written(tmp_path: Path) -> None:
