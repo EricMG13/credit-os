@@ -175,7 +175,17 @@ def check_context(make: Callable[[], decimal.Context]) -> None:
 @pytest.mark.parametrize("make", [ratio_context, exact_context])
 def test_contexts(make: Callable[[], decimal.Context]) -> None:
     check_context(make)
-    with decimal.localcontext(decimal.Context(prec=5, rounding=decimal.ROUND_UP, Emax=9)):
+    hostile = decimal.Context(
+        prec=5,
+        rounding=decimal.ROUND_UP,
+        Emax=9,
+        Emin=-20,
+        capitals=0,
+        clamp=1,
+        flags=[decimal.Inexact],
+        traps=[decimal.Underflow],
+    )
+    with decimal.localcontext(hostile):
         check_context(make)
 
 
