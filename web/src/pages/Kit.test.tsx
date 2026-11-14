@@ -1,0 +1,189 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { Kit } from "./Kit";
+
+const designSystem = readFileSync(
+  path.resolve(import.meta.dirname, "..", "..", "..", "docs", "design", "design-system.md"),
+  "utf8",
+);
+
+// The Button row of the Components table: the colours are the quoted words before the first ";".
+const buttonRow = designSystem.split(/\r?\n/).find((line) => line.startsWith("| Button |")) ?? "";
+const colours = [...(buttonRow.split(";")[0] ?? "").matchAll(/`([a-z-]+)`/g)].map(
+  (m) => m[1] ?? "",
+);
+const SIZES = ["sm", "md", "lg", "xl"];
+
+// The button names the page shows, in the order of the colours above.
+const BUTTON_NAMES = ["Primary", "Secondary", "Tertiary", "Primary destructive"];
+
+describe("Kit", () => {
+  it("has the page heading and one heading per component", () => {
+    render(<Kit />);
+    expect(screen.getByRole("heading", { level: 1, name: "Component kit" })).toBeInTheDocument();
+    for (const name of ["Button", "Tooltip", "Badge", "Tabs", "Button group", "Page header"]) {
+      expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
+    }
+  });
+
+  it("puts the demo page header title under the Page header section heading", () => {
+    render(<Kit />);
+    expect(screen.getByRole("heading", { level: 3, name: "Issuer name" })).toBeInTheDocument();
+  });
+
+  it("reads the four button colours from the design system", () => {
+    expect(colours).toEqual(["primary", "secondary", "tertiary", "primary-destructive"]);
+  });
+
+  it("shows every button colour by its name", () => {
+    render(<Kit />);
+    for (const name of BUTTON_NAMES) {
+      expect(screen.getByRole("button", { name }), name).toBeEnabled();
+    }
+  });
+
+  it("shows every button size", () => {
+    render(<Kit />);
+    for (const size of SIZES) {
+      expect(screen.getByRole("button", { name: `Size ${size}` }), size).toBeEnabled();
+    }
+  });
+
+  it("shows the disabled, loading and icon states", () => {
+    render(<Kit />);
+    expect(screen.getByRole("button", { name: "Disabled" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Loading" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Leading icon" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Trailing icon" })).toBeEnabled();
+  });
+
+  it("gives the tooltip trigger an accessible name", () => {
+    render(<Kit />);
+    expect(screen.getByRole("button", { name: "Tooltip trigger" })).toBeInTheDocument();
+  });
+
+  it("shows each badge colour with and without the dot, in each size", () => {
+    render(<Kit />);
+    const badges = screen.getByRole("region", { name: "Badge" });
+    for (const word of ["Gray", "Brand", "Error", "Warning", "Success", "Sky"]) {
+      expect(within(badges).getAllByText(word), word).toHaveLength(2);
+    }
+    for (const word of ["Size sm", "Size md", "Size lg"]) {
+      expect(within(badges).getByText(word), word).toBeInTheDocument();
+    }
+    expect(badges.querySelectorAll("svg")).toHaveLength(6);
+  });
+
+  it("shows each status set by name and the live run state", () => {
+    render(<Kit />);
+    const status = screen.getByRole("region", { name: "Status badge" });
+    for (const name of [
+      "Status",
+      "Run states",
+      "Signal source states",
+      "Dated records",
+      "Answer state",
+      "Met or not met",
+      "Freshness",
+      "Module state",
+      "Change state",
+      "Gap severity",
+      "File state",
+      "Approval",
+      "Activity that cannot be read",
+    ]) {
+      expect(within(status).getByRole("heading", { level: 3, name }), name).toBeInTheDocument();
+    }
+    const live = within(status).getByRole("group", { name: "Live run state" });
+    expect(within(live).getByText("Running")).toBeInTheDocument();
+    expect(live.querySelector(".queued-shimmer")).not.toBeNull();
+  });
+
+  it("shows the count on a tab and the panel of the tab selected", () => {
+    render(<Kit />);
+    const tabs = screen.getByRole("region", { name: "Tabs" });
+    const horizontal = within(tabs).getAllByRole("tablist")[0];
+    expect(horizontal).toHaveAttribute("aria-orientation", "horizontal");
+    const changes = within(horizontal as HTMLElement).getByRole("tab", { name: /^Changes/ });
+    expect(changes).toHaveTextContent(/^Changes\s*12$/);
+    expect(within(tabs).getAllByRole("tab", { name: /^(Overview|Evidence)$/ })).toHaveLength(2);
+    expect(within(tabs).getByText("Overview panel")).toBeVisible();
+    fireEvent.click(within(tabs).getByRole("tab", { name: "Evidence" }));
+    expect(within(tabs).getByText("Evidence panel")).toBeVisible();
+    expect(within(tabs).queryByText("Overview panel")).not.toBeInTheDocument();
+  });
+
+  it("shows a vertical tab list that switches panel", () => {
+    render(<Kit />);
+    const tabs = screen.getByRole("region", { name: "Tabs" });
+    const vertical = within(tabs).getAllByRole("tablist")[1];
+    expect(vertical).toHaveAttribute("aria-orientation", "vertical");
+    fireEvent.click(within(vertical as HTMLElement).getByRole("tab", { name: "Forecast" }));
+    expect(within(tabs).getByText("Forecast panel")).toBeVisible();
+  });
+
+  it("changes the selected segment of the Chart or Table toggle", () => {
+    render(<Kit />);
+    const group = screen.getByRole("region", { name: "Button group" });
+    const chart = within(group).getByRole("radio", { name: "Chart" });
+    const table = within(group).getByRole("radio", { name: "Table" });
+    expect(chart).toHaveAttribute("aria-checked", "true");
+    expect(table).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(table);
+    expect(table).toHaveAttribute("aria-checked", "true");
+    expect(chart).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("shows the five gap states", () => {
+    render(<Kit />);
+    const gaps = screen.getByRole("region", { name: "Gap states" });
+    expect(within(gaps).getAllByText("Not established for this run")).toHaveLength(2);
+    expect(within(gaps).getByText("not available")).toBeInTheDocument();
+    expect(within(gaps).getByText("Withheld")).toBeInTheDocument();
+    expect(within(gaps).getByText("Not assessable")).toBeInTheDocument();
+    expect(gaps.querySelector('[aria-hidden="true"].flex-col')).not.toBeNull();
+  });
+
+  it("shows the card and tile, three metric cards and a three-state timeline", () => {
+    render(<Kit />);
+    const cards = screen.getByRole("region", { name: "Card and tile" });
+    expect(within(cards).getByRole("group", { name: "Card with a title" })).toBeInTheDocument();
+    expect(within(cards).getByText("Tile content")).toBeInTheDocument();
+    const metrics = screen.getByRole("region", { name: "Metric card" });
+    expect(within(metrics).getAllByRole("article")).toHaveLength(3);
+    expect(within(metrics).getByText("n.a.")).toBeInTheDocument();
+    expect(within(metrics).getByText("from 1,150")).toBeInTheDocument();
+    expect(within(metrics).getByRole("button", { name: /^About / })).toBeInTheDocument();
+    const timeline = screen.getByRole("region", { name: "Timeline" });
+    expect(within(timeline).getAllByRole("listitem")).toHaveLength(3);
+    for (const word of ["Past", "Next", "Later"]) {
+      expect(within(timeline).getByText(word), word).toBeInTheDocument();
+    }
+  });
+
+  it("shows the trend chart with a broken line and the eight-series fold", () => {
+    render(<Kit />);
+    const trend = screen.getByRole("region", { name: "Trend chart" });
+    const legends = within(trend).getAllByRole("list", { name: "Legend" });
+    expect(legends).toHaveLength(2);
+    expect(within(legends[0] as HTMLElement).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(legends[1] as HTMLElement).getAllByRole("listitem")).toHaveLength(7);
+    const paths = [...trend.querySelectorAll("path.recharts-line-curve")];
+    expect(paths.some((p) => p.getAttribute("d")?.match(/M/g)?.length === 2)).toBe(true);
+    expect(within(trend).getAllByRole("radio", { name: "Table" })).toHaveLength(2);
+  });
+
+  it("names each chart by its title and labels the y-axis from the supplied ticks", () => {
+    render(<Kit />);
+    const debt = screen.getByRole("figure", { name: "Debt by period" });
+    const ticks = [
+      ...debt.querySelectorAll(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value"),
+    ].map((t) => t.textContent);
+    expect(ticks).toEqual(["0", "200", "400", "600"]);
+    expect(screen.getByRole("figure", { name: "Eight series" })).toBeInTheDocument();
+  });
+});
