@@ -5,20 +5,30 @@ import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent } from "./SignalFrame";
 import { FeedPage, type FeedEntry } from "./FeedPage";
+import { PageTitle } from "./parts/PageTitle";
 import { readSlice, type SignalScene } from "./slice";
 
 export type SignalPageKind = "feed" | "topic" | "group" | "thread" | "digest" | "settings";
 
 const VIEWS = { "for-you": "For you", latest: "Latest", saved: "Saved" } as const;
 
-function Empty({ title, children }: { title: string; children?: ReactNode }) {
+/** An empty state; `page` makes its title the page's h1 (the kit's title stops at h2), else it is an h2 under one. */
+function Empty({
+  title,
+  page = false,
+  children,
+}: {
+  title: string;
+  page?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <EmptyState className="py-12">
       <EmptyState.Header>
         <EmptyState.FeaturedIcon />
       </EmptyState.Header>
       <EmptyState.Content>
-        <EmptyState.Title>{title}</EmptyState.Title>
+        {page ? <PageTitle>{title}</PageTitle> : <EmptyState.Title>{title}</EmptyState.Title>}
       </EmptyState.Content>
       {children}
     </EmptyState>
@@ -84,7 +94,11 @@ function Body({
       if (view === undefined) {
         return {
           current: { kind: "none" },
-          body: <Empty title="No such view">{back}</Empty>,
+          body: (
+            <Empty page title="No such view">
+              {back}
+            </Empty>
+          ),
         };
       }
       const id = view as keyof typeof VIEWS;
@@ -104,7 +118,11 @@ function Body({
       if (topic === undefined) {
         return {
           current: { kind: "none" },
-          body: <Empty title="No such topic">{back}</Empty>,
+          body: (
+            <Empty page title="No such topic">
+              {back}
+            </Empty>
+          ),
         };
       }
       return {
@@ -119,19 +137,49 @@ function Body({
       };
     }
     case "group":
-    case "thread":
-      return {
-        current: { kind: "group", id: param(params, "group") },
-        body: <Empty title="Not built yet" />,
-      };
-    case "digest":
-      return {
-        current: { kind: "digest", id: param(params, "digest") },
-        body: <Empty title="Not built yet" />,
-      };
+    case "thread": {
+      const id = param(params, "group");
+      const group = scene.snapshot.channels.groups.find((g) => g.id === id);
+      if (group === undefined) {
+        return {
+          current: { kind: "none" },
+          body: (
+            <Empty page title="No such group">
+              {back}
+            </Empty>
+          ),
+        };
+      }
+      return { current: { kind: "group", id }, body: <NotBuilt title={group.name} /> };
+    }
+    case "digest": {
+      const id = param(params, "digest");
+      const digest = scene.snapshot.channels.digests.find((d) => d.id === id);
+      if (digest === undefined) {
+        return {
+          current: { kind: "none" },
+          body: (
+            <Empty page title="No such digest">
+              {back}
+            </Empty>
+          ),
+        };
+      }
+      return { current: { kind: "digest", id }, body: <NotBuilt title={digest.name} /> };
+    }
     case "settings":
-      return { current: { kind: "settings" }, body: <Empty title="Not built yet" /> };
+      return { current: { kind: "settings" }, body: <NotBuilt title="Settings" /> };
   }
+}
+
+/** A page a later task builds: its title as the h1, then the empty state saying so. */
+function NotBuilt({ title }: { title: string }) {
+  return (
+    <>
+      <PageTitle>{title}</PageTitle>
+      <Empty title="Not built yet" />
+    </>
+  );
 }
 
 export function SignalPage({
@@ -142,21 +190,25 @@ export function SignalPage({
   params: Record<string, string>;
 }) {
   const slice = readSlice(useSource().signal);
-  if (slice.kind !== "ok") return <Empty title="No Signal data in this library" />;
-  const first = slice.data.scenes[0];
+  if (slice.kind !== "ok") {
+    return (
+      <div className="p-8">
+        <Empty page title="No Signal data in this library" />
+      </div>
+    );
+  }
   const scene = slice.data.scenes.find((s) => s.id === params["scene"]);
   if (scene === undefined) {
     return (
-      <Empty title="No such sample scene">
-        <EmptyState.Footer>
-          <a
-            className="text-sm font-semibold text-text-link"
-            href={sceneHref(first, "feed/for-you")}
-          >
-            Back to the sample scenes
-          </a>
-        </EmptyState.Footer>
-      </Empty>
+      <div className="p-8">
+        <Empty page title="No such sample scene">
+          <EmptyState.Footer>
+            <a className="text-sm font-semibold text-text-link" href="#/signal">
+              Back to the sample scenes
+            </a>
+          </EmptyState.Footer>
+        </Empty>
+      </div>
     );
   }
   const { current, body } = Body({ scene, kind, params });

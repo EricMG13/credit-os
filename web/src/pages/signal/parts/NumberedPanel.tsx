@@ -6,7 +6,7 @@ export function NumberedPanel({ items }: { items: string[] }) {
     <ol className="overflow-hidden rounded-md border border-border-hairline bg-surface-card">
       {items.map((item, index) => (
         <li
-          key={item}
+          key={index}
           className="flex items-start gap-4 p-4 not-first:border-t not-first:border-border-hairline"
         >
           <span
