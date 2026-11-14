@@ -22,11 +22,15 @@ describe("Signal states", () => {
   });
 
   it.each([
-    ["an unknown group", "/signal/main/group/nowhere", "No such group"],
+    [
+      "an unknown group",
+      "/signal/main/group/nowhere",
+      "This group does not exist or is not open to you.",
+    ],
     [
       "an unknown group on the thread route",
       "/signal/main/group/nowhere/thread/t",
-      "No such group",
+      "This group does not exist or is not open to you.",
     ],
     ["an unknown digest", "/signal/main/digest/nowhere", "No such digest"],
   ])("draws %s as the one h1", (_name, hash, title) => {

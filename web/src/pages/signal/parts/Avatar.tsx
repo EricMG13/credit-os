@@ -1,6 +1,6 @@
 // After sources/uui/avatar.tsx and avatar-label-group.tsx, reduced to what Signal draws: a round
 // avatar with initials or a person icon, and the avatar with a title and a subtitle beside it.
-import type { ReactNode } from "react";
+import type { FC, ReactNode } from "react";
 import { User01 } from "@untitledui/icons";
 import { cx } from "@/utils/cx";
 
@@ -16,10 +16,12 @@ type AvatarProps = {
   initials: string | null;
   /** The tinted form the mock gives the viewer's own avatar. */
   own?: boolean;
+  /** The icon drawn when there are no initials (default: one person). */
+  icon?: FC<{ className?: string }>;
 };
 
 /** Decoration: the name beside it carries the meaning, so it is hidden from the accessibility tree. */
-export function Avatar({ size, initials, own = false }: AvatarProps) {
+export function Avatar({ size, initials, own = false, icon: Icon = User01 }: AvatarProps) {
   return (
     <span
       aria-hidden="true"
@@ -30,7 +32,7 @@ export function Avatar({ size, initials, own = false }: AvatarProps) {
       )}
     >
       {initials === null ? (
-        <User01 className={SIZES[size].icon} />
+        <Icon className={SIZES[size].icon} />
       ) : (
         <span className={SIZES[size].initials}>{initials}</span>
       )}
