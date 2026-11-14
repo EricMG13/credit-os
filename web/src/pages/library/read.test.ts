@@ -343,6 +343,7 @@ describe("readSlice, run frame", () => {
     const slice = fresh();
     runOf(slice, 0, 0)["overview"] = runOf(slice, 0, 2)["overview"];
     runOf(slice, 0, 0)["changes"] = runOf(slice, 0, 2)["changes"];
+    runOf(slice, 0, 0)["modules"] = runOf(slice, 0, 2)["modules"];
     runOf(slice, 0, 0).traces = Object.create({ x: {} }) as Run["traces"];
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -693,5 +694,185 @@ describe("readSlice, changes", () => {
     const loaded = fresh();
     runOf(loaded, 1).changes = runOf(fresh(), 0).changes;
     expect(invalidReason(loaded)).toContain("issuers[0].runs[1].changes");
+  });
+});
+
+describe("readSlice, modules", () => {
+  type Mod = Json & { body: Json & { records: unknown[] } };
+  type Run = Json & { modules: Mod[] | null; head: Json; overview: Json; changes: Json };
+  const runOf = (slice: ReturnType<typeof fresh>, r: number) =>
+    (slice.issuers[0]?.["runs"] as Run[])[r] as Run;
+  const modOf = (slice: ReturnType<typeof fresh>, id: string, r = 0): Mod => {
+    const found = runOf(slice, r).modules?.find((m) => m["id"] === id);
+    if (found === undefined) throw new Error(`no module ${id}`);
+    return found;
+  };
+  const at = (slice: ReturnType<typeof fresh>, id: string, r = 0) =>
+    `issuers[0].runs[${String(r)}].modules[${String(runOf(slice, r).modules?.findIndex((m) => m["id"] === id))}]`;
+
+  it("reads the full run's thirteen modules, the capped run's seven and a loading run's null", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const runs = result.data.issuers[0]?.runs ?? [];
+    const full = runs[0]?.modules ?? [];
+    expect(full.map((m) => m.name)).toEqual([
+      "Business profile",
+      "Industry and competition",
+      "Financial performance",
+      "Cash flow and liquidity",
+      "Capital structure",
+      "Covenants and documentation",
+      "Management and governance",
+      "Peer comparison",
+      "Recovery",
+      "Rating outlook",
+      "Environmental, social and governance",
+      "Forecast",
+      "Credit snapshot",
+    ]);
+    expect(full.map((m) => m.state).filter((s) => s !== "Delivered")).toEqual([
+      "Delivered with gaps",
+      "Delivered with gaps",
+      "Not assessable",
+    ]);
+    expect(full.find((m) => m.id === "recovery")?.body.kind).toBe("blocked");
+    expect(full[0]?.body).toMatchObject({ kind: "delivered", records: [] });
+    expect(runs[1]?.modules).toBeNull();
+    expect(runs[2]?.modules?.map((m) => m.state)).toContain("Not run");
+    expect(runs[3]?.modules?.map((m) => m.id)).toEqual(["capital-structure", "recovery"]);
+  });
+
+  it.each([
+    [
+      "a missing bottom line lead",
+      (s: ReturnType<typeof fresh>) =>
+        delete (modOf(s, "business-profile").body["bottomLine"] as Json)["lead"],
+      "business-profile",
+      "body.bottomLine.lead",
+    ],
+    [
+      "an unknown body kind",
+      (s: ReturnType<typeof fresh>) => (modOf(s, "recovery").body["kind"] = "partial"),
+      "recovery",
+      "body.kind",
+    ],
+    [
+      "a blocked module's missing reason",
+      (s: ReturnType<typeof fresh>) => delete modOf(s, "recovery").body["reason"],
+      "recovery",
+      "body.reason",
+    ],
+    [
+      "a delivered state on a blocked body",
+      (s: ReturnType<typeof fresh>) => (modOf(s, "recovery")["state"] = "Delivered"),
+      "recovery",
+      "state",
+    ],
+    [
+      "a blocked state on a delivered body",
+      (s: ReturnType<typeof fresh>) => (modOf(s, "capital-structure")["state"] = "Not assessable"),
+      "capital-structure",
+      "state",
+    ],
+    [
+      "a state outside the Module state set",
+      (s: ReturnType<typeof fresh>) => (modOf(s, "forecast")["state"] = "Done"),
+      "forecast",
+      "state",
+    ],
+    [
+      "a contrary passage without text",
+      (s: ReturnType<typeof fresh>) =>
+        delete (modOf(s, "business-profile").body["contrary"] as Json)["text"],
+      "business-profile",
+      "body.contrary.text",
+    ],
+    [
+      "a change view with an unknown trace",
+      (s: ReturnType<typeof fresh>) =>
+        ((modOf(s, "business-profile").body["changeView"] as Json)["trace"] = "nothing"),
+      "business-profile",
+      "body.changeView.trace",
+    ],
+    [
+      "an unknown record kind",
+      (s: ReturnType<typeof fresh>) =>
+        modOf(s, "business-profile").body.records.push({ kind: "heat" }),
+      "business-profile",
+      "body.records[0].kind",
+    ],
+    [
+      "a record that is not an object",
+      (s: ReturnType<typeof fresh>) => modOf(s, "business-profile").body.records.push("heat"),
+      "business-profile",
+      "body.records[0]",
+    ],
+    [
+      "no findings",
+      (s: ReturnType<typeof fresh>) =>
+        ((modOf(s, "business-profile").body["findings"] as unknown[]).length = 0),
+      "business-profile",
+      "body.findings",
+    ],
+    [
+      "no limitation items",
+      (s: ReturnType<typeof fresh>) =>
+        (((modOf(s, "business-profile").body["limitations"] as Json)["items"] as unknown[]).length =
+          0),
+      "business-profile",
+      "body.limitations.items",
+    ],
+    [
+      "a repeated module id",
+      (s: ReturnType<typeof fresh>) =>
+        (modOf(s, "industry-and-competition")["id"] = "business-profile"),
+      "industry-and-competition",
+      "id",
+    ],
+    [
+      "a repeated module name",
+      (s: ReturnType<typeof fresh>) =>
+        (modOf(s, "industry-and-competition")["name"] = "Business profile"),
+      "industry-and-competition",
+      "name",
+    ],
+  ])("is invalid for %s, with its path", (_, break_, id, path) => {
+    const slice = fresh();
+    const where = at(slice, id);
+    break_(slice);
+    expect(invalidReason(slice)).toContain(`${where}.${path}`);
+  });
+
+  it("rejects a finished run with no modules and a loading run that carries them", () => {
+    const missing = fresh();
+    runOf(missing, 0).modules = null;
+    expect(invalidReason(missing)).toContain("issuers[0].runs[0].modules");
+    const loaded = fresh();
+    runOf(loaded, 1).modules = runOf(fresh(), 0).modules;
+    expect(invalidReason(loaded)).toContain("issuers[0].runs[1].modules");
+  });
+
+  it("rejects a module item, in the Overview or on the Changes page, whose module the run lacks", () => {
+    const overview = fresh();
+    (((runOf(overview, 0).overview["modules"] as Json)["items"] as Json[])[0] as Json)["module"] =
+      "nowhere";
+    expect(invalidReason(overview)).toContain(
+      "issuers[0].runs[0].overview.modules.items[0].module",
+    );
+    const changes = fresh();
+    (((runOf(changes, 0).changes["modules"] as Json)["items"] as Json[])[0] as Json)["module"] =
+      "nowhere";
+    expect(invalidReason(changes)).toContain("issuers[0].runs[0].changes.modules.items[0].module");
+    const capped = fresh();
+    (runOf(capped, 3).modules as Mod[]).pop();
+    expect(invalidReason(capped)).toContain("issuers[0].runs[3].overview.modules.items[2].module");
+  });
+
+  it("rejects a first module the run does not hold, and allows none", () => {
+    const slice = fresh();
+    runOf(slice, 0).head["firstModule"] = "nowhere";
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.firstModule");
+    runOf(slice, 0).head["firstModule"] = null;
+    expect(readSlice(slice).kind).toBe("ok");
   });
 });
