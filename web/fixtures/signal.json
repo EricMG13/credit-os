@@ -45,7 +45,60 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": "3"
+                "commentCount": "3",
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "tags": ["Telecoms", "Disposals"],
+                "stage": {
+                  "current": "In-depth review",
+                  "label": "Stage 3 of 4",
+                  "position": 0.75,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": true },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "tessaly",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                "url": "https://example.com/tessaly",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "5 h ago",
+                "summary": "The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": true,
+                "commentCount": "1",
+                "tags": ["Shipping", "Rating actions"],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB-", "to": "B+", "word": "Downgrade, one notch" },
+                  { "from": "Negative", "to": "Stable", "word": "Outlook" }
+                ],
+                "id": "halvorsen",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                "url": "https://example.com/halvorsen",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "Yesterday",
+                "summary": "The agency cites weaker charter rates and a refinancing due in 2027."
               },
               {
                 "id": "brightwell",
@@ -62,7 +115,9 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": null
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
               },
               {
                 "id": "oakhaven",
@@ -79,7 +134,19 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": null
+                "commentCount": null,
+                "stage": {
+                  "current": "Initial review",
+                  "label": "Stage 2 of 4",
+                  "position": 0.5,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": true },
+                    { "name": "In-depth review", "current": false },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": []
               },
               {
                 "id": "pellant",
@@ -96,20 +163,83 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": null
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": true,
+                "commentCount": null,
+                "tags": [],
+                "stage": {
+                  "current": "Decision: cleared with conditions",
+                  "label": "Stage 4 of 4",
+                  "position": 1,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": false },
+                    { "name": "Decision", "current": true }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "brightwell-clearance",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Authority clears Brightwell Foods' dairy purchase with conditions",
+                "url": "https://example.com/brightwell-clearance",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "3 Nov",
+                "summary": "Brightwell must sell three depots within six months."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "tags": [],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB", "to": "BB", "word": "Affirmed" },
+                  { "from": "Stable", "to": "Positive", "word": "Outlook" }
+                ],
+                "id": "oakhaven-affirm",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings affirms Oakhaven Lines at BB, outlook to positive",
+                "url": "https://example.com/oakhaven-affirm",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "28 Oct",
+                "summary": "The agency points to contract cover through 2028."
               }
             ],
             "views": {
-              "for-you": { "top": ["corvane", "brightwell"], "latest": ["corvane", "brightwell"] },
+              "for-you": {
+                "top": ["corvane", "tessaly", "halvorsen", "brightwell"],
+                "latest": ["corvane", "tessaly", "halvorsen", "brightwell"]
+              },
               "latest": { "top": ["oakhaven", "pellant"], "latest": ["oakhaven", "pellant"] },
-              "saved": { "top": [], "latest": [] }
+              "saved": {
+                "top": ["halvorsen", "brightwell-clearance"],
+                "latest": ["halvorsen", "brightwell-clearance"]
+              }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [] },
+              "shipping": {
+                "top": ["halvorsen", "oakhaven-affirm"],
+                "latest": ["halvorsen", "oakhaven-affirm"]
+              },
               "packaging": { "top": [], "latest": [] },
               "telecoms": { "top": [], "latest": [] },
               "rating-actions": { "top": [], "latest": [] }
-            }
+            },
+            "digests": []
           }
         }
       },
@@ -153,7 +283,9 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": "3"
+                "commentCount": "3",
+                "stage": null,
+                "ratingMoves": []
               },
               {
                 "id": "brightwell",
@@ -170,7 +302,9 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": null
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
               }
             ],
             "views": {
@@ -183,7 +317,8 @@
               "packaging": { "top": [], "latest": [] },
               "telecoms": { "top": [], "latest": [] },
               "rating-actions": { "top": [], "latest": [] }
-            }
+            },
+            "digests": []
           }
         }
       },
@@ -233,7 +368,9 @@
                 },
                 "strength": { "marks": 3, "word": "Strong" },
                 "saved": false,
-                "commentCount": "3"
+                "commentCount": "3",
+                "stage": null,
+                "ratingMoves": []
               },
               {
                 "id": "brightwell",
@@ -250,11 +387,69 @@
                 "ai": null,
                 "strength": { "marks": 1, "word": "Light" },
                 "saved": false,
-                "commentCount": null
+                "commentCount": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": {
+                  "line": "Sale proceeds are earmarked to repay the 2027 notes; a delay moves that date."
+                },
+                "strength": { "marks": 2, "word": "Moderate" },
+                "saved": false,
+                "commentCount": null,
+                "tags": ["Telecoms", "Disposals"],
+                "stage": {
+                  "current": "In-depth review",
+                  "label": "Stage 3 of 4",
+                  "position": 0.75,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": true },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "tessaly",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                "url": "https://example.com/tessaly",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "5 h ago",
+                "summary": "The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": { "line": "B+ is one notch above the level that raises its loan margin." },
+                "strength": { "marks": 3, "word": "Strong" },
+                "saved": true,
+                "commentCount": "1",
+                "tags": ["Shipping", "Rating actions"],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB-", "to": "B+", "word": "Downgrade, one notch" },
+                  { "from": "Negative", "to": "Stable", "word": "Outlook" }
+                ],
+                "id": "halvorsen",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                "url": "https://example.com/halvorsen",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "Yesterday",
+                "summary": "The agency cites weaker charter rates and a refinancing due in 2027."
               }
             ],
             "views": {
-              "for-you": { "top": ["corvane", "brightwell"], "latest": ["corvane", "brightwell"] },
+              "for-you": {
+                "top": ["corvane", "tessaly", "halvorsen", "brightwell"],
+                "latest": ["corvane", "tessaly", "halvorsen", "brightwell"]
+              },
               "latest": { "top": [], "latest": [] },
               "saved": { "top": [], "latest": [] }
             },
@@ -263,7 +458,52 @@
               "packaging": { "top": [], "latest": [] },
               "telecoms": { "top": [], "latest": [] },
               "rating-actions": { "top": [], "latest": [] }
-            }
+            },
+            "digests": [
+              {
+                "summary": "5 points from 41 stories",
+                "nothing": null,
+                "points": [
+                  "Packaging issuers are cutting capacity, not prices",
+                  "Two telecoms disposals are now in in-depth review",
+                  "Shipping downgrades cluster around 2027 maturities"
+                ],
+                "ai": true,
+                "unread": true,
+                "id": "weekly-brief",
+                "digestName": "Weekly brief",
+                "monogram": "WB",
+                "title": "Leveraged credit: the week to 13 November",
+                "date": "Fri 13 Nov"
+              },
+              {
+                "summary": "2 points from 7 stories",
+                "nothing": null,
+                "points": [
+                  "Halvorsen Marine cut one notch to B+ on refinancing risk",
+                  "Oakhaven Lines affirmed at BB, outlook to positive"
+                ],
+                "ai": true,
+                "unread": false,
+                "id": "daily-ratings-12-nov",
+                "digestName": "Daily ratings",
+                "monogram": "DR",
+                "title": "Rating actions: 12 November",
+                "date": "Thu 12 Nov"
+              },
+              {
+                "summary": null,
+                "nothing": "Nothing material to report: no rating action reached this digest's sources on 11 November.",
+                "points": [],
+                "ai": false,
+                "unread": false,
+                "id": "daily-ratings-11-nov",
+                "digestName": "Daily ratings",
+                "monogram": "DR",
+                "title": "Rating actions: 11 November",
+                "date": "Wed 11 Nov"
+              }
+            ]
           }
         }
       },
@@ -302,7 +542,8 @@
               "packaging": { "top": [], "latest": [] },
               "telecoms": { "top": [], "latest": [] },
               "rating-actions": { "top": [], "latest": [] }
-            }
+            },
+            "digests": []
           }
         }
       },
@@ -331,7 +572,8 @@
               "latest": { "top": [], "latest": [] },
               "saved": { "top": [], "latest": [] }
             },
-            "topics": {}
+            "topics": {},
+            "digests": []
           }
         }
       }
