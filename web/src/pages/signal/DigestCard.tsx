@@ -29,7 +29,7 @@ export function DigestCard({ digest, href }: { digest: SignalDigestCard; href: s
         </div>
         {digest.nothing === null ? (
           <>
-            <h2 className="text-lg font-medium text-text-primary">
+            <h2 tabIndex={-1} className="text-lg font-medium text-text-primary">
               <a href={href} className={`text-text-primary hover:underline ${FOCUS}`}>
                 {title}
               </a>
@@ -53,7 +53,9 @@ export function DigestCard({ digest, href }: { digest: SignalDigestCard; href: s
           </>
         ) : (
           <>
-            <h2 className="text-lg font-medium text-text-primary">{title}</h2>
+            <h2 tabIndex={-1} className="text-lg font-medium text-text-primary">
+              {title}
+            </h2>
             <p className="mt-0.5 max-w-[72ch] text-text-secondary">{digest.nothing}</p>
           </>
         )}

@@ -35,7 +35,7 @@ export function StoryCard({ story, writer }: { story: SignalStory; writer: boole
           <span>{story.source.name}</span>
           {story.time === null ? null : <span>{story.time}</span>}
         </div>
-        <h2 className="text-lg font-medium text-text-primary">
+        <h2 tabIndex={-1} className="text-lg font-medium text-text-primary">
           {link === null ? (
             headline
           ) : (
