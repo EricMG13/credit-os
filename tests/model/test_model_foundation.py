@@ -144,3 +144,135 @@ def test_exactly_five_cells_have_no_more_clause() -> None:
     assert "(5 cells: " in message
     assert message.endswith("'])")
     assert " more" not in message
+
+
+_REV = ("| 1,318 | 1,456 |", "| 1,318 | {} |")
+_WHERE = "row `{}`, period `FY2024`"
+
+
+def _cell_edit(old: str, new: str) -> list[list[str]]:
+    return [[old, new]]
+
+
+def _many_message(cell: str) -> list[str]:
+    where = _WHERE.format("Revenue")
+    text = f"base revenue: {where} is not one number in CP-1 (1 cells: ['{cell}'])"
+    return ["cell", "base revenue", text]
+
+
+def _other(key: str, amount: str, row: str, cell: str) -> list[str]:
+    where = _WHERE.format(row)
+    text = f"base {key} {amount} is not CP-1's cell at {where} ({cell})"
+    return ["cell", f"base {key}", text]
+
+
+_BOTH_CONTEXTS = (
+    decimal.getcontext,
+    lambda: decimal.Context(prec=5, rounding=decimal.ROUND_UP),
+)
+
+
+def _both(row: dict[str, Any]) -> list[list[str] | None]:
+    found = []
+    for make in _BOTH_CONTEXTS:
+        with decimal.localcontext(make()):
+            found.append(_outcome(row))
+    return found
+
+
+@pytest.mark.parametrize(
+    "cell",
+    [".5", "+", "1,00", "1,0000", "1.", "١٤٥٦", "1.456.000", "1,456000", "1 456", "–1,456"]
+    + ["+-1,456", "(-1,456)", "(1,456"],
+)
+def test_a_cell_form_that_is_not_a_number_is_not_one_number(cell: str) -> None:
+    row = {"edits": _cell_edit(_REV[0], _REV[1].format(cell))}
+    assert _both(row) == [_many_message(cell)] * 2
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "key", "label", "amount", "cell"),
+    [
+        ("| 250 | 320 |", "| 250 | -320 |", "ebitda", "EBITDA (Reported)", "320", "-320"),
+        (
+            "| Cash & Equivalents | 197 | 283 |",
+            "| Cash & Equivalents | 197 | -283 |",
+            "cash",
+            "Cash & Equivalents",
+            "283",
+            "-283",
+        ),
+        (
+            "documents read | 175 | 175",
+            "documents read | -175 | 175",
+            "undrawn",
+            "Undrawn committed facilities",
+            "175",
+            "-175",
+        ),
+    ],
+)
+def test_a_signed_operand_is_not_its_cell_printed_negative(
+    old: str, new: str, key: str, label: str, amount: str, cell: str
+) -> None:
+    row = {"edits": _cell_edit(old, new)}
+    assert _both(row) == [_other(key, amount, label, cell)] * 2
+
+
+def test_debt_printed_negative_is_not_the_debt_amount() -> None:
+    edits = [
+        ["| Total Debt | 1,280 | 1,250 |", "| Total Debt | 1,280 | -1,250 |"],
+        ["| Total Debt | 1,250 |  |", "| Total Debt | -1,250 |  |"],
+    ]
+    assert _both({"edits": edits}) == [_other("debt", "1250", "Total Debt", "-1,250")] * 2
+
+
+def test_a_bracketed_cell_past_28_digits_is_exact() -> None:
+    long = "(37.00000000000000000000000000001)"
+    row = {"edits": _cell_edit("| -29 | -37 |", f"| -29 | {long} |")}
+    want = _other("taxes", "37", "Income taxes paid", long)
+    assert _both(row) == [want] * 2
+
+
+def _revenue_row(row: str, amount: str = "1456") -> list[list[Any]]:
+    return [[["base", "revenue", "row"], row], [["base", "revenue", "amount"], amount]]
+
+
+def test_plain_strips_spaces_inside_and_outside_the_marks() -> None:
+    assert _outcome({"edits": _cell_edit(_REV[0], _REV[1].format("** 1,456 **"))}) is None
+    assert _outcome({"ops": _revenue_row(" **Revenue** ")}) is None
+    assert _outcome({"ops": _revenue_row("Revenue ")}) is None
+
+
+def test_plain_does_not_strip_a_tilde() -> None:
+    where = "row `~Revenue~`, period `FY2024`"
+    text = f"base revenue: no table cell of CP-1 is at {where}"
+    assert _outcome({"ops": _revenue_row("~Revenue~")}) == ["cell", "base revenue", text]
+
+
+@pytest.mark.parametrize("named", [{"period": "FY2024"}, {"row": "Undrawn"}, {"column": "Cash"}])
+def test_a_reason_naming_any_one_of_row_period_column_is_located(named: dict[str, str]) -> None:
+    operand = {"amount": None, "reason": "Not read.", "row": None, "period": None, "column": None}
+    row = {"ops": [[["base", "undrawn"], {**operand, **named}]]}
+    text = "base undrawn states no amount, so it names no row, period or column"
+    assert _outcome(row) == ["cell", "base undrawn", text]
+
+
+def test_the_other_message_shows_the_smallest_cell_text() -> None:
+    edits = _cell_edit("| Total Debt | 1,250 |  |", "| Total Debt | 1250 |  |")
+    ops = [[["base", "debt", "amount"], "1251"]]
+    assert _outcome({"edits": edits, "ops": ops}) == _other("debt", "1251", "Total Debt", "1,250")
+
+
+def test_the_where_clause_shows_the_row_as_stated() -> None:
+    row = {"ops": _revenue_row("**Revenue**", "1457")}
+    assert _outcome(row) == _other("revenue", "1457", "**Revenue**", "1,456")
+
+
+def test_equal_texts_in_two_tables_are_one_cell() -> None:
+    calc = "Net debt is Total Debt less Cash & Equivalents.\n"
+    table = "| Line item | FY2024 |\n| --- | --- |\n| Total Debt | 1,251 |\n"
+    edits = [["| Total Debt | 1,250 |  |", "| Total Debt | 1,251 |  |"], [calc, f"{calc}\n{table}"]]
+    where = _WHERE.format("Total Debt")
+    text = f"base debt: {where} is not one number in CP-1 (2 cells: ['1,250', '1,251'])"
+    assert _outcome({"edits": edits}) == ["cell", "base debt", text]
