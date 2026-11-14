@@ -33,7 +33,7 @@ against a hand oracle, 1,978 key cases and 15,000 fuzzed lines, none escaping.
 reader of the 27 fixtures and compared it with the key and with `parse`: no disagreement.
 
 **Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #47
-on `e29f1f2` (804 tests), #50 on `2bc089f` (622 passed, coverage 100%, suppressions 0). #49:
+on `e29f1f2` (804 tests), #50 on `2bc089f` (622 passed, coverage 100%). #49:
 `npm --prefix web run gates` exit 0 locally (implementer). Mutation on #50 (`mutmut`, at
 `ac733d9`): 642 mutants, 633 killed, 9 equivalent.
 
@@ -50,20 +50,23 @@ Chrome (read from the logs of three runs on `main` before #49).
 - `1A-3 task=4(low batch 2) agent=mx-feature fix-rounds=0 gates-first-pass=y`
 - `1C-1b task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
 - `1C-1b task=end-batch agent=mx-scaffold fix-rounds=0 gates-first-pass=n`
-- `0C-2 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
+- `0C-2 agent=mx-scaffold fix-rounds=0 gates-first-pass=y` (the full web gate passed on its
+  first run; a lint run before it failed on a stale `node_modules`, not on the change)
 
 **Rulings by the coordinator.** In the 1A and 1C plans. The ones a later step depends on:
 - Four of 63 retained drafts of one run are refused by the table rules. The predecessor refused
-  three for the same fault and accepted the fourth while turning two calculation rows into
-  prose; none was delivered. The refusals stand. Step 3A sends a parse refusal and its line
+  three for the same fault and accepted the fourth, a module's final reply, while turning two
+  calculation rows into prose; none reached a library. The refusals stand. Step 3A sends a parse refusal and its line
   back to the module as the retry reason.
 - An unclosed code fence is a flag on the block, not a parse error; step 2B refuses it.
 - The bound on a reply's size is step 3A's. A charge is printed with `format(d, "f")`, and a
   recorded charge has no digit or scale cap (step 3A).
-- One representation of tool arguments in both adapters: what the SDK gives (a float for a
-  fraction). Money never comes from a tool argument.
-- `Model.close()` returns the compactions observed and not yet delivered; a compaction carries
-  whether it failed; an unknown charge is `None` in every case.
+- Ruled for 1C PR 2, not yet in `main`: one representation of tool arguments in both adapters,
+  what the SDK gives (a float for a fraction); `Model.close()` returns the compactions observed
+  and not yet delivered; a compaction carries its event id and its outcome (done, failed,
+  unfinished); an unknown charge is `None` in every case; several usage events of one call
+  are summed only when every one is readable. A sent reply whose charge is unknown makes the
+  run's spend unknown, and step 3A's budget stops the run unless the owner rules otherwise.
 
 **A rule breached and corrected.** #36 put two charge figures from the predecessor's test
 fragments of a real run into `tests/provider/test_types.py`, against "public or synthetic

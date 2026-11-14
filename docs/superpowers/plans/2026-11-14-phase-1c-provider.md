@@ -121,15 +121,28 @@ the PR.
   several model calls (`assistant.turn_retry`), so usage is taken from every usage event of
   the call.
 - **A recorded charge** is read only from a string of plain digits with an optional fraction
-  (no sign, underscore, space, exponent, leading zero or non-ASCII digit); anything else
+  (no sign, underscore, space, exponent, non-ASCII digit, or leading zero before another digit); anything else
   refuses the recording line with its number. `-0` is not a charge.
+
+Ruled for PR 2 (not yet in `main`; #50 merged without them):
 - **Tool arguments** have one representation in both adapters, the one the SDK gives: a
-  fraction is a `float`. Money never comes from a tool argument.
+  fraction is a `float` (the canned adapter gives a `Decimal` until PR 2). Money never comes
+  from a tool argument.
 - **Compactions, carrier and identity.** A compaction is attached to the reply of the call
   during which it is observed, or to the next call's reply; `Model.close()` returns those
-  observed and not yet delivered. `Compaction` carries `failed`; an unknown charge is `None`
-  whether or not it failed. If the SDK's event has an id, `Compaction` carries it and a repeat
-  is ignored.
+  observed and not yet delivered. `Compaction` gains `event_id` (the envelope id of the SDK
+  event, as text; a repeat is ignored) and `outcome`: `done`, `failed`, or `unfinished` for a
+  compaction that started and had not reported when the call ended. An unknown charge is
+  `None` in every case; an unfinished one has every count `None`.
+- **Several usage events in one call** (a retried turn). Each count and the charge are the
+  exact sum over the call's usage events when every event reports them readably, else `None`;
+  a repeat of an event id is counted once. The source does not say whether such events are
+  per-attempt or cumulative: if cumulative the sum overstates and never understates.
+- **Tool calls** are read from `tool.execution_start`; where a message carries `toolRequests`
+  their ids must match, and a call with a parent tool call is refused. The parser takes
+  `{"id", "type", "data"}` objects and imports nothing from the SDK.
+
+Already in `main`:
 - **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
   Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
   with the reviewer's probe as the answer key, no later than PR 3, which does not merge while

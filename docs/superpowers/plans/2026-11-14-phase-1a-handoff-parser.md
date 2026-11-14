@@ -156,11 +156,13 @@ Document (PR 3, #47):
 8. Whitespace of any kind around a heading title is ignored.
 9. An unclosed fence is a flag on its code block, not an error; nothing inside it is classified
    by a later layer, and step 2B refuses a handoff that has one.
-10. An error message shows at most 80 characters of text taken from the file.
 
-Reader (PR 4): a `Reader summary` section that is present but not in the expected shape is
-never read as absent. The reader carries the raw section, so the summary being unreadable is
-an explicit gap.
+Ruled for PR 4 (#53, not yet in `main`):
+- Every `HandoffError` message that echoes text from the file shows at most 80 characters of
+  it, then `…`.
+- A `Reader summary` section that is present but not in the expected shape is never read as
+  absent. The reader carries the raw section, so the summary being unreadable is an explicit
+  gap.
 
 Known real case (one retained run): a table split by a blank line, or a header and separator
 of different widths, is refused; the predecessor accepted the first and turned rows into prose.
