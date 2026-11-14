@@ -109,6 +109,26 @@ describe("the freshness line", () => {
     expect(screen.getByText("Sources checked 6 min ago · 1 source failing")).toBeInTheDocument();
   });
 
+  it("keeps the delivered failing suffix when sources are not checked yet", () => {
+    show(
+      "/signal/main/feed/for-you",
+      withFreshness("main", { state: "not-checked", checked: null, failing: "2 sources failing" }),
+    );
+    expect(screen.getByText("Sources not checked yet · 2 sources failing")).toBeInTheDocument();
+  });
+
+  it.each(["not-checked", "checking", "unavailable"])(
+    "draws the warning triangle for the %s state when an error text is delivered",
+    (state) => {
+      const { container } = show(
+        "/signal/main/feed/for-you",
+        withFreshness("main", { state, checked: null, error: "the check reported an error" }),
+      );
+      expect(container.querySelector("[data-shape='triangle']")).not.toBeNull();
+      expect(screen.getByText(/ · the check reported an error$/)).toBeInTheDocument();
+    },
+  );
+
   it("draws the page title at the mock's heading size", () => {
     show("/signal/main/feed/for-you");
     expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-h2");
@@ -134,10 +154,20 @@ describe("Top or Latest", () => {
     expect(headlines()).toEqual([CORVANE, TESSALY, HALVORSEN, BRIGHTWELL]);
   });
 
-  it("starts the Latest route on Latest", () => {
-    show("/signal/main/feed/latest");
-    expect(screen.getByRole("radio", { name: "Latest" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Top" })).not.toBeChecked();
+  it.each([
+    ["main Latest", "/signal/main/feed/latest", [OAKHAVEN, PELLANT]],
+    ["main Saved", "/signal/main/feed/saved", [HALVORSEN, CLEARANCE]],
+    ["reader Latest", "/signal/reader/feed/latest", [CORVANE, BRIGHTWELL]],
+  ])("draws no switch on %s, only its latest order", (_name, hash, expected) => {
+    show(hash);
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /Top|Latest/ })).not.toBeInTheDocument();
+    expect(headlines()).toEqual(expected);
+  });
+
+  it("draws the switch on a topic view, on Top", () => {
+    show("/signal/main/topic/shipping");
+    expect(screen.getByRole("radio", { name: "Top" })).toBeChecked();
   });
 
   it("is reachable and operable from the keyboard", () => {
@@ -158,7 +188,7 @@ describe("Top or Latest", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Latest" }));
     fireEvent.click(tab("News"));
     type("Corvane");
-    window.location.hash = "#/signal/main/feed/saved";
+    window.location.hash = "#/signal/main/topic/shipping";
     fireEvent(window, new HashChangeEvent("hashchange"));
     expect(screen.getByRole("radio", { name: "Top" })).toBeChecked();
     expect(tab("All")).toHaveAttribute("aria-selected", "true");
@@ -355,5 +385,36 @@ describe("new stories and Show older", () => {
     expect(screen.queryByRole("button", { name: /Show older/ })).not.toBeInTheDocument();
     show("/signal/main/feed/latest");
     expect(screen.queryByRole("button", { name: /Show older/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("focus after the list grows", () => {
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  const headingOf = (headline: string) => screen.getByRole("heading", { level: 2, name: headline });
+
+  it("moves to the first older story after Show older", () => {
+    show("/signal/main/feed/for-you");
+    const button = screen.getByRole("button", { name: "Show older" });
+    button.focus();
+    fireEvent.click(button);
+    expect(headingOf(LENMARK)).toHaveFocus();
+  });
+
+  it("moves to the first story of the list after the pill's Show", () => {
+    show("/signal/main/feed/for-you");
+    const button = screen.getByRole("button", { name: "Show 4 new stories" });
+    button.focus();
+    fireEvent.click(button);
+    expect(headingOf(OAKHAVEN)).toHaveFocus();
+  });
+
+  it("moves to the first newly shown story when a kind filter hides the earlier older ones", () => {
+    show("/signal/main/feed/for-you");
+    fireEvent.click(tab("Regulators"));
+    fireEvent.click(screen.getByRole("button", { name: "Show older" }));
+    expect(headingOf(KARSTEN)).toHaveFocus();
   });
 });
