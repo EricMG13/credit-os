@@ -510,6 +510,7 @@ describe("readSlice: a string the page draws is never empty", () => {
     [["statements", "gap", "reason"], `${P}.statements.gap.reason`],
     [["statements", "checkFigure", "title"], `${P}.statements.checkFigure.title`],
     [["statements", "checkFigure", "text"], `${P}.statements.checkFigure.text`],
+    [["analysis", "measures", "period"], `${P}.analysis.measures.period`],
   ] as [(string | number)[], string][])("refuses an empty string at %j", (steps, where) => {
     expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
       kind: "invalid",
@@ -560,6 +561,12 @@ describe("readSlice: a string of spaces is as empty as no string", () => {
       reason: `${where}: ${what}`,
     });
   });
+
+  it("keeps the free-text chart subtitle and note as they were: a blank one still reads", () => {
+    const base = [...RUN, "analysis", "headroom"];
+    expect(readSlice(edited([...base, "subtitle"], " ")).kind).toBe("ok");
+    expect(readSlice(edited([...base, "note"], "")).kind).toBe("ok");
+  });
 });
 
 describe("readSlice: an address into the library starts with #/", () => {
@@ -571,7 +578,9 @@ describe("readSlice: an address into the library starts with #/", () => {
     [["links", "evidence"], `${P}.links.evidence`, "//example.invalid/x"],
     [["links", "library"], `${P}.links.library`, "library/transdigm"],
     [["links", "evidenceGaps"], `${P}.links.evidenceGaps`, "/#/x"],
+    [["analysis", "limitations", "href"], `${P}.analysis.limitations.href`, "javascript:alert(1)"],
     [["cases", 0, "trace"], `${P}.cases[0].trace`, "http://example.invalid/x"],
+    [["analysis", "headroom", "trace"], `${P}.analysis.headroom.trace`, "evidence"],
     [
       ["statements", "statements", 0, "rows", 0, "trace"],
       `${P}.statements.statements[0].rows[0].trace`,

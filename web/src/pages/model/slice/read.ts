@@ -22,6 +22,7 @@ import {
   yes,
   type Reader,
 } from "./reader-kit";
+import { analysis, checkAnalysis } from "./read-analysis";
 import { checkSections, sections } from "./read-sections";
 import type {
   Fact,
@@ -286,6 +287,7 @@ const runFields = object<ModelRun>({
   links,
   cases: arrayOf(caseCard),
   front,
+  analysis,
   statements,
   limitations,
 });
@@ -301,6 +303,7 @@ const run: Reader<ModelRun> = (value, path) => {
   }
   checkFront(read.front, child(path, "front"));
   checkLimitations(read.limitations, child(path, "limitations"));
+  checkAnalysis(read.analysis, child(path, "analysis"));
   checkStatements(read.statements, read.cases.length, child(path, "statements"));
   checkSections(read.statements, read.cases, child(path, "statements"));
   checkStatementNames(read.statements, read.cases, child(path, "cases"), child(path, "statements"));

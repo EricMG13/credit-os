@@ -168,3 +168,36 @@ export function distinctTraceNames(items: readonly TraceName[]): void {
 export function atLeastOne(list: readonly unknown[], path: string, noun: string): void {
   if (list.length === 0) fail(path, `expected at least one ${noun}`);
 }
+
+/**
+ * A table cell against the mark it states: `null` exactly where the mark is missing. `missing`
+ * names the mark in the refusal beside a cell that should be `null`; `what` names the text a cell
+ * must hold beside a mark that is drawn.
+ */
+export function checkPresence(
+  cell: string | null,
+  present: boolean,
+  path: string,
+  missing: string,
+  what: string,
+): void {
+  if (!present) {
+    if (cell !== null) fail(path, `expected null beside a missing ${missing}`);
+  } else if (cell === null) {
+    fail(path, `expected ${what}, not n.a.`);
+  }
+}
+
+/** A row holds at least `n` cells, so the ones a mark names exist. */
+export function needCells(row: { cells: unknown[] }, n: number, path: string): void {
+  if (row.cells.length < n) fail(`${path}.cells`, `expected at least ${String(n)} cells`);
+}
+
+export function checkCells(row: { cells: unknown[] }, head: string[], path: string): void {
+  if (row.cells.length !== head.length - 1) {
+    fail(
+      `${path}.cells`,
+      `expected ${String(head.length - 1)} cells, one per column after the label`,
+    );
+  }
+}

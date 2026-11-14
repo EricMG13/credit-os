@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Card } from "@/components/card/Card";
 import { TraceControl } from "../parts/TraceControl";
+import type { GapItem } from "../slice/types";
 
 /** The heading of the table's last column, which holds one trace control per row. */
 export const END_HEADING = "Show sources";
@@ -54,4 +55,12 @@ export function pairGrid(tableColumns: number): string {
   return tableColumns >= WIDE_TABLE
     ? "grid grid-cols-1 gap-6"
     : "grid grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] gap-6";
+}
+
+/**
+ * `GapPanel` has no title yet, so a gap's title and reason are joined here, in the one place to
+ * change when the kit adds `title`.
+ */
+export function gapReason(gap: GapItem): string {
+  return `${gap.title}. ${gap.reason}`;
 }

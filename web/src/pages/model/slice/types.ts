@@ -11,6 +11,7 @@ export type ModelRun = {
   /** The forecast cases, in the order the page offers them; the first is the default. */
   cases: CaseCard[];
   front: FrontPage;
+  analysis: AnalysisPage;
   statements: StatementsPage;
   limitations: LimitationsPage;
 };
@@ -231,3 +232,81 @@ export type Cell =
   | { kind: "figure"; text: string; pos: number }
   | { kind: "missing"; reason: string | null }
   | { kind: "withheld"; reason: string | null };
+
+/** A passage that stands on its own: a heading, a sentence and its trace address. */
+export type Passage = { title: string; text: string; trace: string | null };
+
+export type AnalysisPage = {
+  findings: Finding[];
+  measures: { period: string; stats: Measure[] };
+  headroom: Headroom;
+  segments: Segments;
+  /** The contrary evidence, drawn as a warning. */
+  contrary: Passage;
+  /** What would change the view, drawn as a standout note. */
+  watch: Passage;
+  limitations: AnalysisLimitations;
+};
+
+/** A key finding. `number` is the delivered marker, for example "01". */
+export type Finding = { number: string; title: string; text: string; trace: string | null };
+
+/**
+ * A measure and what it means. `value` is `null` when it could not be measured; `delta` is the
+ * whole line under the value, arrow included, and states the earlier value when there is no change.
+ */
+export type Measure = {
+  label: string;
+  value: string | null;
+  delta: string;
+  text: string;
+  trace: string | null;
+};
+
+/**
+ * A bullet row: positions run from zero to `axisMax`; `value` and `text` are `null` together.
+ * The first of `cells` is the value's text: `null` exactly where the value is missing, otherwise
+ * the row's `text` is that cell alone or that cell, a space and the rest ("5.9x" in "5.9x of
+ * 7.0x"). The reader compares at that start, not at the composed string.
+ */
+export type HeadroomRow = {
+  label: string;
+  sub: string;
+  value: number | null;
+  target: number;
+  axisMax: number;
+  text: string | null;
+  /** The table side: one cell per column after the label; `null` is missing. */
+  cells: (string | null)[];
+};
+
+export type Headroom = ChartInfo & { head: string[]; rows: HeadroomRow[] };
+
+/**
+ * A dumbbell row on the page's one axis; at least one end is present. `cells` is the earlier
+ * text, then the later: each `null` exactly where its end (`from`, `to`) is missing, and `text`
+ * is the two joined by " to ", "n.a." for a missing one ("n.a. to 44.0%").
+ */
+export type SegmentRow = {
+  label: string;
+  from: number | null;
+  to: number | null;
+  text: string;
+  cells: (string | null)[];
+};
+
+export type Segments = ChartInfo & {
+  /** The earlier and the later period, as the legend names them. */
+  names: [string, string];
+  axis: { min: number; max: number };
+  head: string[];
+  rows: SegmentRow[];
+};
+
+/** The limitations the page shows; the link goes to this group's page of all of them. */
+export type AnalysisLimitations = {
+  count: string;
+  linkText: string;
+  href: string;
+  items: { title: string; text: string; trace: string | null }[];
+};
