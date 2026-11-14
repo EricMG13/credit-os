@@ -144,7 +144,7 @@ def test_raise_from_keeps_the_cause() -> None:
 def test_store_refused_is_a_value_error_and_the_rest_are_not() -> None:
     assert issubclass(StoreRefused, StoreError)
     assert issubclass(StoreRefused, ValueError)
-    for name in ("StoreBusy", "StoreConflict", "StoreCorrupt", "StoreUnusable"):
+    for name in ("StoreBusy", "StoreConflict", "StoreCorrupt", "StoreFenced", "StoreUnusable"):
         assert issubclass(getattr(errors, name), StoreError)
         assert not issubclass(getattr(errors, name), ValueError)
         assert getattr(errors, name).__bases__ == (StoreError,)
