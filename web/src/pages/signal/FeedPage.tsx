@@ -1,23 +1,81 @@
-// A feed page: its view title row, then the entries of the view on one card with hairlines between
-// them. An entry is a story or a digest card. The header and the list are separate components.
+// A feed page: its view title row (title, freshness, Top or Latest), the kind tabs and search, the
+// pill for new stories, then the entries on one card with hairlines between them, then Show older.
+// An entry is a story or a digest card. Order, filter, search, the pill and Show older all act on
+// in-memory state over the entries the slice supplied; nothing is fetched or stored.
+import { useState } from "react";
+import { Button } from "@/components/base/buttons/button";
+import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { DigestCard } from "./DigestCard";
+import { FeedControls, OrderToggle, type FeedKind, type FeedOrder } from "./FeedControls";
+import { FreshnessBadge } from "./parts/FreshnessBadge";
 import { PageTitle } from "./parts/PageTitle";
-import type { SignalDigestCard, SignalStory } from "./slice";
+import { Pill } from "./parts/Pill";
+import type { SignalDigestCard, SignalFreshness, SignalStory } from "./slice";
 import { StoryCard } from "./StoryCard";
 
 export type FeedEntry =
   | { kind: "story"; story: SignalStory }
   | { kind: "digest"; digest: SignalDigestCard; href: string };
 
-function FeedHeader({ title }: { title: string }) {
+/** A view's entries as the slice orders them; `waiting` and `older` are the ones not yet drawn. */
+export type FeedEntries = {
+  top: FeedEntry[];
+  latest: FeedEntry[];
+  waiting: { label: string; entries: FeedEntry[] } | null;
+  older: FeedEntry[];
+};
+
+function FeedHeader({
+  title,
+  freshness,
+  order,
+  onOrder,
+}: {
+  title: string;
+  freshness: SignalFreshness;
+  order: FeedOrder;
+  onOrder: (order: FeedOrder) => void;
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <PageTitle>{title}</PageTitle>
+      <FreshnessBadge freshness={freshness} />
+      <div className="ml-auto">
+        <OrderToggle order={order} onOrder={onOrder} />
+      </div>
     </div>
   );
 }
 
-/** The entries in the order given (the ids a view lists); none means nothing is drawn yet. */
+/** Stories of the chosen kind whose headline, summary, source name or tag holds the query; a digest card is under All with no query only. */
+function visible(entries: FeedEntry[], kind: FeedKind, query: string): FeedEntry[] {
+  const needle = query.toLowerCase();
+  return entries.filter((entry) => {
+    if (entry.kind === "digest") return kind === "all" && needle === "";
+    const { story } = entry;
+    if (kind !== "all" && story.kind !== kind) return false;
+    if (needle === "") return true;
+    return [story.headline, story.summary ?? "", story.source.name, ...story.tags].some((text) =>
+      text.toLowerCase().includes(needle),
+    );
+  });
+}
+
+function NoMatch({ title, hint }: { title: string; hint: string }) {
+  return (
+    <EmptyState className="mt-4 py-12">
+      <EmptyState.Header>
+        <EmptyState.FeaturedIcon />
+      </EmptyState.Header>
+      <EmptyState.Content>
+        <EmptyState.Title>{title}</EmptyState.Title>
+        <EmptyState.Description>{hint}</EmptyState.Description>
+      </EmptyState.Content>
+    </EmptyState>
+  );
+}
+
+/** The entries in the order given; none means nothing is drawn yet. */
 function EntryList({ entries, writer }: { entries: FeedEntry[]; writer: boolean }) {
   if (entries.length === 0) return null;
   return (
@@ -35,17 +93,68 @@ function EntryList({ entries, writer }: { entries: FeedEntry[]; writer: boolean 
 
 export function FeedPage({
   title,
+  freshness,
   entries,
+  startOn,
   writer,
 }: {
   title: string;
-  entries: FeedEntry[];
+  freshness: SignalFreshness;
+  entries: FeedEntries;
+  startOn: FeedOrder;
   writer: boolean;
 }) {
+  const [order, setOrder] = useState<FeedOrder>(startOn);
+  const [kind, setKind] = useState<FeedKind>("all");
+  const [query, setQuery] = useState("");
+  const [revealed, setRevealed] = useState(false);
+  const [olderShown, setOlderShown] = useState(false);
+  const { waiting, older } = entries;
+  const needle = query.trim();
+  const drawn = [
+    ...(revealed && waiting !== null ? waiting.entries : []),
+    ...entries[order],
+    ...(olderShown ? older : []),
+  ];
+  const shown = visible(drawn, kind, needle);
   return (
     <>
-      <FeedHeader title={title} />
-      <EntryList entries={entries} writer={writer} />
+      <FeedHeader title={title} freshness={freshness} order={order} onOrder={setOrder} />
+      <FeedControls kind={kind} onKind={setKind} query={query} onQuery={setQuery} />
+      {waiting === null || revealed ? null : (
+        <div className="mt-4 flex justify-center">
+          <Pill
+            label={waiting.label}
+            action="Show"
+            onAction={() => {
+              setRevealed(true);
+            }}
+          />
+        </div>
+      )}
+      {shown.length > 0 ? (
+        <EntryList entries={shown} writer={writer} />
+      ) : needle !== "" ? (
+        <NoMatch
+          title={`No story matches ${needle}`}
+          hint="Check the spelling or clear the search."
+        />
+      ) : kind !== "all" ? (
+        <NoMatch title="No stories of this kind here" hint="Choose All to see every kind." />
+      ) : null}
+      {older.length === 0 || olderShown ? null : (
+        <div className="mt-4 flex justify-center">
+          <Button
+            color="secondary"
+            size="sm"
+            onPress={() => {
+              setOlderShown(true);
+            }}
+          >
+            Show older
+          </Button>
+        </div>
+      )}
     </>
   );
 }
