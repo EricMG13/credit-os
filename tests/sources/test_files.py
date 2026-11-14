@@ -12,6 +12,8 @@ from credit_os.sources.errors import SourceChanged, SourceRefused, SourceTooLarg
 from credit_os.sources.files import MAX_BYTES, read_capped, read_pinned, source_path
 from credit_os.sources.pins import SourceKind, SourcePin
 
+LINK = "is or passes through a symbolic link"
+
 FIXTURES: dict[str, tuple[bytes, str, SourceKind]] = {
     "annual-report.pdf": (
         b"%PDF-1.4\n%synthetic\n",
@@ -159,7 +161,7 @@ def test_source_path_symlink_escape(folder: Path, tmp_path_factory: pytest.TempP
     _symlink(folder / "inside.txt", outside)
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, "inside.txt")
-    assert str(caught.value) == "inside.txt: leaves the source folder"
+    assert str(caught.value) == "inside.txt: " + LINK
 
 
 @pytest.mark.parametrize("name", list(FIXTURES))
@@ -318,7 +320,7 @@ def test_source_path_self_loop(folder: Path) -> None:
     _symlink(folder / "loop.txt", folder / "loop.txt")
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, "loop.txt")
-    assert str(caught.value) == "loop.txt: cannot be resolved"
+    assert str(caught.value) == "loop.txt: " + LINK
 
 
 def test_source_path_two_link_loop(folder: Path) -> None:
@@ -326,14 +328,14 @@ def test_source_path_two_link_loop(folder: Path) -> None:
     _symlink(folder / "b.txt", folder / "a.txt")
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, "a.txt")
-    assert str(caught.value) == "a.txt: cannot be resolved"
+    assert str(caught.value) == "a.txt: " + LINK
 
 
 def test_source_path_directory_loop(folder: Path) -> None:
     _symlink(folder / "loopdir", folder / "loopdir")
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, "loopdir/x.txt")
-    assert str(caught.value) == "loopdir/x.txt: cannot be resolved"
+    assert str(caught.value) == "loopdir/x.txt: " + LINK
 
 
 def test_source_path_folder_loop(tmp_path: Path) -> None:
@@ -349,7 +351,7 @@ def test_read_pinned_self_link(folder: Path) -> None:
     _symlink(folder / "readme.txt", folder / "readme.txt")
     with pytest.raises(SourceRefused) as caught:
         read_pinned(folder, _pin("readme.txt"))
-    assert str(caught.value) == "readme.txt: cannot be resolved"
+    assert str(caught.value) == "readme.txt: " + LINK
 
 
 def test_read_capped_bounds_each_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -413,7 +415,7 @@ def test_source_path_long_name_self_loop(folder: Path) -> None:
     _symlink(folder / LONG, folder / LONG)
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, LONG)
-    assert str(caught.value) == CUT + ": cannot be resolved"
+    assert str(caught.value) == CUT + ": " + LINK
 
 
 def test_source_path_long_name_escape(
@@ -424,7 +426,7 @@ def test_source_path_long_name_escape(
     _symlink(folder / LONG, outside)
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, LONG)
-    assert str(caught.value) == CUT + ": leaves the source folder"
+    assert str(caught.value) == CUT + ": " + LINK
 
 
 def test_read_pinned_long_name_changed_content(folder: Path) -> None:
@@ -435,3 +437,99 @@ def test_read_pinned_long_name_changed_content(folder: Path) -> None:
     with pytest.raises(SourceChanged) as caught:
         read_pinned(folder, pin)
     assert str(caught.value) == CUT + ": content differs from the pin"
+
+
+def _no_link_seen(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(Path, "is_symlink", lambda self: False)
+
+
+def test_second_guard_self_link(folder: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _symlink(folder / "loop.txt", folder / "loop.txt")
+    _no_link_seen(monkeypatch)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, "loop.txt")
+    assert str(caught.value) == "loop.txt: cannot be resolved"
+
+
+def test_second_guard_outside_link(
+    folder: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    outside = tmp_path_factory.mktemp("outside") / "secret.txt"
+    outside.write_bytes(b"secret\n")
+    _symlink(folder / "inside.txt", outside)
+    _no_link_seen(monkeypatch)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, "inside.txt")
+    assert str(caught.value) == "inside.txt: leaves the source folder"
+
+
+def test_second_guard_long_name_self_link(folder: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _symlink(folder / LONG, folder / LONG)
+    _no_link_seen(monkeypatch)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, LONG)
+    assert str(caught.value) == CUT + ": cannot be resolved"
+
+
+def test_second_guard_long_name_outside_link(
+    folder: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    outside = tmp_path_factory.mktemp("outside") / "secret.txt"
+    outside.write_bytes(b"secret\n")
+    _symlink(folder / LONG, outside)
+    _no_link_seen(monkeypatch)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, LONG)
+    assert str(caught.value) == CUT + ": leaves the source folder"
+
+
+def test_contained_file_link_refused(folder: Path) -> None:
+    _symlink(folder / "alias.txt", folder / "readme.txt")
+    with pytest.raises(SourceRefused) as from_path:
+        source_path(folder, "alias.txt")
+    pin = SourcePin(
+        name="alias.txt",
+        sha256="4157540c50a21d8eccdd85cc071e37f2b23dd35525473b1b671044125dd44f42",
+        size_bytes=16,
+        kind=SourceKind.TEXT,
+    )
+    with pytest.raises(SourceRefused) as from_pin:
+        read_pinned(folder, pin)
+    assert str(from_path.value) == "alias.txt: " + LINK
+    assert str(from_pin.value) == "alias.txt: " + LINK
+
+
+def test_contained_directory_link_refused(folder: Path) -> None:
+    _symlink(folder / "linked", folder / "notes")
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, "linked/filing.html")
+    assert str(caught.value) == "linked/filing.html: " + LINK
+
+
+def test_middle_component_link_refused(folder: Path) -> None:
+    (folder / "a").mkdir()
+    _symlink(folder / "a" / "mid", folder / "notes")
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, "a/mid/filing.html")
+    assert str(caught.value) == "a/mid/filing.html: " + LINK
+
+
+def test_folder_behind_a_link_is_allowed(
+    folder: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    via = tmp_path_factory.mktemp("viaroot") / "via"
+    _symlink(via, folder)
+    assert source_path(via, "readme.txt") == folder.resolve() / "readme.txt"
+    assert read_pinned(via, _pin("readme.txt")) == b"Synthetic note.\n"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="junctions exist only on Windows")
+def test_junction_refused(folder: Path) -> None:
+    if sys.platform == "win32":
+        import _winapi
+
+        _winapi.CreateJunction(str(folder / "notes"), str(folder / "joined"))
+        assert (folder / "joined").is_junction()
+        with pytest.raises(SourceRefused) as caught:
+            source_path(folder, "joined/filing.html")
+        assert str(caught.value) == "joined/filing.html: " + LINK

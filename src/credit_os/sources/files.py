@@ -62,6 +62,13 @@ def source_path(folder: Path, name: str) -> Path:
         raise SourceRefused(f"{folder}: not a folder") from error
     if not root.is_dir():
         raise SourceRefused(f"{folder}: not a folder")
+    # The check and the later open are two steps: a link swapped in between them is not
+    # closed here. The pin's size and SHA-256 remain the guard on content.
+    walked = root
+    for segment in name.split("/"):
+        walked = walked / segment
+        if walked.is_symlink() or walked.is_junction():
+            raise SourceRefused(f"{shown_name(name)}: is or passes through a symbolic link")
     try:
         candidate = (root / name).resolve()
     except (OSError, RuntimeError) as error:
