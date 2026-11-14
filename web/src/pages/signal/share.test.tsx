@@ -97,6 +97,40 @@ describe("Share to group", () => {
     expect(document.activeElement).toBe(shareButton(CORVANE));
   });
 
+  it("moves focus to the Group select on Share with none, and the error is its description", () => {
+    show(FEED);
+    fireEvent.click(shareButton(CORVANE));
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Share" }));
+    const trigger = within(dialog()).getByRole("button", { name: /Group/ });
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger).toHaveAccessibleDescription(/Choose a group to share this story to\./);
+  });
+
+  it("announces each successful share afresh inside one live wrapper that stays on the page", async () => {
+    show(FEED);
+    const SENTENCE = "Sample data: the story was not shared.";
+    const share = async (headline: string) => {
+      fireEvent.click(shareButton(headline));
+      fireEvent.click(within(dialog()).getByRole("button", { name: /Group/ }));
+      fireEvent.click(screen.getByRole("option", { name: "Shipping desk" }));
+      fireEvent.click(within(dialog()).getByRole("button", { name: "Share" }));
+      await gone();
+      await settled();
+    };
+    await share(CORVANE);
+    const first = screen.getByText(SENTENCE);
+    const wrapper = first.closest('[aria-live="polite"]');
+    expect(wrapper).not.toBeNull();
+    await share(TESSALY);
+    const second = screen.getByText(SENTENCE);
+    expect(second.closest('[role="status"]')).not.toBeNull();
+    expect(second.closest('[aria-live="polite"]')).toBe(wrapper);
+    expect(wrapper?.isConnected).toBe(true);
+    expect(wrapper).toHaveTextContent(SENTENCE);
+    expect(second).not.toBe(first);
+    expect(first.isConnected).toBe(false);
+  });
+
   it("closes on Cancel with focus back on the story's Share to group button", async () => {
     show(FEED);
     fireEvent.click(shareButton(TESSALY));
