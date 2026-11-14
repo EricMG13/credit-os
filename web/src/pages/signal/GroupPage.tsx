@@ -96,6 +96,7 @@ function Item({
         // The thread's own sharer line and count replace the feed's; its count sits in the footer.
         <StoryCard
           story={{ ...story, sharedBy: thread.sharedBy, commentCount: null }}
+          scene={scene}
           writer={writer}
           inGroup
         />

@@ -147,6 +147,7 @@ function Body({
         current: { kind: "view", id },
         body: (
           <FeedPage
+            scene={scene}
             key={`${scene.id}/feed/${id}`}
             title={VIEWS[id]}
             freshness={scene.snapshot.feed.freshness}
@@ -178,6 +179,7 @@ function Body({
         current: { kind: "topic", id: topic.id },
         body: (
           <FeedPage
+            scene={scene}
             key={`${scene.id}/topic/${topic.id}`}
             title={topic.name}
             freshness={scene.snapshot.feed.freshness}
