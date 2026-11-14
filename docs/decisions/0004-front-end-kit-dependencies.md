@@ -34,6 +34,23 @@ reviewed and gated like any other.
 - If Recharts fails the open-from-disk check, it is removed and charts are drawn as SVG
   written here; this record is then amended.
 
+## Components the free tier does not include (coordinator's ruling, 2026-11-14; owner to confirm)
+
+Untitled UI's CLI refuses three kit components as paid: the metric card (`metrics`), alerts
+and progress steps. Nothing is bought (decision 0003, review 2, ruling 3), and that ruling
+sends an unavailable piece to Untitled UI's free tier or HyperUI where an equivalent exists.
+
+Ruling: the three are built from HyperUI's free equivalents (stats, alerts, steps; MIT), on
+this system's colours, typefaces and status shapes. They are not written here as copies of
+the paid components' look, because the licence terms for reproducing a paid component from
+its public page were not read. The mocks drew the Untitled UI look for these three, so the
+built pages will differ from the mocks there; the step D2a report lists where.
+
+Also ruled by the D2a session and accepted: the free file uploader is taken without its
+`motion` animation wrappers and with an icon from `@untitledui/icons` in place of
+`@untitledui/file-icons`; input and select are taken without their payment, PIN, tag and
+multi-select variants; the sidebar is the free base variant without its account card.
+
 ## React Aria's runtime style element (coordinator's ruling, 2026-11-13; confirmed by the owner, 2026-11-14)
 
 Found by step D2a's open-from-disk check: `react-aria-components` 1.22.1's press handling
