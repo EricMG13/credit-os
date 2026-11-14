@@ -243,7 +243,8 @@ _ESCAPE = r"\\{1,8}+"
 _PERCENT = r"%(?:25){0,2}"
 _SEPARATOR = rf"(?>(?:[/\\]|{_PERCENT}(?:2f|5c)){{1,16}})"
 _SHARED = "|".join(
-    rf"(?<={s}\\)" for s in (r"[/\\]", *(rf"%{p}(?:2f|5c)" for p in ("", "25", "2525")))
+    [r"(?<=[/\\]\\)"]
+    + [rf"(?<=%{p}(?:2f|5c)\\{{{k}}})" for p in ("", "25", "2525") for k in range(1, 9)]
 )
 _DRIVE = re.compile(r"[A-Za-z]:")
 _LONG_PATH = re.compile(r"[/\\]{2}[?.](?:[/\\]|\Z)")  # "\\?\", "\\.\": a prefix, not a folder
