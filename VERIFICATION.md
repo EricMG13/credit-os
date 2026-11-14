@@ -18,7 +18,8 @@ After the last merge `src/credit_os/signal` and `tests/signal` on `main` equal t
 head `eb83e0a` (`git diff --stat eb83e0a origin/main -- src/credit_os/signal tests/signal`,
 empty).
 
-**Reviews.**
+**Reviews.** Verdicts, counts and the figures under them are as each controller reported;
+the coordinator read the diffs and the checks, not the review reports' evidence.
 
 | PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- |
