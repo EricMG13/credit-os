@@ -36,7 +36,20 @@ describe("the history route", () => {
     expect(fixture.params["/library/:issuer/history"]).toEqual([
       { issuer: "halden-aerostructures" },
       { issuer: "corvane-fasteners" },
+      { issuer: "brevane-marine" },
     ]);
+  });
+});
+
+describe("Report history, an issuer whose newest run is not yet compared", () => {
+  it("draws the report link and no What changed link", () => {
+    renderHistory("brevane-marine");
+    expect(screen.getByRole("link", { name: "Open latest report" })).toHaveAttribute(
+      "href",
+      "#/library/brevane-marine/r-0412/overview",
+    );
+    expect(entries()).toHaveLength(2);
+    expect(screen.queryByText(/What changed/)).toBeNull();
   });
 });
 

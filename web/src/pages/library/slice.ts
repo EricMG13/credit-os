@@ -217,9 +217,13 @@ export type Change = {
   trace: string | null;
 };
 
-/** The Changes page of a run: the first run on an issuer has nothing to compare with. */
+/**
+ * The Changes page of a run: the first run on an issuer has nothing to compare with (`none`); a
+ * later run that has not been compared yet is `pending`.
+ */
 export type Changes =
   | { kind: "none"; title: string; text: string }
+  | { kind: "pending"; title: string; text: string }
   | {
       kind: "compared";
       heading: string;

@@ -5856,6 +5856,313 @@
           ]
         },
         "runs": []
+      },
+      {
+        "id": "brevane-marine",
+        "name": "Brevane Marine",
+        "runs": [
+          {
+            "id": "r-0412",
+            "head": {
+              "issuerName": "Brevane Marine",
+              "asOf": "As of 31 Dec 2026",
+              "pathway": "Full review",
+              "state": "Finished",
+              "tabs": { "modulesCount": "1" },
+              "firstModule": "business-profile",
+              "forecastHref": "#/model/brevane-marine/r-0412/forecast"
+            },
+            "loading": false,
+            "overview": {
+              "bottomLine": {
+                "label": "Bottom line",
+                "lead": "Stable credit: leverage is high but the maturities are long-dated.",
+                "rest": "This is the first run on the issuer, so the view has no earlier run to be compared with.",
+                "trace": null
+              },
+              "metricsLabel": "Headline figures",
+              "metrics": [],
+              "sides": null,
+              "findings": [
+                {
+                  "number": "01",
+                  "lead": "Maturities are long-dated",
+                  "body": "No secured debt falls due before the unsecured notes.",
+                  "trace": null
+                }
+              ],
+              "changeView": null,
+              "dates": [
+                {
+                  "date": "13 Nov 2025",
+                  "state": "Past",
+                  "title": "Full-year results",
+                  "text": "Published; figures in this run are from them."
+                }
+              ],
+              "modules": {
+                "summary": "1 of 1 delivered",
+                "items": [
+                  {
+                    "title": "Business profile",
+                    "lead": "x",
+                    "state": "Delivered",
+                    "module": "business-profile"
+                  }
+                ]
+              },
+              "limitations": {
+                "count": "1",
+                "gapsLink": { "label": "See the 1 gap in Evidence" },
+                "items": [
+                  {
+                    "text": "The security package documents were incomplete, so recovery for the senior notes is a range and not a figure.",
+                    "trace": null
+                  }
+                ]
+              }
+            },
+            "changes": {
+              "kind": "pending",
+              "title": "Comparison not yet run",
+              "text": "An earlier run exists on Brevane Marine; the comparison with it has not been run."
+            },
+            "modules": [
+              {
+                "id": "business-profile",
+                "name": "Business profile",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "A sole-source aftermarket franchise carries a thinner original-equipment business.",
+                    "rest": "The aftermarket earns most of the profit and held through the last two downturns in build rates.",
+                    "trace": null
+                  },
+                  "findings": [
+                    {
+                      "number": "01",
+                      "lead": "The aftermarket leads",
+                      "body": "Aftermarket parts were 59% of gross profit in the year, on the company-adjusted basis.",
+                      "trace": null
+                    }
+                  ],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "1",
+                    "gapsLink": { "label": "See this module\u2019s gaps in Evidence" },
+                    "items": [
+                      {
+                        "text": "Customer terms come from management presentations.",
+                        "trace": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "evidence": {
+              "intro": "Where every figure and claim in this run comes from.",
+              "moduleFilter": [
+                { "id": "business-profile", "name": "Business profile", "initials": "BP" }
+              ],
+              "tabs": { "trace": "0", "sources": "1", "gaps": "1" },
+              "record": {
+                "timings": {
+                  "title": "Module timings",
+                  "note": "From start to accepted, 31 Dec 2026. One of one shown.",
+                  "columns": ["Module", "State", "Started, min", "Accepted, min", "Took, min"],
+                  "rows": [
+                    {
+                      "module": "Business profile",
+                      "state": "Delivered",
+                      "started": { "kind": "value", "text": "0.0", "at": 0 },
+                      "accepted": { "kind": "value", "text": "4.0", "at": 4 },
+                      "took": { "kind": "value", "text": "4.0", "at": 4 }
+                    }
+                  ],
+                  "emptyText": null
+                },
+                "hashes": {
+                  "title": "Hashes and instructions",
+                  "items": [
+                    {
+                      "label": "Method texts",
+                      "kind": "SHA-256",
+                      "value": "c3d8a1f5069e42b7d0a95c1e83f7b2640d19e5a8c7b3f06d2e4a91c8b5073f6e",
+                      "copyLabel": "Copy hash",
+                      "what": "The hash of the method texts"
+                    }
+                  ]
+                },
+                "spend": {
+                  "title": "Spend against the cap",
+                  "progress": { "text": "USD 10.25 of USD 20.00", "value": 10.25, "max": 20 },
+                  "note": "The run finished inside its cap. Spend by module is in the model calls register below."
+                },
+                "calls": {
+                  "title": "Model calls",
+                  "count": "31",
+                  "note": "Calls, tokens and cost by module.",
+                  "columns": [
+                    "Module",
+                    "Code",
+                    "Calls",
+                    "Retries",
+                    "Tokens in",
+                    "Tokens out",
+                    "Cost, USD"
+                  ],
+                  "rows": [
+                    { "label": "Recovery", "cells": ["CP-3B", "3", "1", "73,100", "2,260", "0.34"] }
+                  ],
+                  "total": {
+                    "label": "Total",
+                    "cells": ["All", "31", "3", "1,512,000", "79,800", "10.25"]
+                  }
+                },
+                "registers": {
+                  "title": "Registers as written",
+                  "count": "1",
+                  "note": "The registers each module wrote, unedited.",
+                  "columns": ["Register", "Written by", "Rows", "File", "Open"],
+                  "downloadAll": {
+                    "label": "Download all",
+                    "href": "downloads/halden-aerostructures-2025-09-30-registers.zip",
+                    "reason": null
+                  },
+                  "rows": [
+                    {
+                      "name": "Gap ledger",
+                      "writtenBy": "Every module",
+                      "rows": "2",
+                      "file": "registers/gaps.md",
+                      "href": "downloads/halden-aerostructures-2025-09-30-registers/gaps.md",
+                      "reason": null
+                    }
+                  ]
+                }
+              },
+              "jump": [],
+              "trace": {
+                "title": "Trace",
+                "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.",
+                "columns": {
+                  "id": "Item",
+                  "item": "Statement",
+                  "value": "Value",
+                  "module": "Module",
+                  "kind": "Kind",
+                  "sources": "Sources"
+                },
+                "rows": []
+              },
+              "summary": {
+                "delivered": {
+                  "note": null,
+                  "progress": { "text": "13 of 13", "value": 13, "max": 13 }
+                },
+                "counts": [
+                  {
+                    "label": "Source files",
+                    "value": { "kind": "value", "text": "1", "at": null },
+                    "note": "1 read in full",
+                    "trace": null
+                  }
+                ],
+                "run": {
+                  "code": "HAE-20250930-FR-0001",
+                  "hash": "baff884f3b3df9e7aeaf322aa72a7120a53cc8ef296001bf9c61d11c539bdc72"
+                },
+                "take": {
+                  "text": "The module handoffs are the record this library was written from. Download them to read a module exactly as it was delivered.",
+                  "download": {
+                    "label": "Download handoffs",
+                    "href": "downloads/halden-aerostructures-2025-09-30-handoffs.zip",
+                    "reason": null
+                  }
+                }
+              },
+              "gaps": {
+                "title": "Gaps",
+                "description": "What this run could not establish, by how much it bears on the view.",
+                "columns": {
+                  "id": "Gap",
+                  "gap": "What is missing",
+                  "module": "Module",
+                  "reason": "Effect on the view",
+                  "shownAs": "Shown as"
+                },
+                "groups": [
+                  {
+                    "severity": "Medium",
+                    "count": "1",
+                    "rows": [
+                      {
+                        "id": "G-01",
+                        "gap": "Security package documents",
+                        "module": "Business profile",
+                        "moduleId": "business-profile",
+                        "reason": "Recovery for the senior notes is a range and not a figure.",
+                        "shownAs": "gap",
+                        "where": {
+                          "page": "overview",
+                          "label": "Shown under the Overview's limitations"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "sources": {
+                "files": [
+                  {
+                    "name": "annual-report-2025.pdf",
+                    "kind": "PDF",
+                    "size": "7.2 MB \u00b7 188 pages",
+                    "state": "Read in full",
+                    "why": null,
+                    "readersLabel": "Read by 1 module",
+                    "readers": { "shown": ["business-profile"], "more": null },
+                    "hash": "6120d88ebaaf49cd86326f24b301a7c937141ef51e2fe0d12ed5df254000f9e2"
+                  }
+                ],
+                "visible": 1,
+                "moreLabel": null
+              }
+            },
+            "traces": {}
+          }
+        ],
+        "history": {
+          "subtitle": "Report history: two runs",
+          "latest": "r-0412",
+          "empty": null,
+          "entries": [
+            {
+              "asOf": "31 Dec 2026",
+              "ran": "20 Feb 2027",
+              "state": "Finished",
+              "pathway": "Full review",
+              "text": "Stable.",
+              "report": "r-0412",
+              "changes": null
+            },
+            {
+              "asOf": "30 Sep 2026",
+              "ran": "20 Nov 2026",
+              "state": "Rejected",
+              "pathway": "Full review",
+              "text": "Not started: the files provided did not include the annual report the run needs.",
+              "report": null,
+              "changes": null
+            }
+          ]
+        }
       }
     ]
   },
@@ -5866,19 +6173,30 @@
       },
       {
         "issuer": "corvane-fasteners"
+      },
+      {
+        "issuer": "brevane-marine"
       }
     ],
     "/library/:issuer/:run/overview": [
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30" },
       { "issuer": "halden-aerostructures", "run": "2026-03-31" },
-      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" },
+      {
+        "issuer": "brevane-marine",
+        "run": "r-0412"
+      }
     ],
     "/library/:issuer/:run/changes": [
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30" },
       { "issuer": "halden-aerostructures", "run": "2026-03-31" },
-      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" },
+      {
+        "issuer": "brevane-marine",
+        "run": "r-0412"
+      }
     ],
     "/library/:issuer/:run/modules": [
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },

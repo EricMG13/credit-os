@@ -684,8 +684,9 @@ function readChangeModule(value: unknown, path: string): ChangeModuleItem {
 
 function readChanges(value: unknown, path: string, traces: Traces): Changes {
   const c = rec(value, path);
-  if (oneOf(c, "kind", path, ["none", "compared"]) === "none") {
-    return { kind: "none", title: str(c, "title", path), text: str(c, "text", path) };
+  const kind = oneOf(c, "kind", path, ["none", "pending", "compared"]);
+  if (kind === "none" || kind === "pending") {
+    return { kind, title: str(c, "title", path), text: str(c, "text", path) };
   }
   const changesPath = child(path, "changes");
   const changes = unique(
@@ -2029,6 +2030,31 @@ function readRun(value: unknown, path: string, issuer: string): Run {
   return { ...base, loading, overview, changes, modules, evidence };
 }
 
+/**
+ * A run not yet compared is never the issuer's only run, and no history entry opens a Changes page
+ * for it: the page has nothing to show.
+ */
+function pendingHeld(runs: Run[], history: History, path: string): void {
+  for (const [index, run] of runs.entries()) {
+    if (run.loading || run.changes.kind !== "pending") continue;
+    const runPath = nth(child(path, "runs"), index);
+    if (history.entries.length < 2) {
+      throw new SliceError(
+        child(child(runPath, "changes"), "kind"),
+        "a history of at least two entries for a run not yet compared",
+      );
+    }
+    for (const [at, entry] of history.entries.entries()) {
+      if (entry.changes?.run === run.id) {
+        throw new SliceError(
+          child(nth(child(child(path, "history"), "entries"), at), "changes"),
+          "null for a run not yet compared",
+        );
+      }
+    }
+  }
+}
+
 function readRuns(i: Rec, path: string, issuer: string): Run[] {
   const runs = list(i, "runs", path, (value, at) => readRun(value, at, issuer));
   const seen = new Set<string>();
@@ -2064,12 +2090,11 @@ export function traceKey(
 function readIssuer(value: unknown, path: string): Issuer {
   const i = rec(value, path);
   const id = str(i, "id", path);
-  return {
-    id,
-    name: str(i, "name", path),
-    history: readHistory(own(i, "history"), child(path, "history")),
-    runs: readRuns(i, path, id),
-  };
+  const name = str(i, "name", path);
+  const history = readHistory(own(i, "history"), child(path, "history"));
+  const runs = readRuns(i, path, id);
+  pendingHeld(runs, history, path);
+  return { id, name, history, runs };
 }
 
 /** The library slice, or `absent` when the data file has none, or `invalid` naming the first failing path. */

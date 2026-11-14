@@ -270,6 +270,75 @@ describe("readSlice, issuer history", () => {
   });
 });
 
+describe("readSlice, a run not yet compared", () => {
+  type Issuer = Json & { history: Json & { entries: Json[] }; runs: (Json & { changes: Json })[] };
+  const brevane = (slice: ReturnType<typeof fresh>): Issuer => {
+    const found = slice.issuers.find((issuer) => issuer["id"] === "brevane-marine");
+    if (found === undefined) throw new Error("no brevane-marine in the fixture");
+    return found as Issuer;
+  };
+
+  it("reads the pending run, with its title and text exactly as delivered", () => {
+    const result = readSlice(fresh());
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers.find((issuer) => issuer.id === "brevane-marine")?.runs[0];
+    expect(run?.changes).toEqual({
+      kind: "pending",
+      title: "Comparison not yet run",
+      text: "An earlier run exists on Brevane Marine; the comparison with it has not been run.",
+    });
+  });
+
+  it("refuses a pending run without a title or text, naming the field", () => {
+    const slice = fresh();
+    delete brevane(slice).runs[0]?.changes["text"];
+    expect(invalidReason(slice)).toContain("issuers[6].runs[0].changes.text");
+  });
+
+  it("refuses a history entry whose changes link names the pending run, at the entry's changes", () => {
+    const slice = fresh();
+    const entry = brevane(slice).history.entries[0];
+    brevane(slice).history.entries[0] = {
+      ...entry,
+      changes: { label: "What changed since 30 Sep 2026", run: "r-0412" },
+    };
+    expect(invalidReason(slice)).toContain(
+      "issuers[6].history.entries[0].changes: expected null for a run not yet compared",
+    );
+  });
+
+  it("refuses a pending run that is the issuer's only history entry, at changes.kind", () => {
+    const slice = fresh();
+    brevane(slice).history.entries = brevane(slice).history.entries.slice(0, 1);
+    expect(invalidReason(slice)).toContain("issuers[6].runs[0].changes.kind");
+  });
+
+  it("keeps the none state's rules: a first run with one history entry still reads", () => {
+    const slice = fresh();
+    const first = brevane(slice).runs[0];
+    if (first === undefined) throw new Error("no run");
+    first.changes = { kind: "none", title: "No earlier run", text: "First." };
+    brevane(slice).history.entries = brevane(slice).history.entries.slice(0, 1);
+    expect(readSlice(slice).kind).toBe("ok");
+  });
+
+  it("keeps a loading run's changes null", () => {
+    const slice = fresh();
+    const run = slice.issuers[0]?.["runs"] as Json[];
+    const loading = run[1] as Json;
+    loading["changes"] = { kind: "pending", title: "t", text: "x" };
+    expect(invalidReason(slice)).toContain(
+      "issuers[0].runs[1].changes: expected null for a loading run",
+    );
+  });
+
+  it("reads a run whose id is not a date", () => {
+    const result = readSlice(fresh());
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.issuers.some((i) => i.runs.some((r) => r.id === "r-0412"))).toBe(true);
+  });
+});
+
 describe("readSlice, run frame", () => {
   type Run = Json & { head: Json; traces: Record<string, Json & { derivation: Json }> };
   const runOf = (slice: ReturnType<typeof fresh>, i: number, r: number) =>
