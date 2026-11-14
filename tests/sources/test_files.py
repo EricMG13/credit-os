@@ -497,6 +497,73 @@ def test_read_capped_close_error_without_strerror(
     assert str(caught.value) == f"{path}: cannot read (text)"
 
 
+def _raising(error: BaseException) -> Callable[..., object]:
+    def fail(*_args: object) -> object:
+        raise error
+
+    return fail
+
+
+@pytest.mark.parametrize(
+    ("target", "error", "reason"),
+    [
+        ("fstat", OSError("text"), "text"),
+        ("read", OSError("text"), "text"),
+        ("fstat", OSError(), "OSError"),
+        ("read", PermissionError(), "PermissionError"),
+    ],
+)
+def test_read_capped_reason_rule_at_fstat_and_read(
+    folder: Path, monkeypatch: pytest.MonkeyPatch, target: str, error: OSError, reason: str
+) -> None:
+    monkeypatch.setattr(os, target, _raising(error))
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot read ({reason})"
+    assert caught.value.__cause__ is error
+
+
+def test_read_capped_close_error_without_any_text(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    failure = OSError()
+    _failing_close(monkeypatch, failure)
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot read (OSError)"
+    assert caught.value.__cause__ is failure
+
+
+@pytest.mark.parametrize(
+    ("error", "reason"), [(OSError(), "OSError"), (ValueError(), "ValueError")]
+)
+def test_read_capped_open_error_without_any_text(
+    folder: Path, monkeypatch: pytest.MonkeyPatch, error: Exception, reason: str
+) -> None:
+    monkeypatch.setattr(os, "open", _raising(error))
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot open ({reason})"
+    assert caught.value.__cause__ is error
+
+
+def test_read_capped_second_close_error_without_any_text_is_a_note(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = OSError(errno.EACCES, "first")
+    monkeypatch.setattr(os, "fstat", _raising(first))
+    _failing_close(monkeypatch, OSError())
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot read (first)"
+    assert caught.value.__notes__ == [f"{path}: close also failed (OSError)"]
+    assert caught.value.__cause__ is first
+
+
 def test_source_path_self_loop(folder: Path) -> None:
     _symlink(folder / "loop.txt", folder / "loop.txt")
     with pytest.raises(SourceRefused) as caught:
