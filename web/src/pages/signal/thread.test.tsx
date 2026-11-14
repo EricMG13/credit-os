@@ -400,11 +400,12 @@ describe("the thread panel across groups", () => {
       const { snapshot } = main;
       const first = snapshot.threads.find((t) => t.id === "corvane-thread");
       if (first === undefined) throw new Error("the fixture has the Corvane thread");
-      snapshot.threads.push({ ...structuredClone(first), groupId: "shipping-desk" });
+      // The fixture's JSON types give these arrays no common element type, so they are pushed to as lists of anything.
+      (snapshot.threads as unknown[]).push({ ...structuredClone(first), groupId: "shipping-desk" });
       const item = snapshot.groups[0]?.threads.find((t) => t.id === "corvane-thread");
       const other = snapshot.groups.find((g) => g.id === "shipping-desk");
       if (item === undefined || other === undefined) throw new Error("the fixture has both groups");
-      other.threads.push(structuredClone(item));
+      (other.threads as unknown[]).push(structuredClone(item));
     });
   }
 
