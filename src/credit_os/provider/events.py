@@ -1,8 +1,6 @@
-"""One call's session events to the `Reply` the caller prices and records. Pure: no I/O, no
-clock, no environment, no `copilot` import."""
+"""One call's session events to a `Reply`. Pure: no I/O, clock, environment or `copilot`."""
 
 import json
-import math
 from decimal import Decimal
 from typing import Any
 
@@ -90,7 +88,6 @@ def _as_events(events: object) -> list[Any] | None:
 
 
 def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> Reply:
-    """A reply that is not `ok`, keeping whatever was counted."""
     error_class, message = problem
     if figures is not None and (
         figures[1] is not None or any(v is not None for v in vars(figures[0]).values())
@@ -105,7 +102,6 @@ def _contents(events: list[Any]) -> list[str]:
 
 
 def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
-    """The data of each `assistant.usage` event, each event id once."""
     seen: set[str] = set()
     out: list[dict[str, Any]] = []
     for e in events:
@@ -137,13 +133,9 @@ def _nano(data: dict[str, Any]) -> int | None:
     """`copilotUsage.totalNanoAiu` as a whole count, or `None` when it cannot be read exactly."""
     block = data.get("copilotUsage")
     value = block.get("totalNanoAiu") if isinstance(block, dict) else None
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value if 0 <= value < _MAX_NANO else None
-    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
-        return int(value) if 0 <= value <= _MAX_FLOAT_NANO else None
-    return None
+    if isinstance(value, float) and value.is_integer() and 0 <= value <= _MAX_FLOAT_NANO:
+        value = int(value)
+    return value if type(value) is int and 0 <= value < _MAX_NANO else None
 
 
 def _usd(nanos: int) -> Decimal:
