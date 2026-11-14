@@ -99,6 +99,9 @@ describe("WBR-04 a delivered address stays inside the library folder", () => {
     ["a space before a rooted path", " /etc/x"],
     ["an encoded slash", "downloads%2f..%2fx.zip"],
     ["a malformed escape", "downloads/%zz/x.zip"],
+    ["an encoded backslash", "downloads/%5c..%5cx.zip"],
+    ["a scheme with a colon", "mailto:x"],
+    ["an encoded single dot", "downloads/%2e/x.zip"],
   ])("refuses %s as a download", (_, href) => {
     const slice = fresh();
     run(slice).evidence.summary.take.download["href"] = href;
@@ -110,6 +113,28 @@ describe("WBR-04 a delivered address stays inside the library folder", () => {
     (run(slice).evidence.record.registers.rows[0] as Json)["href"] =
       "https://example.invalid/sources.md";
     expect(reasonOf(slice)).toContain(`${RUN}.evidence.record.registers.rows[0].href`);
+  });
+
+  it.each([
+    ["an escape that is not UTF-8", "downloads/%ff/x.zip"],
+    ["a bad UTF-8 sequence", "downloads/%c3%28/x.zip"],
+    ["a lone percent", "downloads/%/x.zip"],
+    ["a one-digit escape", "downloads/%f/x.zip"],
+    ["a non-hex escape", "downloads/%zz/x.zip"],
+  ])("returns a reason, not a thrown error, for %s", (_, href) => {
+    const slice = fresh();
+    run(slice).evidence.summary.take.download["href"] = href;
+    const result = readSlice(slice);
+    expect(result.kind).toBe("invalid");
+    expect(reasonOf(slice)).toContain(
+      `${RUN}.evidence.summary.take.download.href: expected a relative path inside the library folder`,
+    );
+  });
+
+  it("keeps reading a valid escape as it did", () => {
+    const slice = fresh();
+    run(slice).evidence.summary.take.download["href"] = "downloads/a%20b/x.zip";
+    expect(readSlice(slice).kind).toBe("ok");
   });
 
   it("keeps reading a relative path inside the folder", () => {

@@ -33,6 +33,7 @@ type Run = {
     trace: { rows: TraceRow[]; emptyText?: string };
     gaps: { groups: { severity: string; count: string; rows: Gap[] }[] };
     summary: { counts: { label: string; value: { text: string }; note: string }[] };
+    record: { registers: { rows: { name: string; rows: string }[] } };
   };
 };
 
@@ -42,9 +43,9 @@ const fixture = JSON.parse(
     "utf8",
   ),
 ) as { slice: { issuers: { runs: Run[] }[] } };
-const loaded = (fixture.slice.issuers[0]?.runs ?? []).filter((run) => !run.loading);
+const loaded = fixture.slice.issuers.flatMap((i) => i.runs).filter((run) => !run.loading);
 const fullRun = (): Run => {
-  const run = loaded[0];
+  const run = fixture.slice.issuers[0]?.runs.find((r) => !r.loading);
   if (run === undefined) throw new RangeError("no loaded run");
   return run;
 };
@@ -122,6 +123,14 @@ describe("the fixture's runs agree with themselves", () => {
     for (const run of loaded) {
       const groups = run.evidence.gaps.groups.map((g) => `${g.count} ${g.severity.toLowerCase()}`);
       expect(count(run, "Gaps").note, run.id).toBe(groups.join(", "));
+    }
+  });
+
+  it("has a Gap ledger register whose row count equals the run's gap total", () => {
+    for (const run of loaded) {
+      const total = run.evidence.gaps.groups.reduce((n, g) => n + g.rows.length, 0);
+      const ledger = run.evidence.record.registers.rows.find((r) => r.name === "Gap ledger");
+      expect(ledger?.rows, run.id).toBe(String(total));
     }
   });
 

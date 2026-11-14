@@ -50,6 +50,7 @@ describe("the changes route", () => {
       "2026-06-30",
       "2026-03-31",
       "2025-09-30",
+      "r-0412",
     ]);
   });
 });
@@ -322,6 +323,40 @@ describe("Changes, the first run on the issuer", () => {
     expect(screen.queryByRole("radiogroup", { name: "Presentation" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Modules" })).toBeNull();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+});
+
+describe("Changes, a later run not yet compared", () => {
+  const open = () => renderChanges("r-0412", fixture.slice, "brevane-marine");
+
+  it("draws the delivered title and text as given, one h1, no toggle, and the way to the Overview", () => {
+    open();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "Brevane Marine" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Comparison not yet run" })).toBeVisible();
+    expect(
+      screen.getByText(
+        "An earlier run exists on Brevane Marine; the comparison with it has not been run.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open the Overview" })).toHaveAttribute(
+      "href",
+      "#/library/brevane-marine/r-0412/overview",
+    );
+    expect(screen.queryByRole("radiogroup", { name: "Presentation" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Modules" })).toBeNull();
+    expect(screen.queryByText("No earlier run to compare")).toBeNull();
+  });
+
+  it("is its own state: a different icon from the first run's, not the same page with other words", () => {
+    const drawn = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll("svg"), (svg) => svg.innerHTML);
+    const first = renderChanges("2025-09-30");
+    const firstIcons = drawn(first.container);
+    first.unmount();
+    const icons = drawn(open().container);
+    expect(icons.length).toBeGreaterThan(0);
+    expect(icons).not.toEqual(firstIcons);
   });
 });
 

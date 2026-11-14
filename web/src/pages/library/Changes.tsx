@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ClockRewind } from "@untitledui/icons";
+import { useState, type ReactElement } from "react";
+import { ClockRewind, Hourglass01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import type { Changes as ChangesData } from "./slice";
@@ -89,17 +89,61 @@ function NoEarlierRun({
   );
 }
 
+/** A later run whose comparison with the earlier run has not been run yet: not the first-run state. */
+function NotYetCompared({
+  data,
+  issuer,
+  run,
+}: {
+  data: Extract<ChangesData, { kind: "pending" }>;
+  issuer: string;
+  run: string;
+}) {
+  return (
+    <EmptyState>
+      <EmptyState.Header>
+        <EmptyState.FeaturedIcon icon={Hourglass01} />
+      </EmptyState.Header>
+      <EmptyState.Content>
+        <EmptyState.Title as={SECTION_HEADING}>{data.title}</EmptyState.Title>
+        <EmptyState.Description>{data.text}</EmptyState.Description>
+      </EmptyState.Content>
+      <EmptyState.Footer>
+        <Button href={overviewHref(issuer, run)} color="secondary">
+          Open the Overview
+        </Button>
+      </EmptyState.Footer>
+    </EmptyState>
+  );
+}
+
+/** The page for a run's changes state; a kind this switch lacks does not compile. */
+function ChangesState({
+  changes,
+  issuer,
+  run,
+}: {
+  changes: ChangesData;
+  issuer: string;
+  run: string;
+}): ReactElement {
+  switch (changes.kind) {
+    case "none":
+      return <NoEarlierRun data={changes} issuer={issuer} run={run} />;
+    case "pending":
+      return <NotYetCompared data={changes} issuer={issuer} run={run} />;
+    case "compared":
+      return <Compared data={changes} issuer={issuer} run={run} />;
+  }
+}
+
 /** The Changes page of a run: what changed since the earlier run, as cards or a table, and per module. */
 export function Changes({ issuer, run }: { issuer: string | undefined; run: string | undefined }) {
   return (
     <RunFrame issuer={issuer} run={run} tab="changes">
-      {({ changes, id: runId }, issuerId) =>
-        changes.kind === "none" ? (
-          <NoEarlierRun data={changes} issuer={issuerId} run={runId} />
-        ) : (
-          <Compared data={changes} issuer={issuerId} run={runId} />
-        )
-      }
+      {({ changes, id: runId }, issuerId) => (
+        <ChangesState changes={changes} issuer={issuerId} run={runId} />
+      )}
     </RunFrame>
   );
 }

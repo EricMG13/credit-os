@@ -485,7 +485,11 @@ function some<T>(items: T[], path: string): T[] {
 }
 
 /** For and against has two columns, "supports" and "against", each with its own points. */
-function readColumns(sides: Rec, path: string, traces: Traces): Overview["sides"]["columns"] {
+function readColumns(
+  sides: Rec,
+  path: string,
+  traces: Traces,
+): NonNullable<Overview["sides"]>["columns"] {
   const columns = list(sides, "columns", path, (column, columnPath) => {
     const c = rec(column, columnPath);
     return {
@@ -586,10 +590,18 @@ function readModules(value: unknown, path: string): Overview["modules"] {
   };
 }
 
+function readSides(value: unknown, path: string, traces: Traces): Overview["sides"] {
+  if (value === null) return null;
+  const sides = rec(value, path);
+  return {
+    heading: str(sides, "heading", path),
+    note: str(sides, "note", path),
+    columns: readColumns(sides, path, traces),
+  };
+}
+
 function readOverview(value: unknown, path: string, traces: Traces): Overview {
   const o = rec(value, path);
-  const sidesPath = child(path, "sides");
-  const sides = rec(own(o, "sides"), sidesPath);
   return {
     bottomLine: readBottomLine(own(o, "bottomLine"), child(path, "bottomLine"), traces),
     metricsLabel: str(o, "metricsLabel", path),
@@ -599,11 +611,7 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       (m) => m.label,
       "label",
     ),
-    sides: {
-      heading: str(sides, "heading", sidesPath),
-      note: str(sides, "note", sidesPath),
-      columns: readColumns(sides, sidesPath, traces),
-    },
+    sides: readSides(own(o, "sides"), child(path, "sides"), traces),
     findings: some(
       unique(
         list(o, "findings", path, (f, p) => readFinding(f, p, traces)),
@@ -613,7 +621,7 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       ),
       child(path, "findings"),
     ),
-    changeView: readChangeView(own(o, "changeView"), child(path, "changeView"), traces),
+    changeView: optionalView(o, "changeView", path, traces),
     dates: some(
       unique(
         list(o, "dates", path, readDate),
@@ -676,8 +684,9 @@ function readChangeModule(value: unknown, path: string): ChangeModuleItem {
 
 function readChanges(value: unknown, path: string, traces: Traces): Changes {
   const c = rec(value, path);
-  if (oneOf(c, "kind", path, ["none", "compared"]) === "none") {
-    return { kind: "none", title: str(c, "title", path), text: str(c, "text", path) };
+  const kind = oneOf(c, "kind", path, ["none", "pending", "compared"]);
+  if (kind === "none" || kind === "pending") {
+    return { kind, title: filled(c, "title", path), text: filled(c, "text", path) };
   }
   const changesPath = child(path, "changes");
   const changes = unique(
@@ -728,6 +737,13 @@ function gradeOrNull(o: Rec, key: string, path: string): string | null {
 function named(o: Rec, key: string, path: string): string {
   const value = str(o, key, path);
   if (value === "") throw new SliceError(child(path, key), "a non-empty string");
+  return value;
+}
+
+/** A `named` string that is not only whitespace either. */
+function filled(o: Rec, key: string, path: string): string {
+  const value = named(o, key, path);
+  if (value.trim() === "") throw new SliceError(child(path, key), "a non-empty string");
   return value;
 }
 
@@ -1465,8 +1481,13 @@ function insideLibrary(o: Rec, key: string, path: string): string | null {
 
 function plainSegment(segment: string): boolean {
   if (!SEGMENT.test(segment)) return false;
-  const decoded = decodeURIComponent(segment);
-  return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
+  try {
+    const decoded = decodeURIComponent(segment);
+    return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
+  } catch (error) {
+    if (!(error instanceof URIError)) throw error;
+    return false; // an escape that is not UTF-8 is refused like any other odd path
+  }
 }
 
 /** An address, or the reason there is none: exactly one of the two. */
@@ -2021,6 +2042,31 @@ function readRun(value: unknown, path: string, issuer: string): Run {
   return { ...base, loading, overview, changes, modules, evidence };
 }
 
+/**
+ * A run not yet compared is never the issuer's only run, and no history entry opens a Changes page
+ * for it: the page has nothing to show.
+ */
+function pendingHeld(runs: Run[], history: History, path: string): void {
+  for (const [index, run] of runs.entries()) {
+    if (run.loading || run.changes.kind !== "pending") continue;
+    const runPath = nth(child(path, "runs"), index);
+    if (history.entries.length < 2) {
+      throw new SliceError(
+        child(child(runPath, "changes"), "kind"),
+        "a history of at least two entries for a run not yet compared",
+      );
+    }
+    for (const [at, entry] of history.entries.entries()) {
+      if (entry.changes?.run === run.id) {
+        throw new SliceError(
+          child(nth(child(child(path, "history"), "entries"), at), "changes"),
+          "null for a run not yet compared",
+        );
+      }
+    }
+  }
+}
+
 function readRuns(i: Rec, path: string, issuer: string): Run[] {
   const runs = list(i, "runs", path, (value, at) => readRun(value, at, issuer));
   const seen = new Set<string>();
@@ -2056,12 +2102,11 @@ export function traceKey(
 function readIssuer(value: unknown, path: string): Issuer {
   const i = rec(value, path);
   const id = str(i, "id", path);
-  return {
-    id,
-    name: str(i, "name", path),
-    history: readHistory(own(i, "history"), child(path, "history")),
-    runs: readRuns(i, path, id),
-  };
+  const name = str(i, "name", path);
+  const history = readHistory(own(i, "history"), child(path, "history"));
+  const runs = readRuns(i, path, id);
+  pendingHeld(runs, history, path);
+  return { id, name, history, runs };
 }
 
 /** The library slice, or `absent` when the data file has none, or `invalid` naming the first failing path. */

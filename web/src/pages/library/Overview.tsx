@@ -38,7 +38,7 @@ function PointTile({ point }: { point: Point }) {
   );
 }
 
-function ForAndAgainst({ sides }: { sides: OverviewData["sides"] }) {
+function ForAndAgainst({ sides }: { sides: NonNullable<OverviewData["sides"]> }) {
   const Column = SUBSECTION_HEADING;
   return (
     <Section title={sides.heading} note={sides.note}>
@@ -72,13 +72,15 @@ export function Overview({ issuer, run }: { issuer: string | undefined; run: str
               ))}
             </ul>
           </section>
-          <ForAndAgainst sides={overview.sides} />
+          {overview.sides === null ? null : <ForAndAgainst sides={overview.sides} />}
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
             <Section title="Key findings">
               <Findings findings={overview.findings} />
             </Section>
             <div className="flex flex-col gap-10">
-              <ChangeViewNote view={overview.changeView} label="Show sources for the triggers" />
+              {overview.changeView === null ? null : (
+                <ChangeViewNote view={overview.changeView} label="Show sources for the triggers" />
+              )}
               <Section title="Dates to watch">
                 <Timeline items={overview.dates} />
               </Section>
