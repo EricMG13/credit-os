@@ -154,6 +154,11 @@ REFUSED_ARGUMENTS: tuple[tuple[str, str, dict[str, object]], ...] = (
     ("reject reason starting with a digit", "reject", {"reason": "1late"}),
     ("claim run id with a space", "claim", {"run_id": "run 1"}),
     ("end status a list", "end", {"status": ["finished"], "reason": "done"}),
+    (
+        "note attempt too large",
+        "note",
+        {"kind": "module_opened", "detail": {}, "module_id": "CP-1", "attempt": 2**63},
+    ),
 )
 # A claim for another run, or with a token of the right shape that is not the writer: StoreFenced.
 # Both on start_run of a created run: Claim(run_id, FOREIGN_TOKEN), and Claim(this run's id, a second
@@ -204,6 +209,8 @@ ACCEPTED_NOTES: tuple[tuple[str, str, dict[str, object], str | None, int | None]
     ("module and attempt", "module_opened", {"module": "CP-1"}, "CP-1", 2),
     ("module only", "module_closed", {}, "CP-2", None),
     ("neither", "budget_checked", {"count": 3, "left": None}, None, None),
+    ("first attempt", "module_opened", {}, "CP-1", 1),
+    ("largest attempt", "module_opened", {}, "CP-1", 2**63 - 1),
 )
 
 # A reject's message is stored: reject_run(claim, reason=REJECT_REASON, message=END_MESSAGE) on a
