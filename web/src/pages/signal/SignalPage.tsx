@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent, type SignalFollow } from "./SignalFrame";
 import { GroupPage } from "./GroupPage";
+import { ThreadPanel } from "./ThreadPanel";
 import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
 import type { EmptyContext } from "./FeedStates";
 import { PageTitle } from "./parts/PageTitle";
@@ -212,10 +213,22 @@ function Body({
           ),
         };
       }
-      // The thread route draws the group view until the thread panel exists (a later task).
+      const thread =
+        kind === "thread"
+          ? (scene.snapshot.threads.find(
+              (t) => t.groupId === group.id && t.id === param(params, "thread"),
+            ) ?? null)
+          : undefined;
       return {
         current: { kind: "group", id },
-        body: <GroupPage scene={scene} group={group} writer={writer} />,
+        body: (
+          <>
+            <GroupPage scene={scene} group={group} writer={writer} />
+            {thread === undefined ? null : (
+              <ThreadPanel scene={scene} group={group} thread={thread} writer={writer} />
+            )}
+          </>
+        ),
       };
     }
     case "digest": {

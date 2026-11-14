@@ -19,6 +19,7 @@ import { Tooltip } from "@/components/base/tooltip/tooltip";
 import { cx } from "@/utils/cx";
 import { AvatarLabelGroup } from "./parts/Avatar";
 import { NameDialog, initialsOf } from "./NameDialog";
+import { SignalViewerContext } from "./viewer";
 import type { SignalScene } from "./slice";
 
 /** Which channel the page is on; the item with the same key is marked current. */
@@ -334,7 +335,7 @@ export function SignalFrame({
         tabIndex={-1}
         className="min-w-0 flex-1 overflow-y-auto p-8 outline-none"
       >
-        {children}
+        <SignalViewerContext value={{ name, initials }}>{children}</SignalViewerContext>
       </div>
     </div>
   );

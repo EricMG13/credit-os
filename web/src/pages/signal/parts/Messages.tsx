@@ -11,7 +11,7 @@ import { TextArea } from "./TextArea";
 
 /** Ruling 19 fixes the set; each is drawn on every comment that is not removed. */
 const REACTION_WORDS = ["Agree", "Disagree", "Seen"] as const;
-type ReactionWord = (typeof REACTION_WORDS)[number];
+export type ReactionWord = (typeof REACTION_WORDS)[number];
 
 const FOCUS = "outline-focus-ring focus-visible:outline-2";
 
