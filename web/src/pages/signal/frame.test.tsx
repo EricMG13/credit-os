@@ -20,10 +20,14 @@ function channels() {
 
 /** The h1 each declared path shows for its fixture parameter sets (the view, topic, group, digest or page name). */
 const TITLES: Record<string, string> = {
-  "/signal/:scene/group/:group": "Leveraged credit",
-  "/signal/:scene/group/:group/thread/:thread": "Leveraged credit",
   "/signal/:scene/digest/:digest": "Weekly brief",
   "/signal/:scene/settings/:section": "Settings",
+};
+
+/** A group page's h1 is the group's name (the thread route draws its group's page). */
+const GROUP_TITLES: Record<string, string> = {
+  "leveraged-credit": "Leveraged credit",
+  "shipping-desk": "Shipping desk",
 };
 
 /** A topic page's h1 is the topic's name as the channel list gives it. */
@@ -126,6 +130,17 @@ describe("the Signal frame", () => {
     show("/signal/no-topics/feed/for-you");
     expect(within(channels()).getByText("No topics yet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Follow / })).toBeNull();
+  });
+
+  it("says there are no groups yet when the channel list holds none", () => {
+    const copy = structuredClone(fixture.slice);
+    const snapshot = copy.scenes[0]?.snapshot;
+    if (snapshot === undefined) throw new Error("the fixture has a first scene");
+    snapshot.channels.groups = [];
+    snapshot.groups = [];
+    show("/signal/main/feed/for-you", { ...ok, data: { ...ok.data, signal: copy } });
+    expect(within(channels()).getByText("No groups yet")).toBeInTheDocument();
+    expect(within(channels()).queryByRole("link", { name: /Leveraged credit/ })).toBeNull();
   });
 
   it("shows paused digests with a Paused badge and no unread dot", () => {
@@ -260,15 +275,18 @@ describe("the Signal frame", () => {
         const { hash, missing } = fillParams(pattern, set);
         expect(missing).toEqual([]);
         const view = show(hash);
-        // hidden: a first visit's name dialog covers the page and hides it from the accessibility tree.
-        expect(screen.getAllByRole("heading", { level: 1, hidden: true })).toHaveLength(1);
+        // hidden: only the no-name scene opens the name dialog, which hides the page from the accessibility tree.
+        const hidden = set["scene"] === "no-name";
+        expect(screen.getAllByRole("heading", { level: 1, hidden })).toHaveLength(1);
         const title = pattern.includes("/feed/")
           ? VIEW_TITLES[set["view"] ?? ""]
           : pattern.includes("/topic/")
             ? TOPIC_TITLES[set["topic"] ?? ""]
-            : TITLES[pattern];
+            : pattern.includes("/group/")
+              ? GROUP_TITLES[set["group"] ?? ""]
+              : TITLES[pattern];
         if (title === undefined) throw new Error(`no expected title for ${hash}`);
-        expect(screen.getByRole("heading", { level: 1, hidden: true }).textContent).toBe(title);
+        expect(screen.getByRole("heading", { level: 1, hidden }).textContent).toBe(title);
         expect(skippedLevels()).toEqual([]);
         expect(screen.queryByText("Page not found")).toBeNull();
         expect(screen.queryByText(/^No such /)).toBeNull();
@@ -276,6 +294,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(22);
+    expect(visits).toBe(24);
   });
 });

@@ -92,7 +92,38 @@ type SignalFeed = {
   views: { "for-you": SignalFeedView; latest: SignalFeedView; saved: SignalFeedView };
   topics: Record<string, SignalFeedView>;
 };
-type SignalSnapshot = { viewer: SignalViewer; channels: SignalChannels; feed: SignalFeed };
+/** One item shared in a group: a story, a note, or both (a story with the sharer's note). */
+export type SignalThreadSummary = {
+  id: string;
+  /** Names a story in the snapshot's feed (the reader checks). */
+  storyId: string | null;
+  note: string | null;
+  /** The delivered "shared by" line, e.g. "Shared by Tobias O, 1 h ago". */
+  sharedBy: { initials: string; label: string };
+  commentCount: string | null;
+  archived: boolean;
+  unread: boolean;
+  /** The delivered time of the latest activity. */
+  lastActivity: string | null;
+};
+export type SignalGroup = {
+  id: string;
+  name: string;
+  /** Delivered, e.g. "Open to everyone" or "Invited only". */
+  visibility: string;
+  /** Delivered, e.g. "6 members". */
+  memberSummary: string;
+  members: { initials: string; name: string }[];
+  /** The delivered "+N" after the shown members. */
+  moreMembers: string | null;
+  threads: SignalThreadSummary[];
+};
+type SignalSnapshot = {
+  viewer: SignalViewer;
+  channels: SignalChannels;
+  feed: SignalFeed;
+  groups: SignalGroup[];
+};
 export type SignalScene = { id: string; snapshot: SignalSnapshot };
 export type SignalSlice = { scenes: [SignalScene, ...SignalScene[]] };
 
@@ -260,12 +291,54 @@ const freshness: Reader<SignalFreshness> = (v, path) => {
     : got;
 };
 
-const viewer = shape<SignalViewer>({
+const viewerBase = shape<SignalViewer>({
   name: strOrNull,
   initials: strOrNull,
   role: oneOf(["reader", "writer"], "reader or writer"),
   roleLabel: str,
 });
+/** A name comes with its initials and no name has none: the chip draws both or neither. */
+const viewer: Reader<SignalViewer> = (v, path) => {
+  const got = viewerBase(v, path);
+  if (!got.ok) return got;
+  return (got.value.name === null) === (got.value.initials === null)
+    ? got
+    : bad(`${path}.initials`, "initials when the viewer has a name, and null when there is none");
+};
+/** A shared item holds a story, a note or both; a thread with neither has nothing to draw. */
+const thread: Reader<SignalThreadSummary> = (v, path) => {
+  const got = shape<SignalThreadSummary>({
+    id: str,
+    storyId: strOrNull,
+    note: strOrNull,
+    sharedBy: shape({ initials: str, label: str }),
+    commentCount: strOrNull,
+    archived: bool,
+    unread: bool,
+    lastActivity: strOrNull,
+  })(v, path);
+  if (!got.ok) return got;
+  return got.value.storyId === null && got.value.note === null
+    ? bad(`${path}.note`, "a note when the thread names no story")
+    : got;
+};
+const groupBase = shape<SignalGroup>({
+  id: str,
+  name: str,
+  visibility: str,
+  memberSummary: str,
+  members: list(shape({ initials: str, name: str })),
+  moreMembers: strOrNull,
+  threads: list(thread),
+});
+/** A "+N" counts members after the shown ones, so it needs shown members. */
+const group: Reader<SignalGroup> = (v, path) => {
+  const got = groupBase(v, path);
+  if (!got.ok) return got;
+  return got.value.members.length === 0 && got.value.moreMembers !== null
+    ? bad(`${path}.moreMembers`, "null when the group lists no members")
+    : got;
+};
 const channels = shape<SignalChannels>({
   topics: list(
     shape<SignalTopicChannel>({
@@ -401,11 +474,56 @@ const feed: Reader<SignalFeed> = (v, path) => {
   }
   return got;
 };
-const snapshotBase = shape<SignalSnapshot>({ viewer, channels, feed });
+const snapshotBase = shape<SignalSnapshot>({ viewer, channels, feed, groups: list(group) });
+
+/** A group id is used once; each thread id once in its group; each thread's story is in the feed. */
+function groupProblem(groups: SignalGroup[], stories: Set<string>, path: string): string | null {
+  const seen = new Set<string>();
+  for (const [g, one] of groups.entries()) {
+    const at = `${path}.groups[${String(g)}]`;
+    if (seen.has(one.id)) return `${at}.id: expected an id no other group uses`;
+    seen.add(one.id);
+    const threads = new Set<string>();
+    for (const [t, item] of one.threads.entries()) {
+      if (threads.has(item.id))
+        return `${at}.threads[${String(t)}].id: expected an id the group does not already use`;
+      threads.add(item.id);
+      if (item.storyId !== null && !stories.has(item.storyId)) {
+        return `${at}.threads[${String(t)}].storyId: expected the id of a story in the feed`;
+      }
+    }
+  }
+  return null;
+}
+
+/** The channel list and the groups name the same groups, in both directions. */
+function channelGroupProblem(snap: SignalSnapshot, path: string): string | null {
+  const held = new Set(snap.groups.map((g) => g.id));
+  const listed = new Set(snap.channels.groups.map((g) => g.id));
+  const channel = snap.channels.groups.findIndex((g) => !held.has(g.id));
+  if (channel !== -1) {
+    return `${path}.channels.groups[${String(channel)}].id: expected the id of a group in the snapshot's groups`;
+  }
+  const one = snap.groups.findIndex((g) => !listed.has(g.id));
+  if (one !== -1) {
+    return `${path}.groups[${String(one)}].id: expected the id of a group in the channel list`;
+  }
+  const named = snap.groups.findIndex(
+    (g) => snap.channels.groups.find((c) => c.id === g.id)?.name !== g.name,
+  );
+  return named === -1
+    ? null
+    : `${path}.groups[${String(named)}].name: expected the name the channel list gives this group`;
+}
+
 /** Each channel topic has exactly one order in the feed: a missing order is not an empty topic. */
 const snapshot: Reader<SignalSnapshot> = (v, path) => {
   const got = snapshotBase(v, path);
   if (!got.ok) return got;
+  const stories = new Set(got.value.feed.stories.map((s) => s.id));
+  const problem =
+    groupProblem(got.value.groups, stories, path) ?? channelGroupProblem(got.value, path);
+  if (problem !== null) return { ok: false, reason: problem };
   const { channels: lists, feed: items } = got.value;
   const where = `${path}.feed.topics`;
   const missing = lists.topics.find((t) => !Object.hasOwn(items.topics, t.id));
