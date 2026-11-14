@@ -59,11 +59,9 @@ def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
         assert reply.message == (want["message"] if exact else parser.message)
     assert tuple(fake.steps) == want["calls"]
     if "open_session" in want["calls"]:
-        opened = ("model", "effort", "session_id", "system")
         system = want.get("system", "You are careful.")
-        assert fake.opened == dict(
-            zip(opened, (key.MODEL, case["effort"], case["exchange_id"], system))
-        )
+        args = (key.MODEL, case["effort"], case["exchange_id"], system)
+        assert fake.opened == dict(zip(("model", "effort", "session_id", "system"), args))
     assert fake.sent == (key.PROMPT if "send" in want["calls"] else None)
     assert all(fake.bounds[s] == v for s, v in want.get("bounds", {}).items())
     assert min(fake.given, default=0) >= 0

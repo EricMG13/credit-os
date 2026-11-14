@@ -80,10 +80,10 @@ def scrub_raw(raw: bytes, redact: Callable[[str], str]) -> bytes:
 
 
 def _path_forms(values: list[str]) -> set[str]:
-    bases = {b for v in values for b in (v, v.rstrip("/\\"))}  # and without trailing separators
+    bases = {c.strip().rstrip("/\\") for v in values for c in (v, v.lower(), v.upper())}
     bases |= {b[2:] for b in bases if re.match(r"[A-Za-z]:", b)}  # a POSIX home may eat "X:"
-    slashes = [(b, b.replace("\\", "/"), b.replace("/", "\\")) for b in bases]
-    return {c for t in slashes for s in t for c in (s, s.lower(), s.upper()) if len(c) > 3}
+    slashes = {s for b in bases for s in (b, b.replace("\\", "/"), b.replace("/", "\\"))}
+    return {f for s in slashes for f in (s, home_paths(s)) if len(f.replace("<home>", "")) > 3}
 
 
 def _has_figures(reply: Reply) -> bool:
@@ -121,7 +121,8 @@ class CopilotDriver:
         self.config_id = config_id
         self._tokens = Redactor.from_environ(environ)
         forms = _path_forms([home, environ.get("COPILOT_CLI_PATH", "")])
-        self._paths, self._longest = Redactor(forms), max(map(len, forms), default=0)
+        self._paths = Redactor(forms)  # it matches each form also JSON-escaped once and twice
+        self._longest = max((len(json.dumps(json.dumps(f)[1:-1])[1:-1]) for f in forms), default=0)
         self._used: set[str] = set()
         self._kept: list[tuple[ClientLike, SessionLike]] = []
         self._closed = False
@@ -261,7 +262,7 @@ class CopilotDriver:
         return exc is None
 
     def _text(self, value: str, parsed: bool = False) -> str:
-        text = home_paths(self._paths.text(self._tokens.text(value)))
+        text = self._paths.text(home_paths(self._tokens.text(value)))  # as the parser does
         if parsed and len(value) >= 500:  # the parser's 500 cut may halve a path: drop its length
             text = text[: max(0, len(text) - self._longest)]
         return text
