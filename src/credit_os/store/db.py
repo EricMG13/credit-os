@@ -26,7 +26,7 @@ from credit_os.store.records import Claim, EventRecord, RunRecord
 from credit_os.store.txn import Migration
 
 APPLICATION_ID = 1129467731
-MIGRATIONS: tuple[Migration, ...] = (schema.MIGRATION_1,)
+MIGRATIONS: tuple[Migration, ...] = (schema.MIGRATION_1, schema.MIGRATION_2)
 _MAXIMUM_BUSY_SECONDS = 3600
 Clock = Callable[[], datetime | float]
 
