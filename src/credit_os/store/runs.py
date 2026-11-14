@@ -170,11 +170,15 @@ def read_run(connection: sqlite3.Connection, run_id: object) -> RunRecord:
         " FROM runs WHERE run_id = ?",
         (checked,),
     ).fetchall()[0]
+    try:
+        as_of = None if row[2] is None else date.fromisoformat(row[2])
+    except ValueError:
+        raise StoreCorrupt("stored as_of is not a date") from None
     return RunRecord(
         run_id=checked,
         issuer_id=row[0],
         issuer_name=row[1],
-        as_of=None if row[2] is None else date.fromisoformat(row[2]),
+        as_of=as_of,
         config_id=row[3],
         cap_usd=_stored(money_from_text(row[4]), "cap_usd"),
         request=row[5],
