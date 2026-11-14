@@ -9,6 +9,7 @@ ambient decimal context (`Decimal(text)`, `copy_negate`, `copy_abs` and `==` do 
 import re
 from collections.abc import Mapping
 from decimal import Decimal
+from typing import cast
 
 from credit_os.handoff.blocks import Block, ListItem, Paragraph
 from credit_os.handoff.data import read_data_sections
@@ -375,12 +376,6 @@ def check_currency(inputs: ForecastInputs, foundation: HandoffDocument) -> None:
     raise ForecastRefused(RefusalKind.CURRENCY, "currency", message)
 
 
-def _stored(value: Value) -> Decimal:
-    if value.amount is None:
-        raise ValueError("a facility figure is missing")
-    return value.amount
-
-
 def _printed(pieces: tuple[str, ...], amount: str) -> bool:
     whole, dot, fraction = amount.removeprefix("-").partition(".")
     forms = (f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}")
@@ -393,9 +388,7 @@ def _printed_percent(pieces: tuple[str, ...], value: str) -> bool:
     return any(re.search(pattern, piece) for piece in pieces)
 
 
-def _unprinted(
-    number: int, facility: Facility, balance: str, pieces: tuple[str, ...]
-) -> str | None:
+def _unprinted(facility: Facility, balance: str, pieces: tuple[str, ...]) -> str | None:
     if not _printed(pieces, balance):
         return _BALANCE.format(name=echo(facility.name), balance=balance)
     for field in _RATES:
@@ -413,7 +406,7 @@ def _check_terms(
 ) -> None:
     for number, facility in enumerate(facilities, 1):
         balance = stated[f"facility {number} balance"] if inputs.scale == 1000 else facility.balance
-        message = _unprinted(number, facility, balance, pieces)
+        message = _unprinted(facility, balance, pieces)
         if message is not None:
             raise ForecastRefused(RefusalKind.FACILITY, f"facility {number}", message)
 
@@ -421,15 +414,18 @@ def _check_terms(
 def _check_bounds(inputs: ForecastInputs, facilities: tuple[Facility, ...], debt: Decimal) -> None:
     divided = f", in {inputs.currency} millions after dividing by scale 1000"
     divided = divided if inputs.scale == 1000 else ""
-    balances = _stored(total([Value(amount=parse_operand(item.balance)) for item in facilities]))
-    if balances > _stored(product([Value(amount=Decimal("1.25")), Value(amount=debt)])):
+    balances = cast(
+        Decimal, total([Value(amount=parse_operand(item.balance)) for item in facilities]).amount
+    )
+    limit = cast(Decimal, product([Value(amount=Decimal("1.25")), Value(amount=debt)]).amount)
+    if balances > limit:
         message = _BALANCES.format(
             total=amount_text(balances), debt=amount_text(debt), divided=divided
         )
         raise ForecastRefused(RefusalKind.FACILITY, "facilities", message)
     running = Decimal(0)
     for year, (_, repaid) in enumerate(schedule(facilities).totals(), 1):
-        running = _stored(total([Value(amount=running), Value(amount=repaid)]))
+        running = cast(Decimal, total([Value(amount=running), Value(amount=repaid)]).amount)
         if running > debt:
             message = _SCHEDULE.format(
                 year=year, total=amount_text(running), debt=amount_text(debt), divided=divided
@@ -450,7 +446,8 @@ def check_facilities(
     _check_terms(inputs, facilities, stated, foundation_text(foundation))
     stated_debt = inputs.base["debt"].amount
     if stated_debt is not None:
-        _check_bounds(inputs, facilities, _stored(Value(amount=parse_operand(stated_debt))))
+        debt = cast(Decimal, Value(amount=parse_operand(stated_debt)).amount)
+        _check_bounds(inputs, facilities, debt)
     for name in ("upside_drivers", "downside_drivers"):
         case = getattr(inputs, name)
         if case is not None and case.debt_repayment is not None:
