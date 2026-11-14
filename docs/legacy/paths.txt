@@ -6,15 +6,11 @@ src/deploy_vii/methodology.json
 src/deploy_vii/registry.py
 src/deploy_vii/contracts.py
 src/deploy_vii/readiness.py
-src/deploy_vii/execution.py
 src/deploy_vii/business_context.py
 src/deploy_vii/display.py
 src/deploy_vii/report_view.py
 src/deploy_vii/render.py
 src/deploy_vii/bindings/shipped.py
-src/deploy_vii/live/schema.py
-src/deploy_vii/live/prompts.py
-src/deploy_vii/live/tools.py
 src/deploy_vii/model
 src/deploy_vii/preparation.py
 src/deploy_workflow/handoff_delivery.py
@@ -37,6 +33,8 @@ src/deploy_workflow/pdf_headers.py
 src/deploy_workflow/inline_xbrl.py
 src/deploy_workflow/owners/cpos.py
 src/deploy_workflow/owners/cpos_launch.py
+src/deploy_workflow/owners/cpos_cp1_check.py
+src/deploy_workflow/signal
 src/deploy_workflow/owners/cpos_forecast.py
 src/deploy_workflow/owners/cpos_periods.py
 src/deploy_workflow/owners/cpos_facilities.py
@@ -50,6 +48,8 @@ src/deploy_workflow/model/record.py
 src/deploy_workflow/model/redact.py
 src/deploy_workflow/model/reply_classes.py
 src/deploy_workflow/model/turn.py
+src/deploy_workflow/model/providers.py
+src/deploy_workflow/run_inputs.py
 src/deploy_workflow/model/budget.py
 src/deploy_workflow/model/pricing.py
 src/deploy_workflow/model_testing/configs.py

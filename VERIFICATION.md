@@ -3,6 +3,57 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: step 0C part 1 (Python lock, build backend, duplication gate)
+
+**Scope.** Configuration and one gate. `pypdf` and `github-copilot-sdk` are in the lock and
+nothing imports them. Part 2 of step 0C (the web duplication script and the Edge run on
+Windows CI) waits for the D2a stack.
+
+**Merged.** #26 at `aefea3c` (branch tip `b7f4e2b`), by the owner's standing instruction of
+2026-11-14. CI green on `ubuntu-latest` and `windows-latest`. The diff was read by the
+coordinator before merge.
+
+**Rulings.** Owner, 2026-11-14: `pypdf` is pinned at 6.21.4, not the work PC's 6.21.2, which
+fails `pip-audit` with seven advisories; 6.21.4 is under 30 days old and is taken as a
+security-fix exception (decision 0005). Owner: CP-DR's web lookup is left behind
+(`docs/legacy/ports.md`). Owner: PRs merge when ready and the coordinators resolve decisions
+(decision 0006). Coordinator: the Python duplication gate reuses the `jscpd` pinned in `web/`,
+so the Python gates need `npm ci` in `web/` first; packages that arrive only as transitive
+dependencies are not held to the 30-day rule, and `pip-audit` is the check on them.
+
+**Gates.** `uv run --locked python tools/gates.py` exit 0 on macOS and on both CI runners,
+duplication gate included.
+
+**Review.** Task 1 (lock and decision record), batched `mx-feature`: pass after the ruling was
+applied. Task 2 (duplication gate), `mx-precise`: pass, 3 Info. Sweep discovery at `b7f4e2b`:
+no confirmed defect, 4 deferred. Whole-branch review, `mx-architect` running
+`adversarial-reviewer`: pass, High 0, Medium 0, Low 4, Info 7. The reports stayed in the
+sub-session's git-ignored workspace and are not in the repository.
+
+**Ledger.**
+- `0C-1 task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=n` (first pass failed on the
+  `pip-audit` finding; fixed by the ruling, not a fix round)
+- `0C-1 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n/a`
+
+**Parked Low findings**, for the phase sweep: a `jscpd:ignore` comment or a root `.jscpd.json`
+switches the duplication gate off uncounted, and the suppression counter also misses
+`# fmt: off` and `# mypy: disable-error-code` (present before this change); with the `jscpd`
+script present but its platform binary absent the gate exits 1, not 2; the 0C part 1 plan
+still says in two places that the 6.21.2 pin stands.
+
+**Legacy.** Checked 2026-11-14 at `cbf4400`, 20 merges past the pin; recorded in
+`docs/legacy/ports.md`. Nothing is ported yet, so nothing is pending.
+
+**Not verified.**
+- The duplication gate analyses no file on today's `src`; only the canary shows it detects
+  copied Python.
+- The gate on a checkout with no `web/node_modules` (tested by patching the path).
+- The work PC's install of `pypdf` 6.21.4.
+- `github-copilot-sdk` 1.0.8 ships no licence text; MIT is from its metadata.
+- Eleven packages already in the lock, and three new transitive ones, are under 30 days old.
+- `npm ci` reports 10 moderate advisories in `web/`'s development packages; the web audit gate
+  covers runtime packages only. Passed to the design-track coordinator.
+
 ## 2026-11-13 Design track: mocks (steps D1a to D1d) and design system 0.7
 
 **Scope.** Mocks drawn in Claude Design and one record per screen group under
