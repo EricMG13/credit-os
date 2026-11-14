@@ -41,7 +41,7 @@ memberships: 610 ms for a member of 490 quiet groups at 20,000 stories (predeces
 Kept as the predecessor's.
 
 **The run store's Low batch (#321).** #302's content rebuilt on a fresh branch because gitleaks
-flagged a made-up test literal in a commit of #302 (`generic-api-key`); the coordinator refused
+flagged a made-up test literal in a commit of #302 as an API key; the coordinator refused
 both a rewrite of the pushed branch and a merge on a red check. The literal is now `"ab" * 16`;
 #302 is closed. Changes: stored text that is not UTF-8 is `StoreCorrupt` with no stored text in the
 message; a `clock` that is not callable is `StoreRefused`; a stored `as_of` that is not a date is
