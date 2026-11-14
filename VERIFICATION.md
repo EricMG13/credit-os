@@ -14,7 +14,7 @@ check green on Ubuntu, Windows and the review job, and its diff read by the coor
 | #207 | Signal S-3a part 7b | `27b9252`, `9286842` | `signal/feeds.py`: a text field read in pieces equals the whole-field reading (R46, R47); test Lows (387) |
 | #256 | 2A PR 1e | `db74bf1`, `667e1c1` | `store/db.py`: `open_store` and `open_reader`, the library check, identity, pragmas, the integrity check, the stamp (796) |
 | #259 | 1B Lows | `1621ea8`, `9f900d5` | key rows and written cases for the test gaps of #243 and #214 (105, tests only) |
-| #305 | decision 0012 | `9b6b8ac`, `c3b8249` | failure text is redacted by masking known paths; the claim is bounded; the 1C plan note |
+| #305 | decision 0012 | `9b6b8ac`, `c3b8249` | failure text is redacted by masking known paths; the claim is bounded; the 1C plan note (68) |
 | #307 | CI | `3d66c4c`, `620437d` | `python.yml` skips changes to front-end files alone; the review job moves to `review.yml` (88) |
 
 With #215 and #207 all eight parts of Signal's feed reader are on `main`. #207 showed a red
@@ -26,7 +26,7 @@ on the old base, and ran Python 3.12.10. Closed and reopened, it ran on the merg
 
 | PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- |
-| #215 | `mx-adversary` scoped re-review: pass, Low 2 (closed in #207) | none (a fix ordered after the whole-branch review) | the review of the feeds stack that ordered it |
+| #215 | `mx-adversary` scoped re-review: pass, Low 2 (two test gaps, parked with #207's RR7-1 and RR7-2 for the next feeds change) | none (a fix ordered after the whole-branch review) | the review of the feeds stack that ordered it |
 | #207 | `mx-adversary` scoped re-review: no High or Medium; 0 differences in 140,146 piece readings | none | the same |
 | #256 | `mx-precise` pass on `85c44c6`; Low batch by `mx-scaffold` | 7 rows, 0 defects | Pass on `db74bf1`: High 0, Medium 0, Low 6, Info 6 |
 | #259 | batched `mx-feature`: pass, Info 1 | none (tests only) | none |
@@ -34,7 +34,7 @@ on the old base, and ran Python 3.12.10. Closed and reopened, it ran on the merg
 | #307 | batched `mx-feature`: pass, Low 2 (left for the next change to `tests/test_gates.py`) | none (config) | none |
 
 - #256's first whole-branch review stopped at the account's usage limit with no report; it
-  was rerun on the same model, not another, as the owner chose for #187 ("Wait for Fable").
+  was rerun on the same model, not another, as the owner chose for #187 ("Wait for Fable", the reviewer's model).
   Its 6 Lows ride with PR 2b.
 - #259 closes the two money test gaps of #243: 48 of 48 hand mutants killed (24 survived
   before), and 5 of 5 of #214's.
@@ -61,7 +61,7 @@ behaviour gaps parked as Lows for PR 2b).
 
 **What went wrong on the machine, and the rules made.**
 - At about 16:08 UTC a controller's shell loop ran `rm -rf` on a path whose variable was
-  empty and emptied `/private/tmp/claude-501`, every session's scratch included. No
+  empty and emptied the sessions' shared temporary folder, every session's scratch included. No
   committed work and nothing an open finding depends on was lost. Rule: no delete on a path
   built from a variable; probes and reports live under `.superpowers/sdd/`.
 - A mutation run of the figure reader grew about 70 MB a second (one mutant stalls the
@@ -83,7 +83,8 @@ behaviour gaps parked as Lows for PR 2b).
 - That GitHub skips `python.yml` on a front-end-only pull request: no such pull request has
   run since #307.
 - #256: Windows beyond the one CI job; races beyond two processes; power loss.
-- #207, #215: feeds from real publishers; other expat builds.
+- #207, #215: feeds from real publishers; other expat builds; Python 3.12.11 to 3.12.13
+  never tried.
 
 ## 2026-11-14 Design track: library pages (step D2b)
 
