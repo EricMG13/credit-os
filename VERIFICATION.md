@@ -3,6 +3,107 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Design track: Model and Forecast pages and the chart kinds (step D2c)
+
+**Merged** into `main` in stack order by the coordinator, 28 PRs as merge commits: #69,
+#86, #87, #88, #89, #90, #91, #92 (the chart kinds); #216 to #225 and #227 to #236 (the
+pages). `main` after the last merge: `937fa9b1`. `git diff --quiet origin/main 66cd79e0 --
+web` exit 0: `web/` on `main` equals the reviewed source. The controller's top head was
+`fa0cd5fd` (#236), whose tree equals the reviewed working tree `66cd79e0`
+(`claude/d2c-model-287748`); its base was `8ab3f387`.
+
+**Delivers.** The Model pages (Front, Analysis, Model/statements, Portfolio fit,
+Limitations, Forecast, runs index) and the chart kinds, on fixture data
+(`web/fixtures/model.json`).
+
+**Coordinator pre-check** on the final head `fa0cd5fd`, before merge: no file outside
+`web/src/pages/model/`, `web/src/components/chart/`, `web/fixtures/model.json`; no PR over
+800 changed lines; no fetch, timer, storage, raw HTML or suppression added; the only
+rounding added is for axis label wrapping (`Math.floor`) and one CSS width (`toFixed(2)`),
+not for figures.
+
+**Gates** (controller's report; the stack report is `stack-report.md`).
+- Working tree `66cd79e0`, from `web/`, one step at a time: lint 0, format:check 0,
+  typecheck 0, `vitest run --coverage --testTimeout=120000` 0 (67 files, 1371 tests),
+  unused 0, duplication 0, build 0, test:scripts 0, test:file:gates 1 then 0 on rerun (the
+  headless-browser timeout flake). `audit` was not run in task 16 (it ran 0 in earlier
+  tasks).
+- Each split branch (#216 to #236): lint, format:check, typecheck, vitest with coverage,
+  unused, duplication, build all 0. test:scripts and test:file:gates 0 (after the flake
+  reruns) on #218 to #225 and #228 to #236; not run on #216 and #217 (chart files only) or
+  #227 (no route or fixture change). `test:file:gates` hit the 60 s browser timeout on #218
+  (twice), #219, #225 and #232, each passing on rerun (load average 85 to 190).
+- CI: every PR head green on `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
+  before its merge. Two Windows jobs failed once and passed on one rerun with no change:
+  #230, `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on
+  focus, and draws it n.a., never 0" timed out at 5000 ms (5239 ms; the duplicate Windows
+  job on the same commit passed); #233, the "Open from disk in Chrome (Windows)" step failed
+  two kit-page checks (kit code this stack does not touch). On #86, #88, #89, #91, #92 five
+  older duplicate runs show as cancelled (by the coordinator, earlier); each head also has
+  five passing checks.
+
+**Reviews.**
+- Task reviews: `mx-precise` per task, no High or Medium open at completion.
+- Sweep discovery (`/sweep refactoring discover changed-update`) on the range: 27 rows;
+  confirmed defects R1, R2, R3, R4, K3, R5 fixed in task 15 (`mx-precise`: approve);
+  structural S1 to S9 to the next phase sweep; K6 to K9 deferred. Report `sweep/report.md`,
+  register `sweep/register.md`.
+- Whole-branch review (`mx-architect` running `adversarial-reviewer`, with
+  confidence-review; rewrite-tournament as judgement only) at `09a9dd87`: 0 High, 2 Medium
+  (WB-S1, WB-S2), 5 Low, 5 Info. Report `whole-branch-review.md`.
+- Coordinator ruling: WB-S2 (b) to (e), the slice contract states the cell-to-mark mapping
+  and the reader enforces it.
+- Fix round (task 16) and scoped re-review by a fresh `mx-precise`: approve; both Mediums
+  and all five Lows closed against the reviewer's probes (`wb-reader-gaps` 15/15,
+  `wb-table-side` 6/6). Reports `task-16-report.md`, `task-16-review.md`. No High or Medium
+  open: pass.
+- The reports are kept outside the repository, in the coordinator's session notes folder
+  `d2c-records/`.
+
+**Live validation** (built `web/` with fixture `data.js`, `scratch/dist-final`).
+- Headed Chrome over CDP, `file://`: all 7 routes (`#/model/runs`, front, analysis,
+  statements, portfolio-fit, limitations, forecast) at 1440 and 1024: one h1, one main, no
+  horizontal page scroll, page drawn, no policy violation, no console error or warning, no
+  off-origin request, every Tab stop with a focus indicator (6 to 46 stops per page): 105
+  PASS, 0 FAIL. Log `shots/final/walk-file.txt`.
+- Headed Chrome, `file://`, statements controls: sticky first column at 1024, no page
+  scroll, case switch by arrow key, Bars columns one width, statement tabs by arrow keys,
+  focus ring, no console error: 7 PASS.
+- Headed Chrome, `file://`, every chart (15 across Analysis, Model, Portfolio fit,
+  Forecast; every chart kind): Chart to Table and back by keyboard, the Table side draws
+  "n.a." where missing, arrow-key readout on path, waterfall, columns, stack and scatter,
+  console clean. Probe `probes/final-charts.js`.
+- App's built-in browser pane, `http://localhost:8743`: 7 routes drawn with one h1 and one
+  main; Downside case chosen by pointer on Forecast; Show sources on (7 trace controls
+  shown); no console error.
+
+**Ledger** (D2c; all `agent=mx-feature`): task 1 fix-rounds 2, 1b 0, 2 1, 3 0, 4 0, 5 1,
+6 1, 6b 0, 7 0, 8 1, 8b 0, walk1-fix 0, 9 1, 10 2, 11 1, 12 2, 13 2, 14 0, 15 0, 16 1,
+stack-split 0. gates-first-pass `y` for all except tasks 14 and 15 (knip failed once on an
+export left unused, fixed by a follow-up commit) and stack-split (the browser timeout
+flake above).
+
+**Open for the owner.**
+- Show sources persistence: per page, per run or per session (now reset on every route
+  change).
+- 12px chart tick text against the 13px page text floor.
+- Whether a run may have no limitations (now refused).
+- One bad run makes every run's Model pages unreadable (the slice is read all or nothing).
+- Contract formats for step 3B delivery: a segment text is exactly "<earlier or n.a.> to
+  <later or n.a.>"; a headroom text starts with its first table cell then a space; every
+  trace and in-library link starts with "#/"; `statements.published.href` and
+  `checkFigure.href` have no address rule yet.
+- The Library tab strip must link Forecast to `#/model/:issuer/:run/forecast`.
+
+**Open Low** for the next model-pages change: the `StatementsPage.test.tsx` test above runs
+close to the 5 s test timeout on Windows CI.
+
+**Not verified.** Edge; Windows rendering beyond CI; the published-model links from
+`file://` (the fixture has `published: null`); `npm run audit` on each split branch;
+`npm run gates` as one command; `LimitsChart` label placement beyond the fixture; the
+reader against shapes nobody built (no fuzzing); `wb-observe` (three cases stale by design
+after task 16).
+
 ## 2026-11-14 Roadmap back end: 1B facilities and forecast block, 2A store location
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -829,164 +930,3 @@ on Ubuntu, Windows and the review job on both heads. Mutation on #61 (`mutmut`, 
   `3b5dec2` (one test row after `e5f8315`); the task reviews ran before the echo bound.
 - How the work PC renders `…` in a message.
 - `npm --prefix web run gates` did not run for either PR; neither changes a web file.
-
-## 2026-11-14 Roadmap back end: 1A PR 3, 1C PR 1b and step 0C part 2
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #47 | 1A PR 3 | `e29f1f2`, `9757bbd` | Front matter, section tree, six-section skeleton check, `parse` (655 lines) |
-| #49 | 0C part 2 | `8a6f39a`, `9a85025` | Web duplication scans `web/src` only; open-from-disk named runs in Edge and Chrome on Windows CI |
-| #50 | 1C PR 1b | `2bc089f`, `89d9056` | Canned adapter; `Compaction` and `Reply.compactions` (800 lines, at the cap) |
-| #46 | records | `52fba33`, `52d4481` | The entry "1A PR 2 and 1D PR 1" and the 1A and 1D plan rules |
-
-**Reviews.**
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #47 | `mx-precise`: both tasks approved, Low 4, fixed in two batches | no confirmed defect; 1 Low deferred, 8 Info | PASS on `f48aa94`: High 0, Medium 0, Low 3 (test strength, fixed in a tests-only batch), Info 5 |
-| #49 | batched `mx-feature` (CI and config): PASS, no finding | skipped (config, global rules section 7) | skipped, same rule |
-| #50 | `mx-precise` approved (Low 2); `mx-adversary` FAIL, Medium 1; a second Medium by the coordinator's ruling and a third found by the controller in the fix; all three closed by a scoped `mx-adversary` re-review | 0 confirmed defects | PASS on `ac733d9`: High 0, Medium 0, Low 3, Info 3. A tests-and-docstring batch followed with no review round |
-
-#50's Mediums: a number that cannot be read escaped as an untyped error; a recorded charge was
-read by `Decimal`, which accepts `'1_0'` as 10 (rated Low by the reviewer, ruled Medium because
-it is money); a trimmed key check accepted an extra key named `""`. A charge is now read only
-from plain digits with an optional fraction. The re-review's own probes: 21,769 charge strings
-against a hand oracle, 1,978 key cases and 15,000 fuzzed lines, none escaping.
-
-#47's answer key was generated by the controller's script, so the task reviewer wrote its own
-reader of the 27 fixtures and compared it with the key and with `parse`: no disagreement.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #47
-on `e29f1f2` (804 tests), #50 on `2bc089f` (622 passed, coverage 100%). #49:
-`npm --prefix web run gates` exit 0 locally (implementer). Mutation on #50 (`mutmut`, at
-`ac733d9`): 642 mutants, 633 killed, 9 equivalent.
-
-**Edge.** #49's `web` run on `windows-latest`, logs read by the coordinator: the Edge step
-printed `browser: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe` and 13
-PASS lines, the Chrome step its own path and 13 PASS lines; the violation canary was reported
-in both. This is the first Edge run of the open-from-disk check. Earlier Windows runs used
-Chrome (read from the logs of three runs on `main` before #49).
-
-**Ledger.**
-- `1A-3 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1A-3 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1A-3 task=3(low batch) agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1A-3 task=4(low batch 2) agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1C-1b task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
-- `1C-1b task=end-batch agent=mx-scaffold fix-rounds=0 gates-first-pass=n`
-- `0C-2 agent=mx-scaffold fix-rounds=0 gates-first-pass=y` (the full web gate passed on its
-  first run; a lint run before it failed on a stale `node_modules`, not on the change)
-
-**Rulings by the coordinator.** In the 1A and 1C plans. The ones a later step depends on:
-- Four of 63 retained drafts of one run are refused by the table rules. The predecessor refused
-  three for the same fault and accepted the fourth, a module's final reply, while turning two
-  calculation rows into prose; none reached a library. The refusals stand. Step 3A sends a parse refusal and its line
-  back to the module as the retry reason.
-- An unclosed code fence is a flag on the block, not a parse error; step 2B refuses it.
-- The bound on a reply's size is step 3A's. A charge is printed with `format(d, "f")`, and a
-  recorded charge has no digit or scale cap (step 3A).
-- Ruled for 1C PR 2, not yet in `main`: one representation of tool arguments in both adapters,
-  what the SDK gives (a float for a fraction); `Model.close()` returns the compactions observed
-  and not yet delivered; a compaction carries its event id and its outcome (done, failed,
-  unfinished); an unknown charge is `None` in every case; several usage events of one call
-  are summed only when every one is readable. A sent reply whose charge is unknown makes the
-  run's spend unknown, and step 3A's budget stops the run unless the owner rules otherwise.
-
-**A rule breached and corrected.** #36 put two charge figures from the predecessor's test
-fragments of a real run into `tests/provider/test_types.py`, against "public or synthetic
-only"; #50's first key carried seven. The whole-branch review of #50 found it; all are replaced
-by invented figures in #50. The predecessor repository is public and the figures identify
-nothing, and they remain in this repository's history. The 1C plan no longer points at them.
-
-**Not verified.**
-- Edge on the work PC: the CI image's Edge is the nearest evidence.
-- Only 5 front matter values are in #47's frozen key; the rest rest on the reviewers' readers.
-- Whether runtime 1.0.108 can deliver a compaction after `session.idle`, or twice.
-- Mutation on #50 was not rerun on `2bc089f`, where source changed only in a docstring. The
-  Windows failure on `ac733d9` (a 100,000-character test id) was inferred from the log and
-  confirmed only by the green rerun.
-- The predecessor's readers were run on the four drafts with Python 3.14, not its own pin.
-- `npm --prefix web run gates` did not run for #47 or #50; neither changes a web file.
-
-## 2026-11-14 Design track: component kit and page scaffolding (step D2a)
-
-**Merged**, on the owner's instruction (merge when the whole-branch review has no High or
-Medium finding), 17 stacked PRs in order, each retargeted to `main` and merged at the head
-named: #17 `a6e6c3d`, #19 `f0a6d9b`, #20 `ff3628f`, #21 `168078c`, #22 `b74ec48`, #23
-`bcbe736`, #25 `6c55a41`, #27 `c3e5bbc`, #28 `27c23e6`, #30 `95b9abe`, #31 `db410ed`, #32
-`03aa989`, #37 `13dc9e9`, #38 `3d182dc`, #39 `46fdaf4`, #40 `b12f99f`, #43 `891a91c` (merge
-`bd534dd`). After the last merge `web/` on `main` is byte-identical to the reviewed head
-`891a91c` (`git diff --quiet origin/main 891a91c -- web`, exit 0).
-
-**Delivers.** Design tokens as Tailwind `@theme`, fonts, the app shell, the component kit on
-`#/kit` (button, tooltip, badge, tabs, status shapes and gap states, cards, timeline, alert,
-empty state, input, select, table, progress, drawer, modal, progress steps, file upload,
-chart frame and trend chart on Recharts), the class coverage check, and the scaffolding for
-D2b to D2e: route table, four empty page groups with slice readers, four fixtures, the
-fixture data writer and the route visits in the open-from-disk check.
-
-**Gates and CI.** `npm --prefix web run gates` exit 0 at each task and at `891a91c`, by the
-controller. Every PR's last CI run was green on `ubuntu-latest` and `windows-latest` before
-merge, read by the coordinator. The stack was built on `d0ca6f3`; the merged `main` also
-holds the back-end PRs merged since, and its own CI run on `bd534dd` had not finished when
-this entry was written.
-
-**Reviews.**
-
-| Level | Reviewer | Result |
-| :--- | :--- | :--- |
-| Task | `mx-precise` (as the plan sets; the ledger does not name the reviewer per task), 14 tasks | 8 approved with no fix round, 6 after one fix round and a re-review |
-| Sweep discovery | `mx-autonomous`, on `d0ca6f3..b12f99f` | 5 confirmed defects (Medium 1, Low 4), 8 structural costs. D-1 (Medium), D-2, D-3, S-1, S-2 fixed in `4a7d851` |
-| Whole-branch | fresh `mx-architect`, adversarial, on `d0ca6f3..4a7d851` | Needs fixes: High 0, Medium 3, Low 6, Info 3 |
-| Re-review of the Medium fixes | `mx-precise`, on `891a91c` | Approved: High 0, Medium 0. Final verdict Pass |
-
-The three Medium findings were accessibility defects that unit tests passed for the wrong
-reason, because jsdom computes names differently from Chrome and applies no stylesheet: table
-column headers had an empty accessible name; focus on an invalid input or select only
-thickened the ring in the same colour; a loading button had no name. The open-from-disk gate
-now reads names and the invalid field's focus ring in headless Chrome
-(`web/scripts/kit-chrome.mjs`). The first whole-branch review agent died in a credit outage
-and left nothing; the review recorded here was run from scratch. Reports and probes are in
-the D2a worktree's `.superpowers/sdd/2026-11-13-design-d2a-kit/` (git-ignored, not in the
-repository); the verdicts are in #43's body.
-
-**Ledger.** One line per task, `agent=mx-feature` unless named.
-- `D2a task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
-- `D2a task=2, 3, 4b, 5, 7b fix-rounds=0 gates-first-pass=y`
-- `D2a task=4a, 7d fix-rounds=0 gates-first-pass=n`
-- `D2a task=6, 7a, 7c, 7e, 7f, 8 fix-rounds=1 gates-first-pass=y`
-- `D2a sweep fixes fix-rounds=0 gates-first-pass=y`
-- `D2a whole-branch fixes fix-rounds=1 gates-first-pass=y`
-
-**Rulings by the coordinator.**
-- A focused invalid input or select draws the `focus` token ring at 2px; the error edge stays
-  at rest. This replaces the controller's earlier ruling that kept the source's error ring.
-- Disabled input and select stay at 50% opacity, as decision 0006 ruling 17 for the button.
-
-The controller's rulings (a loading button stays focusable with `aria-disabled`; the chart
-keeps Recharts' accessibility layer, named by its title) stand.
-
-**Parked**, for the next phase sweep: sweep rows D-4 and D-5 (the class and focus-outline
-checks miss some crafted forms; the shipped tree matches a TypeScript-parser oracle) and S-3
-to S-8; kit files named after task numbers (`Kit7c.tsx` and others); the kit shows a state as
-a dot badge; no error boundary, so a component that throws blanks the page; two names for one
-text colour. **For the owner:** no licence notice travels with the 27 files copied from
-Untitled UI React and the three pieces after HyperUI (both recorded as MIT, the texts not
-read); the selected segment and the hovered tab are faint as the source draws them; six early
-commits carry a Sonnet co-author trailer. **Before the first Bar or Pie chart:** `react-is`
-17.0.2 is chosen by a test tool's dependency and needs a decision record. **Before the Run
-group's live page:** 22 horizontal progress steps do not fit a 1280 or 1920 row.
-
-**Not verified.**
-- Edge, and any browser run by hand on Windows: the gate drives headless Chrome, on both CI
-  runners.
-- Any screen reader; mobile widths; the focus ring outside the kit page; the error mark and
-  hint text while a field is focused (read in the code, not measured).
-- The coordinator read the whole-branch report, the fix diff `4a7d851..891a91c` and each PR's
-  check status; it did not rerun the gates or the reviewers' probes itself.
-- Each stacked PR's size against the 800-line cap rests on CI; three PRs exceed 800 with lock
-  files counted, and the coordinator did not recount them without.
-- The route and slice scaffolding has no page built on it yet; D2b to D2e are its first use.
