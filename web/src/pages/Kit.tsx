@@ -22,6 +22,7 @@ import { Timeline } from "@/components/timeline/Timeline";
 import { KitInputSelect } from "@/pages/Kit7c";
 import { KitTableProgress } from "@/pages/Kit7d";
 import { KitOverlays } from "@/pages/Kit7e";
+import { KitFileUpload } from "@/pages/Kit7f";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
@@ -385,6 +386,7 @@ export function Kit() {
       <KitInputSelect />
       <KitTableProgress />
       <KitOverlays />
+      <KitFileUpload />
 
       <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
         <h2 id="kit-trend-chart" className="font-display text-h2 text-text-primary">

@@ -241,6 +241,17 @@
   --text-color-brand-tertiary: var(--color-action);
   --text-color-fg-brand-primary: var(--color-action);
 
+  /* File upload: the drop zone's link button and the retry link, the row's icon box and divider */
+  --text-color-brand-secondary_hover: var(--color-action-hover);
+  --text-color-fg-brand-secondary_alt: var(--color-action);
+  --text-color-fg-brand-secondary_hover: var(--color-action-hover);
+  --text-decoration-color-fg-brand-secondary_alt: var(--color-action);
+  --text-color-error-primary_hover: var(--color-bg-error-solid_hover);
+  --text-color-fg-error-secondary: var(--color-error-mark);
+  --text-color-fg-error-primary: var(--color-error-text);
+  --border-color-container: var(--color-border-container);
+  --background-color-border-primary: var(--color-border-primary);
+
   /* Drawer and modal: the scrim is Navy (it takes the source's alpha at the use site); the footer's top rule is the hairline */
   --background-color-overlay: var(--color-surface-inverse);
   --color-border-secondary: var(--color-border-hairline);

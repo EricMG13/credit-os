@@ -56,6 +56,24 @@ export const styles = sortCx({
         "*:data-icon:text-fg-quaternary hover:*:data-icon:text-fg-quaternary_hover",
       ].join(" "),
     },
+    "link-color": {
+      root: [
+        "justify-normal rounded p-0! text-brand-secondary hover:text-brand-secondary_hover",
+        // Inner text underline
+        "*:data-text:underline *:data-text:decoration-transparent hover:*:data-text:decoration-fg-brand-secondary_alt",
+        // Icon styles
+        "*:data-icon:text-fg-brand-secondary_alt hover:*:data-icon:text-fg-brand-secondary_hover",
+      ].join(" "),
+    },
+    "link-destructive": {
+      root: [
+        "justify-normal rounded p-0! text-error-primary outline-error hover:text-error-primary_hover",
+        // Inner text underline
+        "*:data-text:underline *:data-text:decoration-transparent *:data-text:underline-offset-2 hover:*:data-text:decoration-current",
+        // Icon styles
+        "*:data-icon:text-fg-error-secondary hover:*:data-icon:text-fg-error-primary",
+      ].join(" "),
+    },
     "primary-destructive": {
       root: [
         "bg-error-solid text-white shadow-xs-skeuomorphic ring-1 ring-transparent outline-error ring-inset hover:bg-error-solid_hover data-loading:bg-error-solid_hover",
