@@ -3,6 +3,7 @@
 // to visit each in a browser, and a test fails if it cannot see one. A page reads its data with
 // `readSlice(useSource().library)`. Edit only this folder and fixtures/library.json.
 import type { Route } from "../route-table";
+import { Changes } from "./Changes";
 import { History } from "./History";
 import { Home } from "./Home";
 import { Overview } from "./Overview";
@@ -29,5 +30,11 @@ export const routes: readonly Route[] = [
     layout: "bleed",
     title: PAGE_NAME.overview,
     render: (params) => <Overview issuer={params["issuer"]} run={params["run"]} />,
+  },
+  {
+    path: "/library/:issuer/:run/changes",
+    layout: "bleed",
+    title: PAGE_NAME.changes,
+    render: (params) => <Changes issuer={params["issuer"]} run={params["run"]} />,
   },
 ];

@@ -84,6 +84,8 @@ describe("the library routes adopt the shell", () => {
       "#/library/halden-aerostructures/1999-01-01/overview",
       "Overview",
     ],
+    ["changes of an unknown issuer", "#/library/nobody/2026-09-30/changes", "Changes"],
+    ["changes of an unknown run", "#/library/halden-aerostructures/1999-01-01/changes", "Changes"],
   ])("keeps one h1, the page name, for the %s", (_, hash, name) => {
     visit(hash);
     expect(screen.getByRole("heading", { level: 1, name })).toBeVisible();

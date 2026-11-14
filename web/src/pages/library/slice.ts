@@ -186,11 +186,54 @@ export type Overview = {
   limitations: Limitations;
 };
 
+/** The words of the Change state set. */
+export type ChangeState = keyof (typeof STATUS_SETS)["Change state"];
+
+/** One module's change state; `module` is its id, or `null` for an item that stands for several. */
+export type ChangeModuleItem = {
+  title: string;
+  lead: string;
+  state: ChangeState;
+  module: string | null;
+};
+
+/**
+ * One change between two runs. `direction` is delivered, never worked out from the figures; a
+ * `from` of `null` (not recorded earlier) has direction "none" and no `change` text. `kind` and
+ * `change` are delivered words such as "Value" and "Lower by 0.3x".
+ */
+export type Change = {
+  measure: string;
+  kind: string;
+  current: Cell;
+  from: Cell;
+  direction: "up" | "down" | "none";
+  change: string | null;
+  cause: string;
+  effect: string;
+  trace: string | null;
+};
+
+/** The Changes page of a run: the first run on an issuer has nothing to compare with. */
+export type Changes =
+  | { kind: "none"; title: string; text: string }
+  | {
+      kind: "compared";
+      heading: string;
+      subtitle: string;
+      earlierLabel: string;
+      currentLabel: string;
+      /** The basis note under the table, for example "All six changes, in the order the module wrote them". */
+      tableNote: string;
+      changes: readonly Change[];
+      modules: { summary: string; items: readonly ChangeModuleItem[] };
+    };
+
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
 
-/** A run still loading carries no overview; every other run carries one. */
-export type LoadedRun = RunBase & { loading: false; overview: Overview };
-type LoadingRun = RunBase & { loading: true; overview: null };
+/** A run still loading carries no overview or changes; every other run carries both. */
+export type LoadedRun = RunBase & { loading: false; overview: Overview; changes: Changes };
+type LoadingRun = RunBase & { loading: true; overview: null; changes: null };
 
 /** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
 export type Run = LoadedRun | LoadingRun;
