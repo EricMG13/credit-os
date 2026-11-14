@@ -2,8 +2,10 @@
 real clock, environment or file read (time is only `clock()`).
 
 Documented fail-open: a release step (abort, queued, disconnect, stop, force_stop) that raises
-never changes the reply or stops the later steps; it is logged once at warning level with the
-step name and the exception class only, never its text."""
+or times out never changes the reply's kind, class, usage or charge and never stops the later
+steps; it is logged once at warning level with the step name and the exception class only, never
+its text. A failed `queued` read adds `driver:release-unread` to the reply, or
+`driver:close-unread` to the result of close()."""
 
 import json
 import logging
@@ -51,6 +53,17 @@ def _valid(value: object) -> list[Any] | None:
 
 def _spends(event: dict[str, Any]) -> bool:
     return event["type"] == "assistant.usage" or any(f in event["data"] for f in _SPEND_FIELDS)
+
+
+def _stray(event: dict[str, Any]) -> bool:
+    """A compaction event holding a spend field the parser does not read for it."""
+    read = {
+        "session.compaction_start": (),
+        "session.compaction_complete": ("compactionTokensUsed",),
+    }
+    return event["type"] in read and any(
+        f in event["data"] for f in _SPEND_FIELDS if f not in read[event["type"]]
+    )
 
 
 @dataclass
@@ -336,6 +349,12 @@ class CopilotDriver:
         failed = failed or own is None
         listed = _valid((own or []) + fresh) or []
         kinds = [e["type"] for e in listed]
+        strays = [self._text(e["type"]) for e in listed if _stray(e)]
+        if strays:
+            _log.warning(
+                "a compaction event holds unattributed spend, event types: %s", ", ".join(strays)
+            )
+            failed = True
         alone = kinds.count("session.compaction_complete") == 1 and len(kept.pending) == 1
         link = (
             kept.pending[0]
