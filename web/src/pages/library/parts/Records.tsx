@@ -1,4 +1,5 @@
 import type { RecordBlock } from "../slice";
+import { ChartTableBlock } from "./ChartTableBlock";
 import { EdgesBlock } from "./EdgesBlock";
 import { FactsBlock } from "./FactsBlock";
 import { MatrixBlock } from "./MatrixBlock";
@@ -31,6 +32,8 @@ function Block({ block }: { block: RecordBlock }) {
       return <StatusBlock block={block} />;
     case "statement":
       return <StatementBlock block={block} />;
+    case "chartTable":
+      return <ChartTableBlock block={block} />;
     case "gap":
       return <GapBlock block={block} />;
   }

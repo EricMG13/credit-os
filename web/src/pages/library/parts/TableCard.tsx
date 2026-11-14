@@ -6,7 +6,7 @@ import { TRACE_HOST, TraceControl } from "./TraceControl";
 /**
  * A chart's Table side alone, in the card the mock draws for it: the title (a heading the module
  * navigator can focus), an optional basis note, the block's one trace control in the header, and the
- * kit's table. The kit's ChartFrame is not used where no chart side is drawn: its Chart or Table
+ * kit's table, then any footnotes. The kit's ChartFrame is not used where no chart side is drawn: its Chart or Table
  * toggle would have a dead side. The trace control stays in this one header slot so it can move into
  * ChartFrame's `actions` when a chart kind exists. A row's control shows while the row is hovered.
  */
@@ -19,6 +19,8 @@ export function TableCard({
   head,
   rows,
   endHeading,
+  footnotes = [],
+  tableClass = "",
 }: {
   title: string;
   note: string | null;
@@ -29,7 +31,12 @@ export function TableCard({
   trace: { key: string | null; label: string } | null;
   head: string[];
   rows: TableRowData[];
-  endHeading: string;
+  /** The heading of the end column, needed only where a row has an end control. */
+  endHeading?: string;
+  /** Sentences under the table, in the order delivered. */
+  footnotes?: readonly string[];
+  /** Classes on the table's wrapper, for what the kit's table takes no property for. */
+  tableClass?: string;
 }) {
   const Heading = SUBSECTION_HEADING;
   return (
@@ -46,9 +53,14 @@ export function TableCard({
         </div>
         {trace === null ? null : <TraceControl trace={trace.key} label={trace.label} />}
       </div>
-      <div className="[&_tbody_tr:hover_button]:opacity-100">
+      <div className={`[&_tbody_tr:hover_button]:opacity-100 ${tableClass}`}>
         <ChartTable caption={title} head={head} rows={rows} endHeading={endHeading} />
       </div>
+      {footnotes.map((text) => (
+        <p key={text} className="text-small text-text-tertiary">
+          {text}
+        </p>
+      ))}
     </section>
   );
 }

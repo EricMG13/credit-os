@@ -1428,6 +1428,96 @@ describe("readSlice, the data module's records", () => {
         (((b["items"] as Json[])[0] as Json)["current"] = { kind: "withheld", reason: null }),
       "items[0].delta",
     ],
+    ["a chart table of an unknown chart", "chartTable", (b: Json) => (b["chart"] = "pie"), "chart"],
+    ["a chart table with no columns", "chartTable", (b: Json) => (b["columns"] = []), "columns"],
+    ["a chart table with no rows", "chartTable", (b: Json) => (b["rows"] = []), "rows"],
+    [
+      "a chart table with too many columns",
+      "chartTable",
+      (b: Json) =>
+        (b["columns"] = Array.from({ length: 9 }, (_, i) => ({
+          label: `C${String(i)}`,
+          align: "left",
+        }))),
+      "columns",
+    ],
+    [
+      "a chart table with too many rows",
+      "chartTable",
+      (b: Json) => (b["rows"] = Array.from({ length: 13 }, () => (b["rows"] as Json[])[0])),
+      "rows",
+    ],
+    [
+      "a chart table column aligned to the centre",
+      "chartTable",
+      (b: Json) => (((b["columns"] as Json[])[1] as Json)["align"] = "center"),
+      "columns[1].align",
+    ],
+    [
+      "a chart table column named twice",
+      "chartTable",
+      (b: Json) => (((b["columns"] as Json[])[2] as Json)["label"] = "Debt"),
+      "columns[2].label",
+    ],
+    [
+      "a chart table row with one cell too few",
+      "chartTable",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["cells"] = ["Senior secured notes", "x"]),
+      "rows[1].cells",
+    ],
+    [
+      "a chart table row with one cell too many",
+      "chartTable",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["cells"] as unknown[]).push("x"),
+      "rows[1].cells",
+    ],
+    [
+      "a chart table text cell that is an empty string",
+      "chartTable",
+      (b: Json) => ((((b["rows"] as Json[])[0] as Json)["cells"] as unknown[])[1] = ""),
+      "rows[0].cells[1]",
+    ],
+    [
+      "a chart table figure whose text is an empty string",
+      "chartTable",
+      (b: Json) =>
+        ((((b["rows"] as Json[])[0] as Json)["cells"] as unknown[])[2] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "rows[0].cells[2].text",
+    ],
+    [
+      "a chart table row labelled by a missing figure",
+      "chartTable",
+      (b: Json) => ((((b["rows"] as Json[])[0] as Json)["cells"] as unknown[])[0] = null),
+      "rows[0].cells[0]",
+    ],
+    [
+      "a chart table row whose emphasis is not true or false",
+      "chartTable",
+      (b: Json) => (((b["rows"] as Json[])[0] as Json)["emphasis"] = "yes"),
+      "rows[0].emphasis",
+    ],
+    [
+      "a chart table footnote that is an empty string",
+      "chartTable",
+      (b: Json) => (b["footnotes"] = [""]),
+      "footnotes[0]",
+    ],
+    [
+      "a chart table note that is an empty string",
+      "chartTable",
+      (b: Json) => (b["note"] = ""),
+      "note",
+    ],
+    [
+      "a chart table with an unknown trace",
+      "chartTable",
+      (b: Json) => (b["trace"] = "no-such-trace"),
+      "trace",
+    ],
     [
       "a measure with both periods as values and no delta",
       "measures",
@@ -1461,6 +1551,37 @@ describe("readSlice, the data module's records", () => {
     const base = where(slice, kind);
     break_(blockOf(slice, kind));
     expect(invalidReason(slice)).toContain(`${base}.${path}`);
+  });
+
+  it("reads the debt stack, maturities and headroom as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const tables = body.records.flatMap((r) => (r.kind === "chartTable" ? [r] : []));
+    expect(tables.map((t) => [t.chart, t.nav, t.title, t.note, t.footnotes.length])).toEqual([
+      [
+        "stack",
+        "Debt stack and maturities",
+        "Debt stack",
+        "USD 2,398m gross debt at 30 Sep 2026, by rank",
+        1,
+      ],
+      ["columns", "Debt stack and maturities", "Maturities by year", "USD m, calendar years", 0],
+      ["bullet", "Headroom", "Headroom against covenant and rating triggers", null, 0],
+    ]);
+    expect(tables[1]?.rows.map((r) => r.cells)).toEqual([
+      ["2027", "Other debt", "40"],
+      ["2028", "Senior unsecured notes", "310"],
+      ["2029", "Nothing", "0"],
+      ["2030", "Term loan B", "1,150"],
+      ["2031", "Senior secured notes", "600"],
+      ["Leases", "Schedule not in the files", null],
+    ]);
+    expect(tables[2]?.rows[3]?.cells[2]).toEqual({ kind: "withheld", reason: null });
+    expect(tables[0]?.columns.map((c) => c.align)).toEqual(["left", "left", "right"]);
   });
 
   it("reads the facility terms and the tests as the mock words them", () => {
