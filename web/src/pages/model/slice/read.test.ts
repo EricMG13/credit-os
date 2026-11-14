@@ -360,6 +360,21 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
       `${ROW_PATH}.label`,
     ],
     [
+      "a statement row labelled as a chart title",
+      edited([...ROW, "label"], "Debt by instrument"),
+      `${ROW_PATH}.label`,
+    ],
+    [
+      "a debt chart titled as the recovery chart",
+      edited([...STM, "debt", "stack", "title"], "Recovery by class and case"),
+      "runs[0].statements.recovery.title",
+    ],
+    [
+      "the comparison titled as a bridge",
+      edited([...STM, "comparison", "title"], "Net debt walk"),
+      "runs[0].statements.comparison.title",
+    ],
+    [
       "a bridge titled as a case",
       edited([...STM, "bridges", 0, "title"], "Downside case"),
       "runs[0].statements.bridges[0].title",
@@ -484,8 +499,17 @@ describe("readSlice: a string the page draws is never empty", () => {
       ["statements", "statements", 0, "rows", 0, "cells", 0, "text"],
       `${P}.statements.statements[0].rows[0].cells[0].text`,
     ],
+    [["statements", "recovery", "title"], `${P}.statements.recovery.title`],
+    [["statements", "recovery", "head"], `${P}.statements.recovery.head`],
+    [["statements", "debt", "stack", "head", 0], `${P}.statements.debt.stack.head[0]`],
     [["statements", "bridges", 0, "head", 0], `${P}.statements.bridges[0].head[0]`],
     [["statements", "bridges", 0, "rows", 0, "label"], `${P}.statements.bridges[0].rows[0].label`],
+    [["statements", "comparison", "tableHead"], `${P}.statements.comparison.tableHead`],
+    [["statements", "comparison", "rowLabels", 0], `${P}.statements.comparison.rowLabels[0]`],
+    [["statements", "gap", "title"], `${P}.statements.gap.title`],
+    [["statements", "gap", "reason"], `${P}.statements.gap.reason`],
+    [["statements", "checkFigure", "title"], `${P}.statements.checkFigure.title`],
+    [["statements", "checkFigure", "text"], `${P}.statements.checkFigure.text`],
   ] as [(string | number)[], string][])("refuses an empty string at %j", (steps, where) => {
     expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
       kind: "invalid",
@@ -563,5 +587,12 @@ describe("readSlice: an address into the library starts with #/", () => {
       kind: "invalid",
       reason: `${where}: ${OFF}`,
     });
+  });
+
+  it("leaves the published model's address and the check figure's to their own rule", () => {
+    expect(
+      readSlice(edited([...RUN, "statements", "checkFigure", "href"], "https://example.invalid/f"))
+        .kind,
+    ).toBe("ok");
   });
 });

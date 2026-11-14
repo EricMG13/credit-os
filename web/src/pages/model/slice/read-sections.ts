@@ -7,12 +7,28 @@ import {
   fail,
   is,
   num,
+  numOrNull,
   object,
+  oneOf,
+  pairOf,
   tagged,
   text,
   textOrNull,
+  type Reader,
 } from "./reader-kit";
-import type { Bridge, BridgeStep, CaseCard, StatementsPage, Tick } from "./types";
+import type {
+  Bridge,
+  BridgeStep,
+  CaseCard,
+  ColumnsData,
+  Comparison,
+  ComparisonPanel,
+  Published,
+  Stack,
+  StackPart,
+  StatementsPage,
+  Tick,
+} from "./types";
 
 const tick = object<Tick>({ value: num, label: text });
 
@@ -31,10 +47,52 @@ const bridge = object<Bridge>({
   head: arrayOf(text),
   rows: arrayOf(object({ label: text, cells: arrayOf(textOrNull), trace: addressOrNull })),
 });
+const panel = object<ComparisonPanel>({
+  measure: text,
+  tableLabel: text,
+  max: num,
+  values: pairOf(numOrNull),
+  texts: pairOf(textOrNull),
+  trace: addressOrNull,
+});
+const comparison = object<Comparison>({
+  ...chartInfo,
+  rowLabels: pairOf(text),
+  tableHead: text,
+  panels: arrayOf(panel),
+});
+const part = object<StackPart>({ name: text, value: num, text, share: text, trace: addressOrNull });
+const stack = object<Stack>({ ...chartInfo, head: arrayOf(text), parts: arrayOf(part) });
+const columns = object<ColumnsData>({
+  ...chartInfo,
+  yTicks: arrayOf(tick),
+  head: text,
+  groups: arrayOf(object({ label: text, trace: addressOrNull })),
+  series: arrayOf(object({ name: text, values: arrayOf(numOrNull), labels: arrayOf(textOrNull) })),
+});
+const publishedRecord = object<Published>({
+  kind: oneOf(["markdown", "html"] as const),
+  href: text,
+});
+/** `null`, or a record with kind and href; anything with neither key is not a published model. */
+const published: Reader<Published | null> = (value, path) => {
+  if (value === null) return null;
+  const isRecord = typeof value === "object" && !Array.isArray(value);
+  if (!isRecord || !("kind" in value || "href" in value)) {
+    return fail(path, "expected null or an object with kind and href");
+  }
+  return publishedRecord(value, path);
+};
 
 /** The members the second half of the Model page adds to the statements page. */
 export const sections = {
   bridges: arrayOf(bridge),
+  comparison,
+  debt: object<StatementsPage["debt"]>({ stack, maturities: columns }),
+  recovery: columns,
+  gap: object({ title: text, reason: text }),
+  checkFigure: object({ title: text, text, href: text }),
+  published,
 };
 
 /** Refuses the first item whose key an earlier item already has, at `path(i)`. */
@@ -134,6 +192,84 @@ function checkBridge(b: Bridge, cases: readonly CaseCard[], path: string): void 
     });
   });
 }
+function checkComparison(c: Comparison, path: string): void {
+  if (c.rowLabels[0] === c.rowLabels[1]) {
+    fail(`${path}.rowLabels[1]`, "expected a label the other row does not have");
+  }
+  atLeastOne(c.panels, `${path}.panels`, "panel");
+  noRepeat(
+    c.panels,
+    (p) => p.measure,
+    (i) => `${at(`${path}.panels`, i)}.measure`,
+    "a measure no other panel has",
+  );
+  noRepeat(
+    c.panels,
+    (p) => p.tableLabel,
+    (i) => `${at(`${path}.panels`, i)}.tableLabel`,
+    "a label no other panel has",
+  );
+  c.panels.forEach((p, i) => {
+    const where = at(`${path}.panels`, i);
+    if (!(p.max > 0)) fail(`${where}.max`, "expected a number above zero");
+    p.values.forEach((v, k) => {
+      const t = p.texts[k];
+      if (v === null) {
+        if (t !== null) fail(at(`${where}.texts`, k), "expected null beside a missing value");
+        return;
+      }
+      if (v < 0) fail(at(`${where}.values`, k), "expected a number of zero or more");
+      if (v > p.max) fail(at(`${where}.values`, k), "expected a number of at most the panel's max");
+      if (t === null) fail(at(`${where}.texts`, k), "expected a text beside a present value");
+    });
+  });
+}
+
+function checkStack(s: Stack, path: string): void {
+  atLeastOne(s.parts, `${path}.parts`, "part");
+  noRepeat(
+    s.parts,
+    (p) => p.name,
+    (i) => `${at(`${path}.parts`, i)}.name`,
+    "a name no other part has",
+  );
+  s.parts.forEach((p, i) => {
+    if (!(p.value > 0)) fail(`${at(`${path}.parts`, i)}.value`, "expected a number above zero");
+  });
+  exactly(s.head, 3, `${path}.head`, "entries, the label, amount and share headings");
+}
+
+function checkColumns(d: ColumnsData, path: string): void {
+  const axisEnd = checkTicks(d.yTicks, `${path}.yTicks`);
+  atLeastOne(d.groups, `${path}.groups`, "group");
+  noRepeat(
+    d.groups,
+    (g) => g.label,
+    (i) => `${at(`${path}.groups`, i)}.label`,
+    "a label no other group has",
+  );
+  atLeastOne(d.series, `${path}.series`, "series");
+  noRepeat(
+    d.series,
+    (s) => s.name,
+    (i) => `${at(`${path}.series`, i)}.name`,
+    "a name no other series has",
+  );
+  d.series.forEach((s, i) => {
+    const where = at(`${path}.series`, i);
+    exactly(s.values, d.groups.length, `${where}.values`, "entries, one per group");
+    exactly(s.labels, d.groups.length, `${where}.labels`, "entries, one per group");
+    s.values.forEach((v, g) => {
+      const label = s.labels[g];
+      if (v === null) {
+        if (label !== null) fail(at(`${where}.labels`, g), "expected null beside a missing value");
+        return;
+      }
+      checkPosition(v, axisEnd, at(`${where}.values`, g));
+      if (label === null) fail(at(`${where}.labels`, g), "expected a label beside a present value");
+    });
+  });
+}
 
 /** Every rule a chart's own check enforces, so a slice that reads ok never throws in a chart. */
 export function checkSections(
@@ -151,4 +287,8 @@ export function checkSections(
   page.bridges.forEach((b, i) => {
     checkBridge(b, cases, at(child(path, "bridges"), i));
   });
+  checkComparison(page.comparison, child(path, "comparison"));
+  checkStack(page.debt.stack, child(path, "debt.stack"));
+  checkColumns(page.debt.maturities, child(path, "debt.maturities"));
+  checkColumns(page.recovery, child(path, "recovery"));
 }

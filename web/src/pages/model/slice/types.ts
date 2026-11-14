@@ -96,7 +96,18 @@ export type StatementsPage = {
   statements: Statement[];
   /** The bridges, each drawn for the chosen case. */
   bridges: Bridge[];
+  /** The two cases side by side; the cases are the first two of `ModelRun.cases`. */
+  comparison: Comparison;
+  debt: { stack: Stack; maturities: ColumnsData };
+  recovery: ColumnsData;
+  /** The gap panel: the title is joined to the reason by the page. */
+  gap: GapItem;
+  checkFigure: { title: string; text: string; href: string };
+  /** The published model, as a file to download; `null` when the run has none. */
+  published: Published | null;
 };
+
+export type Published = { kind: "markdown" | "html"; href: string };
 
 /**
  * What every chart carries besides its marks: the words around it and its trace address. Every
@@ -143,6 +154,46 @@ export type Bridge = ChartInfo & {
   rows: { label: string; cells: (string | null)[]; trace: string | null }[];
 };
 
+/** One measure of the side by side chart: a position and the exact text for each case. */
+export type ComparisonPanel = {
+  measure: string;
+  /** The label of this panel's row in the table, which may be shorter than the measure. */
+  tableLabel: string;
+  /** The panel's own axis maximum; a bar is its value over it. */
+  max: number;
+  values: [number | null, number | null];
+  /** `null` exactly where the value is missing. */
+  texts: [string | null, string | null];
+  trace: string | null;
+};
+
+export type Comparison = ChartInfo & {
+  /** The names beside each bar; shorter than the case names. */
+  rowLabels: [string, string];
+  /** The table's first column heading. */
+  tableHead: string;
+  panels: ComparisonPanel[];
+};
+
+export type StackPart = {
+  name: string;
+  value: number;
+  text: string;
+  share: string;
+  trace: string | null;
+};
+
+/** One bar split into ranked parts; `head` is the label, amount and share headings. */
+export type Stack = ChartInfo & { head: string[]; parts: StackPart[] };
+
+/** Bars by group and series, such as maturities by year; the table is the labels as drawn. */
+export type ColumnsData = ChartInfo & {
+  yTicks: Tick[];
+  /** The table's first column heading. */
+  head: string;
+  groups: { label: string; trace: string | null }[];
+  series: { name: string; values: (number | null)[]; labels: (string | null)[] }[];
+};
 /** One header note per case, in the order of `ModelRun.cases`. */
 type CaseNote = { text: string };
 
