@@ -27,6 +27,14 @@ from credit_os.signal.feeds import (
 
 MiB = 1024 * 1024
 CEILING = 64 * MiB
+# R37. A field's text is never held whole: one at 4 bytes a character is 8 MiB, so this allows
+# pyexpat's own attribute value (the Atom href case) and nothing more. Every TEXT_CASES row is
+# measured against it at full size.
+TEXT_CEILING = 16 * MiB
+# A case that runs its whole text through html.parser is slow under tracemalloc, so it runs at
+# 1/REDUCED of MAX_BYTES against 1/REDUCED of CEILING; its cost is linear in the body, and
+# before the fix the shapes cost 280 MiB or more at full size (probe r24_memory.py runs them whole).
+REDUCED = 16
 
 _HEAD = b'<rss version="2.0"><channel><item><title>t</title><link>https://e.org/a</link>'
 _TAIL = b"</item></channel></rss>"
@@ -35,6 +43,10 @@ _C0, _C1 = _HEAD + b"<description><![CDATA[", b"]]></description>" + _TAIL
 _ATOM0 = b'<feed xmlns="http://www.w3.org/2005/Atom"><entry><link href="https://e.org/a"/>'
 _ATOM1 = b"</entry></feed>"
 _LETTER = "ж".encode()  # a 2-byte letter: one new str object per character
+_AST = "\U0001f600".encode()  # one astral character widens a Python str to 4 bytes a character
+_RSS0 = b'<rss version="2.0"><channel><item>'
+_ATOM_T = _ATOM0.replace(b'<link href="https://e.org/a"/>', b"<title>T</title>")
+_ATOM_L = b'<link href="https://e.org/a"/>'
 
 
 def _fill(pre: bytes, unit: bytes, post: bytes, size: int) -> bytes:
@@ -109,6 +121,21 @@ CASES: dict[str, Callable[[int], bytes]] = {
     "html unmatched quote then a million attributes": lambda s: _fill(
         _C0 + b'<a x=" ', b"b ", b">" + _C1, s
     ),
+    "html blank before an unmatched quote, then a million attributes": lambda s: _fill(
+        _C0 + b'<a x= " ', b"b ", b">" + _C1, s
+    ),
+    # the name `="` makes the first quote part of the name, so a scan that pairs quotes by their
+    # order thinks the value is `'"='` and ends the tag at the `>` that is inside the real one
+    "html name that starts with = and a quote, then a quoted >": lambda s: _fill(
+        _C0 + b"<a ='\"='>' ", b"b ", b">" + _C1, s
+    ),
+    "html end tag with a million attributes": lambda s: _fill(_C0 + b"</a ", b"b ", b">" + _C1, s),
+    "html end tag, quoted > then a million attributes": lambda s: _fill(
+        _C0 + b'</a x=">" ', b"b ", b">" + _C1, s
+    ),
+    "html attributes, then an unmatched quote at the end": lambda s: _fill(
+        _C0 + b"<a ", b"b ", b'x=">' + _C1, s
+    ),
     "html angle brackets": lambda s: _fill(_C0, b"<", _C1, s),
     "html block tags": lambda s: _fill(_C0, b"<p>", _C1, s),
     "atom html title, one tag with a million attributes": lambda s: _fill(
@@ -181,6 +208,71 @@ CASES: dict[str, Callable[[int], bytes]] = {
 }
 
 
+# R37: one row per stage that held a copy of a whole field. Each is read at full size and must
+# stay under TEXT_CEILING as well as CEILING.
+TEXT_CASES: dict[str, Callable[[int], bytes]] = {
+    "description: entity flood": lambda s: _fill(_C0, b"&a", _C1, s),
+    "description: entity flood, one astral character": lambda s: _fill(_C0 + _AST, b"&a", _C1, s),
+    "description: blank, astral, entity flood": lambda s: _fill(_C0 + b" " + _AST, b"&a", _C1, s),
+    "description: entity flood, astral and blank last": lambda s: _fill(
+        _C0, b"&a", _AST + b" " + _C1, s
+    ),
+    "description: textarea held open, entity flood, astral": lambda s: _fill(
+        _C0 + b" " + _AST + b"<textarea>", b"&a", b" " + _C1, s
+    ),
+    "description: script held open, astral text": lambda s: _fill(
+        _C0 + b" <script>", _AST, b" " + _C1, s
+    ),
+    "description: a quoted value held open, astral": lambda s: _fill(
+        _C0 + b'<img src="' + _AST, b"x", _C1, s
+    ),
+    "description: inline tags and 2-byte letters, blank and astral": lambda s: _fill(
+        _C0 + b" " + _AST, b"<b>" + _LETTER, b" " + _C1, s
+    ),
+    "description: block tags and 2-byte letters, blank and astral": lambda s: _fill(
+        _C0 + b" " + _AST, b"<p>" + _LETTER, b" " + _C1, s
+    ),
+    "description: a reference that widens the text": lambda s: _fill(
+        _C0 + b" &Afr;", b"&a", b" " + _C1, s
+    ),
+    "atom html summary: blank, astral, entity flood": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b'<summary type="html"><![CDATA[ ' + _AST,
+        b"&a",
+        b" ]]></summary>" + _ATOM1,
+        s,
+    ),
+    "atom html title: block tags and 2-byte letters, astral": lambda s: _fill(
+        _ATOM0 + b'<title type="html"><![CDATA[ ' + _AST,
+        b"<p>" + _LETTER,
+        b" ]]></title>" + _ATOM1,
+        s,
+    ),
+    "title: words, blank and astral first": lambda s: _fill(
+        _RSS0 + b"<link>https://e.org/a</link><title> " + _AST, b"w ", b" </title>" + _TAIL, s
+    ),
+    "link: astral then letters, blanks": lambda s: _fill(
+        _RSS0 + b"<title>t</title><link> https://e.org/" + _AST, b"a", b" </link>" + _TAIL, s
+    ),
+    "atom href of 2 MiB, astral": lambda s: _fill(
+        _ATOM_T + b'<link href=" https://e.org/' + _AST, b"a", b' "/>' + _ATOM1, s
+    ),
+    "pubDate: two-digit words, blank and astral": lambda s: _fill(
+        _HEAD + b"<pubDate> " + _AST, b"12 ", b" </pubDate>" + _TAIL, s
+    ),
+    "atom updated: two-digit words, astral": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b"<updated>" + _AST, b"12 ", b"</updated>" + _ATOM1, s
+    ),
+    "atom text summary: words, astral": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b"<summary>" + _AST, b"w ", b"</summary>" + _ATOM1, s
+    ),
+    "description: plain 2 MiB text, astral": lambda s: _fill(_D0 + _AST, b"a", _D1, s),
+}
+# A feed with no readable entry is read to the end all the same.
+_NO_ENTRY = frozenset({"link: astral then letters, blanks", "atom href of 2 MiB, astral"})
+# Rows that run a whole field through html.parser, which is slow under tracemalloc.
+REDUCED_ROWS = frozenset(name for name in CASES if name.startswith(("html ", "atom html ")))
+CASES.update(TEXT_CASES)
+
 _TOO_MANY_ELEMENTS = f"feed has more than {MAX_ELEMENTS} elements"
 _TOO_MANY_ATTRIBUTES = f"feed has an element with more than {MAX_ATTRIBUTES} attributes"
 _LONG_NAMES = "feed element names are too long"  # MAX_NAME_CHARS
@@ -220,15 +312,27 @@ def _peak(body: bytes) -> tuple[int, object]:
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_the_peak_memory_of_a_hostile_body_stays_under_the_ceiling(name: str) -> None:
-    body = CASES[name](MAX_BYTES)
-    assert len(body) <= MAX_BYTES
+    scale = REDUCED if name in REDUCED_ROWS else 1
+    body = CASES[name](MAX_BYTES // scale)
+    assert len(body) <= MAX_BYTES // scale
     peak, result = _peak(body)
     if name in REFUSED:
         assert isinstance(result, FeedError)
         assert str(result) == REFUSED[name]
     else:
         assert isinstance(result, list), result
-    assert peak < CEILING, f"{name}: {peak / MiB:.1f} MiB"
+    assert peak < CEILING // scale, f"{name}: {peak / MiB:.1f} MiB"
+
+
+@pytest.mark.parametrize("name", list(TEXT_CASES))
+def test_a_text_field_is_never_held_whole(name: str) -> None:
+    body = TEXT_CASES[name](MAX_BYTES)
+    assert len(body) <= MAX_BYTES
+    peak, result = _peak(body)
+    assert isinstance(result, list), result
+    if name in _NO_ENTRY:
+        assert result == []
+    assert peak < TEXT_CEILING, f"{name}: {peak / MiB:.1f} MiB"
 
 
 def test_a_genuine_feed_of_1000_xhtml_entries_of_100_elements_is_read_whole() -> None:
