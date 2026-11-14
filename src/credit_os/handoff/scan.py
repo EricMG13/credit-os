@@ -1,3 +1,14 @@
+"""One pass over handoff lines, in three states: normal, inside a fence, inside a comment.
+
+A heading is tested on the line as written; its title is read from the shown text.
+A fence opener is tested before comments. A closer is the same character, at least as
+long, with nothing but spaces or tabs after it. A `## ` line inside a fence ends it
+unclosed and is read again as a normal line. `<!--` inside an inline code span is
+literal, and spans are never searched for inside a comment. A line that began inside a
+comment is never a heading or a fence line. `shown` is the line with comments removed,
+and `""` when only whitespace is left after a removal.
+"""
+
 import re
 from collections.abc import Sequence
 
@@ -105,11 +116,11 @@ def _read_comments(state: _State, number: int, text: str, removed: bool) -> str:
     kept: list[str] = []
     pos = 0
     while True:
-        span = _CODE_SPAN.search(text, pos)
         at = text.find(_OPENER, pos)
         if at < 0:
             kept.append(text[pos:])
             break
+        span = _CODE_SPAN.search(text, pos)
         if span is not None and span.start() < at:
             kept.append(text[pos : span.end()])
             pos = span.end()
