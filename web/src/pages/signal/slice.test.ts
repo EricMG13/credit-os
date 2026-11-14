@@ -475,6 +475,21 @@ describe("a loading feed", () => {
     });
   });
 
+  it("rejects a waiting pill with a label and no ids while loading, with its path", () => {
+    const result = readSlice(
+      loadingWith((views) => {
+        const view = views["for-you"];
+        if (view === undefined) throw new Error("the loading scene has For you");
+        view["waiting"] = { label: "3 new stories", ids: [] };
+      }),
+    );
+    expect(result).toEqual({
+      kind: "invalid",
+      reason:
+        "scenes[6].snapshot.feed.views.for-you.waiting: expected no new-story pill while the feed is loading",
+    });
+  });
+
   it("rejects an entry in a topic's order while loading", () => {
     const copy = structuredClone(fixture.slice);
     const scene = copy.scenes.find((s) => s.id === "no-name");

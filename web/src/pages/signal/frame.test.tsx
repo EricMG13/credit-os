@@ -118,7 +118,7 @@ describe("the Signal frame", () => {
 
   it("offers Set your name when the viewer has none", () => {
     show("/signal/no-name/feed/for-you");
-    expect(screen.getByRole("button", { name: "Set your name" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Set your name/, hidden: true })).toBeInTheDocument();
     expect(screen.queryByText("Mara L")).toBeNull();
   });
 
@@ -260,14 +260,15 @@ describe("the Signal frame", () => {
         const { hash, missing } = fillParams(pattern, set);
         expect(missing).toEqual([]);
         const view = show(hash);
-        expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+        // hidden: a first visit's name dialog covers the page and hides it from the accessibility tree.
+        expect(screen.getAllByRole("heading", { level: 1, hidden: true })).toHaveLength(1);
         const title = pattern.includes("/feed/")
           ? VIEW_TITLES[set["view"] ?? ""]
           : pattern.includes("/topic/")
             ? TOPIC_TITLES[set["topic"] ?? ""]
             : TITLES[pattern];
         if (title === undefined) throw new Error(`no expected title for ${hash}`);
-        expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(title);
+        expect(screen.getByRole("heading", { level: 1, hidden: true }).textContent).toBe(title);
         expect(skippedLevels()).toEqual([]);
         expect(screen.queryByText("Page not found")).toBeNull();
         expect(screen.queryByText(/^No such /)).toBeNull();
