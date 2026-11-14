@@ -6,7 +6,7 @@ import sqlite3
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -165,45 +165,60 @@ def test_a_slice_1_database_gains_the_new_tables(tmp_path: Path) -> None:
         db.close()
 
 
-def test_add_topic_links_exactly_what_the_per_story_path_links(tmp_path: Path) -> None:
+WORDS = ["merger", "remedy", "spectrum", "auction", "roaming", "broadband", "tariff", "fine"]
+KIND_NAMES = ["regulator", "news", "research"]
+
+
+def phrase_in(phrase: list[str], tokens: list[str]) -> bool:
+    size = len(phrase)
+    return any(tokens[i : i + size] == phrase for i in range(len(tokens) - size + 1))
+
+
+def test_add_topic_links_exactly_what_the_rule_says_and_the_per_story_path_agrees(
+    tmp_path: Path,
+) -> None:
     database = open_db(tmp_path)
     try:
-        words = [
-            *("merger", "remedy", "spectrum", "auction", "roaming"),
-            *("broadband", "tariff", "licence", "appeal", "fine"),
-        ]
         base = datetime(2026, 1, 1, tzinfo=UTC)
         with database:
-            for index, kind in enumerate(("regulator", "news", "research")):
+            for index, kind in enumerate(KIND_NAMES):
                 database.execute(
                     "INSERT INTO sources(name, kind, url, state, proposed_by, created_at)"
                     " VALUES(?, ?, ?, 'approved', 'x', ?)",
                     (f"S{index}", kind, f"https://s{index}.org/f", base.isoformat()),
                 )
-            batch = []
-            for i in range(2000):
-                at = (base + timedelta(minutes=i)).isoformat()
-                title = " ".join(words[(i * k + k) % len(words)] for k in (1, 3, 7))
-                summary = " ".join(words[(i * k + 2) % len(words)] for k in (2, 5, 9))
-                link = f"https://s{i % 3}.org/{i}"
-                batch.append((i % 3 + 1, title, link, link, title, at, at, summary))
-            database.executemany(
-                "INSERT INTO stories(source_id, title, link, link_key, title_key, published_at,"
-                " fetched_at, summary) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                batch,
-            )
-        keywords = ["merger", "spectrum auction", 'say "tariff"', "no such word"]
+        keywords = ["merger", "spectrum auction", "tariff", "no such word"]
         kinds = ["regulator", "research"]
-        first = add_topic(database, "New path", keywords, kinds, "x")
-        with database:
-            second = database.execute(
-                "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
-                " VALUES('Old path', ?, ?, 'x', ?)",
-                (json.dumps(keywords), json.dumps(kinds), base.isoformat()),
-            ).lastrowid
-        assert second is not None
-        for story_id in range(1, 2001):
-            match_story(database, story_id)
+        stored: list[tuple[int, int, list[str], list[str]]] = []
+        for i in range(1, 401):
+            title = [WORDS[i % 8], WORDS[(i * 3 + 1) % 8]]
+            summary = [WORDS[(i * 5 + 2) % 8], WORDS[(i * 7 + 3) % 8]]
+            kind_index = i % 3
+            stored.append((i, kind_index, title, summary))
+            add_story(
+                database,
+                kind_index + 1,
+                Entry(" ".join(title), f"https://s{kind_index}.org/{i}", base, " ".join(summary)),
+                base,
+            )
+        by_hand = {
+            story
+            for story, kind_index, title, summary in stored
+            if KIND_NAMES[kind_index] in kinds
+            and any(
+                phrase_in(keyword.split(), tokens)
+                for keyword in keywords
+                for tokens in (title, summary)
+            )
+        }
+        first_keyword_only = {
+            story
+            for story, kind_index, title, summary in stored
+            if KIND_NAMES[kind_index] in kinds and "merger" in title + summary
+        }
+        every_allowed = {s for s, kind_index, _, _ in stored if KIND_NAMES[kind_index] in kinds}
+        # The data can tell a rule from a shortcut: each keyword adds stories, the kinds exclude some.
+        assert first_keyword_only < by_hand < every_allowed
 
         def linked(topic_id: int) -> set[int]:
             return {
@@ -213,8 +228,20 @@ def test_add_topic_links_exactly_what_the_per_story_path_links(tmp_path: Path) -
                 )
             }
 
-        assert linked(first) == linked(second)
-        assert 0 < len(linked(first)) < 2000
+        with database:
+            old = database.execute(
+                "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
+                " VALUES('Old path', ?, ?, 'x', ?)",
+                (json.dumps(keywords), json.dumps(kinds), base.isoformat()),
+            ).lastrowid
+        assert old is not None
+        new = add_topic(database, "New path", keywords, kinds, "x")
+        assert linked(new) == by_hand
+        assert linked(old) == set()
+        for story_id in range(1, 401):
+            match_story(database, story_id)
+        assert linked(old) == by_hand
+        assert linked(new) == by_hand
     finally:
         database.close()
 
@@ -452,3 +479,69 @@ def test_an_error_text_does_not_grow_with_the_input(
     text = str(caught.value)
     assert len(text) < 200
     assert "k" * 20 not in text and "X-Injected" not in text and "\x1b" not in text
+
+
+# Transactions, follows and listing (Q3, Q4).
+
+
+def test_a_topic_and_its_links_are_one_transaction(db_two_sources: sqlite3.Connection) -> None:
+    add_story(db_two_sources, 1, Entry("Authority review", "https://a.org/1", T0, ""), T0)
+    db_two_sources.execute(
+        "CREATE TEMP TRIGGER refuse_links BEFORE INSERT ON topic_stories"
+        " BEGIN SELECT RAISE(ABORT, 'link refused'); END"
+    )
+    with pytest.raises(sqlite3.DatabaseError, match="link refused"):
+        add_topic(db_two_sources, "Competition", ["review"], [], "ak")
+    assert not db_two_sources.in_transaction
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+    db_two_sources.execute("DROP TRIGGER refuse_links")
+    assert add_topic(db_two_sources, "Competition", ["review"], [], "ak") == 1
+
+
+def test_unfollow_refuses_a_missing_topic_and_writes_nothing(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    with pytest.raises(StoreError, match="no topic with id 999"):
+        unfollow(db_two_sources, "ak", 999)
+    assert not db_two_sources.in_transaction
+
+
+def test_unfollow_removes_only_that_users_follow_of_that_topic(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    one = add_topic(db_two_sources, "One", ["review"], [], "ak")
+    two = add_topic(db_two_sources, "Two", ["review"], [], "ak")
+    for user, topic in [("ak", one), ("ml", one), ("ak", two)]:
+        follow(db_two_sources, user, topic)
+    unfollow(db_two_sources, "ak", one)
+    assert rows(db_two_sources, "SELECT user_name, topic_id FROM topic_follows ORDER BY 1, 2") == [
+        ("ak", two),
+        ("ml", one),
+    ]
+
+
+def test_list_topics_gives_every_topic_in_id_order_with_its_follow_and_story_count(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_story(db_two_sources, 1, Entry("Merger review", "https://a.org/1", T0, ""), T0)
+    add_story(db_two_sources, 2, Entry("Merger remedy", "https://b.org/1", T0, ""), T0)
+    add_story(db_two_sources, 2, Entry("Spectrum auction", "https://b.org/2", T0, ""), T0)
+    first = add_topic(db_two_sources, "Merger", ["merger"], [], "ak")
+    second = add_topic(db_two_sources, "Spectrum", ["spectrum"], [], "ak")
+    third = add_topic(db_two_sources, "Nothing", ["absent"], [], "ak")
+    follow(db_two_sources, "ml", second)
+    got = [tuple(r) for r in list_topics(db_two_sources, "ml")]
+    assert got == [
+        (first, "Merger", 0, 2),
+        (second, "Spectrum", 1, 1),
+        (third, "Nothing", 0, 0),
+    ]
+
+
+def test_match_story_gives_the_topic_ids_in_ascending_order(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_story(db_two_sources, 1, Entry("Merger review", "https://a.org/1", T0, ""), T0)
+    low = add_topic(db_two_sources, "Low", ["review"], [], "ak")
+    high = add_topic(db_two_sources, "High", ["merger"], [], "ak")
+    assert match_story(db_two_sources, 1) == [low, high]

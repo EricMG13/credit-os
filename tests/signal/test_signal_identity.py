@@ -244,7 +244,7 @@ def test_a_name_that_is_not_text_is_a_store_error(bad: Any) -> None:
         cookie_for(bad)
 
 
-@pytest.mark.parametrize("bad", [5, b"signal_name=Eve", ["signal_name=Eve"]])
+@pytest.mark.parametrize("bad", [5, 0, b"", [], b"signal_name=Eve", ["signal_name=Eve"]])
 def test_a_cookie_header_that_is_not_text_is_a_store_error(
     db: sqlite3.Connection, bad: Any
 ) -> None:
@@ -254,3 +254,43 @@ def test_a_cookie_header_that_is_not_text_is_a_store_error(
 
 def test_an_empty_cookie_header_is_no_user(db: sqlite3.Connection) -> None:
     assert current_user(db, "") is None
+
+
+# Cookie headers as browsers send them (Q1).
+
+COOKIE_CASES = [
+    ("a=1; signal_name=Eve", "Eve"),
+    ("a=1;signal_name=Eve; b=2", "Eve"),
+    ("a=1;   signal_name =Eve", "Eve"),
+    ("signal_name=First; signal_name=Second", "First"),
+    ("signal_name; signal_name=Eve", "Eve"),
+    ("signal_namex=Bob; signal_name=Eve", "Eve"),
+    ('signal_name= "Al" ', "Al"),
+    ("signal_name=  Eve  ", "Eve"),
+    ('signal_name="', '"'),
+    ('signal_name=""', None),
+    ("signal_name=%22Al%22", '"Al"'),
+    ("signal_name=Eve%ff", "Eve\ufffd"),
+    ("signal_name=%C3%A9ve", "\u00e9ve"),
+    ("signal_name=a=b", "a=b"),
+    ("x=signal_name=Eve", None),
+    ("signal_name", None),
+    (";;;", None),
+]
+
+
+@pytest.mark.parametrize("header,want", COOKIE_CASES)
+def test_cookie_headers_are_read_the_way_browsers_send_them(
+    db: sqlite3.Connection, header: str, want: str | None
+) -> None:
+    user = current_user(db, header)
+    assert (user.name if user else None) == want
+
+
+def test_a_name_cut_at_the_limit_loses_the_space_the_cut_left_at_its_end() -> None:
+    assert clean_name("a" * 59 + " b") == "a" * 59
+
+
+def test_the_set_cookie_value_is_exactly_this() -> None:
+    assert cookie_for("x") == ("signal_name=x; Path=/; Max-Age=31536000; SameSite=Strict; HttpOnly")
+    assert cookie_for("a/b c").startswith("signal_name=a%2Fb%20c; ")

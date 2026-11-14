@@ -157,7 +157,7 @@ def add_topic(
     """Create a topic and match every existing story against it before returning."""
     _clean_text(name, "name", MAX_TOPIC_NAME)
     require_name(created_by)
-    cleaned = _clean_keywords(keywords)
+    words = _clean_keywords(keywords)
     allowed = _clean_kinds(kinds)
     with write_transaction(db):
         if db.execute("SELECT count(*) FROM topics").fetchone()[0] >= MAX_TOPICS:
@@ -166,12 +166,12 @@ def add_topic(
             cur = db.execute(
                 "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
                 " VALUES(?, ?, ?, ?, ?)",
-                (name, json.dumps(cleaned), json.dumps(allowed), created_by, utc_text(_now())),
+                (name, json.dumps(words), json.dumps(allowed), created_by, utc_text(_now())),
             )
         except sqlite3.IntegrityError as exc:
             raise StoreError("a topic with that name already exists") from exc
         topic_id = new_row_id(cur)
-        _link_existing(db, topic_id, cleaned, allowed)
+        _link_existing(db, topic_id, words, allowed)
     return topic_id
 
 
