@@ -30,6 +30,9 @@ The rules the rows encode (coordinator rulings for PR 3-2, 2026-11-14):
   failed read logs a warning naming `queued` (a result that is not a list of events: the words
   `not a list of events`; spend: the event types), never content. A leftover event with no figures
   that is not a compaction is dropped and its type logged, never its content.
+- A compaction event whose data holds a spend field the parser does not read for it (a start: any;
+  a complete: any but `compactionTokensUsed`) is spend not attributed: its read counts as failed
+  (the release or close entry), in the call's events as in the queued ones (sweep Q1, controller).
 - When the call's own events are not a list of events, the queued events, if they are, give their
   compactions on their own, and the reply also carries `driver:release-unread`: the call's own
   compactions could not be read (review round 1, controller).
@@ -92,6 +95,13 @@ def _error(cls: str, *compactions: tuple[Any, ...]) -> tuple[Any, ...]:
 _W1, _W2 = _failed("driver:withheld-1"), _failed("driver:withheld-2")
 RELEASE_UNREAD, CLOSE_UNREAD = _failed("driver:release-unread"), _failed("driver:close-unread")
 _UNREAD_CALL = ("sent_unknown", "UnparsableReply", None, None, (_done("c1"), RELEASE_UNREAD))
+_STRAY = {"copilotUsage": {"totalNanoAiu": 5}}  # a charge where the parser does not read one
+
+
+def _stray(e: dict[str, Any]) -> dict[str, Any]:
+    return {**e, "data": {**e["data"], **_STRAY}}
+
+
 _LATE_SPEND = {**_USAGE, "id": "u7"}  # reports spend after the call ended
 _TURN = [_USAGE, said(2, "done"), _IDLE]
 _FAILED = [_USAGE, _ERROR]  # the session reports an error: SessionError, figures kept, released
@@ -235,6 +245,21 @@ CASES: dict[str, dict[str, Any]] = {
         [{"script": [_USAGE, {**_IDLE, "id": ""}], "queued": [_end("c1", **_PAID)]}],
         [_UNREAD_CALL],
         (),
+    ),
+    # --- spend fields the parser does not read on a compaction event
+    "a queued start that holds a charge": _case(
+        [{"queued": [_stray(_start("s9"))]}], [_ok()], (_open("s9"), CLOSE_UNREAD)
+    ),
+    "a queued complete with a second, top-level charge": _case(
+        [{"queued": [_stray(_end("c9", **_PAID))]}], [_ok()], (_done("c9"), CLOSE_UNREAD)
+    ),
+    "a start that holds a charge in a released call's events": _case(
+        [{"script": [_stray(_start("s9")), *_FAILED]}],
+        [_error("SessionError", _open("s9"), RELEASE_UNREAD)],
+        (),
+    ),
+    "a complete with a top-level charge in an ok call's own events": _case(
+        [{"script": [_stray(_end("c9", **_PAID)), *_TURN]}], [_ok(_done("c9"), RELEASE_UNREAD)], ()
     ),
     # --- what close() returns
     "spend a kept session still holds at close": _case(
