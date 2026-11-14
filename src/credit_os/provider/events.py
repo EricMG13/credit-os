@@ -108,7 +108,6 @@ def _is_count(value: object) -> bool:
 
 
 def _total(values: list[Any]) -> int | None:
-    # a partly known total is never returned as a smaller number
     return None if not values or any(v is None for v in values) else sum(values)
 
 
@@ -123,9 +122,7 @@ def _figures(usage_data: list[dict[str, Any]]) -> _Figures | None:
 def _nano(data: dict[str, Any]) -> int | None:
     block = data.get("copilotUsage")
     value = block.get("totalNanoAiu") if isinstance(block, dict) else None
-    if (
-        isinstance(value, float) and value.is_integer() and 0 <= value <= 2**53
-    ):  # a float holds every whole number up to 2**53
+    if isinstance(value, float) and value.is_integer() and 0 <= value <= 2**53:
         value = int(value)
     return value if type(value) is int and 0 <= value < _MAX_NANO else None
 
