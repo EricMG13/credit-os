@@ -3,6 +3,88 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: Signal's feed reader complete, the store opens, decision 0012, CI paths
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #215 | Signal S-3a part 7a | `bbb6d42`, `5ff2a0a` | `signal/feeds.py`: the attribute count that bounds memory (R45) (105 lines) |
+| #207 | Signal S-3a part 7b | `27b9252`, `9286842` | `signal/feeds.py`: a text field read in pieces equals the whole-field reading (R46, R47); test Lows (387) |
+| #256 | 2A PR 1e | `db74bf1`, `667e1c1` | `store/db.py`: `open_store` and `open_reader`, the library check, identity, pragmas, the integrity check, the stamp (796) |
+| #259 | 1B Lows | `1621ea8`, `9f900d5` | key rows and written cases for the test gaps of #243 and #214 (105, tests only) |
+| #305 | decision 0012 | `9b6b8ac`, `c3b8249` | failure text is redacted by masking known paths; the claim is bounded; the 1C plan note |
+| #307 | CI | `3d66c4c`, `620437d` | `python.yml` skips changes to front-end files alone; the review job moves to `review.yml` (88) |
+
+With #215 and #207 all eight parts of Signal's feed reader are on `main`. #207 showed a red
+Windows check twice before it merged: both runs were built at the moment its base changed,
+on the old base, and ran Python 3.12.10. Closed and reopened, it ran on the merge with
+`main` on 3.12.14 and passed. A stacked PR is retargeted first and its CI triggered after.
+
+**Reviews.** As each controller reported.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #215 | `mx-adversary` scoped re-review: pass, Low 2 (closed in #207) | none (a fix ordered after the whole-branch review) | the review of the feeds stack that ordered it |
+| #207 | `mx-adversary` scoped re-review: no High or Medium; 0 differences in 140,146 piece readings | none | the same |
+| #256 | `mx-precise` pass on `85c44c6`; Low batch by `mx-scaffold` | 7 rows, 0 defects | Pass on `db74bf1`: High 0, Medium 0, Low 6, Info 6 |
+| #259 | batched `mx-feature`: pass, Info 1 | none (tests only) | none |
+| #305 | batched `mx-feature`: pass, Low 1 (fixed) | none (record) | none; the design itself is from a read-only `mx-architect` review |
+| #307 | batched `mx-feature`: pass, Low 2 (left for the next change to `tests/test_gates.py`) | none (config) | none |
+
+- #256's first whole-branch review stopped at the account's usage limit with no report; it
+  was rerun on the same model, not another, as the owner chose for #187 ("Wait for Fable").
+  Its 6 Lows ride with PR 2b.
+- #259 closes the two money test gaps of #243: 48 of 48 hand mutants killed (24 survived
+  before), and 5 of 5 of #214's.
+- #207 was reviewed on Python 3.12.14 only and fails on 3.12.10 (decision 0011).
+
+**Gates and CI.** CI green on both runners at every head above (both on CPython 3.12.14).
+`tools/gates.py` exit 0 as reported for #259 and #307. #256: the controller's local run
+fails only on the known `web/node_modules` link in its worktree; CI passes. Mutation,
+counts of record run by the reviewer with the validity checks: #256, `db.py` 284 mutants,
+233 killed, 51 survived (2 killed elsewhere, 13 equivalent, 23 wording, 8 step names, 5
+behaviour gaps parked as Lows for PR 2b).
+
+**Ledger.**
+- `S-3a part 7a (R45) agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `S-3a part 7b (R46+W-5/W-6) agent=mx-feature fix-rounds=1 gates-first-pass=y` (3.12.14; it failed Windows CI on 3.12.10, out of range by decision 0011)
+- `2A-1e task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`; `2A-1e task=2 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
+- `1B-lows task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+
+**The owner's answers recorded here.**
+- Redaction: "Design review first", then "Adopt, rework #187" (decision 0012).
+- 2B PR 4: "Yes, test-only round" for a fourth round; then, to the lead coordinator, "Yes,
+  keys PR" for a tests-only PR stacked on #254 (#308, not merged). A progress guard for the
+  figure reader's loop: "Own small PR after PR 4".
+
+**What went wrong on the machine, and the rules made.**
+- At about 16:08 UTC a controller's shell loop ran `rm -rf` on a path whose variable was
+  empty and emptied `/private/tmp/claude-501`, every session's scratch included. No
+  committed work and nothing an open finding depends on was lost. Rule: no delete on a path
+  built from a variable; probes and reports live under `.superpowers/sdd/`.
+- A mutation run of the figure reader grew about 70 MB a second (one mutant stalls the
+  reader loop, which then appends without end). It ended by itself. Rule: mutation runs
+  have a short per-test timeout and at most 2 children.
+- Over 100 CI runs queued for more than an hour, most of them Python gates on front-end
+  pull requests; #307 is the remedy.
+
+**Open, for the owner.**
+- Signal's store (same in the predecessor, stated in #114's body): the duplicate lookup
+  reads every stored story sharing a title key under the write lock; one hostile 2 MiB feed
+  takes about 58 s. A cap per pass bounds one pass only; the read needs narrowing. Nothing
+  caps new stories per source per pass. A locked database aborts a whole ingest pass.
+- `CLAUDE.md` says CI runs the same two commands; a front-end-only pull request now runs the
+  web gates and the review job only. Its Python row still says `>=3.12,<3.13`.
+- 2A: no SQLite other than 3.53.1 was run, the 3.37 floor included.
+
+**Not verified.**
+- That GitHub skips `python.yml` on a front-end-only pull request: no such pull request has
+  run since #307.
+- #256: Windows beyond the one CI job; races beyond two processes; power loss.
+- #207, #215: feeds from real publishers; other expat builds.
+
 ## 2026-11-14 Design track: library pages (step D2b)
 
 **Merged** into `main` in stack order by the coordinator, 57 PRs as merge commits: #57, #58,
