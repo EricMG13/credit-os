@@ -226,6 +226,95 @@ def test_the_checks_do_not_refuse_everything(address: str) -> None:
     assert is_public(address) is True
 
 
+@pytest.mark.parametrize(
+    "value", [b"\x08\x08\x08\x08", 134744072, None, ipaddress.ip_address("8.8.8.8"), ["8.8.8.8"]]
+)
+def test_a_value_that_is_not_text_is_not_public(value: object) -> None:
+    assert is_public(value) is False
+
+
+@pytest.mark.parametrize(
+    "address", ["2001:4860:4860::8888%lo0", "2001:4860:4860::8888%1", "2001:4860:4860::8888%"]
+)
+def test_an_address_with_a_zone_id_is_not_public(address: str) -> None:
+    assert is_public(address) is False
+
+
+@pytest.mark.parametrize("address", ["192.0.0.9", "192.0.0.10", "::ffff:192.0.0.9"])
+def test_the_two_globally_reachable_addresses_of_192_0_0_0_24_are_public(address: str) -> None:
+    assert is_public(address) is True
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["192.0.0.0", "192.0.0.8", "192.0.0.11", "192.0.0.100", "192.0.0.255", "::ffff:192.0.0.8"],
+)
+def test_the_rest_of_192_0_0_0_24_is_not_public(address: str) -> None:
+    assert is_public(address) is False
+
+
+ISATAP_NON_PUBLIC = [
+    "2001:4860:1:2:0:5efe:7f00:1",
+    "2001:4860:1:2:200:5efe:a00:1",
+    "2001:4860:1:2:0:5efe:a9fe:a9fe",
+    "2001:4860:1:2:200:5efe:c0a8:101",
+    "2606:4700::0:5efe:c000:8",
+]
+
+
+@pytest.mark.parametrize("address", ISATAP_NON_PUBLIC)
+def test_an_isatap_address_embedding_a_non_public_ipv4_is_not_public(address: str) -> None:
+    assert is_public(address) is False
+
+
+@pytest.mark.parametrize(
+    "address", ["2001:4860:1:2:0:5efe:808:808", "2001:4860:1:2:200:5efe:101:101"]
+)
+def test_an_isatap_address_embedding_a_public_ipv4_is_public(address: str) -> None:
+    assert is_public(address) is True
+
+
+@pytest.mark.parametrize(
+    "address", ["2001:4860:1:2:100:5efe:7f00:1", "2001:4860:1:2:0:5eff:7f00:1"]
+)
+def test_only_the_two_isatap_identifiers_are_read_as_isatap(address: str) -> None:
+    assert is_public(address) is True
+
+
+@pytest.fixture
+def tables_call_everything_global(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An interpreter whose ipaddress tables list no special range (as before CPython 3.12.4)."""
+    for cls in (ipaddress.IPv4Address, ipaddress.IPv6Address):
+        monkeypatch.setattr(cls, "is_global", property(lambda self: True))
+        monkeypatch.setattr(cls, "is_reserved", property(lambda self: False))
+        monkeypatch.setattr(cls, "is_multicast", property(lambda self: False))
+    monkeypatch.setattr(ipaddress.IPv6Address, "is_site_local", property(lambda self: False))
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "2002:7f00:1::1",
+        "2002:a9fe:a9fe::1",
+        "192.0.0.8",
+        "192.0.0.255",
+        "::ffff:192.0.0.8",
+        "2606:4700::0:5efe:c000:8",
+    ],
+)
+def test_the_explicit_ranges_refuse_whatever_the_interpreters_tables_say(
+    tables_call_everything_global: None, address: str
+) -> None:
+    assert is_public(address) is False
+
+
+@pytest.mark.parametrize("address", ["192.0.0.9", "192.0.0.10", "::ffff:192.0.0.10", "8.8.8.8"])
+def test_the_explicit_ranges_still_pass_the_public_addresses(
+    tables_call_everything_global: None, address: str
+) -> None:
+    assert is_public(address) is True
+
+
 # tls_context
 
 
@@ -234,6 +323,10 @@ def test_tls_context_verifies_the_certificate_and_the_host_name() -> None:
     assert context.verify_mode == ssl.CERT_REQUIRED
     assert context.check_hostname is True
     assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+
+
+def test_tls_context_applies_strict_x509_profile_checks() -> None:
+    assert tls_context().verify_flags & ssl.VERIFY_X509_STRICT
 
 
 def test_tls_context_is_new_each_call() -> None:
@@ -342,6 +435,26 @@ def test_connect_timeout_is_what_is_left_when_that_is_less(
     assert wire.connects == [((IP, 443), 5.0)]
 
 
+@pytest.mark.parametrize("ip", ["127.0.0.1", "10.0.0.1", "::1", "localhost", "", "2002:7f00:1::1"])
+def test_connect_refuses_an_address_that_is_not_public_before_any_socket(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch, ip: str
+) -> None:
+    connection = PinnedHTTPSConnection(
+        HOST,
+        ip,
+        port=443,
+        timeout=10.0,
+        context=wire.context(monkeypatch),
+        deadline=100.0,
+        clock=Clock(),
+    )
+    with pytest.raises(ValueError, match="not a public address"):
+        connection.connect()
+    assert wire.connects == []
+    assert wire.hostnames == []
+    assert wire.client.fileno() != -1
+
+
 @pytest.mark.parametrize("now", [100.0, 100.5, 1000.0])
 def test_connect_with_the_total_time_spent_makes_no_connection(
     wire: Wire, monkeypatch: pytest.MonkeyPatch, now: float
@@ -389,6 +502,19 @@ def test_a_connect_that_spends_the_total_time_closes_the_socket_and_raises(
     with pytest.raises(TimeoutError, match="total time"):
         _connection(wire, monkeypatch, clock).connect()
     assert wire.hostnames == []
+    assert wire.client.fileno() == -1
+
+
+@pytest.mark.parametrize(
+    "error", [ValueError("bad host"), UnicodeError("label too long"), ssl.SSLError("refused")]
+)
+def test_a_handshake_that_raises_anything_closes_the_socket_and_raises_it(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch, error: Exception
+) -> None:
+    wire.wrap_error = error
+    with pytest.raises(type(error)) as raised:
+        _connection(wire, monkeypatch, Clock()).connect()
+    assert raised.value is error
     assert wire.client.fileno() == -1
 
 

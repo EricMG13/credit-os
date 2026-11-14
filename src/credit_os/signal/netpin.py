@@ -44,22 +44,56 @@ class ConnectionLike(Protocol):
     def close(self) -> None: ...
 
 
-def is_public(addr: str) -> bool:
-    """is_global after unwrapping ::ffff:a.b.c.d, and not multicast, reserved or site-local."""
+_V4_ANYCAST = frozenset({9, 10})  # 192.0.0.9 and 192.0.0.10: IANA globally reachable
+_SIXTO4 = 0x2002  # 2002::/16
+_ISATAP = frozenset({0x00005EFE, 0x02005EFE})  # high half of the low 64 bits: 0:5efe, 200:5efe
+
+
+def _explicitly_barred(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Ranges refused by number, so the verdict does not rest on the interpreter's tables."""
+    value = int(address)
+    if isinstance(address, ipaddress.IPv4Address):
+        return value >> 8 == 0xC00000 and value & 0xFF not in _V4_ANYCAST  # 192.0.0.0/24
+    return value >> 112 == _SIXTO4
+
+
+def _isatap_v4(address: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    """The IPv4 an ISATAP interface identifier (low 64 bits ``0:5efe:a.b.c.d``) embeds."""
+    value = int(address)
+    if (value >> 32) & 0xFFFFFFFF not in _ISATAP:
+        return None
+    return ipaddress.IPv4Address(value & 0xFFFFFFFF)
+
+
+def is_public(addr: object) -> bool:
+    """A text IP literal without zone id that is global, not multicast, reserved or site-local.
+
+    ::ffff:a.b.c.d is read as a.b.c.d, 2002::/16 and 192.0.0.0/24 (except .9 and .10) are
+    refused by range, and an ISATAP address is public only if its embedded IPv4 is.
+    """
+    if not isinstance(addr, str) or "%" in addr:
+        return False
     try:
         address: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(addr)
     except ValueError:
         return False
     if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
         address = address.ipv4_mapped
+    if _explicitly_barred(address):
+        return False
     barred = address.is_multicast or address.is_reserved
     if isinstance(address, ipaddress.IPv6Address):
         barred = barred or address.is_site_local
+        embedded = _isatap_v4(address)
+        if embedded is not None and not is_public(str(embedded)):
+            return False
     return address.is_global and not barred
 
 
 def tls_context() -> ssl.SSLContext:
-    return ssl.create_default_context()
+    context = ssl.create_default_context()
+    context.verify_flags |= ssl.VERIFY_X509_STRICT
+    return context
 
 
 class _BudgetedSocket:
@@ -142,6 +176,8 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         self._clock = clock
 
     def connect(self) -> None:
+        if not is_public(self._pinned_ip):
+            raise ValueError("the pinned address is not a public address")
         remaining = self._deadline - self._clock()
         if remaining <= 0:
             raise TimeoutError("the total time for the fetch is spent")
@@ -155,7 +191,7 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         sock.settimeout(min(self._op_timeout, remaining))
         try:
             wrapped = self._tls.wrap_socket(sock, server_hostname=self.host)
-        except OSError:
+        except BaseException:
             sock.close()
             raise
         budgeted = _BudgetedSocket(wrapped, self._op_timeout, self._deadline, self._clock)
