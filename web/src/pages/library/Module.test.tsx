@@ -596,9 +596,10 @@ describe("Module, the navigator", () => {
     const links = within(nav()).getAllByRole("link");
     expect(links).toHaveLength(13);
     expect(links[0]).toHaveAccessibleName("Business profile, Delivered");
-    const named = links[0]?.querySelector(".sr-only")?.parentElement as HTMLElement;
-    expect(named).not.toBe(links[0]);
-    expect(named.textContent).toBe("Business profile, Delivered");
+    // Sweep SW-10: Chrome read a separate sr-only span inside the link as "Business profile , Delivered";
+    // the link carries its whole name itself, so no hidden-text child can add a space.
+    expect(links[0]).toHaveAttribute("aria-label", "Business profile, Delivered");
+    expect(links[0]?.querySelector(".sr-only")).toBeNull();
     expect(links[0]).toHaveAttribute("aria-current", "page");
     expect(links[0]).toHaveAttribute("href", `${BASE}2026-09-30/modules/business-profile`);
     expect(links.filter((l) => l.hasAttribute("aria-current"))).toHaveLength(1);
@@ -1422,7 +1423,7 @@ describe("Module, a module that could not be delivered", () => {
     expect(screen.getAllByText("Not run").length).toBeGreaterThan(0);
     expect(screen.queryByText("Not assessable")).toBeNull();
     const links = within(nav()).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual([
+    expect(links.map((l) => l.getAttribute("aria-label"))).toEqual([
       "Business profile, Delivered",
       "Industry and competition, Delivered",
       "Financial performance, Not run",
@@ -1437,9 +1438,9 @@ describe("Module, a module that could not be delivered", () => {
       "Forecast, Not run",
       "Credit snapshot, Delivered",
     ]);
-    expect(links.filter((l) => l.hasAttribute("aria-current")).map((l) => l.textContent)).toEqual([
-      "Forecast, Not run",
-    ]);
+    expect(
+      links.filter((l) => l.hasAttribute("aria-current")).map((l) => l.getAttribute("aria-label")),
+    ).toEqual(["Forecast, Not run"]);
   });
 });
 
@@ -1587,6 +1588,7 @@ describe("Module, the index route", () => {
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";
     run.head["firstModule"] = null;
+    (run.head["tabs"] as Json)["modulesCount"] = "0";
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
     ];

@@ -105,16 +105,14 @@ export function ModuleNav({
           <li key={module.id}>
             <Link
               href={modulesHref(issuer, run, module.id)}
+              aria-label={`${module.name}, ${module.state}`}
               aria-current={module.id === current ? "page" : undefined}
               className={cx(ENTRY, "py-2", module.id === current && CURRENT)}
             >
               <span className={cx("mx-1 flex", MARK[module.state])}>
                 <StatusShape shape={STATUS_SETS["Module state"][module.state].shape} />
               </span>
-              <span>
-                {module.name}
-                <span className="sr-only">, {module.state}</span>
-              </span>
+              <span>{module.name}</span>
             </Link>
           </li>
         ))}

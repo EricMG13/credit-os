@@ -91,17 +91,20 @@ export function EvidenceGaps({
     .filter((group) => group.rows.length > 0);
   if (table.groups.length === 0) {
     return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.FeaturedIcon icon={SearchLg} />
-        </EmptyState.Header>
-        <EmptyState.Content>
-          <EmptyState.Title as={SUBSECTION_HEADING}>This run has no gaps</EmptyState.Title>
-          <EmptyState.Description>
-            Nothing the modules looked for was missing.
-          </EmptyState.Description>
-        </EmptyState.Content>
-      </EmptyState>
+      <div className="flex flex-col gap-4">
+        {unknown}
+        <EmptyState>
+          <EmptyState.Header>
+            <EmptyState.FeaturedIcon icon={SearchLg} />
+          </EmptyState.Header>
+          <EmptyState.Content>
+            <EmptyState.Title as={SUBSECTION_HEADING}>This run has no gaps</EmptyState.Title>
+            <EmptyState.Description>
+              Nothing the modules looked for was missing.
+            </EmptyState.Description>
+          </EmptyState.Content>
+        </EmptyState>
+      </div>
     );
   }
   if (module !== null && groups.length === 0) {

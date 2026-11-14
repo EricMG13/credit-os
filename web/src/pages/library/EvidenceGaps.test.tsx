@@ -303,12 +303,8 @@ describe("Evidence, Gaps, at a gap's address", () => {
     scrolled.mockReset();
   });
 
-  function renderItem(run: string, item: string) {
-    const data: LibraryData = {
-      schema: "credit-os-data/1",
-      issuers: fixture.issuers,
-      library: fixture.slice,
-    };
+  function renderItem(run: string, item: string, library: unknown = fixture.slice) {
+    const data: LibraryData = { schema: "credit-os-data/1", issuers: fixture.issuers, library };
     const found = routes.find((r) => r.path === ITEM);
     if (found === undefined) throw new Error("no gap item route");
     return render(
@@ -344,5 +340,24 @@ describe("Evidence, Gaps, at a gap's address", () => {
     expect(screen.getByText("No gap has this address")).toBeVisible();
     expect(allRows().filter((r) => r.hasAttribute("aria-current"))).toHaveLength(0);
     expect(scrolled).not.toHaveBeenCalled();
+  });
+
+  it("sweep SW-02: on a run with no gap, an address also says no gap has it", () => {
+    const slice = structuredClone(fixture.slice) as {
+      issuers: {
+        runs: { evidence: { gaps: Json; tabs: Json; jump: unknown[] }; overview: Json }[];
+      }[];
+    };
+    const run = slice.issuers[0]?.runs[3] as (typeof slice.issuers)[0]["runs"][0];
+    run.evidence.gaps["groups"] = [];
+    run.evidence.jump = [];
+    run.evidence.tabs["gaps"] = "0";
+    (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
+      "See the 0 gaps in Evidence";
+    renderItem("2025-09-30", "G-01", slice);
+    expect(screen.getByRole("heading", { name: "This run has no gaps" })).toBeVisible();
+    expect(screen.getByText("No gap has this address")).toBeVisible();
+    expect(screen.getByText("This run lists no gap.")).toBeVisible();
+    expect(screen.queryByRole("table")).toBeNull();
   });
 });

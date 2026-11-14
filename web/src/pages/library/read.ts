@@ -242,6 +242,22 @@ function readCard(value: unknown, path: string, issuerIds: ReadonlySet<string>):
   };
 }
 
+/** An issuer has one card: Home keys its cards and list rows by issuer. */
+function oneCardEach(cards: HomeCard[], path: string): HomeCard[] {
+  const seen = new Set<string>();
+  for (const [index, card] of cards.entries()) {
+    if (card.kind !== "issuer") continue;
+    if (seen.has(card.issuer)) {
+      throw new SliceError(
+        child(nth(child(path, "cards"), index), "issuer"),
+        "an issuer with no earlier card",
+      );
+    }
+    seen.add(card.issuer);
+  }
+  return cards;
+}
+
 function readHome(value: unknown, path: string, issuerIds: ReadonlySet<string>): LibraryHome {
   const h = rec(value, path);
   const filtersPath = child(path, "filters");
@@ -258,7 +274,10 @@ function readHome(value: unknown, path: string, issuerIds: ReadonlySet<string>):
       state: strings(f, "state", filtersPath),
       appliedLabels,
     },
-    cards: list(h, "cards", path, (card, cardPath) => readCard(card, cardPath, issuerIds)),
+    cards: oneCardEach(
+      list(h, "cards", path, (card, cardPath) => readCard(card, cardPath, issuerIds)),
+      path,
+    ),
     list: {
       measures: eachMeasure(
         rec(own(h, "list"), child(path, "list")),
@@ -413,7 +432,7 @@ function readMetric(value: unknown, path: string, traces: Traces): Metric {
 function readPoint(value: unknown, path: string, traces: Traces): Point {
   const p = rec(value, path);
   return {
-    figure: cell(p, "figure", path),
+    figure: shownCell(p, "figure", path),
     text: str(p, "text", path),
     qualifier: str(p, "qualifier", path),
     trace: traceKey(p, "trace", path, traces),
@@ -1941,6 +1960,13 @@ function readRun(value: unknown, path: string, issuer: string): Run {
       `a label that names the ${String(gapCount)} gaps`,
     );
   }
+  const tabsPath = child(child(path, "head"), "tabs");
+  if (base.head.tabs.modulesCount !== String(modules.length)) {
+    throw new SliceError(
+      child(tabsPath, "modulesCount"),
+      `${String(modules.length)}, the number of modules the run lists`,
+    );
+  }
   return { ...base, loading, overview, changes, modules, evidence };
 }
 
@@ -1993,6 +2019,14 @@ export function readSlice(source: unknown): SliceResult<LibrarySlice> {
   try {
     const s = rec(source, "slice");
     const issuers = list(s, "issuers", "", readIssuer);
+    for (const [index, issuer] of issuers.entries()) {
+      if (issuers.findIndex((earlier) => earlier.id === issuer.id) !== index) {
+        throw new SliceError(
+          child(nth("issuers", index), "id"),
+          "an id not used by an earlier issuer",
+        );
+      }
+    }
     const ids = new Set(issuers.map((issuer) => issuer.id));
     return { kind: "ok", data: { home: readHome(own(s, "home"), "home", ids), issuers } };
   } catch (error) {
