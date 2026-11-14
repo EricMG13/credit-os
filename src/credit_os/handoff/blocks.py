@@ -7,6 +7,7 @@ paragraph directly above it. Lists are flat.
 
 import re
 
+from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.scan import Fence, Node, Scan
 from credit_os.handoff.tables import Table, is_table_row, read_table
 
@@ -74,15 +75,14 @@ class _Reader:
             )
         )
 
-    def label(self) -> str | None:
+    def label(self) -> tuple[str | None, int | None]:
         previous = self.blocks[-1] if self.blocks else None
         if self.after_heading or not isinstance(previous, Paragraph) or len(previous.lines) != 1:
-            return None
+            return None, None
         found = _LABEL.match(previous.lines[0])
         if found is None:
-            return None
-        self.blocks.pop()
-        return found.group(1).strip()
+            return None, None
+        return found.group(1).strip(), previous.line
 
     def table(self, first: int, last: int) -> int:
         """Read the run of table rows starting at `first`; return the line after it."""
@@ -91,7 +91,8 @@ class _Reader:
         while end <= last and is_table_row(self.shown[end - 1]):
             end += 1
         rows = [(number, self.shown[number - 1]) for number in range(first, end)]
-        self.add(read_table(rows, self.label()))
+        label, label_line = self.label()
+        self.add(read_table(rows, label, label_line))
         return end
 
     def text(self, number: int, shown: str) -> None:
@@ -106,6 +107,11 @@ class _Reader:
 
 
 def read_blocks(scan: Scan, first: int = 1, last: int | None = None) -> tuple[Block, ...]:
+    """Read blocks of lines `first` to `last`; ranges must start and end on block boundaries.
+
+    Pass whole heading-to-heading ranges. A fence that opens in range is returned whole. A
+    label paragraph before `first` is not looked for.
+    """
     if first < 1:
         raise ValueError("first must be at least 1")
     reader = _Reader(scan)
@@ -128,6 +134,10 @@ def read_blocks(scan: Scan, first: int = 1, last: int | None = None) -> tuple[Bl
             number += 1
         elif is_table_row(shown):
             number = reader.table(number, stop)
+        elif shown.lstrip().startswith("|"):
+            raise HandoffError(
+                number, "a | line indented more than three spaces is not a table row"
+            )
         else:
             reader.text(number, shown)
             number += 1

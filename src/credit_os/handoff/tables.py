@@ -25,6 +25,7 @@ class Row(Node):
 class Table(Node):
     line: int
     label: str | None
+    label_line: int | None
     columns: tuple[str, ...]
     rows: tuple[Row, ...]
 
@@ -40,7 +41,9 @@ def _cells(number: int, text: str) -> tuple[str, ...]:
     return tuple(cell.strip().replace("\\|", "|") for cell in _UNESCAPED_PIPE.split(row[1:-1]))
 
 
-def read_table(lines: Sequence[tuple[int, str]], label: str | None = None) -> Table:
+def read_table(
+    lines: Sequence[tuple[int, str]], label: str | None = None, label_line: int | None = None
+) -> Table:
     """Read a table; the caller passes only lines for which `is_table_row` is true."""
     first, header_text = lines[0]
     header = _cells(first, header_text)
@@ -65,4 +68,4 @@ def read_table(lines: Sequence[tuple[int, str]], label: str | None = None) -> Ta
                 f"the table row has {len(cells)} cells and the header has {len(header)}",
             )
         rows.append(Row(line=number, cells=cells))
-    return Table(line=first, label=label, columns=header, rows=tuple(rows))
+    return Table(line=first, label=label, label_line=label_line, columns=header, rows=tuple(rows))
