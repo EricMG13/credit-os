@@ -803,11 +803,13 @@ function readMetrics(m: Rec, path: string, traces: Traces): RecordBlock {
   };
 }
 
-function readDelta(o: Rec, path: string, held: boolean) {
+function readDelta(o: Rec, path: string, held: boolean, earlier: Cell) {
   const at = child(path, "delta");
   if (own(o, "delta") === null) {
     // The page words a measure with no delta as "Earlier period n.a.": only that case may carry none.
     if (held) throw new SliceError(at, "a change, since both periods are values");
+    if (earlier !== null)
+      throw new SliceError(at, "a change, unless the earlier period is missing");
     return null;
   }
   if (!held) throw new SliceError(at, "null unless both periods are values");
@@ -826,7 +828,7 @@ function readStat(item: unknown, path: string, traces: Traces) {
     label: named(m, "label", path),
     current,
     earlier,
-    delta: readDelta(m, path, isValue(current) && isValue(earlier)),
+    delta: readDelta(m, path, isValue(current) && isValue(earlier), earlier),
     consequence: named(m, "consequence", path),
     trace: traceKey(m, "trace", path, traces),
   };
@@ -1012,9 +1014,20 @@ function readChartColumns(c: Rec, path: string) {
     ),
     columnsPath,
   );
-  if (columns.length > CHART_TABLE_LIMITS.columns) {
-    throw new SliceError(columnsPath, `at most ${String(CHART_TABLE_LIMITS.columns)} columns`);
+  if (columns[0]?.align !== "left") {
+    throw new SliceError(
+      child(nth(columnsPath, 0), "align"),
+      "left: the kit draws the label column left",
+    );
   }
+  columns.forEach((column, index) => {
+    if (index >= CHART_TABLE_LIMITS.columns && column.align === "left") {
+      throw new SliceError(
+        child(nth(columnsPath, index), "align"),
+        `right: only the first ${String(CHART_TABLE_LIMITS.columns)} columns can be left`,
+      );
+    }
+  });
   return columns;
 }
 
@@ -1036,6 +1049,23 @@ function readChartRow(value: unknown, path: string, width: number) {
   return { cells, emphasis: bool(r, "emphasis", path) };
 }
 
+/** Footnotes are sentences, each used once: the page keys them by their text. */
+function readFootnotes(c: Rec, path: string): string[] {
+  const notes = list(c, "footnotes", path, (item, p) => {
+    if (typeof item !== "string" || item === "") throw new SliceError(p, "a non-empty string");
+    return item;
+  });
+  notes.forEach((note, index) => {
+    if (notes.indexOf(note) !== index) {
+      throw new SliceError(
+        nth(child(path, "footnotes"), index),
+        "a footnote not used by an earlier one",
+      );
+    }
+  });
+  return notes;
+}
+
 function readChartTable(c: Rec, path: string, traces: Traces): RecordBlock {
   const columns = readChartColumns(c, path);
   const rowsPath = child(path, "rows");
@@ -1043,9 +1073,14 @@ function readChartTable(c: Rec, path: string, traces: Traces): RecordBlock {
     list(c, "rows", path, (item, p) => readChartRow(item, p, columns.length)),
     rowsPath,
   );
-  if (rows.length > CHART_TABLE_LIMITS.rows) {
-    throw new SliceError(rowsPath, `at most ${String(CHART_TABLE_LIMITS.rows)} rows`);
-  }
+  rows.forEach((row, index) => {
+    if (index >= CHART_TABLE_LIMITS.rows && row.emphasis) {
+      throw new SliceError(
+        child(nth(rowsPath, index), "emphasis"),
+        `false: only the first ${String(CHART_TABLE_LIMITS.rows)} rows can be emphasised`,
+      );
+    }
+  });
   return {
     kind: "chartTable",
     nav: navLabel(c, "nav", path),
@@ -1054,10 +1089,7 @@ function readChartTable(c: Rec, path: string, traces: Traces): RecordBlock {
     note: gradeOrNull(c, "note", path),
     columns,
     rows,
-    footnotes: list(c, "footnotes", path, (item, p) => {
-      if (typeof item !== "string" || item === "") throw new SliceError(p, "a non-empty string");
-      return item;
-    }),
+    footnotes: readFootnotes(c, path),
     trace: traceKey(c, "trace", path, traces),
   };
 }

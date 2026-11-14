@@ -422,11 +422,11 @@ describe("Module, the pathway", () => {
 });
 
 describe("Module, records that sit side by side", () => {
-  it("stack up to 1000px wide and go two-up from 1001px, as the mock does", () => {
+  it("stack up to 1199px wide and go two-up from 1200px, like the chart pair", () => {
     renderModule("business-profile");
     const row = region("Indicators to watch").parentElement as HTMLElement;
-    expect(row).toHaveClass("grid-cols-1", "min-[1001px]:grid-cols-2");
-    expect(row).not.toHaveClass("md:grid-cols-2");
+    expect(row).toHaveClass("grid-cols-1", "min-[1200px]:grid-cols-2");
+    expect(row).not.toHaveClass("md:grid-cols-2", "min-[1001px]:grid-cols-2");
   });
 });
 
@@ -604,7 +604,11 @@ describe("Module, the headline figures", () => {
     renderModule("capital-structure");
     const heading = screen.getByRole("heading", { level: 3, name: "Headline figures" });
     expect(heading).toHaveClass("sr-only");
-    expect(figures()).toHaveClass("has-[:focus-visible]:ring-2", "has-[:focus-visible]:ring-brand");
+    expect(figures()).toHaveClass(
+      "has-[>[tabindex='-1']:focus-visible]:ring-2",
+      "has-[>[tabindex='-1']:focus-visible]:ring-brand",
+    );
+    expect(figures()).not.toHaveClass("has-[:focus-visible]:ring-2");
     const scroll = vi.fn();
     Element.prototype.scrollIntoView = scroll;
     fireEvent.click(within(nav()).getByRole("button", { name: "Headline figures" }));
@@ -674,17 +678,17 @@ describe("Module, the measures and their consequence", () => {
     ).toBeVisible();
   });
 
-  it("draws a withheld earlier period beside no change, and a flat or rising mark as delivered", () => {
+  it("draws a missing earlier period beside no change, and a flat mark as delivered", () => {
     const library = withRecords((records) => {
       const items = blockOf(records, "measures").items;
-      (items[1] as Json)["earlier"] = { kind: "withheld", reason: null };
+      (items[1] as Json)["earlier"] = null;
       (items[1] as Json)["delta"] = null;
       (items[2] as Json)["earlier"] = { kind: "value", text: "2.4x", at: 2.4 };
       (items[2] as Json)["delta"] = { text: "Unchanged on 2025", direction: "flat" };
     });
     renderModule("capital-structure", "2026-09-30", library);
     const stats = within(measures()).getAllByRole("listitem");
-    expect(within(stats[1] as HTMLElement).getByText("Withheld")).toBeVisible();
+    expect(stats[1]).toHaveTextContent("Earlier period n.a.");
     expect(stats[1]?.querySelector("[data-direction]")).toBeNull();
     expect(stats[2]?.querySelector("[data-direction]")).toHaveAttribute("data-direction", "flat");
   });
@@ -812,10 +816,10 @@ describe("Module, the documentation tests", () => {
     expect(within(tests()).getByText("The certificate was due on 15 January.")).toBeVisible();
   });
 
-  it("sets the two blocks side by side from 1001px and stacked below", () => {
+  it("sets the two blocks side by side from 1200px and stacked below", () => {
     renderModule("capital-structure");
     const row = tests().parentElement;
-    expect(row).toHaveClass("grid-cols-1", "min-[1001px]:grid-cols-2");
+    expect(row).toHaveClass("grid-cols-1", "min-[1200px]:grid-cols-2");
     expect(region("Facility terms").closest("[data-section]")?.parentElement).toBe(row);
   });
 });

@@ -1229,6 +1229,28 @@ describe("readSlice, the data module's records", () => {
     ]);
   });
 
+  const sized = (columns: number, rows: number, left: number, heavy: number) => {
+    const slice = fresh();
+    const b = blockOf(slice, "chartTable");
+    b["columns"] = Array.from({ length: columns }, (_, i) => ({
+      label: `C${String(i)}`,
+      align: i === 0 || i === left ? "left" : "right",
+    }));
+    b["rows"] = Array.from({ length: rows }, (_, r) => ({
+      cells: Array.from({ length: columns }, (_, c) => `r${String(r)}c${String(c)}`),
+      emphasis: r === heavy,
+    }));
+    return slice;
+  };
+
+  it("accepts the largest styled chart table: eight columns, the last left, twelve rows, the last heavy", () => {
+    expect(readSlice(sized(8, 12, 7, 11)).kind).toBe("ok");
+  });
+
+  it("accepts a larger table that no position styles: nine columns and thirteen rows", () => {
+    expect(readSlice(sized(9, 13, -1, -1)).kind).toBe("ok");
+  });
+
   const broken: [string, string, (b: Json) => unknown, string][] = [
     ["headline figures with no items", "metrics", (b: Json) => (b["items"] = []), "items"],
     [
@@ -1432,20 +1454,58 @@ describe("readSlice, the data module's records", () => {
     ["a chart table with no columns", "chartTable", (b: Json) => (b["columns"] = []), "columns"],
     ["a chart table with no rows", "chartTable", (b: Json) => (b["rows"] = []), "rows"],
     [
-      "a chart table with too many columns",
+      "a chart table with a left column past the ninth",
       "chartTable",
-      (b: Json) =>
-        (b["columns"] = Array.from({ length: 9 }, (_, i) => ({
+      (b: Json) => {
+        b["columns"] = Array.from({ length: 9 }, (_, i) => ({
           label: `C${String(i)}`,
-          align: "left",
-        }))),
-      "columns",
+          align: i === 0 || i === 8 ? "left" : "right",
+        }));
+      },
+      "columns[8].align",
     ],
     [
-      "a chart table with too many rows",
+      "a chart table with an emphasised row past the twelfth",
       "chartTable",
-      (b: Json) => (b["rows"] = Array.from({ length: 13 }, () => (b["rows"] as Json[])[0])),
-      "rows",
+      (b: Json) => {
+        b["rows"] = Array.from({ length: 13 }, (_, i) => ({
+          ...((b["rows"] as Json[])[0] as Json),
+          emphasis: i === 12,
+        }));
+      },
+      "rows[12].emphasis",
+    ],
+    [
+      "a chart table whose first column is aligned right",
+      "chartTable",
+      (b: Json) => (((b["columns"] as Json[])[0] as Json)["align"] = "right"),
+      "columns[0].align",
+    ],
+    [
+      "a chart table footnote given twice",
+      "chartTable",
+      (b: Json) => (b["footnotes"] = ["Same.", "Same."]),
+      "footnotes[1]",
+    ],
+    [
+      "a null delta beside a withheld current figure and an earlier value",
+      "measures",
+      (b: Json) => {
+        const item = (b["items"] as Json[])[0] as Json;
+        item["current"] = { kind: "withheld", reason: null };
+        item["delta"] = null;
+      },
+      "items[0].delta",
+    ],
+    [
+      "a null delta beside a withheld earlier figure",
+      "measures",
+      (b: Json) => {
+        const item = (b["items"] as Json[])[1] as Json;
+        item["earlier"] = { kind: "withheld", reason: null };
+        item["delta"] = null;
+      },
+      "items[1].delta",
     ],
     [
       "a chart table column aligned to the centre",

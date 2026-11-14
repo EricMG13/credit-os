@@ -358,7 +358,7 @@ type StatementRecord = Navigable & {
 /** What the module could not establish, in place of a chart or table: the reason it gives. */
 type GapRecord = Navigable & { kind: "gap"; title: string; reason: string };
 
-/** What the kit's table can draw of a chart table: the columns and rows the page has classes for. */
+/** The positions a chart table's styling reaches: a left column or an emphasised row lies within them. */
 export const CHART_TABLE_LIMITS = { columns: 8, rows: 12 } as const;
 
 /**
