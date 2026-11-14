@@ -180,6 +180,15 @@ describe("rejects", () => {
       "run.drafts[2].purposes[1].id: expected an id no other purpose uses",
     );
   });
+  it("two confirm groups with the same name in one draft", () => {
+    const groups = [
+      { name: "Issuer", rows: [] },
+      { name: "Issuer", rows: [] },
+    ];
+    expect(reason(edit("confirm", ["groups"], groups))).toBe(
+      "run.drafts[3].groups[1].name: expected a name no other group uses",
+    );
+  });
   it("a chosen purpose that is not one of its purposes", () => {
     expect(reason(edit("purpose", ["chosen"], "nowhere"))).toBe(
       "run.drafts[2].chosen: expected null or the id of one of its purposes",

@@ -159,3 +159,60 @@ describe("More context (frame 05)", () => {
     expect(screen.getByRole("textbox", { name: LABEL })).toHaveValue("Saved note");
   });
 });
+
+describe("Task 4 carry-overs (class names are all jsdom can read)", () => {
+  it("draws the Purpose card header as a strip with its own hairline", () => {
+    show("/run/start/purpose", fixture.slice);
+    const strip = screen.getByText("Full credit review").parentElement as HTMLElement;
+    expect(strip).toHaveClass("border-b", "border-border-hairline");
+  });
+
+  it("draws the Purpose icon at the 32px kit size", () => {
+    show("/run/start/purpose", fixture.slice);
+    const icon = screen
+      .getByText("Full credit review")
+      .parentElement?.querySelector("[data-featured-icon]");
+    expect(icon).toHaveClass("size-8");
+    expect(icon).not.toHaveClass("size-10");
+  });
+
+  it("names each radio by its title and describes it with its text and module label", () => {
+    show("/run/start/purpose", fixture.slice);
+    const radio = screen.getByRole("radio", { name: "Earnings update" });
+    expect(radio).toHaveAccessibleDescription(
+      /^Reads the latest results against the last run and updates financials, liquidity and the forecast\. Needs an earlier run on this issuer\.\s?5 modules$/,
+    );
+  });
+
+  it("draws the tick on the selected card only", () => {
+    show("/run/start/purpose", fixture.slice);
+    const svgs = (name: string) =>
+      screen.getByRole("radio", { name }).closest("label")?.querySelectorAll("svg").length;
+    expect(svgs("Full credit review")).toBe(2);
+    expect(svgs("Earnings update")).toBe(1);
+    expect(svgs("Event review")).toBe(1);
+    fireEvent.click(screen.getByRole("radio", { name: "Event review" }));
+    expect(svgs("Full credit review")).toBe(1);
+    expect(svgs("Event review")).toBe(2);
+  });
+
+  it("separates details-list rows with the hairline token", () => {
+    show("/run/start/confirm", fixture.slice);
+    const row = screen.getByText("Guarantor group").parentElement as HTMLElement;
+    expect(row).toHaveClass("border-border-hairline");
+    expect(row).not.toHaveClass("border-border-subtle");
+  });
+
+  it("sets the Confirm group caption in the caption size", () => {
+    show("/run/start/confirm", fixture.slice);
+    const caption = screen.getByRole("heading", { level: 3, name: "Issuer" });
+    expect(caption).toHaveClass("text-caption");
+    expect(caption).not.toHaveClass("text-xs");
+  });
+
+  it("draws the More context text area with a focus ring in the focus colour", () => {
+    show("/run/start/context", fixture.slice);
+    const box = screen.getByRole("textbox", { name: LABEL });
+    expect(box).toHaveClass("focus:ring-2", "focus:ring-brand");
+  });
+});
