@@ -65,6 +65,7 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_ok, {"usage": Usage(input_tokens=6)}, "an ok reply repeats its turn's usage"),
     (_ok, {"usage": None}, "an ok reply repeats its turn's usage"),
     (_reply, {"kind": "sent_usage"}, "a sent_usage reply needs usage"),
+    (_sent, {}, "a sent_usage reply needs a count or a charge"),
     (_reply, {"usage": Usage()}, "a not_sent reply has no usage"),
     (_reply, {"kind": "sent_unknown", "usage": Usage()}, "a sent_unknown reply has no usage"),
     (_reply, {"billed_usd": Decimal(1)}, "a not_sent reply has no charge"),
@@ -121,9 +122,10 @@ def test_not_sent_reply() -> None:
     assert reply == Reply("not_sent", None, "TokenMissing", "no token", *[None] * 5)
 
 
-def test_sent_usage_with_counts_only() -> None:
-    reply = _reply(kind="sent_usage", usage=Usage(input_tokens=500))
-    assert reply == Reply("sent_usage", None, "E", "m", Usage(input_tokens=500), *[None] * 4)
+@pytest.mark.parametrize("count", [500, 0])
+def test_sent_usage_with_counts_only(count: int) -> None:
+    reply = _reply(kind="sent_usage", usage=Usage(input_tokens=count))
+    assert reply == Reply("sent_usage", None, "E", "m", Usage(input_tokens=count), *[None] * 4)
 
 
 @pytest.mark.parametrize("charge", [Decimal("0.1112661"), Decimal(0)])

@@ -87,7 +87,8 @@ class Turn:
 @dataclass(frozen=True)
 class Reply:
     """`ok`: a turn came back. `not_sent`: the call never left. `sent_usage`: sent, failed,
-    usage (perhaps the charge) known. `sent_unknown`: may have been sent, cost unknown."""
+    at least one count in usage or the charge known. `sent_unknown`: may have been sent, cost
+    unknown."""
 
     kind: ReplyKind
     turn: Turn | None
@@ -123,8 +124,15 @@ class Reply:
     def _check_usage(self) -> None:
         if self.kind == "sent_usage" and self.usage is None:
             raise ProviderDataError("a sent_usage reply needs usage")
+        if self.kind == "sent_usage" and self.billed_usd is None and not self._has_count():
+            raise ProviderDataError("a sent_usage reply needs a count or a charge")
         if self.kind in ("not_sent", "sent_unknown") and self.usage is not None:
             raise ProviderDataError(f"a {self.kind} reply has no usage")
+
+    def _has_count(self) -> bool:
+        return self.usage is not None and any(
+            getattr(self.usage, f.name) is not None for f in fields(self.usage)
+        )
 
     def _check_charge(self) -> None:
         if self.billed_usd is None:
