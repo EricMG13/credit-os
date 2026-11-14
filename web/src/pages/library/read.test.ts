@@ -371,6 +371,9 @@ describe("readSlice, overview", () => {
     bottomLine: Json;
     metrics: Json[];
     sides: { columns: { items: Json[] }[] };
+    findings: Json[];
+    changeView: Json;
+    dates: Json[];
   };
   type Run = Json & { overview: Ov | null };
   const runOf = (slice: ReturnType<typeof fresh>, r: number) =>
@@ -388,6 +391,10 @@ describe("readSlice, overview", () => {
     expect(full.overview.sides.columns.map((c) => c.items.length)).toEqual([3, 3]);
     expect(capped.overview.metrics[0]?.value).toEqual({ kind: "value", text: "0", at: 0 });
     expect(capped.overview.metrics[1]?.value).toMatchObject({ kind: "withheld" });
+    expect(full.overview.findings.map((f) => f.number)).toEqual(["01", "02", "03", "04", "05"]);
+    expect(full.overview.dates.map((d) => d.state)).toEqual(["Past", "Next", "Later", "Later"]);
+    expect(full.overview.changeView.title).toBe("Two triggers, either is enough");
+    expect(capped.overview.changeView.trace).toBeNull();
   });
 
   it.each([
@@ -415,6 +422,41 @@ describe("readSlice, overview", () => {
       "an item without its qualifier",
       (o: Ov) => delete (o.sides.columns[0]?.items[0] as Json)["qualifier"],
       "overview.sides.columns[0].items[0].qualifier",
+    ],
+    [
+      "a finding without its body",
+      (o: Ov) => delete (o.findings[2] as Json)["body"],
+      "overview.findings[2].body",
+    ],
+    [
+      "a finding trace the run lacks",
+      (o: Ov) => ((o.findings[0] as Json)["trace"] = "ghost"),
+      "overview.findings[0].trace",
+    ],
+    [
+      "a change view without its text",
+      (o: Ov) => delete o.changeView["text"],
+      "overview.changeView.text",
+    ],
+    [
+      "a change view trace the run lacks",
+      (o: Ov) => (o.changeView["trace"] = "ghost"),
+      "overview.changeView.trace",
+    ],
+    [
+      "a date in a state outside Past, Next and Later",
+      (o: Ov) => ((o.dates[1] as Json)["state"] = "Soon"),
+      "overview.dates[1].state",
+    ],
+    [
+      "a repeated finding number",
+      (o: Ov) => ((o.findings[1] as Json)["number"] = "01"),
+      "overview.findings[1].number",
+    ],
+    [
+      "a repeated date and title",
+      (o: Ov) => (o.dates[3] = { ...o.dates[2] }),
+      "overview.dates[3].title",
     ],
   ])("is invalid for %s, with its path", (_, break_, path) => {
     const slice = fresh();

@@ -1,11 +1,14 @@
-import { useId } from "react";
+import { Callout } from "@/components/alert/Alert";
 import { Badge } from "@/components/base/badges/badges";
 import { Tile } from "@/components/card/Card";
+import { Timeline } from "@/components/timeline/Timeline";
 import type { Overview as OverviewData, Point } from "./slice";
 import { BottomLine } from "./parts/BottomLine";
 import { CellValue } from "./parts/CellValue";
+import { Findings } from "./parts/Findings";
 import { MetricTile } from "./parts/MetricTile";
 import { RunFrame } from "./parts/RunFrame";
+import { Section } from "./parts/Section";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
 import { SECTION_HEADING, SUBSECTION_HEADING } from "./parts/heading";
 
@@ -33,17 +36,9 @@ function PointTile({ point }: { point: Point }) {
 }
 
 function ForAndAgainst({ sides }: { sides: OverviewData["sides"] }) {
-  const Heading = SECTION_HEADING;
   const Column = SUBSECTION_HEADING;
-  const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <Heading id={headingId} className="font-display text-h2 text-text-primary">
-          {sides.heading}
-        </Heading>
-        <span className="text-small text-text-tertiary">{sides.note}</span>
-      </div>
+    <Section title={sides.heading} note={sides.note}>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-8">
         {sides.columns.map((column) => (
           <div key={column.name} className="flex flex-col gap-3">
@@ -56,7 +51,21 @@ function ForAndAgainst({ sides }: { sides: OverviewData["sides"] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Section>
+  );
+}
+
+/** What would change the view: the kit's info Callout, with its one trace control at the corner. */
+function ChangeViewNote({ view }: { view: OverviewData["changeView"] }) {
+  return (
+    <Section title="What would change the view">
+      <div className={`${TRACE_HOST} [&>[role=note]]:pr-12`}>
+        <Callout title={view.title}>{view.text}</Callout>
+        <span className="absolute top-3 right-3">
+          <TraceControl trace={view.trace} label="Show sources for the triggers" />
+        </span>
+      </div>
+    </Section>
   );
 }
 
@@ -75,6 +84,17 @@ export function Overview({ issuer, run }: { issuer: string | undefined; run: str
             </ul>
           </section>
           <ForAndAgainst sides={overview.sides} />
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <Section title="Key findings">
+              <Findings findings={overview.findings} />
+            </Section>
+            <div className="flex flex-col gap-10">
+              <ChangeViewNote view={overview.changeView} />
+              <Section title="Dates to watch">
+                <Timeline items={overview.dates} />
+              </Section>
+            </div>
+          </div>
         </div>
       )}
     </RunFrame>

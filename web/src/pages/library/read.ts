@@ -3,6 +3,10 @@ import type { SliceResult } from "../route-table";
 import type {
   BottomLineText,
   Cell,
+  ChangeView,
+  DateState,
+  DatedItem,
+  Finding,
   HomeCard,
   History,
   HistoryEntry,
@@ -399,6 +403,37 @@ function readColumns(sides: Rec, path: string, traces: Traces): Overview["sides"
   return columns;
 }
 
+function readFinding(value: unknown, path: string, traces: Traces): Finding {
+  const f = rec(value, path);
+  return {
+    number: str(f, "number", path),
+    lead: str(f, "lead", path),
+    body: str(f, "body", path),
+    trace: traceKey(f, "trace", path, traces),
+  };
+}
+
+function readChangeView(value: unknown, path: string, traces: Traces): ChangeView {
+  const c = rec(value, path);
+  return {
+    title: str(c, "title", path),
+    text: str(c, "text", path),
+    trace: traceKey(c, "trace", path, traces),
+  };
+}
+
+const DATE_STATES = Object.keys(STATUS_SETS["Dated records"]) as DateState[];
+
+function readDate(value: unknown, path: string): DatedItem {
+  const d = rec(value, path);
+  return {
+    date: str(d, "date", path),
+    state: oneOf(d, "state", path, DATE_STATES),
+    title: str(d, "title", path),
+    text: str(d, "text", path),
+  };
+}
+
 function readOverview(value: unknown, path: string, traces: Traces): Overview {
   const o = rec(value, path);
   const sidesPath = child(path, "sides");
@@ -417,6 +452,19 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       note: str(sides, "note", sidesPath),
       columns: readColumns(sides, sidesPath, traces),
     },
+    findings: unique(
+      list(o, "findings", path, (f, p) => readFinding(f, p, traces)),
+      child(path, "findings"),
+      (f) => f.number,
+      "number",
+    ),
+    changeView: readChangeView(own(o, "changeView"), child(path, "changeView"), traces),
+    dates: unique(
+      list(o, "dates", path, readDate),
+      child(path, "dates"),
+      (d) => `${d.date}|${d.title}`,
+      "title",
+    ),
   };
 }
 

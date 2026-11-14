@@ -86,7 +86,10 @@ describe("Overview, the mock's run", () => {
     expect(
       screen.getByText("Three points on each side, as the modules weighed them"),
     ).toBeVisible();
-    const sides = screen.getAllByRole("heading", { level: 3 });
+    const sides = within(screen.getByRole("region", { name: "For and against" })).getAllByRole(
+      "heading",
+      { level: 3 },
+    );
     expect(sides.map((h) => h.textContent)).toEqual(["Supports the view", "Against the view"]);
     const against = within(sides[1]?.parentElement as HTMLElement).getAllByRole("listitem");
     expect(against.map((item) => item.textContent)).toEqual([
@@ -107,6 +110,13 @@ describe("Overview, the mock's run", () => {
       "H1",
       "H2",
       "H2",
+      "H3",
+      "H3",
+      "H2",
+      "H2",
+      "H2",
+      "H3",
+      "H3",
       "H3",
       "H3",
     ]);
@@ -254,5 +264,99 @@ describe("Overview, fix round 1", () => {
   it("says the capped run's points come from the delivered modules", () => {
     renderOverview("2026-03-31");
     expect(screen.getByText(/^Points taken from the nine delivered modules only/)).toBeVisible();
+  });
+});
+
+describe("Overview, findings, what would change the view and dates", () => {
+  const findings = () =>
+    within(screen.getByRole("region", { name: "Key findings" })).getAllByRole("listitem");
+
+  it("draws the mock's five findings: delivered number, 600-weight lead, 16/26 body", () => {
+    renderOverview("2026-09-30");
+    expect(screen.getByRole("heading", { level: 2, name: "Key findings" })).toBeVisible();
+    expect(findings().map((item) => item.textContent)).toEqual([
+      "01Deleveraging is real but slowLeverage fell by 0.3x in the year. Almost all of it came from EBITDA growth; net debt rose after the Corvane Fasteners purchase.",
+      "02Cash conversion lags marginWorking capital absorbed USD 71m as inventory was built for the engine ramp. Free cash flow covered interest but little else.",
+      "03Pricing power sits in the aftermarketSole-source parts carry most of the profit. Original-equipment contracts are fixed-price and thinner than peers.",
+      "04The 2028 notes are the first real testThe term loan and secured notes run to 2030 and 2031. The unsecured notes come first and rank behind both.",
+      "05Documentation is permissiveOnly a springing first-lien covenant applies, and only when the facility is more than 40% drawn. It is far from tested.",
+    ]);
+    const lead = screen.getByText("Deleveraging is real but slow");
+    expect(lead).toHaveClass("font-semibold", "text-body");
+    expect(screen.getByText(/^Leverage fell by 0.3x/)).toHaveClass("text-body");
+  });
+
+  it("gives every finding and the triggers note exactly one trace control, with the mock's names", () => {
+    renderOverview("2026-09-30");
+    for (const item of findings()) {
+      expect(
+        within(item).getAllByRole("button", { name: "Show sources for this finding" }),
+      ).toHaveLength(1);
+    }
+    const view = screen.getByRole("region", { name: "What would change the view" });
+    expect(within(view).getAllByRole("button")).toHaveLength(1);
+    expect(
+      within(view).getByRole("button", { name: "Show sources for the triggers" }),
+    ).toBeVisible();
+  });
+
+  it("opens the trace of a finding", () => {
+    renderOverview("2026-09-30");
+    fireEvent.click(within(findings()[1] as HTMLElement).getByRole("button"));
+    expect(screen.getByRole("dialog", { name: "Sources for cash conversion" })).toBeVisible();
+  });
+
+  it("draws what would change the view as an info note under its h2", () => {
+    renderOverview("2026-09-30");
+    expect(
+      screen.getByRole("heading", { level: 2, name: "What would change the view" }),
+    ).toBeVisible();
+    const note = screen.getByRole("note");
+    expect(within(note).getByText("Two triggers, either is enough")).toBeVisible();
+    expect(
+      within(note).getByText(
+        "Net leverage back above 5.0x at a year end, or no refinancing of the 2028 unsecured notes agreed by 30 June 2027. Either would move the view to negative.",
+      ),
+    ).toBeVisible();
+  });
+
+  it("draws the four dates with their state words, shapes that differ by state, and no trace", () => {
+    renderOverview("2026-09-30");
+    expect(screen.getByRole("heading", { level: 2, name: "Dates to watch" })).toBeVisible();
+    const dates = within(screen.getByRole("region", { name: "Dates to watch" })).getAllByRole(
+      "listitem",
+    );
+    expect(dates.map((item) => item.textContent)).toEqual([
+      "12 Nov 2026PastFull-year resultsPublished; figures in this run are from them.",
+      "11 Feb 2027NextFirst-quarter resultsFirst read on engine deliveries and inventory release.",
+      "30 Jun 2027LaterRefinancing milestoneOur date for an agreed refinancing of the 2028 notes.",
+      "15 Mar 2028LaterUnsecured notes matureUSD 310m falls due.",
+    ]);
+    const mark = (item: HTMLElement) => item.querySelector("svg")?.outerHTML;
+    expect(
+      new Set([
+        mark(dates[0] as HTMLElement),
+        mark(dates[1] as HTMLElement),
+        mark(dates[2] as HTMLElement),
+      ]).size,
+    ).toBe(3);
+    expect(mark(dates[2] as HTMLElement)).toBe(mark(dates[3] as HTMLElement));
+    for (const item of dates) expect(within(item).queryByRole("button")).toBeNull();
+  });
+
+  it("sets findings left of the note and dates from the large width, stacked below it", () => {
+    renderOverview("2026-09-30");
+    const grid = screen.getByRole("heading", { name: "Key findings" }).closest(".grid");
+    expect(grid).toHaveClass("grid-cols-1", "lg:grid-cols-[minmax(0,1fr)_360px]");
+  });
+
+  it("draws the capped run's lower half with no trace control", () => {
+    renderOverview("2026-03-31");
+    expect(findings()).toHaveLength(2);
+    expect(screen.getByText("Not yet formed")).toBeVisible();
+    expect(screen.queryAllByRole("button", { name: /^Show sources for/ })).toHaveLength(0);
+    expect(
+      within(screen.getByRole("region", { name: "Dates to watch" })).getAllByRole("listitem"),
+    ).toHaveLength(2);
   });
 });

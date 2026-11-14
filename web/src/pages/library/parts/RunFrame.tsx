@@ -149,7 +149,7 @@ const BAR = "rounded-ds-xs bg-surface-subtle";
 /** The static skeleton of a run still loading (States mock, "Any run page"): nothing moves. */
 function RunSkeleton() {
   const metric = (title: string, value: string, note: string) => (
-    <div className="flex flex-col gap-2 border-t border-l border-border-hairline p-5">
+    <div className="flex flex-col gap-2 rounded-xl border border-border-subtle bg-surface-card p-5 shadow-xs">
       <div className={cx(BAR, "h-3.5", title)} />
       <div className={cx(BAR, "h-9.5", value)} />
       <div className={cx(BAR, "h-3.5", note)} />
@@ -167,7 +167,7 @@ function RunSkeleton() {
   return (
     <div aria-busy="true" className="flex flex-col gap-6">
       <div className={cx(BAR, "h-33 rounded-[10px]")} />
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] overflow-hidden rounded-xl border border-border-subtle bg-surface-card shadow-xs">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
         {metric("w-1/2", "w-[70%]", "w-4/5")}
         {metric("w-1/2", "w-3/5", "w-[70%]")}
         {metric("w-1/2", "w-[70%]", "w-3/5")}
@@ -195,7 +195,7 @@ export function RunFrame({
   issuer: string | undefined;
   run: string | undefined;
   tab: RunTab;
-  children: ReactNode | ((run: LoadedRun) => ReactNode);
+  children: ReactNode | ((run: LoadedRun, issuer: string) => ReactNode);
 }) {
   const [sources, setSources] = useSourcesOn();
   const [drawer, setDrawer] = useState<{ key: string | null; open: boolean }>({
@@ -250,7 +250,7 @@ export function RunFrame({
               {run.loading ? (
                 <RunSkeleton />
               ) : typeof children === "function" ? (
-                children(run)
+                children(run, issuer.id)
               ) : (
                 children
               )}

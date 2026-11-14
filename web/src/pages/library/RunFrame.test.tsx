@@ -321,11 +321,20 @@ describe("RunFrame details", () => {
     expect(screen.getByRole("switch", { name: "Show sources" })).not.toBeChecked();
   });
 
-  it("lays the loading skeleton out as the mock: 24px stack, one joined metrics card, bordered items", () => {
+  it("lays the loading skeleton out as x.css: 24px stack, three separate 12px cards 16px apart, bordered items", () => {
     const { container } = renderFrame({ run: "2026-06-30" });
     const busy = container.querySelector("[aria-busy='true']");
     expect(busy).toHaveClass("gap-6");
-    expect(busy?.querySelector(".rounded-xl")?.children).toHaveLength(3);
+    const row = busy?.querySelector(".grid") as HTMLElement;
+    expect(row).toHaveClass("gap-4");
+    for (const joined of ["overflow-hidden", "rounded-xl", "border"]) {
+      expect(row).not.toHaveClass(joined);
+    }
+    expect(row.children).toHaveLength(3);
+    for (const card of row.children) {
+      expect(card).toHaveClass("rounded-xl", "border", "border-border-subtle", "bg-surface-card");
+      expect(card.className).not.toMatch(/border-(t|l|hairline)/);
+    }
     expect(busy?.querySelectorAll(".border.p-4")).toHaveLength(2);
   });
 });
