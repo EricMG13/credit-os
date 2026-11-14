@@ -158,21 +158,40 @@ def test_value_frozen_and_equal() -> None:
     assert Value(Decimal(1)) != Value(Decimal(2))
 
 
-@pytest.mark.parametrize("make", [ratio_context, exact_context])
-def test_contexts(make: Callable[[], decimal.Context]) -> None:
-    c, default = make(), decimal.Context()
+def check_context(make: Callable[[], decimal.Context]) -> None:
+    c = make()
     assert (c.prec, c.rounding) == (38, decimal.ROUND_HALF_EVEN)
-    assert (c.Emax, c.Emin, c.capitals, c.clamp) == (default.Emax, default.Emin, 1, 0)
-    for trap in (decimal.InvalidOperation, decimal.DivisionByZero, decimal.Overflow):
-        assert c.traps[trap]
-    assert c.traps[decimal.Inexact] is (make is exact_context)
-    assert not c.traps[decimal.Underflow]
-    assert not c.traps[decimal.Subnormal]
-    assert not c.traps[decimal.Rounded]
-    assert not c.traps[decimal.Clamped]
+    assert (c.Emax, c.Emin, c.capitals, c.clamp) == (999999, -999999, 1, 0)
+    assert not any(c.flags.values())
+    on = {decimal.InvalidOperation, decimal.DivisionByZero, decimal.Overflow}
+    if make is exact_context:
+        on.add(decimal.Inexact)
+    assert {s for s, v in c.traps.items() if v} == on
     assert make() is not c
     c.prec = 5
     assert make().prec == 38
+
+
+@pytest.mark.parametrize("make", [ratio_context, exact_context])
+def test_contexts(make: Callable[[], decimal.Context]) -> None:
+    check_context(make)
+    with decimal.localcontext(decimal.Context(prec=5, rounding=decimal.ROUND_UP, Emax=9)):
+        check_context(make)
+
+
+@pytest.mark.parametrize("make", [ratio_context, exact_context])
+def test_contexts_ignore_changed_default_context(make: Callable[[], decimal.Context]) -> None:
+    d = decimal.DefaultContext
+    saved = (d.prec, d.rounding, d.Emax, d.Emin, d.clamp, d.flags.copy(), d.traps.copy())
+    try:
+        d.prec, d.rounding, d.Emax, d.Emin, d.clamp = 7, decimal.ROUND_DOWN, 50, -20, 1
+        d.flags[decimal.Inexact] = True
+        d.traps[decimal.Underflow] = True
+        check_context(make)
+    finally:
+        d.prec, d.rounding, d.Emax, d.Emin, d.clamp = saved[:5]
+        d.flags.update(saved[5])
+        d.traps.update(saved[6])
 
 
 def test_hostile_ambient_context() -> None:
@@ -187,7 +206,7 @@ def build(sign: int, coefficient: int, exponent: int) -> Decimal:
 
 @given(
     st.integers(0, 1),
-    st.integers(1, 10**38 - 1),
+    st.integers(0, 10**38 - 1),
     st.integers(-60, 60),
 )
 def test_amount_text_property(sign: int, coefficient: int, exponent: int) -> None:
@@ -204,6 +223,31 @@ def test_amount_text_property(sign: int, coefficient: int, exponent: int) -> Non
     printed_digits = len(str(coefficient)) + max(exponent, 0)
     assume(len(text) <= 64 and printed_digits <= 38)
     assert parse_operand(text) == x
+
+
+@pytest.mark.parametrize("zero", ["-0", "-0E+3", "0E+3"])
+def test_zero_text_has_no_sign_or_exponent(zero: str) -> None:
+    assert amount_text(Decimal(zero)) == "0"
+
+
+@pytest.mark.parametrize("zero", ["0E-101", "-0E-100000"])
+def test_zero_text_is_bounded(zero: str) -> None:
+    assert amount_text(Decimal("0E-100")) == "0." + "0" * 100
+    with pytest.raises(decimal.Underflow) as error:
+        amount_text(Decimal(zero))
+    assert type(error.value) is decimal.Underflow
+    assert Value(amount=Decimal(zero)).amount == 0
+
+
+class StrSub(str):
+    pass
+
+
+def test_str_subclasses_refused() -> None:
+    with pytest.raises(TypeError):
+        parse_operand(StrSub("5"))
+    with pytest.raises(TypeError):
+        Missing(MissingCode.NOT_SOURCED, StrSub("x"))
 
 
 def test_operand_refuses_amount_text_of_39_digits() -> None:

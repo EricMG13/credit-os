@@ -29,7 +29,7 @@ class Missing:
     def __post_init__(self) -> None:
         if type(self.code) is not MissingCode:
             raise TypeError("Missing.code must be a MissingCode")
-        if not isinstance(self.text, str):
+        if type(self.text) is not str:
             raise TypeError("Missing.text must be a str")
         if not self.text.strip():
             raise ValueError("Missing.text must not be blank")
@@ -39,7 +39,16 @@ def _context(*, exact: bool) -> Context:
     traps = [decimal.InvalidOperation, decimal.DivisionByZero, decimal.Overflow]
     if exact:
         traps.append(decimal.Inexact)
-    return Context(prec=_DIGITS, rounding=decimal.ROUND_HALF_EVEN, traps=traps)
+    return Context(
+        prec=_DIGITS,
+        rounding=decimal.ROUND_HALF_EVEN,
+        Emin=-999999,
+        Emax=999999,
+        capitals=1,
+        clamp=0,
+        flags=[],
+        traps=traps,
+    )
 
 
 def ratio_context() -> Context:
@@ -98,7 +107,7 @@ class Value:
 
 def parse_operand(text: str) -> Decimal:
     """Bounded operand text to a Decimal as printed (trailing zeros kept)."""
-    if not isinstance(text, str):
+    if type(text) is not str:
         raise TypeError("operand text must be a str")
     refusal = ValueError(OPERAND_REFUSED)
     if len(text) > _MAX_TEXT or _OPERAND.fullmatch(text) is None:
@@ -113,6 +122,8 @@ def parse_operand(text: str) -> Decimal:
 def amount_text(amount: Decimal) -> str:
     """Plain digits at the scale the Decimal carries: no exponent, no digit added or dropped."""
     sign, digits, exponent = _carried(amount)
+    if exponent < -_MAX_ADJUSTED and digits == "0":
+        raise decimal.Underflow("zero scale below -100")
     if exponent >= 0:
         text = digits if digits == "0" else digits + "0" * exponent
     else:
