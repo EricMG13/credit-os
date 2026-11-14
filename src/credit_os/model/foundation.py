@@ -130,17 +130,22 @@ def names_currency(text: str, currency: str) -> bool:
     return re.search("|".join(forms), text) is not None
 
 
+def _matches(table: Table, row: str, header: str) -> tuple[list[int], list[Row]]:
+    """The columns (not the first) headed `header` and the rows labelled `row`, plain-compared."""
+    columns = [
+        index
+        for index, column in enumerate(table.columns)
+        if index >= 1 and _plain(column) == _plain(header)
+    ]
+    return columns, [line for line in table.rows if _plain(line.cells[0]) == _plain(row)]
+
+
 def _cells(tables: tuple[Table, ...], row: str, header: str) -> list[str]:
     found: set[str] = set()
     for table in tables:
-        columns = [
-            index
-            for index, column in enumerate(table.columns)
-            if index >= 1 and _plain(column) == _plain(header)
-        ]
-        for line in table.rows:
-            if _plain(line.cells[0]) == _plain(row):
-                found.update(line.cells[column] for column in columns)
+        columns, lines = _matches(table, row, header)
+        for line in lines:
+            found.update(line.cells[column] for column in columns)
     return list(found)
 
 
@@ -150,18 +155,19 @@ def _many(key: str, where: str, cells: list[str]) -> str:
     return _MANY.format(key=key, where=where, count=len(cells), shown=shown[:_SHOWN], more=more)
 
 
-def _problem(
-    key: str, operand: Operand, stated: Mapping[str, str], scale: int, tables: tuple[Table, ...]
-) -> str | None:
-    if operand.amount is None:
-        located = (operand.row, operand.period, operand.column) != (None, None, None)
-        return _LOCATED.format(key=key) if located else None
-    amount = stated[f"base {key}"] if scale == 1000 else operand.amount
+def _named(operand: Operand) -> tuple[str, str, str] | None:
+    """The operand's row, header and header kind, or None when either is missing or blank."""
     header = operand.period if operand.period is not None else operand.column
     row = operand.row
     if row is None or header is None or not _plain(row) or not _plain(header):
-        return _NAMED.format(key=key)
-    kind = "period" if operand.period is not None else "column"
+        return None
+    return row, header, "period" if operand.period is not None else "column"
+
+
+def _problem(
+    key: str, amount: str, named: tuple[str, str, str], tables: tuple[Table, ...]
+) -> str | None:
+    row, header, kind = named
     where = f"row `{echo(row)}`, {kind} `{echo(header)}`"
     cells = _cells(tables, row, header)
     if not cells:
@@ -192,14 +198,9 @@ def _group_issues(group: list[tuple[str, str]], unit: str) -> list[tuple[str, st
     return [(what, cell) for what, cell in group if other in units_named(cell)]
 
 
-def _table_issues(table: Table, operand: Operand, header: str, unit: str) -> list[tuple[str, str]]:
-    kind = "period" if operand.period is not None else "column"
-    columns = [
-        index
-        for index, column in enumerate(table.columns)
-        if index >= 1 and _plain(column) == _plain(header)
-    ]
-    lines = [row for row in table.rows if _plain(row.cells[0]) == _plain(operand.row or "")]
+def _table_issues(table: Table, named: tuple[str, str, str], unit: str) -> list[tuple[str, str]]:
+    row, header, kind = named
+    columns, lines = _matches(table, row, header)
     issues: list[tuple[str, str]] = []
     for column in columns:
         for line in lines:
@@ -208,30 +209,45 @@ def _table_issues(table: Table, operand: Operand, header: str, unit: str) -> lis
 
 
 def _issues(
-    operand: Operand, header: str, unit: str, tables: tuple[Table, ...]
+    named: tuple[str, str, str], unit: str, tables: tuple[Table, ...]
 ) -> list[tuple[str, str]]:
-    return [issue for table in tables for issue in _table_issues(table, operand, header, unit)]
+    return [issue for table in tables for issue in _table_issues(table, named, unit)]
 
 
 def _unit_problem(
-    key: str, operand: Operand, inputs: ForecastInputs, tables: tuple[Table, ...]
+    key: str, named: tuple[str, str, str], inputs: ForecastInputs, tables: tuple[Table, ...]
 ) -> str | None:
-    if operand.amount is None:
-        return None
-    header = operand.period if operand.period is not None else operand.column
     unit = "millions" if inputs.scale == 1 else "thousands"
-    issues = _issues(operand, header or "", unit, tables)
+    issues = _issues(named, unit, tables)
     if not issues:
         return None
     what, cell = min(issues)
     label = f"{inputs.currency} {unit}, scale {inputs.scale}"
     return _UNIT.format(
         key=key,
-        row=echo(_plain(operand.row or "")),
+        row=echo(_plain(named[0])),
         what=echo(what),
         cell=echo(_plain(cell)),
         unit=label,
     )
+
+
+def _refusal(
+    key: str, inputs: ForecastInputs, stated: Mapping[str, str], tables: tuple[Table, ...]
+) -> tuple[RefusalKind, str] | None:
+    operand = inputs.base[key]
+    if operand.amount is None:
+        located = (operand.row, operand.period, operand.column) != (None, None, None)
+        return (RefusalKind.CELL, _LOCATED.format(key=key)) if located else None
+    named = _named(operand)
+    if named is None:
+        return RefusalKind.CELL, _NAMED.format(key=key)
+    amount = stated[f"base {key}"] if inputs.scale == 1000 else operand.amount
+    message = _problem(key, amount, named, tables)
+    if message is not None:
+        return RefusalKind.CELL, message
+    message = _unit_problem(key, named, inputs, tables)
+    return None if message is None else (RefusalKind.UNIT, message)
 
 
 def check_base(
@@ -243,13 +259,9 @@ def check_base(
     """
     tables = foundation_tables(foundation)
     for key in OPERANDS:
-        operand = inputs.base[key]
-        message = _problem(key, operand, stated, inputs.scale, tables)
-        if message is not None:
-            raise ForecastRefused(RefusalKind.CELL, f"base {key}", message)
-        message = _unit_problem(key, operand, inputs, tables)
-        if message is not None:
-            raise ForecastRefused(RefusalKind.UNIT, f"base {key}", message)
+        refusal = _refusal(key, inputs, stated, tables)
+        if refusal is not None:
+            raise ForecastRefused(refusal[0], f"base {key}", refusal[1])
 
 
 def check_currency(inputs: ForecastInputs, foundation: HandoffDocument) -> None:

@@ -157,7 +157,7 @@ def test_a_named_column_header_in_the_other_unit_is_called_a_column_header() -> 
     assert _outcome(_with_table(table, ops)) == want
 
 
-def test_a_cell_in_the_unit_column_does_not_hide_another_cell_in_the_other_unit() -> None:
+def test_a_unit_cell_naming_the_block_unit_excuses_the_rows_note_in_the_other_unit() -> None:
     table = (
         "| Line item | FY2024 | Unit | Note |\n| --- | --- | --- | --- |\n"
         "| Revenue check | 1,456 | USD millions | in thousands |\n"
