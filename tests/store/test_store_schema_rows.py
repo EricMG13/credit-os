@@ -242,14 +242,27 @@ def test_events_index_columns(raw: sqlite3.Connection) -> None:
     assert tuple(raw.execute(query).fetchall()) == rows.EVENTS_INDEX_COLUMNS
 
 
-def test_second_start_time_is_refused(raw: sqlite3.Connection) -> None:
+@pytest.mark.parametrize("value", rows.START_FIXED_VALUES, ids=["moved", "cleared"])
+def test_second_start_time_is_refused(raw: sqlite3.Connection, value: object) -> None:
     _insert(raw, "runs", rows.RUN)
     _update(raw, rows.RUNNING)
     before = _snapshot(raw)
     with pytest.raises(sqlite3.IntegrityError) as refused:
-        raw.execute("UPDATE runs SET started_at = ?", (rows.T2,))
+        raw.execute("UPDATE runs SET started_at = ?", (value,))
     assert str(refused.value) == rows.START_FIXED_MESSAGE
     assert _snapshot(raw) == before
+
+
+def test_run_sources_indexes(raw: sqlite3.Connection) -> None:
+    query = (
+        "SELECT l.name, l.origin, l.\"unique\", i.name FROM pragma_index_list('run_sources') AS l"
+        " JOIN pragma_index_info(l.name) AS i ORDER BY l.name, i.seqno"
+    )
+    grouped: dict[str, tuple[str, int, list[str]]] = {}
+    for index, origin, unique, column in raw.execute(query).fetchall():
+        grouped.setdefault(index, (origin, unique, []))[2].append(column)
+    found = sorted((origin, unique, tuple(columns)) for origin, unique, columns in grouped.values())
+    assert tuple(found) == rows.RUN_SOURCES_INDEXES
 
 
 def test_event_sequence_is_never_reused(raw: sqlite3.Connection) -> None:
