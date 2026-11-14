@@ -38,7 +38,9 @@ export function Records({ blocks }: { blocks: readonly RecordBlock[] }) {
       {rows(blocks).map((row) => (
         <div
           key={row.map((block) => block.title).join("|")}
-          className={row.length === 2 ? "grid grid-cols-1 gap-10 md:grid-cols-2" : undefined}
+          className={
+            row.length === 2 ? "grid grid-cols-1 gap-10 min-[1001px]:grid-cols-2" : undefined
+          }
         >
           {row.map((block) => (
             <Block key={block.title} block={block} />

@@ -257,7 +257,7 @@ describe("Module, the risk matrix", () => {
 
 describe("Module, the watch list", () => {
   const watch = () => region("Indicators to watch");
-  const rows = () => within(watch()).getAllByRole("listitem").slice(0, 4);
+  const rows = () => within(watch()).getAllByRole("listitem");
 
   it("lists the mock's four indicators with their thresholds", () => {
     renderModule("business-profile");
@@ -405,6 +405,22 @@ describe("Module, the pathway", () => {
       "min-[901px]:grid-flow-col",
     );
     expect(within(pathway()).queryByRole("button")).toBeNull();
+  });
+
+  it("sets the number ring and the line in the mock's 13px caption size", () => {
+    renderModule("business-profile");
+    const first = within(pathway()).getAllByRole("listitem")[0] as HTMLElement;
+    expect(first.querySelector("[aria-hidden=true]")).toHaveClass("text-caption");
+    expect(first.querySelector("small")).toHaveClass("text-caption");
+  });
+});
+
+describe("Module, records that sit side by side", () => {
+  it("stack up to 1000px wide and go two-up from 1001px, as the mock does", () => {
+    renderModule("business-profile");
+    const row = region("Indicators to watch").parentElement as HTMLElement;
+    expect(row).toHaveClass("grid-cols-1", "min-[1001px]:grid-cols-2");
+    expect(row).not.toHaveClass("md:grid-cols-2");
   });
 });
 

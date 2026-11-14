@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/status/StatusBadge";
 import { PageHeader } from "@/shell/PageHeader";
 import { cx } from "@/utils/cx";
 import type { LoadedRun, Run, RunHead } from "../slice";
-import { ButtonLink } from "./ButtonLink";
+import { Button } from "@/components/base/buttons/button";
 import { LibraryPage } from "./LibraryPage";
 import { NotHeld } from "./NotHeld";
 import { PAGE_NAME } from "./PageTitle";
@@ -133,10 +133,10 @@ function RunHeader({
         actions={
           <>
             {sources}
-            <ButtonLink href={historyHref(issuer)} color="secondary">
+            <Button href={historyHref(issuer)} color="secondary">
               Report history
-            </ButtonLink>
-            <ButtonLink href={RUN_START}>New run</ButtonLink>
+            </Button>
+            <Button href={RUN_START}>New run</Button>
           </>
         }
       />
