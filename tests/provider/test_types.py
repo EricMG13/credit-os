@@ -100,7 +100,7 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_compaction, {"usage": {"input_tokens": 5}}, "usage must be a Usage"),
     (_compaction, {"billed_usd": 0.5}, _CHARGE),
     (_compaction, {"billed_usd": Decimal("NaN")}, _FINITE),
-    (_compaction, {"billed_usd": Decimal("-1")}, _FINITE),
+    (_compaction, {"billed_usd": Decimal(-1)}, _FINITE),
     (_ok, {"compactions": []}, _COMPACTIONS),
     (_ok, {"compactions": ({"usage": {}},)}, _COMPACTIONS),
     (_reply, {"compactions": (_COMPACTION,)}, "a not_sent reply has no compactions"),
@@ -147,24 +147,30 @@ def test_ok_reply(charge: Decimal | None) -> None:
 
 def test_not_sent_reply() -> None:
     reply = _reply(error_class="TokenMissing", message="no token")
-    assert reply == Reply("not_sent", None, "TokenMissing", "no token", *[None] * 5)
+    assert reply == Reply(
+        "not_sent", None, "TokenMissing", "no token", None, None, None, None, None
+    )
 
 
 @pytest.mark.parametrize("count", [500, 0])
 def test_sent_usage_with_counts_only(count: int) -> None:
     reply = _reply(kind="sent_usage", usage=Usage(input_tokens=count))
-    assert reply == Reply("sent_usage", None, "E", "m", Usage(input_tokens=count), *[None] * 4)
+    assert reply == Reply(
+        "sent_usage", None, "E", "m", Usage(input_tokens=count), None, None, None, None
+    )
 
 
 @pytest.mark.parametrize("charge", [Decimal("0.1112661"), Decimal(0)])
 def test_sent_usage_with_charge_only(charge: Decimal) -> None:
     reply = _sent(billed_usd=charge)
-    assert reply == Reply("sent_usage", None, "E", "m", Usage(), charge, *[None] * 3)
+    assert reply == Reply("sent_usage", None, "E", "m", Usage(), charge, None, None, None)
 
 
 def test_sent_unknown_reply() -> None:
     reply = _reply(kind="sent_unknown", error_class="Timeout", message="timed out")
-    assert reply == Reply("sent_unknown", None, "Timeout", "timed out", *[None] * 5)
+    assert reply == Reply(
+        "sent_unknown", None, "Timeout", "timed out", None, None, None, None, None
+    )
 
 
 @pytest.mark.parametrize("charge", [None, Decimal(0), Decimal("0.0240831")])
