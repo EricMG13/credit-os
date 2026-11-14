@@ -198,3 +198,45 @@ def test_golden_file(name: str) -> None:
     assert [[f.line, f.finding, f.impact, f.confidence] for f in reader.summary.findings] == key[
         "findings"
     ]
+
+
+DOCUMENTS: dict[str, Any] = json.loads((HERE / "expected" / "document.json").read_text("utf-8"))[
+    "files"
+]
+
+
+@pytest.mark.parametrize(
+    ("findings", "section_line", "has_summary"),
+    [
+        ("", None, False),
+        ("### Other\nx\n", None, False),
+        ("### Reader summary\n" + T1 + "\n" + T2, 4, True),
+        ("### Other\nx\n### Reader summary\n" + T1 + "\n" + T2, 6, True),
+        ("### Reader summary\n" + T1 + "\n" + T2 + "\n" + T2, 4, False),
+        ("### Reader summary\n" + T1_CASE + "\n" + T2, 4, False),
+        ("### Reader summary\n" + T1_TWO_ROWS + "\n" + T2, 4, False),
+        ("### Reader summary\n" + T1 + "\n" + T2_NO_ROW, 4, False),
+        ("### Reader summary\n", 4, False),
+        ("### Reader summary\nx\n### Reader summary\n" + T1 + "\n" + T2, 4, False),
+        (f"{BT}\n### Reader summary\n" + T1 + "\n" + T2, None, False),
+        ("### Bottom line\nx\n### Reader summary\n" + T1 + "\n" + T2, None, False),
+    ],
+)
+def test_unreadable_summary_is_distinct_from_absent(
+    findings: str, section_line: int | None, has_summary: bool
+) -> None:
+    reader = _read(findings)
+    assert _lines(reader.summary_section) == section_line
+    assert (reader.summary is not None) is has_summary
+    if reader.summary_section is not None:
+        assert reader.summary_section.title == "Reader summary"
+
+
+@pytest.mark.parametrize("name", sorted(FILES))
+def test_golden_summary_section(name: str) -> None:
+    reader = read_reader(parse((HANDOFFS / name).read_bytes()))
+    lines = [s[2] for s in DOCUMENTS[name]["sections"] if s[:2] == [3, "Reader summary"]]
+    if FILES[name]["format"] == "new":
+        assert reader.summary_section is None
+    else:
+        assert [_lines(reader.summary_section)] == lines
