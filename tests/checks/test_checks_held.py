@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from checks_context_support import build_context
+from checks_context_support import build_context, without_held
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -298,3 +298,49 @@ def test_r59_refuses_the_currency_after_a_hyphen_that_is_no_currency() -> None:
     )
     found = check_handoff(document, _context({}))
     assert [(f.check, f.quoted, f.column) for f in found] == [("figure.form", "USD-5", 19)]
+
+
+def test_a_held_spelling_over_eighty_characters_is_cut_by_echo_in_the_mismatch_reason() -> None:
+    long_shown = "5" + " " * 100 + "million"
+    document = _pair(
+        "### Bottom line\nDebt was USD 5 million.\n",
+        _calculations(f"| Item | Value |\n| --- | --- |\n| Debt | EUR {long_shown} |\n"),
+    )
+    found = held.check_mismatch(document, _context({}))
+    assert len(found) == 1
+    # echo's rule: the first 80 characters of the spelling, then one ellipsis.
+    cut = "5" + " " * 79 + "\u2026"
+    assert found[0].reason == f"Keep the sign, unit and currency as the handoff writes it: {cut}."
+
+
+def test_a_figure_held_only_in_an_accepted_or_an_upstream_document_is_not_held() -> None:
+    other = _pair("### Bottom line\nText.\n", _calculations("Margin was 12%.\n"))
+    this = _pair("### Bottom line\nMargin was 12%.\n", _calculations("None.\n"))
+    for context in (
+        CheckContext(kind="data", accepted={"CP-1": other}),
+        CheckContext(kind="data", upstream={"CP-0": other}),
+    ):
+        assert [(f.check, f.quoted) for f in held.check_not_held(this, context)] == [
+            ("figure.not-held", "12%")
+        ]
+        assert held.check_mismatch(this, context) == ()
+
+
+def test_without_held_drops_exactly_the_two_held_checks_and_keeps_the_rest_in_order() -> None:
+    names = [
+        "figure.form",
+        "figure.not-held",
+        "prose.provider-marker",
+        "figure.mismatch",
+        "figure.form",
+    ]
+    findings = [
+        Finding(check=name, severity="refusal", line=index + 1, column=1, quoted="q", reason="r")
+        for index, name in enumerate(names)
+    ]
+    kept = without_held(findings)
+    assert [(f.check, f.line) for f in kept] == [
+        ("figure.form", 1),
+        ("prose.provider-marker", 3),
+        ("figure.form", 5),
+    ]

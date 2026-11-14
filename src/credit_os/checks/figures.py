@@ -10,8 +10,9 @@ word, after `(`, before `)`, in the month-count mask's currency test) crosses it
 neighbour of a minus or of a leading point, and it is the left side of a range only when it touches the dash.
 
 Letters in every word of the unit table, the currency codes and the `$` prefixes are ASCII, read
-with ASCII case rules. A figure's value is `Decimal` of its digits as written, never negative,
-never rounded; a figure in brackets is a negative. Arithmetic is nowhere: no float, no division.
+with ASCII case rules. A figure's value is `Decimal` of its digits as written, never negative;
+a figure in brackets is a negative unless the Notes rule reads it as a note. The Notes rule's only
+arithmetic is a `Decimal` rounding of the figure before; there is no float and no division.
 
 Notes. A bracketed figure with no minus is a note, read as written (neither negative nor bracketed), when the
 figure before it, read with only codes masked (on the passage side a masked date or period label counts
@@ -452,8 +453,8 @@ def _is_note(figure: Figure, before: Figure) -> bool:
     return places < before_places and figure.value in _rounded(before.value, places)
 
 
-def _is_note_on(text: str, figure: Figure, before: Figure, before_note: bool) -> bool:
-    if not figure.bracketed or before.bracketed or before_note:
+def _is_note_on(text: str, figure: Figure, before: Figure) -> bool:
+    if not figure.bracketed or before.bracketed:
         return False
     end = before.column - 1 + len(before.shown)
     start = figure.column - 1
@@ -464,16 +465,11 @@ def _is_note_on(text: str, figure: Figure, before: Figure, before_note: bool) ->
 
 def _with_notes(text: str, figures: list[Figure], codes: list[Figure]) -> tuple[Figure, ...]:
     """`figures` with each note read as written; `codes` is the line read with only codes masked."""
-    code_notes: list[bool] = []
-    for index, figure in enumerate(codes):
-        code_notes.append(
-            index > 0 and _is_note_on(text, figure, codes[index - 1], code_notes[index - 1])
-        )
     columns = [figure.column for figure in codes]
     result: list[Figure] = []
     for figure in figures:
         at = bisect_left(columns, figure.column) - 1
-        noted = at >= 0 and _is_note_on(text, figure, codes[at], code_notes[at])
+        noted = at >= 0 and _is_note_on(text, figure, codes[at])
         result.append(figure.model_copy(update=_PLAIN) if noted else figure)
     return tuple(result)
 
