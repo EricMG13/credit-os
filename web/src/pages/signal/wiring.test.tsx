@@ -19,7 +19,13 @@ function withoutOrder(): SignalSlice {
   if (read.kind !== "ok") throw new Error("the fixture reads");
   const copy = structuredClone(read.data);
   const { feed, channels } = copy.scenes[0].snapshot;
-  channels.topics[0] = { id: "constructor", name: "Constructor", count: null, followed: false };
+  channels.topics[0] = {
+    id: "constructor",
+    name: "Constructor",
+    count: null,
+    followed: false,
+    keywords: [],
+  };
   feed.topics = {};
   return copy;
 }
