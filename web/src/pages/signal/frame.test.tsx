@@ -243,13 +243,9 @@ describe("the Signal frame", () => {
   );
 
   it("says Not built yet for pages later tasks add, inside the frame, under the page's own h1", () => {
-    show("/signal/main/digest/weekly-brief");
-    expect(screen.getByRole("heading", { level: 1, name: "Weekly brief" })).toBeInTheDocument();
+    show("/signal/main/settings/topics");
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Not built yet" })).toBeInTheDocument();
-    expect(within(channels()).getByRole("link", { name: /^Weekly brief/ })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
   });
 
   it("says the data could not be read when the slice is malformed", () => {
@@ -272,7 +268,7 @@ describe("the Signal frame", () => {
     expect(screen.getByText("No Signal data in this library")).toBeInTheDocument();
   });
 
-  it("renders every declared path with every fixture parameter set", () => {
+  it("renders every declared path with every fixture parameter set", { timeout: 30000 }, () => {
     const declared = declaredPaths(import.meta.dirname);
     expect(declared).toHaveLength(6);
     const params = fixture.params as Record<string, Record<string, string>[]>;

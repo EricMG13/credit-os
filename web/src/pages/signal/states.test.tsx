@@ -32,7 +32,7 @@ describe("Signal states", () => {
       "/signal/main/group/nowhere/thread/t",
       "This group does not exist or is not open to you.",
     ],
-    ["an unknown digest", "/signal/main/digest/nowhere", "No such digest"],
+    ["an unknown digest", "/signal/main/digest/nowhere", "No such digest in this sample"],
   ])("draws %s as the one h1", (_name, hash, title) => {
     show(hash);
     expect(h1s()).toEqual([title]);

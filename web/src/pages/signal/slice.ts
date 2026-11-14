@@ -70,7 +70,7 @@ export type SignalDigestCard = {
   nothing: string | null;
 };
 /** One issue of a digest; with `nothing` set it holds no points and no model wrote it. */
-type SignalDigestIssue = {
+export type SignalDigestIssue = {
   id: string;
   title: string;
   date: string | null;
@@ -85,7 +85,7 @@ type SignalDigestIssue = {
   }[];
 };
 /** A digest and its issues, newest first. `paused` is the delivered sentence when no new issue is written. */
-type SignalDigest = {
+export type SignalDigest = {
   id: string;
   name: string;
   paused: string | null;

@@ -29,7 +29,7 @@ export function NumberedPanel({
           <div className="min-w-0 flex-1">
             <Lead className="text-sm font-medium text-text-primary">{item.lead}</Lead>
             {item.body === undefined || item.body === null ? null : (
-              <p className="mt-1 max-w-[72ch] text-sm text-text-secondary">{item.body}</p>
+              <p className="mt-1 max-w-[72ch] text-sm text-text-tertiary">{item.body}</p>
             )}
             {item.children}
           </div>

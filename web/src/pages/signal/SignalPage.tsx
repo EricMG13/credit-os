@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent, type SignalFollow } from "./SignalFrame";
+import { DigestPage } from "./DigestPage";
 import { GroupPage } from "./GroupPage";
 import { ThreadPanel } from "./ThreadPanel";
 import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
@@ -239,18 +240,21 @@ function Body({
     }
     case "digest": {
       const id = param(params, "digest");
-      const digest = scene.snapshot.channels.digests.find((d) => d.id === id);
+      const digest = scene.snapshot.digests.find((d) => d.id === id);
       if (digest === undefined) {
         return {
           current: { kind: "none" },
           body: (
-            <Empty page title="No such digest">
+            <Empty page title="No such digest in this sample">
               {back}
             </Empty>
           ),
         };
       }
-      return { current: { kind: "digest", id }, body: <NotBuilt title={digest.name} /> };
+      return {
+        current: { kind: "digest", id },
+        body: <DigestPage digest={digest} none={<Empty title="No digest yet" />} />,
+      };
     }
     case "settings":
       return { current: { kind: "settings" }, body: <NotBuilt title="Settings" /> };
