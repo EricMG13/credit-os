@@ -47,12 +47,12 @@ written in the step's plan. A phase starts when the steps it depends on are merg
 | 2 | 2B | Prose, figure and confidence checks on a handoff document | `checks/` | 1A |
 | 3 | 3A | Orchestrator: module plan, dependency order, bounded retries, resume, run cap | `orchestrator/` | 1C, 1D, 2A, 2B |
 | 3 | 3B | Delivery: library data file written from handoff documents, hash-checked | `delivery/` | 1B, 2A, 2B |
-| 4 | 4A | Library shell, routing, trace control, Overview page | `web/` | 3B |
+| 4 | 4A | Library home, Report history and Overview (built in design step D2b) read delivered data: the library slice reader checked against a real delivered folder, fixture-only paths removed | `web/` | 3B, D2b |
 | 4 | 4X | One command from a run to an openable library folder (run, deliver, copy the built front end, `data.js`, downloads), with the 0B browser check run on a real delivered folder | new top-level entry module, named in its plan and covered by the layering test | 3A, 4A |
-| 4 | 4B to 4D | Modules, Forecast (with Model), Evidence pages, in sequence | `web/` | 4A |
+| 4 | 4B to 4D | Modules, Forecast (with Model), Evidence and the trace drawer (built in D2b and D2c) wired to delivered data, in sequence | `web/` | 4A, D2c |
 | 5 | 5A | CP-8 comparison against an earlier run, with its data contract in delivery | `orchestrator/`, `checks/`, `delivery/` | 3A, 3B |
-| 5 | 5B | Changes page | `web/` | 5A, 4A |
-| 5 | 5C | Run start page (served) | `web/`, `orchestrator/` | 5B |
+| 5 | 5B | Changes page (built in D2b) wired to the comparison's delivered data | `web/` | 5A, 4A |
+| 5 | 5C | Run start and Run activity (built in D2d) served and wired to the orchestrator: submit, stop, resume, live state | `web/`, `orchestrator/` | 5B, D2d |
 | 6 | one module per PR | Each method text ported and proved with a real retained response | `methods/` | 4X |
 | 7 | 7A | Acceptance on the work PC: gates, one run through Copilot, library opened from disk | none | all |
 
@@ -63,6 +63,13 @@ Signal's back end is not in this roadmap. It is unmerged in the predecessor and 
 plan once phase 4 is done. Its screens, and the design of every page in phases 4 and 5, belong
 to the [design track](2026-11-13-design-track.md) (decision 0003): those page steps build to
 its mocks and component kit.
+
+**Pages are built once (coordinator, 2026-11-14, decision 0006).** Design steps D2b to D2e
+build every page from fixture data, each with a typed slice reader. Steps 4A, 4B to 4D, 5B
+and 5C therefore build no page: they make step 3B's delivery write what the slice readers
+accept, prove it on a real delivered folder, and change a reader only where delivery cannot
+supply a field (recorded as a departure). Step 3B's plan takes the slice types as its
+contract. Signal's pages (D2e) stay on fixture data until Signal's back end has its own plan.
 
 ## Rules for every step
 
