@@ -203,6 +203,11 @@
   --background-color-border-secondary: var(--color-border-hairline);
   --outline-color-focus-ring: var(--color-focus);
 
+  /* Sidebar rail: selected item, the card's inset ring, the page header's rule */
+  --background-color-secondary: var(--color-surface-selected);
+  --ring-color-secondary: var(--color-border-subtle);
+  --border-color-secondary: var(--color-border-hairline);
+
   /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
   --text-xs: calc(var(--spacing) * 3);
   --text-xs--line-height: calc(var(--spacing) * 4.5);

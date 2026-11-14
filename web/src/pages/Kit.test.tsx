@@ -22,7 +22,7 @@ describe("Kit", () => {
   it("has the page heading and one heading per component", () => {
     render(<Kit />);
     expect(screen.getByRole("heading", { level: 1, name: "Component kit" })).toBeInTheDocument();
-    for (const name of ["Button", "Tooltip", "Badge", "Tabs", "Button group"]) {
+    for (const name of ["Button", "Tooltip", "Badge", "Tabs", "Button group", "Page header"]) {
       expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
     }
   });

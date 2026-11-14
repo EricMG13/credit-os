@@ -13,6 +13,27 @@ describe("App", () => {
     expect(screen.queryByText("Library data is missing")).toBeNull();
   });
 
+  it("marks the current area in the rail", () => {
+    window.location.hash = "#/kit";
+    render(<App result={{ kind: "missing" }} />);
+    expect(screen.getByRole("link", { name: "Kit" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it.each(["model", "run", "signal"])("says #/%s is not built yet, inside the shell", (area) => {
+    window.location.hash = `#/${area}`;
+    render(<App result={{ kind: "missing" }} />);
+    expect(screen.getByText("Not built yet")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Areas" })).toBeInTheDocument();
+  });
+
+  it("falls back to the library for an unknown hash", () => {
+    window.location.hash = "#/nowhere";
+    render(<App result={{ kind: "missing" }} />);
+    expect(screen.getByRole("heading", { level: 1, name: "Library" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Library data is missing")).toBeInTheDocument();
+  });
+
   it("says so when there are no runs", () => {
     render(<App result={{ kind: "ok", data: { schema: "credit-os-data/1", issuers: [] } }} />);
     expect(screen.getByText("No runs yet")).toBeInTheDocument();
@@ -36,8 +57,7 @@ describe("App", () => {
   });
 
   it("says when the data is from a newer version", () => {
-    const { container } = render(<App result={{ kind: "newer", schema: "credit-os-data/2" }} />);
+    render(<App result={{ kind: "newer", schema: "credit-os-data/2" }} />);
     expect(screen.getByText("This library was written by a newer version")).toBeInTheDocument();
-    expect(container.textContent).toBe("This library was written by a newer version");
   });
 });

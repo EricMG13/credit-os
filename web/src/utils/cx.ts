@@ -3,7 +3,25 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ["display-xs", "display-sm", "display-md", "display-lg", "display-xl", "display-2xl"],
+      text: [
+        "display-xs",
+        "display-sm",
+        "display-md",
+        "display-lg",
+        "display-xl",
+        "display-2xl",
+        "display",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "lead",
+        "body",
+        "small",
+        "caption",
+        "metric",
+        "mono",
+      ],
     },
   },
 });
