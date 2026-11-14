@@ -23,7 +23,6 @@ MAX_KEYWORDS = 60
 MAX_TOPIC_NAME = 200
 MAX_TOPICS = 200
 _MAX_KIND = max(len(kind) for kind in KINDS)
-_MAX_KINDS = 60
 
 
 def fts_phrase(text: str) -> str:
@@ -64,24 +63,24 @@ def _clean_text(value: object, what: str, limit: int) -> str:
     return text
 
 
-def _listed(values: object, what: str, limit: int) -> Sequence[object]:
-    """A list or tuple of at most `limit` items; a bare string is not a list of one."""
+def _listed(values: object, what: str) -> Sequence[object]:
+    """A list or tuple; a bare string is not a list of one."""
     if not isinstance(values, (list, tuple)):
         raise StoreError(f"{what} must be a list of text")
-    if len(values) > limit:
-        raise StoreError(f"at most {limit} {what} are allowed")
     return values
 
 
 def _clean_keywords(keywords: object) -> list[str]:
-    listed = _listed(keywords, "keywords", MAX_KEYWORDS)
+    listed = _listed(keywords, "keywords")
     if not listed:
         raise StoreError("a topic needs at least one keyword")
+    if len(listed) > MAX_KEYWORDS:
+        raise StoreError(f"a topic holds at most {MAX_KEYWORDS} keywords")
     return [_clean_text(keyword, "keyword", MAX_KEYWORD) for keyword in listed]
 
 
 def _clean_kinds(kinds: object) -> list[str]:
-    texts = [_text(kind, "kind", _MAX_KIND) for kind in _listed(kinds, "kinds", _MAX_KINDS)]
+    texts = [_text(kind, "kind", _MAX_KIND) for kind in _listed(kinds, "kinds")]
     for kind in texts:
         if kind not in KINDS:
             raise StoreError(f"invalid kind; expected one of {', '.join(KINDS)}")

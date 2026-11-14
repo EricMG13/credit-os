@@ -545,3 +545,14 @@ def test_match_story_gives_the_topic_ids_in_ascending_order(
     low = add_topic(db_two_sources, "Low", ["review"], [], "ak")
     high = add_topic(db_two_sources, "High", ["merger"], [], "ak")
     assert match_story(db_two_sources, 1) == [low, high]
+
+
+def test_a_long_list_of_kinds_is_accepted_and_filters_like_the_short_one(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_story(db_two_sources, 1, Entry("Regulator review", "https://a.org/1", T0, ""), T0)
+    add_story(db_two_sources, 2, Entry("News review", "https://b.org/1", T0, ""), T0)
+    tid = add_topic(db_two_sources, "Many", ["review"], ["regulator"] * 1000, "ak")
+    assert rows(db_two_sources, "SELECT story_id FROM topic_stories WHERE topic_id=?", tid) == [
+        (1,)
+    ]
