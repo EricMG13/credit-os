@@ -25,7 +25,6 @@ from credit_os.checks.structure import front_matter_blocked, is_blocked
 from credit_os.checks.text import try_reader
 from credit_os.handoff.data import DataSection, read_data_sections
 from credit_os.handoff.document import HandoffDocument
-from credit_os.handoff.errors import echo
 from credit_os.handoff.scan import Node
 from credit_os.handoff.tables import Row, Table
 
@@ -159,20 +158,21 @@ def _count_findings(first: Mapping[str, Row]) -> tuple[list[Finding], dict[str, 
         if _is_count(cell):
             counts[name] = int(cell)
         else:
-            reason = f"Write {name} as a whole number of 0 to {_MAX_DIGITS} digits, not a gap."
+            reason = f"Write {name} as a whole number of 1 to {_MAX_DIGITS} digits, not a gap."
             out.append(refusal("confidence.count", row.line, cell, reason))
     return out, counts
 
 
 def _range_findings(first: Mapping[str, Row], counts: Mapping[str, int]) -> list[Finding]:
     out: list[Finding] = []
-    if _FIELDS[0] in counts and _FIELDS[1] in counts and len(counts) == len(_ROWS) - 1:
-        total, present = first[_FIELDS[1]], first[_FIELDS[0]]
-        if counts[_FIELDS[1]] == 0:
-            out.append(refusal("confidence.range", total.line, total.cells[1], "Write at least 1."))
-        elif counts[_FIELDS[0]] > counts[_FIELDS[1]]:
-            reason = "Write Fields present as no more than Fields total."
-            out.append(refusal("confidence.range", present.line, present.cells[1], reason))
+    present, total = _FIELDS
+    if total in counts and counts[total] == 0:
+        row = first[total]
+        out.append(refusal("confidence.range", row.line, row.cells[1], "Write at least 1."))
+    elif total in counts and present in counts and counts[present] > counts[total]:
+        row = first[present]
+        reason = "Write Fields present as no more than Fields total."
+        out.append(refusal("confidence.range", row.line, row.cells[1], reason))
     gate = first.get(_GATE)
     if gate is not None and gate.cells[1].strip().casefold() not in _GATES:
         reason = "Write Source gate as pass, partial or fail."
@@ -205,9 +205,7 @@ def _read(
             "with the columns Input and Value."
         )
         found.append(
-            refusal(
-                "confidence.unreadable", section.section.line, echo(section.section.title), reason
-            )
+            refusal("confidence.unreadable", section.section.line, section.section.title, reason)
         )
         return tuple(found), ConfidenceOutcome(state="refused")
     return _read_table(document, table, found)
