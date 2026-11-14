@@ -197,8 +197,19 @@ def test_a_redirect_to_an_address_that_is_not_valid_gives_no_text_of_it(
         "https://next.example.org/x\r\ny",
         "https://next.example.org/caf\u00e9",
         "https://next.example.org/" + "a" * (2049 - len("https://next.example.org/")),
+        "/x\tyz",
+        "/x ",
     ],
-    ids=["tab in path", "tab in host", "trailing space", "crlf", "non-ascii", "2049 long"],
+    ids=[
+        "tab in path",
+        "tab in host",
+        "trailing space",
+        "crlf",
+        "non-ascii",
+        "2049 long",
+        "relative with a tab",
+        "relative with a trailing space",
+    ],
 )
 def test_a_redirect_is_checked_as_the_server_sent_it(location: str) -> None:
     wire = Wire(redirect(location), ok())
@@ -445,10 +456,8 @@ def test_a_transfer_encoding_other_than_chunked_is_refused(value: str) -> None:
     assert reply.consumed == 0 and reply.closed == 1
 
 
-@pytest.mark.parametrize("value", ["chunked", "Chunked", " chunked ", "CHUNKED\t", "\tChUnKeD"])
-def test_a_transfer_encoding_of_chunked_is_accepted_in_any_case_with_white_space(
-    value: str,
-) -> None:
+@pytest.mark.parametrize("value", ["chunked", "Chunked", "CHUNKED", "cHuNkEd"])
+def test_a_transfer_encoding_of_chunked_is_accepted_in_any_case(value: str) -> None:
     assert run(Wire(Reply(200, b"<rss/>", {"Transfer-Encoding": value}))).body == b"<rss/>"
 
 

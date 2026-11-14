@@ -12,7 +12,8 @@ Rules:
   and the port 443, on the first hop as on every redirect hop. The host is resolved once per hop,
   in a daemon thread that is waited for no longer than the time left on the deadline
   (LOOKUP_SECONDS in ``check_address``); every address it resolves to must be public
-  (``netpin.is_public``: an answer that is not exact text is not).
+  (``netpin.is_public``: an answer that is not exact text is not). On a redirect hop the host is
+  the server's text: a refusal says "the redirect's host" and the name goes to the log only.
 - The connection goes to the first checked address, with the certificate verified for the host
   name. Nothing looks the name up again, so a host that changes its answer after the check
   cannot change where the request goes.
@@ -24,13 +25,18 @@ Rules:
 - 10 seconds per socket operation (TIMEOUT_SECONDS); one TOTAL_SECONDS deadline for the whole
   fetch, every hop, headers and body included, spent once the clock reaches it; a 2 MB body cap;
   a body shorter than its declared Content-Length, any Content-Encoding other than identity and
-  any Transfer-Encoding other than chunked are refused.
+  any Transfer-Encoding other than exactly ``chunked`` (any case, no padding) are refused; so is a
+  304 to a request that carried no validator. Each connection may receive at most
+  MAX_WIRE_BYTES (4 times the cap: headers and chunk framing), counted after TLS decryption;
+  more is refused, which is what bounds a chunk size that ``http.client`` reads as "to the end".
 - A failure to connect or to complete the TLS handshake gives the caller one fixed reason; its
   detail goes to the log at warning level.
 
 Known ceiling: the system DNS lookup cannot be interrupted by the standard library. A lookup that
 overruns its time is abandoned, not stopped: its daemon thread ends when the resolver gives up,
-and its late answer is discarded.
+and its late answer is discarded. At most MAX_LOOKUPS such threads are alive at once, counted
+from the start of a lookup to the return of the resolver, however late; with none free the lookup
+is refused and no thread is started.
 """
 
 import http.client
@@ -50,6 +56,8 @@ from credit_os.signal.netpin import ConnectionLike, ConnectionTarget, ResponseLi
 TIMEOUT_SECONDS = 10
 TOTAL_SECONDS = 10
 MAX_BYTES = 2 * 1024 * 1024
+MAX_LOOKUPS = 8  # lookup threads alive at once, abandoned ones included
+MAX_WIRE_BYTES = 4 * MAX_BYTES  # received per connection: headers and chunk framing, any feed
 MAX_REDIRECTS = 3
 LOOKUP_SECONDS = 5.0
 USER_AGENT = "Mozilla/5.0 (compatible; signal-feed/1.0)"
@@ -63,6 +71,8 @@ _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 
 _log = logging.getLogger(__name__)
 _CONNECT_REASON = "could not connect to the feed's server"
+_LOOKUP_SLOTS = threading.BoundedSemaphore(MAX_LOOKUPS)
+_WIRE_REASON = f"feed answer is larger than {MAX_WIRE_BYTES // 2**20} MB on the wire"
 
 Resolver = Callable[[str], Iterable[str]]
 Connector = Callable[[ConnectionTarget], ConnectionLike]
@@ -155,14 +165,24 @@ def _bounded(resolve: Resolver, host: str, seconds: float) -> list[str]:
 
     An exception in the thread is raised here. A late answer lands in a record nothing reads.
     """
+    if not _LOOKUP_SLOTS.acquire(blocking=False):
+        raise FetchRefused("too many lookups are still waiting for an answer")
     outcome = _Outcome()
 
     def work() -> None:
-        with outcome:
-            outcome.answer = list(resolve(host))
+        try:
+            with outcome:
+                outcome.answer = list(resolve(host))
+        finally:
+            _LOOKUP_SLOTS.release()  # when the resolver returns, however late
 
     worker = threading.Thread(target=work, daemon=True)
-    worker.start()
+    try:
+        worker.start()
+    except Exception as error:  # fail closed, whatever stopped the start: nothing was started
+        _LOOKUP_SLOTS.release()
+        _log.warning("could not start a lookup thread: %r", error)
+        raise FetchRefused("could not start a lookup of the feed's host") from error
     worker.join(max(seconds, 0.0))
     if worker.is_alive():
         raise FetchRefused("looking up the feed's host took too long")
@@ -207,17 +227,32 @@ def _locate(url: str) -> _Place:
     return _Place(host, (parts.path or "/") + (f"?{parts.query}" if parts.query else ""))
 
 
-def _checked(host: str, resolve: Resolver) -> list[str]:
+def _host_refused(host: str, redirected: bool, reason: Callable[[str], str]) -> FetchRefused:
+    """A refusal about ``host``; a redirect's host is the server's text, so it is only logged."""
+    if redirected:
+        _log.warning("a redirect's host was refused: %s", reason(host))
+        return FetchRefused(reason("the redirect's host"))
+    return FetchRefused(reason(host))
+
+
+def _not_public(address: object) -> Callable[[str], str]:
+    return lambda who: f"{who} resolves to {address}, which is not a public address"
+
+
+def _checked(host: str, resolve: Resolver, redirected: bool = False) -> list[str]:
     """Resolve once; every address must be public. Returns them in order."""
     try:
         addresses = list(resolve(host))
     except OSError as error:
-        raise FetchRefused(f"could not resolve {host}: {_short(error)}") from error
+        detail = _short(error)
+        raise _host_refused(
+            host, redirected, lambda who: f"could not resolve {who}: {detail}"
+        ) from error
     if not addresses:
-        raise FetchRefused(f"{host} resolved to no address")
+        raise _host_refused(host, redirected, lambda who: f"{who} resolved to no address")
     for address in addresses:
         if not netpin.is_public(address):
-            raise FetchRefused(f"{host} resolves to {address}, which is not a public address")
+            raise _host_refused(host, redirected, _not_public(address))
     return addresses
 
 
@@ -312,7 +347,7 @@ def _refuse_encodings(response: ResponseLike) -> None:
     if encoding not in ("", "identity"):
         raise FetchRefused("feed uses a content encoding")
     transfer = response.getheader("Transfer-Encoding")
-    if transfer is not None and transfer.strip().lower() != "chunked":
+    if transfer is not None and transfer.lower() != "chunked":  # as http.client: no strip
         raise FetchRefused("feed uses a transfer encoding")
 
 
@@ -327,6 +362,8 @@ def _answer(
     if response.status == 304:
         if redirected:
             raise FetchRefused("a redirect target answered 304, but it was sent no validators")
+        if not (etag or modified):  # R34: nothing was sent, so nothing can be "not modified"
+            raise FetchRefused("the server answered 304, but it was sent no validators")
         # Decision (controller ruling): a clean validator in the 304 replaces the one sent.
         return Fetched(
             None,
@@ -368,6 +405,8 @@ def fetch(
         return _follow(url, etag, modified, budget)
     except FetchRefused:
         raise
+    except netpin.ReceivedTooMuch as error:  # before OSError: a fixed reason, no byte counts
+        raise FetchRefused(_WIRE_REASON) from error
     except http.client.HTTPException as error:  # its text can carry what the server sent
         raise FetchRefused(f"fetch failed: {type(error).__name__}") from error
     except OSError as error:
@@ -393,7 +432,7 @@ def _follow(url: str, etag: str | None, modified: str | None, budget: _Budget) -
     while True:
         place = _locate(current)
         budget.check()  # no lookup once the time is spent, whatever closing the last hop took
-        address = _checked(place.host, budget.lookup)[0]
+        address = _checked(place.host, budget.lookup, hops > 0)[0]
         budget.check()  # the lookup may have ended after the deadline
         headers = {
             "Host": place.host,
@@ -408,12 +447,19 @@ def _follow(url: str, etag: str | None, modified: str | None, budget: _Budget) -
             if modified:
                 headers["If-Modified-Since"] = modified
         target = ConnectionTarget(
-            place.host, address, _DEFAULT_PORT, TIMEOUT_SECONDS, budget.deadline, budget.clock
+            place.host,
+            address,
+            _DEFAULT_PORT,
+            TIMEOUT_SECONDS,
+            budget.deadline,
+            budget.clock,
+            MAX_WIRE_BYTES,
         )
         with _connecting(place.host):
             connection = budget.connect(target)
         response: ResponseLike | None = None
         try:
+            # inner _connecting first: a certificate failure is both an OSError and a ValueError
             with _http_call(), _connecting(place.host):
                 connection.request("GET", place.path, headers=headers)
             with _http_call():

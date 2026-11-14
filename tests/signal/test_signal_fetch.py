@@ -1,8 +1,8 @@
 """Fetch rules for Signal, on injected resolver, connector and clock: nothing touches a network.
 
 Every test runs under the guard of ``signal_fetch_support`` that fails any name lookup and any
-connection to an address outside loopback. Two tests dial 127.0.0.1, a fake peer in this process,
-through the real pinned connection.
+connection to an address outside loopback. Three tests in this file dial 127.0.0.1, a fake peer in
+this process, through the real pinned connection; the other fetch test files have their own.
 """
 
 import socket
@@ -115,7 +115,7 @@ def test_a_private_address_that_passes_fetchs_check_is_refused_by_the_pin_and_no
         raise ConnectionRefusedError("a test refused the dial")
 
     monkeypatch.setattr(socket, "create_connection", record)
-    monkeypatch.setattr(fetch_module, "_checked", lambda host, resolve: ["10.0.0.1"])
+    monkeypatch.setattr(fetch_module, "_checked", lambda host, resolve, redirected: ["10.0.0.1"])
     with pytest.raises(FetchRefused, match="fetch failed: the pinned address is not a public"):
         fetch(URL, None, None, resolve=PUBLIC)
     assert dialled == []
