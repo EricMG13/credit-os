@@ -1822,6 +1822,32 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "59", "sources": "9", "gaps": "7" },
+              "jump": [
+                {
+                  "group": "Figures",
+                  "label": "Net leverage 4.6x",
+                  "detail": "Capital structure · T-0014",
+                  "target": { "tab": "trace", "item": "T-0014" }
+                },
+                {
+                  "group": "Figures",
+                  "label": "Secured leverage 3.3x",
+                  "detail": "Capital structure · T-0104",
+                  "target": { "tab": "trace", "item": "T-0104" }
+                },
+                {
+                  "group": "Calculations",
+                  "label": "Net debt ÷ EBITDA",
+                  "detail": "C-0412",
+                  "target": { "tab": "trace", "item": "T-0014" }
+                },
+                {
+                  "group": "Gaps",
+                  "label": "Peer figures on the same basis",
+                  "detail": "Peer comparison · G-03",
+                  "target": { "tab": "gaps", "item": "G-03" }
+                }
+              ],
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
@@ -4406,6 +4432,14 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "0", "sources": "3", "gaps": "3" },
+              "jump": [
+                {
+                  "group": "Gaps",
+                  "label": "Recovery module output",
+                  "detail": "Recovery · G-01",
+                  "target": { "tab": "gaps", "item": "G-01" }
+                }
+              ],
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
@@ -5240,6 +5274,14 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "0", "sources": "2", "gaps": "2" },
+              "jump": [
+                {
+                  "group": "Gaps",
+                  "label": "Security package documents",
+                  "detail": "Recovery · G-01",
+                  "target": { "tab": "gaps", "item": "G-01" }
+                }
+              ],
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",

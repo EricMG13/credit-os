@@ -623,6 +623,7 @@ describe("readSlice, gaps", () => {
     const run = slice.issuers[0]?.runs[2] as Json;
     const evidence = evidenceOf(slice, 2);
     (evidence["gaps"] as Json)["groups"] = [];
+    evidence["jump"] = [];
     (evidence["tabs"] as Json)["gaps"] = "0";
     const limits = (run["overview"] as { limitations: { gapsLink: Json } }).limitations;
     limits.gapsLink["label"] = "See the 0 gaps in Evidence";

@@ -251,10 +251,13 @@ describe("Evidence, Gaps", () => {
 
   it("says a run with no gap has none, with no table", () => {
     const slice = structuredClone(fixture.slice) as {
-      issuers: { runs: { evidence: { gaps: Json; tabs: Json }; overview: Json }[] }[];
+      issuers: {
+        runs: { evidence: { gaps: Json; tabs: Json; jump: unknown[] }; overview: Json }[];
+      }[];
     };
     const run = slice.issuers[0]?.runs[3] as (typeof slice.issuers)[0]["runs"][0];
     run.evidence.gaps["groups"] = [];
+    run.evidence.jump = [];
     run.evidence.tabs["gaps"] = "0";
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";

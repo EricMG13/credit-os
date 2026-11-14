@@ -1564,6 +1564,7 @@ describe("Module, the index route", () => {
             moduleFilter: unknown[];
             sources: { files: { readers: unknown }[] };
             gaps: { groups: unknown[] };
+            jump: unknown[];
             tabs: Json;
           };
         }[];
@@ -1574,6 +1575,7 @@ describe("Module, the index route", () => {
     run.evidence.moduleFilter = [];
     for (const file of run.evidence.sources.files) file.readers = { shown: [], more: null };
     run.evidence.gaps.groups = [];
+    run.evidence.jump = [];
     run.evidence.tabs["gaps"] = "0";
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";
