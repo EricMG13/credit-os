@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
 import { RunFrame } from "./parts/RunFrame";
+import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
 
 type Json = Record<string, unknown>;
 type Run = Json & { head: Json; traces: Record<string, Json & { derivation: Json }> };
@@ -35,10 +36,19 @@ function renderFrame(
         tab={opts.tab ?? "overview"}
       >
         <p>Page body</p>
+        <div data-testid="figure" className={TRACE_HOST}>
+          <TraceControl trace="net-leverage" />
+        </div>
+        <div data-testid="plain">
+          <TraceControl trace={null} />
+        </div>
       </RunFrame>
     </SourceContext.Provider>,
   );
 }
+
+const control = () => screen.getByRole("button", { name: "Show sources for this figure" });
+const openDrawer = () => fireEvent.click(control());
 
 describe("RunFrame header", () => {
   it("draws the Library link, the h2 name, the three badges and both actions as in the mock", () => {
@@ -104,6 +114,7 @@ describe("Show sources", () => {
     const toggle = screen.getByRole("switch", { name: "Show sources" });
     expect(toggle).not.toBeChecked();
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "off");
+    expect(control()).toHaveClass("opacity-0");
   });
 
   it("turns every control on at once and off again", () => {
@@ -113,6 +124,166 @@ describe("Show sources", () => {
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
     fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "off");
+  });
+
+  it("reveals a control on hover, keyboard focus and touch, by class", () => {
+    renderFrame();
+    expect(screen.getByTestId("figure")).toHaveClass("group/trace", "relative");
+    expect(control().className).toMatch(/group-hover\/trace:opacity-100/);
+    expect(control().className).toMatch(/focus-visible:opacity-100/);
+    expect(control().className).toMatch(/\[@media\(hover:none\)\]:opacity-100/);
+    expect(control().className).toMatch(/in-data-\[sources=on\]:opacity-100/);
+  });
+
+  it("draws no control for a null trace and throws for a key the run does not hold", () => {
+    renderFrame();
+    expect(within(screen.getByTestId("plain")).queryByRole("button")).toBeNull();
+    const slice = fresh();
+    (slice.issuers[0]?.runs[0] as Run).traces = {};
+    expect(() => renderFrame({ library: slice })).toThrow(RangeError);
+  });
+});
+
+describe("Trace drawer", () => {
+  it("is closed at rest and holds no audit text in the page", () => {
+    const { container } = renderFrame();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    for (const audit of [
+      "T-0014",
+      "C-0412",
+      "C-0398",
+      "annual-report-2026.pdf",
+      "lender-presentation",
+    ]) {
+      expect(container.innerHTML).not.toContain(audit);
+    }
+    expect(within(screen.getByRole("navigation")).queryByText(/T-00/)).toBeNull();
+  });
+
+  it("opens on the control with the statement and the whole derivation, ids included", () => {
+    renderFrame();
+    openDrawer();
+    const drawer = screen.getByRole("dialog", { name: "Sources for net leverage" });
+    expect(within(drawer).getByRole("heading", { name: "Sources for net leverage" })).toBeVisible();
+    expect(
+      within(drawer).getByText(
+        "Net debt of USD 2,236m against company-adjusted EBITDA of USD 486m for the year to 30 September 2026.",
+      ),
+    ).toBeVisible();
+    for (const text of [
+      "Result",
+      "Net leverage 4.6x",
+      "T-0014 · C-0412",
+      "Formula",
+      "Net debt ÷ EBITDA",
+      "2,236 ÷ 486",
+      "Input",
+      "Net debt 2,236",
+      "C-0398 · gross debt − cash",
+      "Gross debt 2,398",
+      "annual-report-2026.pdf · p. 112",
+      "Cash 162",
+      "annual-report-2026.pdf · p. 84",
+      "EBITDA 486",
+      "company-adjusted",
+      "lender-presentation-nov-2026.pdf · p. 9",
+    ]) {
+      expect(within(drawer).getAllByText(text).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("draws the subtitle, the source excerpt and the qualification as in the mock", () => {
+    renderFrame();
+    openDrawer();
+    const drawer = within(screen.getByRole("dialog"));
+    expect(drawer.getByText("Capital structure · figure · as of 30 Sep 2026")).toBeVisible();
+    expect(drawer.getByText("Source excerpt")).toBeVisible();
+    expect(
+      drawer.getByText(
+        "“Adjusted EBITDA for the twelve months ended 30 September 2026 was USD 486 million (2025: USD 441 million).”",
+      ),
+    ).toBeVisible();
+    expect(drawer.getAllByText("lender-presentation-nov-2026.pdf · p. 9").length).toBe(2);
+    expect(drawer.getByText("Qualification")).toBeVisible();
+    expect(
+      drawer.getByText(
+        "EBITDA is on the company-adjusted basis. The reported figure is not established for this run.",
+      ),
+    ).toBeVisible();
+  });
+
+  it("draws neither block when the trace has no excerpt and no qualification", () => {
+    const slice = fresh();
+    const trace = (slice.issuers[0]?.runs[0] as Run).traces["net-leverage"] as Json;
+    trace["excerpt"] = null;
+    trace["qualification"] = null;
+    renderFrame({ library: slice });
+    openDrawer();
+    expect(screen.queryByText("Source excerpt")).toBeNull();
+    expect(screen.queryByText("Qualification")).toBeNull();
+  });
+
+  it("collapses and expands a branch with the native details control", () => {
+    renderFrame();
+    openDrawer();
+    const drawer = screen.getByRole("dialog");
+    const formula = within(drawer).getByText("Formula").closest("details");
+    expect(formula).toHaveAttribute("open");
+    formula?.removeAttribute("open");
+    expect(formula).not.toHaveAttribute("open");
+    expect(within(drawer).getAllByText("Source").length).toBe(3);
+  });
+
+  it.each([
+    [
+      "the header Close",
+      () => fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0] as HTMLElement),
+    ],
+    [
+      "the footer Close",
+      () => fireEvent.click(screen.getAllByRole("button", { name: "Close" })[1] as HTMLElement),
+    ],
+    ["Escape", () => fireEvent.keyDown(document.activeElement as Element, { key: "Escape" })],
+  ])("closes on %s and returns focus to the control", async (_, close) => {
+    renderFrame();
+    control().focus();
+    openDrawer();
+    await waitFor(() => {
+      expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+    });
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
+    close();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    await waitFor(() => {
+      expect(control()).toHaveFocus();
+    });
+  });
+
+  it("offers Open in Evidence, which goes to the run's Evidence Trace page and closes the drawer", async () => {
+    renderFrame();
+    openDrawer();
+    const link = screen.getByRole("link", { name: "Open in Evidence" });
+    expect(link).toHaveAttribute(
+      "href",
+      "#/library/halden-aerostructures/2026-09-30/evidence/trace",
+    );
+    fireEvent.click(link);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+  });
+
+  it("draws n.a. for a tree value that is not recorded", () => {
+    const slice = fresh();
+    const tree = (slice.issuers[0]?.runs[0] as Run).traces["net-leverage"]?.derivation as Json & {
+      children: Json[];
+    };
+    (tree.children[0] as Json)["value"] = null;
+    renderFrame({ library: slice });
+    openDrawer();
+    expect(within(screen.getByRole("dialog")).getByText("n.a.")).toBeInTheDocument();
   });
 });
 
