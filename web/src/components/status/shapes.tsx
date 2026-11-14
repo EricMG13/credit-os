@@ -26,7 +26,17 @@ const DRAWINGS: Record<Shape, ReactElement> = {
     </>
   ),
   ring: <circle {...RING} />,
-  "dashed ring": <circle {...RING} strokeDasharray="1.6 1.4" />,
+  "dashed ring": (
+    <circle
+      cx="6"
+      cy="6"
+      r="5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeDasharray="2.4 2.1"
+    />
+  ),
   "slashed circle": (
     <>
       <circle {...RING} />
@@ -46,11 +56,12 @@ const DRAWINGS: Record<Shape, ReactElement> = {
 };
 
 export function StatusShape({ shape }: { shape: Shape }) {
+  const size = shape === "dashed ring" ? 12 : 10;
   return (
     <svg
-      viewBox="0 0 10 10"
-      width="10"
-      height="10"
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+      height={size}
       aria-hidden="true"
       data-shape={shape}
       className="shrink-0"
