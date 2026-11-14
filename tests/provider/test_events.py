@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from credit_os.provider.events import reply_from_events
+from credit_os.provider.events import compactions_from_events, reply_from_events
 from credit_os.provider.redact import Redactor
 from credit_os.provider.types import Reply, Usage
 
@@ -130,6 +130,46 @@ def test_missing_is_not_zero() -> None:
     assert zero.billed_usd == 0
 
 
+def _seen(events: Any) -> tuple[Any, ...]:
+    return tuple(
+        (
+            c.event_id,
+            c.outcome,
+            (
+                c.usage.input_tokens,
+                c.usage.cached_read_tokens,
+                c.usage.cache_write_tokens,
+                c.usage.output_tokens,
+            ),
+            None if c.billed_usd is None else format(c.billed_usd, "f"),
+        )
+        for c in compactions_from_events(events)
+    )
+
+
+@pytest.mark.parametrize(
+    ("events", "want"), key.COMPACTION_CASES.values(), ids=list(key.COMPACTION_CASES)
+)
+def test_compaction_cases(events: Any, want: tuple[Any, ...]) -> None:
+    assert _seen(events) == want
+    for c in compactions_from_events(events):
+        assert c.usage.reasoning_tokens is None
+        assert c.supersedes is None
+
+
+@pytest.mark.parametrize(
+    "events",
+    [case[0] for case in (*key.EVENT_CASES.values(), *key.COMPACTION_CASES.values())],
+)
+def test_a_reply_carries_no_compactions(events: Any) -> None:
+    assert _reply(events).compactions == ()
+
+
+@pytest.mark.parametrize("events", [*key.BAD_SHAPES, None, "x", {}, [{"id": "e", "data": {1, 2}}]])
+def test_compactions_of_a_bad_shape_are_none(events: Any) -> None:
+    assert compactions_from_events(events) == ()
+
+
 _JSON = st.recursive(
     st.none() | st.booleans() | st.integers() | st.floats() | st.text() | st.just(key.MODEL),
     lambda c: st.lists(c, max_size=3) | st.dictionaries(st.text(max_size=3), c, max_size=3),
@@ -137,7 +177,9 @@ _JSON = st.recursive(
 )
 _NAMES = ["id", "type", "data", "content", "toolRequests", "toolCallId", "toolName", "arguments"]
 _NAMES += ["finishReason", "model", "inputTokens", "copilotUsage", "totalNanoAiu", "aborted"]
+_NAMES += ["success", "compactionTokensUsed"]
 _TYPES = ["assistant.usage", "assistant.message", "tool.execution_start", "session.error"]
+_TYPES += ["session.compaction_start", "session.compaction_complete"]
 _EVENT = st.fixed_dictionaries(
     {"id": st.sampled_from(["a", "b"]) | _JSON, "type": st.sampled_from(_TYPES) | _JSON},
     optional={"data": st.dictionaries(st.sampled_from(_NAMES), _JSON, max_size=6) | _JSON},
@@ -148,3 +190,20 @@ _EVENT = st.fixed_dictionaries(
 @given(events=st.lists(_EVENT | _JSON, max_size=5) | _JSON)
 def test_it_never_raises(events: Any) -> None:
     assert isinstance(_reply(events), Reply)
+    assert isinstance(compactions_from_events(events), tuple)
+
+
+def test_compactions_of_events_that_are_not_json_are_none() -> None:
+    events = [{"id": "e1", "type": "session.compaction_start", "data": {"x": {1, 2}}}]
+    assert compactions_from_events(events) == ()
+
+
+@pytest.mark.parametrize("reasoning", [5, True, "x"])
+def test_a_compaction_has_no_reasoning_count(reasoning: Any) -> None:
+    used = {"inputTokens": 30, "outputTokens": 5, "reasoningTokens": reasoning}
+    event = {
+        "id": "e1",
+        "type": "session.compaction_complete",
+        "data": {"success": True, "compactionTokensUsed": used},
+    }
+    assert _seen([event]) == (("e1", "done", (30, None, None, 5), None),)
