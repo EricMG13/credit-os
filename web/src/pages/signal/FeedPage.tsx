@@ -4,6 +4,7 @@
 // in-memory state over the entries the slice supplied; nothing is fetched or stored.
 import { useEffect, useRef, useState, type Ref } from "react";
 import { Star01 } from "@untitledui/icons";
+import { Alert } from "@/components/alert/Alert";
 import { Button } from "@/components/base/buttons/button";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { DigestCard } from "./DigestCard";
@@ -13,7 +14,7 @@ import { FreshnessBadge } from "./parts/FreshnessBadge";
 import { PageTitle } from "./parts/PageTitle";
 import { Pill } from "./parts/Pill";
 import { Tags } from "./parts/Tags";
-import type { SignalDigestCard, SignalFreshness, SignalStory } from "./slice";
+import type { SignalDigestCard, SignalFreshness, SignalScene, SignalStory } from "./slice";
 import { StoryCard } from "./StoryCard";
 
 export type FeedEntry =
@@ -109,11 +110,15 @@ function NoMatch({ title, hint }: { title: string; hint: string }) {
 /** The entries in the order given; none means nothing is drawn yet. */
 function EntryList({
   entries,
+  scene,
   writer,
+  onShared,
   listRef,
 }: {
   entries: FeedEntry[];
+  scene: SignalScene;
   writer: boolean;
+  onShared: () => void;
   listRef: Ref<HTMLDivElement>;
 }) {
   if (entries.length === 0) return null;
@@ -124,7 +129,13 @@ function EntryList({
     >
       {entries.map((entry) =>
         entry.kind === "story" ? (
-          <StoryCard key={entry.story.id} story={entry.story} writer={writer} />
+          <StoryCard
+            key={entry.story.id}
+            story={entry.story}
+            scene={scene}
+            writer={writer}
+            onShared={onShared}
+          />
         ) : (
           <DigestCard key={entry.digest.id} digest={entry.digest} href={entry.href} />
         ),
@@ -134,6 +145,7 @@ function EntryList({
 }
 
 export function FeedPage({
+  scene,
   title: heading,
   freshness,
   entries,
@@ -145,6 +157,7 @@ export function FeedPage({
   empty,
   topic,
 }: {
+  scene: SignalScene;
   title: string;
   freshness: SignalFreshness;
   entries: FeedEntries;
@@ -164,6 +177,8 @@ export function FeedPage({
   const [query, setQuery] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [olderShown, setOlderShown] = useState(false);
+  // Share to group writes nothing: this sentence is the in-memory stand-in for the service's reply.
+  const [shared, setShared] = useState(false);
   // After the list grows, focus goes to the first story the change brought in (its headline); when
   // the kind or search hides every one of them, it goes to the page title instead.
   const list = useRef<HTMLDivElement>(null);
@@ -208,10 +223,23 @@ export function FeedPage({
         </div>
       )}
       {error === null ? null : <FeedAlert error={error} />}
+      {shared ? (
+        <div className="mt-4">
+          <Alert tone="success" title="Sample data: the story was not shared." />
+        </div>
+      ) : null}
       {loading ? (
         <FeedSkeleton />
       ) : shown.length > 0 ? (
-        <EntryList entries={shown} writer={writer} listRef={list} />
+        <EntryList
+          entries={shown}
+          scene={scene}
+          writer={writer}
+          onShared={() => {
+            setShared(true);
+          }}
+          listRef={list}
+        />
       ) : needle !== "" ? (
         <NoMatch
           title={`No story matches ${needle}`}
