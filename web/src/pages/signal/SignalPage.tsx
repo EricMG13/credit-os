@@ -38,7 +38,8 @@ function ordered(scene: SignalScene, ids: string[]): SignalStory[] {
 
 /** The reader gives every channel topic an order; a missing one is a wiring fault, so it is loud. */
 function topicOrder(scene: SignalScene, id: string): string[] {
-  const order = scene.snapshot.feed.topics[id];
+  const { topics } = scene.snapshot.feed;
+  const order = Object.hasOwn(topics, id) ? topics[id] : undefined;
   if (order === undefined)
     throw new Error(`the slice reader let through topic "${id}" with no order`);
   return order.top;

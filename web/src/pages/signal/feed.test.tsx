@@ -32,6 +32,8 @@ function story(headline: string) {
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
 const BRIGHTWELL = "Brightwell Foods extends its term loan by three years";
 const OAKHAVEN = "Notice of initial review: Oakhaven Lines and Pellant Terminals";
+const TESSALY = "Competition authority opens in-depth review of Tessaly Telecom's tower sale";
+const HALVORSEN = "Northgate Ratings downgrades Halvorsen Marine to B+";
 const PELLANT = "Pellant Terminals plans first bond issue";
 
 describe("the feed list and the story card", () => {
@@ -41,9 +43,11 @@ describe("the feed list and the story card", () => {
 
   it("draws each story as an article with its headline as an h3, in the view's order", () => {
     show("/signal/main/feed/for-you");
-    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(screen.getAllByRole("article")).toHaveLength(4);
     expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
       CORVANE,
+      TESSALY,
+      HALVORSEN,
       BRIGHTWELL,
     ]);
     expect(screen.getByRole("heading", { level: 2, name: "For you" })).toBeInTheDocument();
@@ -171,7 +175,7 @@ describe("the feed list and the story card", () => {
   });
 
   it("draws nothing under the title for a view with no stories", () => {
-    show("/signal/main/feed/saved");
+    show("/signal/reader/feed/saved");
     expect(screen.getByRole("heading", { level: 2, name: "Saved" })).toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });
