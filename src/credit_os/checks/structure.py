@@ -134,37 +134,52 @@ def check_fence(document: HandoffDocument, context: CheckContext) -> tuple[Findi
     return tuple(found)
 
 
-def _quoted(register: Register, by_line: dict[int, Section], document: HandoffDocument) -> str:
+def _quoted(
+    registers: tuple[Register, ...],
+    position: int,
+    by_line: dict[int, Section],
+    document: HandoffDocument,
+) -> str:
+    register = registers[position]
     if register.source == "heading":
         return by_line[register.line].title
     tag = f"table-id: {register.id}"
-    return next(
+    nth = sum(
+        1
+        for other in registers[:position]
+        if other.source == "tag" and other.line == register.line and other.id == register.id
+    )
+    own = [
         comment.text
         for comment in document.comments
-        if comment.start == register.line and tag in comment.text
-    )
+        if comment.start == register.line and comment.text == tag
+    ]
+    return own[nth] if nth < len(own) else tag
 
 
 def _paired_tags(registers: tuple[Register, ...], by_line: dict[int, Section]) -> frozenset[int]:
-    """Lines of the tag registers that belong to a heading register of the same id.
+    """Positions in `registers` of the tag registers that belong to a heading register.
 
     A tag pairs with the nearest preceding heading register of its id whose section holds it
-    and that has no tag yet (ruling D13, R13).
+    and that has no tag yet (ruling D13, R13). A register is its position, not its line: two
+    tags on one line are two registers.
     """
     paired: set[int] = set()
     taken: set[int] = set()
-    for tag in (register for register in registers if register.source == "tag"):
+    for at, tag in enumerate(registers):
+        if tag.source != "tag":
+            continue
         owners = [
-            heading.line
-            for heading in registers
+            position
+            for position, heading in enumerate(registers)
             if heading.source == "heading"
             and heading.id == tag.id
-            and heading.line not in taken
+            and position not in taken
             and by_line[heading.line].line <= tag.line <= by_line[heading.line].end
         ]
         if owners:
             taken.add(max(owners))
-            paired.add(tag.line)
+            paired.add(at)
     return frozenset(paired)
 
 
@@ -174,15 +189,15 @@ def check_register_id(document: HandoffDocument, context: CheckContext) -> tuple
     paired = _paired_tags(registers, by_line)
     seen: set[str] = set()
     found: list[Finding] = []
-    for register in registers:
-        if register.source == "tag" and register.line in paired:
+    for position, register in enumerate(registers):
+        if position in paired:
             continue
         if register.id in seen:
             found.append(
                 _refusal(
                     "structure.register-id",
                     register.line,
-                    _quoted(register, by_line, document),
+                    _quoted(registers, position, by_line, document),
                     f"Give this register an id no earlier register uses, "
                     f"not `{echo(register.id)}`.",
                 )
@@ -192,6 +207,8 @@ def check_register_id(document: HandoffDocument, context: CheckContext) -> tuple
 
 
 def _present(register: Register, wanted: str) -> bool:
+    if wanted == "":
+        return False
     if register.id == wanted:
         return True
     return register.source == "tag" and register.id.rsplit(".", 1)[-1] == wanted

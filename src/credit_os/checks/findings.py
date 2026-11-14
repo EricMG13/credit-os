@@ -4,8 +4,8 @@ A finding names one check, the 1-based file line of the offending text, its 1-ba
 the text node as the parser shows it (for a paragraph or list line, the stripped line, not the
 file line), that text (each control, format, line and paragraph separator character replaced by
 one space, then cut to 80 code points by `echo`) and one sentence saying what to change (the same
-characters replaced by one space, no cut), so `message` is always one line. `ordered` sorts by line, then the position of the check in
-`CHECKS`, then column. A context is built per call; it is not dumped, copied or pickled.
+characters replaced by one space, no cut), so `message` is always one line. `ordered` sorts by line, then the position
+of the check in `CHECKS`, then column. A context is built per call; it is not dumped, copied or pickled.
 """
 
 import unicodedata
