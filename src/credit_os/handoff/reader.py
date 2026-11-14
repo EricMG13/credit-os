@@ -56,7 +56,11 @@ class Reader(Node):
 
     @property
     def blocked(self) -> bool:
-        """True when the new format's Bottom line opens with a paragraph `Not assessable:`."""
+        """True when the new format's Bottom line opens with a paragraph `Not assessable:`.
+
+        The test is on the paragraph's first line as the parser shows it (comments removed,
+        surrounding whitespace stripped).
+        """
         if self.format != "new" or self.bottom_line is None or not self.bottom_line.blocks:
             return False
         first = self.bottom_line.blocks[0]

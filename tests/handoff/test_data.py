@@ -237,6 +237,10 @@ def _regs(extra: str) -> list[tuple[str, str, int, int | None]]:
             [("a", "tag", 6, None), ("b", "tag", 7, 9)],
         ),
         (
+            "<!-- table-id: a --> <!-- table-id: b -->\n\n" + TB,
+            [("a", "tag", 6, None), ("b", "tag", 6, 9)],
+        ),
+        (
             "<!-- table-id: a b -->\n<!-- table-id:x -->\n<!-- Table-id: x -->\n<!-- note -->\n",
             [],
         ),

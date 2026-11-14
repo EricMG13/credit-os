@@ -4,7 +4,9 @@ A gap is a value the module wrote to say content is missing; the parser marks no
 the caller applies `read_value` to the cells it means. `sources_table` and `source_names` read
 the table directly under `## Sources` and never refuse. `read_data_sections` and
 `read_registers` list the typed sections and table registers; a table or text that cannot be
-read is None, never a refusal.
+read is None, never a refusal. A typed section is found by its title prefix at any depth; a
+register is a heading `id — title` or a `table-id` comment tag. Of several tags before one
+table, only the last in the text names it.
 """
 
 import re
@@ -109,14 +111,14 @@ def read_data_sections(document: HandoffDocument) -> tuple[DataSection, ...]:
     return tuple(item for item in found if item is not None)
 
 
-def _tag_table(owner: Section | None, comment: Comment, tags: list[Comment]) -> Table | None:
+def _tag_table(owner: Section | None, comment: Comment, later_tags: list[Comment]) -> Table | None:
     if owner is None:
         return None
     later = [block for block in owner.blocks if block.line > comment.end]
     if not later or not isinstance(later[0], Table):
         return None
     table = later[0]
-    between = [tag for tag in tags if comment.end < tag.start < table.line]
+    between = [tag for tag in later_tags if tag.start < table.line]
     return None if between else table
 
 
@@ -134,18 +136,21 @@ def read_registers(document: HandoffDocument) -> tuple[Register, ...]:
                     table=_one_table(section),
                 )
             )
-    tags = [comment for comment in document.comments if _TAG.fullmatch(comment.text)]
-    for comment in tags:
-        match = _TAG.fullmatch(comment.text)
-        if match is not None:
-            owners = [section for section in sections if section.line <= comment.start]
-            owner = owners[-1] if owners else None
-            found.append(
-                Register(
-                    id=match.group(1),
-                    source="tag",
-                    line=comment.start,
-                    table=_tag_table(owner, comment, tags),
-                )
+    tags = [
+        (comment, match)
+        for comment in document.comments
+        if (match := _TAG.fullmatch(comment.text)) is not None
+    ]
+    for index, (comment, match) in enumerate(tags):
+        owners = [section for section in sections if section.line <= comment.start]
+        owner = owners[-1] if owners else None
+        later = [other for other, _ in tags[index + 1 :]]
+        found.append(
+            Register(
+                id=match.group(1),
+                source="tag",
+                line=comment.start,
+                table=_tag_table(owner, comment, later),
             )
+        )
     return tuple(sorted(found, key=lambda register: register.line))

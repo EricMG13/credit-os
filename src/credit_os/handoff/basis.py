@@ -6,8 +6,9 @@ that does not fit is kept as text.
 
 Known source names may be passed in: an item equal to a name, or a name followed by `, page ` or
 `, pages ` and a page list, is that source, longest name first and compared exactly. Known limit:
-a known name holding `; ` is still split. Page numbers are one to nine
-digits; only spaces may surround the dash of a span.
+a known name holding `; ` is still split, and a known name ending in a full stop never
+matches as the last item of a line, because the line's final full stop is dropped first. Page
+numbers are one to nine digits; only spaces may surround the dash of a span.
 """
 
 import re

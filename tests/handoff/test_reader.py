@@ -269,6 +269,7 @@ def _blocked(findings: str) -> bool:
     "findings",
     [
         "### Bottom line\nNot assessable: x\n",
+        "### Bottom line\nNot assessable: x\n| A | B |\n| --- | --- |\n| 1 | 2 |\n",
         "### Bottom line\nNot assessable: x\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n",
     ],
 )
