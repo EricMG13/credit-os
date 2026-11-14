@@ -6,6 +6,7 @@ import type { Changes as ChangesData } from "./slice";
 import { ButtonLink } from "./parts/ButtonLink";
 import { ChangeCard } from "./parts/ChangeCard";
 import { ChangesTable } from "./parts/ChangesTable";
+import { SECTION_HEADING } from "./parts/heading";
 import { ModuleItems } from "./parts/ModuleItems";
 import { RunFrame } from "./parts/RunFrame";
 import { Section } from "./parts/Section";
@@ -76,7 +77,7 @@ function NoEarlierRun({
         <EmptyState.FeaturedIcon icon={ClockRewind} />
       </EmptyState.Header>
       <EmptyState.Content>
-        <EmptyState.Title as="h2">{data.title}</EmptyState.Title>
+        <EmptyState.Title as={SECTION_HEADING}>{data.title}</EmptyState.Title>
         <EmptyState.Description>{data.text}</EmptyState.Description>
       </EmptyState.Content>
       <EmptyState.Footer>

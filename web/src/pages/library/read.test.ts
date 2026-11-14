@@ -520,6 +520,39 @@ describe("readSlice, overview", () => {
   });
 });
 
+describe("readSlice, an overview with nothing to draw", () => {
+  type Ov = {
+    findings: Json[];
+    dates: Json[];
+    modules: { items: Json[] };
+    limitations: { items: Json[] };
+    sides: { columns: { items: Json[] }[] };
+  };
+  const ovOf = (slice: ReturnType<typeof fresh>) =>
+    ((slice.issuers[0]?.["runs"] as { overview: Ov }[])[0] as { overview: Ov }).overview;
+
+  it.each([
+    ["findings", (o: Ov) => (o.findings.length = 0), "overview.findings"],
+    ["dates", (o: Ov) => (o.dates.length = 0), "overview.dates"],
+    ["module items", (o: Ov) => (o.modules.items.length = 0), "overview.modules.items"],
+    ["limitation items", (o: Ov) => (o.limitations.items.length = 0), "overview.limitations.items"],
+    [
+      "the first column's points",
+      (o: Ov) => ((o.sides.columns[0] as { items: Json[] }).items.length = 0),
+      "overview.sides.columns[0].items",
+    ],
+    [
+      "the second column's points",
+      (o: Ov) => ((o.sides.columns[1] as { items: Json[] }).items.length = 0),
+      "overview.sides.columns[1].items",
+    ],
+  ])("rejects empty %s with the path of the list", (_, empty, path) => {
+    const slice = fresh();
+    empty(ovOf(slice));
+    expect(invalidReason(slice)).toContain(`issuers[0].runs[0].${path}`);
+  });
+});
+
 describe("readSlice, changes", () => {
   type Run = Json & { changes: Json | null };
   type Compared = Json & { changes: (Json & { from: unknown })[]; modules: { items: Json[] } };
@@ -587,6 +620,49 @@ describe("readSlice, changes", () => {
     const slice = fresh();
     changeAt(slice, 0)["change"] = null;
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].changes.changes[0].change");
+  });
+
+  it("needs both figures as values for a direction mark, with the path of the failing field", () => {
+    const missing = fresh();
+    changeAt(missing, 0)["current"] = null;
+    expect(invalidReason(missing)).toContain("issuers[0].runs[0].changes.changes[0].direction");
+    const withheld = fresh();
+    changeAt(withheld, 1)["from"] = { kind: "withheld", reason: null };
+    expect(invalidReason(withheld)).toContain("issuers[0].runs[0].changes.changes[1].direction");
+    const gap = fresh();
+    changeAt(gap, 0)["current"] = { kind: "gap", reason: "No figure was delivered." };
+    expect(invalidReason(gap)).toContain("issuers[0].runs[0].changes.changes[0].direction");
+    const text = fresh();
+    const unmarked = changeAt(text, 0);
+    unmarked["current"] = null;
+    unmarked["direction"] = "none";
+    expect(invalidReason(text)).toContain("issuers[0].runs[0].changes.changes[0].change");
+    unmarked["change"] = null;
+    expect(readSlice(text).kind).toBe("ok");
+  });
+
+  it("rejects an empty change text and reads the delivered flat direction", () => {
+    const blank = fresh();
+    changeAt(blank, 1)["change"] = "";
+    expect(invalidReason(blank)).toContain("issuers[0].runs[0].changes.changes[1].change");
+    const none = fresh();
+    changeAt(none, 4)["change"] = "";
+    expect(invalidReason(none)).toContain("issuers[0].runs[0].changes.changes[4].change");
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const changes = result.data.issuers[0]?.runs[0]?.changes;
+    if (changes?.kind !== "compared") throw new Error("not compared");
+    expect(changes.changes.map((c) => c.direction)).toEqual([
+      "down",
+      "up",
+      "down",
+      "none",
+      "flat",
+      "flat",
+    ]);
+    const noText = fresh();
+    changeAt(noText, 4)["change"] = null;
+    expect(invalidReason(noText)).toContain("issuers[0].runs[0].changes.changes[4].change");
   });
 
   it("rejects an empty changes list, a repeated measure, a trace the run lacks", () => {

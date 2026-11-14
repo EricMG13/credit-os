@@ -1,6 +1,7 @@
 import { BookOpen01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { ButtonLink } from "./ButtonLink";
+import { SECTION_HEADING } from "./heading";
 import { PageTitle } from "./PageTitle";
 import { LIBRARY_HOME } from "./links";
 
@@ -22,7 +23,7 @@ export function NotHeld({
           <EmptyState.FeaturedIcon icon={BookOpen01} />
         </EmptyState.Header>
         <EmptyState.Content>
-          <EmptyState.Title as="h2">{title}</EmptyState.Title>
+          <EmptyState.Title as={SECTION_HEADING}>{title}</EmptyState.Title>
           <EmptyState.Description>{description}</EmptyState.Description>
         </EmptyState.Content>
         <EmptyState.Footer>

@@ -199,15 +199,16 @@ export type ChangeModuleItem = {
 
 /**
  * One change between two runs. `direction` is delivered, never worked out from the figures; a
- * `from` of `null` (not recorded earlier) has direction "none" and no `change` text. `kind` and
- * `change` are delivered words such as "Value" and "Lower by 0.3x".
+ * figure that is not a value (missing, withheld or a gap) has direction "none" and no `change` text.
+ * "flat" is a change that is neither up nor down; "none" draws no mark. `kind` and `change` are
+ * delivered words such as "Value" and "Lower by 0.3x".
  */
 export type Change = {
   measure: string;
   kind: string;
   current: Cell;
   from: Cell;
-  direction: "up" | "down" | "none";
+  direction: "up" | "down" | "flat" | "none";
   change: string | null;
   cause: string;
   effect: string;

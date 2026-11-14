@@ -37,12 +37,13 @@ const traces = () =>
   });
 
 describe("the overview route", () => {
-  it("is titled Overview and the fixture visits the full, loading and capped runs", () => {
+  it("is titled Overview and the fixture visits the full, loading, capped and first runs", () => {
     expect(routes.find((r) => r.path === PATH)?.title).toBe("Overview");
     expect(fixture.params[PATH]?.map((p) => p["run"])).toEqual([
       "2026-09-30",
       "2026-06-30",
       "2026-03-31",
+      "2025-09-30",
     ]);
   });
 });
@@ -496,5 +497,66 @@ describe("Overview, modules and limitations", () => {
     expect(
       within(region).getByText(/the nine modules delivered do not stand in for them\.$/),
     ).toBeVisible();
+  });
+});
+
+describe("Overview, the first run on the issuer", () => {
+  type FirstOverview = {
+    metrics: unknown[];
+    findings: unknown[];
+    dates: unknown[];
+    modules: { summary: string; items: { title: string; lead: string; state: string }[] };
+    limitations: { count: string; items: unknown[] };
+    sides: { columns: { items: unknown[] }[] };
+  };
+  const first = (): { head: { tabs: { modulesCount: string } }; overview: FirstOverview } =>
+    (
+      fixture.slice as {
+        issuers: { id: string; runs: { id: string; head: never; overview: never }[] }[];
+      }
+    ).issuers
+      .find((i) => i.id === "halden-aerostructures")
+      ?.runs.find((r) => r.id === "2025-09-30") as never;
+
+  it("draws every section with content under one h1", () => {
+    renderOverview("2025-09-30");
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(tiles().length).toBeGreaterThanOrEqual(3);
+    const sides = within(screen.getByRole("region", { name: "For and against" })).getAllByRole(
+      "heading",
+      { level: 3 },
+    );
+    expect(sides.map((h) => h.textContent)).toEqual(["Supports the view", "Against the view"]);
+    for (const side of sides) {
+      expect(
+        within(side.parentElement as HTMLElement).getAllByRole("listitem").length,
+      ).toBeGreaterThanOrEqual(1);
+    }
+    for (const name of ["Key findings", "Dates to watch", "Modules", "Limitations"]) {
+      const region = screen.getByRole("heading", { level: 2, name: new RegExp(`^${name}`) });
+      expect(
+        within(region.closest("section") as HTMLElement).getAllByRole("listitem").length,
+      ).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("agrees with itself: the module summary and the limitation count equal the listed items", () => {
+    const { head, overview } = first();
+    const [collapsed, ...rest] = overview.modules.items;
+    const named = (collapsed?.lead ?? "").replace(/\.$/, "").split(/, (?=[A-Z])/).length;
+    expect(collapsed?.title).toBe(`${String(named)} modules delivered`);
+    const delivered = rest.filter((m) => m.state.startsWith("Delivered")).length;
+    expect(rest).toHaveLength(delivered);
+    expect(overview.modules.summary).toBe(
+      `${String(named + delivered)} of ${head.tabs.modulesCount} delivered`,
+    );
+    expect(overview.limitations.count).toBe(String(overview.limitations.items.length));
+    renderOverview("2025-09-30");
+    expect(screen.getByText(overview.modules.summary)).toBeVisible();
+    const region = screen.getByRole("region", { name: "Limitations" });
+    expect(within(region).getByRole("heading", { level: 2 }).textContent).toBe(
+      `Limitations${overview.limitations.count}`,
+    );
+    expect(within(region).getAllByRole("listitem")).toHaveLength(overview.limitations.items.length);
   });
 });
