@@ -8,8 +8,11 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import unicodedata
+from array import array
 from collections.abc import Callable, Iterable, Mapping
+from functools import cache
 
 REPLACEMENT = "[redacted]"
 HOME = "<home>"
@@ -265,14 +268,39 @@ def _longest_first(forms: Iterable[str]) -> list[str]:
     return sorted(forms, key=lambda f: (-len(f), f))
 
 
+_BLOCK = 1 << 16  # code points per string: no one string, array or list of them is large
+
+
+@cache
+def _code_points() -> tuple[str, ...]:
+    """Every code point (surrogates included) in strings of ``_BLOCK``, built once from four bytes
+    each: no str object per code point and no per-code-point table."""
+    encoding = "utf-32-be" if sys.byteorder == "big" else "utf-32-le"
+    return tuple(
+        array("I", range(start, min(start + _BLOCK, sys.maxunicode + 1)))
+        .tobytes()
+        .decode(encoding, "surrogatepass")
+        for start in range(0, sys.maxunicode + 1, _BLOCK)
+    )
+
+
+@cache
+def _case_forms(char: str) -> tuple[str, ...]:
+    """Every character ``re.IGNORECASE`` holds the same letter as ``char`` (itself included), by
+    searching every code point."""
+    pattern = re.compile(re.escape(char), re.IGNORECASE)
+    return tuple(form for block in _code_points() for form in pattern.findall(block))
+
+
 def _char_pattern(char: str, after_separator: bool, taken: bool = False) -> str:
-    """One character: as written, and each same-length case form of it (as given, lower, upper) as
+    """One character: as written, and each case form of it (every letter ``re.IGNORECASE`` holds the
+    same, itself included) as
     ``\\uXXXX`` (a surrogate pair above U+FFFF), ``\\xXX`` (below U+0100), its UTF-8 bytes as
     ``\\xHH`` or ``\\u00HH``, and percent-encoded. The literal is one alternative: the pattern
     ignores case, and two alternatives for one text would let a failing match retry both."""
     plain = {re.escape(char)}
     escaped: set[str] = set()
-    for form in {f for f in (char, char.lower(), char.upper()) if len(f) == 1}:
+    for form in _case_forms(char):
         data = form.encode("utf-8", "surrogatepass")
         escaped |= {_escapes("u", _units(ord(form)), 4), _escapes("x", data, 2)}
         escaped.add(_escapes("u", data, 4))
@@ -430,7 +458,7 @@ class Redactor:
         case, one to eight backslashes, UTF-8 bytes included), percent-encoded (the percent
         itself up to twice), in NFC or NFD, each separator a run of up to 16 of ``/``, ``\\``,
         ``%2F``, ``%5C``, in any letter case. Case applies before encoding: each character's escape,
-        UTF-8 and percent forms are built from its as-given, lower and upper forms of the same length.
+        UTF-8 and percent forms are built from every letter ``re.IGNORECASE`` holds the same as it.
 
         Not guaranteed: another user's home (the net, best effort); Windows 8.3 short names; a
         case mapping that changes length (``ß`` to ``SS``); a bare user name; a value split
