@@ -115,7 +115,9 @@ def check_kind(name: str, kind: SourceKind, raw: bytes) -> None:
 class SourcePin(BaseModel):
     """The name, digest, size and kind that identify one source file."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", strict=True, revalidate_instances="always"
+    )
 
     name: str
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")

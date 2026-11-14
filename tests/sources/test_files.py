@@ -132,7 +132,9 @@ def test_read_capped_symlink(folder: Path, tmp_path_factory: pytest.TempPathFact
     _symlink(link, folder / "readme.txt")
     with pytest.raises(SourceUnreadable) as caught:
         read_capped(link)
-    if not hasattr(os, "O_NOFOLLOW"):
+    if hasattr(os, "O_NOFOLLOW"):
+        assert str(caught.value) == f"{link}: cannot open ({os.strerror(errno.ELOOP)})"
+    else:
         assert str(caught.value) == f"{link}: is a symbolic link"
 
 
