@@ -712,7 +712,7 @@
                   "kind": "Conclusion",
                   "current": { "kind": "value", "text": "Stable", "at": null },
                   "from": { "kind": "value", "text": "Negative", "at": null },
-                  "direction": "none",
+                  "direction": "flat",
                   "change": "Changed",
                   "cause": "Both agencies affirmed after the full-year results.",
                   "effect": "Removes the nearest downgrade trigger from the watch list.",
@@ -723,7 +723,7 @@
                   "kind": "Assumption",
                   "current": { "kind": "value", "text": "By 30 Jun 2027", "at": null },
                   "from": { "kind": "value", "text": "By 31 Dec 2026", "at": null },
-                  "direction": "none",
+                  "direction": "flat",
                   "change": "Later by six months",
                   "cause": "Management deferred the launch to follow first-quarter results.",
                   "effect": "Leaves nine months before maturity instead of fifteen.",
@@ -1310,18 +1310,68 @@
               "metricsLabel": "Headline figures",
               "metrics": [
                 {
+                  "label": "Revenue, USD m",
+                  "value": { "kind": "value", "text": "1,967", "at": 1967 },
+                  "note": "Year to 30 Sep 2025",
+                  "trace": null
+                },
+                {
+                  "label": "EBITDA margin",
+                  "value": { "kind": "value", "text": "21.8%", "at": 21.8 },
+                  "note": "Company-adjusted basis",
+                  "trace": null
+                },
+                {
                   "label": "Net leverage",
                   "value": { "kind": "value", "text": "4.9x", "at": 4.9 },
                   "note": "Net debt to EBITDA",
+                  "trace": null
+                },
+                {
+                  "label": "Liquidity, USD m",
+                  "value": { "kind": "value", "text": "398", "at": 398 },
+                  "note": "Cash and undrawn facility",
                   "trace": null
                 }
               ],
               "sides": {
                 "heading": "For and against",
-                "note": "Points from the first run on the issuer",
+                "note": "Two points on each side, as the modules weighed them",
                 "columns": [
-                  { "name": "Supports the view", "items": [] },
-                  { "name": "Against the view", "items": [] }
+                  {
+                    "name": "Supports the view",
+                    "items": [
+                      {
+                        "figure": { "kind": "value", "text": "59%", "at": 59 },
+                        "text": "Aftermarket share of gross profit; it held through the last two downturns in build rates.",
+                        "qualifier": "Company-adjusted",
+                        "trace": null
+                      },
+                      {
+                        "figure": { "kind": "value", "text": "USD 398m", "at": 398 },
+                        "text": "Cash and the undrawn facility cover every maturity before the 2028 notes.",
+                        "qualifier": "As of 30 Sep 2025",
+                        "trace": null
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Against the view",
+                    "items": [
+                      {
+                        "figure": { "kind": "value", "text": "USD 310m", "at": 310 },
+                        "text": "Unsecured notes fall due in 2028 with no refinancing agreed.",
+                        "qualifier": "Reported",
+                        "trace": null
+                      },
+                      {
+                        "figure": { "kind": "value", "text": "4.9x", "at": 4.9 },
+                        "text": "Net leverage leaves little room for a weaker year in build rates.",
+                        "qualifier": "Reported",
+                        "trace": null
+                      }
+                    ]
+                  }
                 ]
               },
               "findings": [
@@ -1330,6 +1380,18 @@
                   "lead": "Maturities are long-dated",
                   "body": "No secured debt falls due before the unsecured notes.",
                   "trace": null
+                },
+                {
+                  "number": "02",
+                  "lead": "Cash conversion lags margin",
+                  "body": "Working capital absorbed cash as inventory was built for the engine ramp.",
+                  "trace": null
+                },
+                {
+                  "number": "03",
+                  "lead": "Pricing power sits in the aftermarket",
+                  "body": "Sole-source parts carry most of the profit; original-equipment contracts are fixed-price.",
+                  "trace": null
                 }
               ],
               "changeView": {
@@ -1337,12 +1399,62 @@
                 "text": "A sustained rise in leverage would move the view to negative.",
                 "trace": null
               },
-              "dates": [],
-              "modules": { "summary": "1 of 13 delivered", "items": [] },
+              "dates": [
+                {
+                  "date": "13 Nov 2025",
+                  "state": "Past",
+                  "title": "Full-year results",
+                  "text": "Published; figures in this run are from them."
+                },
+                {
+                  "date": "12 Feb 2026",
+                  "state": "Next",
+                  "title": "First-quarter results",
+                  "text": "First read on engine deliveries and inventory release."
+                },
+                {
+                  "date": "15 Mar 2028",
+                  "state": "Later",
+                  "title": "Unsecured notes mature",
+                  "text": "USD 310m falls due."
+                }
+              ],
+              "modules": {
+                "summary": "13 of 13 delivered",
+                "items": [
+                  {
+                    "title": "11 modules delivered",
+                    "lead": "Business profile, Industry and competition, Financial performance, Cash flow and liquidity, Covenants and documentation, Management and governance, Peer comparison, Rating outlook, Environmental, social and governance, Forecast, Credit snapshot.",
+                    "state": "Delivered",
+                    "module": null
+                  },
+                  {
+                    "title": "Capital structure",
+                    "lead": "Secured debt is long-dated; the unsecured notes mature first.",
+                    "state": "Delivered with gaps",
+                    "module": "capital-structure"
+                  },
+                  {
+                    "title": "Recovery",
+                    "lead": "A range for the senior notes, not a single figure.",
+                    "state": "Delivered with gaps",
+                    "module": "recovery"
+                  }
+                ]
+              },
               "limitations": {
-                "count": "0",
-                "gapsLink": { "label": "See the gaps in Evidence" },
-                "items": []
+                "count": "2",
+                "gapsLink": { "label": "See the 2 gaps in Evidence" },
+                "items": [
+                  {
+                    "text": "The security package documents were incomplete, so recovery for the senior notes is a range and not a figure.",
+                    "trace": null
+                  },
+                  {
+                    "text": "The hedge schedule was not in the files, so the fixed and floating split of interest is an estimate.",
+                    "trace": null
+                  }
+                ]
               }
             },
             "changes": {
@@ -1491,7 +1603,8 @@
     "/library/:issuer/:run/overview": [
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30" },
-      { "issuer": "halden-aerostructures", "run": "2026-03-31" }
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" },
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
     ],
     "/library/:issuer/:run/changes": [
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },
