@@ -56,6 +56,7 @@ def test_event_cases(events: list[Any], want: dict[str, Any]) -> None:
         [type("D", (dict,), {})(id="e", type="t", data={})],
         [{"id": type("S", (str,), {})("e"), "type": "t", "data": {}}],
         [{"id": "e", "type": "t", "data": type("D", (dict,), {})()}],
+        type("L", (list,), {})([{"id": "e", "type": "t", "data": {}}]),
     ],
 )
 def test_bad_shapes(events: Any) -> None:

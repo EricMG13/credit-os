@@ -31,8 +31,8 @@ def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply
     """The reply for the `{"id", "type", "data"}` events observed for one call. Never raises for
     events built from JSON values (dict, list, str, int, float, bool, None).
 
-    An event equal to an earlier one (same id, type and data) is a redelivery and is ignored;
-    an id reused with other type or data is read as a separate event.
+    An event with the same JSON text as an earlier one is a redelivery and is ignored (the first
+    copy keeps its place); an id reused with other type or data is read as a separate event.
 
     Routing limit: SDK 1.0.8 reports `isByok` and `isAuto` only on a `model.call_failure`
     event, so `ByokRouted` and `AutoRouted` are detected only for a failed model call; a
@@ -40,10 +40,10 @@ def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply
     raw = _serialise(given)
     redacted = None if raw is None else redactor.bytes_(raw)
     changed, raw = redacted != raw, redacted
-    events = _as_events(given)
+    events = None if raw is None else _as_events(given)
     if raw is None or events is None:
         return _failed(None, ("UnparsableReply", BAD_SHAPE_MESSAGE), raw)
-    usage_data = _usage_data(events)
+    usage_data = _of_type(events, "assistant.usage")
     figures = _figures(usage_data)
     text = "".join(_contents(events))
     if changed or redactor.text(text) != text:
@@ -78,10 +78,10 @@ def _serialise(events: object) -> bytes | None:
 
 
 def _as_events(events: object) -> list[Any] | None:
-    if not isinstance(events, list):
+    if type(events) is not list:
         return None
     ok = all(type(e) is dict and e.get("id") and _exact(e) for e in events)
-    return [e for i, e in enumerate(events) if e not in events[:i]] if ok else None
+    return list({json.dumps(e): e for e in events}.values()) if ok else None
 
 
 def _exact(e: dict[str, Any]) -> bool:
@@ -99,10 +99,6 @@ def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> R
 def _contents(events: list[Any]) -> list[str]:
     contents = [d.get("content") for d in _of_type(events, "assistant.message")]
     return [c for c in contents if isinstance(c, str)]
-
-
-def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
-    return _of_type(events, "assistant.usage")
 
 
 def _is_count(value: object) -> bool:
