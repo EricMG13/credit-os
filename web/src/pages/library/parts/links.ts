@@ -31,6 +31,9 @@ export const changesHref = (issuer: string, run: string): string =>
 export const modulesHref = (issuer: string, run: string, module: string): string =>
   `#/library/${seg(issuer)}/${seg(run)}/modules/${seg(module)}`;
 
-/** One page of a run's Evidence section: `summary` or `trace`. */
-export const evidenceHref = (issuer: string, run: string, page: "summary" | "trace"): string =>
-  `#/library/${seg(issuer)}/${seg(run)}/evidence/${page}`;
+/** One page of a run's Evidence section: `summary`, `trace` or `gaps`. */
+export const evidenceHref = (
+  issuer: string,
+  run: string,
+  page: "summary" | "trace" | "gaps",
+): string => `#/library/${seg(issuer)}/${seg(run)}/evidence/${page}`;

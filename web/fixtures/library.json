@@ -548,7 +548,112 @@
                   "title": "Unsecured notes mature",
                   "text": "USD 310m falls due."
                 }
-              ]
+              ],
+              "modules": {
+                "summary": "12 of 13 delivered",
+                "items": [
+                  {
+                    "title": "Business profile",
+                    "lead": "A sole-source aftermarket franchise carries a thinner original-equipment business.",
+                    "state": "Delivered",
+                    "module": "business-profile"
+                  },
+                  {
+                    "title": "Industry and competition",
+                    "lead": "Build rates are rising; pricing discipline among the three large suppliers is holding.",
+                    "state": "Delivered",
+                    "module": "industry-and-competition"
+                  },
+                  {
+                    "title": "Financial performance",
+                    "lead": "Revenue up 7%, margin up 0.6 points, both ahead of the prior run.",
+                    "state": "Delivered",
+                    "module": "financial-performance"
+                  },
+                  {
+                    "title": "Cash flow and liquidity",
+                    "lead": "Liquidity is adequate for eighteen months; conversion is the weak point.",
+                    "state": "Delivered",
+                    "module": "cash-flow-and-liquidity"
+                  },
+                  {
+                    "title": "Capital structure",
+                    "lead": "Secured debt is long-dated; the unsecured notes mature first.",
+                    "state": "Delivered with gaps",
+                    "module": "capital-structure"
+                  },
+                  {
+                    "title": "Covenants and documentation",
+                    "lead": "One springing covenant, untested, with wide baskets.",
+                    "state": "Delivered",
+                    "module": "covenants-and-documentation"
+                  },
+                  {
+                    "title": "Management and governance",
+                    "lead": "Sponsor-controlled board; a record of debt-funded purchases.",
+                    "state": "Delivered",
+                    "module": "management-and-governance"
+                  },
+                  {
+                    "title": "Peer comparison",
+                    "lead": "More levered than four of five peers, with the highest margin.",
+                    "state": "Delivered with gaps",
+                    "module": "peer-comparison"
+                  },
+                  {
+                    "title": "Recovery",
+                    "lead": "The security package documents were not among the files provided, so recovery by class could not be assessed.",
+                    "state": "Not assessable",
+                    "module": "recovery"
+                  },
+                  {
+                    "title": "Rating outlook",
+                    "lead": "Both agencies stable; one upgrade trigger is within reach by 2027.",
+                    "state": "Delivered",
+                    "module": "rating-outlook"
+                  },
+                  {
+                    "title": "Environmental, social and governance",
+                    "lead": "No finding that changes the credit view.",
+                    "state": "Delivered",
+                    "module": "environmental-social-and-governance"
+                  },
+                  {
+                    "title": "Forecast",
+                    "lead": "Base case reaches 4.1x by September 2027; downside stays at 4.8x.",
+                    "state": "Delivered",
+                    "module": "forecast"
+                  },
+                  {
+                    "title": "Credit snapshot",
+                    "lead": "A one-page summary of this run for committee papers.",
+                    "state": "Delivered",
+                    "module": "credit-snapshot"
+                  }
+                ]
+              },
+              "limitations": {
+                "count": "4",
+                "gapsLink": { "label": "See the 7 gaps in Evidence" },
+                "items": [
+                  {
+                    "text": "Recovery by class was not assessable: the security and intercreditor documents were not provided.",
+                    "trace": "limit-recovery"
+                  },
+                  {
+                    "text": "The hedge schedule was not in the files, so the fixed and floating split of interest is an estimate and hedge expiries are not established for this run.",
+                    "trace": "interest-cover"
+                  },
+                  {
+                    "text": "Peer figures for two companies are on a reported basis while Halden is company-adjusted; the comparison overstates Halden by an amount the module could not size.",
+                    "trace": "limit-peers"
+                  },
+                  {
+                    "text": "EBITDA for 2022 is not available on the current basis, so five-year trends start in 2023.",
+                    "trace": "ebitda-margin"
+                  }
+                ]
+              }
             },
             "traces": {
               "cash-conversion": {
@@ -595,6 +700,36 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0046"
+              },
+              "limit-recovery": {
+                "title": "Sources for the recovery limitation",
+                "heading": "Recovery not assessable",
+                "subtitle": "Recovery · limitation · as of 30 Sep 2026",
+                "statement": "The security and intercreditor documents were not provided.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Recovery not assessable",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-01"
+              },
+              "limit-peers": {
+                "title": "Sources for the peer limitation",
+                "heading": "Peer basis differs",
+                "subtitle": "Peer comparison · limitation · as of 30 Sep 2026",
+                "statement": "Peer figures for two companies are on a reported basis while the issuer is company-adjusted.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Peer basis differs",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-03"
               },
               "net-leverage": {
                 "title": "Sources for net leverage",
@@ -918,7 +1053,50 @@
                   "title": "Refinancing milestone",
                   "text": "Our date for an agreed refinancing of the 2028 notes."
                 }
-              ]
+              ],
+              "modules": {
+                "summary": "8 of 13 delivered",
+                "items": [
+                  {
+                    "title": "6 modules delivered",
+                    "lead": "Business profile, Industry and competition, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance.",
+                    "state": "Delivered",
+                    "module": null
+                  },
+                  {
+                    "title": "Capital structure",
+                    "lead": "Secured debt is long-dated; the unsecured notes mature first.",
+                    "state": "Delivered with gaps",
+                    "module": "capital-structure"
+                  },
+                  {
+                    "title": "Peer comparison",
+                    "lead": "More levered than four of five peers, with the highest margin.",
+                    "state": "Delivered with gaps",
+                    "module": "peer-comparison"
+                  },
+                  {
+                    "title": "Recovery",
+                    "lead": "The security package documents were not among the files provided, so recovery by class could not be assessed.",
+                    "state": "Not assessable",
+                    "module": "recovery"
+                  }
+                ]
+              },
+              "limitations": {
+                "count": "2",
+                "gapsLink": { "label": "See the 3 gaps in Evidence" },
+                "items": [
+                  {
+                    "text": "Recovery by class was not assessable: the security and intercreditor documents were not provided.",
+                    "trace": null
+                  },
+                  {
+                    "text": "The financial performance and cash flow modules did not run before the cost cap, so no view of earnings, cash conversion or liquidity is given here; a reader should not infer one from the modules that did run, and the nine modules delivered do not stand in for them.",
+                    "trace": null
+                  }
+                ]
+              }
             },
             "traces": {}
           }

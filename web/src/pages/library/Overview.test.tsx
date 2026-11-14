@@ -119,6 +119,8 @@ describe("Overview, the mock's run", () => {
       "H3",
       "H3",
       "H3",
+      "H2",
+      "H2",
     ]);
   });
 
@@ -184,7 +186,7 @@ describe("Overview, states", () => {
     expect(long.textContent).toMatch(/that did run\.$/);
     expect(long).not.toHaveClass("truncate");
     expect(within(long.closest("li") as HTMLElement).getByText("n.a.")).toBeVisible();
-    expect(screen.getByText("Not assessable")).toBeVisible();
+    expect(within(long.closest("li") as HTMLElement).getByText("Not assessable")).toBeVisible();
   });
 
   it("says which part is missing for a run or an issuer the slice does not hold", () => {
@@ -358,5 +360,90 @@ describe("Overview, findings, what would change the view and dates", () => {
     expect(
       within(screen.getByRole("region", { name: "Dates to watch" })).getAllByRole("listitem"),
     ).toHaveLength(2);
+  });
+});
+
+describe("Overview, modules and limitations", () => {
+  const items = () =>
+    within(screen.getByRole("region", { name: "Modules" })).getAllByRole("listitem");
+  const BASE = "#/library/halden-aerostructures/";
+
+  it("draws the modules heading, the delivered summary and the mock's thirteen items", () => {
+    renderOverview("2026-09-30");
+    expect(screen.getByRole("heading", { level: 2, name: "Modules" })).toBeVisible();
+    expect(screen.getByText("12 of 13 delivered")).toBeVisible();
+    expect(items()).toHaveLength(13);
+    expect(items()[4]?.textContent).toBe(
+      "Capital structureSecured debt is long-dated; the unsecured notes mature first.Delivered with gaps",
+    );
+    expect(items()[8]?.textContent).toBe(
+      "RecoveryThe security package documents were not among the files provided, so recovery by class could not be assessed.Not assessable",
+    );
+    expect(items()[0]?.textContent).toMatch(/Delivered$/);
+  });
+
+  it("links each module item to its module page, in two columns", () => {
+    renderOverview("2026-09-30");
+    expect(within(items()[4] as HTMLElement).getByRole("link")).toHaveAttribute(
+      "href",
+      `${BASE}2026-09-30/modules/capital-structure`,
+    );
+    expect(screen.getAllByRole("link", { name: /^Recovery/ })).toHaveLength(1);
+    expect(items()[0]?.closest("ul")).toHaveClass("md:columns-2");
+  });
+
+  it("collapses a repeated state into one plain item with its names and a chevron", () => {
+    renderOverview("2026-03-31");
+    expect(items().map((item) => item.querySelector("a") === null)).toEqual([
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(items()[0]?.textContent).toBe(
+      "6 modules deliveredBusiness profile, Industry and competition, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance.Delivered",
+    );
+    expect(items()[0]?.querySelector("svg[aria-hidden='true'].size-4")).not.toBeNull();
+    expect(screen.getByText("8 of 13 delivered")).toBeVisible();
+    expect(within(items()[3] as HTMLElement).getByText("Not assessable")).toBeVisible();
+  });
+
+  it("draws the limitations open: h2 with count, gaps link, one trace control each, long text in full", () => {
+    renderOverview("2026-09-30");
+    const region = screen.getByRole("region", { name: /^Limitations/ });
+    expect(within(region).getByRole("heading", { level: 2 }).textContent).toBe("Limitations4");
+    expect(
+      within(region).getByRole("link", { name: "See the 7 gaps in Evidence" }),
+    ).toHaveAttribute("href", `${BASE}2026-09-30/evidence/gaps`);
+    const rows = within(region).getAllByRole("listitem");
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      expect(
+        within(row).getAllByRole("button", { name: "Show sources for this limitation" }),
+      ).toHaveLength(1);
+    }
+    const long = within(region).getByText(/^Peer figures for two companies/);
+    expect(long.textContent).toMatch(/could not size\.$/);
+    expect(long).not.toHaveClass("truncate");
+  });
+
+  it("collapses and expands the limitations from one button and prints them open", () => {
+    renderOverview("2026-09-30");
+    const region = screen.getByRole("region", { name: /^Limitations/ });
+    fireEvent.click(within(region).getByRole("button", { name: "Collapse limitations" }));
+    expect(within(region).queryByRole("listitem")).toBeNull();
+    expect(within(region).getByRole("button", { name: "Expand limitations" })).toBeVisible();
+    expect(region.querySelector("[role='group']")).toHaveClass("print:block");
+    fireEvent.click(within(region).getByRole("button", { name: "Expand limitations" }));
+    expect(within(region).getAllByRole("listitem")).toHaveLength(4);
+  });
+
+  it("draws the capped run's limitations with no trace control and its long sentence in full", () => {
+    renderOverview("2026-03-31");
+    const region = screen.getByRole("region", { name: /^Limitations/ });
+    expect(within(region).queryByRole("button", { name: /^Show sources/ })).toBeNull();
+    expect(
+      within(region).getByText(/the nine modules delivered do not stand in for them\.$/),
+    ).toBeVisible();
   });
 });
