@@ -36,7 +36,8 @@ _USAGE_3 = {
 _NOT_TIMED = {"raw": None, "started_at": None, "finished_at": None}
 _NONE = {**_NOT_TIMED, "compactions": ()}
 # Two context compactions reported during one call. Each keeps its own counts and its own
-# charge; the second charge could not be read. Neither is added to the reply's billed_usd.
+# charge; the second failed and its charge could not be read (unknown, not zero). Neither is
+# added to the reply's billed_usd. event_id is the id of the event that reported it.
 _COMPACTION_USAGE_1 = {
     "input_tokens": 177475,
     "cached_read_tokens": 176500,
@@ -52,8 +53,18 @@ _COMPACTION_USAGE_2 = {
     "reasoning_tokens": None,
 }
 _COMPACTIONS = (
-    {"usage": _COMPACTION_USAGE_1, "billed_usd": Decimal("0.0214050")},
-    {"usage": _COMPACTION_USAGE_2, "billed_usd": None},
+    {
+        "usage": _COMPACTION_USAGE_1,
+        "billed_usd": Decimal("0.0214050"),
+        "failed": False,
+        "event_id": "evt-synthetic-1",
+    },
+    {
+        "usage": _COMPACTION_USAGE_2,
+        "billed_usd": None,
+        "failed": True,
+        "event_id": "evt-synthetic-2",
+    },
 )
 
 CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
@@ -85,7 +96,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
                     "arguments": {
                         "path": "annual-report.pdf",
                         "page": 12,
-                        "scale": Decimal("1.50"),
+                        "scale": 1.5,
                     },
                     "bad_arguments": None,
                 },
@@ -133,7 +144,9 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
 
 # Decimal == ignores trailing zeros, so the digits are also compared as text.
 CANNED_BILLED_TEXT = {("cp1-synthetic", 0): "0.07319425613", ("cp2-synthetic", 1): "0.1305870"}
-CANNED_SCALE_TEXT = "1.50"  # arguments["scale"] of ("cp1-synthetic", 1)
+# arguments["scale"] of ("cp1-synthetic", 1), written 1.50 in the recording: a tool argument is
+# read as the SDK reads it (plain JSON), so a fraction is a float. Money never comes from one.
+CANNED_SCALE = 1.5
 # str(c.billed_usd) for each compaction of a reply, None where the charge is unknown. The
 # reply's own billed_usd (CANNED_BILLED_TEXT) is the call's charge only: nothing is summed.
 CANNED_COMPACTION_BILLED_TEXT: dict[tuple[str, int], tuple[str | None, ...]] = {
@@ -174,7 +187,13 @@ _ERR: dict[str, Any] = {
     "billed_usd": None,
     "compactions": [],
 }
-_COMPACTION: dict[str, Any] = {"usage": dict(_USAGE_3), "billed_usd": "0.0214050"}
+_COMPACTION: dict[str, Any] = {
+    "usage": dict(_USAGE_3),
+    "billed_usd": "0.0214050",
+    "failed": False,
+    "event_id": "evt-1",
+}
+_COMPACTION_2 = {**_COMPACTION, "billed_usd": None, "failed": True, "event_id": "evt-2"}
 _CALL = {"call_id": "c", "name": "n", "arguments": {}}
 # A charge is read only from plain ASCII digits with an optional fraction: no sign, space,
 # underscore, exponent, leading zero or other digit script, and never from a JSON number.
@@ -249,6 +268,18 @@ CANNED_BAD_LINES: tuple[dict[str, Any] | str, ...] = (
     _line({**_OK, "compactions": [None]}),
     _line({**_OK, "compactions": [{**_COMPACTION, "extra": 1}]}),
     _line({**_OK, "compactions": [{"usage": dict(_USAGE_3)}]}),
+    *(
+        _line({**_OK, "compactions": [{k: v for k, v in _COMPACTION.items() if k != gone}]})
+        for gone in _COMPACTION
+    ),
+    *(
+        _line({**_OK, "compactions": [{**_COMPACTION, "failed": bad}]})
+        for bad in (None, 0, 1, "no")
+    ),
+    *(_line({**_OK, "compactions": [{**_COMPACTION, "event_id": bad}]}) for bad in (None, "", 7)),
+    # two compactions of one reply with the same event id: one event counted twice
+    _line({**_OK, "compactions": [_COMPACTION, _COMPACTION]}),
+    _line({**_OK, "compactions": [_COMPACTION, {**_COMPACTION_2, "event_id": "evt-1"}]}),
     _line({**_OK, "compactions": [{**_COMPACTION, "billed_usd": 0.5}]}),
     _line({**_OK, "compactions": [{**_COMPACTION, "billed_usd": "-1"}]}),
     _line({**_OK, "compactions": [{**_COMPACTION, "billed_usd": "NaN"}]}),
@@ -286,11 +317,12 @@ CANNED_GOOD_LINES: tuple[dict[str, Any], ...] = (
     _line(_OK),
     _line(_ERR),
     _line({**_OK, "turn": {**_OK_TURN, "tool_calls": [{**_CALL, "bad_arguments": "[1]"}]}}),
-    _line({**_OK, "compactions": [_COMPACTION, {**_COMPACTION, "billed_usd": None}]}),
+    _line({**_OK, "compactions": [_COMPACTION, _COMPACTION_2]}),
     _line({**_ERR, "compactions": [_COMPACTION]}),
     _line({**_ERR, "kind": "sent_unknown", "usage": None, "compactions": [_COMPACTION]}),
     _line({**_ERR, "billed_usd": "0"}),
     _line({**_ERR, "billed_usd": "10.50", "usage": {**_USAGE_3, "input_tokens": 10**18 - 1}}),
+    _line({**_ERR, "compactions": [{**_COMPACTION, "failed": True}]}),
 )
 
 # Two lines with the same (exchange_id, call_index): refused, naming "line 2".
