@@ -1276,6 +1276,37 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
   return null;
 }
 
+/**
+ * A delivered count never sits beside a page that says there is nothing, and the reader never counts:
+ * a topic's count is null or "0" exactly when its view lists no story (a loading feed lists nothing, so
+ * it is skipped), and a group's unread badge is null or "0" when the group holds no thread.
+ */
+function countProblem(snap: SignalSnapshot, path: string): string | null {
+  const { channels: lists, feed: items } = snap;
+  if (items.status !== "loading") {
+    for (const [i, topic] of lists.topics.entries()) {
+      const listed = (
+        Object.hasOwn(items.topics, topic.id) ? items.topics[topic.id]?.top : undefined
+      )?.length;
+      const at = `${path}.channels.topics[${String(i)}].count`;
+      const none = topic.count === null || topic.count === "0";
+      if (listed === 0 && !none) {
+        return `${at}: expected null or "0" while the topic's view lists no stories`;
+      }
+      if (listed !== undefined && listed > 0 && topic.count === "0") {
+        return `${at}: expected a count other than "0" while the topic's view lists stories`;
+      }
+    }
+  }
+  for (const [i, channel] of lists.groups.entries()) {
+    const held = snap.groups.find((g) => g.id === channel.id);
+    if (held?.threads.length === 0 && channel.unread !== null && channel.unread !== "0") {
+      return `${path}.channels.groups[${String(i)}].unread: expected null or "0" while the group holds no thread`;
+    }
+  }
+  return null;
+}
+
 /** Each channel topic has exactly one order in the feed: a missing order is not an empty topic. */
 const snapshot: Reader<SignalSnapshot> = (v, path) => {
   const got = snapshotBase(v, path);
@@ -1308,7 +1339,8 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
   const known = new Set(lists.topics.map((t) => t.id));
   const extra = Object.keys(items.topics).find((id) => !known.has(id));
   if (extra !== undefined) return bad(`${where}.${extra}`, "the id of a channel topic");
-  return got;
+  const counted = countProblem(got.value, path);
+  return counted === null ? got : { ok: false, reason: counted };
 };
 /** The slice always has a first scene, so the unknown-scene page can link home to it. */
 function nonEmpty<T>(each: Reader<T>): Reader<[T, ...T[]]> {

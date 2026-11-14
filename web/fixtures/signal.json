@@ -602,9 +602,24 @@
                 "waiting": null,
                 "older": []
               },
-              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+              "packaging": {
+                "top": ["corvane"],
+                "latest": ["corvane"],
+                "waiting": null,
+                "older": []
+              },
+              "telecoms": {
+                "top": ["tessaly"],
+                "latest": ["tessaly"],
+                "waiting": null,
+                "older": []
+              },
+              "rating-actions": {
+                "top": ["halvorsen", "oakhaven-affirm"],
+                "latest": ["halvorsen", "oakhaven-affirm"],
+                "waiting": null,
+                "older": []
+              }
             },
             "digests": [],
             "sources": { "approved": true }
@@ -1121,6 +1136,59 @@
                 "threadRef": null,
                 "stage": null,
                 "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Shipping", "Rating actions"],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB-", "to": "B+", "word": "Downgrade, one notch" },
+                  { "from": "Negative", "to": "Stable", "word": "Outlook" }
+                ],
+                "id": "halvorsen",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                "url": "https://example.com/halvorsen",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "Yesterday",
+                "summary": "The agency cites weaker charter rates and a refinancing due in 2027."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Telecoms", "Disposals"],
+                "stage": {
+                  "current": "In-depth review",
+                  "label": "Stage 3 of 4",
+                  "position": 0.75,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": true },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "tessaly",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                "url": "https://example.com/tessaly",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "5 h ago",
+                "summary": "The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies."
               }
             ],
             "views": {
@@ -1139,10 +1207,30 @@
               "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+              "shipping": {
+                "top": ["halvorsen"],
+                "latest": ["halvorsen"],
+                "waiting": null,
+                "older": []
+              },
+              "packaging": {
+                "top": ["corvane"],
+                "latest": ["corvane"],
+                "waiting": null,
+                "older": []
+              },
+              "telecoms": {
+                "top": ["tessaly"],
+                "latest": ["tessaly"],
+                "waiting": null,
+                "older": []
+              },
+              "rating-actions": {
+                "top": ["halvorsen"],
+                "latest": ["halvorsen"],
+                "waiting": null,
+                "older": []
+              }
             },
             "digests": [],
             "sources": { "approved": true }
@@ -1431,7 +1519,7 @@
               }
             ],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -1533,7 +1621,7 @@
                 "sharedBy": null,
                 "ai": { "line": "B+ is one notch above the level that raises its loan margin." },
                 "strength": { "marks": 3, "word": "Strong" },
-                "saved": true,
+                "saved": false,
                 "commentCount": null,
                 "threadRef": null,
                 "tags": ["Shipping", "Rating actions"],
@@ -1579,10 +1667,30 @@
               "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+              "shipping": {
+                "top": ["halvorsen"],
+                "latest": ["halvorsen"],
+                "waiting": null,
+                "older": []
+              },
+              "packaging": {
+                "top": ["corvane"],
+                "latest": ["corvane"],
+                "waiting": null,
+                "older": []
+              },
+              "telecoms": {
+                "top": ["tessaly"],
+                "latest": ["tessaly"],
+                "waiting": null,
+                "older": []
+              },
+              "rating-actions": {
+                "top": ["halvorsen"],
+                "latest": ["halvorsen"],
+                "waiting": null,
+                "older": []
+              }
             },
             "digests": [
               {
@@ -1965,7 +2073,7 @@
               }
             ],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2100,7 +2208,7 @@
           "channels": {
             "topics": [],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2235,7 +2343,7 @@
           "channels": {
             "topics": [],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2370,7 +2478,7 @@
           "channels": {
             "topics": [],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2500,7 +2608,7 @@
           "channels": {
             "topics": [],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2671,7 +2779,7 @@
           "channels": {
             "topics": [],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2876,7 +2984,7 @@
               }
             ],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [
@@ -2894,17 +3002,115 @@
               "failing": null,
               "error": null
             },
-            "stories": [],
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": {
+                  "label": "Also in 4 other sources",
+                  "monograms": ["CL", "MP", "RG"],
+                  "more": "+1"
+                },
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Telecoms", "Disposals"],
+                "stage": {
+                  "current": "In-depth review",
+                  "label": "Stage 3 of 4",
+                  "position": 0.75,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": true },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "tessaly",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                "url": "https://example.com/tessaly",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "5 h ago",
+                "summary": "The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Shipping", "Rating actions"],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB-", "to": "B+", "word": "Downgrade, one notch" },
+                  { "from": "Negative", "to": "Stable", "word": "Outlook" }
+                ],
+                "id": "halvorsen",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                "url": "https://example.com/halvorsen",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "Yesterday",
+                "summary": "The agency cites weaker charter rates and a refinancing due in 2027."
+              }
+            ],
             "views": {
               "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
               "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
               "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
             },
             "topics": {
-              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
-              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+              "shipping": {
+                "top": ["halvorsen"],
+                "latest": ["halvorsen"],
+                "waiting": null,
+                "older": []
+              },
+              "packaging": {
+                "top": ["corvane"],
+                "latest": ["corvane"],
+                "waiting": null,
+                "older": []
+              },
+              "telecoms": {
+                "top": ["tessaly"],
+                "latest": ["tessaly"],
+                "waiting": null,
+                "older": []
+              },
+              "rating-actions": {
+                "top": ["halvorsen"],
+                "latest": ["halvorsen"],
+                "waiting": null,
+                "older": []
+              }
             },
             "digests": [],
             "sources": { "approved": true }
@@ -3035,7 +3241,7 @@
           "channels": {
             "topics": [],
             "groups": [
-              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": null },
               { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
             ],
             "digests": [

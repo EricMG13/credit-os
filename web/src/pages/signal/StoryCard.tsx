@@ -42,21 +42,27 @@ function focusOpener(card: HTMLElement | null, label: string) {
   });
 }
 
+/** The saved choice by story id, kept above every list so a filter or a page change does not forget it; in memory only. */
+export type SignalSave = {
+  on: (story: { id: string; saved: boolean }) => boolean;
+  toggle: (story: { id: string; saved: boolean }) => void;
+};
+
 /** `inGroup`: the card sits in a group view, where "Open thread" is the way in, so a writer's Comment and Share to group are left out. */
-type Props = { story: SignalStory; scene: SignalScene; writer: boolean } & (
+type Props = { story: SignalStory; scene: SignalScene; writer: boolean; save: SignalSave } & (
   | { inGroup: true }
   /** `onShared`: Share was pressed with a group chosen; the page says so (nothing is written). */
   | { inGroup?: false; onShared: () => void }
 );
 
 export function StoryCard(props: Props) {
-  const { story, scene, writer } = props;
+  const { story, scene, writer, save } = props;
   const inGroup = props.inGroup === true;
   const onShared = props.inGroup === true ? null : props.onShared;
   const link = story.url !== null && isWebLink(story.url) ? story.url : null;
   const { headline } = story;
   // Save is in memory only: nothing is written; a reload shows the slice's own state again.
-  const [saved, setSaved] = useState(story.saved);
+  const saved = save.on(story);
   // The share dialog opens from Share to group, or from Comment on a story with no thread yet; focus
   // goes back to whichever control opened it.
   const [sharing, setSharing] = useState(false);
@@ -145,7 +151,7 @@ export function StoryCard(props: Props) {
             className={cx(saved && "text-text-link")}
             iconLeading={<Bookmark data-icon className={cx(saved && "fill-current")} />}
             onPress={() => {
-              setSaved(!saved);
+              save.toggle(story);
             }}
           >
             {saved ? "Saved" : "Save"}

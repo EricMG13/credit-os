@@ -202,7 +202,16 @@ describe("the empty states", () => {
   });
 
   it("says No stories in this topic yet on a topic with no stories", () => {
-    show("/signal/main/topic/telecoms");
+    // The scene's Telecoms view lists a story, so the empty topic is made here, count and view together.
+    const copy = structuredClone(fixture.slice);
+    const main = copy.scenes.find((s) => s.id === "main");
+    const telecoms = main?.snapshot.feed.topics.telecoms;
+    const channel = main?.snapshot.channels.topics.find((t) => t.id === "telecoms");
+    if (telecoms === undefined || channel === undefined) throw new Error("main has Telecoms");
+    telecoms.top = [];
+    telecoms.latest = [];
+    channel.count = "0";
+    show("/signal/main/topic/telecoms", copy);
     expect(title("No stories in this topic yet")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Telecoms" })).toBeInTheDocument();
   });
@@ -326,6 +335,7 @@ describe("a loading feed has no list controls", () => {
       startOn: "top",
       switchable: true,
       writer: true,
+      save: { on: (story) => story.saved, toggle: () => undefined },
       error: null,
       empty: {
         view: "for-you",
