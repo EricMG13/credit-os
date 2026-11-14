@@ -19,7 +19,7 @@ const FeaturedIcon = ({
   color = "gray",
   icon = SearchLg,
   ...props
-}: Partial<ComponentPropsWithRef<typeof FeaturedIconbase>>) => {
+}: Partial<Omit<ComponentPropsWithRef<typeof FeaturedIconbase>, "size">>) => {
   return <FeaturedIconbase {...props} {...{ color, icon }} size="xl" />;
 };
 

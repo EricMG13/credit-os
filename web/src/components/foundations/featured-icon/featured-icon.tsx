@@ -4,6 +4,7 @@ import { cx } from "@/utils/cx";
 import { isReactComponent } from "@/utils/is-react-component";
 
 const iconsSizes = {
+  sm: "*:data-icon:size-4",
   lg: "*:data-icon:size-6",
   xl: "*:data-icon:size-7",
 };
@@ -12,6 +13,7 @@ const iconsSizes = {
 const light = {
   base: "rounded-full",
   sizes: {
+    sm: "size-8",
     lg: "size-12",
     xl: "size-14",
   },
@@ -34,13 +36,13 @@ interface FeaturedIconProps {
   /** The icon to display. Accepts a component reference or a rendered element. */
   icon?: FC<{ className?: string }> | ReactNode;
   /** Controls the dimensions of the wrapper and the icon inside it. */
-  size?: "lg" | "xl";
+  size?: "sm" | "lg" | "xl";
   /** The semantic color used for the background and icon. */
   color: "brand" | "gray" | "success" | "warning" | "error";
 }
 
 export const FeaturedIcon = (props: FeaturedIconProps) => {
-  const { size = "lg", color, icon: Icon, ...otherProps } = props;
+  const { size = "sm", color, icon: Icon, ...otherProps } = props;
 
   return (
     <div

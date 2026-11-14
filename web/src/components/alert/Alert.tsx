@@ -41,6 +41,13 @@ const TONES: Record<
   },
 };
 
+const TONE_WORD: Record<Tone, string> = {
+  success: "Success",
+  warning: "Warning",
+  error: "Error",
+  info: "Info",
+};
+
 interface AlertProps {
   tone: Tone;
   title: string;
@@ -58,7 +65,10 @@ export function Alert({ tone, title, children, action }: AlertProps) {
           <StatusShape shape={t.shape} />
         </span>
         <div className="flex-1">
-          <strong className={`block leading-tight font-medium ${t.text}`}>{title}</strong>
+          <strong className={`block leading-tight font-medium ${t.text}`}>
+            <span className="sr-only">{TONE_WORD[tone]}: </span>
+            {title}
+          </strong>
           {children ? <p className={`mt-0.5 text-sm ${t.text}`}>{children}</p> : null}
           {action ? <div className="mt-2">{action}</div> : null}
         </div>
@@ -78,7 +88,9 @@ export function Callout({ title, children }: CalloutProps) {
   return (
     <div role="note" className="border-s-4 border-info-mark bg-info-fill p-4">
       <div className={`flex items-center gap-2 ${t.mark}`}>
-        <StatusShape shape={t.shape} />
+        <span className="flex size-6 items-center justify-center">
+          <StatusShape shape={t.shape} />
+        </span>
         <strong className={`block leading-tight font-medium ${t.text}`}>{title}</strong>
       </div>
       <p className={`mt-1 text-body ${t.text}`}>{children}</p>

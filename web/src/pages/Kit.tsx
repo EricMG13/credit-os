@@ -295,7 +295,7 @@ export function Kit() {
         <Row>
           {FEATURED.map(({ colour, icon }) => (
             <div key={colour} className="flex flex-col items-center gap-2">
-              <FeaturedIcon color={colour} icon={icon} />
+              <FeaturedIcon color={colour} icon={icon} size="lg" />
               <span className="text-small text-text-secondary">{label(colour)}</span>
             </div>
           ))}
