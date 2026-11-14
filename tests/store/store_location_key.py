@@ -36,3 +36,9 @@ HEADER_VERSION_OFFSETS = (18, 19)
 HEADER_ROLLBACK = 1
 HEADER_WRITE_AHEAD = 2
 WRITE_AHEAD_READER_ERROR = "StoreUnusable"
+
+# A `..` that reaches a symbolic link to a folder, appended to a temporary folder that holds the
+# link `alink` (to a sibling folder) and no `new`: the closing folder check refuses it, and nothing
+# is made in the link's target (review Low on PR 1c, rides in PR 1d-b).
+DOTDOT_LINK_PARTS: tuple[str, ...] = ("new", "..", "alink")
+DOTDOT_LINK_ERROR = "StoreRefused"
