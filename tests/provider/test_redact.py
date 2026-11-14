@@ -281,6 +281,10 @@ def test_module_does_not_import_os(file: str | None) -> None:
 _VALUES = st.text(min_size=4).filter(lambda v: "[" not in v and "]" not in v and v not in key.MARK)
 
 
+# Idle, an example takes 0-6 ms and cost is linear in the text (about 0.75 ms per 1,000 characters
+# through text and bytes_, 75 ms at 10^5); the 200 ms default was missed twice under load (272, 305
+# ms), which is the machine's, so this one test gets an explicit 1 s deadline.
+@settings(deadline=1000)
 @given(t=st.text(), v=_VALUES)
 def test_exact_value_never_survives(t: str, v: str) -> None:
     assert v not in Redactor([v]).text(t + v + t)

@@ -277,17 +277,29 @@ def _char_pattern(char: str, after_separator: bool) -> str:
     return "(?:" + "|".join(sorted(plain) + [lead + "(?:" + "|".join(sorted(escaped)) + ")"]) + ")"
 
 
+_SEPARATOR_TOKEN = re.compile(r"%(?:25){0,2}(?:2f|5c)", re.IGNORECASE)
+
+
+def _form_patterns(form: str, after_separator: bool) -> list[str]:
+    """The patterns for one spelling of a folder name. A name that begins with a separator token
+    (``%2F``, ``%5C``, ``%252F``) is also matched from just after that token: the atomic separator
+    run before it has taken the token, so a zero-width lookbehind stands in for it. Written once
+    and never inside a backslash run, so no failing match retries another split of one."""
+    found = ["".join(_char_pattern(c, after_separator and i == 0) for i, c in enumerate(form))]
+    if after_separator:
+        for width in (3, 5, 7):
+            if _SEPARATOR_TOKEN.fullmatch(form[:width]):
+                rest = "".join(_char_pattern(c, False) for c in form[width:])
+                found.append(rf"(?<={re.escape(form[:width])}){rest}")
+    return found
+
+
 def _word(part: str, after_separator: bool) -> str:
     """A folder name as given, in its whole-name NFC and in its whole-name NFD."""
     forms = {part, unicodedata.normalize("NFC", part), unicodedata.normalize("NFD", part)}
     return (
         "(?:"
-        + "|".join(
-            sorted(
-                "".join(_char_pattern(c, after_separator and i == 0) for i, c in enumerate(f))
-                for f in forms
-            )
-        )
+        + "|".join(sorted({p for f in forms for p in _form_patterns(f, after_separator)}))
         + ")"
     )
 
