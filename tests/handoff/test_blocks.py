@@ -78,9 +78,12 @@ def _shape(lines: list[str], first: int = 1, last: int | None = None) -> list[An
             ["## A", BT, "  x", "## B", "y"],
             [("K", 2, 3, "", ("  x",), True), ("P", 5, ("y",))],
         ),
-        (["**Leverage**", "", HEAD, SEP, "| 1 | 2 |"], [("T", 3, "Leverage", 1)]),
-        (["**Leverage**:", HEAD, SEP], [("T", 2, "Leverage", 0)]),
-        (["**Leverage:**", HEAD, SEP], [("T", 2, "Leverage:", 0)]),
+        (
+            ["**Leverage**", "", HEAD, SEP, "| 1 | 2 |"],
+            [("P", 1, ("**Leverage**",)), ("T", 3, "Leverage", 1)],
+        ),
+        (["**Leverage**:", HEAD, SEP], [("P", 1, ("**Leverage**:",)), ("T", 2, "Leverage", 0)]),
+        (["**Leverage:**", HEAD, SEP], [("P", 1, ("**Leverage:**",)), ("T", 2, "Leverage:", 0)]),
         (
             ["Intro", "**Leverage**", "", HEAD, SEP],
             [("P", 1, ("Intro", "**Leverage**")), ("T", 4, None, 0)],
@@ -100,8 +103,8 @@ def _shape(lines: list[str], first: int = 1, last: int | None = None) -> list[An
         (["**Final bold line.**"], [("P", 1, ("**Final bold line.**",))]),
         (["<!-- table-id: T1 -->", HEAD, SEP], [("T", 2, None, 0)]),
         (
-            [HEAD, SEP, "    | 1 | 2 |"],
-            [("T", 1, None, 0), ("P", 3, ("| 1 | 2 |",))],
+            [BT, "    | 1 | 2 |", BT, "a | b"],
+            [("K", 1, 3, "", ("    | 1 | 2 |",), False), ("P", 4, ("a | b",))],
         ),
         (
             ["**Label**", "more", "", HEAD, SEP],
@@ -109,13 +112,53 @@ def _shape(lines: list[str], first: int = 1, last: int | None = None) -> list[An
         ),
         (["a", "   b   "], [("P", 1, ("a", "b"))]),
         (["-    one  ", "   more  "], [("I", 1, "-", ("one", "more"))]),
-        (["**  Leverage  **", HEAD, SEP], [("T", 2, "Leverage", 0)]),
+        (
+            ["**  Leverage  **", HEAD, SEP],
+            [("P", 1, ("**  Leverage  **",)), ("T", 2, "Leverage", 0)],
+        ),
         (["a", "   ", "b"], [("P", 1, ("a",)), ("P", 3, ("b",))]),
         (["100. x", "1000. y"], [("I", 1, "100.", ("x", "1000. y"))]),
     ],
 )
 def test_examples(lines: list[str], expected: list[Any]) -> None:
     assert _shape(lines) == expected
+
+
+@pytest.mark.parametrize(
+    ("lines", "label", "label_line", "paragraphs"),
+    [
+        (["**Leverage**", "", "", HEAD, SEP], "Leverage", 1, [1]),
+        (["x", "", "**Not assessable: none.**", HEAD, SEP], "Not assessable: none.", 3, [1, 3]),
+        (["text", "", HEAD, SEP], None, None, [1]),
+        (["**Label**", "## H", HEAD, SEP], None, None, [1]),
+    ],
+)
+def test_label_keeps_its_paragraph_and_line(
+    lines: list[str], label: str | None, label_line: int | None, paragraphs: list[int]
+) -> None:
+    blocks = read_blocks(scan(lines))
+    table = blocks[-1]
+    assert isinstance(table, Table)
+    assert (table.label, table.label_line) == (label, label_line)
+    assert [b.line for b in blocks if isinstance(b, Paragraph)] == paragraphs
+
+
+@pytest.mark.parametrize(
+    ("lines", "line"),
+    [
+        ([HEAD, SEP, "    | 1 | 2 |"], 3),
+        ([HEAD, SEP, "\t| 1 | 2 |"], 3),
+        ([HEAD, SEP, "\u00a0| 1 | 2 |"], 3),
+        ([HEAD, SEP, "| 1 | 2 |", "    | 3 | 4 |", "| 5 | 6 |"], 4),
+        (["- item", "    " + HEAD, "    " + SEP], 2),
+        (["text", "     | x"], 2),
+    ],
+)
+def test_pipe_line_that_is_not_a_table_row_is_refused(lines: list[str], line: int) -> None:
+    with pytest.raises(HandoffError) as caught:
+        read_blocks(scan(lines))
+    assert caught.value.line == line
+    assert caught.value.message == "a | line indented more than three spaces is not a table row"
 
 
 def test_first_below_one_is_a_caller_error() -> None:
