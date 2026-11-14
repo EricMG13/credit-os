@@ -121,7 +121,9 @@ class CopilotDriver:
         self.config_id = config_id
         self._tokens = Redactor.from_environ(environ)
         forms = _path_forms([home, environ.get("COPILOT_CLI_PATH", "")])
-        self._paths = Redactor(forms)  # it matches each form also JSON-escaped once and twice
+        once = [json.dumps(f)[1:-1] for f in forms]  # home_paths cuts at an escape's backslash
+        images = {home_paths(e) for e in once + [json.dumps(o)[1:-1] for o in once]}
+        self._paths = Redactor(forms | {i for i in images if len(i.replace("<home>", "")) > 3})
         self._longest = max((len(json.dumps(json.dumps(f)[1:-1])[1:-1]) for f in forms), default=0)
         self._used: set[str] = set()
         self._kept: list[tuple[ClientLike, SessionLike]] = []
