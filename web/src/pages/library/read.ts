@@ -1,6 +1,7 @@
 import { STATUS_SETS } from "@/components/status/sets";
 import type { SliceResult } from "../route-table";
 import type {
+  BottomLineText,
   Cell,
   HomeCard,
   History,
@@ -12,6 +13,9 @@ import type {
   Measure,
   MeasureKey,
   MeasureSpec,
+  Metric,
+  Overview,
+  Point,
   Run,
   RunHead,
   RunState,
@@ -332,19 +336,83 @@ function readHead(value: unknown, path: string): RunHead {
   };
 }
 
+/** A trace key is checked against the run's own traces, so it is read after them. */
+type Traces = Readonly<Record<string, Trace>>;
+
+function readMetric(value: unknown, path: string, traces: Traces): Metric {
+  const m = rec(value, path);
+  return {
+    label: str(m, "label", path),
+    value: cell(m, "value", path),
+    note: str(m, "note", path),
+    trace: traceKey(m, "trace", path, traces),
+  };
+}
+
+function readPoint(value: unknown, path: string, traces: Traces): Point {
+  const p = rec(value, path);
+  return {
+    figure: cell(p, "figure", path),
+    text: str(p, "text", path),
+    qualifier: str(p, "qualifier", path),
+    trace: traceKey(p, "trace", path, traces),
+  };
+}
+
+function readBottomLine(value: unknown, path: string, traces: Traces): BottomLineText {
+  const b = rec(value, path);
+  return {
+    label: str(b, "label", path),
+    lead: str(b, "lead", path),
+    rest: str(b, "rest", path),
+    trace: traceKey(b, "trace", path, traces),
+  };
+}
+
+function readOverview(value: unknown, path: string, traces: Traces): Overview {
+  const o = rec(value, path);
+  const sidesPath = child(path, "sides");
+  const sides = rec(own(o, "sides"), sidesPath);
+  return {
+    bottomLine: readBottomLine(own(o, "bottomLine"), child(path, "bottomLine"), traces),
+    metricsLabel: str(o, "metricsLabel", path),
+    metrics: list(o, "metrics", path, (m, p) => readMetric(m, p, traces)),
+    sides: {
+      heading: str(sides, "heading", sidesPath),
+      note: str(sides, "note", sidesPath),
+      columns: list(sides, "columns", sidesPath, (column, columnPath) => {
+        const c = rec(column, columnPath);
+        return {
+          name: str(c, "name", columnPath),
+          items: list(c, "items", columnPath, (item, p) => readPoint(item, p, traces)),
+        };
+      }),
+    },
+  };
+}
+
 function readRun(value: unknown, path: string): Run {
   const r = rec(value, path);
   const tracesPath = child(path, "traces");
   const traces = rec(own(r, "traces"), tracesPath);
   const loading = own(r, "loading");
   if (typeof loading !== "boolean") throw new SliceError(child(path, "loading"), "a boolean");
-  return {
+  const base = {
     id: str(r, "id", path),
     head: readHead(own(r, "head"), child(path, "head")),
-    loading,
     traces: Object.fromEntries(
       Object.keys(traces).map((key) => [key, readTrace(traces[key], child(tracesPath, key))]),
     ),
+  };
+  const overviewPath = child(path, "overview");
+  if (loading) {
+    if (own(r, "overview") !== null) throw new SliceError(overviewPath, "null for a loading run");
+    return { ...base, loading, overview: null };
+  }
+  return {
+    ...base,
+    loading,
+    overview: readOverview(own(r, "overview"), overviewPath, base.traces),
   };
 }
 
