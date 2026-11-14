@@ -78,6 +78,37 @@ REDACT_TEXT: tuple[tuple[tuple[str, ...], str, str], ...] = (
     ((), "\\e[31m" + _PAT, "\\e[31m[redacted]"),
     # an sk- key keeps the word rule: "ask-", "risk-", "task-" are ordinary words
     ((), "ask-" + "the-analyst-dashboard-x", "ask-" + "the-analyst-dashboard-x"),
+    # ... also straight after a backslash, as in a Windows path or its JSON spelling
+    (
+        (),
+        "C:\\reports\\a" + _SK + "the-analyst-dashboard-x\\notes.txt",
+        "C:\\reports\\a" + _SK + "the-analyst-dashboard-x\\notes.txt",
+    ),
+    # an sk- key after each escape form the left boundary lists
+    ((), "%253D" + GLUED, "%253D" + MARK),
+    ((), "\\u0022" + GLUED, "\\u0022" + MARK),
+    ((), "\\x0a" + GLUED, "\\x0a" + MARK),
+    ((), "\x1b[1m" + GLUED, "\x1b[1m" + MARK),
+    ((), "\x1b[31m" + GLUED, "\x1b[31m" + MARK),
+    ((), "\x1b[0;1m" + GLUED, "\x1b[0;1m" + MARK),
+    ((), "\x1b[1;31m" + GLUED, "\x1b[1;31m" + MARK),
+    ((), "\x1b[01;31m" + GLUED, "\x1b[01;31m" + MARK),
+    # every GitHub token prefix
+    ((), "ghu_" + _GH36, MARK),
+    ((), "ghs_" + _GH36, MARK),
+    ((), "ghr_" + _GH36, MARK),
+    # a GitHub token glued straight to another key: no part of either body survives
+    ((), "ghp_" + _GH36 + _TOK, MARK),
+    ((), _TOK + _PAT, MARK),
+    ((), _PAT + "_" + "y" * 40 + _TOK, MARK),
+    ((), "ghs_" + "S" * 33 + "ghp_" + _GH36, MARK),
+    ((), "ghu_" + "U" * 30 + _PAT, MARK),
+    ((), "ghs_" + "S" * 32 + "ghp_" + _GH36, "ghs_" + "S" * 32 + MARK),
+    ((), "ghp_" + _GH36 + GLUED, MARK),
+    ((), _PAT + GLUED, MARK),
+    ((), "x " + _TOK + _TOK + _PAT + " y", "x " + MARK + " y"),
+    # ... and the rest of the token's word, "-" and "_" included, goes with it
+    ((), "Bearer " + _TOK + "-retry-2.", "Bearer " + MARK + "."),
 )
 
 # (environment mapping, input text, expected text) for a redactor built from a mapping.
