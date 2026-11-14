@@ -1,7 +1,7 @@
 """`parse(bytes)` is the one reader of handoff bytes and returns a typed `HandoffDocument`.
 
-`reader.read_reader(document)` and `basis.read_basis(block)` are typed readings of what it
-returns.
+`reader.read_reader(document)`, `basis.read_basis(block)` and the views in `data` are typed
+readings of what it returns.
 
 The file must hold the six level-2 sections in order; an optional front matter and one
 level-1 title come first. Sections nest by heading level and own the blocks under them.
@@ -14,7 +14,7 @@ from credit_os.handoff.blocks import Block, read_blocks
 from credit_os.handoff.errors import HandoffError, echo
 from credit_os.handoff.frontmatter import FrontMatter, read_front_matter
 from credit_os.handoff.lines import count_terminators, split_lines
-from credit_os.handoff.scan import Heading, Node, scan
+from credit_os.handoff.scan import Comment, Heading, Node, scan
 
 _REQUIRED = ("Request", "Sources", "Findings", "Calculations", "Gaps", "Next module")
 
@@ -34,6 +34,7 @@ class HandoffDocument(Node):
     front_matter: FrontMatter | None
     title: Heading | None
     sections: tuple[Section, ...]
+    comments: tuple[Comment, ...]
 
 
 def _decode(data: bytes) -> str:
@@ -134,4 +135,5 @@ def parse(data: bytes) -> HandoffDocument:
         front_matter=front_matter,
         title=title,
         sections=_sections(body, blocks, len(lines)),
+        comments=result.comments,
     )
