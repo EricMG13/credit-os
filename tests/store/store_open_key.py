@@ -44,5 +44,5 @@ BAD_READ_BACKS: dict[str, object] = {"journal_mode": "wal", "synchronous": 1, "f
 # write leaves as this class, the file's bytes unchanged.
 UNSEEN_DENIAL_FILE_MODE = 0o400
 UNSEEN_DENIAL_ERROR = "StoreUnusable"
-# The SQLite primary result code on the first write's cause: SQLITE_READONLY.
-UNSEEN_DENIAL_CAUSE_CODE = 8
+# The SQLite result code on the first write's cause: SQLITE_READONLY (8, no extended code).
+UNSEEN_DENIAL_CODE = 8
