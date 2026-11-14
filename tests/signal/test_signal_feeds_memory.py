@@ -11,8 +11,10 @@ test reads a large genuine feed whole.
 """
 
 import gc
+import itertools
+import string
 import tracemalloc
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import pytest
 
@@ -108,6 +110,49 @@ def _distinct_elements(uri: bytes, count: int) -> bytes:
     return pre + b"".join(b"<p:e%d/>" % n for n in range(count)) + post
 
 
+# R45. One element whose attribute or declaration names all differ and are at most 3 UTF-8 bytes
+# a character (the CJK ideographs and Hangul syllables are 3 bytes and not cached as str).
+_WIDE3 = [chr(c) for c in itertools.chain(range(0x4E00, 0x9FA6), range(0xAC00, 0xD7A4))]
+_REST = string.ascii_letters + string.digits
+_BINDINGS = b"".join(b' xmlns:%s="%s"' % (p.encode(), p.encode()) for p in string.ascii_letters)
+
+
+def _wide_names() -> Iterator[str]:
+    yield from _WIDE3
+    yield from (a + b for b in _REST for a in _WIDE3)
+
+
+def _one_element(pre: bytes, names: Iterator[str], value: str, prefixed: bool) -> bytes:
+    """``<e name="value" ...>`` for as many names as fit in MAX_BYTES, in a feed that reads."""
+    head = _D0 + (b"<d" + _BINDINGS + b"><e" if prefixed else b"<e")
+    tail = b"/>" + (b"</d>" if prefixed else b"") + _D1
+    out, used = [head], len(head) + len(tail)
+    for name in names:
+        unit = b" " + pre + name.encode() + b'="' + value.encode() + b'"'
+        if used + len(unit) > MAX_BYTES:
+            break
+        out.append(unit)
+        used += len(unit)
+    return b"".join([*out, tail])
+
+
+def _prefixed_names() -> Iterator[str]:
+    return (f"{p}:{c}" for p in string.ascii_letters for c in _WIDE3)
+
+
+def _declarations() -> bytes:
+    prefixes = _wide_names()
+    head, tail = _D0 + b"<d", b"/>" + _D1
+    out, used = [head], len(head) + len(tail)
+    for prefix in prefixes:
+        unit = b" xmlns:" + prefix.encode() + b'="' + "ж".encode() + b'"'
+        if used + len(unit) > MAX_BYTES:
+            break
+        out.append(unit)
+        used += len(unit)
+    return b"".join([*out, tail])
+
+
 CASES: dict[str, Callable[[int], bytes]] = {
     "html one tag with a million attributes": lambda s: _fill(_C0 + b"<a ", b"b ", b">" + _C1, s),
     "html unclosed tag with attributes": lambda s: _fill(_C0 + b"<a ", b"b=c ", _C1, s),
@@ -197,6 +242,16 @@ CASES: dict[str, Callable[[int], bytes]] = {
     "namespace of 64 Ki astral characters, 266 elements": lambda s: _distinct_elements(
         _namespace(65536, "\U0001f600"), 266
     ),
+    "R45 one element of distinct unprefixed names of 3 bytes, wide first": lambda s: _one_element(
+        b"", _wide_names(), "ж", False
+    ),
+    "R45 one element of prefixed attributes a:wide": lambda s: _one_element(
+        b"", _prefixed_names(), "ж", True
+    ),
+    "R45 one element of xml:wide attributes": lambda s: _one_element(
+        b"xml:", _wide_names(), "", False
+    ),
+    "R45 one element of wide namespace declarations": lambda s: _declarations(),
     "title of 2-byte letters": lambda s: _fill(
         b'<rss version="2.0"><channel><item><link>https://e.org/a</link><title>',
         _LETTER,
@@ -275,10 +330,17 @@ CASES.update(TEXT_CASES)
 
 _TOO_MANY_ELEMENTS = f"feed has more than {MAX_ELEMENTS} elements"
 _TOO_MANY_ATTRIBUTES = f"feed has an element with more than {MAX_ATTRIBUTES} attributes"
+_TOO_MANY_DECLARATIONS = (
+    f"feed has an element with more than {MAX_ATTRIBUTES} namespace declarations"
+)
 _LONG_NAMES = "feed element names are too long"  # MAX_NAME_CHARS
 _LONG_NAMESPACE = f"feed has a namespace URI of more than {MAX_NAMESPACE_CHARS} characters"
 # The cases that are refused, with the message of the constant that refuses them.
 REFUSED = {
+    "R45 one element of prefixed attributes a:wide": _TOO_MANY_ATTRIBUTES,
+    "R45 one element of xml:wide attributes": _TOO_MANY_ATTRIBUTES,
+    "R45 one element of wide namespace declarations": _TOO_MANY_DECLARATIONS,
+    "R45 one element of distinct unprefixed names of 3 bytes, wide first": _TOO_MANY_ATTRIBUTES,
     "atom xhtml summary of small elements": _TOO_MANY_ELEMENTS,
     "small elements": _TOO_MANY_ELEMENTS,
     "small elements in the Atom namespace": _TOO_MANY_ELEMENTS,
@@ -353,3 +415,21 @@ def test_a_genuine_feed_of_1000_xhtml_entries_of_100_elements_is_read_whole() ->
     assert [e.title for e in result] == [f"Entry {n}" for n in range(1000)]
     assert all(e.summary.startswith("w0 w1 w2") for e in result)
     assert peak < CEILING
+
+
+def _element_with(attributes: int, declarations: int) -> bytes:
+    names = b"".join(b' a%d=""' % n for n in range(attributes))
+    bound = b"".join(b' xmlns:p%d="u:%d"' % (n, n) for n in range(declarations))
+    return _D0 + b"<d" + names + bound + b"/>" + _D1
+
+
+def test_257_namespace_declarations_on_one_element_are_refused() -> None:
+    _, result = _peak(_element_with(0, MAX_ATTRIBUTES + 1))
+    assert isinstance(result, FeedError)
+    assert str(result) == _TOO_MANY_DECLARATIONS
+
+
+@pytest.mark.parametrize("attributes", [0, MAX_ATTRIBUTES])
+def test_256_namespace_declarations_on_one_element_are_read(attributes: int) -> None:
+    _, result = _peak(_element_with(attributes, MAX_ATTRIBUTES))
+    assert isinstance(result, list), result
