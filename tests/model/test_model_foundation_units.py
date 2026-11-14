@@ -128,7 +128,7 @@ def test_the_foundation_text_holds_labels_columns_cells_and_list_items_in_order(
 
 def test_the_new_refusal_kinds_follow_cell() -> None:
     kinds = [kind.value for kind in RefusalKind]
-    assert kinds[-3:] == ["cell", "unit", "currency"]
+    assert kinds[-4:] == ["cell", "unit", "currency", "facility"]
 
 
 _CALC = "Net debt is Total Debt less Cash & Equivalents.\n"
