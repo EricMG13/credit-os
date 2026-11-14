@@ -7,6 +7,7 @@ Expected values are literals. Nothing here reaches beyond 127.0.0.1.
 
 from __future__ import annotations
 
+import http.client
 import logging
 import socket
 import threading
@@ -85,10 +86,12 @@ def test_a_json_body_that_names_a_field_twice_is_refused_and_sets_no_cookie(
 
 
 def test_a_json_body_needs_content_length(svc: Live) -> None:
-    sock = raw(svc, f"POST /api/me HTTP/1.1\r\nHost: 127.0.0.1:{svc.port}\r\n".encode())
-    sock.sendall(f"Origin: http://127.0.0.1:{svc.port}\r\n\r\n".encode())
-    assert read_all(sock).split(b"\r\n")[0] == b"HTTP/1.0 411 Length Required"
-    sock.close()
+    connection = http.client.HTTPConnection("127.0.0.1", svc.port, timeout=20)
+    connection.putrequest("POST", "/api/me", skip_accept_encoding=True)
+    connection.putheader("Origin", f"http://127.0.0.1:{svc.port}")
+    connection.endheaders()
+    assert connection.getresponse().status == 411
+    connection.close()
 
 
 def test_a_wildcard_host_is_refused_at_start(tmp_path: Path) -> None:
