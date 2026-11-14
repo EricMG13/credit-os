@@ -24,6 +24,9 @@ class ForecastRefused(Exception):
         self.subject = subject
         self.message = message
 
+    def __reduce__(self) -> tuple[type, tuple[RefusalKind, str, str]]:
+        return (type(self), (self.kind, self.subject, self.message))
+
 
 class ForecastDeclined(Exception):
     """The handoff gives no forecast drivers: the method declines, nothing to repair."""
@@ -32,3 +35,6 @@ class ForecastDeclined(Exception):
         text = "the handoff gives no forecast drivers, so no forecast was computed"
         super().__init__(f"{text} ({reason})" if reason else text)
         self.reason = reason
+
+    def __reduce__(self) -> tuple[type, tuple[str]]:
+        return (type(self), (self.reason,))

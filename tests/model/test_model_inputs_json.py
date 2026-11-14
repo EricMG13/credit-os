@@ -1,6 +1,8 @@
 """The forecast block of a handoff: its text, strict JSON and the declined block."""
 
+import copy
 import json
+import pickle
 import sys
 from pathlib import Path
 from typing import Any
@@ -55,28 +57,38 @@ def test_blocks(row: Any, newline: str) -> None:
         refused_by(lambda: forecast_block(document), RefusalKind.BLOCK, name, fields)
 
 
-def assert_plain_ints(value: Any) -> None:
-    if isinstance(value, dict):
-        for item in value.values():
-            assert_plain_ints(item)
-    elif isinstance(value, list):
-        for item in value:
-            assert_plain_ints(item)
-    elif isinstance(value, int) and not isinstance(value, bool):
-        assert type(value) is int
+def assert_same(got: Any, expected: Any) -> None:
+    """Equal and of the same type at every node, dict keys in the same order."""
+    assert type(got) is type(expected)
+    if isinstance(expected, dict):
+        assert list(got) == list(expected)
+        for key in expected:
+            assert_same(got[key], expected[key])
+    elif isinstance(expected, list):
+        assert len(got) == len(expected)
+        for got_item, expected_item in zip(got, expected, strict=True):
+            assert_same(got_item, expected_item)
+    else:
+        assert got == expected
 
 
 @pytest.mark.parametrize("text", KEY["json"]["accepted"])
 def test_json_accepted(text: str) -> None:
-    result = read_object(text)
-    assert result == json.loads(text)
-    assert_plain_ints(result)
+    assert_same(read_object(text), json.loads(text))
 
 
 @pytest.mark.parametrize("row", KEY["json"]["refused"], ids=lambda row: row[0])
 def test_json_refused(row: Any) -> None:
     _, text, name, fields = row
     refused_by(lambda: read_object(text), RefusalKind.JSON, name, fields)
+    with pytest.raises(ForecastRefused) as caught:
+        read_object(text)
+    assert caught.value.message.encode("utf-8")
+
+
+def test_surrogate_keys_are_unicode_not_repeated() -> None:
+    refused_by(lambda: read_object('{"\\ud800": 1, "\\ud800": 2}'), RefusalKind.JSON, "unicode", {})
+    refused_by(lambda: read_object('{"a": {"\\udc00": 1}}'), RefusalKind.JSON, "unicode", {})
 
 
 def nested(levels: int) -> str:
@@ -109,6 +121,28 @@ def test_only_brackets_count_as_depth() -> None:
     refused_by(lambda: read_object("[" * 64 + "X[" + "]" * 65), RefusalKind.JSON, "too_deep", {})
 
 
+def _arrays(count: int) -> Any:
+    value: Any = []
+    for _ in range(count - 1):
+        value = [value]
+    return value
+
+
+def test_depth_after_an_escaped_backslash() -> None:
+    def text(brackets: int) -> str:
+        return '{"a": "x\\\\", "b": ' + "[" * brackets + "]" * brackets + "}"
+
+    refused_by(lambda: read_object(text(64)), RefusalKind.JSON, "too_deep", {})
+    assert read_object(text(63)) == {"a": "x\\", "b": _arrays(63)}
+
+
+def test_keys_are_compared_exactly() -> None:
+    assert list(read_object('{"A": 1, "a": 2}')) == ["A", "a"]
+    both = read_object('{"\\u00e9": 1, "e\\u0301": 2}')
+    assert list(both) == ["\u00e9", "e\u0301"]
+    assert list(both.values()) == [1, 2]
+
+
 def test_length() -> None:
     base = '{"a": 1}'
     assert read_object(base + " " * (200_000 - len(base))) == {"a": 1}
@@ -118,7 +152,8 @@ def test_length() -> None:
 
 
 def test_integer_digits() -> None:
-    assert read_object('{"a": ' + "9" * 15 + "}") == {"a": 999999999999999}
+    """The int-digit limit is interpreter-wide: do not run this test in parallel in one process."""
+    assert_same(read_object('{"a": ' + "9" * 15 + "}"), {"a": 999999999999999})
     long_text = '{"a": ' + "1" * 5000 + "}"
     refused_by(lambda: read_object(long_text), RefusalKind.JSON, "integer", {})
     previous = sys.get_int_max_str_digits()
@@ -163,7 +198,11 @@ def test_long_token_is_echoed() -> None:
     refused_by(lambda: read_object('{"a": 1' + "0" * 20 + "}"), RefusalKind.JSON, "integer", {})
 
 
-@pytest.mark.parametrize("bad", [b"{}", None, 7])
+class _Text(str):
+    pass
+
+
+@pytest.mark.parametrize("bad", [b"{}", None, 7, _Text("{}")])
 def test_read_object_type(bad: Any) -> None:
     with pytest.raises(TypeError, match="^text must be a str$"):
         read_object(bad)
@@ -254,6 +293,23 @@ def test_refused_construction() -> None:
             ForecastRefused(RefusalKind.BLOCK, subject, text)
 
 
+def test_exceptions_survive_pickle_and_copy() -> None:
+    errors: list[Exception] = [
+        ForecastRefused(RefusalKind.JSON, "forecast inputs", "a sentence"),
+        ForecastDeclined("why"),
+        ForecastDeclined(""),
+    ]
+    for error in errors:
+        for clone in (
+            pickle.loads(pickle.dumps(error)),
+            copy.copy(error),
+            copy.deepcopy(error),
+        ):
+            assert type(clone) is type(error)
+            assert vars(clone) == vars(error)
+            assert str(clone) == str(error)
+
+
 def test_declined_construction() -> None:
     plain = ForecastDeclined("")
     assert plain.reason == ""
@@ -269,14 +325,19 @@ LEAVES = st.one_of(
     st.booleans(),
     st.none(),
 )
-VALUES = st.recursive(
-    LEAVES,
-    lambda inner: st.one_of(st.lists(inner, max_size=3), st.dictionaries(TEXT, inner, max_size=3)),
-    max_leaves=12,
-)
+
+
+def _nested(levels: int) -> st.SearchStrategy[Any]:
+    strategy: st.SearchStrategy[Any] = LEAVES
+    for _ in range(levels):
+        strategy = st.one_of(
+            LEAVES, st.lists(strategy, max_size=2), st.dictionaries(TEXT, strategy, max_size=2)
+        )
+    return strategy
 
 
 @settings(max_examples=150, deadline=None)
-@given(value=st.dictionaries(TEXT, VALUES, max_size=4), ascii_only=st.booleans())
-def test_round_trip(value: dict[str, Any], ascii_only: bool) -> None:
-    assert read_object(json.dumps(value, ensure_ascii=ascii_only)) == value
+@given(value=st.dictionaries(TEXT, _nested(4), max_size=3))
+def test_round_trip(value: dict[str, Any]) -> None:
+    for ascii_only in (True, False):
+        assert_same(read_object(json.dumps(value, ensure_ascii=ascii_only)), value)

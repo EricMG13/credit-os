@@ -1,7 +1,7 @@
 """Find the forecast block of a handoff, read it as strict JSON, recognise a declined block."""
 
 import json
-from typing import Any
+from typing import Any, NoReturn
 
 from credit_os.handoff.data import read_data_sections
 from credit_os.handoff.document import HandoffDocument
@@ -13,6 +13,7 @@ MAX_CHARACTERS = 200_000
 MAX_INTEGER_DIGITS = 15
 _SUBJECT = "forecast inputs"
 _BLOCK = "the `Forecast inputs` section needs exactly one closed fenced json block"
+_UNICODE = "the forecast inputs block holds a string that is not valid Unicode"
 _FRACTION = (
     "the forecast inputs block states the number {} with a fraction or an exponent: "
     "write amounts, rates and shares as strings"
@@ -56,11 +57,11 @@ def _too_deep(text: str) -> bool:
     return False
 
 
-def _fraction(token: str) -> Any:
+def _fraction(token: str) -> NoReturn:
     raise _refuse(RefusalKind.JSON, _FRACTION.format(echo(token)))
 
 
-def _constant(token: str) -> Any:
+def _constant(token: str) -> NoReturn:
     message = f"the forecast inputs block states {echo(token)}, which is not a number"
     raise _refuse(RefusalKind.JSON, message)
 
@@ -73,6 +74,8 @@ def _integer(token: str) -> int:
 
 
 def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    if any(_has_surrogate(key) for key, _ in pairs):
+        raise _refuse(RefusalKind.JSON, _UNICODE)
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -93,7 +96,7 @@ def _has_surrogate(value: object) -> bool:
 
 
 def read_object(text: str) -> dict[str, object]:
-    if not isinstance(text, str):
+    if type(text) is not str:
         raise TypeError("text must be a str")
     if len(text) > MAX_CHARACTERS:
         raise _refuse(
@@ -117,9 +120,7 @@ def read_object(text: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise _refuse(RefusalKind.JSON, "the forecast inputs block is not a JSON object")
     if _has_surrogate(value):
-        raise _refuse(
-            RefusalKind.JSON, "the forecast inputs block holds a string that is not valid Unicode"
-        )
+        raise _refuse(RefusalKind.JSON, _UNICODE)
     return value
 
 
