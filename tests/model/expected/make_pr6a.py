@@ -1,4 +1,4 @@
-"""Answer key for 1B PR 6a (units named, the currency named) and PR 6a2 (R46), by the controller.
+"""Answer key for 1B PR 6a (units named, the currency named), 6a2 (R46) and 6a3 (R49), by the controller.
 
 Every figure, name and text is invented. Rows hold inputs only, as in `make_pr5.py`, whose
 oracle this script loads for the foundation's tables, the cells, the numbers and the cell check;
@@ -12,7 +12,12 @@ level-2 headings are not the handoff's six, in order, is the parser's own refusa
 `handoff/document.py` words it. R46 (PR 6a2): thousands, millions and billions; billions is
 never a block's unit, so a row naming it, and not the block's unit, is refused under either
 scale. Each of the twelve forms the 6a review found is a row under both blocks. R48: no letter
-before a letter code; a bare sign takes none. Run this file to write `pr6a.json` next to it.
+before a letter code; a bare sign takes none. R49 (PR 6a3), with R49a and R49b: marks before a
+letter code, glued or after one space (capital `T` for thousands as well as `k`), `000` after a
+code or sign and one space, `(000)` and `MM` standing alone, and the glued marks also name the
+currency. R50: only the operand's header, the first header cell and a `Unit` or `Units` column
+excuse a group; any cell can raise an issue. R51: capital `M` glued before `US$` or `$` is an
+ambiguous unit, refused under both blocks. Run this file to write `pr6a.json` next to it.
 """
 
 import importlib.util
@@ -32,24 +37,42 @@ SPEC.loader.exec_module(PR5)
 # form. R48: no letter before a letter code; a bare sign takes none (`C$m`, `HK$m`, `A$000`).
 CURRENCY = r"(?:(?<![A-Za-z])(?:US\$|USD|EUR|GBP)|[$€£])"
 SIGN = r"(?:US\$|[$€£])"
-UNITS = ["billions", "millions", "thousands"]
-WORDS_OF = {"thousands": "thousands?", "millions": "millions?|mln", "billions": "billions?|bln|bn"}
+# R51: capital `M` glued directly before `US$` or `$` (`MUS$`, `M$`) may mean thousands (Chilean
+# statements) or millions: an ambiguous unit, never a block's, and never read as millions.
+AMBIGUOUS = r"(?<![A-Za-z])(?-i:M)(?:US\$|\$)"
+UNITS = ["ambiguous", "billions", "millions", "thousands"]
+WORDS_OF = {
+    "thousands": "thousands?",
+    "millions": "millions?|mln|mm",
+    "billions": "billions?|bln|bn",
+}
 MARKS = {"thousands": "k", "millions": "mln|mm|mn|m", "billions": "bln|bn"}
+# R49, R49a, R49b: the marks before a code or sign (capital T is thousands too, never after a
+# code), the marks glued before a letter code, and the letter codes they go before.
+BEFORE = {**MARKS, "thousands": "k|(?-i:T)"}
+GLUED = {"thousands": "k|(?-i:T)", "millions": "m"}
+CODES = "USD|EUR|GBP"
 ZEROS = "000s?"
 SUFFIX = "|".join([ZEROS, *MARKS.values()])
 
 
 def unit_pattern(unit: str) -> "re.Pattern[str]":
+    if unit == "ambiguous":
+        return re.compile(AMBIGUOUS, re.IGNORECASE)
     forms = [
         rf"(?<![A-Za-z])(?:{WORDS_OF[unit]})(?![A-Za-z])",
         rf"{CURRENCY}\s?(?:{MARKS[unit]})(?![A-Za-z])",
-        rf"(?<![A-Za-z])(?:{MARKS[unit]})\s?{SIGN}",
+        rf"(?<![A-Za-z])(?!(?-i:M)(?:US\$|\$))(?:{BEFORE[unit]})\s?{SIGN}",
+        rf"(?<![A-Za-z0-9])(?:{BEFORE[unit]})\s(?:{CODES})(?![A-Za-z])",
     ]
+    if unit in GLUED:
+        forms.append(rf"(?<![A-Za-z])(?:{GLUED[unit]})(?:{CODES})(?![A-Za-z])")
     if unit == "thousands":
         forms += [
-            rf"{CURRENCY}['’]?{ZEROS}(?![A-Za-z0-9])",
+            rf"{CURRENCY}(?:['’]|\s)?{ZEROS}(?![A-Za-z0-9])",
             rf"(?<![0-9])['’]{ZEROS}(?![A-Za-z0-9])",
             r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
+            r"(?<![A-Za-z0-9])\(000\)(?![A-Za-z0-9])",
         ]
     return re.compile("|".join(forms), re.IGNORECASE)
 
@@ -59,6 +82,8 @@ SIGNS = {"USD": r"(?i:(?<![A-Za-z])US\$)", "EUR": "€", "GBP": "£"}
 MESSAGES = {
     "unit": "base {key}: row `{row}` states its {what} as `{cell}`, not the block's unit ({unit}); "
     "state a reason instead of an amount",
+    "ambiguous": "base {key}: row `{row}` states its {what} as `{cell}`, whose mark is ambiguous "
+    "(thousands or millions), not the block's unit ({unit}); state a reason instead of an amount",
     "currency": "CP-1 nowhere names `{currency}`: state `currency` as the three-letter code of the "
     "currency CP-1 reports its figures in.",
 }
@@ -90,9 +115,13 @@ def units_named(text: str) -> list[str]:
 
 
 def names_currency(text: str, currency: str) -> bool:
-    forms = [rf"(?<![A-Za-z]){currency}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
+    prefix = "|".join(GLUED.values())
+    forms = [rf"(?<![A-Za-z])(?i:{prefix})?{currency}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
     forms += [SIGNS[currency]] if currency in SIGNS else []
     return re.search("|".join(forms), text) is not None
+
+
+UNIT_COLUMNS = ("Unit", "Units")
 
 
 def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: str) -> str | None:
@@ -105,14 +134,21 @@ def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: 
             for line in (r for r in body if PR5.plain(r[0]) == PR5.plain(operand["row"])):
                 group = [(f"{kind} header", head[c]), ("first header cell", head[0])]
                 group += [(PR5.plain(head[i]), cell) for i, cell in enumerate(line) if i != c]
-                if not any(block in units_named(cell) for _, cell in group):
+                excuse = [head[c], head[0]]
+                excuse += [
+                    cell
+                    for i, cell in enumerate(line)
+                    if i != c and PR5.plain(head[i]) in UNIT_COLUMNS
+                ]
+                if not any(block in units_named(cell) for cell in excuse):
                     issues += [(w, cell) for w, cell in group if set(units_named(cell)) - {block}]
     if not issues:
         return None
     what, cell = min(issues)
     unit = f"{currency} millions, scale 1" if scale == 1 else f"{currency} thousands, scale 1000"
     row = PR5.echo(PR5.plain(operand["row"]))
-    return MESSAGES["unit"].format(
+    message = MESSAGES["ambiguous" if "ambiguous" in units_named(cell) else "unit"]
+    return message.format(
         key=key, row=row, what=PR5.echo(what), cell=PR5.echo(PR5.plain(cell)), unit=unit
     )
 
@@ -306,9 +342,9 @@ WORDS: list[Any] = [
     ["1USD k", ["thousands"]],
     ["1€m", ["millions"]],
     ["bnUS$", ["billions"]],
-    ["kEUR", []],
-    ["kUSD", []],
-    ["mm", []],
+    ["kEUR", ["thousands"]],
+    ["kUSD", ["thousands"]],
+    ["mm", ["millions"]],
     ["$b", []],
     ["USD b", []],
     ["GBP000x", []],
@@ -336,6 +372,80 @@ WORDS: list[Any] = [
     ["k  €", []],
     ["mn  $", []],
     ["bln  £", ["billions"]],
+    # R49, R49b: marks before a letter code, glued or after one space; capital T; `000` after a
+    # code or sign and one space; `(000)` and `MM` standing alone. Then the controls.
+    ["TEUR", ["thousands"]],
+    ["KEUR", ["thousands"]],
+    ["TUSD", ["thousands"]],
+    ["kGBP", ["thousands"]],
+    ["MEUR", ["millions"]],
+    ["MUSD", ["millions"]],
+    ["mGBP", ["millions"]],
+    ["T€", ["thousands"]],
+    ["T $", ["thousands"]],
+    ["TUS$", ["thousands"]],
+    ["T EUR", ["thousands"]],
+    ["k EUR", ["thousands"]],
+    ["m EUR", ["millions"]],
+    ["mn USD", ["millions"]],
+    ["mm GBP", ["millions"]],
+    ["bn USD", ["billions"]],
+    ["€ 000", ["thousands"]],
+    ["USD 000", ["thousands"]],
+    ["$ 000", ["thousands"]],
+    ["GBP 000s", ["thousands"]],
+    ["(000)", ["thousands"]],
+    ["EUR (000)", ["thousands"]],
+    ["in MM", ["millions"]],
+    ["MM", ["millions"]],
+    ["Class T EUR", ["thousands"]],
+    ["ITEM EUR", []],
+    ["TEAM USD", []],
+    ["from EUR", []],
+    ["AT€", []],
+    ["COMM", []],
+    ["1 000", []],
+    ["t EUR", []],
+    ["tEUR", []],
+    ["Class AT EUR", []],
+    ["km EUR", []],
+    ["5m EUR", []],
+    ["EUR T", []],
+    ["TEURO", []],
+    ["USD 1 000", []],
+    ["x(000)", []],
+    ["1(000)", []],
+    ["(0001)", []],
+    # R51, then the 6a3 reviews: each new form's whitespace and lookarounds.
+    ["MUS$", ["ambiguous"]],
+    ["M$", ["ambiguous"]],
+    ["MMUS$", ["millions"]],
+    ["MM$", ["millions"]],
+    ["MGBP", ["millions"]],
+    ["kUS$", ["thousands"]],
+    ["mUS$", ["millions"]],
+    ["M US$", ["millions"]],
+    ["AMUS$", []],
+    ["T EUR", ["thousands"]],
+    ["T\tEUR", ["thousands"]],
+    ["EUR 000", ["thousands"]],
+    ["k  EUR", []],
+    ["EUR  000", []],
+    ["(000)s", []],
+    ["(000)1", []],
+    ["ATEUR", []],
+    ["AkEUR", []],
+    ["5kEUR", ["thousands"]],
+    ["kEUR5", ["thousands"]],
+    ["k EURO", []],
+    ["m EURO", []],
+    ["MMUSD", []],
+    ["bnEUR", []],
+    ["mmEUR", []],
+    ["mnEUR", []],
+    # R52: the 6a3 re-review's entries for R51.
+    ["5MUS$", ["ambiguous"]],
+    ["Mus$", ["ambiguous"]],
 ]
 CURRENCIES: list[Any] = [
     ["Statements (EURm)", "EUR", True],
@@ -380,6 +490,20 @@ CURRENCIES: list[Any] = [
     ["_USD_", "USD", True],
     ["aUSD", "USD", False],
     ["USDmillions", "USD", False],
+    # R49a: a mark glued before the code names the currency too.
+    ["TEUR", "EUR", True],
+    ["kEUR", "EUR", True],
+    ["MEUR", "EUR", True],
+    ["MUSD", "USD", True],
+    ["KGBP", "GBP", True],
+    ["tEUR", "EUR", False],
+    ["ATEUR", "EUR", False],
+    ["AkEUR", "EUR", False],
+    ["kmEUR", "EUR", False],
+    ["TEURO", "EUR", False],
+    ["MUSDA", "USD", False],
+    ["mnEUR", "EUR", False],
+    ["bnUSD", "USD", False],
 ]
 # R46 rows: each form in the unit table of a `Revenue check` row, under the block whose unit it
 # names (accepted) and under the other block (refused); billions is refused under both.
@@ -397,8 +521,33 @@ FORMS = [
     ["USD billions", "billions"],
     ["€bn", "billions"],
 ]
+FORMS_R49 = [
+    ["kEUR", "thousands"],
+    ["TEUR", "thousands"],
+    ["T€", "thousands"],
+    ["T EUR", "thousands"],
+    ["MEUR", "millions"],
+    ["MUSD", "millions"],
+    ["m EUR", "millions"],
+    ["€ 000", "thousands"],
+    ["USD 000", "thousands"],
+    ["(000)", "thousands"],
+    ["in MM", "millions"],
+]
+CONTROLS_R49 = [
+    ("ITEM EUR", 1000),
+    ("TEAM USD", 1000),
+    ("from EUR", 1000),
+    ("AT€", 1),
+    ("COMM", 1000),
+    ("1 000", 1),
+    ("t EUR", 1),
+    ("Class AT EUR", 1),
+    ("km EUR", 1),
+]
 NOT_UNITS = [("10 km", 1), ("commitments", 1000), ("1,000 shares", 1), ("multimillion", 1000)]
 CALC_TEXT = json.loads(f'"{CALC}"')
+NO_USD_EDITS = json.loads(f"[{NO_USD}]")
 
 
 def unit_row(label: str, cell: str, scale: int, unit: str = "Unit") -> Doc:
@@ -440,6 +589,125 @@ def r46_rows() -> list[Doc]:
             "ops": [[["base", "revenue", "row"], "Revenue check"]],
         }
     )
+    for form, unit in FORMS_R49:
+        for scale, block in ((1, "millions"), (1000, "thousands")):
+            reading = "the block's unit" if unit == block else f"{unit}, not the block's {block}"
+            rows.append(unit_row(f"R49: `{form}` under a {block} block is {reading}", form, scale))
+    for text, scale in CONTROLS_R49:
+        rows.append(unit_row(f"R49: `{text}` at scale {scale} names no unit", text, scale))
+    for code, prefixed, ops in (("EUR", "MEUR", [[["currency"], "EUR"]]), ("USD", "MUSD", [])):
+        for text, named in ((prefixed, "names"), (f"A{prefixed}", "does not name")):
+            edits = [*NO_USD_EDITS, [CALC_TEXT, f"{CALC_TEXT}\nAmounts are in {text}.\n"]]
+            label = f"R49a: `{text}` alone {named} {code}"
+            rows.append({"label": label, "edits": edits, "ops": ops})
+    # R50: only the operand's header, the first header cell and a `Unit`/`Units` column excuse.
+    head3, rule3 = "| Line item | FY2024 | Unit |\n", "| --- | --- | --- |\n"
+    note4, rule4 = "| Line item | FY2024 | Unit | Note |\n", "| --- | --- | --- | --- |\n"
+    r50 = [
+        (
+            "a label reading `T EUR` does not excuse a Unit cell in millions",
+            1000,
+            "Class T EUR notes",
+            head3 + rule3 + "| Class T EUR notes | 1,456,000 | EUR m |\n",
+            [],
+        ),
+        (
+            "a label reading `MM` does not excuse a Unit cell in thousands",
+            1,
+            "Cash and MM funds",
+            head3 + rule3 + "| Cash and MM funds | 1,456 | USD k |\n",
+            [],
+        ),
+        (
+            "a value cell `(000)` does not excuse a Unit cell in millions",
+            1000,
+            "Revenue check",
+            "| Line item | FY2024 | FY2023 | Unit |\n"
+            + rule4
+            + "| Revenue check | 1,456,000 | (000) | USD m |\n",
+            [],
+        ),
+        (
+            "a label reading `T $` does not excuse a Unit cell in millions",
+            1000,
+            "AT&T $ notes",
+            head3 + rule3 + "| AT&T $ notes | 1,456,000 | USD m |\n",
+            [],
+        ),
+        (
+            "a Note cell reading `mm` does not excuse a Unit cell in thousands",
+            1,
+            "Revenue check",
+            note4 + rule4 + "| Revenue check | 1,456 | USD k | 10 mm plate |\n",
+            [],
+        ),
+        (
+            "a `Units` column excuses a Note in the other unit",
+            1,
+            "Revenue check",
+            "| Line item | FY2024 | Units | Note |\n"
+            + rule4
+            + "| Revenue check | 1,456 | USD millions | in thousands |\n",
+            [],
+        ),
+        (
+            "a column headed `unit` in lower case does not excuse",
+            1,
+            "Revenue check",
+            "| Line item | FY2024 | unit | Note |\n"
+            + rule4
+            + "| Revenue check | 1,456 | USD millions | in thousands |\n",
+            [],
+        ),
+        (
+            "the first header cell excuses a Note in the other unit",
+            1,
+            "Revenue check",
+            "| Line item (USD millions) | FY2024 | Note |\n"
+            + rule3
+            + "| Revenue check | 1,456 | in thousands |\n",
+            [],
+        ),
+        (
+            "the named period's header excuses a Note in the other unit",
+            1,
+            "Revenue check",
+            "| Line item | FY2024 USD millions | Note |\n"
+            + rule3
+            + "| Revenue check | 1,456 | in thousands |\n",
+            [[["base", "revenue", "period"], "FY2024 USD millions"]],
+        ),
+    ]
+    for label, scale, row, table, more in r50:
+        foundation = "foundation-thousands.md" if scale == 1000 else "foundation.md"
+        ops = [[["base", "revenue", "row"], row], *more]
+        edits = [[CALC_TEXT, f"{CALC_TEXT}\n{table}"]]
+        rows.append(
+            {"label": f"R50: {label}", "foundation": foundation, "edits": edits, "ops": ops}
+        )
+    # R51: `MUS$` and `M$` are refused under both blocks; `MMUS$` stays millions.
+    for form, unit in (("MUS$", "ambiguous"), ("M$", "ambiguous"), ("MMUS$", "millions")):
+        for scale, block in ((1, "millions"), (1000, "thousands")):
+            reading = "the block's unit" if unit == block else f"{unit}, not the block's {block}"
+            rows.append(unit_row(f"R51: `{form}` under a {block} block is {reading}", form, scale))
+    # R52: the 6a3 re-review's rows for R50 and R51.
+    r52 = [
+        (
+            "R50: a column titled `first header cell` does not excuse",
+            "| Line item | FY2024 | first header cell | Unit |\n"
+            + rule4
+            + "| Revenue check | 1,456 | USD millions | USD k |\n",
+        ),
+        (
+            "R51: a Note chosen before an ambiguous Unit cell takes the unit message",
+            note4 + rule4 + "| Revenue check | 1,456 | MUS$ | in thousands |\n",
+        ),
+    ]
+    for label, table in r52:
+        edits = [[CALC_TEXT, f"{CALC_TEXT}\n{table}"]]
+        rows.append(
+            {"label": label, "edits": edits, "ops": [[["base", "revenue", "row"], "Revenue check"]]}
+        )
     return rows
 
 
@@ -460,7 +728,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 77 and len(accepted) == 25
+    assert len(labels) == len(set(labels)) == 129 and len(accepted) == 51
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
