@@ -148,6 +148,11 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         sock = socket.create_connection(
             (self._pinned_ip, self.port), min(self._op_timeout, remaining)
         )
+        remaining = self._deadline - self._clock()
+        if remaining <= 0:
+            sock.close()
+            raise TimeoutError("the total time for the fetch is spent")
+        sock.settimeout(min(self._op_timeout, remaining))
         try:
             wrapped = self._tls.wrap_socket(sock, server_hostname=self.host)
         except OSError:

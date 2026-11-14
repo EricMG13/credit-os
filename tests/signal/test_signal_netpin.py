@@ -257,14 +257,21 @@ class Wire:
     peer: socket.socket
     connects: list[tuple[tuple[str, int], float]] = field(default_factory=list)
     hostnames: list[str | None] = field(default_factory=list)
-    wrap_error: OSError | None = None
+    handshake_timeouts: list[float | None] = field(default_factory=list)
+    wrap_error: Exception | None = None
+    clock: Clock | None = None
+    connect_takes: float = 0.0
 
     def create_connection(self, address: tuple[str, int], timeout: float) -> socket.socket:
         self.connects.append((address, timeout))
+        self.client.settimeout(timeout)  # as socket.create_connection leaves the socket
+        if self.clock is not None:
+            self.clock.now += self.connect_takes
         return self.client
 
     def wrap_socket(self, sock: socket.socket, *, server_hostname: str | None = None) -> Any:
         self.hostnames.append(server_hostname)
+        self.handshake_timeouts.append(sock.gettimeout())
         if self.wrap_error is not None:
             raise self.wrap_error
         return sock
@@ -351,6 +358,37 @@ def test_a_failed_handshake_closes_the_socket_and_raises_it(
     wire.wrap_error = ssl.SSLError("handshake refused")
     with pytest.raises(ssl.SSLError, match="handshake refused"):
         _connection(wire, monkeypatch, Clock()).connect()
+    assert wire.client.fileno() == -1
+
+
+def test_the_handshake_is_bounded_by_what_is_left_after_the_connect(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = Clock(90.0)
+    wire.clock, wire.connect_takes = clock, 6.0
+    _connection(wire, monkeypatch, clock).connect()
+    assert wire.connects == [((IP, 443), 10.0)]
+    assert wire.handshake_timeouts == [4.0]
+
+
+def test_the_handshake_keeps_the_per_operation_timeout_when_that_is_less(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = Clock(0.0)
+    wire.clock, wire.connect_takes = clock, 1.0
+    _connection(wire, monkeypatch, clock).connect()
+    assert wire.handshake_timeouts == [10.0]
+
+
+@pytest.mark.parametrize("taken", [10.0, 12.5])
+def test_a_connect_that_spends_the_total_time_closes_the_socket_and_raises(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch, taken: float
+) -> None:
+    clock = Clock(90.0)
+    wire.clock, wire.connect_takes = clock, taken
+    with pytest.raises(TimeoutError, match="total time"):
+        _connection(wire, monkeypatch, clock).connect()
+    assert wire.hostnames == []
     assert wire.client.fileno() == -1
 
 
