@@ -84,6 +84,15 @@ describe("Share to group", () => {
     expect(screen.queryByText("Sample data: the story was not shared.")).toBeNull();
   });
 
+  it("moves focus to the Group select on Share with none, and the error is its description", () => {
+    show(FEED);
+    fireEvent.click(shareButton(CORVANE));
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Share" }));
+    const trigger = within(dialog()).getByRole("button", { name: /Group/ });
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger).toHaveAccessibleDescription(/Choose a group to share this story to\./);
+  });
+
   it("closes on Share with a group and the feed says the story was not shared", async () => {
     show(FEED);
     fireEvent.click(shareButton(CORVANE));
