@@ -10,8 +10,8 @@ _HALF = Decimal("0.5")
 
 
 def _operands(values: Sequence[Value]) -> tuple[Value, ...]:
-    if isinstance(values, str | bytes):
-        raise TypeError("operands must be a sequence of Value")
+    if type(values) not in (list, tuple):
+        raise TypeError("operands must be a list or a tuple of Value")
     operands = tuple(values)
     if not operands:
         raise ValueError("at least one operand is required")
@@ -36,7 +36,21 @@ def _parts(value: Value) -> tuple[int, int]:
     return (-coefficient if sign else coefficient), exponent
 
 
+_CHUNKS = ((10**1024, 1024), (10**64, 64), (10**8, 8), (10, 1))
+_LIMIT = 10**38
+
+
 def _exact(coefficient: int, exponent: int) -> Value:
+    """Strip trailing zeros and refuse a long result by integer arithmetic, so no big
+    int is ever turned into text (Python limits that, process-wide)."""
+    if coefficient == 0:
+        return Value(amount=Decimal(0))
+    for chunk, places in _CHUNKS:
+        while coefficient % chunk == 0:
+            coefficient //= chunk
+            exponent += places
+    if abs(coefficient) >= _LIMIT:
+        raise decimal.Inexact("more than 38 significant digits")
     digits = tuple(map(int, str(abs(coefficient))))
     return Value(amount=Decimal((int(coefficient < 0), digits, exponent)))
 
@@ -106,10 +120,16 @@ def _decimals(amounts: Iterable[Decimal]) -> tuple[Decimal, ...]:
     return checked
 
 
+def _half_context() -> decimal.Context:
+    context = exact_context()
+    context.traps[decimal.Underflow] = True
+    return context
+
+
 def half_unit(amounts: Iterable[Decimal]) -> Decimal:
     """Half a unit in the finest last place any of `amounts` is written to, at most 0.5."""
     exponents = [_exponent(amount) for amount in _decimals(amounts)]
-    with decimal.localcontext(ratio_context()):
+    with decimal.localcontext(_half_context()):
         return _HALF.scaleb(min(min(exponents, default=0), 0))
 
 

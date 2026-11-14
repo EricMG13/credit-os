@@ -4,6 +4,7 @@ import decimal
 import itertools
 import json
 import math
+import sys
 from collections.abc import Callable, Iterator
 from decimal import Context, Decimal
 from fractions import Fraction
@@ -11,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from hypothesis import assume, given, settings
+from hypothesis import assume, event, given, settings
 from hypothesis import strategies as st
 
 from credit_os.model.arithmetic import (
@@ -286,14 +287,6 @@ def val(d: Decimal) -> Value:
     return Value(amount=d)
 
 
-def safe(d: Decimal) -> bool:
-    try:
-        val(d)
-    except decimal.DecimalException:
-        return False
-    return True
-
-
 def agree(
     fn: Callable[[list[Value]], Value], exact: Fraction, one: list[Decimal], two: list[Decimal]
 ) -> None:
@@ -333,8 +326,13 @@ def test_difference_is_total_with_negation(a: Decimal, b: Decimal) -> None:
 @settings(max_examples=200, deadline=None)
 @given(decs(20), decs(20), st.booleans())
 def test_ratio_is_nearest_38_digits(n: Decimal, d: Decimal, flip: bool) -> None:
-    d = abs(d) if not flip else abs(d) + 1
+    if flip:
+        _, digits, exponent = d.as_tuple()
+        coefficient = min(int("".join(map(str, digits))) + 1, 10**38 - 1)
+        d = Decimal((0, tuple(map(int, str(coefficient))), int(exponent)))
+    d = d.copy_abs()
     assume(d != 0)
+    event("denominator digits", len(d.as_tuple().digits) // 10 * 10)
     result = ratio(val(n), val(d), non_positive="np")
     assert result.amount is not None
     quotient = Fraction(n) / Fraction(d)
@@ -347,7 +345,7 @@ def test_ratio_is_nearest_38_digits(n: Decimal, d: Decimal, flip: bool) -> None:
 @settings(max_examples=200, deadline=None)
 @given(decs(20), decs(20))
 def test_ratio_non_positive_denominator_is_missing(n: Decimal, d: Decimal) -> None:
-    result = ratio(val(n), val(-abs(d)), non_positive="np")
+    result = ratio(val(n), val(-d.copy_abs()), non_positive="np")
     assert result.amount is None
     assert result.missing == Missing(MissingCode.ZERO_OR_NEGATIVE_DENOMINATOR, "np")
 
@@ -357,3 +355,56 @@ def test_half_unit_ignores_a_tight_ambient_range() -> None:
     with decimal.localcontext(tight):
         got = half_unit([Decimal("0.00000")])
     assert got.as_tuple() == Decimal("0.000005").as_tuple()
+
+
+def test_ratio_reaches_a_38_digit_denominator() -> None:
+    d = Decimal(10**38 - 3)
+    result = ratio(val(Decimal(1)), val(d), non_positive="np")
+    assert result.amount is not None
+    assert amount_text(result.amount) == "0." + "0" * 37 + "1"
+
+
+def power(base: int, n: int, e: int = 0) -> Decimal:
+    return Decimal((0, tuple(map(int, str(base**n))), e))
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_product_does_not_depend_on_the_int_str_limit(reverse: bool) -> None:
+    small = [power(5, 54, -54)] * 100 + [power(2, 126)] * 42 + [power(2, 108)]
+    big = [power(5, 54)] * 100 + [power(2, 126)] * 42 + [power(2, 108)]
+    many = [Decimal(10**38 - 1)] * 120
+    for items, outcome_ in ((small, "1"), (big, decimal.Overflow), (many, decimal.Inexact)):
+        values = [val(d) for d in (items[::-1] if reverse else items)]
+        if isinstance(outcome_, str):
+            result = product(values)
+            assert result.amount is not None
+            assert amount_text(result.amount) == outcome_
+        else:
+            with pytest.raises(decimal.DecimalException) as error:
+                product(values)
+            assert type(error.value) is outcome_
+
+
+def test_product_under_the_lowest_int_str_limit() -> None:
+    items = [power(5, 54, -54)] * 12 + [power(2, 126)] * 5 + [power(2, 18)]
+    old = sys.get_int_max_str_digits()
+    try:
+        sys.set_int_max_str_digits(640)
+        result = product([val(d) for d in items])
+    finally:
+        sys.set_int_max_str_digits(old)
+    assert result.amount is not None
+    assert amount_text(result.amount) == "1"
+
+
+def test_half_unit_is_exact_or_refused() -> None:
+    with pytest.raises(decimal.DecimalException):
+        half_unit([Decimal((0, (1,), -1000036))])
+    assert half_unit([Decimal("1E-200")]).as_tuple() == Decimal("5E-201").as_tuple()
+
+
+@pytest.mark.parametrize("bad", [{val(Decimal(1))}, {1: 2}, iter([val(Decimal(1))]), "1", b"1"])
+def test_operand_collections_are_lists_or_tuples(bad: Any) -> None:
+    for fn in (total, product):
+        with pytest.raises(TypeError):
+            fn(bad)
