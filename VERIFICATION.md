@@ -27,7 +27,7 @@ its report file.
 | PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- |
 | #312 | task 1: `mx-precise` Medium 1, `mx-adversary` Medium 2; fix round 1, then a key gap closed by key cases; task 2: both pass | 0 defects | pass on `23c00a4`: Low 3, Info 6 |
-| #296 | scoped re-review on `d5f83c9`: pass, M1 and L1 closed | as #297 | the review that ordered version 4 of the migration |
+| #296 | `mx-precise` and `mx-invariants` on the first version: changes required, High 1 (REPLACE overwrote rows), Medium 2; two fix rounds, both re-reviews pass | as #297 | at `8395bc1`: changes required, Medium 1, Low 2, Info 5 (a REPLACE naming the hidden rowid); third round on an `mx-autonomous` plan; scoped re-review on `d5f83c9`: pass, M1 and L1 closed |
 | #297 | as the stack's task reviews | registered, 0 defects | pass on `d2e62b0`: Low 2, Info 5 |
 | #300 | `mx-precise` pass, Low 2; `mx-invariants` pass, Low 2 | 6 rows, 0 defects | changes required, Medium 1 (pins revalidated before the write); scoped re-review pass, Info 4 |
 | #164 to #166 | `mx-precise` Medium 3 (test strength); `mx-adversary` Medium 1; fix round 1; adversary re-review pass | registered | pass at `a7227ed`: Low 6, Info 9. #166's Low batch after it: scoped `mx-feature` re-review run by the coordinator, pass, Low 1, Info 1 |
@@ -50,8 +50,9 @@ document `check_handoff` returns no refusal for (a reader error does not know th
 writer token (in #302's Low batch). 1B R46 (unit forms, PR 6a2 merged with 6a) and R47 (a
 balance is printed only as a number of its own), both ahead of their PRs.
 
-**Machine.** At 20:07 UTC the load average was 184 on 10 cores with seven mutation runs
-alive. From then at most two mutation runs run at a time across all sessions, queued in a
+**Machine.** The coordinator's own measurement and actions, not a controller's report: at
+20:07 UTC `uptime` gave a load average of 184 on 10 cores, and the lead coordinator had
+counted seven mutation runs alive a minute earlier. From 20:10 at most two mutation runs run at a time across all sessions, queued in a
 shared file; a count taken with the 1-minute load above 40 is not of record until its
 timeouts are rerun alone. 1B's PR 6b count was taken above that load and is held.
 Thirteen finished worktrees were removed; `.superpowers/` is git-ignored there, so a
@@ -61,11 +62,13 @@ worktree's reports are copied out before it is removed.
 
 - `2B-6 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
 - `2B-6 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `2B-6 task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2B-6 task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y` (from 2B's ready message)
+- `2A-2a task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
+- `2A-2a wbr-fix=1 agent=mx-feature (mx-autonomous plan) fix-rounds=3 gates-first-pass=y`
 - `2A-2b task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
 - `2A-2b task=2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
 - `2A-2b wbr-fix=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `S-4 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `S-4 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n` (from Signal's ready message)
 
 Not verified: real model output against the confidence checks; SQLite builds other than
 3.53.1 (both runners); #300's mutation count after its fix (hand mutants only); a mutmut
