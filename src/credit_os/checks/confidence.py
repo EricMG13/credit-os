@@ -13,7 +13,8 @@ write the one row `Not assessable` with `Not supplied: <reason>` instead: no sco
 
 The state is `refused` when any finding other than `confidence.absent` is made, `absent` when there
 is no section, `blocked` for the one row, and otherwise `scored`. The score is exact: `int` and
-`fractions.Fraction` only, rounded half to even. The earlier format is not checked (the caller).
+`fractions.Fraction` only, rounded half to even. The earlier format is never scored: its outcome is `absent`, and `check_handoff` runs no
+confidence check on it.
 """
 
 from collections.abc import Mapping
@@ -22,7 +23,7 @@ from typing import Literal
 
 from credit_os.checks.findings import CheckContext, Finding, refusal
 from credit_os.checks.structure import front_matter_blocked, is_blocked
-from credit_os.checks.text import try_reader
+from credit_os.checks.text import is_earlier, try_reader
 from credit_os.handoff.data import DataSection, read_data_sections
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.scan import Node
@@ -237,4 +238,6 @@ def check_confidence(document: HandoffDocument, context: CheckContext) -> tuple[
 
 
 def confidence_outcome(document: HandoffDocument, context: CheckContext) -> ConfidenceOutcome:
+    if is_earlier(try_reader(document)):
+        return ConfidenceOutcome(state="absent")
     return _read(document, context)[1]

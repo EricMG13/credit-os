@@ -8,6 +8,7 @@ from checks_context_support import build_context
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from credit_os.checks import confidence
 from credit_os.checks.confidence import confidence_outcome
 from credit_os.checks.findings import CheckContext
 from credit_os.checks.run import check_handoff
@@ -45,7 +46,7 @@ def _document(case: dict[str, Any]) -> HandoffDocument:
 
 
 def test_the_key_is_collected_whole() -> None:
-    assert len(CASES) == 60
+    assert len(CASES) == 64
 
 
 @pytest.mark.parametrize("case", CASES, ids=[f"case{i}" for i in range(len(CASES))])
@@ -163,3 +164,15 @@ def test_a_level_four_section_directly_under_findings_is_unreadable() -> None:
     ]
     assert got == [("confidence.unreadable", "refusal", 7, "Confidence inputs")]
     assert confidence_outcome(document, _context(case)).state == "refused"
+
+
+def test_an_earlier_format_document_is_never_scored(monkeypatch: pytest.MonkeyPatch) -> None:
+    case = CASES[60]
+    document = _document(case)
+    context = _context(case)
+    assert [f.check for f in check_handoff(document, context)] == ["structure.format"]
+    assert confidence_outcome(document, context).state == "absent"
+    assert confidence_outcome(document, context).value is None
+    # With a helper that always says "new", the same document is scored: case 60 would fail.
+    monkeypatch.setattr(confidence, "is_earlier", lambda reader: False)
+    assert confidence_outcome(document, context).state == "scored"
