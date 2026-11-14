@@ -1,0 +1,31 @@
+{
+  "about": "Answer key for check_handoff over the 26 whole fixtures in tests/fixtures/handoffs/, written by the controller by reading (step 2B). It grows with each pull request: at PR 1b it holds the structure findings only. Each finding is [check, severity, line, quoted]. `context` gives the CheckContext fields that are not defaults: `pins` is a list of [name, sha256] where `{d:C}` is the character C 64 times; `upstream` and `accepted` map a module code to another fixture's path.",
+  "files": {
+    "synthetic-new-format/SYNTHETIC-CP-0.md": {"context": {"kind": "data", "pins": [["NBG_2025-03-31_annual-report.pdf", "{d:1}"], ["NBG_2024-12-31_Q4-results.pdf", "{d:2}"]]}, "findings": []},
+    "synthetic-new-format/SYNTHETIC-CP-1.md": {"context": {"kind": "data", "pins": [["NBG_2025-03-31_annual-report.pdf", "{d:1}"], ["NBG_2024-12-31_Q4-results.pdf", "{d:2}"]]}, "findings": []},
+    "synthetic-new-format/SYNTHETIC-CP-1A.md": {"context": {"kind": "prose", "pins": [["NBG_2025-03-31_annual-report.pdf", "{d:1}"], ["NBG_2024-12-31_Q4-results.pdf", "{d:2}"]]}, "findings": []},
+    "synthetic-new-format/SYNTHETIC-CP-2.md": {"context": {"kind": "prose", "pins": [["NBG_2025-03-31_annual-report.pdf", "{d:1}"], ["NBG_2024-12-31_Q4-results.pdf", "{d:2}"]], "accepted": {"CP-1A": "synthetic-new-format/SYNTHETIC-CP-1A.md"}}, "findings": []},
+    "synthetic-new-format/SYNTHETIC-CP-2D.md": {"context": {"kind": "prose"}, "findings": []},
+    "synthetic-data-views/SYNTHETIC-CP-1B.md": {"context": {"kind": "prose", "required_registers": ["T1", "model_comparator_register", "T9"], "pins": [["NBG_2025-03-31_annual-report.pdf", "{d:1}"]], "other_sources": ["context"], "upstream": {"CP-0": "synthetic-new-format/SYNTHETIC-CP-0.md"}}, "findings": []},
+    "tdg-2026-11-09/CP-0.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 42, "Reader summary"]]},
+    "tdg-2026-11-09/CP-1.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 50, "Reader summary"]]},
+    "tdg-2026-11-09/CP-1A.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 24, "Reader summary"]]},
+    "tdg-2026-11-09/CP-1B.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 29, "Reader summary"]]},
+    "tdg-2026-11-09/CP-1C.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 53, "Reader summary"]]},
+    "tdg-2026-11-09/CP-1D.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 55, "Reader summary"]]},
+    "tdg-2026-11-09/CP-2.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 30, "Reader summary"]]},
+    "tdg-2026-11-09/CP-2A.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 52, "Reader summary"]]},
+    "tdg-2026-11-09/CP-2D.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 56, "Reader summary"]]},
+    "tdg-2026-11-09/CP-2E.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 36, "Reader summary"]]},
+    "tdg-2026-11-09/CP-2G.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 57, "Reader summary"]]},
+    "tdg-2026-11-09/CP-2H.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 59, "Reader summary"]]},
+    "tdg-2026-11-09/CP-3.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 64, "Reader summary"]]},
+    "tdg-2026-11-09/CP-3C.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 44, "Reader summary"]]},
+    "tdg-2026-11-09/CP-3D.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 60, "Reader summary"]]},
+    "tdg-2026-11-09/CP-4.md": {"context": {"kind": "data"}, "findings": [["structure.format", "refusal", 57, "Reader summary"]]},
+    "tdg-2026-11-09/CP-4C.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 62, "Reader summary"]]},
+    "tdg-2026-11-09/CP-5.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 72, "Reader summary"]]},
+    "tdg-2026-11-09/CP-6.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 75, "Reader summary"]]},
+    "tdg-2026-11-09/CP-DR.md": {"context": {"kind": "prose"}, "findings": [["structure.format", "refusal", 79, "Reader summary"]]}
+  }
+}
