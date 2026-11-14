@@ -456,8 +456,11 @@ def test_listing_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert caught.value.__cause__ is failure
 
 
-def test_folder_test_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    failure = OSError(errno.EACCES, "synthetic")
+@pytest.mark.parametrize("code", [errno.EACCES, errno.ENAMETOOLONG])
+def test_folder_test_failure_is_typed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: int
+) -> None:
+    failure = OSError(code, "synthetic")
 
     def fail(self: Path) -> bool:
         raise failure
@@ -477,20 +480,42 @@ def test_listing_failure_without_strerror(tmp_path: Path, monkeypatch: pytest.Mo
     assert _refusal(tmp_path, SourceUnreadable) == f"{tmp_path}: cannot list (text)"
 
 
+_ENTRY_FAILURE = OSError(errno.EACCES, "synthetic")
+
+
+class BrokenEntry:
+    name = "x.txt"
+
+    def is_symlink(self) -> bool:
+        raise _ENTRY_FAILURE
+
+
 def test_entry_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    failure = OSError(errno.EACCES, "synthetic")
-
-    class BrokenEntry:
-        name = "x.txt"
-
-        def is_symlink(self) -> bool:
-            raise failure
-
+    failure = _ENTRY_FAILURE
     monkeypatch.setattr(walk_module, "_listing", lambda *args: [BrokenEntry()])
     with pytest.raises(SourceUnreadable) as caught:
         pin_folder(tmp_path)
     assert str(caught.value) == f"{tmp_path}: cannot list (synthetic)"
     assert caught.value.__cause__ is failure
+
+
+def test_nested_entry_failure_names_the_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = _write(tmp_path, {"readme.txt": README})
+    (folder / "sub").mkdir()
+    real = walk_module._listing
+
+    def listing(folder: Path, directory: Path, prefix: str) -> list[object]:
+        if prefix == "sub/":
+            return [BrokenEntry()]
+        return list(real(folder, directory, prefix))
+
+    monkeypatch.setattr(walk_module, "_listing", listing)
+    with pytest.raises(SourceUnreadable) as caught:
+        pin_folder(folder)
+    assert str(caught.value) == f"{folder / 'sub'}: cannot list (synthetic)"
+    assert caught.value.__cause__ is _ENTRY_FAILURE
 
 
 @pytest.mark.parametrize(
@@ -504,7 +529,7 @@ def test_unlistable_directory(
     tmp_path: Path, directory: str, exc: type[Exception], message: str
 ) -> None:
     if sys.platform == "win32":
-        pytest.skip("Windows cannot hold this name")
+        pytest.skip("Windows: chmod does not deny listing, or the name cannot exist")
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         pytest.skip("root ignores directory permissions")
     folder = _write(tmp_path, {"readme.txt": README})
