@@ -6,10 +6,13 @@ import type { Overview as OverviewData, Point } from "./slice";
 import { BottomLine } from "./parts/BottomLine";
 import { CellValue } from "./parts/CellValue";
 import { Findings } from "./parts/Findings";
+import { Limitations } from "./parts/Limitations";
 import { MetricTile } from "./parts/MetricTile";
+import { ModuleItems } from "./parts/ModuleItems";
 import { RunFrame } from "./parts/RunFrame";
 import { Section } from "./parts/Section";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
+import { evidenceHref } from "./parts/links";
 import { SECTION_HEADING, SUBSECTION_HEADING } from "./parts/heading";
 
 const FIGURE = "text-[40px]/11 tracking-tight tabular-nums break-words";
@@ -73,7 +76,7 @@ function ChangeViewNote({ view }: { view: OverviewData["changeView"] }) {
 export function Overview({ issuer, run }: { issuer: string | undefined; run: string | undefined }) {
   return (
     <RunFrame issuer={issuer} run={run} tab="overview">
-      {({ overview }) => (
+      {({ overview, id: runId }, issuerId) => (
         <div className="flex flex-col gap-8">
           <BottomLine text={overview.bottomLine} level={SECTION_HEADING} />
           <section aria-label={overview.metricsLabel}>
@@ -95,6 +98,13 @@ export function Overview({ issuer, run }: { issuer: string | undefined; run: str
               </Section>
             </div>
           </div>
+          <Section title="Modules" note={overview.modules.summary}>
+            <ModuleItems items={overview.modules.items} issuer={issuerId} run={runId} />
+          </Section>
+          <Limitations
+            limitations={overview.limitations}
+            gapsHref={evidenceHref(issuerId, runId, "gaps")}
+          />
         </div>
       )}
     </RunFrame>

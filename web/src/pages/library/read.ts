@@ -14,7 +14,10 @@ import type {
   IssuerCard,
   LibraryHome,
   LibrarySlice,
+  Limitations,
   Measure,
+  ModuleItem,
+  ModuleState,
   MeasureKey,
   MeasureSpec,
   Metric,
@@ -434,6 +437,49 @@ function readDate(value: unknown, path: string): DatedItem {
   };
 }
 
+const MODULE_STATES = Object.keys(STATUS_SETS["Module state"]) as ModuleState[];
+
+function readModuleItem(value: unknown, path: string): ModuleItem {
+  const m = rec(value, path);
+  return {
+    title: str(m, "title", path),
+    lead: str(m, "lead", path),
+    state: oneOf(m, "state", path, MODULE_STATES),
+    module: strOrNull(m, "module", path),
+  };
+}
+
+function readLimitations(value: unknown, path: string, traces: Traces): Limitations {
+  const l = rec(value, path);
+  const linkPath = child(path, "gapsLink");
+  return {
+    count: str(l, "count", path),
+    gapsLink: { label: str(rec(own(l, "gapsLink"), linkPath), "label", linkPath) },
+    items: unique(
+      list(l, "items", path, (item, p) => {
+        const i = rec(item, p);
+        return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
+      }),
+      child(path, "items"),
+      (item) => item.text,
+      "text",
+    ),
+  };
+}
+
+function readModules(value: unknown, path: string): Overview["modules"] {
+  const m = rec(value, path);
+  return {
+    summary: str(m, "summary", path),
+    items: unique(
+      list(m, "items", path, readModuleItem),
+      child(path, "items"),
+      (item) => item.title,
+      "title",
+    ),
+  };
+}
+
 function readOverview(value: unknown, path: string, traces: Traces): Overview {
   const o = rec(value, path);
   const sidesPath = child(path, "sides");
@@ -465,6 +511,8 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
       (d) => `${d.date}|${d.title}`,
       "title",
     ),
+    modules: readModules(own(o, "modules"), child(path, "modules")),
+    limitations: readLimitations(own(o, "limitations"), child(path, "limitations"), traces),
   };
 }
 
