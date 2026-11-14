@@ -33,6 +33,35 @@ function markers(container: HTMLElement, colour: string): number {
 }
 
 describe("TrendChart chart side", () => {
+  it("names the plot surface with the chart title and draws the focus token ring", () => {
+    const { container } = renderTwo();
+    expect(screen.getByRole("application", { name: "Leverage" })).toBeInTheDocument();
+    const wrapper = container.querySelector(".recharts-responsive-container")?.parentElement;
+    for (const cls of [
+      "[&_.recharts-surface:focus-visible]:outline-2",
+      "[&_.recharts-surface:focus-visible]:outline-solid",
+      "[&_.recharts-surface:focus-visible]:outline-offset-2",
+      "[&_.recharts-surface:focus-visible]:outline-focus",
+    ]) {
+      expect(wrapper).toHaveClass(cls);
+    }
+  });
+
+  it("throws when two series share a name", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() =>
+      render(
+        <TrendChart
+          title="T"
+          periods={["P1", "P2"]}
+          series={[series("A", [1, 2]), series("A", [3, 4])]}
+          table={[table("A", ["1", "2"]), table("A", ["3", "4"])]}
+        />,
+      ),
+    ).toThrow(/distinct|repeat|duplicate/i);
+    quiet.mockRestore();
+  });
+
   it("draws a marker for each present value and none for a null", () => {
     const { container } = renderTwo();
     expect(markers(container, "Net debt")).toBe(6);

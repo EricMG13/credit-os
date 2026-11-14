@@ -28,8 +28,10 @@ const SOURCES: SampleRow[] = [
 function sorted(rows: SampleRow[], sort: SortDescriptor | undefined): SampleRow[] {
   if (sort?.column !== "figure") return rows;
   const direction = sort.direction === "descending" ? -1 : 1;
-  const at = (r: SampleRow) => r.key ?? Number.POSITIVE_INFINITY;
-  return [...rows].sort((a, b) => (at(a) - at(b)) * direction);
+  return [...rows].sort((a, b) => {
+    if (a.key === null || b.key === null) return Number(a.key === null) - Number(b.key === null);
+    return (a.key - b.key) * direction;
+  });
 }
 
 function SampleTable({

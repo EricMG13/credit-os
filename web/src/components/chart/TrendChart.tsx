@@ -133,6 +133,9 @@ function YAxisLabels({ yTicks }: { yTicks: YTick[] | undefined }) {
 function check({ periods, series, table }: Pick<TrendChartProps, "periods" | "series" | "table">) {
   const same = series.length === table.length && series.every((s, i) => s.name === table[i]?.name);
   if (!same) throw new Error("series and table must carry the same names in the same order");
+  const repeated = series.find((s, i) => series.findIndex((o) => o.name === s.name) !== i);
+  if (repeated !== undefined)
+    throw new Error(`series names must be distinct: "${repeated.name}" repeats`);
   const n = periods.length;
   const bad = series.find((s, i) => s.values.length !== n || table[i]?.cells.length !== n);
   if (bad !== undefined) {
@@ -142,7 +145,7 @@ function check({ periods, series, table }: Pick<TrendChartProps, "periods" | "se
   }
 }
 
-function Chart({ periods, series, table, yTicks }: Omit<TrendChartProps, "title" | "note">) {
+function Chart({ title, periods, series, table, yTicks }: Omit<TrendChartProps, "note">) {
   const styles = assignSeries(series.map((s) => s.name));
   const data = periods.map((period, index) => ({
     period,
@@ -150,9 +153,9 @@ function Chart({ periods, series, table, yTicks }: Omit<TrendChartProps, "title"
     ...Object.fromEntries(series.map((s, i) => [keyOf(i), s.values[index] ?? null])),
   }));
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-focus">
       <ResponsiveContainer width="100%" height={HEIGHT}>
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <LineChart title={title} data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--color-border-hairline)" />
           <XAxis dataKey="period" tickLine={false} axisLine={BASELINE} tick={TICK} tickMargin={8} />
           <YAxisLabels yTicks={yTicks} />
@@ -242,7 +245,7 @@ export function TrendChart({ title, note, periods, series, table, yTicks }: Tren
     <ChartFrame title={title} note={note}>
       {(view) =>
         view === "chart" ? (
-          <Chart periods={periods} series={series} table={table} yTicks={yTicks} />
+          <Chart title={title} periods={periods} series={series} table={table} yTicks={yTicks} />
         ) : (
           <DataTable title={title} periods={periods} table={table} />
         )

@@ -177,7 +177,3 @@ export const Tabs = ({ className, ...props }: ComponentPropsWithRef<typeof AriaT
     />
   );
 };
-
-Tabs.Panel = TabPanel;
-Tabs.List = TabList;
-Tabs.Item = Tab;

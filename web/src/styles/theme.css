@@ -159,7 +159,6 @@
   --color-fg-quaternary_hover: var(--color-text-secondary);
   --color-border-primary: var(--color-border-control);
   --color-border-brand: var(--color-focus);
-  --color-border-error: var(--color-error-mark);
 
   --background-color-primary: var(--color-bg-primary);
   --background-color-primary_hover: var(--color-bg-primary_hover);
