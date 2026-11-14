@@ -32,7 +32,35 @@ describe("readSlice", () => {
     const other = structuredClone(source.runs[0]) as { run: string };
     other.run = "2024-12-31";
     source.runs.push(other);
-    expect(readSlice(source).kind).toBe("ok");
+    const result = readSlice(source);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.runs.map((r) => r.run)).toEqual(["2025-06-30", "2024-12-31"]);
+    expect(result.data.unreadable).toEqual([]);
+  });
+
+  it("lets an error that is no SliceError escape from reading a run", () => {
+    const source = fixtureSlice() as { runs: Record<string, unknown>[] };
+    Object.defineProperty(source.runs[0], "header", {
+      enumerable: true,
+      get() {
+        throw new TypeError("injected in run");
+      },
+    });
+    expect(() => readSlice(source)).toThrow(TypeError);
+  });
+
+  it("lets an error that is no URIError escape from the address rule", () => {
+    vi.stubGlobal("decodeURIComponent", () => {
+      throw new TypeError("injected");
+    });
+    const published = { kind: "markdown", href: "a.zip" };
+    try {
+      expect(() => readSlice(edited([...RUN, "statements", "published"], published))).toThrow(
+        TypeError,
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("keeps a null trace as null", () => {
@@ -44,8 +72,13 @@ describe("readSlice", () => {
   it.each([
     ["not an object", edited([], 5), "slice: expected an object"],
     ["the slice with an extra key", edited(["extra"], 1), "extra: unknown field"],
-    ["a run with an extra key", edited([...RUN, "extra"], 1), "runs[0].extra: unknown field"],
     ["a run list that is no list", edited(["runs"], {}), "runs: expected a list"],
+  ])("refuses the slice at %s", (_name, source, reason) => {
+    expect(readSlice(source)).toEqual({ kind: "invalid", reason });
+  });
+
+  it.each([
+    ["a run with an extra key", edited([...RUN, "extra"], 1), "runs[0].extra: unknown field"],
     ["a run missing a key", edited([...RUN, "run"], undefined), "runs[0].run: missing"],
     [
       "a header flag that is no boolean",

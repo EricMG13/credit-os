@@ -22,7 +22,7 @@ export function RunsIndexPage() {
             <EmptyState.Title>No model has been delivered yet</EmptyState.Title>
           </EmptyState.Content>
         </EmptyState>
-      ) : (
+      ) : runs.length + named.length === 0 ? null : (
         <ul className="flex flex-col gap-3">
           {runs.map((run, index) => (
             <li key={index}>

@@ -396,6 +396,12 @@ describe("the portfolio fit page: a section that is a gap with a reason", () => 
     expect(both.data.runs[0]?.portfolioFit).toMatchObject({ limits: gap, scatter: scatterGap });
   });
 
+  it("reads an object whose gap is inherited as a chart, not as a gap", () => {
+    const result = read(S, Object.create({ gap: scatterGap.gap }));
+    expect(result.kind).toBe("invalid");
+    if (result.kind === "invalid") expect(result.reason).not.toContain(".gap");
+  });
+
   it.each<[string, readonly (string | number)[], unknown, string]>([
     [
       "an empty reason",
@@ -422,7 +428,7 @@ describe("the portfolio fit page: a section that is a gap with a reason", () => 
       "a scatter gap titled like the ratings",
       S,
       { gap: { title: "Agency ratings", reason: "R" } },
-      `${P}.scatter.title: expected a name no other trace control on the page has`,
+      `${P}.scatter.gap.title: expected a name no other trace control on the page has`,
     ],
   ])("refuses %s", (_name, steps, value, reason) => {
     expect(read(steps, value)).toEqual({ kind: "invalid", reason });

@@ -1,11 +1,13 @@
 import type { STATUS_SETS } from "@/components/status/sets";
 
-/** The model group's member of the data file: one record per issuer and run. */
 /** A run that failed its rules: its ids when both read as text, else null, and the first bad path. */
 export type UnreadableRun =
   { issuer: string; run: string; reason: string } | { issuer: null; run: null; reason: string };
 
-/** `unreadable` is produced by the reader; the delivered slice holds only `runs`. */
+/**
+ * The model group's member of the data file: one record per issuer and run. `unreadable` is
+ * produced by the reader; the delivered slice holds only `runs`.
+ */
 export type ModelSlice = { runs: ModelRun[]; unreadable: UnreadableRun[] };
 
 export type ModelRun = {

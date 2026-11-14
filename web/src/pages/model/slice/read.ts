@@ -334,7 +334,7 @@ function unreadableRun(entry: unknown, reason: string): UnreadableRun {
 /**
  * Each run is read on its own, so one that fails its rules is held as unreadable with its first
  * failing path while the others read. The slice itself is refused only when it is not an object,
- * has an unknown or missing key, or `runs` is not a list.
+ * has an unknown or missing key, `runs` is not a list, or two runs share an issuer and run.
  */
 const slice: Reader<ModelSlice> = (value, path) => {
   const { runs: entries } = sliceFields(value, path);
@@ -357,7 +357,7 @@ const slice: Reader<ModelSlice> = (value, path) => {
   return { runs, unreadable };
 };
 
-/** `undefined` is absent; any other source is read in full or named invalid at its first bad path. */
+/** `undefined` is absent; any other source is read, a bad run held as unreadable, or named invalid. */
 export function readSlice(source: unknown): SliceResult<ModelSlice> {
   if (source === undefined) return { kind: "absent" };
   try {

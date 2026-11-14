@@ -133,4 +133,16 @@ describe("Runs index page", () => {
     ).toThrow("extra: unknown field");
     spy.mockRestore();
   });
+
+  it("draws no list when every run is unreadable and none is named", () => {
+    renderIndex({ runs: [1, "two"] });
+    expect(within(screen.getByRole("main")).queryByRole("list")).toBeNull();
+    expect(screen.getByText(/2 runs could not be read/)).toBeInTheDocument();
+  });
+
+  it("draws the empty state, one h1, when the data file holds no model", () => {
+    renderIndex(undefined);
+    expect(screen.getByText("No model has been delivered yet")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
 });
