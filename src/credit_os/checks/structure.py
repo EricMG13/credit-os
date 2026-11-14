@@ -137,7 +137,12 @@ def check_fence(document: HandoffDocument, context: CheckContext) -> tuple[Findi
 def _quoted(register: Register, by_line: dict[int, Section], document: HandoffDocument) -> str:
     if register.source == "heading":
         return by_line[register.line].title
-    return next(comment.text for comment in document.comments if comment.start == register.line)
+    tag = f"table-id: {register.id}"
+    return next(
+        comment.text
+        for comment in document.comments
+        if comment.start == register.line and tag in comment.text
+    )
 
 
 def _paired_tags(registers: tuple[Register, ...], by_line: dict[int, Section]) -> frozenset[int]:
@@ -155,7 +160,7 @@ def _paired_tags(registers: tuple[Register, ...], by_line: dict[int, Section]) -
             if heading.source == "heading"
             and heading.id == tag.id
             and heading.line not in taken
-            and by_line[heading.line].line < tag.line <= by_line[heading.line].end
+            and by_line[heading.line].line <= tag.line <= by_line[heading.line].end
         ]
         if owners:
             taken.add(max(owners))
