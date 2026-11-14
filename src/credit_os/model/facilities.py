@@ -4,9 +4,9 @@ import datetime
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 from credit_os.model.arithmetic import difference, product, total
 from credit_os.model.value import Value, amount_text, parse_operand
@@ -19,6 +19,13 @@ DATE_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 Amount = Annotated[str, Field(pattern=AMOUNT_PATTERN)]
 Percent = Annotated[str, Field(pattern=PERCENT_PATTERN)]
 Fractional = Annotated[str, Field(pattern=FRACTION_PATTERN)]
+
+
+def _listed(value: Any) -> Any:
+    return tuple(value) if type(value) is list else value
+
+
+LIST_AS_TUPLE = BeforeValidator(_listed)
 _CEILINGS = (("fixed_rate_pct", 30), ("spread_pct", 20), ("floor_pct", 10))
 _BOTH = "a facility states a fixed rate or a floating one, not both"
 _NEITHER = "a facility states a fixed rate, or a reference rate with a spread"
@@ -107,7 +114,7 @@ class Facility(BaseModel):
     fixed_rate_pct: Percent | None
     spread_pct: Percent | None
     floor_pct: Percent | None
-    reference_rate: Annotated[tuple[Fractional, Fractional, Fractional], Field(strict=False)] | None
+    reference_rate: Annotated[tuple[Fractional, Fractional, Fractional], LIST_AS_TUPLE] | None
     annual_amortisation: Amount | None
     maturity: Annotated[str, Field(pattern=DATE_PATTERN)] | None
 

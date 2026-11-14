@@ -3,6 +3,7 @@
 import dataclasses
 import decimal
 import json
+from collections import deque
 from decimal import Context, Decimal
 from fractions import Fraction
 from pathlib import Path
@@ -216,6 +217,18 @@ def accepted(g: dict[str, Any]) -> bool:
     return all(0 <= r <= Fraction(3, 10) for r in oracle_rates(g))
 
 
+def oracle_years(g: dict[str, Any]) -> list[tuple[Fraction, Fraction, Fraction, Fraction]]:
+    """Per year: opening, interest, repaid, closing, in Fraction from the generated integers."""
+    opening = Fraction(g["balance"], 10**4)
+    amort = Fraction(g["amort"] or 0, 10**4)
+    out = []
+    for rate in oracle_rates(g):
+        repaid = min(amort, opening)
+        out.append((opening, opening * rate, repaid, opening - repaid))
+        opening -= repaid
+    return out
+
+
 @settings(max_examples=200)
 @given(st.one_of(FIXED, FLOATING))
 def test_schedule_properties(g: dict[str, Any]) -> None:
@@ -224,18 +237,19 @@ def test_schedule_properties(g: dict[str, Any]) -> None:
             Facility.model_validate(record(g))
         return
     row = schedule([Facility.model_validate(record(g))]).rows[0]
-    balance = Fraction(g["balance"], 10**4)
-    amort = Fraction(g["amort"] or 0, 10**4)
-    rates = oracle_rates(g)
-    opening = balance
-    for year, rate in zip(row, rates, strict=True):
+    want = oracle_years(g)
+    for year, rate, (opening, interest, repaid, closing) in zip(
+        row, oracle_rates(g), want, strict=True
+    ):
         assert Fraction(year.opening) == opening
         assert Fraction(year.rate) == rate
-        assert Fraction(year.interest) == opening * rate
+        assert Fraction(year.interest) == interest
+        assert Fraction(year.repaid) == repaid
+        assert Fraction(year.closing) == closing
         assert year.closing >= 0
         assert year.repaid <= year.opening
-        opening = Fraction(year.closing)
-    assert sum(Fraction(y.repaid) for y in row) == min(3 * amort, balance)
+    amort = Fraction(g["amort"] or 0, 10**4)
+    assert sum(Fraction(y.repaid) for y in row) == min(3 * amort, Fraction(g["balance"], 10**4))
 
 
 @settings(max_examples=200)
@@ -243,6 +257,59 @@ def test_schedule_properties(g: dict[str, Any]) -> None:
 def test_totals_are_column_sums(gs: list[dict[str, Any]]) -> None:
     sched = schedule([Facility.model_validate(record(g)) for g in gs])
     assert len(sched.rows) == len(gs)
+    want = [oracle_years(g) for g in gs]
     for n, (interest, repaid) in enumerate(sched.totals()):
-        assert Fraction(interest) == sum((Fraction(r[n].interest) for r in sched.rows), Fraction(0))
-        assert Fraction(repaid) == sum((Fraction(r[n].repaid) for r in sched.rows), Fraction(0))
+        assert Fraction(interest) == sum((w[n][1] for w in want), Fraction(0))
+        assert Fraction(repaid) == sum((w[n][2] for w in want), Fraction(0))
+
+
+def test_reference_rate_accepts_only_list_or_tuple() -> None:
+    texts = ["0.01", "0.02", "0.03"]
+    base = terms(fixed_rate_pct=None, spread_pct="1", reference_rate=texts)
+    from_list = Facility.model_validate(base)
+    assert Facility.model_validate(base | {"reference_rate": tuple(texts)}) == from_list
+    assert Facility.model_validate_json(json.dumps(base)) == from_list
+    for bad in (set(texts), frozenset(texts), (t for t in texts), deque(texts)):
+        errors = refusal(base | {"reference_rate": bad}, as_json=False)
+        assert [(e["loc"], e["type"]) for e in errors] == [(("reference_rate",), "tuple_type")]
+
+
+def message(facility: dict[str, Any]) -> str:
+    return str(refusal(facility, as_json=False)[0]["ctx"]["error"])
+
+
+def test_validator_order_remaining_rules() -> None:
+    date_text = "maturity 2027-02-30 is not a calendar date"
+    name_text = "facility name must not start or end with whitespace"
+    floating = {
+        "fixed_rate_pct": None,
+        "spread_pct": "20",
+        "floor_pct": "10",
+        "reference_rate": ["0.2", "0.2", "0.2"],
+    }
+    assert message(terms(name=" x", maturity="2027-02-30")) == date_text
+    assert message(terms(name=" x", **floating)) == name_text
+    assert message(terms(maturity="2027-02-30", **floating)) == date_text
+    zeros = ["0", "0", "0"]
+    over = {"fixed_rate_pct": None, "reference_rate": zeros, "floor_pct": "10.5"}
+    assert message(terms(spread_pct="20.5", **over)) == "spread_pct 20.5 is above 20"
+    assert message(terms(spread_pct="1", **over)) == "floor_pct 10.5 is above 10"
+    assert (
+        message(terms(fixed_rate_pct="30.5", floor_pct="10.5")) == "fixed_rate_pct 30.5 is above 30"
+    )
+
+
+def test_all_in_bounds_are_inclusive() -> None:
+    zero = terms(
+        fixed_rate_pct=None, spread_pct="0", floor_pct=None, reference_rate=["0", "0.0000", "-0"]
+    )
+    top = terms(
+        fixed_rate_pct=None,
+        spread_pct="20",
+        floor_pct=None,
+        reference_rate=["0.1", "0.1000", "0.10"],
+    )
+    zeros = schedule([Facility.model_validate(zero)]).rows[0]
+    tops = schedule([Facility.model_validate(top)]).rows[0]
+    assert [amount_text(y.rate) for y in zeros] == ["0", "0", "0"]
+    assert [amount_text(y.rate) for y in tops] == ["0.3", "0.3", "0.3"]
