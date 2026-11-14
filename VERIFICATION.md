@@ -39,8 +39,8 @@ alive.
   capped read; the capped read is not in #41)
 - `1D-1 low batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
 
-Six of the nine task lines of phase 1 so far failed the gates on the first run, mostly on
-`ruff format` or `mypy` in the task's own tests. Briefs from here tell the implementer to run
+Seven of the eleven ledger lines so far (this entry and the one below) failed the gates on the
+first run, several on `ruff format` or `mypy` in the task's own tests. Briefs from here tell the implementer to run
 `ruff format` and `mypy` before the full gate.
 
 **Rulings by the coordinator.** The 1A grammar rules and the 1D name, length and kind rules are
