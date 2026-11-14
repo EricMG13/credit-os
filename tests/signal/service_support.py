@@ -20,7 +20,7 @@ from threads_support import AK, ML, T0, team_db
 
 from credit_os.signal.fetch import Fetched
 from credit_os.signal.groups import Act, create_group, join
-from credit_os.signal.service import Loop
+from credit_os.signal.service import Loop, make_server
 from credit_os.signal.store import open_db
 from credit_os.signal.threads import share_story
 
@@ -188,3 +188,32 @@ def team(root: Path, *, seeded: bool) -> None:
         inner = create_group(db, Act(AK, T0), "Inner", "invited", [])
         share_story(db, Act(AK, later), inner, 2, "secret note")
     db.close()
+
+
+def team_site(root: Path, *, seeded: bool) -> Site:
+    """The team store (see ``team``) behind a server on a thread; the caller closes it."""
+    team(root, seeded=seeded)
+    return Site(make_server(root, "127.0.0.1", 0), root)
+
+
+AK_C, ML_C, RD_C, ZZ_C = (f"signal_name={n}" for n in ("ak", "ml", "rd", "zz"))
+NEW_GROUP = {"name": "New", "visibility": "everyone", "topics": []}
+Row = tuple[str, str, dict[str, Any] | None]
+
+# Every POST and DELETE route of the groups and threads table, on the world's visible group 1,
+# thread 1, comment 1.
+WRITES: list[Row] = [
+    ("POST", "/api/groups", NEW_GROUP),
+    ("POST", "/api/groups/1/members", {}),
+    ("POST", "/api/groups/1/members", {"name": "rd"}),
+    ("DELETE", "/api/groups/1/members", {}),
+    ("DELETE", "/api/groups/1/members", {"name": "ak"}),
+    ("POST", "/api/groups/1/threads", {"story_id": 2, "note": "n"}),
+    ("POST", "/api/groups/1/threads", {"title": "T", "text": "x"}),
+    ("POST", "/api/threads/1/read", {}),
+    ("POST", "/api/threads/1/comments", {"text": "hi"}),
+    ("POST", "/api/comments/1", {"text": "changed"}),
+    ("DELETE", "/api/comments/1", None),
+    ("POST", "/api/comments/1/reactions/agree", None),
+    ("DELETE", "/api/comments/1/reactions/agree", None),
+]

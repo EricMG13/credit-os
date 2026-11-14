@@ -15,7 +15,19 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from service_support import Site, pass_in_progress, team
+from service_support import (
+    AK_C,
+    ML_C,
+    NEW_GROUP,
+    RD_C,
+    WRITES,
+    ZZ_C,
+    Row,
+    Site,
+    pass_in_progress,
+    team,
+    team_site,
+)
 from threads_support import T0
 
 from credit_os.signal import groups, service, store
@@ -26,16 +38,14 @@ from credit_os.signal.threads import auto_post
 
 @pytest.fixture
 def site(tmp_path: Path) -> Iterator[Site]:
-    team(tmp_path, seeded=False)
-    live = Site(make_server(tmp_path, "127.0.0.1", 0), tmp_path)
+    live = team_site(tmp_path, seeded=False)
     yield live
     live.close()
 
 
 @pytest.fixture
 def world(tmp_path: Path) -> Iterator[Site]:
-    team(tmp_path, seeded=True)
-    live = Site(make_server(tmp_path, "127.0.0.1", 0), tmp_path)
+    live = team_site(tmp_path, seeded=True)
     yield live
     live.close()
 
@@ -49,26 +59,6 @@ def world_loop(tmp_path: Path) -> Iterator[tuple[Loop, Site]]:
     live.close()
 
 
-AK_C, ML_C, RD_C, ZZ_C = (f"signal_name={n}" for n in ("ak", "ml", "rd", "zz"))
-NEW_GROUP = {"name": "New", "visibility": "everyone", "topics": []}
-Row = tuple[str, str, dict[str, Any] | None]
-
-# Every POST and DELETE route of the table, on the world's visible group 1, thread 1, comment 1.
-WRITES: list[Row] = [
-    ("POST", "/api/groups", NEW_GROUP),
-    ("POST", "/api/groups/1/members", {}),
-    ("POST", "/api/groups/1/members", {"name": "rd"}),
-    ("DELETE", "/api/groups/1/members", {}),
-    ("DELETE", "/api/groups/1/members", {"name": "ak"}),
-    ("POST", "/api/groups/1/threads", {"story_id": 2, "note": "n"}),
-    ("POST", "/api/groups/1/threads", {"title": "T", "text": "x"}),
-    ("POST", "/api/threads/1/read", {}),
-    ("POST", "/api/threads/1/comments", {"text": "hi"}),
-    ("POST", "/api/comments/1", {"text": "changed"}),
-    ("DELETE", "/api/comments/1", None),
-    ("POST", "/api/comments/1/reactions/agree", None),
-    ("DELETE", "/api/comments/1/reactions/agree", None),
-]
 # Open to readers (status 200): a person joining or leaving an everyone-group themself, and the
 # read route. Every other write is refused to a reader with 403 ...
 OPEN_TO_READERS: list[Row] = [
@@ -166,24 +156,50 @@ def test_a_share_onto_a_topics_automatic_thread_is_attributed_over_http(site: Si
     assert [c["id"] for c in only["cards"]] == [1]
 
 
-@pytest.mark.parametrize("method,path,body", WRITES)
-def test_a_reader_is_refused_every_write_and_nothing_changes(
+REFUSED = [row for row in WRITES if row not in OPEN_TO_READERS + REACTIONS]
+WHO = [RD_C, ZZ_C]  # rd is a reader; zz is no one the store knows, so a reader too
+
+
+@pytest.mark.parametrize("method,path,body", REFUSED)
+def test_a_reader_is_refused_every_write_that_is_not_theirs_and_nothing_changes(
     world: Site, method: str, path: str, body: dict[str, Any] | None
 ) -> None:
-    for who in (RD_C, ZZ_C):  # rd is a reader; zz is no one the store knows, so a reader too
+    for who in WHO:
         before = world.counts()
         status, _, reply = world.call(method, path, cookie=who, body=body)
-        row = (method, path, body)
-        if row in OPEN_TO_READERS or (row in REACTIONS and who == RD_C):
-            assert status == 200, reply
-            moves = ("reactions",) if row in REACTIONS else ("group_members", "read_marks")
-            after = world.counts()
-            assert {t: n for t, n in after.items() if t not in moves} == {
-                t: n for t, n in before.items() if t not in moves
-            }
-        else:
-            assert status == 403 and list(reply) == ["error"], reply
-            assert world.counts() == before
+        assert status == 403 and list(reply) == ["error"], reply
+        assert world.counts() == before
+
+
+@pytest.mark.parametrize("method,path,body", OPEN_TO_READERS)
+def test_a_reader_may_join_leave_and_mark_read_and_only_those_rows_change(
+    world: Site, method: str, path: str, body: dict[str, Any] | None
+) -> None:
+    for who in WHO:
+        before = world.counts()
+        status, _, reply = world.call(method, path, cookie=who, body=body)
+        assert status == 200, reply
+        moves = ("group_members", "read_marks")
+        after = world.counts()
+        assert {t: n for t, n in after.items() if t not in moves} == {
+            t: n for t, n in before.items() if t not in moves
+        }
+
+
+@pytest.mark.parametrize("method,path,body", REACTIONS)
+def test_a_registered_reader_may_react_and_an_unregistered_name_may_not(
+    world: Site, method: str, path: str, body: dict[str, Any] | None
+) -> None:
+    before = world.counts()
+    status, _, reply = world.call(method, path, cookie=ZZ_C, body=body)
+    assert status == 403 and list(reply) == ["error"], reply
+    assert world.counts() == before
+    status, _, reply = world.call(method, path, cookie=RD_C, body=body)
+    assert status == 200, reply
+    after = world.counts()
+    assert {t: n for t, n in after.items() if t != "reactions"} == {
+        t: n for t, n in before.items() if t != "reactions"
+    }
 
 
 @pytest.mark.parametrize("method,path,body", WRITES)

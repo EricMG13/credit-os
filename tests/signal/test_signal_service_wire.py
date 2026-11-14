@@ -184,11 +184,12 @@ def test_a_request_line_cannot_write_control_characters_to_the_log(
 ) -> None:
     caplog.set_level(logging.INFO, logger=service.log.name)
     host = f"127.0.0.1:{svc.port}"
-    sock = raw(svc, f"GET /x\x1b[2J\r HTTP/1.1\r\nHost: {host}\r\n\r\n".encode())
+    line = f"GET /x\x1b[2J\x7f\x9b\r HTTP/1.1\r\nHost: {host}\r\n\r\n"  # ESC, DEL, a C1 byte, CR
+    sock = raw(svc, line.encode("latin-1"))
     assert read_all(sock).split(b"\r\n")[0] == b"HTTP/1.0 404 Not Found"
     sock.close()
     messages = [record.getMessage() for record in caplog.records]
-    assert '127.0.0.1 "GET /x\\x1b[2J\\x0d HTTP/1.1" 404 -' in messages
+    assert '127.0.0.1 "GET /x\\x1b[2J\\x7f\\x9b\\x0d HTTP/1.1" 404 -' in messages
     for message in messages:
         assert not [c for c in message if ord(c) < 0x20 or 0x7F <= ord(c) <= 0x9F]
 

@@ -128,6 +128,9 @@ class Loop:
             db = store.open_db(self.root)
             try:
                 results = ingest.run_due(db, now, self.fetch_fn)
+                # The read below is inside the same fail-open: if it fails after a completed pass,
+                # the pass's checks and stories stay committed, and /api/status shows last_pass_at
+                # set and a loop error together (accepted, R71 I2).
                 capped = (
                     bool(results) and not results[-1][1] and _no_check_at(db, results[-1][0], now)
                 )
@@ -503,6 +506,8 @@ _ROUTES = (
     _Route("POST", re.compile(f"/api/stories/{_ID}/save"), _save, view_status=404),
     _Route("DELETE", re.compile(f"/api/stories/{_ID}/save"), _unsave, view_status=404),
     _Route("GET", re.compile("/api/topics"), _topics),
+    # store_status=404 holds only while "no topic with id N" is the one plain StoreError that
+    # follow/unfollow can raise; a later one (a cap, a name rule) would read as "not found" (R68 A2-4).
     _Route("POST", re.compile(f"/api/topics/{_ID}/follow"), _follow, store_status=404),
     _Route("DELETE", re.compile(f"/api/topics/{_ID}/follow"), _unfollow, store_status=404),
     _Route("GET", re.compile("/api/groups"), _group_list),

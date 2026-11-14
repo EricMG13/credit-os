@@ -4,7 +4,8 @@ The same team store as `test_signal_service_groups.py`: users ak and ml are writ
 zz no one the store knows; group 1 "TMT" (everyone; thread 1, comment 1) and group 2 "Inner"
 (invited, ak alone; thread 2, comment 2) are ids; 999999 is missing. Expected values are literals.
 At most one server thread is alive; a busy database is a second connection holding the write lock
-with `store._BUSY_SECONDS` patched to 0.2; nothing here opens sockets or threads in a loop.
+with `store._BUSY_SECONDS` patched to 0.2; nothing here opens sockets or threads until the
+system refuses (a few requests in a loop, one connection at a time, about 130 at most).
 """
 
 from __future__ import annotations
@@ -16,54 +17,31 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from service_support import Site, team
+from service_support import AK_C, ML_C, NEW_GROUP, RD_C, WRITES, ZZ_C, Row, Site, team_site
 
 from credit_os.signal import store
-from credit_os.signal.service import make_server
 from credit_os.signal.store import open_db
 
 
 @pytest.fixture
 def world(tmp_path: Path) -> Iterator[Site]:
-    team(tmp_path, seeded=True)
-    live = Site(make_server(tmp_path, "127.0.0.1", 0), tmp_path)
+    live = team_site(tmp_path, seeded=True)
     yield live
     live.close()
 
 
 @pytest.fixture
 def site(tmp_path: Path) -> Iterator[Site]:
-    team(tmp_path, seeded=False)
-    live = Site(make_server(tmp_path, "127.0.0.1", 0), tmp_path)
+    live = team_site(tmp_path, seeded=False)
     yield live
     live.close()
 
 
-AK_C, ML_C, RD_C, ZZ_C = (f"signal_name={n}" for n in ("ak", "ml", "rd", "zz"))
 COOKIE = {"ak": AK_C, "ml": ML_C, "rd": RD_C, "zz": ZZ_C}
-NEW_GROUP = {"name": "New", "visibility": "everyone", "topics": []}
 TOO_LONG = "x" * 4001
 FAILED = {"error": "the service failed; see its log"}
 BUSY = {"error": "the store is busy; try again"}
 IDS = {"hidden": {"g": 2, "t": 2, "c": 2}, "missing": {"g": 999999, "t": 999999, "c": 999999}}
-Row = tuple[str, str, dict[str, Any] | None]
-
-# Every write of the groups and threads routes, on visible group 1, thread 1, comment 1.
-WRITES: list[Row] = [
-    ("POST", "/api/groups", NEW_GROUP),
-    ("POST", "/api/groups/1/members", {}),
-    ("POST", "/api/groups/1/members", {"name": "rd"}),
-    ("DELETE", "/api/groups/1/members", {}),
-    ("DELETE", "/api/groups/1/members", {"name": "ak"}),
-    ("POST", "/api/groups/1/threads", {"story_id": 2, "note": "n"}),
-    ("POST", "/api/groups/1/threads", {"title": "T", "text": "x"}),
-    ("POST", "/api/threads/1/read", {}),
-    ("POST", "/api/threads/1/comments", {"text": "hi"}),
-    ("POST", "/api/comments/1", {"text": "changed"}),
-    ("DELETE", "/api/comments/1", None),
-    ("POST", "/api/comments/1/reactions/agree", None),
-    ("DELETE", "/api/comments/1/reactions/agree", None),
-]
 
 _DUMPS = {
     "groups": "SELECT * FROM groups ORDER BY id",
@@ -486,6 +464,7 @@ def test_every_reply_carries_exactly_the_agreed_fields(world: Site) -> None:
         return reply
 
     assert set(ask("ml", "GET", "/api/me")) == {"name", "role"}
+    assert set(ask("ml", "POST", "/api/me", {"name": "ml"})) == {"name", "role"}
     status = ask("ml", "GET", "/api/status")
     assert set(status) == {"last_pass_at", "sources", "loop_error"}
     assert set(status["sources"]) == {"approved", "failing"}
