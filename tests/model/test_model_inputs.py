@@ -299,3 +299,40 @@ def test_bound_property(debt: int, repaid: tuple[int, int, int]) -> None:
         return
     assert result[:2] == (RefusalKind.REPAYMENT, "debt_repayment")
     assert re.search(rf"through forecast year {over[0]} totals ", result[2])
+
+
+def one_facility(**changes: Any) -> dict[str, Any]:
+    base = {"name": "T", "balance": "4", "fixed_rate_pct": "6", "spread_pct": None}
+    base |= {"floor_pct": None, "reference_rate": None, "annual_amortisation": None}
+    return base | {"maturity": None} | changes
+
+
+def test_length_error_that_echoes_a_failed_item_is_dropped() -> None:
+    both = build([[["facilities"], [one_facility(spread_pct="2")]]])
+    assert (
+        issues_of(both)
+        == "facilities.0: Value error, a facility states a fixed rate or a floating one, not both"
+    )
+    assert issues_of(build([[["facilities"], []]])) == (
+        "facilities: Tuple should have at least 1 item after validation, not 0"
+    )
+
+
+def length_error(minimum: int, actual: int) -> Any:
+    ctx = {"min_length": minimum, "actual_length": actual}
+    msg = f"Tuple should have at least {minimum} items after validation, not {actual}"
+    return {"type": "too_short", "loc": ("f",), "msg": msg, "ctx": ctx}
+
+
+def failed_item(index: int) -> Any:
+    return {"type": "value_error", "loc": ("f", index), "msg": "Value error, x"}
+
+
+def test_drop_rule_on_built_errors() -> None:
+    echo_only = [length_error(1, 0), failed_item(0)]
+    assert inputs.without_echoes(echo_only) == [failed_item(0)]
+    short = [length_error(2, 0), failed_item(0)]
+    assert inputs.without_echoes(short) == short
+    assert inputs.without_echoes([length_error(1, 0)]) == [length_error(1, 0)]
+    two_items = [length_error(2, 0), failed_item(0), failed_item(1), failed_item(1)]
+    assert inputs.without_echoes(two_items) == two_items[1:]

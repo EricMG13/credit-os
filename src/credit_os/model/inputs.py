@@ -19,7 +19,6 @@ from credit_os.model.facilities import (
     FRACTION_PATTERN,
     LIST_AS_TUPLE,
     Facility,
-    _plain,
 )
 from credit_os.model.inputs_json import read_forecast_document
 from credit_os.model.refusals import ForecastRefused, RefusalKind
@@ -196,6 +195,12 @@ class ForecastInputs(BaseModel):
         return self
 
 
+def _plain(value: Value) -> Decimal:
+    if value.amount is None:
+        raise ValueError("an amount is missing")
+    return value.amount
+
+
 def _copied(node: Any) -> Any:
     """A copy of the dicts and lists; every other value is shared (and is never changed)."""
     if isinstance(node, dict):
@@ -274,11 +279,41 @@ def _issue(error: ErrorDetails) -> str:
     return f"{'.'.join(parts) or '(root)'}: {error['msg']}"
 
 
+def _is_length(error: ErrorDetails) -> bool:
+    return error["type"] == "too_short" and error["msg"].startswith(
+        ("Tuple should have at least", "List should have at least")
+    )
+
+
+def _echoes(error: ErrorDetails, errors: list[ErrorDetails]) -> bool:
+    """A length error counts only the items that passed: it echoes failed items when those
+    plus the passed ones reach the minimum."""
+    depth = len(error["loc"])
+    failed = {
+        item["loc"][depth]
+        for item in errors
+        if len(item["loc"]) > depth and item["loc"][:depth] == error["loc"]
+    }
+    ctx = error.get("ctx") or {}
+    actual, minimum = ctx.get("actual_length"), ctx.get("min_length")
+    return (
+        bool(failed)
+        and isinstance(actual, int)
+        and isinstance(minimum, int)
+        and actual + len(failed) >= minimum
+    )
+
+
+def without_echoes(errors: list[ErrorDetails]) -> list[ErrorDetails]:
+    return [item for item in errors if not (_is_length(item) and _echoes(item, errors))]
+
+
 def _validated(document: dict[str, Any]) -> ForecastInputs:
     try:
         return ForecastInputs.model_validate(document)
     except pydantic.ValidationError as error:
-        issues = [_issue(item) for item in error.errors(include_url=False, include_input=False)]
+        errors = error.errors(include_url=False, include_input=False)
+        issues = [_issue(item) for item in without_echoes(errors)]
         first = "; ".join(issues[:3])
         text = f"{len(issues)} problems; first: {first}" if len(issues) > 3 else first
         raise ForecastRefused(RefusalKind.SCHEMA, _SUBJECT, f"{_SUBJECT}: {text}") from None
