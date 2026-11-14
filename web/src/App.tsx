@@ -1,5 +1,7 @@
-import type { LoadResult } from "./data";
+import { SLICE_KEYS, type LoadResult, type SliceKey } from "./data";
 import { Kit } from "./pages/Kit";
+import { matchRoute, routeTable, type RouteTable } from "./pages/route-table";
+import { SourceContext } from "./pages/source";
 import { useHashRoute } from "./route";
 import { PageHeader } from "./shell/PageHeader";
 import { Shell, type Area } from "./shell/Shell";
@@ -43,8 +45,39 @@ function LibraryBody({ result }: { result: LoadResult }) {
   }
 }
 
-export function App({ result }: { result: LoadResult }) {
-  const route = useHashRoute();
+/** A route belongs to the group named by its first path segment, the library when none is. */
+function areaOf(routePath: string): SliceKey {
+  const first = routePath.split("/")[1];
+  return SLICE_KEYS.find((key) => key === first) ?? "library";
+}
+
+function Unreadable({ title, area, reason }: { title: string; area: Area; reason: string }) {
+  return (
+    <Shell current={area}>
+      <PageHeader title={title} />
+      <p className="mt-6 text-text-secondary">This part of the library could not be read</p>
+      <p className="mt-2 text-text-secondary">{reason}</p>
+    </Shell>
+  );
+}
+
+function Page({ result, table, route }: { result: LoadResult; table: RouteTable; route: string }) {
+  const matched = matchRoute(route, table.routes);
+  if (matched !== null && result.kind === "ok") {
+    const area = areaOf(matched.route.path);
+    const slice = table.readers[area](result.data[area]);
+    if (slice.kind === "invalid") {
+      return <Unreadable title={matched.route.title} area={area} reason={slice.reason} />;
+    }
+    return (
+      <Shell current={area}>
+        <SourceContext.Provider value={result.data}>
+          <PageHeader title={matched.route.title} />
+          <div className="mt-6">{matched.route.render(matched.params)}</div>
+        </SourceContext.Provider>
+      </Shell>
+    );
+  }
   if (route === "/kit") {
     return (
       <Shell current="kit">
@@ -53,7 +86,7 @@ export function App({ result }: { result: LoadResult }) {
     );
   }
   const notBuilt = NOT_BUILT.get(route);
-  if (notBuilt !== undefined) {
+  if (matched === null && notBuilt !== undefined) {
     return (
       <Shell current={notBuilt.area}>
         <PageHeader title={notBuilt.title} />
@@ -61,9 +94,21 @@ export function App({ result }: { result: LoadResult }) {
       </Shell>
     );
   }
+  if (matched !== null || route === "" || route === "/") {
+    return (
+      <Shell current="library">
+        <Library result={result} />
+      </Shell>
+    );
+  }
   return (
     <Shell current="library">
-      <Library result={result} />
+      <PageHeader title="Page not found" />
+      <p className="mt-6 text-text-secondary">No page has this address</p>
     </Shell>
   );
+}
+
+export function App({ result, table = routeTable }: { result: LoadResult; table?: RouteTable }) {
+  return <Page result={result} table={table} route={useHashRoute()} />;
 }

@@ -8,6 +8,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { assetProblems, fontProblems, referencedAssets } from "./assets.mjs";
 import { classProblems, focusOutlineProblems } from "./classes.mjs";
+import { checkRoutes } from "./route-visits.mjs";
 
 const distDir = path.resolve(process.argv[2] ?? "dist");
 // A hung browser must fail the run, not hold the CI job until the runner limit.
@@ -203,6 +204,7 @@ try {
   writeFileSync(dataFile, populated);
   results.push(check("data.js with one issuer", browser, folder, "TransDigm"));
   writeFileSync(dataFile, original);
+  results.push(checkRoutes({ browser, folder, work, dumpPage, problems }));
   results.push(canary(browser, folder, work));
   allOk = results.every(Boolean);
 } finally {
