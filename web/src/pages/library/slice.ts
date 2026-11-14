@@ -50,8 +50,8 @@ export type IssuerCard = {
 
 export type HomeCard = IssuerCard | { kind: "loading" };
 
-/** The controls that narrow the cards: the search and three selects. */
-const FILTER_CONTROLS = 4;
+/** The controls that narrow a list: the search, three selects and three range bands. */
+const FILTER_CONTROLS = 7;
 /** One applied-filter label for each count from none to every control. */
 export const APPLIED_LABELS = FILTER_CONTROLS + 1;
 
