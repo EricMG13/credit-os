@@ -4,6 +4,7 @@ import { Dialog, DialogTrigger, Modal, ModalOverlay } from "@/components/applica
 import { SlideoutMenu } from "@/components/application/slideout-menus/slideout-menu";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { Input } from "@/components/base/input/input";
+import { Card } from "@/components/card/Card";
 import { ProgressSteps } from "@/components/steps/ProgressSteps";
 
 function Heading({ id, children }: { id: string; children: string }) {
@@ -23,11 +24,13 @@ export function KitOverlays() {
         <div>
           <SlideoutMenu.Trigger>
             <Button color="secondary">Open drawer</Button>
-            <SlideoutMenu isDismissable>
+            <SlideoutMenu isDismissable aria-labelledby="kit-drawer-title">
               {({ close }) => (
                 <>
                   <SlideoutMenu.Header onClose={close}>
-                    <h3 className="font-display text-h3 text-text-primary">Source detail</h3>
+                    <h3 id="kit-drawer-title" className="font-display text-h3 text-text-primary">
+                      Source detail
+                    </h3>
                   </SlideoutMenu.Header>
                   <SlideoutMenu.Content>
                     <p className="text-body text-text-primary">
@@ -57,13 +60,18 @@ export function KitOverlays() {
           <DialogTrigger>
             <Button color="primary">Start run</Button>
             <ModalOverlay isDismissable>
-              <Modal>
-                <Dialog aria-label="Confirm a paid run">
+              <Modal className="sm:max-w-100">
+                <Dialog aria-labelledby="kit-paid-run-title">
                   {({ close }) => (
                     <div className="flex flex-col gap-5 p-6">
                       <FeaturedIcon icon={AlertTriangle} color="warning" size="lg" />
                       <div className="flex flex-col gap-1">
-                        <h3 className="font-display text-h3 text-text-primary">Start a paid run</h3>
+                        <h3
+                          id="kit-paid-run-title"
+                          className="font-display text-h3 text-text-primary"
+                        >
+                          Start a paid run
+                        </h3>
                         <p className="text-small text-text-secondary">
                           This run costs money and cannot be undone. It stops at the cap of USD 20.
                         </p>
@@ -86,11 +94,13 @@ export function KitOverlays() {
           <DialogTrigger>
             <Button color="secondary">Rename issuer</Button>
             <ModalOverlay isDismissable>
-              <Modal>
-                <Dialog aria-label="Rename issuer">
+              <Modal className="sm:max-w-100">
+                <Dialog aria-labelledby="kit-rename-title">
                   {({ close }) => (
                     <div className="flex flex-col gap-5 p-6">
-                      <h3 className="font-display text-h3 text-text-primary">Display name</h3>
+                      <h3 id="kit-rename-title" className="font-display text-h3 text-text-primary">
+                        Display name
+                      </h3>
                       <Input label="Display name" placeholder="Issuer" />
                       <div className="flex justify-end gap-3">
                         <Button color="secondary" onPress={close}>
@@ -112,14 +122,16 @@ export function KitOverlays() {
       <section aria-labelledby="kit-steps" className="mt-8 flex flex-col gap-4">
         <Heading id="kit-steps">Progress steps</Heading>
         <div className="max-w-2xl">
-          <ProgressSteps
-            steps={[
-              { title: "Sources", state: "complete" },
-              { title: "Capital structure", state: "complete" },
-              { title: "Liquidity", state: "current" },
-              { title: "Covenants", state: "incomplete" },
-            ]}
-          />
+          <Card>
+            <ProgressSteps
+              steps={[
+                { title: "Sources", state: "complete" },
+                { title: "Capital structure", state: "complete" },
+                { title: "Liquidity", state: "current" },
+                { title: "Covenants", state: "incomplete" },
+              ]}
+            />
+          </Card>
         </div>
       </section>
     </>

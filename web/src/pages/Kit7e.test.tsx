@@ -19,6 +19,12 @@ describe("design system rows", () => {
   });
 });
 
+// The drawer's curve, parsed from the Motion table's "Drawer, tabs, accordion" row.
+const drawerCurve = /`(cubic-bezier\([^)]*\))`/.exec(
+  designSystem.split("\n").find((l) => l.includes("| Drawer, tabs, accordion |")) ?? "",
+)?.[1];
+const drawerEase = `ease-[${drawerCurve ?? "missing"}]`;
+
 async function open(name: string): Promise<HTMLElement> {
   fireEvent.click(screen.getByRole("button", { name }));
   return screen.findByRole("dialog");
@@ -74,6 +80,32 @@ describe("Drawer on the kit page", () => {
     }
   });
 
+  it("moves on the design system's curve, never linear", async () => {
+    render(<Kit />);
+    const dialog = await open("Open drawer");
+    expect(drawerCurve).toBe("cubic-bezier(.2,0,0,1)");
+    const panel = dialog.parentElement as HTMLElement;
+    const overlay = panel.parentElement as HTMLElement;
+    for (const el of [overlay, panel]) {
+      expect(el).toHaveClass(drawerEase);
+      expect(el.className).not.toMatch(/ease-linear/);
+    }
+  });
+
+  it("draws the footer's top rule in the hairline token, not a name outside the design system", async () => {
+    render(<Kit />);
+    const dialog = await open("Open drawer");
+    expect(within(dialog).getByRole("contentinfo")).toHaveClass("shadow-border-hairline");
+    const theme = readFileSync(path.join(root, "web", "src", "styles", "theme.css"), "utf8");
+    expect(theme).not.toMatch(/--color-border-secondary\s*:/);
+  });
+
+  it("is named by its visible title", async () => {
+    render(<Kit />);
+    const dialog = await open("Open drawer");
+    expect(dialog).toHaveAccessibleName("Source detail");
+  });
+
   it("draws the close button's focus outline as a solid line", async () => {
     render(<Kit />);
     const dialog = await open("Open drawer");
@@ -86,7 +118,7 @@ describe("Modal on the kit page", () => {
   it("shows a warning confirmation stating the cap", async () => {
     render(<Kit />);
     const dialog = await open("Start run");
-    expect(dialog).toHaveAccessibleName("Confirm a paid run");
+    expect(dialog).toHaveAccessibleName("Start a paid run");
     expect(within(dialog).getByText(/cap of USD 20/)).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Start the run" })).toBeInTheDocument();
@@ -106,6 +138,18 @@ describe("Modal on the kit page", () => {
     expect(dialog.querySelector("[data-featured-icon]")).toBeNull();
     expect(within(dialog).queryByText(/cap of/)).toBeNull();
     expect(document.querySelector("style")).toBeNull();
+  });
+
+  it.each(["Start run", "Rename issuer"])("%s caps its panel at 400px", async (trigger) => {
+    render(<Kit />);
+    const dialog = await open(trigger);
+    expect(dialog.parentElement).toHaveClass("sm:max-w-100");
+  });
+
+  it("names the form dialog by its heading", async () => {
+    render(<Kit />);
+    const dialog = await open("Rename issuer");
+    expect(dialog).toHaveAccessibleName("Display name");
   });
 
   it.each(["Start run", "Rename issuer"])("%s closes by Cancel and by Escape", async (trigger) => {
@@ -134,6 +178,12 @@ describe("Progress steps on the kit page", () => {
       "current",
       "not started",
     ]);
+  });
+
+  it("sits on a card surface", () => {
+    render(<Kit />);
+    const region = screen.getByRole("region", { name: "Progress steps" });
+    expect(region.querySelector("ol")?.closest(".bg-surface-card")).not.toBeNull();
   });
 
   it("marks complete with a check and the rest with their number", () => {

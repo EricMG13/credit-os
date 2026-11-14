@@ -105,6 +105,22 @@ describe("theme.css", () => {
     }
   });
 
+  it("draws a destructive button's focus outline in the one focus colour", () => {
+    const hex = need(
+      /\|\s*`focus`\s*\|\s*`(#[0-9A-Fa-f]{6})`/.exec(
+        section("Action, hover and focus", "###"),
+      )?.[1],
+      "focus hex",
+    );
+    let value = need(declared("outline-color-error"), "--outline-color-error");
+    for (let hops = 0; hops < 8; hops++) {
+      const next = /^var\(--([a-z0-9_-]+)\)$/.exec(value)?.[1];
+      if (next === undefined) break;
+      value = need(declared(next), `--${next}`);
+    }
+    expect(value.toUpperCase()).toBe(hex.toUpperCase());
+  });
+
   it("defines the gap text colour from the Gap states table", () => {
     const hex = need(
       /violet text `(#[0-9A-Fa-f]{6})`/.exec(section("Gap states", "###"))?.[1],

@@ -63,4 +63,25 @@ describe("Button", () => {
     button.click();
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it.each(["link-color", "link-destructive"] as const)(
+    "gives the %s button no text padding and the size's underline offset",
+    (color) => {
+      render(
+        <Button color={color} size="sm">
+          Open
+        </Button>,
+      );
+      const button = screen.getByRole("button", { name: "Open" });
+      expect(button).toHaveClass("*:data-text:underline-offset-3");
+      expect(button.querySelector("[data-text]")).not.toHaveClass("px-0.5");
+    },
+  );
+
+  it("keeps the text padding and no underline offset on a non-link colour", () => {
+    render(<Button color="secondary">Open</Button>);
+    const button = screen.getByRole("button", { name: "Open" });
+    expect(button.querySelector("[data-text]")).toHaveClass("px-0.5");
+    expect(button.className).not.toMatch(/underline-offset/);
+  });
 });

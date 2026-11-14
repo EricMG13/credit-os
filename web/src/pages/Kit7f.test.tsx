@@ -90,10 +90,27 @@ describe("File upload on the kit page", () => {
     expect(within(region).getAllByRole("listitem")).toHaveLength(3);
   });
 
-  it("draws every focusable control with a visible outline", () => {
+  it("takes the drop zone's hidden input out of the Tab order and draws the controls that stay with an outline", () => {
     render(<Kit />);
     const region = screen.getByRole("region", { name: "File upload" });
-    expect(region.querySelector("[class*='outline-hidden']")).toBeNull();
+    expect(region.querySelector("input[type='file']")).toHaveAttribute("tabindex", "-1");
+    const tabStops = [...region.querySelectorAll<HTMLElement>("button, a[href], input, select")]
+      .filter((el) => el.getAttribute("tabindex") !== "-1")
+      .filter((el) => !el.hasAttribute("disabled"));
+    expect(tabStops.length).toBeGreaterThan(0);
+    for (const el of tabStops) {
+      expect(el.className, el.textContent).not.toMatch(/outline-hidden|sr-only/);
+      expect(el.className, el.textContent).toMatch(/focus-visible:outline-2/);
+    }
+  });
+
+  it("draws the drop zone's featured icon at the source's md size", () => {
+    render(<Kit />);
+    const icon = screen
+      .getByRole("region", { name: "File upload" })
+      .querySelector("[data-dropzone] [data-featured-icon]");
+    expect(icon).toHaveClass("size-10", "*:data-icon:size-5");
+    expect(icon).not.toHaveClass("size-12");
   });
 
   it("names the chosen file on the page", () => {

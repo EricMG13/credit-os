@@ -5,6 +5,7 @@ import { isReactComponent } from "@/utils/is-react-component";
 
 const iconsSizes = {
   sm: "*:data-icon:size-4 *:data-icon:stroke-[2.25px]",
+  md: "*:data-icon:size-5",
   lg: "*:data-icon:size-6",
   xl: "*:data-icon:size-7",
 };
@@ -14,6 +15,7 @@ const light = {
   base: "rounded-full",
   sizes: {
     sm: "size-8",
+    md: "size-10",
     lg: "size-12",
     xl: "size-14",
   },
@@ -36,7 +38,7 @@ interface FeaturedIconProps {
   /** The icon to display. Accepts a component reference or a rendered element. */
   icon?: FC<{ className?: string }> | ReactNode;
   /** Controls the dimensions of the wrapper and the icon inside it. */
-  size?: "sm" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl";
   /** The semantic color used for the background and icon. */
   color: "brand" | "gray" | "success" | "warning" | "error";
 }

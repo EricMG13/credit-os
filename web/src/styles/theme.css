@@ -178,7 +178,7 @@
   --text-color-fg-quaternary_hover: var(--color-fg-quaternary_hover);
   --ring-color-primary: var(--color-border-primary);
   --outline-color-brand: var(--color-border-brand);
-  --outline-color-error: var(--color-border-error);
+  --outline-color-error: var(--color-focus);
 
   /* Featured icon (light theme) and empty state: tinted circle and its icon colour, by status family */
   --background-color-tertiary: var(--color-surface-subtle);
@@ -254,7 +254,6 @@
 
   /* Drawer and modal: the scrim is Navy (it takes the source's alpha at the use site); the footer's top rule is the hairline */
   --background-color-overlay: var(--color-surface-inverse);
-  --color-border-secondary: var(--color-border-hairline);
 
   /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
   --text-xs: calc(var(--spacing) * 3);
