@@ -11,15 +11,18 @@ export function DownloadButton({
   download,
   color = "secondary",
   open = false,
+  end = false,
 }: {
   download: Download;
   color?: "secondary" | "link-color";
   open?: boolean;
+  /** Sits the disabled button and its reason at the cell's right edge. */
+  end?: boolean;
 }) {
   const reason = useId();
   if (download.href === null) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
+      <div className={`flex flex-wrap items-center gap-3${end ? " justify-end" : ""}`}>
         <Button color={color} isDisabled aria-describedby={reason}>
           {download.label}
         </Button>
