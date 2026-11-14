@@ -1,9 +1,53 @@
 import { ChevronDown, ChevronUp } from "@untitledui/icons";
+import { useState } from "react";
 import { Button, Disclosure, DisclosurePanel, Link } from "react-aria-components";
+import { cx } from "@/utils/cx";
 import type { Limitations as LimitationsData } from "../slice";
 import type { SECTION_HEADING, SUBSECTION_HEADING } from "./heading";
 import { TEXT_LINK } from "./links";
 import { TRACE_HOST, TraceControl } from "./TraceControl";
+
+/**
+ * One limitation. Text longer than three lines is cut there with a Show all control, found by
+ * measuring the clamped text (the observer fires again when the width changes); it prints in full.
+ */
+function Limitation({ text, trace }: LimitationsData["items"][number]) {
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  return (
+    <li className={`${TRACE_HOST} flex max-w-[86ch] items-start gap-3`}>
+      <span className="flex flex-1 flex-col items-start gap-1">
+        <span
+          ref={(el) => {
+            if (el === null) return;
+            const watch = new ResizeObserver(() => {
+              if (!open) setOverflows(el.scrollHeight > el.clientHeight);
+            });
+            watch.observe(el);
+            return () => {
+              watch.disconnect();
+            };
+          }}
+          className={cx(!open && "line-clamp-3 print:line-clamp-none")}
+        >
+          {text}
+        </span>
+        {overflows ? (
+          <Button
+            aria-expanded={open}
+            onPress={() => {
+              setOpen(!open);
+            }}
+            className={`${TEXT_LINK} cursor-pointer text-small font-semibold text-action underline print:hidden`}
+          >
+            {open ? "Show less" : "Show all"}
+          </Button>
+        ) : null}
+      </span>
+      <TraceControl trace={trace} label="Show sources for this limitation" />
+    </li>
+  );
+}
 
 /**
  * What the run or module could not establish (P5): the only collapsible block of a library page.
@@ -58,13 +102,7 @@ export function Limitations({
             <DisclosurePanel className="print:block print:[content-visibility:visible]">
               <ul className="flex flex-col gap-3 text-small text-text-secondary">
                 {limitations.items.map((item) => (
-                  <li
-                    key={item.text}
-                    className={`${TRACE_HOST} flex max-w-[86ch] items-start gap-3`}
-                  >
-                    <span className="flex-1">{item.text}</span>
-                    <TraceControl trace={item.trace} label="Show sources for this limitation" />
-                  </li>
+                  <Limitation key={item.text} {...item} />
                 ))}
               </ul>
             </DisclosurePanel>

@@ -39,6 +39,14 @@ export const routes: readonly Route[] = [
     render: (params) => <Changes issuer={params["issuer"]} run={params["run"]} />,
   },
   {
+    path: "/library/:issuer/:run/modules",
+    layout: "bleed",
+    title: PAGE_NAME.modules,
+    render: (params) => (
+      <ModulePage issuer={params["issuer"]} run={params["run"]} module={undefined} />
+    ),
+  },
+  {
     path: "/library/:issuer/:run/modules/:module",
     layout: "bleed",
     title: PAGE_NAME.modules,

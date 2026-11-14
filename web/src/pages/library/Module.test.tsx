@@ -15,6 +15,7 @@ const fixture = JSON.parse(
 ) as { issuers: LibraryData["issuers"]; slice: Json; params: Record<string, Json[]> };
 
 const PATH = "/library/:issuer/:run/modules/:module";
+const INDEX = "/library/:issuer/:run/modules";
 const BASE = "#/library/halden-aerostructures/";
 
 function renderRoute(
@@ -40,7 +41,11 @@ const sourceButtons = () => screen.queryAllByRole("button", { name: /^Show sourc
 describe("the module routes", () => {
   it("are titled Modules and the fixture visits each state", () => {
     expect(routes.find((r) => r.path === PATH)?.title).toBe("Modules");
-    expect(routes.find((r) => r.path === PATH)?.layout).toBe("bleed");
+    expect(routes.find((r) => r.path === INDEX)?.title).toBe("Modules");
+    expect(routes.filter((r) => [PATH, INDEX].includes(r.path)).map((r) => r.layout)).toEqual([
+      "bleed",
+      "bleed",
+    ]);
     expect(fixture.params[PATH]?.map((p) => [p["run"], p["module"]])).toEqual([
       ["2026-09-30", "business-profile"],
       ["2026-09-30", "capital-structure"],
@@ -49,6 +54,7 @@ describe("the module routes", () => {
       ["2026-06-30", "capital-structure"],
       ["2026-09-30", "no-such-module"],
     ]);
+    expect(fixture.params[INDEX]?.map((p) => p["run"])).toEqual(["2026-09-30", "2026-06-30"]);
   });
 });
 
@@ -301,6 +307,45 @@ describe("Module, a module that could not be delivered", () => {
   });
 });
 
+describe("Module, a limitation longer than three lines", () => {
+  const layout = (overflows: boolean) => {
+    vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(overflows ? 90 : 60);
+    vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(60);
+  };
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("clamps at three lines and offers Show all, then Show less, and prints open", () => {
+    layout(true);
+    renderModule("business-profile");
+    const limits = region("Limitations");
+    const buttons = within(limits).getAllByRole("button", { name: /^Show (all|less)$/ });
+    expect(buttons).toHaveLength(2);
+    const long = within(limits).getByText(/^The share of revenue under cost pass-through/);
+    expect(long).toHaveClass("line-clamp-3", "print:line-clamp-none");
+    const show = buttons[1] as HTMLElement;
+    expect(show).toHaveAttribute("aria-expanded", "false");
+    expect(show).toHaveClass("print:hidden");
+    fireEvent.click(show);
+    expect(long).not.toHaveClass("line-clamp-3");
+    expect(show).toHaveTextContent("Show less");
+    expect(show).toHaveAttribute("aria-expanded", "true");
+    expect(long.textContent).toMatch(/which the files do not show\.$/);
+    fireEvent.click(show);
+    expect(long).toHaveClass("line-clamp-3");
+    expect(show).toHaveTextContent("Show all");
+  });
+
+  it("offers nothing when the text fits in three lines", () => {
+    layout(false);
+    renderModule("business-profile");
+    expect(
+      within(region("Limitations")).queryByRole("button", { name: /^Show (all|less)$/ }),
+    ).toBeNull();
+  });
+});
+
 describe("Module, states of the address", () => {
   it("says which module is missing, with the way back, under the issuer's one h1", () => {
     const { container } = renderModule("no-such-module");
@@ -323,5 +368,40 @@ describe("Module, states of the address", () => {
     const { container } = renderModule("capital-structure", "2026-06-30");
     expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
     expect(screen.queryByRole("navigation", { name: "Modules and sections" })).toBeNull();
+  });
+});
+
+describe("Module, the index route", () => {
+  const index = (run: string, library: unknown = fixture.slice) =>
+    renderRoute(INDEX, { issuer: "halden-aerostructures", run }, library);
+
+  it("draws the run's first module", () => {
+    index("2026-09-30");
+    expect(screen.getByRole("heading", { level: 2, name: "Capital structure" })).toBeVisible();
+    expect(within(nav()).getByRole("link", { name: /^Capital structure/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("draws a loading run as the skeleton", () => {
+    const { container } = index("2026-06-30");
+    expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
+  });
+
+  it("says the run has no modules when it holds none", () => {
+    const slice = structuredClone(fixture.slice) as {
+      issuers: { runs: { modules: unknown[]; head: Json; overview: Json; changes: Json }[] }[];
+    };
+    const run = slice.issuers[0]?.runs[3] as { modules: unknown[]; head: Json; overview: Json };
+    run.modules = [];
+    run.head["firstModule"] = null;
+    (run.overview["modules"] as { items: Json[] }).items = [
+      { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
+    ];
+    index("2025-09-30", slice);
+    expect(screen.getByRole("heading", { level: 2, name: "No modules in this run" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Back to the library" })).toBeVisible();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 });
