@@ -138,6 +138,7 @@ describe("the Signal frame", () => {
     if (snapshot === undefined) throw new Error("the fixture has a first scene");
     snapshot.channels.groups = [];
     snapshot.groups = [];
+    snapshot.threads = [];
     show("/signal/main/feed/for-you", { ...ok, data: { ...ok.data, signal: copy } });
     expect(within(channels()).getByText("No groups yet")).toBeInTheDocument();
     expect(within(channels()).queryByRole("link", { name: /Leveraged credit/ })).toBeNull();
@@ -294,6 +295,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(24);
+    expect(visits).toBe(27);
   });
 });
