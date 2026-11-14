@@ -148,6 +148,20 @@ def test_source_path_missing_folder(tmp_path: Path) -> None:
     assert str(caught.value) == f"{missing}: not a folder"
 
 
+def test_source_path_nul_in_folder() -> None:
+    bad = Path("bad\x00folder")
+    with pytest.raises(SourceRefused) as caught:
+        source_path(bad, "readme.txt")
+    assert str(caught.value) == "bad\x00folder: not a folder"
+    assert isinstance(caught.value.__cause__, ValueError)
+
+
+def test_read_pinned_nul_in_folder() -> None:
+    with pytest.raises(SourceRefused) as caught:
+        read_pinned(Path("bad\x00folder"), _pin("readme.txt"))
+    assert str(caught.value) == "bad\x00folder: not a folder"
+
+
 def test_source_path_folder_is_file(folder: Path) -> None:
     not_folder = folder / "readme.txt"
     with pytest.raises(SourceRefused) as caught:

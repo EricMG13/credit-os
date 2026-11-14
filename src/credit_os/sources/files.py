@@ -58,7 +58,7 @@ def source_path(folder: Path, name: str) -> Path:
     validate_name(name)
     try:
         root = folder.resolve(strict=True)
-    except (OSError, RuntimeError) as error:
+    except (OSError, RuntimeError, ValueError) as error:
         raise SourceRefused(f"{folder}: not a folder") from error
     if not root.is_dir():
         raise SourceRefused(f"{folder}: not a folder")
