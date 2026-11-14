@@ -22,11 +22,9 @@ def _charge(reply: Reply) -> str | None:
 @pytest.mark.parametrize(("events", "want"), key.EVENT_CASES.values(), ids=list(key.EVENT_CASES))
 def test_event_cases(events: list[Any], want: dict[str, Any]) -> None:
     reply = _reply(events)
-    assert (reply.kind, reply.error_class, reply.message) == (
-        want["kind"],
-        want["error_class"],
-        want["message"],
-    )
+    assert [reply.kind, reply.error_class, reply.message] == [
+        want[k] for k in ("kind", "error_class", "message")
+    ]
     assert reply.usage == (None if want["usage"] is None else Usage(*want["usage"]))
     assert _charge(reply) == want["charge"]
     assert (reply.started_at, reply.finished_at, reply.compactions) == (None, None, ())
@@ -60,18 +58,14 @@ def test_events_that_are_not_json() -> None:
     assert (reply.kind, reply.error_class) == ("sent_unknown", "UnparsableReply")
 
 
-@pytest.mark.parametrize(("value", "text"), key.CHARGES, ids=repr)
-def test_charges(value: Any, text: str | None) -> None:
-    reply = _reply([key.usage(1, finishReason="stop", **key.nano(value))])
-    assert reply.kind == "ok"
-    assert _charge(reply) == text
+_ROWS = [(key.nano(v), t) for v, t in key.CHARGES] + [(d, None) for d in key.NO_CHARGE_DATA]
 
 
-@pytest.mark.parametrize("data", key.NO_CHARGE_DATA, ids=repr)
-def test_no_charge_data(data: dict[str, Any]) -> None:
+@pytest.mark.parametrize(("data", "text"), _ROWS, ids=repr)
+def test_charges(data: dict[str, Any], text: str | None) -> None:
     reply = _reply([key.usage(1, finishReason="stop", **data)])
     assert reply.kind == "ok"
-    assert reply.billed_usd is None
+    assert _charge(reply) == text
 
 
 def test_an_exact_environment_value_is_redacted_too() -> None:
@@ -114,8 +108,7 @@ def test_a_tool_request_that_is_not_an_object_differs() -> None:
 def test_missing_is_not_zero() -> None:
     omitted = _reply(key.EVENT_CASES["a count one event omits is unknown, not smaller"][0]).usage
     assert omitted is not None
-    assert omitted.cached_read_tokens is None
-    assert omitted.reasoning_tokens is None
+    assert omitted.cached_read_tokens is None is omitted.reasoning_tokens
     zero = _reply(key.EVENT_CASES["zero counts are counts"][0])
     assert zero.usage is not None
     assert zero.usage.input_tokens == 0

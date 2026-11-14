@@ -25,7 +25,6 @@ _KINDS = ("assistant.message", "session.error", "session.idle", "model.call_fail
 _ROUTES = {"isByok": "ByokRouted", "isAuto": "AutoRouted"}
 _MAX_NANO = 10**39  # a charge has at most 39 digits
 _MAX_FLOAT_NANO = 2**53  # a float holds every whole number up to here
-_USD_EXPONENT = -11  # totalNanoAiu counts units of 1E-11 USD
 _Figures = tuple[Usage, Decimal | None]
 _Problem = tuple[str, str]  # (error class, message)
 
@@ -77,7 +76,6 @@ def _serialise(events: object) -> bytes | None:
 
 
 def _as_events(events: object) -> list[Any] | None:
-    """The list when every item is an object with an id, a type and data, else `None`."""
     if not isinstance(events, list):
         return None
     ok = all(isinstance(e, dict) and _non_empty(e.get("id")) for e in events)
@@ -139,8 +137,8 @@ def _nano(data: dict[str, Any]) -> int | None:
 
 
 def _usd(nanos: int) -> Decimal:
-    """Built from its digits: no float and no context rounding touch a charge."""
-    return Decimal((0, tuple(int(d) for d in str(nanos)), _USD_EXPONENT))
+    """Built from its digits, no float or rounding; totalNanoAiu counts units of 1E-11 USD."""
+    return Decimal((0, tuple(int(d) for d in str(nanos)), -11))
 
 
 def _early_problem(
@@ -156,20 +154,12 @@ def _early_problem(
         return "SessionError", redactor.text(home_paths(": ".join(parts)))[:500]
     if any(d.get("aborted") is True for d in data["session.idle"]):
         return "Aborted", "the session went idle after an abort"
-    return _usage_problem(usage_data, model) or _route_problem(data["model.call_failure"])
-
-
-def _usage_problem(usage_data: list[dict[str, Any]], model: str) -> _Problem | None:
     if not usage_data:
         return "UnparsableReply", "no assistant.usage event"
     if any(d.get("model") != model for d in usage_data):
         return "ModelMismatch", "the reply was refused: ModelMismatch"
-    return None
-
-
-def _route_problem(failures: list[dict[str, Any]]) -> _Problem | None:
     for flag, name in _ROUTES.items():
-        if any(d.get(flag) is True for d in failures):
+        if any(d.get(flag) is True for d in data["model.call_failure"]):
             return name, f"the reply was refused: {name}"
     return None
 
@@ -196,7 +186,6 @@ def _non_empty(value: object) -> bool:
 
 
 def _tool_call(data: dict[str, Any]) -> ToolCall | str:
-    """One `tool.execution_start` as a call, or the message of the rule it breaks."""
     if not _non_empty(data.get("toolCallId")):
         return "toolCallId is not a non-empty string"
     if not _non_empty(data.get("toolName")):
@@ -221,7 +210,6 @@ def _tool_calls(events: list[Any]) -> list[ToolCall] | str:
 
 
 def _requested_ids(events: list[Any]) -> set[str | None] | None:
-    """The ids named by every `toolRequests` list, `None` when no message has one."""
     lists = [
         r
         for d in _of_type(events, "assistant.message")
