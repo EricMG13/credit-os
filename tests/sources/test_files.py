@@ -194,6 +194,7 @@ def test_source_path_missing_folder(tmp_path: Path) -> None:
     with pytest.raises(SourceRefused) as caught:
         source_path(missing, "a.txt")
     assert str(caught.value) == f"{missing}: not a folder"
+    assert isinstance(caught.value.__cause__, FileNotFoundError)
 
 
 def test_source_path_nul_in_folder() -> None:
@@ -378,6 +379,122 @@ def test_read_capped_closes_descriptor_once(
         assert scenario == "success"
     assert len(opened) == 1
     assert closed == opened
+
+
+def test_source_path_folder_test_oserror_is_typed(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    failure = OSError(errno.EIO, "synthetic")
+
+    def fail(_self: Path) -> bool:
+        raise failure
+
+    monkeypatch.setattr(Path, "is_dir", fail)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, "readme.txt")
+    assert str(caught.value) == f"{folder}: not a folder"
+    assert caught.value.__cause__ is failure
+
+
+def _failing_close(monkeypatch: pytest.MonkeyPatch, error: OSError) -> list[int]:
+    calls: list[int] = []
+    real_close = os.close
+
+    def close(fd: int) -> None:
+        calls.append(fd)
+        real_close(fd)
+        if len(calls) == 1:
+            raise error
+
+    monkeypatch.setattr(os, "close", close)
+    return calls
+
+
+def test_read_capped_close_error_after_good_read(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    failure = OSError(errno.EIO, "second")
+    calls = _failing_close(monkeypatch, failure)
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot read (second)"
+    assert caught.value.__cause__ is failure
+    assert len(calls) == 1
+
+
+def test_read_capped_close_error_keeps_the_first_error(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        os, "fstat", lambda _fd: (_ for _ in ()).throw(OSError(errno.EACCES, "first"))
+    )
+    calls = _failing_close(monkeypatch, OSError(errno.EIO, "second"))
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot read (first)"
+    assert caught.value.__notes__ == [f"{path}: close also failed (second)"]
+    assert len(calls) == 1
+
+
+def test_read_capped_close_error_keeps_a_non_oserror(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    if sys.platform == "win32":
+        pytest.skip("Windows cannot open a directory")
+    path = folder / "notes"
+    calls = _failing_close(monkeypatch, OSError(errno.EIO, "second"))
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: not a regular file"
+    assert caught.value.__notes__ == [f"{path}: close also failed (second)"]
+    assert len(calls) == 1
+
+
+def test_read_capped_interrupt_still_closes_the_descriptor(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    interrupt = KeyboardInterrupt("first")
+
+    def read(_fd: int, _size: int) -> bytes:
+        raise interrupt
+
+    opened, closed = _closes(monkeypatch)
+    monkeypatch.setattr(os, "read", read)
+    with pytest.raises(KeyboardInterrupt) as caught:
+        read_capped(folder / "readme.txt")
+    assert caught.value is interrupt
+    assert len(opened) == 1
+    assert closed == opened
+
+
+def test_read_capped_interrupt_keeps_a_failing_close_as_a_note(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    interrupt = KeyboardInterrupt("first")
+
+    def read(_fd: int, _size: int) -> bytes:
+        raise interrupt
+
+    calls = _failing_close(monkeypatch, OSError(errno.EIO, "second"))
+    monkeypatch.setattr(os, "read", read)
+    path = folder / "readme.txt"
+    with pytest.raises(KeyboardInterrupt) as caught:
+        read_capped(path)
+    assert caught.value is interrupt
+    assert caught.value.__notes__ == [f"{path}: close also failed (second)"]
+    assert len(calls) == 1
+
+
+def test_read_capped_close_error_without_strerror(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _failing_close(monkeypatch, OSError("text"))
+    path = folder / "readme.txt"
+    with pytest.raises(SourceUnreadable) as caught:
+        read_capped(path)
+    assert str(caught.value) == f"{path}: cannot read (text)"
 
 
 def test_source_path_self_loop(folder: Path) -> None:
