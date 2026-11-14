@@ -2565,7 +2565,7 @@
                   },
                   {
                     "label": "Calculations",
-                    "value": { "kind": "value", "text": "148", "at": null },
+                    "value": { "kind": "value", "text": "60", "at": null },
                     "note": "Each one traceable to its inputs",
                     "trace": null
                   },
@@ -4413,7 +4413,7 @@
                   },
                   {
                     "label": "Calculations",
-                    "value": { "kind": "value", "text": "31", "at": null },
+                    "value": { "kind": "value", "text": "0", "at": null },
                     "note": "Each one traceable to its inputs",
                     "trace": null
                   },
@@ -5246,7 +5246,7 @@
                   },
                   {
                     "label": "Calculations",
-                    "value": { "kind": "value", "text": "52", "at": null },
+                    "value": { "kind": "value", "text": "0", "at": null },
                     "note": "Each one traceable to its inputs",
                     "trace": null
                   },
@@ -5546,6 +5546,12 @@
       { "issuer": "halden-aerostructures", "run": "2026-09-30", "item": "T-0042" },
       { "issuer": "halden-aerostructures", "run": "2026-09-30", "item": "T-9999" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30", "item": "T-0014" }
+    ],
+    "/library/:issuer/:run/evidence/gaps": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" },
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
     ]
   }
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { EvidenceGaps } from "./EvidenceGaps";
 import { EvidenceSources } from "./EvidenceSources";
 import { EvidenceSummary } from "./EvidenceSummary";
 import { EvidenceTrace } from "./EvidenceTrace";
@@ -19,7 +20,7 @@ function FilteredTab({
 }: {
   run: LoadedRun;
   issuer: string;
-  current: Extract<EvidenceTab, "sources" | "trace">;
+  current: Extract<EvidenceTab, "sources" | "trace" | "gaps">;
   children: (module: Reader | null, clear: () => void) => ReactNode;
 }) {
   const { chosen, clear, control } = useModuleFilter(run.evidence.moduleFilter);
@@ -45,7 +46,7 @@ export function Evidence({
 }: {
   issuer: string | undefined;
   run: string | undefined;
-  page: Extract<EvidenceTab, "summary" | "sources" | "trace">;
+  page: Extract<EvidenceTab, "summary" | "sources" | "trace" | "gaps">;
   /** The trace item the address names, on the Trace page only. */
   item?: string | undefined;
 }) {
@@ -79,6 +80,22 @@ export function Evidence({
                     moduleName={chosen?.name ?? null}
                     onClear={clear}
                     item={item ?? null}
+                  />
+                )}
+              </FilteredTab>
+            );
+          case "gaps":
+            return (
+              <FilteredTab key="gaps" run={loaded} issuer={issuerId} current="gaps">
+                {(chosen, clear) => (
+                  <EvidenceGaps
+                    table={evidence.gaps}
+                    count={evidence.tabs.gaps}
+                    module={chosen?.id ?? null}
+                    moduleName={chosen?.name ?? null}
+                    onClear={clear}
+                    issuer={issuerId}
+                    run={loaded.id}
                   />
                 )}
               </FilteredTab>
