@@ -22,6 +22,7 @@ import {
   historyHref,
   modulesHref,
   overviewHref,
+  traceItemHref,
 } from "./links";
 
 export type RunTab = "overview" | "changes" | "modules" | "forecast" | "evidence";
@@ -267,7 +268,7 @@ export function RunFrame({
             {trace === undefined ? null : (
               <TraceDrawer
                 trace={trace}
-                evidenceHref={evidenceHref(issuer.id, run.id, "trace")}
+                evidenceHref={traceItemHref(issuer.id, run.id, trace.evidenceItem)}
                 isOpen={drawer.open}
                 onClose={() => {
                   setDrawer({ key: drawer.key, open: false });

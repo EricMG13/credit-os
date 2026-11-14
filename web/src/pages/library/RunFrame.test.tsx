@@ -113,8 +113,11 @@ describe("RunFrame tabs", () => {
     const evidence = run["evidence"] as {
       moduleFilter: unknown[];
       sources: { files: { readers: unknown }[] };
+      trace: { rows: { module: string; moduleId: string | null }[] };
     };
     evidence.moduleFilter = [];
+    for (const row of evidence.trace.rows)
+      Object.assign(row, { module: "Overview", moduleId: null });
     for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     run.overview = {
       ...(run.overview as Json),
@@ -307,13 +310,13 @@ describe("Trace drawer", () => {
     });
   });
 
-  it("offers Open in Evidence, which goes to the run's Evidence Trace page and closes the drawer", async () => {
+  it("offers Open in Evidence, which goes to the figure's own item on the run's Evidence Trace page and closes the drawer", async () => {
     renderFrame();
     openDrawer();
     const link = screen.getByRole("link", { name: "Open in Evidence" });
     expect(link).toHaveAttribute(
       "href",
-      "#/library/halden-aerostructures/2026-09-30/evidence/trace",
+      "#/library/halden-aerostructures/2026-09-30/evidence/trace/T-0014",
     );
     fireEvent.click(link);
     await waitFor(() => {

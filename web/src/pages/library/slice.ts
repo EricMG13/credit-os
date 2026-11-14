@@ -456,8 +456,33 @@ export type SourceFile = {
 export type Download = { label: string; href: string | null; reason: string | null };
 
 /**
+ * One traced item. `moduleId` is the module it sits in, or `null` for an item of the Overview
+ * (then `module` is "Overview"). `sources` is the delivered count, a real zero when there is none;
+ * `calc` is the derivation of a figure the module calculated; `note` says what the row cannot.
+ */
+export type TraceRow = {
+  id: string;
+  item: string;
+  module: string;
+  moduleId: string | null;
+  kind: string;
+  value: Cell;
+  sources: string;
+  calc: TreeNode | null;
+  note: string | null;
+};
+
+/** The Trace tab: its delivered title, sentence and heads, then one row for each traced item. */
+export type TraceTable = {
+  title: string;
+  description: string;
+  columns: Record<"id" | "item" | "value" | "module" | "kind" | "sources", string>;
+  rows: readonly TraceRow[];
+};
+
+/**
  * A run's Evidence pages. `moduleFilter` is the options of the module filter. `tabs` are the delivered
- * counts of the Trace, Sources and Gaps tabs. On Sources the first `visible` files are drawn and the
+ * counts of the Trace, Sources and Gaps tabs; the Trace count is the number of rows it holds. On Sources the first `visible` files are drawn and the
  * rest wait behind `moreLabel`, which is `null` exactly when none is held back.
  */
 export type Evidence = {
@@ -471,6 +496,7 @@ export type Evidence = {
     take: { text: string; download: Download };
   };
   sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
+  trace: TraceTable;
 };
 
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };

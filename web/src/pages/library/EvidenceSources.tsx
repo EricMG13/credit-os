@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { FilterLines } from "@untitledui/icons";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Button } from "@/components/base/buttons/button";
 import type { Evidence } from "./slice";
+import { NothingForModule } from "./parts/ModuleFilter";
 import { SourceFileRow } from "./parts/SourceFileRow";
 import { QuietSection } from "./parts/Section";
-import { SUBSECTION_HEADING } from "./parts/heading";
 
 /**
  * The Sources tab: one row for each file the run read. The first `visible` rows show, the rest
@@ -40,22 +38,11 @@ export function EvidenceSources({
   const files = filtered ?? (expanded ? sources.files : sources.files.slice(0, sources.visible));
   if (filtered?.length === 0) {
     return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.FeaturedIcon icon={FilterLines} />
-        </EmptyState.Header>
-        <EmptyState.Content>
-          <EmptyState.Title as={SUBSECTION_HEADING}>
-            No file was read by {moduleName}
-          </EmptyState.Title>
-          <EmptyState.Description>Choose another module, or all of them.</EmptyState.Description>
-        </EmptyState.Content>
-        <EmptyState.Footer>
-          <Button color="secondary" onPress={onClear}>
-            Show all files
-          </Button>
-        </EmptyState.Footer>
-      </EmptyState>
+      <NothingForModule
+        title={`No file was read by ${moduleName ?? ""}`}
+        clearLabel="Show all files"
+        onClear={onClear}
+      />
     );
   }
   return (

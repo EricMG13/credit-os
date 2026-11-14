@@ -42,6 +42,8 @@ import type {
   SourceFile,
   Trace,
   TestState,
+  TraceRow,
+  TraceTable,
   TreeNode,
 } from "./slice";
 import { APPLIED_LABELS, CHART_TABLE_LIMITS } from "./slice";
@@ -1452,22 +1454,102 @@ function readFilter(e: Rec, path: string, modules: readonly Module[]): Reader[] 
   );
 }
 
+/** The modules a run holds by id, for a row that names the module it sits in. */
+type Seats = ReadonlyMap<string, string>;
+
+/** The module a row sits in: an id the run holds and that module's own name, or the Overview, with no id. */
+function readSeat(o: Rec, path: string, seats: Seats) {
+  const id = strOrNull(o, "moduleId", path);
+  const module = named(o, "module", path);
+  if (id === null) {
+    if (module !== "Overview") {
+      throw new SliceError(child(path, "module"), "Overview, for an item with no module");
+    }
+    return { module, moduleId: null };
+  }
+  const held = seats.get(id);
+  if (held === undefined) throw new SliceError(child(path, "moduleId"), "a module this run holds");
+  if (held !== module) throw new SliceError(child(path, "module"), "the name of that module");
+  return { module, moduleId: id };
+}
+
+function readTraceRow(value: unknown, path: string, seats: Seats): TraceRow {
+  const r = rec(value, path);
+  return {
+    id: named(r, "id", path),
+    item: named(r, "item", path),
+    ...readSeat(r, path, seats),
+    kind: named(r, "kind", path),
+    value: cell(r, "value", path),
+    sources: named(r, "sources", path),
+    calc: own(r, "calc") === null ? null : readTree(own(r, "calc"), child(path, "calc")),
+    note: gradeOrNull(r, "note", path),
+  };
+}
+
+const TRACE_HEADS = ["id", "item", "value", "module", "kind", "sources"] as const;
+
+function readTraceTable(value: unknown, path: string, seats: Seats): TraceTable {
+  const t = rec(value, path);
+  const columnsPath = child(path, "columns");
+  const heads = rec(own(t, "columns"), columnsPath);
+  const rowsPath = child(path, "rows");
+  return {
+    title: named(t, "title", path),
+    description: named(t, "description", path),
+    columns: Object.fromEntries(
+      TRACE_HEADS.map((key) => [key, named(heads, key, columnsPath)]),
+    ) as TraceTable["columns"],
+    rows: unique(
+      list(t, "rows", path, (item, p) => readTraceRow(item, p, seats)),
+      rowsPath,
+      (row) => row.id,
+      "id",
+    ),
+  };
+}
+
+/** A tab's delivered count is the number of rows its page holds; the reader refuses one that disagrees. */
+function countsRows(tabs: Rec, key: string, path: string, rows: number): string {
+  const text = named(tabs, key, path);
+  if (text !== String(rows)) {
+    throw new SliceError(child(path, key), `${String(rows)}, the number of rows it holds`);
+  }
+  return text;
+}
+
+/** Every item a trace opens is a row of the Trace tab. */
+function itemsHeld(traces: Traces, path: string, trace: TraceTable): void {
+  const held = new Set(trace.rows.map((row) => row.id));
+  for (const [key, one] of Object.entries(traces)) {
+    if (!held.has(one.evidenceItem)) {
+      throw new SliceError(child(child(path, key), "evidenceItem"), "a row id of evidence.trace");
+    }
+  }
+}
+
 function readEvidence(value: unknown, path: string, traces: Traces, modules: Module[]): Evidence {
   const e = rec(value, path);
   const moduleFilter = readFilter(e, path, modules);
   const held: Held = new Map(moduleFilter.map((option) => [option.id, option]));
   const tabsPath = child(path, "tabs");
   const tabs = rec(own(e, "tabs"), tabsPath);
+  const trace = readTraceTable(
+    own(e, "trace"),
+    child(path, "trace"),
+    new Map(modules.map((m) => [m.id, m.name])),
+  );
   return {
     intro: named(e, "intro", path),
     moduleFilter,
     tabs: {
-      trace: named(tabs, "trace", tabsPath),
+      trace: countsRows(tabs, "trace", tabsPath, trace.rows.length),
       sources: named(tabs, "sources", tabsPath),
       gaps: named(tabs, "gaps", tabsPath),
     },
     summary: readSummary(own(e, "summary"), child(path, "summary"), traces),
     sources: readSources(own(e, "sources"), child(path, "sources"), held),
+    trace,
   };
 }
 
@@ -1511,6 +1593,7 @@ function readRun(value: unknown, path: string): Run {
     namesHeld(changes.modules.items, modules, changeItems);
   }
   const evidence = readEvidence(own(r, "evidence"), evidencePath, base.traces, modules);
+  itemsHeld(base.traces, tracesPath, evidence.trace);
   return { ...base, loading, overview, changes, modules, evidence };
 }
 
