@@ -5894,7 +5894,7 @@
               "changeView": null,
               "dates": [
                 {
-                  "date": "13 Nov 2025",
+                  "date": "12 Feb 2027",
                   "state": "Past",
                   "title": "Full-year results",
                   "text": "Published; figures in this run are from them."
@@ -5916,7 +5916,7 @@
                 "gapsLink": { "label": "See the 1 gap in Evidence" },
                 "items": [
                   {
-                    "text": "The security package documents were incomplete, so recovery for the senior notes is a range and not a figure.",
+                    "text": "The charter contract schedule was not provided, so cover beyond the next two years is not established.",
                     "trace": null
                   }
                 ]
@@ -6041,7 +6041,7 @@
                     {
                       "name": "Gap ledger",
                       "writtenBy": "Every module",
-                      "rows": "2",
+                      "rows": "1",
                       "file": "registers/gaps.md",
                       "href": "downloads/brevane-marine-r-0412-registers/gaps.md",
                       "reason": null
@@ -6075,6 +6075,18 @@
                     "value": { "kind": "value", "text": "1", "at": null },
                     "note": "1 read in full",
                     "trace": null
+                  },
+                  {
+                    "label": "Calculations",
+                    "value": { "kind": "value", "text": "0", "at": null },
+                    "note": "Not traced item by item in this run",
+                    "trace": null
+                  },
+                  {
+                    "label": "Gaps",
+                    "value": { "kind": "value", "text": "1", "at": null },
+                    "note": "1 medium",
+                    "trace": null
                   }
                 ],
                 "run": {
@@ -6107,10 +6119,10 @@
                     "rows": [
                       {
                         "id": "G-01",
-                        "gap": "Security package documents",
+                        "gap": "Charter contract schedule",
                         "module": "Business profile",
                         "moduleId": "business-profile",
-                        "reason": "Recovery for the senior notes is a range and not a figure.",
+                        "reason": "Cover beyond the next two years is not established.",
                         "shownAs": "gap",
                         "where": {
                           "page": "overview",
@@ -6124,9 +6136,9 @@
               "sources": {
                 "files": [
                   {
-                    "name": "annual-report-2025.pdf",
+                    "name": "annual-report-2026.pdf",
                     "kind": "PDF",
-                    "size": "7.2 MB \u00b7 188 pages",
+                    "size": "4.1 MB \u00b7 96 pages",
                     "state": "Read in full",
                     "why": null,
                     "readersLabel": "Read by 1 module",

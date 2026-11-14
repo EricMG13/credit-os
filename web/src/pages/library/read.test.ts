@@ -25,6 +25,26 @@ function invalidReason(source: unknown): string {
   return result.reason;
 }
 
+describe("the address rule's decode", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rethrows a failure that is not a URIError instead of refusing the address", () => {
+    vi.spyOn(globalThis, "decodeURIComponent").mockImplementation(() => {
+      throw new TypeError("injected");
+    });
+    expect(() => readSlice(fixture.slice)).toThrow(TypeError);
+  });
+
+  it("refuses the address on a URIError", () => {
+    vi.spyOn(globalThis, "decodeURIComponent").mockImplementation(() => {
+      throw new URIError("injected");
+    });
+    expect(readSlice(fixture.slice).kind).toBe("invalid");
+  });
+});
+
 describe("readSlice", () => {
   it("reads the fixture's slice as ok", () => {
     const result = readSlice(fixture.slice);
