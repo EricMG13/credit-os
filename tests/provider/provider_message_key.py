@@ -176,6 +176,7 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), (_PE,), "x D:\\Profiles\\%5C\\u00C9LISE y", "x <home> y"),
     ((), (_PFE,), "x people/%2f\\xc3\\xa9lise y", "x <home> y"),
     ((), (_PD,), "x /srv/people/%252F\\u006a\\u00f6rg y", "x <home> y"),
+    ((), (_PE,), "x D:\\Profiles\\%5c" + B * 3 + "u00e9lise y", "x <home> y"),
     # --- whole-branch review L2 (owner: inside): every letter re.IGNORECASE holds the same
     (
         (),
@@ -258,6 +259,7 @@ EVENTS: tuple[tuple[tuple[str, ...], list[dict[str, object]], str, str], ...] = 
 
 # Time: message() on each text, known paths (H2, _RT), at most SECONDS each (inputs <= 10^5).
 SECONDS = 1.0
+PEAK_BYTES = 20_000_000  # tracemalloc peak of building a Redactor's case table, any known paths
 TIMING: tuple[tuple[str, str], ...] = (
     ("backslashes", B * 100_000),
     ("escapes", "\\u00e9" * 16_000),
