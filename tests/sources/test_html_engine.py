@@ -394,7 +394,8 @@ _MUTANT_ROWS = [
     pytest.param(
         b'<div data-x="' + X + b'" style=display:noned>hidden</div>shown', None, "shown\n", id="m14"
     ),
-    # m15: a long plain style that hides: the text after it is still decoded correctly
+    # m15: only the style value's own bytes are checked for plain ASCII (a non-ASCII byte later in
+    # the document does not refuse it)
     pytest.param(
         b'<div style="' + Q + b';display:none">hidden</div><p>shown &amp; caf\xc3\xa9</p>',
         None,
@@ -417,7 +418,7 @@ _MUTANT_ROWS = [
         "after\n",
         id="m18",
     ),
-    # m19: at small steps, the comment end --!> is looked for ahead as well as -->
+    # m19: the end offset of the last --!> is found exactly
     pytest.param(
         b"<div style='display:none'>hidden<!---></div>revealed?<!-- c --!>after",
         _SMALL,
@@ -486,12 +487,16 @@ _MUTANT_ROWS = [
     pytest.param(
         b"<textarea>" + b"w &amp; " * 3000 + b"</textarea>", None, "w & " * 2999 + "w &\n", id="m30"
     ),
-    # m31: a reference name read twice, at small steps, is decoded both times (from 2b-2's review)
+    # m31: an & at the very start of held raw-text content is found and kept back
     pytest.param(
         b"<body><title>&CounterClockwiseContourIntegral;&CounterClockwiseContourIntegral;",
         _SMALL,
         "\N{ANTICLOCKWISE CONTOUR INTEGRAL}" * 2 + "\n",
         id="m31",
+    ),
+    # m32: the y run between a held comment's two parts stops them forming an end mark
+    pytest.param(
+        b"<p>shown</p><!-- a --" + b"y" * 23 + b">zz secret</p>", _SMALL, "shown\n", id="m32"
     ),
 ]
 

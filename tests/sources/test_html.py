@@ -396,6 +396,8 @@ _ONE_PAGE_ROWS = [
         "windows-1252",
         id="b14",
     ),
+    pytest.param(b"<p>&#" + b"0" * 29 + b"65;</p>", "A\n", "utf-8", id="d1"),
+    pytest.param(b"<p>&#x" + b"0" * 29 + b"41;</p>", "A\n", "utf-8", id="d2"),
 ]
 
 
@@ -439,6 +441,8 @@ _HTML_REFUSALS = [
     pytest.param(b"<p>&#" + b"0" * 30 + b"65;</p>", _LONG_REFERENCE_REASON, id="d3"),
     pytest.param(b"<p>&#X" + b"0" * 30 + b"41;</p>", _LONG_REFERENCE_REASON, id="d4"),
     pytest.param(b"<p>&#" + b"1" * 5000 + b";</p>", _LONG_REFERENCE_REASON, id="d5"),
+    pytest.param(b"<p>&#x" + b"f" * 32 + b";</p>", _LONG_REFERENCE_REASON, id="d7"),
+    pytest.param(b"<p>&#X" + b"aB" * 16 + b";</p>", _LONG_REFERENCE_REASON, id="d8"),
     pytest.param(
         b"<script>var s = '&#" + b"1" * 32 + b"';</script><p>x</p>", _LONG_REFERENCE_REASON, id="d6"
     ),
