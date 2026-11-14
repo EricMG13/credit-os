@@ -5,6 +5,7 @@ import { StatementTable, type StatementView } from "./parts/StatementTable";
 import { Bridges } from "./sections/Bridges";
 import { CaseComparison } from "./sections/CaseComparison";
 import { DebtSection } from "./sections/DebtSection";
+import { RecoverySection } from "./sections/RecoverySection";
 import type { ModelRun } from "./slice/types";
 
 /** The case and the Figures or Bars choice are in-memory page state; the first case is default. */
@@ -26,6 +27,12 @@ function Body({ run }: { run: ModelRun }) {
       <Bridges bridges={run.statements.bridges} caseIndex={caseIndex} />
       <CaseComparison data={run.statements.comparison} cases={run.cases} />
       <DebtSection stack={run.statements.debt.stack} maturities={run.statements.debt.maturities} />
+      <RecoverySection
+        recovery={run.statements.recovery}
+        gap={run.statements.gap}
+        checkFigure={run.statements.checkFigure}
+        published={run.statements.published}
+      />
     </>
   );
 }

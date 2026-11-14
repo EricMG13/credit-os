@@ -52,6 +52,27 @@ const rowsOf = (name: string): string[][] =>
     ]);
 
 describe("Model page: bridges", () => {
+  it("draws the headings in order: h2 sections, h3 chart titles, h4 comparison panels", () => {
+    renderAt(fixtureSlice());
+    const levels = screen.getAllByRole("heading").map((h) => `${h.tagName} ${h.textContent}`);
+    expect(levels.slice(3)).toEqual([
+      "H2 Bridges",
+      "H3 EBITDA bridge",
+      "H3 Net debt walk",
+      "H3 The two cases side by side",
+      "H4 Revenue, USD millions",
+      "H4 EBITDA as defined, USD millions",
+      "H4 Free cash flow, USD millions",
+      "H4 Net leverage, times",
+      "H4 Interest cover, times",
+      "H4 Lowest cash balance, USD millions",
+      "H2 Debt",
+      "H3 Debt by instrument",
+      "H3 Maturities by year",
+      "H3 Recovery by class and case",
+    ]);
+  });
+
   it("draws each bridge with its subtitle, basis note and legend words", () => {
     renderAt(fixtureSlice());
     const walk = figure("EBITDA bridge");
@@ -294,5 +315,156 @@ describe("Model page: debt and recovery", () => {
         "Nothing falls due in 2026 on the notes (0). Loan repayments for 2026 were not established (n.a.).",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("draws recovery with n.a. for the receivables facility under the downside case", () => {
+    renderAt(fixtureSlice());
+    const chart = figure("Recovery by class and case");
+    expect(
+      within(chart).getByText("Share of the claim recovered if the company defaulted"),
+    ).toBeInTheDocument();
+    expect(marks("Recovery by class and case", "data-missing")).toEqual(["n.a."]);
+    expect(chart.querySelectorAll(".recharts-wrapper [data-bar]")).toHaveLength(5);
+    expect(marks("Recovery by class and case", "data-label")).toEqual([
+      "100%",
+      "62%",
+      "100%",
+      "100%",
+      "31%",
+    ]);
+    showTable("Recovery by class and case");
+    expect(rowsOf("Recovery by class and case")).toEqual([
+      ["Term loans and secured notes", "100%", "100%"],
+      ["Senior subordinated notes", "62%", "31%"],
+      ["Receivables facility", "100%", "n.a."],
+    ]);
+    expect(
+      within(chart).getByText(
+        "Recovery on the receivables facility was not worked out for the downside case.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Model page: gap panel, figure check and published model", () => {
+  it("draws the gap panel with its title joined to its reason", () => {
+    renderAt(fixtureSlice());
+    expect(screen.getByText("Not established for this run")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Months of liquidity under the downside case. The revolver terms are withheld, so the chart could not be drawn.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("links to the run's Evidence by the delivered address", () => {
+    renderAt(fixtureSlice());
+    const link = screen.getByRole("link", { name: /^Check a figure/ });
+    expect(link).toHaveAttribute("href", ADDRESS);
+    expect(link).toHaveTextContent(
+      "Every figure here traces to its source in the run's Evidence, filtered to the model.",
+    );
+  });
+
+  it("draws no published link when the run has none", () => {
+    const { container } = renderAt(fixtureSlice());
+    expect(screen.queryByRole("link", { name: /Download/ })).toBeNull();
+    expect(screen.queryByText("Published model (original HTML)")).toBeNull();
+    expect(container.querySelector("iframe")).toBeNull();
+  });
+
+  it("draws a Markdown model as one download link", () => {
+    const { slice, page } = draft();
+    page["published"] = { kind: "markdown", href: "published/model.md" };
+    const { container } = renderAt(slice);
+    const link = screen.getByRole("link", { name: "Download published model (Markdown)" });
+    expect(link).toHaveAttribute("href", "published/model.md");
+    expect(link).toHaveAttribute("download");
+    expect(screen.queryByRole("link", { name: "Download original HTML" })).toBeNull();
+    expect(container.querySelector("iframe")).toBeNull();
+  });
+
+  it("draws an HTML model as a download link and a folded panel holding a link to open it", () => {
+    const { slice, page } = draft();
+    page["published"] = { kind: "html", href: "published/model.html" };
+    const { container } = renderAt(slice);
+    const download = screen.getByRole("link", { name: "Download original HTML" });
+    expect(download).toHaveAttribute("href", "published/model.html");
+    expect(download).toHaveAttribute("download");
+    const panel = must(screen.getByText("Published model (original HTML)").closest("details"));
+    expect(panel).not.toHaveAttribute("open");
+    const open = within(panel).getByRole("link", { name: "Open the original HTML", hidden: true });
+    expect(open).toHaveAttribute("href", "published/model.html");
+    expect(open).not.toHaveAttribute("download");
+    expect(screen.queryByRole("link", { name: "Download published model (Markdown)" })).toBeNull();
+    expect(container.querySelector("iframe")).toBeNull();
+  });
+});
+
+describe("Model page: audit material and unreadable data", () => {
+  it("shows the trace addresses only as links, never in text, a title or an accessible name", () => {
+    const { container } = renderAt(fixtureSlice());
+    expect(container.textContent).not.toContain("library/transdigm");
+    for (const el of Array.from(container.querySelectorAll("[title], [aria-label]"))) {
+      expect(`${el.getAttribute("title") ?? ""}${el.getAttribute("aria-label") ?? ""}`).not.toMatch(
+        /#\/library|evidence|CP-/i,
+      );
+    }
+    const chart = figure("Recovery by class and case");
+    expect(within(chart).getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("names the failing path when a bridge step is not drawable", () => {
+    const { slice, page } = draft();
+    const bridge = must((page["bridges"] as { caseSteps: { to: number }[][] }[])[0]);
+    must(must(bridge.caseSteps[0])[1]).to = 100;
+    renderAt(slice);
+    expect(screen.getByText("This part of the library could not be read")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "runs[0].statements.bridges[0].caseSteps[0][1].to: expected a position at or above from for an increase",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Model page: the whole-row rule for a wide table", () => {
+  // jsdom applies no stylesheet, so these assert the class that carries the mock's `.g2` rule
+  // (columns of at least 460px, cards stack below that), not the drawn columns.
+  const MOCK_GRID = "grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))]";
+  const rowGrid = () =>
+    must(figure("Recovery by class and case").closest("section")).className.includes(MOCK_GRID);
+
+  it("puts the two bridges in the mock's auto-fit grid, not a viewport breakpoint", () => {
+    renderAt(fixtureSlice());
+    const grid = must(figure("EBITDA bridge").closest("div.grid"));
+    expect(grid.className).toContain(MOCK_GRID);
+    expect(grid.className).not.toContain("lg:grid-cols-2");
+    expect(grid).toContainElement(figure("Net debt walk"));
+  });
+
+  it("keeps the recovery card half width while its table has three columns", () => {
+    renderAt(fixtureSlice());
+    expect(rowGrid()).toBe(true);
+  });
+
+  it("gives the recovery card the whole row when its table shows five columns", () => {
+    const { slice, page } = draft();
+    const recovery = page["recovery"] as {
+      series: { name: string; values: (number | null)[]; labels: (string | null)[] }[];
+    };
+    recovery.series.push(
+      { name: "Stress case", values: [90, 20, 80], labels: ["90%", "20%", "80%"] },
+      { name: "Severe case", values: [80, 10, 70], labels: ["80%", "10%", "70%"] },
+    );
+    renderAt(slice);
+    expect(rowGrid()).toBe(false);
+    showTable("Recovery by class and case");
+    expect(
+      within(within(figure("Recovery by class and case")).getByRole("table"))
+        .getAllByRole("columnheader")
+        .slice(0, 5)
+        .map((h) => h.textContent),
+    ).toEqual(["Class", "Base case", "Downside case", "Stress case", "Severe case"]);
   });
 });

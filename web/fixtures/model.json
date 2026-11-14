@@ -176,6 +176,178 @@
             }
           ]
         },
+        "analysis": {
+          "findings": [
+            {
+              "number": "01",
+              "title": "Deleveraging depends on keeping the cash",
+              "text": "Gross debt stays at USD 29.7 billion in both cases. Net leverage falls from 5.9x to 3.8x by FY27 only because free cash flow is left on the balance sheet.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "number": "02",
+              "title": "Earnings quality is high",
+              "text": "Margins have risen every year since FY22, and aftermarket sales, the most profitable part of the business, are over half of revenue.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "number": "03",
+              "title": "Interest is covered with room to spare",
+              "text": "Cover stays between 2.3x and 3.6x across both cases. The low point is FY26 in the downside case.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "number": "04",
+              "title": "Refinancing is concentrated in 2028 to 2030",
+              "text": "About USD 17 billion, 57% of debt, falls due in those three years. The model assumes it is refinanced at current spreads.",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            }
+          ],
+          "measures": {
+            "period": "Latest twelve months against FY24",
+            "stats": [
+              {
+                "label": "Net leverage",
+                "value": "5.9x",
+                "delta": "↗ from 4.5x in FY24",
+                "text": "The 2024 special dividend was funded with new debt; a year of earnings growth has not yet absorbed it.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Interest cover",
+                "value": "2.9x",
+                "delta": "↗ from 2.8x in FY24",
+                "text": "Higher earnings have more than offset the larger debt load.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Free cash flow to debt",
+                "value": "6.6%",
+                "delta": "↘ from 7.1% in FY24",
+                "text": "Cash generation grew more slowly than debt.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Secured net leverage",
+                "value": null,
+                "delta": "3.1x in FY24",
+                "text": "The secured share of debt was not split out in the latest sources, so no change can be stated.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "headroom": {
+            "title": "Headroom to covenants and rating triggers",
+            "subtitle": "Latest twelve months; the dashed line is the level that matters",
+            "note": "Secured net leverage could not be measured, so no bar is drawn against its covenant.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "head": ["Measure", "Latest twelve months", "Level that matters"],
+            "rows": [
+              {
+                "label": "Net leverage",
+                "sub": "Downgrade trigger above 7.0x",
+                "value": 5.9,
+                "target": 7,
+                "axisMax": 8,
+                "text": "5.9x of 7.0x",
+                "cells": ["5.9x", "Downgrade above 7.0x"]
+              },
+              {
+                "label": "Interest cover",
+                "sub": "Downgrade trigger below 2.0x",
+                "value": 2.9,
+                "target": 2,
+                "axisMax": 4,
+                "text": "2.9x against 2.0x",
+                "cells": ["2.9x", "Downgrade below 2.0x"]
+              },
+              {
+                "label": "Free cash flow to debt",
+                "sub": "Upgrade trigger above 10%",
+                "value": 6.6,
+                "target": 10,
+                "axisMax": 12,
+                "text": "6.6% of 10%",
+                "cells": ["6.6%", "Upgrade above 10%"]
+              },
+              {
+                "label": "Secured net leverage",
+                "sub": "Covenant limit 7.25x",
+                "value": null,
+                "target": 7.25,
+                "axisMax": 8,
+                "text": null,
+                "cells": [null, "Covenant limit 7.25x"]
+              }
+            ]
+          },
+          "segments": {
+            "title": "EBITDA margin by segment",
+            "subtitle": "FY24 against the latest twelve months",
+            "note": "The acquired businesses were not owned in FY24: only the latest mark is drawn.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "names": ["FY24", "Latest twelve months"],
+            "axis": { "min": 30, "max": 60 },
+            "head": ["Segment", "FY24", "Latest twelve months"],
+            "rows": [
+              {
+                "label": "Power and control",
+                "from": 55.8,
+                "to": 57.5,
+                "text": "55.8% to 57.5%",
+                "cells": ["55.8%", "57.5%"]
+              },
+              {
+                "label": "Airframe",
+                "from": 51.9,
+                "to": 53.4,
+                "text": "51.9% to 53.4%",
+                "cells": ["51.9%", "53.4%"]
+              },
+              {
+                "label": "Non-aviation",
+                "from": 41.2,
+                "to": 38.6,
+                "text": "41.2% to 38.6%",
+                "cells": ["41.2%", "38.6%"]
+              },
+              {
+                "label": "Acquired businesses",
+                "from": null,
+                "to": 44,
+                "text": "n.a. to 44.0%",
+                "cells": [null, "44.0%"]
+              }
+            ]
+          },
+          "contrary": {
+            "title": "The cash may not stay",
+            "text": "The company has paid out its cash build three times in five years. If it does so again, leverage stays near 6x and the base case deleveraging does not happen.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "watch": {
+            "title": "Two levels to watch",
+            "text": "Net leverage above 7.0x for two quarters, or interest cover below 2.0x, would turn this view negative. A public commitment to hold leverage below 5x would improve it.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "limitations": {
+            "count": "2 of 6",
+            "linkText": "See all six limitations",
+            "href": "#/model/transdigm/2025-06-30/limitations",
+            "items": [
+              {
+                "title": "EBITDA is the company’s own measure",
+                "text": "EBITDA as defined adds back items the company chooses. No independent adjustment was made, so leverage on a stricter measure would be higher.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "title": "FY23 cash interest is missing",
+                "text": "Cash interest for FY23 was not split out in the sources. Interest cover and free cash flow for that year are shown as n.a., not estimated.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          }
+        },
         "limitations": {
           "count": "6",
           "gapsLinkText": "See the 3 gaps in Evidence",
