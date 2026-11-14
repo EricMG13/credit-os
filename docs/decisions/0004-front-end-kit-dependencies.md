@@ -34,7 +34,7 @@ reviewed and gated like any other.
 - If Recharts fails the open-from-disk check, it is removed and charts are drawn as SVG
   written here; this record is then amended.
 
-## React Aria's runtime style element (coordinator's ruling, 2026-11-13; owner to confirm)
+## React Aria's runtime style element (coordinator's ruling, 2026-11-13; confirmed by the owner, 2026-11-14)
 
 Found by step D2a's open-from-disk check: `react-aria-components` 1.22.1's press handling
 adds a `<style id="react-aria-pressable-style">` element at runtime, which
