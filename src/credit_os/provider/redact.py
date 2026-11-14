@@ -56,7 +56,7 @@ _WIN_PREFIX = (
 _HOME_PATH = re.compile(
     r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
     rf"(?:{_WIN_PREFIX}|/)"
-    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|[^/:\r\n])+"
+    r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
     rf"|root(?!{_NAME}))"
 )
 
