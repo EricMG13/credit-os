@@ -1260,6 +1260,69 @@
                       "trace": "cs-headroom"
                     },
                     {
+                      "kind": "chartTable",
+                      "nav": "Liquidity walk",
+                      "title": "Liquidity walk, June to September 2026",
+                      "chart": "bridge",
+                      "note": "USD m",
+                      "columns": [
+                        { "label": "Step", "align": "left" },
+                        { "label": "Effect", "align": "left" },
+                        { "label": "USD m", "align": "right" }
+                      ],
+                      "rows": [
+                        { "cells": ["30 Jun 2026", "Total", "455"], "emphasis": true },
+                        { "cells": ["Free cash flow", "Inflow", "+96"], "emphasis": false },
+                        { "cells": ["Purchase", "Outflow", "−140"], "emphasis": false },
+                        { "cells": ["Dividends", "Outflow", "−20"], "emphasis": false },
+                        { "cells": ["Other", "Inflow", "+21"], "emphasis": false },
+                        { "cells": ["30 Sep 2026", "Total", "412"], "emphasis": true }
+                      ],
+                      "footnotes": [],
+                      "trace": "cs-liquidity-walk"
+                    },
+                    {
+                      "kind": "chartTable",
+                      "nav": "Against peers",
+                      "title": "Leverage and margin against peers",
+                      "chart": "scatter",
+                      "note": "Five listed peers, latest financial year",
+                      "columns": [
+                        { "label": "Company", "align": "left" },
+                        { "label": "Net leverage", "align": "right" },
+                        { "label": "EBITDA margin, %", "align": "right" }
+                      ],
+                      "rows": [
+                        { "cells": ["Halden", "4.6x", "23.1"], "emphasis": true },
+                        { "cells": ["Peer A", "3.2x", "19.6"], "emphasis": false },
+                        { "cells": ["Peer B", "3.7x", "18.0"], "emphasis": false },
+                        { "cells": ["Peer C", "4.2x", "16.0"], "emphasis": false },
+                        { "cells": ["Peer D", "5.2x", "14.4"], "emphasis": false },
+                        { "cells": ["Peer E", "3.5x", null], "emphasis": false }
+                      ],
+                      "footnotes": ["Not plotted: Peer E (margin n.a.)"],
+                      "trace": "cs-peer-scatter"
+                    },
+                    {
+                      "kind": "chartTable",
+                      "nav": "Against peers",
+                      "title": "Interest cover against the peer range",
+                      "chart": "range",
+                      "note": null,
+                      "columns": [
+                        { "label": "Measure", "align": "left" },
+                        { "label": "Peer low", "align": "right" },
+                        { "label": "Peer high", "align": "right" },
+                        { "label": "Halden", "align": "right" }
+                      ],
+                      "rows": [
+                        { "cells": ["Interest cover", "2.1x", "5.8x", "2.4x"], "emphasis": false },
+                        { "cells": ["Secured leverage", null, null, "3.3x"], "emphasis": false }
+                      ],
+                      "footnotes": ["Near the bottom of the range: only one peer is lower."],
+                      "trace": "cs-peer-range"
+                    },
+                    {
                       "kind": "facts",
                       "nav": "Terms and tests",
                       "title": "Facility terms",
@@ -2435,6 +2498,51 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0116"
+              },
+              "cs-liquidity-walk": {
+                "title": "Sources for the liquidity walk in this module",
+                "heading": "Liquidity USD 412m",
+                "subtitle": "Capital structure · table · as of 30 Sep 2026",
+                "statement": "Liquidity of USD 455m at 30 June 2026 to USD 412m at 30 September 2026, by inflow and outflow.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Liquidity USD 412m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0117"
+              },
+              "cs-peer-scatter": {
+                "title": "Sources for the peer scatter in this module",
+                "heading": "Five listed peers",
+                "subtitle": "Capital structure · table · as of 30 Sep 2026",
+                "statement": "Net leverage and EBITDA margin of the issuer and five listed peers, latest financial year.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Five listed peers",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0118"
+              },
+              "cs-peer-range": {
+                "title": "Sources for the peer range in this module",
+                "heading": "Interest cover 2.4x",
+                "subtitle": "Capital structure · table · as of 30 Sep 2026",
+                "statement": "Interest cover and secured leverage against the range of the listed peers.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Interest cover 2.4x",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0119"
               },
               "cs-term-loan": {
                 "title": "Sources for the term loan",

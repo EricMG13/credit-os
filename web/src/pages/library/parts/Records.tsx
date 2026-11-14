@@ -39,11 +39,21 @@ function Block({ block }: { block: RecordBlock }) {
   }
 }
 
-/** The mock sets some blocks side by side: the watch list with the questions, the terms with the tests. */
-const BESIDE: Partial<Record<RecordBlock["kind"], RecordBlock["kind"]>> = {
-  watch: "questions",
-  facts: "status",
+/** What a block is set beside: a chart table is named by its chart. */
+const kindOf = (block: RecordBlock): string =>
+  block.kind === "chartTable" ? block.chart : block.kind;
+
+/** The mock sets some blocks side by side: the watch list with the questions, the terms with the tests, the peer scatter with the peer range. */
+const BESIDE: Record<string, string> = { watch: "questions", facts: "status", scatter: "range" };
+
+/**
+ * A pair's grid: the mock's 40px gap and two-up from 1001px, and for two chart tables its 24px gap
+ * and two-up from 1200px, since each needs the room (side by side at 1440px, stacked at 1024px).
+ */
+const PAIR: Record<string, string> = {
+  scatter: "grid grid-cols-1 gap-6 min-[1200px]:grid-cols-2",
 };
+const PAIR_DEFAULT = "grid grid-cols-1 gap-10 min-[1001px]:grid-cols-2";
 
 /** Two adjacent blocks of a pair share a row. */
 function rows(blocks: readonly RecordBlock[]): RecordBlock[][] {
@@ -51,7 +61,7 @@ function rows(blocks: readonly RecordBlock[]): RecordBlock[][] {
   for (const block of blocks) {
     const last = out.at(-1);
     const first = last?.[0];
-    if (last?.length === 1 && first !== undefined && BESIDE[first.kind] === block.kind) {
+    if (last?.length === 1 && first !== undefined && BESIDE[kindOf(first)] === kindOf(block)) {
       last.push(block);
     } else {
       out.push([block]);
@@ -72,7 +82,7 @@ export function Records({ blocks }: { blocks: readonly RecordBlock[] }) {
         <div
           key={row.map((block) => block.title).join("|")}
           className={
-            row.length === 2 ? "grid grid-cols-1 gap-10 min-[1001px]:grid-cols-2" : undefined
+            row.length === 2 ? (PAIR[kindOf(row[0] as RecordBlock)] ?? PAIR_DEFAULT) : undefined
           }
         >
           {row.map((block) => {

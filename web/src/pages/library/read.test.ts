@@ -1553,7 +1553,7 @@ describe("readSlice, the data module's records", () => {
     expect(invalidReason(slice)).toContain(`${base}.${path}`);
   });
 
-  it("reads the debt stack, maturities and headroom as the mock words them", () => {
+  it("reads the six chart tables as the mock words them", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const body = result.data.issuers[0]?.runs[0]?.modules?.find(
@@ -1571,6 +1571,15 @@ describe("readSlice, the data module's records", () => {
       ],
       ["columns", "Debt stack and maturities", "Maturities by year", "USD m, calendar years", 0],
       ["bullet", "Headroom", "Headroom against covenant and rating triggers", null, 0],
+      ["bridge", "Liquidity walk", "Liquidity walk, June to September 2026", "USD m", 0],
+      [
+        "scatter",
+        "Against peers",
+        "Leverage and margin against peers",
+        "Five listed peers, latest financial year",
+        1,
+      ],
+      ["range", "Against peers", "Interest cover against the peer range", null, 1],
     ]);
     expect(tables[1]?.rows.map((r) => r.cells)).toEqual([
       ["2027", "Other debt", "40"],
@@ -1582,6 +1591,15 @@ describe("readSlice, the data module's records", () => {
     ]);
     expect(tables[2]?.rows[3]?.cells[2]).toEqual({ kind: "withheld", reason: null });
     expect(tables[0]?.columns.map((c) => c.align)).toEqual(["left", "left", "right"]);
+    expect(tables[4]?.rows[5]?.cells).toEqual(["Peer E", "3.5x", null]);
+    expect(tables[3]?.rows.map((r) => r.emphasis)).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]);
   });
 
   it("reads the facility terms and the tests as the mock words them", () => {
