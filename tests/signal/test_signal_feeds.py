@@ -3,7 +3,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from credit_os.signal.feeds import FeedError, parse_feed
+from credit_os.signal.feeds import MAX_BYTES, FeedError, _new_parser, _TreeBuilder, parse_feed
+
+_DTD_REFUSAL = "^feed declares a DTD or entities$"
 
 RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>t</title>
 <item><title>Authority opens review</title><link>https://example.org/a</link>
@@ -50,7 +52,7 @@ def test_summary_is_cut_to_300_on_a_word_boundary() -> None:
     ],
 )
 def test_dtd_or_entities_are_refused(body: bytes) -> None:
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(body)
 
 
@@ -72,7 +74,7 @@ def test_utf16_dtd_is_refused_by_the_parser(bom: bool) -> None:
         "<link>https://e.org/a</link></item></channel></rss>"
     )
     body = text.encode("utf-16") if bom else text.encode("utf-16-le")
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(body)
 
 
@@ -168,19 +170,19 @@ _LAUGHS = (
 
 def test_doctype_feed_is_refused() -> None:
     body = b'<!DOCTYPE rss SYSTEM "http://e.org/rss.dtd">' + _rss(f"<title>t</title>{_LINK}")
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(body)
 
 
 def test_internal_entity_expansion_is_refused_not_expanded() -> None:
     body = _rss(f"<title>&d;</title>{_LINK}", head=_LAUGHS)
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(body)
 
 
 def test_external_entity_is_refused() -> None:
     head = '<!DOCTYPE rss [<!ENTITY x SYSTEM "file:///etc/hostname">]>'
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(_rss(f"<title>&x;</title>{_LINK}", head=head))
 
 
@@ -199,14 +201,14 @@ def test_external_entity_is_refused() -> None:
 def test_wide_encoded_dtds_are_refused_by_the_parser(codec: str, head: str) -> None:
     text = '<?xml version="1.0" encoding="UTF-16"?>' + head
     text += '<rss version="2.0"><channel><item><title>t</title>' + _LINK + "</item></channel></rss>"
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(text.encode(codec))
 
 
 def test_doctype_text_inside_a_comment_or_cdata_is_still_refused() -> None:
     # The predecessor refuses any "<!DOCTYPE" or "<!ENTITY" byte sequence; so does the port.
     for inner in ("<!-- <!DOCTYPE x> -->", "<![CDATA[<!ENTITY y 'z'>]]>"):
-        with pytest.raises(FeedError, match="DTD or entities"):
+        with pytest.raises(FeedError, match=_DTD_REFUSAL):
             parse_feed(_rss(f"<title>t</title>{_LINK}{inner}"))
 
 
@@ -360,11 +362,10 @@ def test_malformed_xml_is_refused(body: bytes) -> None:
         parse_feed(body)
 
 
-def test_very_deep_nesting_is_read_without_recursion() -> None:
-    depth = 5000
-    title = "<b>" * depth + "deep" + "</b>" * depth
-    (e,) = parse_feed(_rss(f"<title>{title}</title>" + _LINK))
-    assert e.title == "deep"
+def test_very_deep_nesting_is_refused() -> None:
+    title = "<b>" * 5000 + "deep" + "</b>" * 5000
+    with pytest.raises(FeedError, match="deeper than 64"):
+        parse_feed(_rss(f"<title>{title}</title>" + _LINK))
 
 
 def test_items_keep_feed_order_across_channels() -> None:
@@ -387,28 +388,221 @@ def test_items_keep_feed_order_across_channels() -> None:
     ],
 )
 def test_parameter_unparsed_and_notation_declarations_are_refused(head: str) -> None:
-    with pytest.raises(FeedError, match="DTD or entities"):
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(_rss("<title>t</title>" + _LINK, head=head))
 
 
-def test_ten_thousand_levels_of_nesting_return_within_the_bound() -> None:
+def test_ten_thousand_levels_of_nesting_are_refused_within_the_bound() -> None:
     depth = 10_000
     start = time.perf_counter()
     inner = "<b>" * depth + "deep" + "</b>" * depth
-    (e,) = parse_feed(_rss(f"<title>{inner}</title>" + _LINK))
-    assert e.title == "deep"
+    with pytest.raises(FeedError, match="deeper than 64"):
+        parse_feed(_rss(f"<title>{inner}</title>" + _LINK))
     stray = b'<rss version="2.0">' + b"<a>" * depth + b"</a>" * depth + b"</rss>"
-    assert parse_feed(stray) == []
+    with pytest.raises(FeedError, match="deeper than 64"):
+        parse_feed(stray)
     assert time.perf_counter() - start < 10.0
 
 
 def test_a_very_long_attribute_returns_within_the_bound() -> None:
     start = time.perf_counter()
-    href = "https://e.org/" + "a" * 5_000_000
+    href = "https://e.org/" + "a" * 1_900_000
     body = (
         '<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>T</title>'
         f'<link href="{href}"/></entry></feed>'
     ).encode()
-    (e,) = parse_feed(body)
-    assert e.link == href
+    assert parse_feed(body) == []
     assert time.perf_counter() - start < 10.0
+
+
+# --- review batch (S-3a): rulings R7 to R10 and the task review's Lows ---
+
+
+def _link_body(link: str, title: str = "t") -> bytes:
+    return _rss(f"<title>{title}</title><link>{link}</link>")
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://evil.example\\@www.reuters.com/markets/x",
+        "https://evil.example\\\\@www.reuters.com/x",
+        "https://www.reuters.com@evil.example/x",
+        "https://user:pass@e.org/x",
+        "https://%65vil.example/x",
+        "https://\uff45vil.example/x",
+        "https://e.org\u3002evil.example/x",
+        "https://e.org\\x",
+    ],
+)
+def test_links_with_a_backslash_userinfo_percent_or_non_ascii_authority_are_unusable(
+    link: str,
+) -> None:
+    assert parse_feed(_link_body(link)) == []
+
+
+def test_at_percent_and_backslash_after_the_authority_are_allowed() -> None:
+    link = "https://e.org/a%20b?q=a@b#c\\d"
+    assert [e.link for e in parse_feed(_link_body(link))] == [link]
+
+
+def test_a_link_of_2048_characters_is_usable_and_2049_is_not() -> None:
+    pad = "a" * (2048 - len("https://e.org/"))
+    assert [e.link for e in parse_feed(_link_body("https://e.org/" + pad))] == [
+        "https://e.org/" + pad
+    ]
+    assert parse_feed(_link_body("https://e.org/" + pad + "a")) == []
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Moody\u2019s cuts \u202eDCBA\u202c outlook", "Moody\u2019s cuts DCBA outlook"),
+        ("Fitch&#x200b; affirms", "Fitch affirms"),
+        ("a&#x7f;b", "ab"),
+        ("a&#x9b;b", "ab"),
+        ("&#x2066;x&#x2069;", "x"),
+        ("a\tb\nc", "a b c"),
+    ],
+)
+def test_titles_drop_control_and_format_characters_and_keep_whitespace_breaks(
+    raw: str, expected: str
+) -> None:
+    (e,) = parse_feed(_link_body("https://e.org/a", raw))
+    assert e.title == expected
+
+
+def test_a_title_of_only_format_characters_leaves_no_entry() -> None:
+    assert parse_feed(_link_body("https://e.org/a", "&#x200b;&#x202e;")) == []
+
+
+def test_titles_are_cut_to_500_characters() -> None:
+    (exact,) = parse_feed(_link_body("https://e.org/a", "w" * 500))
+    (over,) = parse_feed(_link_body("https://e.org/a", "w" * 501))
+    assert exact.title == "w" * 500
+    assert over.title == "w" * 500
+
+
+_PAD_HEAD = b'<rss version="2.0"><channel><item><title>t</title><link>https://e.org/a</link>'
+_PAD_TAIL = b"</item></channel></rss>"
+
+
+def _padded(size: int) -> bytes:
+    filler = size - len(_PAD_HEAD) - len(_PAD_TAIL) - len(b"<!---->")
+    return _PAD_HEAD + b"<!--" + b"x" * filler + b"-->" + _PAD_TAIL
+
+
+def test_a_body_of_exactly_two_mebibytes_is_read_and_one_byte_more_is_refused() -> None:
+    assert MAX_BYTES == 2 * 1024 * 1024
+    at_cap = _padded(2 * 1024 * 1024)
+    assert len(at_cap) == 2 * 1024 * 1024
+    assert [e.title for e in parse_feed(at_cap)] == ["t"]
+    with pytest.raises(FeedError, match="larger than 2 MiB"):
+        parse_feed(_padded(2 * 1024 * 1024 + 1))
+
+
+def test_the_size_cap_is_checked_before_any_parsing() -> None:
+    with pytest.raises(FeedError, match="larger than 2 MiB"):
+        parse_feed(b"x" * (2 * 1024 * 1024 + 1))
+
+
+def _nested(levels: int, closed: bool = True) -> bytes:
+    inner = b"<a>" * (levels - 1)
+    tail = b"</a>" * (levels - 1) + b"</rss>" if closed else b""
+    return b'<rss version="2.0">' + inner + tail
+
+
+def test_nesting_of_64_elements_is_read_and_65_is_refused() -> None:
+    assert parse_feed(_nested(64)) == []
+    with pytest.raises(FeedError, match="deeper than 64"):
+        parse_feed(_nested(65))
+
+
+def test_the_depth_limit_acts_when_the_65th_level_opens() -> None:
+    with pytest.raises(FeedError, match="deeper than 64"):
+        parse_feed(_nested(65, closed=False))
+    with pytest.raises(FeedError, match="not valid XML"):
+        parse_feed(_nested(64, closed=False))
+
+
+def test_text_from_the_feed_in_an_error_message_is_cut_to_120_characters() -> None:
+    prefix = "feed uses an unsupported text encoding ("
+    body = f'<?xml version="1.0" encoding="{"A" * 5000}"?><rss version="2.0"/>'
+    with pytest.raises(FeedError) as caught:
+        parse_feed(body.encode())
+    message = str(caught.value)
+    assert message.startswith(prefix)
+    assert message.endswith(")")
+    assert len(message.removeprefix(prefix).removesuffix(")")) == 120
+
+
+@pytest.mark.parametrize(
+    ("name", "args"),
+    [
+        ("StartDoctypeDeclHandler", ("rss", None, None, 0)),
+        ("EntityDeclHandler", ("x", 0, "v", None, None, None, None)),
+        ("ExternalEntityRefHandler", ("ctx", None, "sys", None)),
+        ("UnparsedEntityDeclHandler", ("u", None, "u.gif", None, "n")),
+        ("NotationDeclHandler", ("n", None, "x", None)),
+    ],
+)
+def test_each_refusal_handler_the_parser_installs_refuses_on_its_own(
+    name: str, args: tuple[object, ...]
+) -> None:
+    handler = getattr(_new_parser(_TreeBuilder()), name)
+    with pytest.raises(FeedError, match=_DTD_REFUSAL):
+        handler(*args)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<?xml version='1.0'?>",
+        b"<!-- only a comment -->",
+        b"<?pi only?>",
+        b'<rss version="2.0"/><rss version="2.0"/>',
+    ],
+)
+def test_no_root_and_a_second_root_are_refused_as_invalid_xml(body: bytes) -> None:
+    with pytest.raises(FeedError, match="^feed is not valid XML$"):
+        parse_feed(body)
+
+
+def test_items_and_entries_are_taken_only_from_a_channel_and_from_the_feed() -> None:
+    link = "<link>https://e.org/a</link>"
+    rss = f'<rss version="2.0"><x><item><title>t</title>{link}</item></x></rss>'.encode()
+    atom = (
+        b'<feed xmlns="http://www.w3.org/2005/Atom"><x><entry><title>t</title>'
+        b'<link href="https://e.org/a"/></entry></x></feed>'
+    )
+    assert parse_feed(rss) == []
+    assert parse_feed(atom) == []
+
+
+def test_a_channel_image_and_an_atom_source_are_not_entries() -> None:
+    rss = (
+        b'<rss version="2.0"><channel><image><title>Logo</title><link>https://e.org/i</link>'
+        b"</image><item><title>Real</title><link>https://e.org/r</link></item></channel></rss>"
+    )
+    atom = (
+        b'<feed xmlns="http://www.w3.org/2005/Atom"><source><title>Logo</title>'
+        b'<link href="https://e.org/i"/></source><entry><title>Real</title>'
+        b'<link href="https://e.org/r"/></entry></feed>'
+    )
+    assert [e.title for e in parse_feed(rss)] == ["Real"]
+    assert [e.title for e in parse_feed(atom)] == ["Real"]
+
+
+def test_the_first_of_two_titles_wins() -> None:
+    (e,) = parse_feed(_rss("<title>First</title><title>Second</title>" + _LINK))
+    assert e.title == "First"
+
+
+def test_atom_published_takes_priority_over_updated() -> None:
+    body = (
+        b'<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>T</title>'
+        b'<link href="https://e.org/a"/><updated>2026-11-12T18:30:00Z</updated>'
+        b"<published>2026-11-01T08:00:00Z</published></entry></feed>"
+    )
+    (e,) = parse_feed(body)
+    assert e.published == datetime(2026, 11, 1, 8, 0, tzinfo=UTC)

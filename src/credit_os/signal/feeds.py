@@ -7,6 +7,7 @@ title, link, date and summary are read.
 """
 
 import re
+import unicodedata
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -17,6 +18,11 @@ from urllib.parse import urlsplit
 from xml.parsers import expat
 
 SUMMARY_LIMIT = 300
+MAX_BYTES = 2 * 1024 * 1024
+MAX_DEPTH = 64
+TITLE_LIMIT = 500
+LINK_LIMIT = 2048
+ERROR_TEXT_LIMIT = 120
 _ATOM = "{http://www.w3.org/2005/Atom}"
 _DTD = re.compile(rb"<!(DOCTYPE|ENTITY)", re.IGNORECASE)
 
@@ -69,31 +75,31 @@ def _qualified(name: str) -> str:
 
 
 class _TreeBuilder:
-    """Builds a _Node tree from expat events; comments and processing instructions are dropped."""
+    """Builds a _Node tree from expat events; comments and processing instructions are dropped.
+
+    ``document`` is a nameless parent of the root element, so every element has a parent.
+    """
 
     def __init__(self) -> None:
-        self.root: _Node | None = None
-        self._open: list[_Node] = []
+        self.document = _Node("", {})
+        self._open: list[_Node] = [self.document]
 
     def start(self, name: str, attrs: dict[str, str]) -> None:
+        if len(self._open) > MAX_DEPTH:
+            raise FeedError(f"feed is nested deeper than {MAX_DEPTH} elements")
         node = _Node(_qualified(name), {_qualified(k): v for k, v in attrs.items()})
-        if self._open:
-            self._open[-1].children.append(node)
-            self._open[-1].content.append(node)
-        elif self.root is None:
-            self.root = node
+        self._open[-1].children.append(node)
+        self._open[-1].content.append(node)
         self._open.append(node)
 
     def end(self, name: str) -> None:
         self._open.pop()
 
     def data(self, text: str) -> None:
-        if self._open:
-            self._open[-1].content.append(text)
+        self._open[-1].content.append(text)
 
 
-def _read_xml(body: bytes) -> _Node:
-    builder = _TreeBuilder()
+def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
     parser = expat.ParserCreate(None, "}")
     parser.buffer_text = True
     parser.StartElementHandler = builder.start
@@ -107,10 +113,14 @@ def _read_xml(body: bytes) -> _Node:
     parser.ExternalEntityRefHandler = _refuse
     parser.UnparsedEntityDeclHandler = _refuse
     parser.NotationDeclHandler = _refuse
-    parser.Parse(body, True)
-    if builder.root is None:
-        raise expat.ExpatError("no element found")
-    return builder.root
+    return parser
+
+
+def _read_xml(body: bytes) -> _Node:
+    builder = _TreeBuilder()
+    # Parse raises ExpatError unless the body holds exactly one root element.
+    _new_parser(builder).Parse(body, True)
+    return builder.document.children[0]
 
 
 @dataclass(frozen=True)
@@ -179,12 +189,24 @@ def _text(parent: _Node, tag: str) -> str:
     return child.text().strip() if child is not None else ""
 
 
+def _title(raw: str) -> str:
+    """Whitespace folded to single spaces, control and format characters dropped, then cut."""
+    kept = "".join(ch for ch in raw if ch.isspace() or unicodedata.category(ch) not in ("Cc", "Cf"))
+    return " ".join(kept.split())[:TITLE_LIMIT]
+
+
 def _usable_link(link: str) -> bool:
-    """An http(s) link whose host is present and whose port, if any, parses."""
-    if not link.lower().startswith(("http://", "https://")):
+    """A short http(s) link whose host is present, plain and unambiguous, and whose port parses.
+
+    A backslash, ``@`` or ``%`` or a non-ASCII character in the authority is refused: Python
+    and a browser read the host of such a link differently.
+    """
+    if len(link) > LINK_LIMIT or not link.lower().startswith(("http://", "https://")):
         return False
     try:
         parts = urlsplit(link)
+        if not parts.netloc.isascii() or any(c in parts.netloc for c in "\\@%"):
+            return False
         return bool(parts.hostname) and (parts.port is None or parts.port > 0)
     except ValueError:
         return False
@@ -200,7 +222,7 @@ def _rss_entry(item: _Node) -> Entry | None:
     pub = _text(item, "pubDate")
     date = _rss_date(pub) if pub else None
     return _make(
-        " ".join(_text(item, "title").split()),
+        _title(_text(item, "title")),
         _text(item, "link"),
         date,
         _text(item, "description"),
@@ -218,25 +240,14 @@ def _atom_entry(entry: _Node) -> Entry | None:
     stamp = _text(entry, f"{_ATOM}published") or _text(entry, f"{_ATOM}updated")
     date = _iso_date(stamp) if stamp else None
     return _make(
-        " ".join(_text(entry, f"{_ATOM}title").split()),
+        _title(_text(entry, f"{_ATOM}title")),
         _atom_link(entry),
         date,
         _text(entry, f"{_ATOM}summary"),
     )
 
 
-def parse_feed(body: bytes) -> list[Entry]:
-    """Return the readable entries of an RSS 2.0 or Atom feed, in feed order."""
-    if _DTD.search(body):
-        raise FeedError(_DTD_MESSAGE)
-    try:
-        root = _read_xml(body)
-    except expat.ExpatError as exc:
-        raise FeedError("feed is not valid XML") from exc
-    except FeedError:
-        raise
-    except (ValueError, LookupError) as exc:
-        raise FeedError(f"feed uses an unsupported text encoding ({exc})") from exc
+def _entries(root: _Node) -> list[Entry]:
     if root.tag == "rss":
         found = (
             _rss_entry(item)
@@ -248,3 +259,21 @@ def parse_feed(body: bytes) -> list[Entry]:
     else:
         raise FeedError("document is neither an RSS 2.0 nor an Atom feed")
     return [entry for entry in found if entry is not None]
+
+
+def parse_feed(body: bytes) -> list[Entry]:
+    """Return the readable entries of an RSS 2.0 or Atom feed, in feed order."""
+    if len(body) > MAX_BYTES:
+        raise FeedError("feed is larger than 2 MiB")
+    if _DTD.search(body):
+        raise FeedError(_DTD_MESSAGE)
+    try:
+        root = _read_xml(body)
+    except expat.ExpatError as exc:
+        raise FeedError("feed is not valid XML") from exc
+    except FeedError:
+        raise
+    except (ValueError, LookupError) as exc:
+        detail = str(exc)[:ERROR_TEXT_LIMIT]
+        raise FeedError(f"feed uses an unsupported text encoding ({detail})") from exc
+    return _entries(root)
