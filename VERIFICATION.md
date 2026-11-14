@@ -26,7 +26,7 @@ read by the first coordinator.
 | PR | Task reviews | Sensitive-code review | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- | :--- |
 | #35 | `mx-precise`: task 1 clean; task 2 one Medium (test gap), fixed, re-review clean | n/a | no new defect | PASS: High 0, Medium 0, Low 2, Info 3 |
-| #36 | `mx-precise`: both approved | `mx-adversary`: a Medium in each of three rounds, none open (last: `fix-3-rereview.md`, closed) | one Medium fixed, one legacy Low parked | PASS on `8d5274d`: High 0, Medium 0, Low 5 (all fixed), Info 3 |
+| #36 | `mx-precise`: both approved | `mx-adversary`: task review M1 fixed, M2 open (below); a Medium in each of the first two re-reviews, both fixed; round-3 re-review found none | one Medium fixed, one legacy Low parked | PASS on `8d5274d`: High 0, Medium 0, Low 5 (all fixed), Info 3 |
 | #44 | batched `mx-feature` (docs and config): PASS, Low 6 (5 applied), Info 1 | n/a | skipped (docs and config, global rules section 7) | skipped, same rule |
 
 #36's third fix round followed the escalation route: an `mx-autonomous` root-cause plan, a
@@ -46,8 +46,8 @@ its controller on `37846d6`. Mutation on #36 (`mutmut`, fixer's run): 224 mutant
 - `1A-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
 - `1A-1 task=2 agent=mx-feature fix-rounds=1 gates-first-pass=y`
 - `1A-1 task=3(low batch) agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1C-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y` (as its first controller left
-  it; an earlier message from that controller said `n`)
+- `1C-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n` (ruff failed once before the
+  commit)
 - `1C-1 task=2 agent=mx-feature fix-rounds=3 gates-first-pass=n` (round 3: `mx-autonomous`
   plan, fresh `mx-feature`)
 - `S-0 agent=mx-scaffold fix-rounds=0 gates-first-pass=n` (two briefing errors by the
@@ -65,8 +65,20 @@ its controller on `37846d6`. Mutation on #36 (`mutmut`, fixer's run): 224 mutant
   `session.error`. All five are in the 1C plan.
 - Signal: decision 0009.
 
-**Parked Low findings**, for the end-of-step batch of 1C: home-path redaction leaks a name and
-over-redacts (legacy behaviour; a requirement of the Copilot adapter PR); `Decimal("-0")`
+**Open Medium, merged knowingly.** #36 merged with one `mx-adversary` Medium open (M2, the
+same in the predecessor): `home_paths` leaves part of a Windows user name that has a space
+before `/` or the end of the line, or holds `'()`. The first coordinator deferred it to the
+adapter work. Nothing calls `home_paths` yet. Ruling of this coordinator: it is fixed in
+`redact.py`, test first, with the reviewer's probe `probe_redact_home_name_leak.py` as the
+answer key, no later than 1C PR 3 (the session driver, the first caller), which does not merge
+while that probe exits 1. The adapter also gives the home directory and the runtime path to
+the redactor as exact values. This is a departure from decision 0006's "no High or Medium
+open" at merge, reported to the owner.
+
+**Parked Low findings**, for the end-of-step batch of 1C (the list in #36's body is the full
+one): text after a home path up to a quote is removed, and `/users/octocat/repos` reads as a
+home path; `Redactor("ab12")` iterates characters, so short values over-redact; an `sk-` key
+after an unlisted escape, or glued after a letter or digit, is kept; `Decimal("-0")` is
 accepted as a charge; a `ghp_` run cut to 30 to 35 characters is not redacted.
 
 **Not verified.**
@@ -76,6 +88,10 @@ accepted as a charge; a `ghp_` run cut to 30 to 35 characters is not redacted.
   values `finishReason` takes: source reading only, until the owner's first paid run.
 - The reviewer probe `wb_reply_usage_untyped.py` now stops in its own setup; its four cases
   were run by hand by the 1C controller and each is refused.
+- `npm --prefix web run gates` did not run for #36 or #44, locally or in CI: the web workflow
+  does not trigger on a pull request that changes no web file. #44's body says CI runs it;
+  that was wrong.
+- The count "Low 6 (5 applied)" for #44 is the coordinator's reading of the review.
 - `main` has no branch protection, so the checks are advisory.
 
 ## 2026-11-14 Roadmap back end: step 0C part 1 (Python lock, build backend, duplication gate)

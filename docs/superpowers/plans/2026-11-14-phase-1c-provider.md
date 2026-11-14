@@ -120,8 +120,11 @@ the PR.
   condition. A `session.idle` with `aborted` true is never an `ok` reply. One turn can hold
   several model calls (`assistant.turn_retry`), so usage is taken from every usage event of
   the call.
-- **Home directory:** passing the home directory as an exact value is not enough alone; the
-  Copilot adapter PR carries the home-path requirement with a test.
+- **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
+  Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
+  with the reviewer's probe as the answer key, no later than PR 3, which does not merge while
+  that probe fails. PR 3's driver also gives the home directory and the runtime path to the
+  redactor as exact values; that alone is not enough.
 
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
@@ -137,7 +140,8 @@ the PR.
 
 | PR | Delivers |
 | :--- | :--- |
-| 1 | Types, protocol, redaction, canned adapter |
+| 1 | Types, protocol, redaction (#36) |
+| 1b | Canned adapter, with `Compaction` and `Reply.compactions` |
 | 2 | Pure Copilot event parser and cost reading |
 | 3 | Session driver against a fake client: one turn, errors, timeouts |
 | 3b | Tool-call turns (handlers parked until the next request), if 3 would pass 800 lines |
