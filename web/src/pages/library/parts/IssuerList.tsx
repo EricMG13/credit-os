@@ -19,6 +19,9 @@ export const NO_BANDS: Bands = { leverage: null, netLeverage: null, interestCove
 type Specs = LibraryHome["list"]["measures"];
 
 /** Only a reported figure takes part in a range or a sort; an adjusted or missing one does not. */
+const CELL = "px-3";
+const NOWRAP = `${CELL} whitespace-nowrap`;
+
 const screened = (m: Measure): m is NonNullable<Measure> => m !== null && m.basis === "reported";
 
 /** Whether the figure sits in the chosen band (`min` included, `max` excluded); All passes any row. */
@@ -39,13 +42,13 @@ function sorted(rows: readonly IssuerCard[], sort: SortDescriptor | undefined) {
   const key = MEASURES.find((k) => k === sort?.column);
   if (sort === undefined || key === undefined) return rows;
   const sign = sort.direction === "descending" ? -1 : 1;
-  const at = (r: IssuerCard) => {
+  const ranked = rows.flatMap((r) => {
     const m = r.measures[key];
-    return screened(m) ? m.at : 0;
-  };
-  const ranked = rows.filter((r) => screened(r.measures[key]));
+    return screened(m) ? [{ r, at: m.at }] : [];
+  });
   const rest = rows.filter((r) => !screened(r.measures[key]));
-  return [...ranked.sort((a, b) => sign * (at(a) - at(b))), ...rest];
+  ranked.sort((a, b) => sign * (a.at - b.at));
+  return [...ranked.map((x) => x.r), ...rest];
 }
 
 function Figure({ measure }: { measure: NonNullable<Measure> }) {
@@ -123,61 +126,83 @@ export function IssuerList({
     rows.filter((r) => MEASURES.every((k) => inBand(r, k, specs, bands[k]))),
     sort,
   );
-  const hasAdjusted = (k: MeasureKey) =>
-    home.cards.some((c) => c.kind === "issuer" && c.measures[k]?.basis === "adjusted");
+  const hiddenBy = (k: MeasureKey) =>
+    bands[k] === null ? [] : rows.filter((r) => !screened(r.measures[k]));
   return (
     <div className="flex flex-col gap-6">
       {shown.length === 0 ? (
         empty
       ) : (
-        <Table aria-label="Issuers" size="sm" sortDescriptor={sort} onSortChange={setSort}>
-          <Table.Header>
-            <Table.Head id="issuer" isRowHeader label="Issuer" />
-            <Table.Head id="sector" label="Sector" />
-            <Table.Head id="state" label="State" />
-            <Table.Head id="asOf" label="As of" />
-            <Table.Head id="pathway" label="Pathway" />
-            <Table.Head id="modules" label="Modules" />
-            {MEASURES.map((k) => (
-              <Table.Head key={k} id={k} allowsSorting numeric label={specs[k].name} />
-            ))}
-          </Table.Header>
-          <Table.Body>
-            {shown.map((r) => (
-              <Table.Row key={r.issuer} id={r.issuer}>
-                <Table.Cell>
-                  <Link href={cardHref(r.issuer, r.href)} className="text-text-primary underline">
-                    {r.name}
-                  </Link>
-                </Table.Cell>
-                <Table.Cell>{r.sector}</Table.Cell>
-                <Table.Cell>
-                  <StatusBadge set="Run states" state={r.state} />
-                </Table.Cell>
-                <Table.Cell>{r.asOf}</Table.Cell>
-                <Table.Cell>{r.pathway}</Table.Cell>
-                <Table.Cell>{r.progress.text}</Table.Cell>
-                {MEASURES.map((k) => {
-                  const m = r.measures[k];
-                  return (
-                    <Table.Cell key={k} numeric>
-                      {m === null ? null : <Figure measure={m} />}
-                    </Table.Cell>
-                  );
-                })}
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
+        <div
+          role="region"
+          aria-label="Issuers"
+          className="overflow-x-auto [&>div]:w-max [&>div]:min-w-full [&>div]:overflow-x-visible"
+        >
+          <Table
+            aria-label="Issuers"
+            size="sm"
+            className="w-max min-w-full"
+            sortDescriptor={sort}
+            onSortChange={setSort}
+          >
+            <Table.Header>
+              <Table.Head id="issuer" isRowHeader className={CELL} label="Issuer" />
+              <Table.Head id="sector" className={CELL} label="Sector" />
+              <Table.Head id="state" className={CELL} label="State" />
+              <Table.Head id="asOf" className={CELL} label="As of" />
+              <Table.Head id="pathway" className={CELL} label="Pathway" />
+              <Table.Head id="modules" className={CELL} label="Modules" />
+              {MEASURES.map((k) => (
+                <Table.Head
+                  key={k}
+                  id={k}
+                  allowsSorting
+                  numeric
+                  className={CELL}
+                  label={specs[k].name}
+                />
+              ))}
+            </Table.Header>
+            <Table.Body>
+              {shown.map((r) => (
+                <Table.Row key={r.issuer} id={r.issuer}>
+                  <Table.Cell className={NOWRAP}>
+                    <Link href={cardHref(r.issuer, r.href)} className="text-text-primary underline">
+                      {r.name}
+                    </Link>
+                  </Table.Cell>
+                  <Table.Cell className={CELL}>{r.sector}</Table.Cell>
+                  <Table.Cell className={NOWRAP}>
+                    <StatusBadge set="Run states" state={r.state} />
+                  </Table.Cell>
+                  <Table.Cell className={NOWRAP}>{r.asOf}</Table.Cell>
+                  <Table.Cell className={CELL}>{r.pathway}</Table.Cell>
+                  <Table.Cell className={CELL}>{r.progress.text}</Table.Cell>
+                  {MEASURES.map((k) => {
+                    const m = r.measures[k];
+                    return (
+                      <Table.Cell key={k} numeric className={NOWRAP}>
+                        {m === null ? null : <Figure measure={m} />}
+                      </Table.Cell>
+                    );
+                  })}
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        </div>
       )}
-      {MEASURES.map((k) => (
-        <Hidden
-          key={k}
-          name={specs[k].name}
-          adjusted={hasAdjusted(k)}
-          rows={bands[k] === null ? [] : rows.filter((r) => !screened(r.measures[k]))}
-        />
-      ))}
+      {MEASURES.map((k) => {
+        const hidden = hiddenBy(k);
+        return (
+          <Hidden
+            key={k}
+            name={specs[k].name}
+            adjusted={hidden.some((r) => r.measures[k]?.basis === "adjusted")}
+            rows={hidden}
+          />
+        );
+      })}
       <div className="flex flex-col gap-1 text-small text-text-tertiary">
         {MEASURES.map((k) => (
           <p key={k}>{specs[k].countLine}</p>

@@ -99,7 +99,7 @@ describe("readSlice", () => {
     expect(invalidReason(slice)).toContain("home.filters.sector[1]");
   });
 
-  it("requires one applied-count label for zero to four filters", () => {
+  it("requires one applied-count label for zero to seven filters", () => {
     const slice = fresh();
     slice.home.filters["appliedLabels"] = ["No filter applied"];
     expect(invalidReason(slice)).toContain("home.filters.appliedLabels");
@@ -182,6 +182,14 @@ describe("readSlice, the List side", () => {
       bands: [{ label: "Bad", min: 5, max: 3 }],
     };
     expect(invalidReason(slice)).toContain("home.list.measures.leverage.bands[0].max");
+    specs.leverage = {
+      ...specs.leverage,
+      bands: [
+        { label: "Low", min: null, max: 3 },
+        { label: "Low", min: 3, max: null },
+      ],
+    };
+    expect(invalidReason(slice)).toContain("home.list.measures.leverage.bands[1].label");
     const bare = fresh();
     delete (bare.home as Json).list;
     expect(invalidReason(bare)).toContain("home.list");

@@ -487,4 +487,67 @@ describe("Library home, List side", () => {
       }
     }
   });
+
+  it("counts the chosen bands as applied filters, with one label for each count up to seven", () => {
+    toList();
+    band("Leverage", "Below 3.0x");
+    expect(screen.getByText("1 filter applied")).toBeInTheDocument();
+    band("Net leverage", "Below 3.0x");
+    band("Interest coverage", "Below 2.0x");
+    expect(screen.getByText("3 filters applied")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "Search issuers" }), {
+      target: { value: "a" },
+    });
+    pick(/Sector: All/, "Packaged food");
+    pick(/Pathway: All/, "Monitoring update");
+    pick(/State: All/, "Finished");
+    expect(screen.getByText("7 filters applied")).toBeInTheDocument();
+  });
+
+  it("resets the bands when the layout goes back to Cards, where they narrow nothing", () => {
+    toList();
+    band("Leverage", "Below 3.0x");
+    fireEvent.click(screen.getByRole("radio", { name: "Cards" }));
+    expect(screen.getByText("No filter applied")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(5);
+    expect(screen.getByLabelText("Loading issuer")).toBeVisible();
+    fireEvent.click(screen.getByRole("radio", { name: "List" }));
+    expect(names()).toHaveLength(5);
+  });
+
+  it("chooses the hidden-rows wording from the rows the band hid, not from the slice", () => {
+    toList();
+    fireEvent.change(screen.getByRole("textbox", { name: "Search issuers" }), {
+      target: { value: "Lumora" },
+    });
+    band("Leverage", "Below 3.0x");
+    expect(
+      screen.getByRole("heading", { name: "Hidden by Leverage: no figure recorded" }),
+    ).toBeVisible();
+    fireEvent.change(screen.getByRole("textbox", { name: "Search issuers" }), {
+      target: { value: "Tessaly" },
+    });
+    expect(
+      screen.getByRole("heading", {
+        name: "Hidden by Leverage: no figure recorded, or a figure on adjusted EBITDA",
+      }),
+    ).toBeVisible();
+  });
+
+  it("lets all nine columns fit: no clipping, dates and figures unbroken, tight padding", () => {
+    toList();
+    const region = screen.getByRole("region", { name: "Issuers" });
+    expect(region).not.toHaveAttribute("tabindex");
+    expect(region.className).toMatch(/overflow-x-auto/);
+    expect(region).toContainElement(table());
+    expect(table().className).toMatch(/w-max/);
+    const cells = within(row("Halden Aerostructures")).getAllByRole("gridcell");
+    for (const cell of cells) expect(cell.className).toMatch(/\bpx-3\b/);
+    for (const text of ["As of 30 Sep 2026", "3.4x"]) {
+      expect(within(row("Halden Aerostructures")).getByText(text).closest("td")?.className).toMatch(
+        /whitespace-nowrap/,
+      );
+    }
+    expect(within(table()).getAllByRole("columnheader")).toHaveLength(9);
+  });
 });

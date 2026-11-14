@@ -34,12 +34,16 @@ function matches(card: IssuerCardData, f: Filters): boolean {
   );
 }
 
-/** How many of the four controls narrow the list: an index into the slice's own labels. */
+/** How many of the search and three selects narrow the cards. */
 function applied(f: Filters): number {
   return [f.search.trim() !== "", f.sector !== ALL, f.pathway !== ALL, f.state !== ALL].filter(
     Boolean,
   ).length;
 }
+
+/** Every control in use, bands included: an index into the slice's own applied labels. */
+const appliedWithBands = (f: Filters, bands: Bands): number =>
+  applied(f) + MEASURES.filter((key) => bands[key] !== null).length;
 
 function NoRuns() {
   return (
@@ -97,12 +101,16 @@ function RangeFilters({
       {MEASURES.map((key) => {
         const spec = home.list.measures[key];
         const chosen = bands[key];
+        const chosenBand = chosen === null ? undefined : spec.bands[chosen];
+        if (chosen !== null && chosenBand === undefined) {
+          throw new RangeError(`no band ${String(chosen)} for ${key}`);
+        }
         return (
           <FilterSelect
             key={key}
             name={spec.name}
             options={spec.bands.map((band) => band.label)}
-            value={chosen === null ? ALL : (spec.bands[chosen]?.label ?? ALL)}
+            value={chosenBand === undefined ? ALL : chosenBand.label}
             onChange={(label) => {
               const index = spec.bands.findIndex((band) => band.label === label);
               onChange({ ...bands, [key]: index < 0 ? null : index });
@@ -130,7 +138,7 @@ function Layout({ home }: { home: LibraryHome }) {
         filters={home.filters}
         values={filters}
         onChange={setFilters}
-        appliedLabel={appliedLabel(home.filters.appliedLabels, applied(filters))}
+        appliedLabel={appliedLabel(home.filters.appliedLabels, appliedWithBands(filters, bands))}
       >
         <ButtonGroup
           aria-label="Layout"
@@ -139,6 +147,7 @@ function Layout({ home }: { home: LibraryHome }) {
           selectedKeys={[layout]}
           onSelectionChange={(keys) => {
             const [key] = keys;
+            if (key === "cards") setBands(NO_BANDS);
             if (key === "cards" || key === "list") setLayout(key);
           }}
         >

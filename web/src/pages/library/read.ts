@@ -154,6 +154,7 @@ function eachMeasure<T>(
 function readSpec(o: Rec, key: MeasureKey, path: string): MeasureSpec {
   const at = child(path, key);
   const m = rec(own(o, key), at);
+  const labels = new Set<string>();
   return {
     name: str(m, "name", at),
     countLine: str(m, "countLine", at),
@@ -164,7 +165,11 @@ function readSpec(o: Rec, key: MeasureKey, path: string): MeasureSpec {
       if (min !== null && max !== null && min >= max) {
         throw new SliceError(child(itemPath, "max"), "a number above min");
       }
-      return { label: str(b, "label", itemPath), min, max };
+      const label = str(b, "label", itemPath);
+      if (labels.has(label))
+        throw new SliceError(child(itemPath, "label"), "a label not used by an earlier band");
+      labels.add(label);
+      return { label, min, max };
     }),
   };
 }
