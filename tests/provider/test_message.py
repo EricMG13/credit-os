@@ -57,6 +57,19 @@ def test_message_time(label: str, text: str, capsys: pytest.CaptureFixture[str])
     assert seconds <= key.SECONDS
 
 
+@pytest.mark.parametrize(("label", "known", "text"), key.TIMING_PATHS)
+def test_message_time_by_path(
+    label: str, known: tuple[str, ...], text: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    redactor = Redactor(known_paths=known)
+    start = time.perf_counter()
+    redactor.message(text)
+    seconds = time.perf_counter() - start
+    with capsys.disabled():
+        print(f"\nTIMING {label}: {seconds:.3f} s")
+    assert seconds <= key.SECONDS
+
+
 _NAME = st.text(alphabet=key.NAME_ALPHABET, min_size=3, max_size=12).filter(
     lambda n: n == n.strip()
 )

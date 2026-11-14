@@ -176,7 +176,8 @@ def _net_spans(text: str) -> list[tuple[int, int]]:
 def home_paths(text: str) -> str:
     """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
     name that no slash or reserved character ends takes the rest of its line. It does not redact
-    keys."""
+    keys. It is a net that claims nothing (decision 0012 point 4): ``Redactor.message`` with
+    known paths is the guarantee."""
     return _replace_spans(text, _net_spans(text), HOME)
 
 
@@ -234,57 +235,88 @@ def _utf8(form: str) -> bytes | None:
 # escape is one to eight backslashes then "u" or "x" and hex digits; a percent escape is "%" with
 # the percent itself encoded up to twice ("%25", "%2525"); a separator is a run of 1 to 16 of "/",
 # "\\", "%2F" and "%5C". Hex digits are lower case here: the patterns ignore case. Every
-# quantifier is bounded.
-_ESCAPE = r"\\{1,8}"
+# quantifier is bounded, and a backslash run has one parse (linear time, 0012 item 3): a separator
+# run is atomic and takes every backslash it can, a word's escape is possessive, and the first
+# escape after a separator may reuse the separator's last backslash (a lookbehind), so no failing
+# match retries another split of the run.
+_ESCAPE = r"\\{1,8}+"
 _PERCENT = r"%(?:25){0,2}"
-_SEPARATOR = rf"(?:[/\\]|{_PERCENT}(?:2f|5c)){{1,16}}"
+_SEPARATOR = rf"(?>(?:[/\\]|{_PERCENT}(?:2f|5c)){{1,16}})"
+_SHARED = "|".join(
+    rf"(?<={s}\\)" for s in (r"[/\\]", *(rf"%{p}(?:2f|5c)" for p in ("", "25", "2525")))
+)
 _DRIVE = re.compile(r"[A-Za-z]:")
+_LONG_PATH = re.compile(r"[/\\]{2}[?.](?:[/\\]|\Z)")  # "\\?\", "\\.\": a prefix, not a folder
 
 
-def _char_forms(char: str) -> set[str]:
-    """Patterns for ``char`` as written, as ``\\uXXXX`` (a surrogate pair above U+FFFF), as ``\\xXX``
-    (below U+0100), and as its UTF-8 bytes in ``\\xHH`` or percent form."""
-    code = ord(char)
-    data = char.encode("utf-8", "surrogatepass")
-    units = (
+def _units(code: int) -> list[int]:
+    return (
         [code] if code < 0x10000 else [0xD800 + ((code - 0x10000) >> 10), 0xDC00 + (code & 0x3FF)]
     )
-    forms = {re.escape(char), "".join(rf"{_ESCAPE}u{u:04x}" for u in units)}
-    forms.add("".join(rf"{_ESCAPE}x{b:02x}" for b in data))
-    forms.add("".join(rf"{_PERCENT}{b:02x}" for b in data))
-    if code < 0x100:
-        forms.add(rf"{_ESCAPE}x{code:02x}")
-    return forms
 
 
-def _char_pattern(char: str) -> str:
-    """One character of a known path: composed, or decomposed (NFD), each in every encoding."""
-    forms = _char_forms(char)
-    decomposed = unicodedata.normalize("NFD", char)
-    if decomposed != char:
-        forms.add("".join("(?:" + "|".join(sorted(_char_forms(c))) + ")" for c in decomposed))
-    return "(?:" + "|".join(sorted(forms)) + ")"
+def _escapes(kind: str, values: Iterable[int], width: int) -> str:
+    return _ESCAPE.join(f"{kind}{v:0{width}x}" for v in values)
+
+
+def _char_pattern(char: str, after_separator: bool) -> str:
+    """One character: as written, and each same-length case form of it (as given, lower, upper) as
+    ``\\uXXXX`` (a surrogate pair above U+FFFF), ``\\xXX`` (below U+0100), its UTF-8 bytes as
+    ``\\xHH`` or ``\\u00HH``, and percent-encoded. The literal is one alternative: the pattern
+    ignores case, and two alternatives for one text would let a failing match retry both."""
+    plain = {re.escape(char)}
+    escaped: set[str] = set()
+    for form in {f for f in (char, char.lower(), char.upper()) if len(f) == 1}:
+        data = form.encode("utf-8", "surrogatepass")
+        escaped |= {_escapes("u", _units(ord(form)), 4), _escapes("x", data, 2)}
+        escaped.add(_escapes("u", data, 4))
+        plain.add("".join(rf"{_PERCENT}{b:02x}" for b in data))
+        if ord(form) < 0x100:
+            escaped.add(_escapes("x", [ord(form)], 2))
+    lead = rf"(?:{_ESCAPE}|{_SHARED})" if after_separator else rf"{_ESCAPE}"
+    return "(?:" + "|".join(sorted(plain) + [lead + "(?:" + "|".join(sorted(escaped)) + ")"]) + ")"
+
+
+def _word(part: str, after_separator: bool) -> str:
+    """A folder name as given, in its whole-name NFC and in its whole-name NFD."""
+    forms = {part, unicodedata.normalize("NFC", part), unicodedata.normalize("NFD", part)}
+    return (
+        "(?:"
+        + "|".join(
+            sorted(
+                "".join(_char_pattern(c, after_separator and i == 0) for i, c in enumerate(f))
+                for f in forms
+            )
+        )
+        + ")"
+    )
+
+
+def _run(parts: list[str], leading: bool) -> str:
+    words = [_word(p, leading or i > 0) for i, p in enumerate(parts)]
+    return (_SEPARATOR if leading else "") + _SEPARATOR.join(words)
+
+
+def _stripped(path: str) -> str:
+    """``path`` without surrounding whitespace and trailing separators, until neither is left."""
+    text = path
+    while (shorter := text.strip().rstrip("/\\")) != text:
+        text = shorter
+    return text
 
 
 def _path_patterns(path: str) -> list[str]:
     """The patterns that find a known path: the whole path and its last two folders (the whole
-    only if it has one folder). A path with no folder name (a drive is not one) is refused."""
-    text = unicodedata.normalize("NFC", path.strip()).rstrip("/\\")
+    only if it has one folder). A path with no folder name (a drive and a long-path prefix are
+    not one) is refused."""
+    text = _stripped(path)
     parts = [p for p in re.split(r"[/\\]+", text) if p]
-    folders = [p for p in parts if not _DRIVE.fullmatch(p)]
+    folders = [p for p in parts[1 if _LONG_PATH.match(text) else 0 :] if not _DRIVE.fullmatch(p)]
     if not folders:
         raise ValueError("a known path needs at least one folder name")
-
-    def word(part: str) -> str:
-        return "".join(_char_pattern(c) for c in part)
-
-    whole = (_SEPARATOR if text.startswith(("/", "\\")) else "") + _SEPARATOR.join(
-        word(p) for p in parts
-    )
-    if len(folders) < 2:
-        return [whole]
-    last = _SEPARATOR.join(word(f) for f in folders[-2:])
-    return [whole] if last == whole else [whole, last]
+    whole = _run(parts, text.startswith(("/", "\\")))
+    last = _run(folders[-2:], False)
+    return [whole] if len(folders) < 2 or last == whole else [whole, last]
 
 
 class Redactor:
@@ -292,7 +324,10 @@ class Redactor:
     writes it inside a string, once or twice escaped (text and bytes). Not matched: other
     serialisers' escapes (upper-case ``\\uXXXX`` hex, ``\\/``, URL or HTML encodings) and deeper
     nesting. A value that is not valid UTF-8 text still matches as text; in bytes only its forms
-    that can be encoded match."""
+    that can be encoded match.
+
+    ``known_paths`` are the paths the launcher knows (decision 0012); ``message`` masks them with
+    the keys and the pattern net, and carries the guarantee. ``text`` and ``bytes_`` are keys only."""
 
     def __init__(
         self, exact_values: Iterable[str] = (), *, known_paths: Iterable[str] = ()
@@ -347,7 +382,8 @@ class Redactor:
         occurs, with no boundary consulted, as written, as ``\\uXXXX`` or ``\\xXX`` (either hex
         case, one to eight backslashes, UTF-8 bytes included), percent-encoded (the percent
         itself up to twice), in NFC or NFD, each separator a run of up to 16 of ``/``, ``\\``,
-        ``%2F``, ``%5C``, in any letter case.
+        ``%2F``, ``%5C``, in any letter case. Case applies before encoding: each character's escape,
+        UTF-8 and percent forms are built from its as-given, lower and upper forms of the same length.
 
         Not guaranteed: another user's home (the net, best effort); Windows 8.3 short names; a
         case mapping that changes length (``ß`` to ``SS``); a bare user name; a value split
