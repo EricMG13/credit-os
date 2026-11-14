@@ -190,7 +190,8 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 | 1c (#82) | `read_capped` refuses a final link on Windows; `COM0` and `LPT0` |
 | 1d (#100) | Folder walk (`pin_folder`, `PinnedFolder`, `Skipped`) |
 | 1e (#135) | The two untyped errors, the wider name refusals, the walk's property test |
-| 2 | Text, csv and HTML readers |
+| 2 (#161) | Text and csv readers; `Page` and `SourcePages` |
+| 2b | HTML reader, with its peak-memory bound |
 | 3 | Zip and XML guards; xlsx reader |
 | 4 | docx reader |
 | 5 | PDF reader |

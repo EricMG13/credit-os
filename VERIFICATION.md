@@ -49,8 +49,8 @@ and the open Medium M2 of #36 stays open. The owner authorised one more round (a
 round"): the reviewer's one-line change, key rows first, an adversarial check of that change
 only, as its own PR (#171, a draft at this entry). Nothing further is authorised.
 
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller:
-#147 on `d861baa` (1,857 passed); #163 on `d0214a8` (the last commit changed the JSON key
+**Gates and CI.** As each controller reported. `uv run --locked python tools/gates.py` exit
+0: #147 on `d861baa` (1,857 passed); #163 on `d0214a8` (the last commit changed the JSON key
 only); #162 on `a0494c2`; #157 on `30b2c25`; #170 and #160 on their heads. CI on #162 printed
 SQLite 3.53.1 on Ubuntu and 3.49.1 on Windows, both above the plan's 3.37 floor. Mutation
 (`mutmut`): #147, 1,438 mutants, 1,428 killed, 10 equivalent; #163 at `d8f925e`, 204, 153

@@ -163,7 +163,7 @@ The parser (PR 2b, #102), `provider/events.py`:
   `model.call_failure`, so the two routing refusals are read from a failed call. A call routed
   elsewhere that succeeds first time gives no signal.
 
-Ruled for PR 3 (not yet in `main`); see also the pre-flight rulings after this list:
+Ruled for PR 3 (not yet in `main`); the later bullets are the pre-flight rulings:
 - **Which compaction a completed one replaces** is the driver's rule: it links only when
   exactly one delivered start is unpaired, and only to an unfinished compaction delivered on an
   earlier reply. With two or more unpaired starts, in the same reply, or onto a done entry,
@@ -171,10 +171,12 @@ Ruled for PR 3 (not yet in `main`); see also the pre-flight rulings after this l
 - The driver hands session events to the parser unchanged: which event is a redelivery is the
   parser's JSON-text rule, never the id alone. Separately, it removes a repeated compaction
   (one whose `event_id` it has already delivered) before building a `Reply`, which refuses
-  two with one id. `event_id` is built from the envelope id only; a complete whose `success` is not a bool is `failed`, counts and
-  charge as read; what `close()` returns is attributed to the run by the orchestrator.
-- The driver hands `data` to the parser always as an object, reads an abort only from
-  `session.idle`, and gives the parser one model turn per list.
+  two with one id. `event_id` is built from the envelope id only, except the two driver-made
+  ids below; a complete whose `success` is not a bool is `failed`, counts and charge as read;
+  what `close()` returns is attributed to the run by the orchestrator.
+- The driver hands `data` to the parser as an object when the event is typed (an untyped
+  event's payload passes unchanged, below), reads an abort only from `session.idle`, and
+  gives the parser one model turn per list.
 - Paths are redacted by the driver, not by the parser's redactor (an exact value in `raw`
   makes a reply `KeyReflected`, and every turn carries the working directory): the parser's
   redactor gets token values only; a second one, with the home directory and runtime path in
