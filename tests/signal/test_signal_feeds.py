@@ -1,9 +1,17 @@
 import time
 from datetime import UTC, datetime
+from html.parser import HTMLParser
 
 import pytest
 
-from credit_os.signal.feeds import MAX_BYTES, FeedError, _new_parser, _TreeBuilder, parse_feed
+from credit_os.signal.feeds import (
+    MAX_BYTES,
+    Entry,
+    FeedError,
+    _new_parser,
+    _TreeBuilder,
+    parse_feed,
+)
 
 _DTD_REFUSAL = "^feed declares a DTD or entities$"
 
@@ -48,12 +56,17 @@ def test_summary_is_cut_to_300_on_a_word_boundary() -> None:
     "body",
     [
         b'<?xml version="1.0"?><!DOCTYPE rss [<!ENTITY a "b">]><rss/>',
-        b"<!doctype rss><rss/>",
     ],
 )
 def test_dtd_or_entities_are_refused(body: bytes) -> None:
     with pytest.raises(FeedError, match=_DTD_REFUSAL):
         parse_feed(body)
+
+
+def test_a_lower_case_doctype_is_not_xml_and_is_refused_as_such() -> None:
+    # R19: no byte search, so the parser alone reads it: "<!doctype" is not a declaration.
+    with pytest.raises(FeedError, match="^feed is not valid XML$"):
+        parse_feed(b"<!doctype rss><rss/>")
 
 
 @pytest.mark.parametrize("body", [b"not xml", b"<html><body/></html>", b""])
@@ -205,11 +218,14 @@ def test_wide_encoded_dtds_are_refused_by_the_parser(codec: str, head: str) -> N
         parse_feed(text.encode(codec))
 
 
-def test_doctype_text_inside_a_comment_or_cdata_is_still_refused() -> None:
-    # The predecessor refuses any "<!DOCTYPE" or "<!ENTITY" byte sequence; so does the port.
+def test_doctype_text_inside_a_comment_or_cdata_is_read() -> None:
+    # R19: only a real declaration is refused, not the text "<!DOCTYPE" in a comment or CDATA.
     for inner in ("<!-- <!DOCTYPE x> -->", "<![CDATA[<!ENTITY y 'z'>]]>"):
-        with pytest.raises(FeedError, match=_DTD_REFUSAL):
-            parse_feed(_rss(f"<title>t</title>{_LINK}{inner}"))
+        (e,) = parse_feed(_rss(f"<title>t</title>{_LINK}{inner}"))
+        assert e.title == "t"
+    page_item = f"<title>t</title>{_LINK}<description><![CDATA[<!DOCTYPE html><p>Page</p>]]>"
+    (page,) = parse_feed(_rss(page_item + "</description>"))
+    assert page.summary == "Page"
 
 
 def test_prefixed_elements_do_not_stand_in_for_plain_ones() -> None:
@@ -670,3 +686,206 @@ def _summary_of(description: str) -> str:
 )
 def test_block_level_elements_do_not_fuse_in_a_summary(description: str, expected: str) -> None:
     assert _summary_of(description) == expected
+
+
+@pytest.mark.parametrize(
+    "tag",
+    [
+        *("p", "br", "div", "li", "ul", "ol", "dl", "dt", "dd", "table", "tr", "td", "th"),
+        *("thead", "tbody", "tfoot", "caption", "h1", "h2", "h3", "h4", "h5", "h6"),
+        *("blockquote", "pre", "hr", "section", "article", "header", "footer", "figure"),
+        "figcaption",
+    ],
+)
+def test_every_block_level_tag_separates_the_text_around_it(tag: str) -> None:
+    assert _summary_of(f"before<{tag}>inside</{tag}>after") == "before inside after"
+
+
+@pytest.mark.parametrize("tag", ["b", "i", "span", "a", "sub", "em", "code"])
+def test_inline_tags_do_not_separate_the_text_around_them(tag: str) -> None:
+    assert _summary_of(f"before<{tag}>inside</{tag}>after") == "beforeinsideafter"
+
+
+# --- whole-branch review (S-3a), second batch: R18, R20, R7b, R8b and the test-strength gaps ---
+
+_ATOM_HEAD = b'<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="http://www.w3.org/1999/xhtml">'
+
+
+def _atom_one(title: str, summary: str = "") -> Entry:
+    body = (
+        f'{_ATOM_HEAD.decode()}<entry>{title}<link href="https://e.org/a"/>{summary}</entry></feed>'
+    ).encode()
+    (e,) = parse_feed(body)
+    return e
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("<title>R&amp;D &lt;b&gt;x&lt;/b&gt;</title>", "R&D <b>x</b>"),
+        ('<title type="text">R&amp;D &lt;b&gt;x&lt;/b&gt;</title>', "R&D <b>x</b>"),
+        (
+            (
+                '<title type="html">Moody&amp;#8217;s cuts Issuer &amp;amp; Co '
+                "&lt;em&gt;now&lt;/em&gt;</title>"
+            ),
+            "Moody\u2019s cuts Issuer & Co now",
+        ),
+        (
+            '<title type="xhtml"><x:div>Rated <x:b>down</x:b> &amp;amp; out</x:div></title>',
+            "Rated down &amp; out",
+        ),
+        ('<title type="xhtml"><x:p>One</x:p><x:p>Two</x:p></title>', "One Two"),
+    ],
+)
+def test_atom_title_type_decides_whether_it_is_markup(title: str, expected: str) -> None:
+    assert _atom_one(title).title == expected
+
+
+@pytest.mark.parametrize(
+    ("summary", "expected"),
+    [
+        (
+            '<summary type="text">Margin &lt;5% &amp;amp; falling; see &lt;Table 2&gt;</summary>',
+            "Margin <5% &amp; falling; see <Table 2>",
+        ),
+        ("<summary>Margin &lt;5% &amp; falling</summary>", "Margin <5% & falling"),
+        (
+            '<summary type="html">Leverage &lt;b&gt;high&lt;/b&gt; &amp;amp; rising</summary>',
+            "Leverage high & rising",
+        ),
+        (
+            (
+                '<summary type="xhtml"><x:div><x:p>Outlook negative</x:p>'
+                "<x:p>Liquidity short</x:p></x:div></summary>"
+            ),
+            "Outlook negative Liquidity short",
+        ),
+    ],
+)
+def test_atom_summary_type_decides_whether_it_is_markup(summary: str, expected: str) -> None:
+    assert _atom_one("<title>T</title>", summary).summary == expected
+
+
+@pytest.mark.parametrize("method", ["feed", "close"])
+def test_a_failure_inside_the_html_stripper_is_a_feed_error(
+    monkeypatch: pytest.MonkeyPatch, method: str
+) -> None:
+    """R20. Real standard libraries before the 2025 fixes raise AssertionError from html.parser
+    on some markup; the installed one does not, so this test makes ``HTMLParser.feed`` (or
+    ``HTMLParser.close``) raise it.
+    """
+
+    def failing(self: HTMLParser, *args: str) -> None:
+        raise AssertionError("unexpected parser state")
+
+    monkeypatch.setattr(HTMLParser, method, failing)
+    body = _rss(f"<title>t</title>{_LINK}<description>text</description>")
+    with pytest.raises(FeedError, match="^feed text could not be read$"):
+        parse_feed(body)
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://127.0.0.1/x",
+        "https://0x7f.1/x",
+        "https://0x7f.0.0.1/x",
+        "https://0177.0.0.1/x",
+        "https://2130706433/x",
+        "https://1.2.3.4.5/x",
+        "https://[::1]:8443/x",
+        "https://[::ffff:127.0.0.1]/x",
+        "https://localhost/x",
+        "https://intranet/x",
+        "https://e.org./x",
+        "https://.e.org/x",
+        "https://e..org/x",
+        "https://e.org evil/x",
+        "https://e_x.org/x",
+        "https://e.org^x/",
+        "https://[v1.x]/",
+    ],
+)
+def test_a_link_host_must_be_a_dns_name(link: str) -> None:
+    assert parse_feed(_link_body(link)) == []
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://e.org/x",
+        "https://news.example.co.uk:8443/x?q=1",
+        "https://xn--bcher-kva.example/x",
+        "https://my-site.example/x",
+        "https://e.org2/x",
+        "https://1.example/x",
+        "HTTPS://E.ORG/x",
+        "https://e.org/\u00fcbersicht",
+    ],
+)
+def test_a_dns_name_host_is_usable(link: str) -> None:
+    assert [e.link for e in parse_feed(_link_body(link))] == [link]
+
+
+def test_a_link_with_port_zero_is_unusable() -> None:
+    assert parse_feed(_link_body("https://e.org:0/x")) == []
+
+
+def test_a_link_on_its_own_lines_is_read() -> None:
+    body = _rss("<title>t</title><link>\n   https://e.org/a\n</link>")
+    assert [e.link for e in parse_feed(body)] == ["https://e.org/a"]
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Outlook &#x202e;evitagen&#x202c; a&#x200b;b c", "Outlook evitagen ab c"),
+        ("Outlook \u202eevitagen\u202c a\u200bb c\x9bd\x7fe", "Outlook evitagen ab cde"),
+    ],
+)
+def test_summaries_drop_control_and_format_characters(raw: str, expected: str) -> None:
+    assert _summary_of(raw) == expected
+
+
+def test_a_summary_keeps_tab_and_newline_as_breaks() -> None:
+    assert _summary_of("a\tb\nc") == "a b c"
+
+
+def test_a_title_is_stripped_again_after_the_500_character_cut() -> None:
+    (e,) = parse_feed(_link_body("https://e.org/a", "w" * 499 + " next"))
+    assert e.title == "w" * 499
+
+
+def test_atom_titles_drop_control_and_format_characters() -> None:
+    assert _atom_one("<title>Rated &#x202e;DCBA&#x202c; down</title>").title == "Rated DCBA down"
+
+
+def test_a_date_with_no_zone_is_read_as_utc() -> None:
+    (rss,) = parse_feed(
+        _rss("<title>t</title>" + _LINK + "<pubDate>Fri, 13 Nov 2026 09:00:00</pubDate>")
+    )
+    assert rss.published == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+    atom = _atom_one("<title>T</title><updated>2026-11-12T18:30:00</updated>")
+    assert atom.published == datetime(2026, 11, 12, 18, 30, tzinfo=UTC)
+
+
+@pytest.mark.skipif(not hasattr(time, "tzset"), reason="the local zone cannot be set here")
+def test_a_date_with_no_zone_is_utc_whatever_the_local_zone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TZ", "Asia/Tokyo")
+    time.tzset()
+    try:
+        (e,) = parse_feed(
+            _rss("<title>t</title>" + _LINK + "<pubDate>2026-11-12T18:30:00</pubDate>")
+        )
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+    assert e.published == datetime(2026, 11, 12, 18, 30, tzinfo=UTC)
+
+
+def test_a_summary_of_300_characters_is_kept_and_301_are_cut() -> None:
+    assert _summary_of("x" * 300) == "x" * 300
+    assert _summary_of("x" * 301) == "x" * 300
