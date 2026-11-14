@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import { AlertCircle, CheckCircle, InfoCircle, SearchLg, Server01 } from "@untitledui/icons";
 import type { IconProps } from "@/utils/is-react-component";
+import { Alert, Callout } from "@/components/alert/Alert";
+import { EmptyState } from "@/components/application/empty-state/empty-state";
+import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/application/tabs/tabs";
 import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
@@ -42,6 +46,14 @@ function Plus({ className, "data-icon": slot }: IconProps) {
     </svg>
   );
 }
+
+const FEATURED = [
+  { colour: "brand", icon: InfoCircle },
+  { colour: "gray", icon: SearchLg },
+  { colour: "error", icon: AlertCircle },
+  { colour: "warning", icon: AlertCircle },
+  { colour: "success", icon: CheckCircle },
+] as const;
 
 const PERIODS = ["FY21", "FY22", "FY23", "FY24", "FY25", "FY26"];
 
@@ -260,6 +272,92 @@ export function Kit() {
             { date: "24 Apr 2027", title: "Notes mature", state: "Later" },
           ]}
         />
+      </section>
+
+      <section aria-labelledby="kit-featured-icon" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-featured-icon" className="font-display text-h2 text-text-primary">
+          Featured icon
+        </h2>
+        <Row>
+          {FEATURED.map(({ colour, icon }) => (
+            <div key={colour} className="flex flex-col items-center gap-2">
+              <FeaturedIcon color={colour} icon={icon} />
+              <span className="text-small text-text-secondary">{label(colour)}</span>
+            </div>
+          ))}
+        </Row>
+      </section>
+
+      <section aria-labelledby="kit-empty-state" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-empty-state" className="font-display text-h2 text-text-primary">
+          Empty state
+        </h2>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <EmptyState>
+            <EmptyState.Header>
+              <EmptyState.FeaturedIcon icon={SearchLg} />
+            </EmptyState.Header>
+            <EmptyState.Content>
+              <EmptyState.Title as="h3">No changes yet</EmptyState.Title>
+              <EmptyState.Description>
+                Changes appear here once a second run has finished.
+              </EmptyState.Description>
+            </EmptyState.Content>
+          </EmptyState>
+          <EmptyState>
+            <EmptyState.Header>
+              <EmptyState.FeaturedIcon icon={Server01} />
+            </EmptyState.Header>
+            <EmptyState.Content>
+              <EmptyState.Title as="h3">No sources yet</EmptyState.Title>
+              <EmptyState.Description>
+                Add the issuer files to start the first run.
+              </EmptyState.Description>
+            </EmptyState.Content>
+            <EmptyState.Footer>
+              <Button size="lg">Add sources</Button>
+            </EmptyState.Footer>
+          </EmptyState>
+        </div>
+      </section>
+
+      <section aria-labelledby="kit-alert" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-alert" className="font-display text-h2 text-text-primary">
+          Alert
+        </h2>
+        <div className="flex max-w-md flex-col gap-4">
+          <Alert tone="success" title="Success">
+            The run finished and the library is ready.
+          </Alert>
+          <Alert tone="error" title="Error">
+            The service could not be reached.
+          </Alert>
+          <Alert tone="warning" title="Warning">
+            The run is close to its cost cap.
+          </Alert>
+          <Alert
+            tone="info"
+            title="Info"
+            action={
+              <Button size="sm" color="secondary">
+                Open run
+              </Button>
+            }
+          >
+            The run has started.
+          </Alert>
+        </div>
+      </section>
+
+      <section aria-labelledby="kit-callout" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-callout" className="font-display text-h2 text-text-primary">
+          Callout
+        </h2>
+        <div className="max-w-xl">
+          <Callout title="What would change the view">
+            A covenant breach, or a refinancing that misses the next maturity.
+          </Callout>
+        </div>
       </section>
 
       <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
