@@ -11,8 +11,8 @@ forms, not figures); `render()` asserts this script's patterns give them. A foun
 level-2 headings are not the handoff's six, in order, is the parser's own refusal, worded as
 `handoff/document.py` words it. R46 (PR 6a2): thousands, millions and billions; billions is
 never a block's unit, so a row naming it, and not the block's unit, is refused under either
-scale. Each of the twelve forms the 6a review found is a row under both blocks. Run this file to
-write `pr6a.json` next to it.
+scale. Each of the twelve forms the 6a review found is a row under both blocks. R48: no letter
+before a letter code; a bare sign takes none. Run this file to write `pr6a.json` next to it.
 """
 
 import importlib.util
@@ -29,8 +29,8 @@ SPEC.loader.exec_module(PR5)
 
 # R46: three units, letter boundaries by an explicit class, case folded as the code already folds
 # it (no re.ASCII: that would also narrow \s), and one set of scale marks shared with the currency
-# form.
-CURRENCY = r"(?:US\$|USD|EUR|GBP|[$€£])"
+# form. R48: no letter before a letter code; a bare sign takes none (`C$m`, `HK$m`, `A$000`).
+CURRENCY = r"(?:(?<![A-Za-z])(?:US\$|USD|EUR|GBP)|[$€£])"
 SIGN = r"(?:US\$|[$€£])"
 UNITS = ["billions", "millions", "thousands"]
 WORDS_OF = {"thousands": "thousands?", "millions": "millions?|mln", "billions": "billions?|bln|bn"}
@@ -42,12 +42,12 @@ SUFFIX = "|".join([ZEROS, *MARKS.values()])
 def unit_pattern(unit: str) -> "re.Pattern[str]":
     forms = [
         rf"(?<![A-Za-z])(?:{WORDS_OF[unit]})(?![A-Za-z])",
-        rf"(?<![A-Za-z]){CURRENCY}\s?(?:{MARKS[unit]})(?![A-Za-z])",
+        rf"{CURRENCY}\s?(?:{MARKS[unit]})(?![A-Za-z])",
         rf"(?<![A-Za-z])(?:{MARKS[unit]})\s?{SIGN}",
     ]
     if unit == "thousands":
         forms += [
-            rf"(?<![A-Za-z]){CURRENCY}['’]?{ZEROS}(?![A-Za-z0-9])",
+            rf"{CURRENCY}['’]?{ZEROS}(?![A-Za-z0-9])",
             rf"(?<![0-9])['’]{ZEROS}(?![A-Za-z0-9])",
             r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
         ]
@@ -287,6 +287,37 @@ WORDS: list[Any] = [
     ["1,000s", []],
     ["USD 1,000", []],
     ["$0001", []],
+    # R48: a letter before a bare sign does not hide the unit.
+    ["C$m", ["millions"]],
+    ["A$k", ["thousands"]],
+    ["HK$m", ["millions"]],
+    ["A$000", ["thousands"]],
+    ["R$ mn", ["millions"]],
+    ["AUS$m", ["millions"]],
+    # The 6a2 reviews: a code glued to a billions mark, an apostrophe form after letters, and the
+    # boundaries each surviving mutant moved.
+    ["USDbn", ["billions"]],
+    ["EURbln", ["billions"]],
+    ["GBPbn", ["billions"]],
+    ["USDbln", ["billions"]],
+    ["RMB'000", ["thousands"]],
+    ["Rs'000", ["thousands"]],
+    ["RMB’000", ["thousands"]],
+    ["1USD k", ["thousands"]],
+    ["1€m", ["millions"]],
+    ["bnUS$", ["billions"]],
+    ["kEUR", []],
+    ["kUSD", []],
+    ["mm", []],
+    ["$b", []],
+    ["USD b", []],
+    ["GBP000x", []],
+    ["'0001", []],
+    ["'000x", []],
+    ["1.000s", []],
+    ["x000s", []],
+    ["a000s", []],
+    ["000s1", []],
     ["1'000", []],
     ["CAD m", []],
     ["Xthousands", []],
@@ -348,6 +379,7 @@ CURRENCIES: list[Any] = [
     ["1USD", "USD", True],
     ["_USD_", "USD", True],
     ["aUSD", "USD", False],
+    ["USDmillions", "USD", False],
 ]
 # R46 rows: each form in the unit table of a `Revenue check` row, under the block whose unit it
 # names (accepted) and under the other block (refused); billions is refused under both.
@@ -399,6 +431,15 @@ def r46_rows() -> list[Doc]:
     rows.append(unit_row("a starred unit cell is shown plain", "**USD thousands**", 1))
     rows.append(unit_row("a long unit cell is cut at 80", f"USD thousands, {LONG}", 1))
     rows.append(unit_row("a starred column header is shown plain", "USD thousands", 1, "**Unit**"))
+    two = "| Line item | FY2024 | Unit |\n| --- | --- | --- |\n"
+    two += "| Revenue check | 1,456 | USD k |\n| Revenue check | 1,456 | _USD bn_ |\n"
+    rows.append(
+        {
+            "label": "the first unit issue is chosen by the cell as printed",
+            "edits": [[CALC_TEXT, f"{CALC_TEXT}\n{two}"]],
+            "ops": [[["base", "revenue", "row"], "Revenue check"]],
+        }
+    )
     return rows
 
 
@@ -419,7 +460,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 76 and len(accepted) == 25
+    assert len(labels) == len(set(labels)) == 77 and len(accepted) == 25
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
