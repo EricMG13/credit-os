@@ -485,9 +485,117 @@
                     ]
                   }
                 ]
-              }
+              },
+              "findings": [
+                {
+                  "number": "01",
+                  "lead": "Deleveraging is real but slow",
+                  "body": "Leverage fell by 0.3x in the year. Almost all of it came from EBITDA growth; net debt rose after the Corvane Fasteners purchase.",
+                  "trace": "net-leverage"
+                },
+                {
+                  "number": "02",
+                  "lead": "Cash conversion lags margin",
+                  "body": "Working capital absorbed USD 71m as inventory was built for the engine ramp. Free cash flow covered interest but little else.",
+                  "trace": "cash-conversion"
+                },
+                {
+                  "number": "03",
+                  "lead": "Pricing power sits in the aftermarket",
+                  "body": "Sole-source parts carry most of the profit. Original-equipment contracts are fixed-price and thinner than peers.",
+                  "trace": "aftermarket-share"
+                },
+                {
+                  "number": "04",
+                  "lead": "The 2028 notes are the first real test",
+                  "body": "The term loan and secured notes run to 2030 and 2031. The unsecured notes come first and rank behind both.",
+                  "trace": "notes-2028"
+                },
+                {
+                  "number": "05",
+                  "lead": "Documentation is permissive",
+                  "body": "Only a springing first-lien covenant applies, and only when the facility is more than 40% drawn. It is far from tested.",
+                  "trace": "documentation"
+                }
+              ],
+              "changeView": {
+                "title": "Two triggers, either is enough",
+                "text": "Net leverage back above 5.0x at a year end, or no refinancing of the 2028 unsecured notes agreed by 30 June 2027. Either would move the view to negative.",
+                "trace": "triggers"
+              },
+              "dates": [
+                {
+                  "date": "12 Nov 2026",
+                  "state": "Past",
+                  "title": "Full-year results",
+                  "text": "Published; figures in this run are from them."
+                },
+                {
+                  "date": "11 Feb 2027",
+                  "state": "Next",
+                  "title": "First-quarter results",
+                  "text": "First read on engine deliveries and inventory release."
+                },
+                {
+                  "date": "30 Jun 2027",
+                  "state": "Later",
+                  "title": "Refinancing milestone",
+                  "text": "Our date for an agreed refinancing of the 2028 notes."
+                },
+                {
+                  "date": "15 Mar 2028",
+                  "state": "Later",
+                  "title": "Unsecured notes mature",
+                  "text": "USD 310m falls due."
+                }
+              ]
             },
             "traces": {
+              "cash-conversion": {
+                "title": "Sources for cash conversion",
+                "heading": "Working capital USD 71m",
+                "subtitle": "Cash flow and liquidity · finding · as of 30 Sep 2026",
+                "statement": "Working capital absorbed USD 71m as inventory was built for the engine ramp.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Working capital USD 71m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0042"
+              },
+              "documentation": {
+                "title": "Sources for the covenant terms",
+                "heading": "Springing covenant 40%",
+                "subtitle": "Covenants and documentation · finding · as of 30 Sep 2026",
+                "statement": "A first-lien covenant applies only when the facility is more than 40% drawn.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Springing covenant 40%",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0045"
+              },
+              "triggers": {
+                "title": "Sources for the triggers",
+                "heading": "Two triggers",
+                "subtitle": "Rating outlook · view · as of 30 Sep 2026",
+                "statement": "Net leverage above 5.0x at a year end, or no agreed refinancing of the 2028 notes by 30 June 2027, moves the view to negative.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Two triggers",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0046"
+              },
               "net-leverage": {
                 "title": "Sources for net leverage",
                 "heading": "Net leverage 4.6x",
@@ -777,7 +885,40 @@
                     ]
                   }
                 ]
-              }
+              },
+              "findings": [
+                {
+                  "number": "01",
+                  "lead": "The franchise is documented",
+                  "body": "The business profile and industry modules ran in full: a sole-source aftermarket franchise sits beside a thinner original-equipment business.",
+                  "trace": null
+                },
+                {
+                  "number": "02",
+                  "lead": "Documentation is permissive",
+                  "body": "Only a springing first-lien covenant applies, and only when the facility is more than 40% drawn.",
+                  "trace": null
+                }
+              ],
+              "changeView": {
+                "title": "Not yet formed",
+                "text": "A view needs the financial performance and cash flow modules. A run that delivers them would let one be formed.",
+                "trace": null
+              },
+              "dates": [
+                {
+                  "date": "14 May 2026",
+                  "state": "Past",
+                  "title": "First-quarter results",
+                  "text": "Published after the cut-off of this run."
+                },
+                {
+                  "date": "30 Jun 2027",
+                  "state": "Later",
+                  "title": "Refinancing milestone",
+                  "text": "Our date for an agreed refinancing of the 2028 notes."
+                }
+              ]
             },
             "traces": {}
           }

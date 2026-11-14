@@ -139,7 +139,19 @@ export type Metric = { label: string; value: Cell; note: string; trace: string |
 /** One point of For and against; `qualifier` is the label drawn as a badge. */
 export type Point = { figure: Cell; text: string; qualifier: string; trace: string | null };
 
-/** The upper half of the Overview page; later tasks add the lower half. */
+/** One key finding: `number` is delivered text such as "01". */
+export type Finding = { number: string; lead: string; body: string; trace: string | null };
+
+/** What would change the view: the title and the passage under it. */
+export type ChangeView = { title: string; text: string; trace: string | null };
+
+/** The words of the Dated records set. */
+export type DateState = keyof (typeof STATUS_SETS)["Dated records"];
+
+/** One issuer date to watch: `date` is delivered text, never parsed. */
+export type DatedItem = { date: string; state: DateState; title: string; text: string };
+
+/** The Overview page of a run: bottom line, figures, for and against, findings and dates. */
 export type Overview = {
   bottomLine: BottomLineText;
   /** The accessible name of the headline figures. */
@@ -150,6 +162,9 @@ export type Overview = {
     note: string;
     columns: readonly { name: string; items: readonly Point[] }[];
   };
+  findings: readonly Finding[];
+  changeView: ChangeView;
+  dates: readonly DatedItem[];
 };
 
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
