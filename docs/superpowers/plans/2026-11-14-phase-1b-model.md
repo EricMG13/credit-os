@@ -212,6 +212,19 @@ and an optional point with digits, at most 38 digits and 64 characters, of type 
 the kernel sets no operand-count limit (the calculate tool's is 3A's); `total` and `product`
 take a list or tuple; `beyond_rounding` compares exactly and never refuses for size.
 
+PR 2 (#194) is merged. Ruled after it: PR 4 is split into 4a (refusal types, the forecast
+block, strict JSON, the declined block) and 4b (schema and scale); `ForecastRefused` derives
+from `Exception`, not `ValueError`; an integer in the block holds at most 15 digits and the
+block at most 200,000 characters; a repeated key is compared after escape decoding. The engine
+does not refuse a repayment larger than the debt: PR 4b's schema check does, per case, when the
+running sum of the `debt_repayment` drivers passes that case's base debt, naming the first such
+year under its own refusal kind. Equal is allowed; a missing base debt refuses nothing (it is
+never read as zero); a negative driver is not refused by this rule. Key rows first: under,
+equal, over in year 1, over only by year 3, missing debt, negative driver. PR 6 decides the
+same bound for scheduled repayments. Parked for the next change to `forecast.py`: the unused
+repayment driver is still range-checked under a schedule, and the docstring does not give the
+order of a schedule pair.
+
 ## How it runs
 
 Global rules §1, §3 and §7. The sub-session is the controller and writes no code: `mx-feature`

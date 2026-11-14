@@ -3,6 +3,55 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: the 1B forecast engine; a store hierarchy test
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #194 | 1B PR 2 | `de9b901`, `2cb9537` | `model/forecast.py`: `Operands`, `Drivers`, `Shock`, `Year` and `forecast`, one case of three years; a key of 21 invented cases (755 lines) |
+| #197 | 2A, owner's review-fix process | `80934ce`, `1d74a2b` | One test: the four mapped store errors are the set `store_error` returns and none is a subclass of another (20) |
+
+**Reviews.** As the controller, or for #197 the PR body, reported.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #194 | `mx-precise` pass, Low 2; `mx-adversary` pass, Low 3, Info 4; closed in one batch | 0 open | Pass on `de9b901`: High 0, Medium 0, Low 3, Info 6 |
+| #197 | `mx-feature` PASS (test only, no production change) | not run | not run |
+
+- #194's whole-branch review checked the Low batch with six mutants, all killed, and an
+  independent oracle (36,000 figures over 600 cases, capped).
+- Two of its Lows are parked for the next change to `forecast.py`: under a schedule the
+  unused `debt_repayment` driver is still built into a `Value`, so one outside the range is
+  refused; the source does not say a schedule pair is interest then repayment, interest
+  before the shock.
+
+**Gates and CI.** `uv run --locked python tools/gates.py` exit 0 on `de9b901` (controller)
+and on #197 (its body, macOS). Mutation (`mutmut`) on `forecast.py`: 279 mutants, 243 killed,
+36 not killed, all changes to exception message text.
+
+**Ledger.**
+- `1B-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+
+**Rulings by the coordinator.** In the 1B plan.
+- The engine refuses nothing about meaning: a repayment driver larger than the debt gives a
+  negative closing debt. PR 4b's schema check refuses, per case, a block whose
+  `debt_repayment` drivers pass that case's base debt on the running sum, with its own
+  refusal kind; equal is allowed, a missing debt is not read as zero and refuses nothing, a
+  negative driver is not refused by this rule. The scheduled path is decided in PR 6.
+- PR 4 is split into 4a (refusal types, the forecast block, strict JSON, the declined block)
+  and 4b (schema and scale). `ForecastRefused` derives from `Exception`; integers in the
+  block hold at most 15 digits and the block at most 200,000 characters; a repeated key is
+  compared after escape decoding.
+
+**Not verified.**
+- #194: `Overflow` and `Underflow` on a ratio inside `forecast`; exception message text;
+  driver ranges and the sign of closing debt and cash (later PRs); the merge result with
+  `main` was not built before merging (no commit since its base touched the model).
+- #197: a new mapped class with no new code in the error key would not be seen. No test
+  applies to a test-only change.
+
 ## 2026-11-14 Roadmap back end: 1B arithmetic, 2A codecs, 2B prose checks, the home-directory redactor
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
