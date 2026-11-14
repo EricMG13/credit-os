@@ -214,8 +214,8 @@ def test_collisions() -> None:
         (["a.txt", "a.txt"], "a.txt is listed twice"),
         (["STRASSE.txt", "straße.txt"], "STRASSE.txt and straße.txt differ only by case"),
         (
-            ["résumé.txt", "résumé.txt"],
-            "résumé.txt and résumé.txt differ only by case or Unicode form",
+            ["r\u00e9sum\u00e9.txt", "re\u0301sume\u0301.txt"],
+            "re\u0301sume\u0301.txt and r\u00e9sum\u00e9.txt differ only by case or Unicode form",
         ),
         (
             ["\u0124\u0331.txt", "\u0125\u0331.txt"],
@@ -267,15 +267,15 @@ def test_case_collision_on_disk(tmp_path: Path) -> None:
 
 
 def test_unicode_forms_on_disk(tmp_path: Path) -> None:
-    names = ["résumé.txt", "résumé.txt"]
+    names = ["re\u0301sume\u0301.txt", "r\u00e9sum\u00e9.txt"]
     _write(tmp_path, {name: README for name in names})
     if len(os.listdir(tmp_path)) < 2:
         pytest.skip("volume does not keep both Unicode forms")
-    assert _refusal(tmp_path) == ("résumé.txt and résumé.txt differ only by case or Unicode form")
+    assert _refusal(tmp_path) == f"{names[0]} and {names[1]} differ only by case or Unicode form"
 
 
 def test_stored_name_as_listed(tmp_path: Path) -> None:
-    decomposed = "résumé.txt"
+    decomposed = "re\u0301sume\u0301.txt"
     _write(tmp_path, {decomposed: README})
     if os.listdir(tmp_path) != [decomposed]:
         pytest.skip("volume rewrites names")

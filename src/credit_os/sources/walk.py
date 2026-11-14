@@ -47,7 +47,7 @@ def refuse_case_collisions(names: Iterable[str]) -> None:
 
 
 class PinnedFolder(BaseModel):
-    """The pins of a folder, sorted by name, and its skipped entries, sorted by written name."""
+    """What ``pin_folder`` returns: pins sorted by name, skipped entries by written name."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
@@ -153,8 +153,8 @@ def pin_folder(folder: Path) -> PinnedFolder:
     listed).
 
     A directory swapped for a link between its classification and its listing can put names from
-    outside the folder into the skipped list. No bytes are read through it, because
-    ``source_path`` refuses anything below a link, and the pin's digest guards content.
+    outside the folder into the skipped list. ``source_path`` refuses anything below a link, but
+    its check and the open are two steps (``files.py``): no digest exists yet to guard that gap.
     """
     try:
         is_folder = folder.is_dir()
