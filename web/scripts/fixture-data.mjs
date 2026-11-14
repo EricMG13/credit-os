@@ -45,7 +45,7 @@ export function readFixture(group, dir = defaultDir) {
 }
 
 /** The object window.CREDIT_OS_DATA holds: a group's member is omitted when its fixture has no slice. */
-export function buildData(dir = defaultDir) {
+function buildData(dir = defaultDir) {
   const fixtures = Object.fromEntries(GROUPS.map((group) => [group, readFixture(group, dir)]));
   const data = { schema: "credit-os-data/1", issuers: fixtures.library.issuers ?? [] };
   for (const group of GROUPS) {
