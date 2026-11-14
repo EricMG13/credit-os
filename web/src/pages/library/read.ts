@@ -8,7 +8,9 @@ import type {
   ChangeState,
   Changes,
   ChangeView,
+  BlockedBody,
   DateState,
+  DeliveredBody,
   DatedItem,
   Finding,
   HomeCard,
@@ -25,6 +27,7 @@ import type {
   MeasureKey,
   MeasureSpec,
   Metric,
+  Module,
   Overview,
   Point,
   Run,
@@ -631,6 +634,86 @@ function readChanges(value: unknown, path: string, traces: Traces): Changes {
   };
 }
 
+const DELIVERED_STATES: ModuleState[] = ["Delivered", "Delivered with gaps"];
+const BLOCKED_STATES: ModuleState[] = ["Not assessable", "Not run"];
+
+/** A passage with a title that the module may not have: absent is an explicit `null`. */
+function optionalView(o: Rec, key: string, path: string, traces: Traces): ChangeView | null {
+  return own(o, key) === null ? null : readChangeView(own(o, key), child(path, key), traces);
+}
+
+/** Tasks 9 to 11 add the record kinds; until then every record is of an unknown kind. */
+function readRecord(value: unknown, path: string): never {
+  rec(value, path);
+  throw new SliceError(child(path, "kind"), "a record kind this library draws (none yet)");
+}
+
+function readBody(value: unknown, path: string, traces: Traces): DeliveredBody | BlockedBody {
+  const b = rec(value, path);
+  if (oneOf(b, "kind", path, ["delivered", "blocked"]) === "blocked") {
+    const linkPath = child(path, "gapsLink");
+    return {
+      kind: "blocked",
+      reason: str(b, "reason", path),
+      note: str(b, "note", path),
+      gapsLink: { label: str(rec(own(b, "gapsLink"), linkPath), "label", linkPath) },
+    };
+  }
+  return {
+    kind: "delivered",
+    bottomLine: readBottomLine(own(b, "bottomLine"), child(path, "bottomLine"), traces),
+    findings: some(
+      unique(
+        list(b, "findings", path, (f, p) => readFinding(f, p, traces)),
+        child(path, "findings"),
+        (f) => f.number,
+        "number",
+      ),
+      child(path, "findings"),
+    ),
+    contrary: optionalView(b, "contrary", path, traces),
+    changeView: optionalView(b, "changeView", path, traces),
+    records: list(b, "records", path, readRecord),
+    limitations: readLimitations(own(b, "limitations"), child(path, "limitations"), traces),
+  };
+}
+
+function readModule(value: unknown, path: string, traces: Traces): Module {
+  const m = rec(value, path);
+  const body = readBody(own(m, "body"), child(path, "body"), traces);
+  return {
+    id: str(m, "id", path),
+    name: str(m, "name", path),
+    state: oneOf(m, "state", path, body.kind === "blocked" ? BLOCKED_STATES : DELIVERED_STATES),
+    body,
+  };
+}
+
+/** A run's modules: each id and name used once. A run may hold none. */
+function readRunModules(r: Rec, path: string, traces: Traces): Module[] {
+  const modulesPath = child(path, "modules");
+  const modules = unique(
+    list(r, "modules", path, (m, p) => readModule(m, p, traces)),
+    modulesPath,
+    (m) => m.id,
+    "id",
+  );
+  return unique(modules, modulesPath, (m) => m.name, "name");
+}
+
+/** Every item that opens a module names one this run holds. */
+function opensHeld(
+  items: readonly { module: string | null }[],
+  held: ReadonlySet<string>,
+  path: string,
+): void {
+  for (const [index, item] of items.entries()) {
+    if (item.module !== null && !held.has(item.module)) {
+      throw new SliceError(child(nth(path, index), "module"), "a module this run holds");
+    }
+  }
+}
+
 function readRun(value: unknown, path: string): Run {
   const r = rec(value, path);
   const tracesPath = child(path, "traces");
@@ -646,17 +729,25 @@ function readRun(value: unknown, path: string): Run {
   };
   const overviewPath = child(path, "overview");
   const changesPath = child(path, "changes");
+  const modulesPath = child(path, "modules");
   if (loading) {
     if (own(r, "overview") !== null) throw new SliceError(overviewPath, "null for a loading run");
     if (own(r, "changes") !== null) throw new SliceError(changesPath, "null for a loading run");
-    return { ...base, loading, overview: null, changes: null };
+    if (own(r, "modules") !== null) throw new SliceError(modulesPath, "null for a loading run");
+    return { ...base, loading, overview: null, changes: null, modules: null };
   }
-  return {
-    ...base,
-    loading,
-    overview: readOverview(own(r, "overview"), overviewPath, base.traces),
-    changes: readChanges(own(r, "changes"), changesPath, base.traces),
-  };
+  const overview = readOverview(own(r, "overview"), overviewPath, base.traces);
+  const changes = readChanges(own(r, "changes"), changesPath, base.traces);
+  const modules = readRunModules(r, path, base.traces);
+  const held = new Set(modules.map((m) => m.id));
+  if (base.head.firstModule !== null && !held.has(base.head.firstModule)) {
+    throw new SliceError(child(child(path, "head"), "firstModule"), "a module this run holds");
+  }
+  opensHeld(overview.modules.items, held, child(child(overviewPath, "modules"), "items"));
+  if (changes.kind === "compared") {
+    opensHeld(changes.modules.items, held, child(child(changesPath, "modules"), "items"));
+  }
+  return { ...base, loading, overview, changes, modules };
 }
 
 function readRuns(i: Rec, path: string): Run[] {

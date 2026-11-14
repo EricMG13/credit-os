@@ -396,7 +396,16 @@ describe("Overview, modules and limitations", () => {
     expect(lists).toHaveLength(2);
     expect(lists[0]?.parentElement).toHaveClass("grid-cols-1", "md:grid-cols-2");
     expect(lists.map((list) => list.children.length)).toEqual([7, 6]);
-    for (const list of lists) expect(list.lastElementChild).toHaveClass("last:[&>*]:border-b-0");
+    for (const list of lists) {
+      for (const row of Array.from(list.children)) {
+        // The rule is dropped by a `last:` utility alone, so only a column's last row loses it.
+        expect(row.className.split(" ").filter((c) => c.includes("border-b"))).toEqual([
+          "last:[&>*]:border-b-0",
+        ]);
+        expect(row.firstElementChild).toHaveClass("border-b");
+        expect(row.firstElementChild).not.toHaveClass("border-b-0");
+      }
+    }
   });
 
   it("collapses a repeated state into one plain item with its names and a chevron", () => {
@@ -438,20 +447,24 @@ describe("Overview, modules and limitations", () => {
   });
 
   it("agrees across the capped run's fixture: counts equal names, the text names the not-run modules", () => {
-    const run = (
-      fixture.slice as {
-        issuers: { id: string; runs: { id: string; overview: Json }[] }[];
-      }
+    type Capped = {
+      head: { tabs: { modulesCount: string } };
+      overview: {
+        modules: { summary: string; items: { title: string; lead: string; state: string }[] };
+      };
+    };
+    const capped = (
+      fixture.slice as { issuers: { id: string; runs: ({ id: string } & Capped)[] }[] }
     ).issuers
       .find((i) => i.id === "halden-aerostructures")
-      ?.runs.find((r) => r.id === "2026-03-31")?.overview as {
-      modules: { summary: string; items: { title: string; lead: string; state: string }[] };
-    };
+      ?.runs.find((r) => r.id === "2026-03-31") as Capped;
+    const run = capped.overview;
     const [collapsed, ...rest] = run.modules.items;
     const named = (collapsed?.lead ?? "").replace(/\.$/, "").split(/, (?=[A-Z])/).length;
     expect(collapsed?.title).toBe(`${String(named)} modules delivered`);
     const delivered = rest.filter((m) => m.state.startsWith("Delivered")).length;
     expect(run.modules.summary).toBe(`${String(named + delivered)} of 13 delivered`);
+    expect(capped.head.tabs.modulesCount).toBe(String(named + delivered));
     expect(run.modules.items.filter((m) => m.state === "Not run").map((m) => m.title)).toEqual([
       "Financial performance",
       "Cash flow and liquidity",
