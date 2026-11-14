@@ -81,8 +81,12 @@ def _call(**changes: Any) -> dict[str, Any]:
     return _turn(tool_calls=[{**_CALL, **changes}])
 
 
-_C = {"usage": {"output_tokens": 1}, "billed_usd": None, "outcome": "done", "event_id": "a"}
-_C["usage"] = dict.fromkeys(_USAGE_TEXT.split(", "), 1)
+_C: dict[str, Any] = {
+    "usage": {**dict.fromkeys(_USAGE_TEXT.split(", "), 1), "reasoning_tokens": None},
+    "billed_usd": None,
+    "outcome": "done",
+    "event_id": "a",
+}
 
 
 def _compactions(*items: dict[str, Any]) -> dict[str, Any]:
@@ -115,6 +119,10 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     ),
     (_compactions({**_C, "outcome": "ok"}), "unknown compaction outcome 'ok'"),
     (_compactions({**_C, "event_id": ""}), "event_id must be a non-empty string"),
+    (
+        _compactions({**_C, "usage": {**_C["usage"], "reasoning_tokens": 5}}),
+        "a compaction has no reasoning-token count",
+    ),
     (_compactions(_C, {**_C, "billed_usd": None}), "two compactions share an event_id"),
     (
         _compactions({**_C, "outcome": "unfinished", "billed_usd": None}),

@@ -33,6 +33,10 @@ _REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
 _COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0214050"), "done", "evt-1")
 
 
+class _StrSub(str):
+    """A str subclass: it passes isinstance(x, str) but is not a plain string."""
+
+
 def _message(**kw: Any) -> Message:
     return dataclasses.replace(Message("user", "x"), **kw)
 
@@ -56,13 +60,14 @@ def _ok(**kw: Any) -> Reply:
 
 _sent = partial(_reply, kind="sent_usage", usage=Usage())
 
-BAD_OUTCOMES: list[Any] = [None, True, "", "ok", "Done", []]
+BAD_UNFINISHED_MSGS: list[Any] = [None, True, "", "ok", "Done", []]
 _M = {"role": "tool", "tool_call_id": "c"}
 _CHARGE = "billed_usd must be a Decimal"
 _FINITE = "billed_usd must be finite and not negative"
 _COMPACTIONS = "compactions must be a tuple of Compaction"
-_OUTCOME = "an unfinished compaction has no counts and no charge"
+_UNFINISHED_MSG = "an unfinished compaction has no counts and no charge"
 _EVENT = "event_id must be a non-empty string"
+_NO_REASONING = "a compaction has no reasoning-token count"
 _UNFINISHED = {"outcome": "unfinished", "billed_usd": None, "usage": Usage()}
 # (builder, keyword arguments, fragment of the refusal message)
 REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
@@ -107,10 +112,16 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_compaction, {"billed_usd": Decimal("NaN")}, _FINITE),
     (_compaction, {"billed_usd": Decimal(-1)}, _FINITE),
     (_compaction, {"billed_usd": Decimal("-0")}, _FINITE),
-    *((_compaction, {"outcome": v}, f"unknown compaction outcome {v!r}") for v in BAD_OUTCOMES),
-    (_compaction, {**_UNFINISHED, "usage": Usage(output_tokens=0)}, _OUTCOME),
-    (_compaction, {**_UNFINISHED, "billed_usd": Decimal(0)}, _OUTCOME),
+    *(
+        (_compaction, {"outcome": v}, f"unknown compaction outcome {v!r}")
+        for v in BAD_UNFINISHED_MSGS
+    ),
+    (_compaction, {**_UNFINISHED, "usage": Usage(output_tokens=0)}, _UNFINISHED_MSG),
+    (_compaction, {**_UNFINISHED, "billed_usd": Decimal(0)}, _UNFINISHED_MSG),
     *((_compaction, {"event_id": v}, _EVENT) for v in (None, "", 7)),
+    *((_compaction, {"usage": Usage(reasoning_tokens=n)}, _NO_REASONING) for n in (0, 5)),
+    (_compaction, {"event_id": _StrSub("evt-1")}, _EVENT),
+    (_compaction, {"outcome": _StrSub("done")}, "unknown compaction outcome 'done'"),
     (
         _ok,
         {"compactions": (_COMPACTION, _compaction(billed_usd=None))},

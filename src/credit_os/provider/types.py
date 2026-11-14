@@ -114,15 +114,20 @@ class Compaction:
     def __post_init__(self) -> None:
         if not isinstance(self.usage, Usage):
             raise ProviderDataError("usage must be a Usage")
+        if self.usage.reasoning_tokens is not None:
+            raise ProviderDataError("a compaction has no reasoning-token count")
         _check_charge_value(self.billed_usd)
-        if not isinstance(self.outcome, str) or self.outcome not in get_args(CompactionOutcome):
+        self._check_outcome_and_event()
+
+    def _check_outcome_and_event(self) -> None:
+        if type(self.outcome) is not str or self.outcome not in get_args(CompactionOutcome):
             raise ProviderDataError(f"unknown compaction outcome {self.outcome!r}")
         if self.outcome == "unfinished" and (
             self.billed_usd is not None
             or any(getattr(self.usage, f.name) is not None for f in fields(self.usage))
         ):
             raise ProviderDataError("an unfinished compaction has no counts and no charge")
-        if not isinstance(self.event_id, str) or not self.event_id:
+        if type(self.event_id) is not str or not self.event_id:
             raise ProviderDataError("event_id must be a non-empty string")
 
 
