@@ -113,7 +113,9 @@ Newest first. A check records what moved; it adapts nothing.
 ### 2026-11-14, legacy `main` at `cbf4400` (pin `8e3954a`, 20 merges, #99 to #120)
 
 No row is ported yet, so nothing is pending: each phase plan is written against legacy `main`
-as it stands that day. Mapped paths changed in 40 files (4,069 lines added, 291 removed):
+as it stands that day. Mapped paths changed in 40 files (4,069 lines added, 291 removed).
+The rows below are as the map stood at the check; `model/handoff.py` and `record.py` have
+since moved from the 1C row to 3A:
 
 | Row | What moved |
 | :--- | :--- |
