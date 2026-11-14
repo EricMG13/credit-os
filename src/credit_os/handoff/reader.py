@@ -4,7 +4,9 @@ The format is new when the first level-3 section under `Findings` is `Bottom lin
 real sections are read, never text inside a code block.
 
 Passages exist only in the new format; a repeated passage heading is refused here, not by
-`parse`. An earlier-format summary has three states: no `Reader summary` section (`summary_section`
+`parse`. In the earlier format a repeated `Reader summary` heading is refused the same way, as
+either one would be a guess; in the new format that title is not special. An earlier-format
+summary has three states: no `Reader summary` section (`summary_section`
 None); a section that does not hold exactly its two tables (`summary` None, `summary_section`
 set: present but unreadable); or both set. In the new format both are None. Blocks under a deeper
 heading inside a passage are in the passage's `sections`, not its `blocks`.
@@ -12,6 +14,7 @@ heading inside a passage are in the passage's `sections`, not its `blocks`.
 
 from typing import Literal
 
+from credit_os.handoff.blocks import Paragraph
 from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.scan import Node
@@ -21,6 +24,8 @@ _BOTTOM_LINE = "Bottom line"
 _KEY_FINDINGS = "Key findings"
 _CONTRARY = "Contrary evidence and what would change the view"
 _LIMITATIONS = "Limitations"
+_READER_SUMMARY = "Reader summary"
+_BLOCKED = "Not assessable:"
 _SUMMARY_CALL = ("Bottom line", "Confidence", "Main limitation")
 _SUMMARY_FINDINGS = ("Finding", "Creditor impact", "Confidence")
 
@@ -48,6 +53,22 @@ class Reader(Node):
     limitations: Section | None
     summary: ReaderSummary | None
     summary_section: Section | None
+
+    @property
+    def blocked(self) -> bool | None:
+        """True when the new format's Bottom line opens with a paragraph `Not assessable:`.
+
+        None in the earlier format: this view cannot tell.
+
+        The test is on the paragraph's first line as the parser shows it (comments removed,
+        surrounding whitespace stripped).
+        """
+        if self.format != "new":
+            return None
+        if self.bottom_line is None or not self.bottom_line.blocks:
+            return False
+        first = self.bottom_line.blocks[0]
+        return isinstance(first, Paragraph) and first.lines[0].startswith(_BLOCKED)
 
 
 def _passages(level_three: list[Section]) -> dict[str, Section]:
@@ -103,7 +124,10 @@ def read_reader(document: HandoffDocument) -> Reader:
             summary=None,
             summary_section=None,
         )
-    section = next((s for s in level_three if s.title == "Reader summary"), None)
+    sections = [s for s in level_three if s.title == _READER_SUMMARY]
+    if len(sections) > 1:
+        raise HandoffError(sections[1].line, f"heading `{_READER_SUMMARY}` is repeated")
+    section = sections[0] if sections else None
     return Reader(
         format="earlier",
         bottom_line=None,
