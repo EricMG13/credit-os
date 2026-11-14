@@ -188,8 +188,14 @@ CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
 CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_name);
 """
 
+# One seek per source for a title key inside a time window (`_TITLE_MATCH_SQL`).
+_MIGRATION_4 = """
+CREATE INDEX IF NOT EXISTS idx_stories_title_source_time
+    ON stories(title_key, source_id, published_at, id);
+"""
+
 # Ordered; later slices append. Index i holds the script that brings the schema to version i + 1.
-MIGRATIONS = [_MIGRATION_1, _MIGRATION_2, _MIGRATION_3]
+MIGRATIONS = [_MIGRATION_1, _MIGRATION_2, _MIGRATION_3, _MIGRATION_4]
 _BUSY_SECONDS = 30
 _SCHEMA_KEY = "schema_version"
 
@@ -499,26 +505,53 @@ def last_check(db: sqlite3.Connection, source_id: int) -> sqlite3.Row | None:
     return row
 
 
+_UTC_MIN = datetime.min.replace(tzinfo=UTC)
+_UTC_MAX = datetime.max.replace(tzinfo=UTC)
+
+# Stories linking to this key: at most one per source (UNIQUE(source_id, link_key)), and at most
+# one folded duplicate per duplicating source (UNIQUE(duplicate_source_id, link_key)), so each
+# half returns no more rows than there are sources. The duplicate half skips the caller's own
+# source.
+_LINK_MATCH_SQL = (
+    "SELECT id, published_at FROM stories WHERE link_key = ?"
+    " UNION ALL"
+    " SELECT s.id, s.published_at FROM story_duplicates d"
+    " JOIN stories s ON s.id = d.story_id WHERE d.link_key = ? AND s.source_id != ?"
+)
+# For every other source, one index seek (idx_stories_title_source_time) for its earliest story
+# with this title key inside [low, high]; the rows returned are at most one per source.
+_TITLE_MATCH_SQL = (
+    "SELECT s.id, s.published_at FROM sources x JOIN stories s ON s.id = ("
+    " SELECT id FROM stories WHERE title_key = ? AND source_id = x.id"
+    " AND published_at BETWEEN ? AND ? ORDER BY published_at, id LIMIT 1)"
+    " WHERE x.id != ?"
+)
+
+
+def _window_texts(published: datetime) -> tuple[str, str]:
+    """The stored form of both ends of the title window around `published`. Stored times are
+    UTC text of fixed-width date and time, then `+00:00` or six fraction digits and `+00:00`, so
+    text order is time order and the ends compare as text. An end the calendar cannot hold is
+    clamped to the first or last time it can."""
+    at = published.astimezone(UTC)
+    low = _UTC_MIN if at - _UTC_MIN < TITLE_WINDOW else at - TITLE_WINDOW
+    high = _UTC_MAX if _UTC_MAX - at < TITLE_WINDOW else at + TITLE_WINDOW
+    return utc_text(low), utc_text(high)
+
+
 def _earliest_match(
     db: sqlite3.Connection, source_id: int, lkey: str, tkey: str, published: datetime
 ) -> int | None:
     """Id of the earliest story with this link key (as a story or a folded duplicate), or, from
     another source, this title key within the window. A source never folds into itself by title,
-    and the duplicate-link branch skips the caller's own source."""
-    rows = db.execute(
-        "SELECT id, published_at, link_key = ? AS same_link FROM stories"
-        " WHERE link_key = ? OR (title_key = ? AND source_id != ?)"
-        " UNION ALL"
-        " SELECT s.id, s.published_at, 1 AS same_link FROM story_duplicates d"
-        " JOIN stories s ON s.id = d.story_id WHERE d.link_key = ? AND s.source_id != ?",
-        (lkey, lkey, tkey, source_id, lkey, source_id),
-    ).fetchall()
-    long_title = len(tkey.split()) >= MIN_TITLE_WORDS
-    found: list[tuple[datetime, int]] = []
-    for row in rows:
-        at = datetime.fromisoformat(row["published_at"])
-        if row["same_link"] or (long_title and abs(at - published) <= TITLE_WINDOW):
-            found.append((at, row["id"]))
+    a title of fewer than MIN_TITLE_WORDS words never matches by title, and the duplicate-link
+    branch skips the caller's own source. Ties on time go to the lower id. Each branch returns at
+    most one row per source, so the work does not grow with the stories sharing a key."""
+    rows = db.execute(_LINK_MATCH_SQL, (lkey, lkey, source_id)).fetchall()
+    if len(tkey.split()) >= MIN_TITLE_WORDS:
+        low, high = _window_texts(published)
+        rows += db.execute(_TITLE_MATCH_SQL, (tkey, low, high, source_id)).fetchall()
+    found = [(datetime.fromisoformat(row["published_at"]), row["id"]) for row in rows]
     return min(found)[1] if found else None
 
 

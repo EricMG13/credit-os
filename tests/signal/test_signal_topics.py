@@ -160,7 +160,7 @@ def test_a_slice_1_database_gains_the_new_tables(tmp_path: Path) -> None:
     db = open_db(tmp_path)
     try:
         version = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0]
-        assert version == "3"
+        assert version == "4"
         names = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         assert {"topics", "topic_stories", "topic_follows", "saves"} <= names
     finally:

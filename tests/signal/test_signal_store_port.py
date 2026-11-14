@@ -69,7 +69,18 @@ _MIGRATION_SHA256 = (
 
 
 def test_migration_scripts_are_byte_identical_to_the_predecessors() -> None:
-    assert tuple(hashlib.sha256(m.encode()).hexdigest() for m in MIGRATIONS) == _MIGRATION_SHA256
+    assert (
+        tuple(hashlib.sha256(m.encode()).hexdigest() for m in MIGRATIONS[:3]) == _MIGRATION_SHA256
+    )
+
+
+# Migration 4 is this port's own (S-10): the index one title-window match seeks.
+_MIGRATION_4_SHA256 = "5950ab5cdce4cffe4c71cf0b415e35d852178e44c839e43a29e820fa5d9e82b3"
+
+
+def test_migrations_after_the_predecessors_are_the_ones_pinned_here() -> None:
+    assert len(MIGRATIONS) == 4
+    assert hashlib.sha256(MIGRATIONS[3].encode()).hexdigest() == _MIGRATION_4_SHA256
 
 
 def test_every_table_index_and_trigger_exists_after_open(tmp_path: Path) -> None:
@@ -125,7 +136,7 @@ def test_pragmas_and_busy_timeout(tmp_path: Path) -> None:
     assert db.autocommit == sqlite3.LEGACY_TRANSACTION_CONTROL
 
 
-@pytest.mark.parametrize("version", ["4", "99"])
+@pytest.mark.parametrize("version", ["5", "99"])
 def test_a_database_with_a_newer_schema_is_refused_untouched_and_closed(
     tmp_path: Path, opened: list[sqlite3.Connection], version: str
 ) -> None:
@@ -258,7 +269,7 @@ def test_a_migration_another_opener_already_applied_is_skipped(tmp_path: Path) -
 
     db = open_db(tmp_path)
     _apply_migration(db, 1)
-    assert get_meta(db, "schema_version") == "3"
+    assert get_meta(db, "schema_version") == "4"
 
 
 def test_a_file_that_is_not_a_database_is_refused_and_closed(
@@ -726,7 +737,7 @@ def test_set_meta_refuses_the_key_the_migrations_own(tmp_path: Path, value: str)
         set_meta(db, "schema_version", value)
     assert not isinstance(refused.value, StoreUnusable)
     assert not db.in_transaction
-    assert get_meta(db, "schema_version") == "3"
+    assert get_meta(db, "schema_version") == "4"
     db.close()
     open_db(tmp_path).close()  # the refused write left a database that still opens
 
