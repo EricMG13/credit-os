@@ -115,8 +115,8 @@ export type Published = { kind: "markdown" | "html"; href: string };
 /**
  * What every chart carries besides its marks: the words around it and its trace address. Every
  * address in this slice that leads into the library (a `trace`, `links`, a tab's or a
- * limitations link's `href`) starts with `#/`; `published.href` and `checkFigure.href` (files)
- * are not covered by that rule.
+ * limitations link's `href`) starts with `#/`. `published.href` is a relative path inside the
+ * library folder; `checkFigure.href` is either that or a `#/` address.
  *
  * The two sides of one chart state the same thing for one record: wherever a table cell states a
  * mark, the cell is `null` exactly where the mark is missing and holds the mark's text where it is

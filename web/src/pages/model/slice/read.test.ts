@@ -603,11 +603,69 @@ describe("readSlice: an address into the library starts with #/", () => {
       reason: `${where}: ${OFF}`,
     });
   });
+});
 
-  it("leaves the published model's address and the check figure's to their own rule", () => {
-    expect(
-      readSlice(edited([...RUN, "statements", "checkFigure", "href"], "https://example.invalid/f"))
-        .kind,
-    ).toBe("ok");
+describe("readSlice: a model file link stays inside the library folder", () => {
+  const P = "runs[0].statements";
+  const FIELDS = [
+    ["published", ["statements", "published", "href"], `${P}.published.href`],
+    ["checkFigure", ["statements", "checkFigure", "href"], `${P}.checkFigure.href`],
+  ] as const;
+  const published = (href: unknown): unknown => ({ kind: "markdown", href });
+  const read = (field: string, steps: readonly (string | number)[], href: unknown): unknown =>
+    readSlice(
+      field === "published"
+        ? edited([...RUN, "statements", "published"], published(href))
+        : edited([...RUN, ...steps], href),
+    );
+  const REFUSED = [
+    ["an https address", "https://example.invalid/handoffs.zip"],
+    ["a javascript address", "javascript:alert(1)"],
+    ["a protocol-relative address", "//example.invalid/x.zip"],
+    ["a rooted path", "/downloads/x.zip"],
+    ["a backslash-rooted path", "\\downloads\\x.zip"],
+    ["a drive path", "C:\\downloads\\x.zip"],
+    ["a parent segment", "downloads/../../x.zip"],
+    ["a backslash parent segment", "downloads\\..\\..\\x.zip"],
+    ["a space before https", " https://example.invalid/x.zip"],
+    ["a tab before https", "\thttps://example.invalid/x.zip"],
+    ["a space before slashes", " //example.invalid/x.zip"],
+    ["a newline inside a scheme", "ht\ntps://example.invalid/x.zip"],
+    ["a tab between slashes", "\t/\t/example.invalid/x.zip"],
+    ["encoded parent segments", "downloads/%2e%2e/%2e%2e/x.zip"],
+    ["a half-encoded parent segment", "downloads/.%2E/x.zip"],
+    ["a space before a rooted path", " /etc/x"],
+    ["an encoded slash", "downloads%2f..%2fx.zip"],
+    ["a malformed escape", "downloads/%zz/x.zip"],
+    ["an empty segment", "downloads//x.zip"],
+    ["an escape that is not UTF-8", "downloads/%ff/x.zip"],
+  ] as const;
+
+  describe.each(FIELDS)("%s.href", (field, steps, where) => {
+    it.each(REFUSED)("refuses %s", (_, href) => {
+      const result = read(field, steps, href) as { kind: string; reason?: string };
+      expect(result.kind).toBe("invalid");
+      expect(result.reason).toMatch(
+        new RegExp(`^${where.replaceAll(/[[\]]/g, "\\$&")}: expected `),
+      );
+    });
+
+    it("keeps reading a relative path inside the folder", () => {
+      expect((read(field, steps, "downloads/a/b-2026.zip") as { kind: string }).kind).toBe("ok");
+    });
+  });
+
+  it("refuses a #/ address as the published model's file", () => {
+    const result = read("published", [], "#/library/transdigm/2025-06-30/evidence") as {
+      kind: string;
+      reason: string;
+    };
+    expect(result.kind).toBe("invalid");
+    expect(result.reason).toContain(`${P}.published.href: expected`);
+  });
+
+  it("reads a #/ address as the check figure's link", () => {
+    const href = "#/library/transdigm/2025-06-30/evidence";
+    expect((read("checkFigure", FIELDS[1][1], href) as { kind: string }).kind).toBe("ok");
   });
 });

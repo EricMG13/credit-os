@@ -70,9 +70,40 @@ const columns = object<ColumnsData>({
   groups: arrayOf(object({ label: text, trace: addressOrNull })),
   series: arrayOf(object({ name: text, values: arrayOf(numOrNull), labels: arrayOf(textOrNull) })),
 });
+/** The characters a file path uses; a `%` only starts a two-digit escape. */
+const SEGMENT = /^(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+$/;
+
+/** Plain: allow-listed, and neither `.`, `..` nor a slash once percent-decoded. */
+function plainSegment(segment: string): boolean {
+  if (!SEGMENT.test(segment)) return false;
+  try {
+    const decoded = decodeURIComponent(segment);
+    return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
+  } catch {
+    return false; // an escape that is not UTF-8 is refused like any other odd path
+  }
+}
+
+const inFolder = (href: string): boolean => href.split("/").every(plainSegment);
+const WANTED = "a relative path inside the library folder";
+
+/** A relative path inside the library folder: no scheme, rooted path or way out of it. */
+const filePath: Reader<string> = (value, path) => {
+  const href = text(value, path);
+  return inFolder(href) ? href : fail(path, `expected ${WANTED}`);
+};
+
+/** An address into the library, or a relative path inside the library folder. */
+const addressOrFile: Reader<string> = (value, path) => {
+  const href = text(value, path);
+  return href.startsWith("#/") || inFolder(href)
+    ? href
+    : fail(path, `expected an address starting with "#/" or ${WANTED}`);
+};
+
 const publishedRecord = object<Published>({
   kind: oneOf(["markdown", "html"] as const),
-  href: text,
+  href: filePath,
 });
 /** `null`, or a record with kind and href; anything with neither key is not a published model. */
 const published: Reader<Published | null> = (value, path) => {
@@ -91,7 +122,7 @@ export const sections = {
   debt: object<StatementsPage["debt"]>({ stack, maturities: columns }),
   recovery: columns,
   gap: object({ title: text, reason: text }),
-  checkFigure: object({ title: text, text, href: text }),
+  checkFigure: object({ title: text, text, href: addressOrFile }),
   published,
 };
 
