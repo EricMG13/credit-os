@@ -206,9 +206,10 @@ HOME_PATHS: tuple[tuple[str, str], ...] = (
     ('C:\\Users\\Jane Doe\'s "x"', '<home>"x"'),
     ("cwd: C:\\Users\\Mary  Ann", "cwd: <home>"),
     ("C:\\Users\\Mary  Ann, x", "<home>"),
+    # a folder named n or t is still not a written-out escape (both are kept); the users nested under the drives are redacted
     (
         "C:\\data\\n\\Users\\jane\\x D:\\t\\home\\bob",
-        "C:\\data\\n\\Users\\jane\\x D:\\t\\home\\bob",
+        "C:\\data\\n<home>\\x D:\\t<home>",
     ),
     ("msg\\nC:\\Users\\jane\\x", "msg\\n<home>\\x"),
     ("C:\\Users\\John(Work)x\\AppData", "<home>\\AppData"),
