@@ -1057,7 +1057,7 @@
                     "label": "Bottom line",
                     "lead": "Secured debt is long-dated and covenant-light; the unsecured notes mature first and rank last.",
                     "rest": "Nothing above USD 50m falls due before March 2028. The structure gives time, not protection: one springing covenant, far from tested, stands between lenders and a further debt-funded purchase.",
-                    "trace": null
+                    "trace": "cs-bottom-line"
                   },
                   "findings": [
                     {
@@ -1076,7 +1076,7 @@
                       "number": "03",
                       "lead": "Capacity for more debt remains",
                       "body": "Baskets allow roughly USD 400m of further secured debt. The sponsor has used such capacity for purchases before.",
-                      "trace": null
+                      "trace": "cs-finding-3"
                     }
                   ],
                   "contrary": null,
@@ -1263,6 +1263,78 @@
                           ]
                         }
                       ]
+                    },
+                    {
+                      "kind": "statement",
+                      "nav": null,
+                      "title": "Debt and leverage by year",
+                      "stub": "USD m, year to 30 Sep",
+                      "basis": "EBITDA for 2022 is not available on the current basis, so that year’s leverage is n.a.",
+                      "periods": ["2022", "2023", "2024", "2025", "2026"],
+                      "rows": [
+                        {
+                          "label": "Gross debt",
+                          "cells": [
+                            { "kind": "value", "text": "2,010", "at": 2010.0 },
+                            { "kind": "value", "text": "2,120", "at": 2120.0 },
+                            { "kind": "value", "text": "2,190", "at": 2190.0 },
+                            { "kind": "value", "text": "2,310", "at": 2310.0 },
+                            { "kind": "value", "text": "2,398", "at": 2398.0 }
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "label": "Cash",
+                          "cells": [
+                            { "kind": "value", "text": "95", "at": 95.0 },
+                            { "kind": "value", "text": "120", "at": 120.0 },
+                            { "kind": "value", "text": "88", "at": 88.0 },
+                            { "kind": "value", "text": "146", "at": 146.0 },
+                            { "kind": "value", "text": "162", "at": 162.0 }
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "label": "Net debt",
+                          "cells": [
+                            { "kind": "value", "text": "1,915", "at": 1915.0 },
+                            { "kind": "value", "text": "2,000", "at": 2000.0 },
+                            { "kind": "value", "text": "2,102", "at": 2102.0 },
+                            { "kind": "value", "text": "2,164", "at": 2164.0 },
+                            { "kind": "value", "text": "2,236", "at": 2236.0 }
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "label": "EBITDA",
+                          "cells": [
+                            null,
+                            { "kind": "value", "text": "356", "at": 356.0 },
+                            { "kind": "value", "text": "398", "at": 398.0 },
+                            { "kind": "value", "text": "441", "at": 441.0 },
+                            { "kind": "value", "text": "486", "at": 486.0 }
+                          ],
+                          "emphasis": false
+                        },
+                        {
+                          "label": "Net leverage",
+                          "cells": [
+                            null,
+                            { "kind": "value", "text": "5.6x", "at": 5.6 },
+                            { "kind": "value", "text": "5.3x", "at": 5.3 },
+                            { "kind": "value", "text": "4.9x", "at": 4.9 },
+                            { "kind": "value", "text": "4.6x", "at": 4.6 }
+                          ],
+                          "emphasis": false
+                        }
+                      ],
+                      "trace": null
+                    },
+                    {
+                      "kind": "gap",
+                      "nav": "Hedges",
+                      "title": "Hedge expiries",
+                      "reason": "The hedge schedule was not among the files provided. The module states that interest rate swaps exist but could not establish their amounts or expiry dates, so no chart is drawn."
                     }
                   ],
                   "limitations": {
@@ -1271,15 +1343,15 @@
                     "items": [
                       {
                         "text": "Hedge expiries are not established for this run: the hedge schedule was not provided.",
-                        "trace": null
+                        "trace": "cs-limit-hedges"
                       },
                       {
                         "text": "The average cost of debt is withheld: the only source for it is marked confidential and delivery does not show it.",
-                        "trace": null
+                        "trace": "cs-limit-cost"
                       },
                       {
                         "text": "The lease maturity schedule is not in the files, so leases appear in the stack but not by year.",
-                        "trace": null
+                        "trace": "cs-limit-leases"
                       }
                     ]
                   }
@@ -2260,6 +2332,81 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0113"
+              },
+              "cs-bottom-line": {
+                "title": "Sources for the capital structure bottom line",
+                "heading": "Capital structure bottom line",
+                "subtitle": "Capital structure · bottom line · as of 30 Sep 2026",
+                "statement": "Nothing above USD 50m falls due before March 2028, and one springing covenant stands between lenders and a debt-funded purchase.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Capital structure bottom line",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0121"
+              },
+              "cs-finding-3": {
+                "title": "Sources for the capacity finding",
+                "heading": "Capacity for more debt remains",
+                "subtitle": "Capital structure · finding · as of 30 Sep 2026",
+                "statement": "Baskets allow roughly USD 400m of further secured debt, which the sponsor has used for purchases before.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Capacity for more debt remains",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0122"
+              },
+              "cs-limit-hedges": {
+                "title": "Sources for the hedge limitation",
+                "heading": "Hedge expiries not established",
+                "subtitle": "Capital structure · limitation · as of 30 Sep 2026",
+                "statement": "The hedge schedule was not among the files provided.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Hedge expiries not established",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-11"
+              },
+              "cs-limit-cost": {
+                "title": "Sources for the cost of debt limitation",
+                "heading": "Average cost of debt withheld",
+                "subtitle": "Capital structure · limitation · as of 30 Sep 2026",
+                "statement": "The only source for the average cost of debt is marked confidential.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Average cost of debt withheld",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-12"
+              },
+              "cs-limit-leases": {
+                "title": "Sources for the lease schedule limitation",
+                "heading": "Lease maturities not in the files",
+                "subtitle": "Capital structure · limitation · as of 30 Sep 2026",
+                "statement": "The lease maturity schedule is not in the files, so leases appear in the stack but not by year.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Lease maturities not in the files",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-13"
               }
             }
           },

@@ -15,11 +15,14 @@ const SIZE = { h2: "text-h2", h3: "text-h3", h4: "text-h4" } as const;
 export function Section({
   title,
   note,
+  actions,
   level = SECTION_HEADING,
   children,
 }: {
   title: string;
   note?: string;
+  /** Controls set at the right of the heading, after the note. */
+  actions?: ReactNode;
   level?: typeof SECTION_HEADING | typeof SUBSECTION_HEADING;
   children: ReactNode;
 }) {
@@ -36,6 +39,7 @@ export function Section({
           {title}
         </Heading>
         {note === undefined ? null : <span className="text-small text-text-tertiary">{note}</span>}
+        {actions}
       </div>
       {children}
     </section>

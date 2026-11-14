@@ -4,7 +4,9 @@ import { FactsBlock } from "./FactsBlock";
 import { MatrixBlock } from "./MatrixBlock";
 import { MeasuresBlock } from "./MeasuresBlock";
 import { MetricsBlock } from "./MetricsBlock";
+import { GapBlock } from "./GapBlock";
 import { QuestionsBlock } from "./QuestionsBlock";
+import { StatementBlock } from "./StatementBlock";
 import { StatusBlock } from "./StatusBlock";
 import { WatchBlock } from "./WatchBlock";
 import { recordSections } from "./recordNav";
@@ -27,6 +29,10 @@ function Block({ block }: { block: RecordBlock }) {
       return <FactsBlock block={block} />;
     case "status":
       return <StatusBlock block={block} />;
+    case "statement":
+      return <StatementBlock block={block} />;
+    case "gap":
+      return <GapBlock block={block} />;
   }
 }
 
