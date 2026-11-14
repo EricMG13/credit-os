@@ -672,6 +672,9 @@ describe("readSlice: a model file link stays inside the library folder", () => {
     ["a malformed escape", "downloads/%zz/x.zip"],
     ["an empty segment", "downloads//x.zip"],
     ["an escape that is not UTF-8", "downloads/%ff/x.zip"],
+    ["an encoded backslash", "downloads/%5c..%5cx.zip"],
+    ["a scheme without slashes", "mailto:x"],
+    ["an encoded single dot", "downloads/%2e/x.zip"],
   ] as const;
 
   describe.each(FIELDS)("%s.href", (field, steps, where) => {
@@ -700,6 +703,15 @@ describe("readSlice: a model file link stays inside the library folder", () => {
   it("reads a #/ address as the check figure's link", () => {
     const href = "#/library/transdigm/2025-06-30/evidence";
     expect((read("checkFigure", FIELDS[1][1], href) as { kind: string }).kind).toBe("ok");
+  });
+
+  it("refuses a bare # address as the check figure's link", () => {
+    const result = read("checkFigure", FIELDS[1][1], "#evidence") as {
+      kind: string;
+      reason: string;
+    };
+    expect(result.kind).toBe("invalid");
+    expect(result.reason).toContain(`${P}.checkFigure.href: expected`);
   });
 });
 
