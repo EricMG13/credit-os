@@ -69,3 +69,24 @@ describe("an item address reached while the module filter is set", () => {
     expect(screen.getByRole("button", { name: /^Module: Recovery/ })).toBeVisible();
   });
 });
+
+describe("picking the address already shown, from the jump menu", () => {
+  it("starts the tab unfiltered and focuses the row the filter had hidden", () => {
+    const href = "#/library/halden-aerostructures/2026-09-30/evidence/gaps/G-03";
+    window.location.hash = href;
+    render(page("gaps/:item", { ...P, item: "G-03" }));
+    pick("Recovery");
+    expect(screen.queryByRole("rowheader", { name: "G-03" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Jump to an item/ }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Jump to an item" })).getByRole("option", {
+        name: /Peer figures on the same basis/,
+      }),
+    );
+    expect(window.location.hash).toBe(href);
+    expect(screen.getByRole("button", { name: /^Module: All/ })).toBeVisible();
+    const row = screen.getByRole("rowheader", { name: "G-03" }).closest("tr");
+    expect(row).toHaveFocus();
+    window.location.hash = "";
+  });
+});

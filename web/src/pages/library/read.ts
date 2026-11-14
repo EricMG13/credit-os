@@ -359,7 +359,19 @@ function readTrace(value: unknown, path: string): Trace {
   };
 }
 
-function readHead(value: unknown, path: string): RunHead {
+/**
+ * The Forecast address of a run: delivered, and either absent (`null`) or the model page of this
+ * run's own issuer and run, exactly. The page builds no address it was not given.
+ */
+function forecastHrefOf(h: Rec, path: string, issuer: string, run: string): string | null {
+  const href = strOrNull(h, "forecastHref", path);
+  if (href !== null && href !== `#/model/${issuer}/${run}/forecast`) {
+    throw new SliceError(child(path, "forecastHref"), `null or #/model/${issuer}/${run}/forecast`);
+  }
+  return href;
+}
+
+function readHead(value: unknown, path: string, issuer: string, run: string): RunHead {
   const h = rec(value, path);
   const tabsPath = child(path, "tabs");
   return {
@@ -369,7 +381,7 @@ function readHead(value: unknown, path: string): RunHead {
     state: oneOf(h, "state", path, RUN_STATES),
     tabs: { modulesCount: str(rec(own(h, "tabs"), tabsPath), "modulesCount", tabsPath) },
     firstModule: strOrNull(h, "firstModule", path),
-    forecastHref: strOrNull(h, "forecastHref", path),
+    forecastHref: forecastHrefOf(h, path, issuer, run),
   };
 }
 
@@ -1879,15 +1891,16 @@ function readEvidence(value: unknown, path: string, traces: Traces, modules: Mod
   };
 }
 
-function readRun(value: unknown, path: string): Run {
+function readRun(value: unknown, path: string, issuer: string): Run {
   const r = rec(value, path);
   const tracesPath = child(path, "traces");
   const traces = rec(own(r, "traces"), tracesPath);
   const loading = own(r, "loading");
   if (typeof loading !== "boolean") throw new SliceError(child(path, "loading"), "a boolean");
+  const id = str(r, "id", path);
   const base = {
-    id: str(r, "id", path),
-    head: readHead(own(r, "head"), child(path, "head")),
+    id,
+    head: readHead(own(r, "head"), child(path, "head"), issuer, id),
     traces: Object.fromEntries(
       Object.keys(traces).map((key) => [key, readTrace(traces[key], child(tracesPath, key))]),
     ),
@@ -1931,8 +1944,8 @@ function readRun(value: unknown, path: string): Run {
   return { ...base, loading, overview, changes, modules, evidence };
 }
 
-function readRuns(i: Rec, path: string): Run[] {
-  const runs = list(i, "runs", path, readRun);
+function readRuns(i: Rec, path: string, issuer: string): Run[] {
+  const runs = list(i, "runs", path, (value, at) => readRun(value, at, issuer));
   const seen = new Set<string>();
   for (const [index, run] of runs.entries()) {
     if (seen.has(run.id)) {
@@ -1965,11 +1978,12 @@ export function traceKey(
 
 function readIssuer(value: unknown, path: string): Issuer {
   const i = rec(value, path);
+  const id = str(i, "id", path);
   return {
-    id: str(i, "id", path),
+    id,
     name: str(i, "name", path),
     history: readHistory(own(i, "history"), child(path, "history")),
-    runs: readRuns(i, path),
+    runs: readRuns(i, path, id),
   };
 }
 

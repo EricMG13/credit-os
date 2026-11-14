@@ -102,6 +102,7 @@ function Registers({ registers }: { registers: RunRecord["registers"] }) {
                   download={{ label: open, href: row.href, reason: row.reason }}
                   color="link-color"
                   open
+                  end
                 />
               </td>
             </tr>

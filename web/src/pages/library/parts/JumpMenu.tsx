@@ -44,10 +44,13 @@ export function JumpMenu({
   items,
   issuer,
   run,
+  onSameAddress,
 }: {
   items: readonly JumpItem[];
   issuer: string;
   run: string;
+  /** Called when the pick is the address already shown: the hash will not change, so the page restarts. */
+  onSameAddress?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const field = useRef<HTMLButtonElement>(null);
@@ -77,11 +80,13 @@ export function JumpMenu({
     const item = items[Number(key)];
     if (item === undefined) throw new RangeError(`no jump item ${String(key)}`);
     setOpen(false);
-    window.location.hash = (item.target.tab === "trace" ? traceItemHref : gapItemHref)(
+    const href = (item.target.tab === "trace" ? traceItemHref : gapItemHref)(
       issuer,
       run,
       item.target.item,
     );
+    if (window.location.hash === href) onSameAddress?.();
+    else window.location.hash = href;
   };
   return (
     <>

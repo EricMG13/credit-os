@@ -208,6 +208,7 @@ describe("Evidence, Record", () => {
       "The withheld register lists figures the sources marked confidential, so it is not published.";
     expect(within(row).getByText(reason)).toBeVisible();
     expect(open).toHaveAccessibleDescription(reason);
+    expect(open.parentElement).toHaveClass("justify-end");
     expect(within(row).queryByRole("link", { name: "Open" })).toBeNull();
   });
 
