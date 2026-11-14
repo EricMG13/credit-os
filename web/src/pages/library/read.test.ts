@@ -897,11 +897,54 @@ describe("readSlice, modules", () => {
     expect(invalidReason(capped)).toContain("issuers[0].runs[3].overview.modules.items[2].module");
   });
 
-  it("rejects a first module the run does not hold, and allows none", () => {
+  it("rejects a collapsed item that names a module the run does not hold, or counts wrongly", () => {
+    const overview = (slice: ReturnType<typeof fresh>, r: number) =>
+      (runOf(slice, r).overview["modules"] as { items: Json[] }).items;
+    const named = fresh();
+    (overview(named, 2)[0] as Json)["lead"] = "Business profile, Treasury, Credit snapshot.";
+    expect(invalidReason(named)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
+    const dropped = fresh();
+    (runOf(dropped, 3).modules as Mod[]).splice(0, 1);
+    runOf(dropped, 3).head["firstModule"] = "industry-and-competition";
+    expect(invalidReason(dropped)).toContain("issuers[0].runs[3].overview.modules.items[0].lead");
+    const counted = fresh();
+    (overview(counted, 3)[0] as Json)["title"] = "9 modules delivered";
+    expect(invalidReason(counted)).toContain("issuers[0].runs[3].overview.modules.items[0].title");
+    const changes = fresh();
+    const item = (runOf(changes, 0).changes["modules"] as { items: Json[] }).items[
+      (runOf(changes, 0).changes["modules"] as { items: Json[] }).items.findIndex(
+        (i) => i["module"] === null,
+      )
+    ] as Json;
+    item["lead"] = `${String(item["lead"])} Treasury.`;
+    expect(invalidReason(changes)).toMatch(/runs\[0\]\.changes\.modules\.items\[\d+\]\.lead/);
+  });
+
+  it("rejects a first module the run does not hold", () => {
     const slice = fresh();
     runOf(slice, 0).head["firstModule"] = "nowhere";
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.firstModule");
-    runOf(slice, 0).head["firstModule"] = null;
+  });
+
+  it("rejects no first module on a run that holds modules, and one on a run that loads", () => {
+    const none = fresh();
+    runOf(none, 0).head["firstModule"] = null;
+    expect(invalidReason(none)).toContain("issuers[0].runs[0].head.firstModule");
+    const loading = fresh();
+    runOf(loading, 1).head["firstModule"] = "business-profile";
+    expect(invalidReason(loading)).toContain("issuers[0].runs[1].head.firstModule");
+  });
+
+  it("allows no first module on a run that holds no modules", () => {
+    const slice = fresh();
+    const run = runOf(slice, 3);
+    run.modules = [];
+    run.head["firstModule"] = null;
+    (run.overview["modules"] as { items: Json[] }).items = [
+      { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
+    ];
     expect(readSlice(slice).kind).toBe("ok");
+    run.head["firstModule"] = "business-profile";
+    expect(invalidReason(slice)).toContain("issuers[0].runs[3].head.firstModule");
   });
 });
