@@ -3,20 +3,25 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from typing import cast
+from xml.parsers import expat
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from credit_os.signal.feeds import (
     MAX_ATTRIBUTES,
     MAX_BYTES,
     MAX_ELEMENTS,
-    MAX_HTML_CHARS,
     MAX_NAME_CHARS,
+    MAX_NAMESPACE_CHARS,
+    MAX_TAG_CHARS,
     Entry,
     FeedError,
+    _drop_long_tags,
     _folded,
     _new_parser,
-    _plain,
+    _Node,
     _TreeBuilder,
     parse_feed,
 )
@@ -258,6 +263,221 @@ def test_atom_with_a_prefix_instead_of_a_default_namespace() -> None:
     (e,) = parse_feed(body)
     assert (e.title, e.link, e.summary) == ("Prefixed", "https://e.org/p", "S")
     assert e.published == datetime(2026, 11, 12, 17, 30, tzinfo=UTC)
+
+
+_ATOM_URI = "http://www.w3.org/2005/Atom"
+_ENTRY = '<link href="https://e.org/{n}"/>'
+
+
+def _atom(inner: str, attrs: str = "") -> bytes:
+    return f'<feed xmlns="{_ATOM_URI}"{attrs}>{inner}</feed>'.encode()
+
+
+def test_a_prefix_rebound_inside_an_element_applies_from_that_element() -> None:
+    body = _atom(
+        '<entry xmlns:a="urn:other"><a:title>no</a:title><title>First</title>'
+        + _ENTRY.format(n="1")
+        + "</entry><entry><a:title>Second</a:title><a:link href='https://e.org/2'/></entry>",
+        f' xmlns:a="{_ATOM_URI}"',
+    )
+    assert [(e.title, e.link) for e in parse_feed(body)] == [
+        ("First", "https://e.org/1"),
+        ("Second", "https://e.org/2"),
+    ]
+
+
+def test_a_title_link_or_entry_in_a_foreign_namespace_is_never_the_feeds() -> None:
+    body = _atom(
+        '<o:entry><o:title>no</o:title><o:link href="https://e.org/no"/></o:entry>'
+        '<entry><o:title>no</o:title><title xmlns="urn:other">no</title>'
+        '<title>Yes</title><o:link href="https://e.org/no"/><link xmlns="urn:other" href="https://e.org/no2"/>'
+        '<link href="https://e.org/yes"/></entry>'
+        '<entry xmlns="urn:other"><title>no</title><link href="https://e.org/no3"/></entry>',
+        ' xmlns:o="urn:other"',
+    )
+    assert [(e.title, e.link) for e in parse_feed(body)] == [("Yes", "https://e.org/yes")]
+
+
+def test_an_empty_default_namespace_undeclares_the_default() -> None:
+    inner = "<title>T</title>" + _ENTRY.format(n="1")
+    assert parse_feed(_atom(f'<entry xmlns="">{inner}</entry>')) == []
+    assert len(parse_feed(_atom(f"<entry>{inner}</entry>"))) == 1
+
+
+def test_an_attribute_without_a_prefix_is_in_no_namespace() -> None:
+    # The default namespace does not reach attributes, so rel and href are read as written.
+    body = _atom(
+        "<entry><title>T</title>"
+        '<link rel="enclosure" href="https://e.org/no"/><link href="https://e.org/yes"/></entry>'
+    )
+    assert [e.link for e in parse_feed(body)] == ["https://e.org/yes"]
+
+
+def test_namespace_declarations_are_not_attributes() -> None:
+    declarations = "".join(f' xmlns:p{n}="urn:{n}"' for n in range(MAX_ATTRIBUTES + 40))
+    plain = "".join(f' a{n}=""' for n in range(MAX_ATTRIBUTES))
+    body = _atom("<entry><title>T</title>" + _ENTRY.format(n="1") + "</entry>", declarations)
+    assert len(parse_feed(body)) == 1
+    body = _atom(f"<x{declarations}{plain}/>")
+    assert parse_feed(body) == []
+    with pytest.raises(FeedError, match=f"more than {MAX_ATTRIBUTES} attributes"):
+        parse_feed(_atom(f'<x{declarations}{plain} one-more=""/>'))
+
+
+@pytest.mark.parametrize(
+    "inner",
+    [
+        "<q:x/>",  # unbound element prefix
+        '<x q:a=""/>',  # unbound attribute prefix
+        '<x xmlns:p="u"/><p:y/>',  # a prefix is unbound once its element closes
+        '<x xmlns:p="u" xmlns:q="u" p:a="" q:a=""/>',  # one expanded name twice
+        '<x xmlns:p=""/>',  # a prefix cannot be bound to nothing
+        '<x xmlns:xml="urn:other"/>',
+        '<x xmlns:xmlns="urn:x"/>',
+        '<x xmlns:p="http://www.w3.org/XML/1998/namespace"/>',
+        '<x xmlns="http://www.w3.org/2000/xmlns/"/>',
+        "<:x/>",
+        "<x:/>",
+        '<x xmlns:x="u"><x:y:z/></x>',
+        '<x xmlns:x="u"><x:1/></x>',
+        '<x :a=""/>',
+    ],
+)
+def test_a_name_expat_would_refuse_in_namespace_mode_is_refused(inner: str) -> None:
+    with pytest.raises(FeedError, match="not valid XML"):
+        parse_feed(_atom(inner))
+
+
+def test_the_xml_prefix_is_always_bound() -> None:
+    body = _atom(
+        '<entry xml:lang="en"><xml:note/><title xml:space="preserve">T</title>'
+        + _ENTRY.format(n="1")
+        + '</entry><x xmlns:xml="http://www.w3.org/XML/1998/namespace"/>',
+        ' xml:base="http://e.org/"',
+    )
+    assert [e.title for e in parse_feed(body)] == ["T"]
+
+
+def test_a_namespace_uri_is_refused_beyond_the_limit() -> None:
+    at_limit = "u:" + "x" * (MAX_NAMESPACE_CHARS - 2)
+
+    def rss(attr: str, uri: str) -> bytes:
+        return f'<rss version="2.0" {attr}="{uri}"><channel/></rss>'.encode()
+
+    assert parse_feed(rss("xmlns:p", at_limit)) == []
+    for attr in ("xmlns:p", "xmlns"):
+        with pytest.raises(FeedError, match=f"more than {MAX_NAMESPACE_CHARS} characters"):
+            parse_feed(rss(attr, at_limit + "x"))
+
+
+# --- the namespace rules against expat's own: the reader treats the same elements as its own ---
+
+# Children are drawn from the names the reader looks for below their parent, so that generated
+# documents are often feeds; the declarations and prefixes are what vary.
+_BELOW = {
+    "": ("rss", "feed"),
+    "rss": ("channel", "x"),
+    "channel": ("item", "x"),
+    "item": ("title", "link", "x"),
+    "feed": ("entry", "x"),
+    "entry": ("title", "link", "x"),
+}
+_URIS = (None, None, "", _ATOM_URI, _ATOM_URI, "urn:other")
+_ATTRIBUTES = ('rel="alternate"', 'href="https://e.org/x"', 'xml:lang="en"', 'a:rel="x"', 'b:y=""')
+_Element = tuple[str, str | None, tuple[str | None, ...], tuple[str, ...], tuple[object, ...]]
+
+
+@st.composite
+def _element(draw: st.DrawFn, parent: str = "", depth: int = 0) -> _Element:
+    local = draw(st.sampled_from(_BELOW.get(parent, ("x", "title"))))
+    prefix = draw(st.sampled_from((None, None, "a", "b")))
+    declared = tuple(draw(st.sampled_from(_URIS)) for _ in range(3))  # xmlns, xmlns:a, xmlns:b
+    attrs = tuple(draw(st.lists(st.sampled_from(_ATTRIBUTES), unique=True, max_size=3)))
+    count = draw(st.integers(0, 3)) if depth < 4 else 0
+    children = tuple(draw(_element(local, depth + 1)) for _ in range(count))
+    return local, prefix, declared, attrs, children
+
+
+def _render(element: _Element) -> str:
+    local, prefix, declared, attrs, children = element
+    names = ("xmlns", "xmlns:a", "xmlns:b")
+    declarations = [
+        f'{n}="{uri}"' for n, uri in zip(names, declared, strict=True) if uri is not None
+    ]
+    name = f"{prefix}:{local}" if prefix else local
+    inner = "".join(_render(cast(_Element, child)) for child in children)
+    return f"<{' '.join([name, *declarations, *attrs])}>{inner}</{name}>"
+
+
+def _expected_kind(parent: str | None, name: str, seen: set[str]) -> str | None:
+    """What the reader should make of ``name`` below ``parent``, from expat's "uri}local" names."""
+    atom = f"{_ATOM_URI}}}"
+    if parent == "document":
+        return {"rss": "rss", f"{atom}feed": "feed"}.get(name, "other")
+    below = {
+        "rss": {"channel": "channel"},
+        "channel": {"item": "item"},
+        "feed": {f"{atom}entry": "entry"},
+        "item": dict.fromkeys(("title", "link", "pubDate", "description"), "field"),
+        "entry": dict.fromkeys(
+            (f"{atom}{k}" for k in ("published", "updated", "title", "summary")), "field"
+        ),
+    }
+    kind = below.get(parent or "", {}).get(name)
+    if kind == "field":
+        if name in seen:  # the first of two fields of a name wins
+            return None
+        seen.add(name)
+    return kind
+
+
+def _expat_kinds(body: bytes) -> list[str | None] | None:
+    """Per element, in document order, what the reader should make of it; None if refused."""
+    kinds: list[str | None] = []
+    stack: list[tuple[str | None, set[str]]] = [("document", set())]
+
+    def start(name: str, attrs: dict[str, str]) -> None:
+        parent, seen = stack[-1]
+        kind = _expected_kind(parent, name, seen)
+        kinds.append(kind)
+        stack.append((kind, set()))
+
+    parser = expat.ParserCreate(namespace_separator="}")
+    parser.StartElementHandler = start
+    parser.EndElementHandler = lambda name: stack.pop()
+    try:
+        parser.Parse(body, True)
+    except expat.ExpatError:
+        return None
+    return kinds
+
+
+def _reader_kinds(body: bytes) -> list[str | None] | None:
+    """Per element, what the tree builder made of it (a node's kind, "field", or None)."""
+    builder = _TreeBuilder()
+    kinds: list[str | None] = []
+
+    def start(name: str, attrs: dict[str, str]) -> None:
+        builder.start(name, attrs)
+        kept = builder._open[-1]  # the smallest seam: what _enter returned for this element
+        kinds.append(kept.kind if isinstance(kept, _Node) else "field" if kept else None)
+
+    parser = _new_parser(builder)
+    parser.StartElementHandler = start
+    try:
+        parser.Parse(body, True)
+    except FeedError:
+        return None
+    return kinds
+
+
+@settings(max_examples=400, deadline=None)
+@given(_element())
+def test_the_reader_treats_the_elements_expat_namespace_mode_names_as_the_feeds_as_its_own(
+    document: _Element,
+) -> None:
+    body = _render(document).encode()
+    assert _reader_kinds(body) == _expat_kinds(body)
 
 
 @pytest.mark.parametrize(
@@ -1009,16 +1229,24 @@ def test_an_element_with_the_most_attributes_is_read_and_one_more_is_refused() -
         parse_feed(feed(MAX_ATTRIBUTES + 1))
 
 
-def test_element_names_are_refused_once_their_total_length_passes_the_bound() -> None:
-    uri = "u:" + "x" * 8000
+def test_element_and_attribute_names_are_refused_once_their_total_length_passes_the_bound() -> None:
+    name = "n" * 100
+    attrs = "".join(f' {name[:-4]}{k:04}=""' for k in range(200))  # 200 names of 100 characters
 
-    def feed(count: int) -> bytes:
-        return f'<rss version="2.0"><d xmlns="{uri}">{"<a/>" * count}</d></rss>'.encode()
+    def elements(count: int) -> bytes:
+        return f'<rss version="2.0"><d>{f"<{name}/>" * count}</d></rss>'.encode()
 
-    fits = MAX_NAME_CHARS // (len(uri) + 2) - 4
-    assert parse_feed(feed(fits)) == []
+    def with_attributes(count: int) -> bytes:
+        return f'<rss version="2.0"><d>{f"<a{attrs}/>" * count}</d></rss>'.encode()
+
+    fits = MAX_NAME_CHARS // len(name) - 4
+    assert parse_feed(elements(fits)) == []
     with pytest.raises(FeedError, match="element names are too long"):
-        parse_feed(feed(fits + 8))
+        parse_feed(elements(fits + 8))
+    fits = (MAX_NAME_CHARS - 20) // (1 + 200 * len(name))  # 52 elements of 20,001 characters
+    assert parse_feed(with_attributes(fits)) == []
+    with pytest.raises(FeedError, match="element names are too long"):
+        parse_feed(with_attributes(fits + 1))
 
 
 def test_elements_inside_a_field_are_counted() -> None:
@@ -1039,12 +1267,28 @@ def test_text_outside_the_fields_that_are_read_is_not_kept() -> None:
 def test_folding_equals_the_whole_text_folded_then_cut() -> None:
     import random
 
+    # What each piece leaves in the text, written out here (not computed with the production
+    # helpers): format and control characters vanish, other white space becomes a space.
+    left = {
+        "a": "a",
+        "b": "b",
+        "\u0436": "\u0436",
+        " ": " ",
+        "\n": " ",
+        "\t": " ",
+        "\u200b": "",
+        "\x07": "",
+        "\u00a0": " ",
+        "\x1c": " ",
+        "word": "word",
+    }
     rnd = random.Random(7)
-    pieces = ["a", "b", "\u0436", " ", "\n", "\t", "\u200b", "\x07", "\u00a0", "\x1c", "word"]
     for size in (0, 1, 7, 90, 4095, 4096, 4097, 9000, 20000):
-        text = "".join(rnd.choice(pieces) for _ in range(size))
+        chosen = [rnd.choice(list(left)) for _ in range(size)]
+        text = "".join(chosen)
+        expected = " ".join("".join(left[piece] for piece in chosen).split())
         for limit in (1, 5, 301, 500, 100_000):
-            assert _folded(text, limit) == " ".join(_plain(text).split())[:limit]
+            assert _folded(text, limit) == expected[:limit]
 
 
 def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
@@ -1052,9 +1296,81 @@ def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
     assert _folded(" " * 10_000 + "a b", 10) == "a b"
 
 
-def test_a_description_is_read_for_its_first_html_window_only() -> None:
-    text = "Lead " + "<i></i>" * 100_000  # 700,000 characters, the text first
-    assert _summary_of(text + "late") == "Lead"
-    # the stated cost: more than MAX_HTML_CHARS of markup before any text hides the text
-    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 + 1) + "late") == ""
-    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 - 10) + "late") == "late"
+def test_text_is_read_after_any_amount_of_markup() -> None:
+    assert _summary_of("Lead " + "<i></i>" * 100_000 + "late") == "Lead late"
+    assert _summary_of("<i></i>" * 100_000 + "late") == "late"
+    assert _summary_of("<pre>" + "word " * 40_000 + "</pre>").startswith("word word word")
+    assert _summary_of("<p>" + "word " * 40_000 + "</p>").startswith("word word word")
+
+
+def test_a_summary_after_a_leading_data_image_is_read() -> None:
+    image = '<img src="data:image/png;base64,' + "iVBORw0K" * 20_000 + '"/>'
+    assert (
+        _summary_of(image + "<p>The committee held the rate.</p>") == "The committee held the rate."
+    )
+    style = "<style>" + "p{margin:0}" * 20_000 + "</style>"
+    assert _summary_of(style + "<p>Rate held.</p>") == "Rate held."
+
+
+def test_a_tag_of_the_most_characters_is_kept_and_one_more_is_dropped() -> None:
+    kept = "<a" + " " * (MAX_TAG_CHARS - 3) + ">"
+    assert len(kept) == MAX_TAG_CHARS
+    assert _drop_long_tags(f"x{kept}y") == f"x{kept}y"
+    longer = "<a" + " " * (MAX_TAG_CHARS - 2) + ">"
+    assert _drop_long_tags(f"x{longer}y") == "x y"
+
+
+@pytest.mark.parametrize("opening", ["<!--", "<![CDATA[", "</", "<?"])
+def test_every_kind_of_over_long_tag_is_dropped(opening: str) -> None:
+    assert _drop_long_tags(f"A{opening}{'z' * MAX_TAG_CHARS}>B") == "A B"
+
+
+def test_an_over_long_tag_that_never_closes_takes_the_rest_of_the_text() -> None:
+    assert _drop_long_tags("Keep <a " + "b " * 3000 + "lost") == "Keep  "
+    assert _drop_long_tags("Keep <!--" + "x" * 5000) == "Keep  "
+
+
+def test_text_outside_tags_is_never_dropped() -> None:
+    text = "a < b and " + "<" * 10_000 + " c > d " + "<3 " * 5000 + "end"
+    assert _drop_long_tags(text) == text
+    assert _drop_long_tags("w" * 1_000_000) == "w" * 1_000_000
+
+
+def test_many_angle_brackets_and_no_closing_one_are_read_in_one_pass() -> None:
+    assert _drop_long_tags("<a" * 200_000) == " "
+    assert _drop_long_tags("<a " * 200_000 + "x") == " "
+    assert _drop_long_tags("<a>" * 200_000) == "<a>" * 200_000
+    assert _drop_long_tags('<a "' * 100_000) == " "
+    assert _drop_long_tags('<a ="' * 100_000) == " "
+
+
+@pytest.mark.parametrize("quote", ['"', "'"])
+def test_a_closing_bracket_inside_a_quoted_value_does_not_hide_the_rest_of_a_tag(
+    quote: str,
+) -> None:
+    tag = f"<a x={quote}>{quote} " + "b " * 5000 + ">"
+    assert _drop_long_tags(f"before {tag}after") == "before  after"
+    assert _summary_of(f"before {tag}after") == "before after"
+
+
+def test_a_quote_with_no_partner_opens_no_value() -> None:
+    tag = '<a x=" ' + "b " * 5000 + ">"
+    assert _drop_long_tags(f"before {tag}after") == "before  after"
+    # a quote that does not follow "=" opens nothing either
+    assert _drop_long_tags('<a "x ' + "b " * 5000 + '">after') == " after"
+
+
+def test_cutting_a_tag_out_cannot_join_the_pieces_into_markup() -> None:
+    body = "x<scr<b " + "c " * 3000 + ">ipt>y"
+    assert _drop_long_tags(body) == "x ipt>y"
+    assert _summary_of(body) == "x ipt>y"
+    assert _summary_of("<scr" + "<i " + "j " * 3000 + ">ipt>alert(1)</script>") == "ipt>alert(1)"
+
+
+def test_a_body_that_is_not_contiguous_bytes_is_refused() -> None:
+    with pytest.raises(TypeError, match="contiguous"):
+        parse_feed(cast(bytes, memoryview(RSS + RSS)[::2]))
+    # a contiguous memoryview of any shape is read like its bytes
+    padded = RSS + b" " * (-len(RSS) % 2)
+    two_d = memoryview(padded).cast("B", [2, len(padded) // 2])
+    assert parse_feed(cast(bytes, two_d)) == parse_feed(RSS)

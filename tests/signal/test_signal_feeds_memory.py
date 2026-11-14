@@ -1,10 +1,13 @@
-"""R24: the memory of parse_feed on hostile bodies within MAX_BYTES, measured with tracemalloc.
+"""R24: the peak memory of parse_feed on hostile bodies, measured with tracemalloc.
 
-The shapes are the worst inputs of the reviewer's probe (``r24_memory.py``). Each runs at full
-MAX_BYTES, or at a stated reduced size with a proportionally reduced ceiling where the shape
-takes seconds. Every ceiling is far under what the shape cost before the fix and holds only if
-the cause is gone: a node per element, a qualified name per element, one html.parser tag with a
-million attributes, one string object per character.
+Every case builds a body of at most MAX_BYTES, parses it and asserts two things: the peak stays
+under CEILING, and the outcome is the one the case names. A case either reads its feed (a list)
+or is refused with the message of the constant that refuses it (``REFUSED``); a body that fails
+for another reason, malformed XML for one, measures nothing and fails the test. The shapes are
+the worst bodies found by review: a node per element, a name per element or attribute (pyexpat
+keeps every distinct name for the whole parse, and a namespace URI in each name if it expands
+them), one html.parser tag with a million attributes, one string object per character. The last
+test reads a large genuine feed whole.
 """
 
 import gc
@@ -13,7 +16,14 @@ from collections.abc import Callable
 
 import pytest
 
-from credit_os.signal.feeds import MAX_BYTES, FeedError, parse_feed
+from credit_os.signal.feeds import (
+    MAX_ATTRIBUTES,
+    MAX_BYTES,
+    MAX_ELEMENTS,
+    MAX_NAMESPACE_CHARS,
+    FeedError,
+    parse_feed,
+)
 
 MiB = 1024 * 1024
 CEILING = 64 * MiB
@@ -48,10 +58,57 @@ def _items(unit: bytes) -> Callable[[int], bytes]:
 
 _URI256 = b"u:" + b"x" * 254
 
+
+def _numbered(pre: bytes, unit: Callable[[int], bytes], post: bytes, size: int) -> bytes:
+    """``pre``, ``unit(0)``, ``unit(1)`` ... as many as fit in ``size`` bytes, then ``post``."""
+    parts, room, n = [pre], size - len(pre) - len(post), 0
+    while len(piece := unit(n)) <= room:
+        parts.append(piece)
+        room -= len(piece)
+        n += 1
+    return b"".join([*parts, post])
+
+
+def _attribute_elements(
+    uri: bytes, per_element: int, count: int | None = None, size: int = MAX_BYTES
+) -> bytes:
+    """Elements of ``per_element`` attributes, all names different, in namespace ``uri``.
+
+    ``count`` elements, or as many as fit in ``size`` bytes.
+    """
+
+    def element(n: int) -> bytes:
+        names = (b' p:a%d=""' % (n * per_element + k) for k in range(per_element))
+        return b"<x" + b"".join(names) + b"/>"
+
+    pre, post = _D0 + b'<d xmlns:p="' + uri + b'">', b"</d>" + _D1
+    if count is None:
+        return _numbered(pre, element, post, size)
+    return pre + b"".join(map(element, range(count))) + post
+
+
+def _namespace(chars: int, unit: str = "u") -> bytes:
+    return ("u:" + unit * (chars - 2)).encode()
+
+
+def _distinct_elements(uri: bytes, count: int) -> bytes:
+    pre, post = _D0 + b'<d xmlns:p="' + uri + b'">', b"</d>" + _D1
+    return pre + b"".join(b"<p:e%d/>" % n for n in range(count)) + post
+
+
 CASES: dict[str, Callable[[int], bytes]] = {
     "html one tag with a million attributes": lambda s: _fill(_C0 + b"<a ", b"b ", b">" + _C1, s),
     "html unclosed tag with attributes": lambda s: _fill(_C0 + b"<a ", b"b=c ", _C1, s),
     "html unclosed comment": lambda s: _fill(_C0 + b"<!--", b"x", _C1, s),
+    "html quoted > then a million attributes": lambda s: _fill(
+        _C0 + b'<a x=">" ', b"b ", b">" + _C1, s
+    ),
+    "html single-quoted > then a million attributes": lambda s: _fill(
+        _C0 + b"<a x='>' ", b"b ", b">" + _C1, s
+    ),
+    "html unmatched quote then a million attributes": lambda s: _fill(
+        _C0 + b'<a x=" ', b"b ", b">" + _C1, s
+    ),
     "html angle brackets": lambda s: _fill(_C0, b"<", _C1, s),
     "html block tags": lambda s: _fill(_C0, b"<p>", _C1, s),
     "atom html title, one tag with a million attributes": lambda s: _fill(
@@ -85,8 +142,34 @@ CASES: dict[str, Callable[[int], bytes]] = {
     "empty items": _items(b"<item/>"),
     "items with an empty title": _items(b"<item><title/></item>"),
     "readable items": _items(b"<item><title>t</title><link>https://e.org/a</link></item>"),
-    "distinct element names": lambda s: _fill(_D0, b"<n/>", _D1, s),
-    "one element with the most attributes": lambda s: _fill(_D0 + b"<e", b' a=""', b"/>" + _D1, s),
+    "distinct element names": lambda s: _numbered(_D0, lambda n: b"<n%d/>" % n, _D1, s),
+    "one element with the most attributes": lambda s: _numbered(
+        _D0 + b"<e", lambda n: b' a%d=""' % n, b"/>" + _D1, s
+    ),
+    "namespace declarations on one element, all prefixes different": lambda s: _numbered(
+        _D0 + b"<d", lambda n: b' xmlns:p%d="u"' % n, b"/>" + _D1, s
+    ),
+    "256 distinct attributes on each element, 1 KiB namespace, half the body": lambda s: (
+        _attribute_elements(_namespace(1024), 256, size=s // 2)
+    ),
+    "256 distinct attributes on each element, namespace at the limit, half the body": lambda s: (
+        _attribute_elements(_namespace(MAX_NAMESPACE_CHARS), 256, size=s // 2)
+    ),
+    "256 distinct attributes on each element, 1 KiB namespace, whole body": lambda s: (
+        _attribute_elements(_namespace(1024), 256, size=s)
+    ),
+    "namespace of 64 Ki characters, 6 elements of 256 distinct attributes": lambda s: (
+        _attribute_elements(_namespace(65536), 256, 6)
+    ),
+    "namespace of 1 Mi characters, one element of 48 attributes": lambda s: _attribute_elements(
+        _namespace(1048576), 48, 1
+    ),
+    "namespace of 16 Ki astral characters, 1000 distinct elements": lambda s: _distinct_elements(
+        _namespace(16384, "\U0001f600"), 1000
+    ),
+    "namespace of 64 Ki astral characters, 266 elements": lambda s: _distinct_elements(
+        _namespace(65536, "\U0001f600"), 266
+    ),
     "title of 2-byte letters": lambda s: _fill(
         b'<rss version="2.0"><channel><item><link>https://e.org/a</link><title>',
         _LETTER,
@@ -95,6 +178,30 @@ CASES: dict[str, Callable[[int], bytes]] = {
     ),
     "description of 2-byte letters": lambda s: _fill(_D0, _LETTER, _D1, s),
     "text split by comments": lambda s: _fill(_D0, _LETTER + b"<!---->", _D1, s),
+}
+
+
+_TOO_MANY_ELEMENTS = f"feed has more than {MAX_ELEMENTS} elements"
+_TOO_MANY_ATTRIBUTES = f"feed has an element with more than {MAX_ATTRIBUTES} attributes"
+_LONG_NAMES = "feed element names are too long"  # MAX_NAME_CHARS
+_LONG_NAMESPACE = f"feed has a namespace URI of more than {MAX_NAMESPACE_CHARS} characters"
+# The cases that are refused, with the message of the constant that refuses them.
+REFUSED = {
+    "atom xhtml summary of small elements": _TOO_MANY_ELEMENTS,
+    "small elements": _TOO_MANY_ELEMENTS,
+    "small elements in the Atom namespace": _TOO_MANY_ELEMENTS,
+    "small elements in a 256-character namespace": _TOO_MANY_ELEMENTS,
+    "100 elements in a namespace that fills the body": _LONG_NAMESPACE,
+    "namespace URI and element count both grow": _LONG_NAMESPACE,
+    "empty items": _TOO_MANY_ELEMENTS,
+    "distinct element names": _LONG_NAMES,
+    "one element with the most attributes": _LONG_NAMES,
+    "namespace declarations on one element, all prefixes different": _LONG_NAMES,
+    "256 distinct attributes on each element, 1 KiB namespace, whole body": _LONG_NAMES,
+    "namespace of 64 Ki characters, 6 elements of 256 distinct attributes": _LONG_NAMESPACE,
+    "namespace of 1 Mi characters, one element of 48 attributes": _LONG_NAMESPACE,
+    "namespace of 16 Ki astral characters, 1000 distinct elements": _LONG_NAMESPACE,
+    "namespace of 64 Ki astral characters, 266 elements": _LONG_NAMESPACE,
 }
 
 
@@ -116,7 +223,11 @@ def test_the_peak_memory_of_a_hostile_body_stays_under_the_ceiling(name: str) ->
     body = CASES[name](MAX_BYTES)
     assert len(body) <= MAX_BYTES
     peak, result = _peak(body)
-    assert isinstance(result, list | FeedError)
+    if name in REFUSED:
+        assert isinstance(result, FeedError)
+        assert str(result) == REFUSED[name]
+    else:
+        assert isinstance(result, list), result
     assert peak < CEILING, f"{name}: {peak / MiB:.1f} MiB"
 
 
