@@ -50,11 +50,10 @@ def test_empty_redactors_leave_text_unchanged() -> None:
 @pytest.mark.parametrize("file", [redact.__file__, canned.__file__])
 def test_module_does_not_import_os(file: str | None) -> None:
     tree = ast.parse(Path(str(file)).read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            assert all(alias.name.split(".")[0] != "os" for alias in node.names)
-        if isinstance(node, ast.ImportFrom):
-            assert (node.module or "").split(".")[0] != "os"
+    nodes = list(ast.walk(tree))
+    names = [a.name for n in nodes if isinstance(n, ast.Import) for a in n.names]
+    names += [n.module or "" for n in nodes if isinstance(n, ast.ImportFrom)]
+    assert all(name.split(".")[0] != "os" for name in names)
 
 
 _VALUES = st.text(min_size=4).filter(lambda v: "[" not in v and "]" not in v and v not in key.MARK)

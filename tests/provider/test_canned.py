@@ -28,8 +28,8 @@ def _file(tmp_path: Path, *lines: dict[str, Any] | str) -> Path:
 
 @pytest.mark.parametrize("at", list(key.CANNED_REPLIES))
 def test_recorded_replies_match_key(at: tuple[str, int]) -> None:
-    model = canned_model("copilot-sol-medium", RECORDING)
-    assert dataclasses.asdict(_ask(model, at)) == key.CANNED_REPLIES[at]
+    reply = _ask(canned_model("copilot-sol-medium", RECORDING), at)
+    assert dataclasses.asdict(reply) == key.CANNED_REPLIES[at]
 
 
 def test_digits_kept_and_missing_count_not_zero() -> None:
@@ -127,6 +127,9 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     ('{"exchange_id":"e","exchange_id":"e"}', "duplicate key 'exchange_id'"),
     (_NUMBER, "NaN is not allowed in a JSON number"),
     (_NUMBER.replace("NaN", "-Infinity"), "-Infinity is not allowed in a JSON number"),
+    (_NUMBER.replace("NaN", "1e9999999999999999999999999"), "a number is out of range"),
+    (_NUMBER.replace("NaN", "1" * 19), "an integer has more than 18 digits"),
+    (_reply(kind="sent_usage", usage={}), _EXACTLY("usage", _USAGE_TEXT)),
     ("{not json", "not JSON: Expecting property name enclosed in double quotes"),
     ("[" * 100_000, "not JSON: nested too deeply"),
 ]
