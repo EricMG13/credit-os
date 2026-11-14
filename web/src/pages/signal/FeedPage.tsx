@@ -15,7 +15,7 @@ import { PageTitle } from "./parts/PageTitle";
 import { Pill } from "./parts/Pill";
 import { Tags } from "./parts/Tags";
 import type { SignalDigestCard, SignalFreshness, SignalScene, SignalStory } from "./slice";
-import { StoryCard } from "./StoryCard";
+import { StoryCard, type SignalSave } from "./StoryCard";
 
 export type FeedEntry =
   | { kind: "story"; story: SignalStory }
@@ -112,12 +112,14 @@ function EntryList({
   entries,
   scene,
   writer,
+  save,
   onShared,
   listRef,
 }: {
   entries: FeedEntry[];
   scene: SignalScene;
   writer: boolean;
+  save: SignalSave;
   onShared: () => void;
   listRef: Ref<HTMLDivElement>;
 }) {
@@ -134,6 +136,7 @@ function EntryList({
             story={entry.story}
             scene={scene}
             writer={writer}
+            save={save}
             onShared={onShared}
           />
         ) : (
@@ -152,6 +155,7 @@ export function FeedPage({
   startOn,
   switchable,
   writer,
+  save,
   loading,
   error,
   empty,
@@ -165,6 +169,8 @@ export function FeedPage({
   startOn: FeedOrder;
   switchable: boolean;
   writer: boolean;
+  /** The saved choice by story id, kept above the list so a filter does not forget it. */
+  save: SignalSave;
   /** The feed is still loading: the skeleton stands in for the list. */
   loading: boolean;
   error: "unreachable" | "request" | "unreadable" | null;
@@ -239,6 +245,7 @@ export function FeedPage({
           entries={shown}
           scene={scene}
           writer={writer}
+          save={save}
           onShared={() => {
             setShared(shared + 1);
           }}

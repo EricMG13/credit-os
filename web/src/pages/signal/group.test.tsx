@@ -235,6 +235,8 @@ describe("the group view", () => {
     if (first === undefined) throw new Error("reader has a first group");
     first.threads = [];
     reader.snapshot.threads = [];
+    // The channel list's badge goes with the threads (the reader refuses an unread count beside none).
+    for (const one of reader.snapshot.channels.groups) one.unread = null;
     for (const one of reader.snapshot.feed.stories)
       Object.assign(one, { threadRef: null, commentCount: null });
     show("/signal/reader/group/leveraged-credit", copy);

@@ -7,7 +7,7 @@ import { Link01, Users01, MessageSquare01, Plus } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Button } from "@/components/base/buttons/button";
 import { sceneHref } from "./SignalFrame";
-import { StoryCard } from "./StoryCard";
+import { StoryCard, type SignalSave } from "./StoryCard";
 import { ArchivedBadge } from "./parts/ArchivedBadge";
 import { Avatar } from "./parts/Avatar";
 import { AvatarGroup } from "./parts/AvatarGroup";
@@ -81,12 +81,14 @@ function Item({
   thread,
   story,
   writer,
+  save,
 }: {
   scene: SignalScene;
   group: SignalGroup;
   thread: SignalThreadSummary;
   story: SignalStory | null;
   writer: boolean;
+  save: SignalSave;
 }) {
   return (
     <li>
@@ -98,6 +100,7 @@ function Item({
           story={{ ...story, sharedBy: thread.sharedBy, commentCount: null }}
           scene={scene}
           writer={writer}
+          save={save}
           inGroup
         />
       )}
@@ -139,10 +142,12 @@ export function GroupPage({
   scene,
   group,
   writer,
+  save,
 }: {
   scene: SignalScene;
   group: SignalGroup;
   writer: boolean;
+  save: SignalSave;
 }) {
   const stories = new Map(scene.snapshot.feed.stories.map((s) => [s.id, s]));
   return (
@@ -180,6 +185,7 @@ export function GroupPage({
                 thread={thread}
                 story={story}
                 writer={writer}
+                save={save}
               />
             );
           })}

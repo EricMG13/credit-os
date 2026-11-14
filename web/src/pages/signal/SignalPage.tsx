@@ -9,6 +9,7 @@ import { SettingsPage } from "./SettingsPage";
 import { ThreadPanel } from "./ThreadPanel";
 import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
 import type { EmptyContext } from "./FeedStates";
+import type { SignalSave } from "./StoryCard";
 import { PageTitle } from "./parts/PageTitle";
 import { readSlice, type SignalFeedView, type SignalScene } from "./slice";
 
@@ -117,11 +118,13 @@ function Body({
   kind,
   params,
   follow,
+  save,
 }: {
   scene: SignalScene;
   kind: SignalPageKind;
   params: Record<string, string>;
   follow: SignalFollow;
+  save: SignalSave;
 }): {
   current: SignalCurrent;
   body: ReactNode;
@@ -160,6 +163,7 @@ function Body({
             startOn={id === "for-you" ? "top" : "latest"}
             switchable={id === "for-you"}
             writer={writer}
+            save={save}
             loading={scene.snapshot.feed.status === "loading"}
             error={scene.snapshot.feed.error}
             empty={emptyContext(scene, id, follow, writer)}
@@ -192,6 +196,7 @@ function Body({
             startOn="top"
             switchable
             writer={writer}
+            save={save}
             loading={scene.snapshot.feed.status === "loading"}
             error={scene.snapshot.feed.error}
             empty={emptyContext(scene, "topic", follow, writer)}
@@ -230,7 +235,7 @@ function Body({
         current: { kind: "group", id },
         body: (
           <>
-            <GroupPage key={group.id} scene={scene} group={group} writer={writer} />
+            <GroupPage key={group.id} scene={scene} group={group} writer={writer} save={save} />
             {thread === undefined ? null : (
               <ThreadPanel scene={scene} group={group} thread={thread} writer={writer} />
             )}
@@ -313,7 +318,7 @@ export function SignalPage({
   return <SceneView key={scene.id} scene={scene} kind={kind} params={params} />;
 }
 
-/** One scene's page: the follow state lives here, so the channel list and the page share it. */
+/** One scene's page: the follow and save state live here, so the channel list and every page share them. */
 function SceneView({
   scene,
   kind,
@@ -331,7 +336,14 @@ function SceneView({
       setChosen(new Map(chosen).set(topic.id, !(chosen.get(topic.id) ?? topic.followed)));
     },
   };
-  const { current, body } = Body({ scene, kind, params, follow });
+  const [saves, setSaves] = useState<ReadonlyMap<string, boolean>>(new Map());
+  const save: SignalSave = {
+    on: (story) => saves.get(story.id) ?? story.saved,
+    toggle: (story) => {
+      setSaves(new Map(saves).set(story.id, !(saves.get(story.id) ?? story.saved)));
+    },
+  };
+  const { current, body } = Body({ scene, kind, params, follow, save });
   return (
     <SignalFrame scene={scene} current={current} follow={follow}>
       {body}
