@@ -7,7 +7,13 @@ import { RunFrame } from "./parts/RunFrame";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
 
 type Json = Record<string, unknown>;
-type Run = Json & { head: Json; traces: Record<string, Json & { derivation: Json }> };
+type Run = Json & {
+  head: Json;
+  modules: unknown;
+  overview: unknown;
+  changes: unknown;
+  traces: Record<string, Json & { derivation: Json }>;
+};
 type Slice = { home: Json; issuers: (Json & { runs: Run[] })[] };
 
 const fixture = JSON.parse(
@@ -101,7 +107,21 @@ describe("RunFrame tabs", () => {
 
   it("draws Modules as disabled text when the run has no first module", () => {
     const slice = fresh();
-    (slice.issuers[0]?.runs[0] as Run).head["firstModule"] = null;
+    const run = slice.issuers[0]?.runs[0] as Run;
+    run.head["firstModule"] = null;
+    run.modules = [];
+    run.overview = {
+      ...(run.overview as Json),
+      modules: {
+        summary: "0 of 13 delivered",
+        items: [{ title: "Nothing", lead: "No module ran.", state: "Not run", module: null }],
+      },
+    };
+    run["changes"] = {
+      kind: "none",
+      title: "No earlier run to compare",
+      text: "This run has none.",
+    };
     renderFrame({ library: slice });
     expect(tabs().queryByRole("link", { name: /^Modules/ })).toBeNull();
     expect(tabs().getByText("Modules")).toHaveAttribute("aria-disabled", "true");
