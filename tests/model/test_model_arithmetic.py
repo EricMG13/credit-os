@@ -198,9 +198,29 @@ def test_half_unit_and_beyond_refuse_bad_amounts(bad: Any) -> None:
             call_()
 
 
-def test_beyond_rounding_refuses_an_inexact_difference() -> None:
-    with pytest.raises(decimal.Inexact):
-        beyond_rounding(Decimal(12345678901234567890123456789012345678), Decimal("0.1"))
+def test_beyond_rounding_does_not_refuse_a_long_difference() -> None:
+    assert beyond_rounding(Decimal(12345678901234567890123456789012345678), Decimal("0.1"))
+    assert beyond_rounding(Decimal(3), Decimal("0." + "3" * 38))
+
+
+def make(c: int, e: int) -> Decimal:
+    return Decimal((int(c < 0), tuple(map(int, str(abs(c)))), e))
+
+
+PARTS = st.tuples(st.integers(-(10**38) + 1, 10**38 - 1), st.integers(-60, 60))
+
+
+@settings(max_examples=200, deadline=None)
+@given(PARTS, PARTS, st.one_of(st.none(), st.lists(PARTS, max_size=3)))
+def test_beyond_rounding_matches_fractions(
+    a: tuple[int, int], b: tuple[int, int], printed: list[tuple[int, int]] | None
+) -> None:
+    stated, host = make(*a), make(*b)
+    exponents = [a[1], *([b[1]] if printed is None else [e for _, e in printed])]
+    limit = Fraction(1, 2) * Fraction(10) ** min(min(exponents), 0)
+    expected = abs(Fraction(stated) - Fraction(host)) > limit
+    shown = None if printed is None else [make(c, e) for c, e in printed]
+    assert beyond_rounding(stated, host, shown) is expected
 
 
 HOSTILE = [

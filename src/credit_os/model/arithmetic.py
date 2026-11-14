@@ -24,6 +24,20 @@ def _first_missing(operands: Iterable[Value]) -> Value | None:
     return next((item for item in operands if item.missing is not None), None)
 
 
+_MAX_SPREAD = 2_000_000
+
+
+def _integer_parts(amount: Decimal) -> tuple[int, int]:
+    """Signed coefficient and exponent of a finite Decimal as written."""
+    sign, digits, exponent = amount.as_tuple()
+    if not isinstance(exponent, int):
+        raise TypeError("amount exponent must be an int")
+    coefficient = 0
+    for digit in digits:
+        coefficient = coefficient * 10 + digit
+    return (-coefficient if sign else coefficient), exponent
+
+
 def _parts(value: Value) -> tuple[int, int]:
     """Signed integer coefficient and exponent of a present amount."""
     amount = value.amount
@@ -134,5 +148,11 @@ def beyond_rounding(
     place among `stated` and `printed` (`host` itself when `printed` is None)."""
     figures = _decimals((stated, host))
     places = (host,) if printed is None else _decimals(printed)
-    with decimal.localcontext(exact_context()):
-        return abs(figures[0] - figures[1]) > half_unit((stated, *places))
+    half = half_unit((stated, *places))
+    (c1, e1), (c2, e2), (ch, eh) = (_integer_parts(d) for d in (*figures, half))
+    floor = min(e1, e2, eh)
+    if max(e1, e2, eh) - floor > _MAX_SPREAD:
+        raise decimal.Overflow("exponents too far apart to compare exactly")
+    gap: int = abs(c1 * 10 ** (e1 - floor) - c2 * 10 ** (e2 - floor))
+    unit: int = ch * 10 ** (eh - floor)
+    return gap > unit
