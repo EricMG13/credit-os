@@ -89,6 +89,23 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   computed in this layer.
 - Paths are handled with `pathlib`; every rule above holds on Windows (CI runs both).
 
+**Amendments (coordinator, 2026-11-14; each is a test):**
+
+- **A reason per name rule.** `validate_name` says which rule refused the name: an empty or
+  dot segment or one that leaves the folder; a trailing dot or space; a reserved device name;
+  a forbidden character, named as `U+XXXX`; too long. The file name stays in the message.
+- **More names refused.** Private-use and unassigned characters (categories `Co`, `Cn`); a
+  segment that starts or ends with any space character (`Zs`, so U+3000 and U+00A0); `CLOCK$`
+  in any case, with or without a suffix. Key rows use noncharacters (U+FDD0, U+FFFE), which
+  are unassigned on every Python patch level; what counts as unassigned otherwise follows the
+  interpreter's Unicode table.
+- **Length.** A segment is at most 255 bytes in UTF-8 and a whole name at most 1,024 bytes;
+  a longer one is refused before any file system call.
+- **Kind.** The pin checks the first bytes only. Each reader proves the structure of its kind
+  and raises "unreadable" when it does not hold: a zip that is not a docx, an xlsx offered as a
+  docx, OLE or executable bytes offered as text or csv. The NUL refusal covers HTML as well as
+  csv and text.
+
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
 1. Fixtures are built in the tests from literal bytes: hand-written zips for docx and xlsx,
@@ -108,7 +125,9 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 
 | PR | Delivers |
 | :--- | :--- |
-| 1 | `SourcePin`, folder walk, capped read, path and kind rules, errors |
+| 1 | Errors, `SourcePin`, name and kind rules (#41) |
+| 1b | The amended name rules; capped read and path resolution (`files.py`); two PRs if together they pass 800 lines |
+| 1c | Folder walk |
 | 2 | Text, csv and HTML readers |
 | 3 | Zip and XML guards; xlsx reader |
 | 4 | docx reader |

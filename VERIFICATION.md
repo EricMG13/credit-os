@@ -3,6 +3,64 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 1A PR 2 and 1D PR 1
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with CI green
+on `ubuntu-latest`, `windows-latest` and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #41 | 1D PR 1 | `1158cea`, `046b56a` | Typed source errors, `SourcePin`, name and kind rules (427 lines) |
+| #42 | 1A PR 2 | `e08e547`, `9e66434` | Tables, paragraphs, list items, code blocks; equal-length code spans (789 lines) |
+| #45 | records | `9e6ec4e`, `8378d36` | The entry below and the 1C plan amendments |
+
+**Reviews.**
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #41 | `mx-precise`, and `mx-adversary` on the name rules (two fix rounds on the development branch, re-review pass) | 0 confirmed defects; 3 evidence gaps, ruled below | PASS on `076aefd`: High 0, Medium 0, Low 5, Info 4. A 21-line Low batch followed with no review round |
+| #42 | `mx-precise`: three tasks approved (task 1 one docs fix round) | no confirmed defect, 5 Info | FAIL on `4af30f8`: Medium 1, Low 2. Fixed in `e08e547`; scoped `mx-precise` re-review APPROVED, Medium closed |
+
+#42's Medium: a one-line bold paragraph directly above a table was removed from the blocks and
+kept only as the table's label, so a bold bottom line above a table would have lost its
+paragraph. The coordinator overruled the earlier label ruling: the parser removes no text. No
+table in the 27 fixtures has such a label; the rule rests on example tests.
+
+**Gates.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #41 on
+`1158cea`, #42 on `e08e547` (333 tests). Mutation on #41 (`mutmut`): 35 of 35 killed at
+`076aefd`, not rerun on `1158cea`, where a reviewer's harness of 39 hand mutants left none
+alive.
+
+**Ledger.**
+- `1A-2 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1A-2 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `1A-2 task=3 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1D-1 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n` (pins, name and kind rules,
+  capped read; the capped read is not in #41)
+- `1D-1 low batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
+
+Six of the nine task lines of phase 1 so far failed the gates on the first run, mostly on
+`ruff format` or `mypy` in the task's own tests. Briefs from here tell the implementer to run
+`ruff format` and `mypy` before the full gate.
+
+**Rulings by the coordinator.** The 1A grammar rules and the 1D name, length and kind rules are
+in their plans. 1D's evidence gaps: odd characters, edge spaces and `CLOCK$` are refused; names
+are capped in length; the pin stays signature-only and each reader proves its kind.
+
+**Parked Low findings.** 1A, riding with PR 3: `read_table` called with a label and no label
+line; the stray-pipe message names only spaces. 1D: none beyond the amendments.
+
+**Not verified.**
+- Table labels, escaped pipes and the stray-pipe refusal have no fixture; they rest on example
+  tests. Mutation strength of the refusal branch and the label-line plumbing was not measured.
+- Anything on a real Windows file system for 1D (reserved device names by CPython patch level,
+  over-long paths, the refused characters on NTFS): Windows evidence is the CI run only.
+- The whole-branch review of #41 read `076aefd`; the Low batch after it had no review round, by
+  rule. That of #42 read `4af30f8`; the fix was re-reviewed for the findings it fixed.
+- Reviewer probes live in git-ignored folders; that they were not edited rests on the
+  controllers' word and file times.
+- `npm --prefix web run gates` did not run for these pull requests; none changes a web file.
+
 ## 2026-11-14 Roadmap back end: phase 1 so far (1A PR 1, 1C PR 1) and Signal S-0
 
 Written by the back-end coordinator that replaced the first one after the credit outage of
