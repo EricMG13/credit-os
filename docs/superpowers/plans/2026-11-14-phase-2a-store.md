@@ -200,9 +200,9 @@ the CI version print; 1b (#169) the codecs; then 1c `location.py` (path rules), 
 PRs ahead, stacked; the key for a whole numbered PR is written before its first part; migration
 1 is never edited once merged. An interrupt during a write leaves as `StoreUnusable` (the
 owner: "Yes, document it"); a second path through the authorizer (`not authorized`) is accepted
-under the same answer. A whole-branch review that stops at a usage limit is rerun on `mx-
-architect` when the limit clears, never on another model. The errors-test additions (value-free
-messages, the literal-SQL scan, the hooks scan) and one POSIX row for
+under the same answer. A whole-branch review that stops at a usage limit is rerun on
+`mx-architect` when the limit clears, never on another model. The errors-test additions
+(value-free messages, the literal-SQL scan, the hooks scan) and one POSIX row for
 `prepare(kept/new/../alink)` go in a tests-only PR 1d-b, merged before 1e is ready. In 1d an
 interrupt that arrives while a body statement runs leaves as `StoreUnusable` with nothing
 committed; the owner chose to document and pin it, and a caller treats `StoreUnusable` as
