@@ -1,1 +1,121 @@
-{}
+{
+  "slice": {
+    "scenes": [
+      {
+        "id": "main",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
+              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
+              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
+              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": { "status": "ready", "error": null }
+        }
+      },
+      {
+        "id": "reader",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "reader", "roleLabel": "Reader" },
+          "channels": {
+            "topics": [
+              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
+              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
+              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
+              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": { "status": "ready", "error": null }
+        }
+      },
+      {
+        "id": "ai-on",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
+              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
+              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
+              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": true, "paused": false },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": false }
+            ],
+            "savedCount": "6"
+          },
+          "feed": { "status": "ready", "error": null }
+        }
+      },
+      {
+        "id": "no-name",
+        "snapshot": {
+          "viewer": { "name": null, "initials": null, "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              { "id": "shipping", "name": "Shipping", "count": "12", "followed": true },
+              { "id": "packaging", "name": "Packaging", "count": "8", "followed": true },
+              { "id": "telecoms", "name": "Telecoms", "count": "5", "followed": false },
+              { "id": "rating-actions", "name": "Rating actions", "count": "9", "followed": true }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": { "status": "loading", "error": null }
+        }
+      },
+      {
+        "id": "no-topics",
+        "snapshot": {
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": { "status": "ready", "error": null }
+        }
+      }
+    ]
+  }
+}
