@@ -796,7 +796,7 @@
                       "number": "03",
                       "lead": "Concentration is the main exposure",
                       "body": "Three customers bring 58% of revenue and one engine programme 34%. Its ramp has slipped twice.",
-                      "trace": "engine-programme"
+                      "trace": "bp-finding-3"
                     },
                     {
                       "number": "04",
@@ -1821,10 +1821,11 @@
                 { "id": "forecast", "name": "Forecast", "initials": "FC" },
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
-              "tabs": { "trace": "60", "sources": "9", "gaps": "7" },
+              "tabs": { "trace": "58", "sources": "9", "gaps": "7" },
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": null,
                 "columns": {
                   "id": "Item",
                   "item": "Statement",
@@ -2101,14 +2102,14 @@
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Row",
-                    "value": null,
+                    "value": { "kind": "withheld", "reason": null },
                     "sources": "1",
                     "calc": null,
                     "note": null
                   },
                   {
                     "id": "T-0053",
-                    "item": "Medium probability",
+                    "item": "Engine programme delay: Medium probability, high impact.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2119,7 +2120,7 @@
                   },
                   {
                     "id": "T-0054",
-                    "item": "Low probability",
+                    "item": "Loss of sole-source status: Low probability, high impact.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2130,7 +2131,7 @@
                   },
                   {
                     "id": "T-0055",
-                    "item": "Medium probability",
+                    "item": "Customer concentration: Medium probability, medium impact.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2141,7 +2142,7 @@
                   },
                   {
                     "id": "T-0056",
-                    "item": "High probability",
+                    "item": "Input cost inflation: High probability, low impact.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2152,7 +2153,7 @@
                   },
                   {
                     "id": "T-0057",
-                    "item": "Probability not recorded",
+                    "item": "Tariff exposure: Probability not recorded, medium impact.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2163,7 +2164,7 @@
                   },
                   {
                     "id": "T-0058",
-                    "item": "Below 40 a month",
+                    "item": "Engine deliveries per month: Below 40 for two quarters.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2174,7 +2175,7 @@
                   },
                   {
                     "id": "T-0059",
-                    "item": "Below 3%",
+                    "item": "Aftermarket price rise at renewal: Below 3%.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2185,7 +2186,7 @@
                   },
                   {
                     "id": "T-0060",
-                    "item": "Any top-ten part",
+                    "item": "Alternative parts certified: Any top-ten part.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2196,7 +2197,7 @@
                   },
                   {
                     "id": "T-0061",
-                    "item": "Below 55%",
+                    "item": "Aftermarket share of gross profit: Below 55%.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Row",
@@ -2371,41 +2372,19 @@
                     "note": null
                   },
                   {
-                    "id": "T-0113",
-                    "item": "Receivables facility withheld",
-                    "module": "Capital structure",
-                    "moduleId": "capital-structure",
-                    "kind": "Row",
-                    "value": { "kind": "withheld", "reason": null },
-                    "sources": "3",
-                    "calc": null,
-                    "note": null
-                  },
-                  {
                     "id": "T-0114",
-                    "item": "Gross debt USD 2,398m",
+                    "item": "Debt stack",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Chart",
                     "value": null,
                     "sources": "3",
-                    "calc": null,
-                    "note": null
-                  },
-                  {
-                    "id": "T-0115",
-                    "item": "Next maturity Mar 2028",
-                    "module": "Capital structure",
-                    "moduleId": "capital-structure",
-                    "kind": "Chart",
-                    "value": null,
-                    "sources": "4",
                     "calc": null,
                     "note": null
                   },
                   {
                     "id": "T-0116",
-                    "item": "Springing covenant 6.5x",
+                    "item": "Headroom against covenant and rating triggers",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Chart",
@@ -2416,7 +2395,7 @@
                   },
                   {
                     "id": "T-0117",
-                    "item": "Liquidity USD 412m",
+                    "item": "Liquidity walk, June to September 2026",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Chart",
@@ -2427,7 +2406,7 @@
                   },
                   {
                     "id": "T-0118",
-                    "item": "Five listed peers",
+                    "item": "Leverage and margin against peers",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Chart",
@@ -2438,7 +2417,7 @@
                   },
                   {
                     "id": "T-0119",
-                    "item": "Interest cover 2.4x",
+                    "item": "Interest cover against the peer range",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
                     "kind": "Chart",
@@ -2492,7 +2471,7 @@
                     "note": null
                   },
                   {
-                    "id": "G-04",
+                    "id": "T-0066",
                     "item": "Customer names and contract terms come from management presentations, not from contracts.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
@@ -2503,7 +2482,7 @@
                     "note": null
                   },
                   {
-                    "id": "G-05",
+                    "id": "G-04",
                     "item": "The share of revenue under cost pass-through clauses is not established for this run.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
@@ -2514,7 +2493,7 @@
                     "note": null
                   },
                   {
-                    "id": "G-11",
+                    "id": "G-02",
                     "item": "The hedge schedule was not among the files provided.",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
@@ -2528,7 +2507,7 @@
                     "note": null
                   },
                   {
-                    "id": "G-12",
+                    "id": "G-05",
                     "item": "The only source for the average cost of debt is marked confidential.",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
@@ -2539,7 +2518,7 @@
                     "note": null
                   },
                   {
-                    "id": "G-13",
+                    "id": "G-07",
                     "item": "The lease maturity schedule is not in the files, so leases appear in the stack but not by year.",
                     "module": "Capital structure",
                     "moduleId": "capital-structure",
@@ -2565,7 +2544,7 @@
                   },
                   {
                     "label": "Calculations",
-                    "value": { "kind": "value", "text": "60", "at": null },
+                    "value": { "kind": "value", "text": "58", "at": null },
                     "note": "Each one traceable to its inputs",
                     "trace": null
                   },
@@ -3160,6 +3139,21 @@
                 "qualification": null,
                 "evidenceItem": "T-0048"
               },
+              "bp-finding-3": {
+                "title": "Sources for the concentration finding",
+                "heading": "Three customers, 58% of revenue",
+                "subtitle": "Business profile · finding · as of 30 Sep 2026",
+                "statement": "Three customers bring 58% of revenue and one engine programme 34%.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Three customers, 58% of revenue",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0031"
+              },
               "bp-finding-4": {
                 "title": "Sources for the purchases",
                 "heading": "Four purchases since 2023",
@@ -3218,7 +3212,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "G-04"
+                "evidenceItem": "T-0066"
               },
               "bp-limit-2": {
                 "title": "Sources for the pass-through limitation",
@@ -3233,7 +3227,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "G-05"
+                "evidenceItem": "G-04"
               },
               "bp-risk-matrix": {
                 "title": "Sources for the risk matrix",
@@ -3537,12 +3531,12 @@
               },
               "cs-debt-stack": {
                 "title": "Sources for the debt stack in this module",
-                "heading": "Gross debt USD 2,398m",
+                "heading": "Debt stack",
                 "subtitle": "Capital structure · table · as of 30 Sep 2026",
                 "statement": "Gross debt of USD 2,398m at 30 September 2026 by rank, at face value, leases as reported.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Gross debt USD 2,398m",
+                  "value": "Debt stack",
                   "note": null,
                   "children": []
                 },
@@ -3552,27 +3546,27 @@
               },
               "cs-maturities": {
                 "title": "Sources for maturities in this module",
-                "heading": "Next maturity Mar 2028",
+                "heading": "Maturities by year",
                 "subtitle": "Capital structure · table · as of 30 Sep 2026",
                 "statement": "Debt falling due by calendar year; the lease schedule is not in the files.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Next maturity Mar 2028",
+                  "value": "Maturities by year",
                   "note": null,
                   "children": []
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "T-0115"
+                "evidenceItem": "T-0047"
               },
               "cs-headroom": {
                 "title": "Sources for headroom in this module",
-                "heading": "Springing covenant 6.5x",
+                "heading": "Headroom against covenant and rating triggers",
                 "subtitle": "Capital structure · table · as of 30 Sep 2026",
                 "statement": "Each covenant and rating trigger against where the issuer stands; the receivables facility test is withheld.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Springing covenant 6.5x",
+                  "value": "Headroom against covenant and rating triggers",
                   "note": null,
                   "children": []
                 },
@@ -3582,12 +3576,12 @@
               },
               "cs-liquidity-walk": {
                 "title": "Sources for the liquidity walk in this module",
-                "heading": "Liquidity USD 412m",
+                "heading": "Liquidity walk, June to September 2026",
                 "subtitle": "Capital structure · table · as of 30 Sep 2026",
                 "statement": "Liquidity of USD 455m at 30 June 2026 to USD 412m at 30 September 2026, by inflow and outflow.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Liquidity USD 412m",
+                  "value": "Liquidity walk, June to September 2026",
                   "note": null,
                   "children": []
                 },
@@ -3597,12 +3591,12 @@
               },
               "cs-peer-scatter": {
                 "title": "Sources for the peer scatter in this module",
-                "heading": "Five listed peers",
+                "heading": "Leverage and margin against peers",
                 "subtitle": "Capital structure · table · as of 30 Sep 2026",
                 "statement": "Net leverage and EBITDA margin of the issuer and five listed peers, latest financial year.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Five listed peers",
+                  "value": "Leverage and margin against peers",
                   "note": null,
                   "children": []
                 },
@@ -3612,12 +3606,12 @@
               },
               "cs-peer-range": {
                 "title": "Sources for the peer range in this module",
-                "heading": "Interest cover 2.4x",
+                "heading": "Interest cover against the peer range",
                 "subtitle": "Capital structure · table · as of 30 Sep 2026",
                 "statement": "Interest cover and secured leverage against the range of the listed peers.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Interest cover 2.4x",
+                  "value": "Interest cover against the peer range",
                   "note": null,
                   "children": []
                 },
@@ -3657,18 +3651,18 @@
               },
               "cs-receivables": {
                 "title": "Sources for the receivables facility",
-                "heading": "Receivables facility withheld",
+                "heading": "Receivables facility availability",
                 "subtitle": "Capital structure · term · as of 30 Sep 2026",
                 "statement": "The availability of the receivables facility is marked confidential in the source and delivery does not show it.",
                 "derivation": {
                   "label": "Result",
-                  "value": "Receivables facility withheld",
+                  "value": "Receivables facility availability",
                   "note": null,
                   "children": []
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "T-0113"
+                "evidenceItem": "T-0052"
               },
               "cs-bottom-line": {
                 "title": "Sources for the capital structure bottom line",
@@ -3713,7 +3707,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "G-11"
+                "evidenceItem": "G-02"
               },
               "cs-limit-cost": {
                 "title": "Sources for the cost of debt limitation",
@@ -3728,7 +3722,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "G-12"
+                "evidenceItem": "G-05"
               },
               "cs-limit-leases": {
                 "title": "Sources for the lease schedule limitation",
@@ -3743,7 +3737,7 @@
                 },
                 "excerpt": null,
                 "qualification": null,
-                "evidenceItem": "G-13"
+                "evidenceItem": "G-07"
               }
             }
           },
@@ -4389,6 +4383,7 @@
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.",
                 "columns": {
                   "id": "Item",
                   "item": "Statement",
@@ -4414,13 +4409,13 @@
                   {
                     "label": "Calculations",
                     "value": { "kind": "value", "text": "0", "at": null },
-                    "note": "Each one traceable to its inputs",
+                    "note": "Not traced item by item in this run",
                     "trace": null
                   },
                   {
                     "label": "Gaps",
                     "value": { "kind": "value", "text": "3", "at": null },
-                    "note": "1 high, 1 medium, 1 low",
+                    "note": "1 high, 2 medium",
                     "trace": null
                   }
                 ],
@@ -5222,6 +5217,7 @@
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
+                "emptyText": "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.",
                 "columns": {
                   "id": "Item",
                   "item": "Statement",
@@ -5247,7 +5243,7 @@
                   {
                     "label": "Calculations",
                     "value": { "kind": "value", "text": "0", "at": null },
-                    "note": "Each one traceable to its inputs",
+                    "note": "Not traced item by item in this run",
                     "trace": null
                   },
                   {

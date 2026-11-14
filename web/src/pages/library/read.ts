@@ -1502,18 +1502,24 @@ function readTraceTable(value: unknown, path: string, seats: Seats): TraceTable 
   const columnsPath = child(path, "columns");
   const heads = rec(own(t, "columns"), columnsPath);
   const rowsPath = child(path, "rows");
+  const rows = unique(
+    list(t, "rows", path, (item, p) => readTraceRow(item, p, seats)),
+    rowsPath,
+    (row) => row.id,
+    "id",
+  );
+  const emptyText = gradeOrNull(t, "emptyText", path);
+  if ((rows.length === 0) !== (emptyText !== null)) {
+    throw new SliceError(child(path, "emptyText"), "text exactly when the register holds no row");
+  }
   return {
     title: named(t, "title", path),
     description: named(t, "description", path),
+    emptyText,
     columns: Object.fromEntries(
       TRACE_HEADS.map((key) => [key, named(heads, key, columnsPath)]),
     ) as TraceTable["columns"],
-    rows: unique(
-      list(t, "rows", path, (item, p) => readTraceRow(item, p, seats)),
-      rowsPath,
-      (row) => row.id,
-      "id",
-    ),
+    rows,
   };
 }
 
@@ -1534,6 +1540,22 @@ function itemsHeld(traces: Traces, path: string, trace: TraceTable): void {
       throw new SliceError(child(child(path, key), "evidenceItem"), "a row id of evidence.trace");
     }
   }
+}
+
+/** A row whose id starts "G-" is a gap, and the Gaps tab holds it under that id, in the same module. */
+function gapsHeld(trace: TraceTable, gaps: GapTable, path: string): void {
+  const held = new Map(gaps.groups.flatMap((g) => g.rows).map((row) => [row.id, row.moduleId]));
+  trace.rows.forEach((row, i) => {
+    if (!row.id.startsWith("G-")) return;
+    const rowPath = nth(child(path, "rows"), i);
+    const moduleId = held.get(row.id);
+    if (moduleId === undefined) {
+      throw new SliceError(child(rowPath, "id"), "the id of a gap on the Gaps tab");
+    }
+    if (moduleId !== row.moduleId) {
+      throw new SliceError(child(rowPath, "moduleId"), "the module of that gap");
+    }
+  });
 }
 
 const GAP_SEVERITIES = Object.keys(STATUS_SETS["Gap severity"]) as GapSeverity[];
@@ -1627,19 +1649,21 @@ function readEvidence(value: unknown, path: string, traces: Traces, modules: Mod
   const seats: Seats = new Map(modules.map((m) => [m.id, m.name]));
   const trace = readTraceTable(own(e, "trace"), child(path, "trace"), seats);
   const gaps = readGapTable(own(e, "gaps"), child(path, "gaps"), seats);
+  const counted = {
+    trace: countsRows(tabs, "trace", tabsPath, trace.rows.length),
+    sources: named(tabs, "sources", tabsPath),
+    gaps: countsRows(
+      tabs,
+      "gaps",
+      tabsPath,
+      gaps.groups.reduce((n, g) => n + g.rows.length, 0),
+    ),
+  };
+  gapsHeld(trace, gaps, child(path, "trace"));
   return {
     intro: named(e, "intro", path),
     moduleFilter,
-    tabs: {
-      trace: countsRows(tabs, "trace", tabsPath, trace.rows.length),
-      sources: named(tabs, "sources", tabsPath),
-      gaps: countsRows(
-        tabs,
-        "gaps",
-        tabsPath,
-        gaps.groups.reduce((n, g) => n + g.rows.length, 0),
-      ),
-    },
+    tabs: counted,
     summary: readSummary(own(e, "summary"), child(path, "summary"), traces),
     sources: readSources(own(e, "sources"), child(path, "sources"), held),
     trace,

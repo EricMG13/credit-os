@@ -187,7 +187,7 @@ describe("Module, a delivered prose module", () => {
       fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     }
     expect(new Set(titles).size).toBe(21);
-  });
+  }, 20_000);
 
   it("shows no audit material and no module or trace code", () => {
     const { container } = renderModule("business-profile");

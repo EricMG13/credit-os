@@ -59,12 +59,7 @@ export function Evidence({
             return (
               <FilteredTab key="sources" run={loaded} issuer={issuerId} current="sources">
                 {(chosen, clear) => (
-                  <EvidenceSources
-                    sources={evidence.sources}
-                    module={chosen?.id ?? null}
-                    moduleName={chosen?.name ?? null}
-                    onClear={clear}
-                  />
+                  <EvidenceSources sources={evidence.sources} module={chosen} onClear={clear} />
                 )}
               </FilteredTab>
             );
@@ -76,8 +71,7 @@ export function Evidence({
                     key={item ?? ""}
                     table={evidence.trace}
                     count={evidence.tabs.trace}
-                    module={chosen?.id ?? null}
-                    moduleName={chosen?.name ?? null}
+                    module={chosen}
                     onClear={clear}
                     item={item ?? null}
                   />
@@ -91,8 +85,7 @@ export function Evidence({
                   <EvidenceGaps
                     table={evidence.gaps}
                     count={evidence.tabs.gaps}
-                    module={chosen?.id ?? null}
-                    moduleName={chosen?.name ?? null}
+                    module={chosen}
                     onClear={clear}
                     issuer={issuerId}
                     run={loaded.id}
