@@ -6,6 +6,7 @@ import type { Route } from "../route-table";
 import { AnalysisPage } from "./AnalysisPage";
 import { FrontPage } from "./FrontPage";
 import { LimitationsPage } from "./LimitationsPage";
+import { PortfolioFitPage } from "./PortfolioFitPage";
 import { RunsIndexPage } from "./RunsIndexPage";
 import { StatementsPage } from "./StatementsPage";
 
@@ -36,6 +37,12 @@ export const routes: readonly Route[] = [
     layout: "bleed",
     title: "Model",
     render: (params) => <StatementsPage params={params} />,
+  },
+  {
+    path: "/model/:issuer/:run/portfolio-fit",
+    layout: "bleed",
+    title: "Portfolio fit",
+    render: (params) => <PortfolioFitPage params={params} />,
   },
   {
     path: "/model/:issuer/:run/limitations",

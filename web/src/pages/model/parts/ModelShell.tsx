@@ -9,7 +9,7 @@ import type { ModelRun } from "../slice/types";
 import { ShowSources, ShowSourcesSwitch } from "./ShowSources";
 
 /** The Portfolio fit tab's label; the page's hidden heading takes its text from here. */
-const PORTFOLIO_FIT_LABEL = "Portfolio fit";
+export const PORTFOLIO_FIT_LABEL = "Portfolio fit";
 
 const TABS = [
   ["front", "Front page"],
