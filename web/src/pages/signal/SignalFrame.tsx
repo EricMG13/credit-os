@@ -161,19 +161,23 @@ function ChannelList({
         </ul>
       )}
       <Heading>Groups</Heading>
-      <ul>
-        {channels.groups.map((group) => (
-          <Row
-            key={group.id}
-            href={sceneHref(scene, `group/${group.id}`)}
-            icon={Users01}
-            on={isCurrent(current, "group", group.id)}
-            mark={group.unread === null ? undefined : <Count>{group.unread}</Count>}
-          >
-            {group.name}
-          </Row>
-        ))}
-      </ul>
+      {channels.groups.length === 0 ? (
+        <p className="px-2 py-2 text-sm text-text-tertiary">No groups yet</p>
+      ) : (
+        <ul>
+          {channels.groups.map((group) => (
+            <Row
+              key={group.id}
+              href={sceneHref(scene, `group/${group.id}`)}
+              icon={Users01}
+              on={isCurrent(current, "group", group.id)}
+              mark={group.unread === null ? undefined : <Count>{group.unread}</Count>}
+            >
+              {group.name}
+            </Row>
+          ))}
+        </ul>
+      )}
       <Heading>Digests</Heading>
       <ul>
         {channels.digests.map((digest) => (
@@ -272,7 +276,14 @@ export function SignalFrame({
   const [open, setOpen] = useState(viewer.name === null);
   const [said, setSaid] = useState("");
   const name = typed ?? viewer.name;
-  const initials = typed === null || typed === viewer.name ? viewer.initials : initialsOf(typed);
+  // A typed name with no letter or digit has no initials: the avatar draws "?" as it does with no name.
+  const typedInitials = typed === null ? "" : initialsOf(typed);
+  const initials =
+    typed === null || typed === viewer.name
+      ? viewer.initials
+      : typedInitials === ""
+        ? "?"
+        : typedInitials;
   return (
     <div className="flex h-full">
       <a

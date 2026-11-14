@@ -109,6 +109,16 @@ describe("the name dialog", () => {
     expect(chip()).toHaveTextContent(fixture.slice.scenes[0]?.snapshot.viewer.initials ?? "");
   });
 
+  it("draws ? for a name with no letter or digit, not an empty avatar", async () => {
+    show("no-name");
+    type("!!!");
+    click(screen.getByRole("button", { name: "Continue" }));
+    await gone();
+    expect(chip()).toHaveTextContent("!!!");
+    const avatar = chip().querySelector('[aria-hidden="true"]');
+    expect(avatar?.textContent).toBe("?");
+  });
+
   it("limits the field to 60 characters and states what the name is for on the chip", async () => {
     show("no-name");
     expect(field()).toHaveAttribute("maxlength", "60");
