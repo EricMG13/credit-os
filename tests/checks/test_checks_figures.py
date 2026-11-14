@@ -24,7 +24,9 @@ def test_iso_4217() -> None:
     assert frozenset(codes) == ISO_4217
 
 
-@pytest.mark.parametrize(("row", "side"), ROWS, ids=[f"{row['text']}|{side}" for row, side in ROWS])
+@pytest.mark.parametrize(
+    ("row", "side"), ROWS, ids=[f"row{index}-{side}" for index, (_, side) in enumerate(ROWS)]
+)
 def test_reader(row: dict[str, Any], side: str) -> None:
     read = read_figures(row["text"], passage=side == "passage")
     for figure in read:
@@ -176,7 +178,7 @@ _SLOW_LINES = [
 @pytest.mark.parametrize(
     "line",
     _SLOW_LINES,
-    ids=[f"line{index}-{len(line)}" for index, line in enumerate(_SLOW_LINES)],
+    ids=[f"line{index}" for index in range(len(_SLOW_LINES))],
 )
 def test_runs_in_bounded_time(line: str) -> None:
     for passage in (True, False):
