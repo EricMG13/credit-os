@@ -6,6 +6,7 @@ import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent, type SignalFollow } from "./SignalFrame";
 import { DigestPage } from "./DigestPage";
 import { GroupPage } from "./GroupPage";
+import { SettingsPage } from "./SettingsPage";
 import { ThreadPanel } from "./ThreadPanel";
 import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
 import type { EmptyContext } from "./FeedStates";
@@ -264,18 +265,18 @@ function Body({
       };
     }
     case "settings":
-      return { current: { kind: "settings" }, body: <NotBuilt title="Settings" /> };
+      return {
+        current: { kind: "settings" },
+        body: (
+          <SettingsPage
+            scene={scene}
+            section={param(params, "section")}
+            writer={writer}
+            state={(title) => <Empty title={title} />}
+          />
+        ),
+      };
   }
-}
-
-/** A page a later task builds: its title as the h1, then the empty state saying so. */
-function NotBuilt({ title }: { title: string }) {
-  return (
-    <>
-      <PageTitle>{title}</PageTitle>
-      <Empty title="Not built yet" />
-    </>
-  );
 }
 
 export function SignalPage({
