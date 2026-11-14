@@ -59,7 +59,7 @@ export function StatusShape({ shape }: { shape: Shape }) {
   const size = shape === "dashed ring" ? 12 : 10;
   return (
     <svg
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`0 0 ${String(size)} ${String(size)}`}
       width={size}
       height={size}
       aria-hidden="true"

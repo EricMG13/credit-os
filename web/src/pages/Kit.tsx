@@ -4,6 +4,7 @@ import type { IconProps } from "@/utils/is-react-component";
 import { Alert, Callout } from "@/components/alert/Alert";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/application/tabs/tabs";
 import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
@@ -19,6 +20,7 @@ import { Withheld } from "@/components/gap/Withheld";
 import { MetricCard } from "@/components/metric/MetricCard";
 import { Timeline } from "@/components/timeline/Timeline";
 import { KitInputSelect } from "@/pages/Kit7c";
+import { KitTableProgress } from "@/pages/Kit7d";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
@@ -195,11 +197,12 @@ export function Kit() {
           </div>
         ))}
         <div role="group" aria-label="Live run state" className="flex flex-col gap-3">
-          <h3 className="font-display text-h4 text-text-primary">Live run state</h3>
+          <h3 className="font-display text-h4 text-text-primary">Live run state only</h3>
           <Row>
             <StatusBadge set="Run states" state="Running" live />
           </Row>
           <div className="queued-shimmer w-64" />
+          <LoadingIndicator label="Waiting for the first module" />
         </div>
       </section>
 
@@ -376,6 +379,7 @@ export function Kit() {
       </section>
 
       <KitInputSelect />
+      <KitTableProgress />
 
       <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
         <h2 id="kit-trend-chart" className="font-display text-h2 text-text-primary">
