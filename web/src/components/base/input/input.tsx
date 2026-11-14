@@ -1,5 +1,4 @@
 import type { ComponentType, HTMLAttributes, ReactNode, Ref } from "react";
-import { InfoCircle } from "@untitledui/icons";
 import type { TextFieldProps as AriaTextFieldProps } from "react-aria-components";
 import {
   Group as AriaGroup,
@@ -8,6 +7,7 @@ import {
 } from "react-aria-components";
 import { HintText } from "@/components/base/input/hint-text";
 import { Label } from "@/components/base/input/label";
+import { StatusShape } from "@/components/status/shapes";
 import { cx } from "@/utils/cx";
 
 export interface InputProps extends AriaTextFieldProps {
@@ -87,17 +87,16 @@ export const Input = ({
               placeholder={placeholder}
               className={cx(
                 "m-0 w-full bg-transparent text-primary ring-0 outline-hidden placeholder:text-placeholder autofill:rounded-lg autofill:text-primary disabled:cursor-not-allowed",
-                cx("px-3 py-2 text-md", Icon && "pl-10", "pr-9"),
+                cx("px-3 py-2 text-md", Icon && "pl-10", isInvalid && "pr-9"),
               )}
             />
 
-            {/* Invalid icon */}
-            <InfoCircle
-              className={cx(
-                "pointer-events-none absolute hidden size-4 stroke-[2.25px] text-fg-error-secondary group-invalid/input:block",
-                "right-3",
-              )}
-            />
+            {/* Invalid mark: the Error status shape, in the error mark colour */}
+            {isInvalid && (
+              <span className="pointer-events-none absolute right-3 flex size-4 items-center justify-center text-error-mark">
+                <StatusShape shape="diamond" />
+              </span>
+            )}
           </AriaGroup>
 
           {hint && <HintText isInvalid={isInvalid}>{hint}</HintText>}

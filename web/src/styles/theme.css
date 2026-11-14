@@ -230,17 +230,15 @@
   --ring-color-secondary: var(--color-border-subtle);
   --border-color-secondary: var(--color-border-hairline);
 
-  /* Input and select: focus ring (the focus token), invalid ring (error edge at rest, error mark
-     focused), the placeholder, the error text and the icon colours, the popover's ring */
+  /* Input and select: focus ring (the focus token), invalid ring (error mark, at rest and focused: an edge on white needs 3:1), the placeholder, the error text and the icon colours, the popover's ring */
   --ring-color-brand: var(--color-focus);
   --ring-color-focus-ring: var(--color-focus);
   --ring-color-error: var(--color-error-mark);
-  --ring-color-error_subtle: var(--color-error-edge);
+  --ring-color-error_subtle: var(--color-error-mark);
   --ring-color-secondary_alt: var(--color-border-container);
   --text-color-placeholder: var(--color-text-tertiary);
   --text-color-error-primary: var(--color-error-text);
   --text-color-brand-tertiary: var(--color-action);
-  --text-color-fg-error-secondary: var(--color-error-mark);
   --text-color-fg-brand-primary: var(--color-action);
 
   /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */

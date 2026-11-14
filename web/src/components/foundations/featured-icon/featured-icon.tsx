@@ -4,7 +4,7 @@ import { cx } from "@/utils/cx";
 import { isReactComponent } from "@/utils/is-react-component";
 
 const iconsSizes = {
-  sm: "*:data-icon:size-4",
+  sm: "*:data-icon:size-4 *:data-icon:stroke-[2.25px]",
   lg: "*:data-icon:size-6",
   xl: "*:data-icon:size-7",
 };
