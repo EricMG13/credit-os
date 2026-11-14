@@ -17,6 +17,8 @@ def test_every_layer_imports() -> None:
         "checks",
         "orchestrator",
         "delivery",
+        "signal",
     )
+    assert frozenset({"signal"}) == credit_os.ISOLATED
     for name in credit_os.LAYERS:
         importlib.import_module(f"credit_os.{name}")

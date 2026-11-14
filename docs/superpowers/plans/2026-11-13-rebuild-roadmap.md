@@ -17,7 +17,7 @@ path and the legacy commit it was last adapted from.
 
 | Ported | Left behind |
 | :--- | :--- |
-| The method texts the live launcher sends (`cpos_launch.METHODS`): `docs/reuse/selected-methods` for 20 of 22 modules (CP-1's Deploy V skill since legacy `0f16bad`, see `docs/legacy/methodology-updates.md`), `prompts/CP-1.md`, and `src/deploy_vii/methods/cp8.md` and `cpl10.md` | Structured JSON-step runtime (`run_pathway`, `owner_workflow`, `financial_workflow`, `earnings_workflow`, `host`, `workflow`, `replay`, `research/`, `owners/cp*.py` except `cpos*.py` and `cp2g.py`), and the other `src/deploy_vii/methods` texts, which the launcher no longer sends |
+| The method texts the live launcher sends (`cpos_launch.METHODS`): `docs/reuse/selected-methods` for 20 of 22 modules (CP-1's Deploy V skill since legacy `0f16bad`, see `docs/legacy/methodology-updates.md`), `prompts/CP-1.md`, and `src/deploy_vii/methods/cp8.md` and `cpl10.md` | Structured JSON-step runtime (`run_pathway`, `owner_workflow`, `financial_workflow`, `earnings_workflow`, `host`, `workflow`, `replay`, `research/` (other than the part of `webfetch.py` carried for Signal, decision 0009), `owners/cp*.py` except `cpos*.py` and `cp2g.py`), and the other `src/deploy_vii/methods` texts, which the launcher no longer sends |
 | Handoff grammar and checks (`handoff_delivery`, `markdown_delivery`, `prose_checks`, `confidence`, `changes`, `changes_check`) | Direct OpenAI, Anthropic and OpenRouter transports (`providers.py`, `transport.py`) |
 | Decimal kernel (`src/deploy_vii/model/*`) and the forecast arithmetic (`owners/cp2g.py`, `cp2g.forecast`), with its readers `cpos_forecast`, `cpos_periods`, `cpos_facilities` | `model_testing/` except `configs.py`, `rendering.py`, `financial_rendering.py`, `cpos_status.py`, `deploy_vii/delivery.py`, `deploy_vii/inputs/` |
 | Run admission by hash chain (`library_index`) | Second front end (`deploy_vii/assets/app.js`), duplicated Markdown parsers |
@@ -59,17 +59,22 @@ written in the step's plan. A phase starts when the steps it depends on are merg
 **May run as parallel sub-sessions** (disjoint files, neither needs the other's result):
 0A with 0B; 1A with 1C with 1D; 2A with 2B; 3A with 3B. Everything else is sequential.
 
-Signal's back end is not in this roadmap. It is unmerged in the predecessor and gets its own
-plan once phase 4 is done. Its screens, and the design of every page in phases 4 and 5, belong
-to the [design track](2026-11-13-design-track.md) (decision 0003): those page steps build to
-its mocks and component kit.
+Signal's back end is ported now, on its own track beside the numbered phases (owner,
+2026-11-14, decision 0009; this replaces the earlier line that it would wait for phase 4). It
+touches only `src/credit_os/signal/` and its tests, depends on no phase and no phase depends
+on it. Its pull requests are S-0 (the decision record and the layer list) and then S-1 to
+S-11 as split in decision 0009, each within the line cap and under the rules below. Its
+screens, and the design of every page in phases 4 and 5, belong to the
+[design track](2026-11-13-design-track.md) (decision 0003): those page steps build to its
+mocks and component kit.
 
 **Pages are built once (coordinator, 2026-11-14, decision 0006).** Design steps D2b to D2e
 build every page from fixture data, each with a typed slice reader. Steps 4A, 4B to 4D, 5B
 and 5C therefore build no page: they make step 3B's delivery write what the slice readers
 accept, prove it on a real delivered folder, and change a reader only where delivery cannot
 supply a field (recorded as a departure). Step 3B's plan takes the slice types as its
-contract. Signal's pages (D2e) stay on fixture data until Signal's back end has its own plan.
+contract. Signal's pages (D2e) stay on fixture data until the Signal routes they read are merged
+(decision 0009); the predecessor's page is behaviour to match, not code to copy.
 
 ## Rules for every step
 
