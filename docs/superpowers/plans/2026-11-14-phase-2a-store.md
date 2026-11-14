@@ -193,13 +193,20 @@ Written by the controller before each task from invented values only. No databas
 | 5 | Migration 3 (deliveries); admission and its refusals; the admitted list |
 
 PR 1 is split to hold the 800-line cap: 1a (#162) the errors, the SQLite error mapping and
-the CI version print; 1b the codecs; 1c `open_store`, `open_reader` and the migration runner.
+the CI version print; 1b (#169) the codecs; then 1c `location.py` (path rules), 1d `txn.py`
+(the write transaction and the migration runner) and 1e `db.py` (open). 1c (#201) is merged.
+The errors-test additions (value-free messages, the literal-SQL scan, the hooks scan) and one
+POSIX row for `prepare(kept/new/../alink)` go in a tests-only PR 1d-b, merged before 1e is
+ready. In 1d an interrupt that arrives while a body statement runs leaves as `StoreUnusable`
+with nothing committed; the owner chose to document and pin it, and a caller treats
+`StoreUnusable` as ending its work. 1e's brief says where a store error message, which
+carries the operating system's text and so the folder path, may be shown or stored.
 
 Ruled by the controller in PR 1 and confirmed: a SQLite error maps by primary result code (5
 and 6 busy; 19 conflict; 11 and 26 corrupt; anything else unusable); an error message never
-contains the refused value, and PR 1c shows that SQLite's own constraint message carries no
-stored value or reduces it to the code's name; time accepts an `int` epoch (never a bool or
-float); detail integers fit 64 signed bits; money text is at most 64 characters and refused
+contains the refused value, and the PR that gives `store_error` its first caller shows that
+SQLite's own constraint message carries no stored value or reduces it to the code's name; a time is an aware datetime or epoch seconds as an `int` or
+float, never a bool; detail integers fit 64 signed bits; money text is at most 64 characters and refused
 before formatting beyond 64 digits or an exponent outside -62 to 63; an existing folder or
 file keeps its mode; the folder is absolute; the reader refuses a WAL file. The first layer
 that stores a `SourceError` keeps its notes and decides the form of the path in its message.

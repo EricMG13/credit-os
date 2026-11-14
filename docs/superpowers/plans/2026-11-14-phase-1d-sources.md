@@ -154,6 +154,11 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   in a cell is one space. HTML: the predecessor's tag lists; the reader holds a stated
   peak-memory bound by a committed `tracemalloc` test, with a lower size cap for HTML if the
   bound needs one; it is its own PR 2b with an adversarial review.
+- **PR 2 (#161) is merged.** Carried to PR 2b-1, key rows first: the two mutation survivors
+  that are not equivalent (`cut_stream`'s inner `>=`; `held = 1` in `csv_pages`, a row cap lower
+  by one after the first row) and an independent reference for `test_cut_stream_property`. A
+  memory test states, for each shape, which class of wrong reader it must fail. For 3A: a csv
+  of blank rows takes about 1.4 s per MiB and no time bound is stated.
 - **Ruled for PR 2's first task.** An `OSError` without `strerror` gives `cannot read` with
   the error's class name, not `(None)`, failing test first; the comment in `source_path`
   says, as the walk's docstring does, that no digest exists when a pin is created.

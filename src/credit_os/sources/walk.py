@@ -9,7 +9,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from credit_os.sources.errors import SourceRefused, SourceUnreadable, shown_name
+from credit_os.sources.errors import SourceRefused, SourceUnreadable, reason_of, shown_name
 from credit_os.sources.files import read_capped, source_path
 from credit_os.sources.pins import SourceKind, SourcePin, check_kind, kind_of, validate_name
 
@@ -77,7 +77,7 @@ def _written(name: str) -> str:
 def _cannot_list(folder: Path, prefix: str, error: OSError) -> SourceUnreadable:
     """The typed error for a directory that cannot be listed (its name is already valid)."""
     shown = folder / prefix[:-1] if prefix else folder
-    return SourceUnreadable(f"{shown}: cannot list ({error.strerror or error})")
+    return SourceUnreadable(f"{shown}: cannot list ({reason_of(error)})")
 
 
 def _listing(folder: Path, directory: Path, prefix: str) -> list[os.DirEntry[str]]:

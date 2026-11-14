@@ -30,19 +30,35 @@ def _block_lines(block: Paragraph | ListItem) -> Iterable[Line]:
         yield Line(line=block.line + offset, text=block.lines[offset])
 
 
-def _section_lines(section: Section, skipped: frozenset[int]) -> Iterable[Line]:
+def _walk(section: Section, skipped: frozenset[int]) -> Iterable[Paragraph | ListItem]:
     if section.line in skipped:
         return
     for block in section.blocks:
         if isinstance(block, Paragraph | ListItem):
-            yield from _block_lines(block)
+            yield block
     for child in section.sections:
-        yield from _section_lines(child, skipped)
+        yield from _walk(child, skipped)
+
+
+def section_blocks(document: HandoffDocument, section: Section) -> Iterable[Paragraph | ListItem]:
+    """The paragraphs and list items of `section`, nested sections included, data sections
+    (found by heading line) and what is under them excluded, in file order."""
+    skipped = frozenset(found.section.line for found in read_data_sections(document))
+    return _walk(section, skipped)
 
 
 def _sentence_text(document: HandoffDocument, sections: tuple[Section, ...]) -> tuple[Line, ...]:
-    skipped = frozenset(found.section.line for found in read_data_sections(document))
-    return tuple(line for section in sections for line in _section_lines(section, skipped))
+    return tuple(
+        line
+        for section in sections
+        for block in section_blocks(document, section)
+        for line in _block_lines(block)
+    )
+
+
+def sentence_text(document: HandoffDocument, section: Section) -> tuple[Line, ...]:
+    """The sentence text of one section of `document`, nested sections included."""
+    return _sentence_text(document, (section,))
 
 
 def shown_text(document: HandoffDocument) -> tuple[Line, ...]:

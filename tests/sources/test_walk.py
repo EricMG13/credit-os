@@ -518,6 +518,19 @@ def test_listing_failure_without_strerror(tmp_path: Path, monkeypatch: pytest.Mo
     assert _refusal(tmp_path, SourceUnreadable) == f"{tmp_path}: cannot list (text)"
 
 
+def test_listing_failure_without_any_text(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    failure = OSError()
+
+    def fail(path: object) -> object:
+        raise failure
+
+    monkeypatch.setattr(os, "scandir", fail)
+    with pytest.raises(SourceUnreadable) as caught:
+        pin_folder(tmp_path)
+    assert str(caught.value) == f"{tmp_path}: cannot list (OSError)"
+    assert caught.value.__cause__ is failure
+
+
 _ENTRY_FAILURE = OSError(errno.EACCES, "synthetic")
 
 
@@ -590,23 +603,29 @@ def test_unlistable_directory(
 def test_public_surface() -> None:
     expected = [
         "MAX_BYTES",
+        "Page",
         "PinnedFolder",
         "SUFFIX_KINDS",
         "Skipped",
         "SourceChanged",
         "SourceError",
         "SourceKind",
+        "SourcePages",
         "SourcePin",
         "SourceRefused",
         "SourceTooLarge",
         "SourceUnreadable",
         "check_kind",
+        "csv_pages",
+        "cut_pages",
+        "cut_stream",
         "kind_of",
         "pin_folder",
         "read_capped",
         "read_pinned",
         "refuse_case_collisions",
         "source_path",
+        "text_pages",
         "validate_name",
     ]
     assert sorted(sources.__all__) == expected
