@@ -76,6 +76,16 @@ def test_values_kept_exact() -> None:
         (["---", "1a: x", "---"], 2, NOT_KV),
         (["---", "# note", "---"], 2, NOT_KV),
         (["---", "a: 1", "b: 2", "a: 3", "---"], 4, "front matter key `a` is repeated"),
+        (
+            ["---", "k" * 81 + ": 1", "k" * 81 + ": 2", "---"],
+            3,
+            "front matter key `" + "k" * 80 + "\u2026` is repeated",
+        ),
+        (
+            ["---", "k" * 80 + ": 1", "k" * 80 + ": 2", "---"],
+            3,
+            "front matter key `" + "k" * 80 + "` is repeated",
+        ),
     ],
 )
 def test_refusals(lines: list[str], line: int, message: str) -> None:
