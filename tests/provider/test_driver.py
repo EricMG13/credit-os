@@ -35,7 +35,7 @@ def _run(given: dict[str, Any]) -> tuple[Reply, Fake, CopilotDriver]:
         driver.close()
     if case["before"] == "same":
         _complete(driver, case)
-    fake.steps.clear()
+    fake.steps, fake.opened, fake.sent = [], {}, None
     return _complete(driver, case), fake, driver
 
 
@@ -48,24 +48,19 @@ def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
     )
     charge = None if reply.billed_usd is None else format(reply.billed_usd, "f")
     usage = None if want["usage"] is None else Usage(*want["usage"])
-    fields = (
-        reply.kind,
-        reply.error_class,
-        reply.usage,
-        charge,
-        reply.started_at,
-        reply.finished_at,
-    )
-    assert fields == (
+    got = (reply.kind, reply.error_class, reply.usage, charge, reply.started_at, reply.finished_at)
+    assert got == (
         *map(want.get, ("kind", "error_class")),
         usage,
         *map(want.get, ("charge", "started", "finished")),
     )
-    if "absent" not in want:
-        assert reply.message == (
-            parser.message if want["message"] is key.PARSER else want["message"]
-        )
+    exact = want["message"] is not key.PARSER
+    if exact or "absent" not in want:
+        assert reply.message == (want["message"] if exact else parser.message)
     assert tuple(fake.steps) == want["calls"]
+    if "open_session" in want["calls"]:
+        assert fake.opened == {**key.SESSION_ARGS, "system": want.get("system", "You are careful.")}
+    assert fake.sent == (key.PROMPT if "send" in want["calls"] else None)
     assert all(fake.bounds[s] == v for s, v in want.get("bounds", {}).items())
     assert reply.compactions == ()
     _check_turn(reply, want["turn"])
@@ -82,10 +77,12 @@ def _check_turn(reply: Reply, turn: Any) -> None:
 
 def _check_raw(reply: Reply, want: dict[str, Any], case: dict[str, Any]) -> None:
     assert type(reply.raw) is (type(None) if want["kind"] == "not_sent" else bytes)
-    if reply.raw is not None and "absent" in want:
-        shown = (reply.raw.decode() + (reply.message or "")).lower()
-        assert not [a for a in want["absent"] if a.lower() in shown]
-        assert len(json.loads(reply.raw)) == len(case["script"])
+    if reply.raw is not None:
+        assert reply.raw == json.dumps(json.loads(reply.raw), separators=(",", ":")).encode()
+        if "absent" in want:
+            shown = (reply.raw.decode() + (reply.message or "")).lower()
+            assert not [a for a in want["absent"] if a.lower() in shown]
+            assert len(json.loads(reply.raw)) == len(case["script"])
 
 
 @pytest.mark.parametrize("raw", key.UNREADABLE_RAW)
@@ -107,3 +104,13 @@ def test_close_releases_the_kept_session_once() -> None:
     assert (reply.kind, driver.close(), tuple(fake.steps)) == ("ok", (), key._RELEASE)
     fake.steps.clear()
     assert (driver.close(), fake.steps) == ((), [])
+
+
+def test_an_exception_that_cannot_print_is_named_by_class_only() -> None:
+    def open_client() -> Any:
+        raise type("Odd", (Exception,), {"__str__": lambda _: 1 / 0})
+
+    driver = CopilotDriver(
+        open_client, config_id="c", model=key.MODEL, environ=key.ENVIRON, home="/h", clock=lambda: 0
+    )
+    assert _complete(driver, key.DEFAULTS).message == "open_client failed: Odd: <unprintable>"

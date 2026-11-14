@@ -24,12 +24,12 @@ _IDLE_OUT = "no session event within the idle timeout"
 _OVERALL_OUT = "the call passed its overall timeout"
 _NO_ID = "an exchange id is 1 to 128 of A-Z a-z 0-9 _ -"
 _NO_TOOLS = "tool specifications are not supported yet"
-_NO_INDEX = "a call index above 0 is not supported yet"
+_NO_INDEX = "a call index other than 0 is not supported yet"
 _NO_HISTORY = "a first call is system messages, then exactly one user message"
 _NO_REUSE = "the exchange is already open or was released"
 _NO_KEY = "COPILOT_GITHUB_TOKEN is not set"
 _NO_RUNTIME = "COPILOT_CLI_PATH is not set"
-_Problem = tuple[str, str, bool]  # (error class, message, whether it is a timeout)
+_Problem = tuple[str, str, bool]  # (error class, message, whether to abort before release)
 
 
 class _Refused(Exception):
@@ -49,7 +49,8 @@ def _try(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[Any, Except
 def _failure(step: str, exc: Exception) -> str:
     if isinstance(exc, TimeoutError):
         return f"{step} timed out"
-    return f"{step} failed: {type(exc).__name__}: {exc}"
+    text, unprintable = _try(str, exc)  # a __str__ that raises: the class still tells enough
+    return f"{step} failed: {type(exc).__name__}: {'<unprintable>' if unprintable else text}"
 
 
 def _send_problem(exc: Exception) -> _Problem:
@@ -81,8 +82,9 @@ def scrub_raw(raw: bytes, redact: Callable[[str], str]) -> bytes:
 def _path_forms(values: list[str]) -> set[str]:
     forms = set()
     for v in values:
-        for s in (v, v.replace("\\", "/"), v.replace("/", "\\")):
-            forms |= {c for c in (s, s.lower(), s.upper()) if len(c) > 3}
+        for b in (v, v.rstrip("/\\")):  # with and without trailing separators
+            for s in (b, b.replace("\\", "/"), b.replace("/", "\\")):
+                forms |= {c for c in (s, s.lower(), s.upper()) if len(c) > 3}
     return forms
 
 
@@ -120,7 +122,8 @@ class CopilotDriver:
         self._bounds = dict(zip(steps, (*waits, stop_timeout_s, force_stop_timeout_s)))
         self.config_id = config_id
         self._tokens = Redactor.from_environ(environ)
-        self._paths = Redactor(_path_forms([home, environ.get("COPILOT_CLI_PATH", "")]))
+        forms = _path_forms([home, environ.get("COPILOT_CLI_PATH", "")])
+        self._paths, self._longest = Redactor(forms), max(map(len, forms), default=0)
         self._used: set[str] = set()
         self._kept: list[tuple[ClientLike, SessionLike]] = []
         self._closed = False
@@ -149,7 +152,7 @@ class CopilotDriver:
             (self._closed, "AdapterClosed", "the model is closed"),
             (not _EXCHANGE.fullmatch(exchange_id), "InvalidExchangeId", _NO_ID),
             (bool(request.tools), "UnsupportedCall", _NO_TOOLS),
-            (call_index > 0, "UnsupportedCall", _NO_INDEX),
+            (call_index != 0, "UnsupportedCall", _NO_INDEX),
             (not history, "HistoryMismatch", _NO_HISTORY),
             (exchange_id in self._used, "ExchangeExists", _NO_REUSE),
             (not env.get("COPILOT_GITHUB_TOKEN", "").strip(), "KeyMissing", _NO_KEY),
@@ -209,16 +212,15 @@ class CopilotDriver:
             self._kept.append((client, session))
         else:
             self._release(client, session, timed_out=bool(problem and problem[2]))
-        message = None if reply.message is None else self._text(reply.message)[:500]
+        message = reply.message and self._text(reply.message, problem is None)[:500]
         raw = None if reply.raw is None else scrub_raw(reply.raw, self._text)
         return replace(reply, message=message, raw=raw, started_at=started, finished_at=finished)
 
     def _collect(self, session: SessionLike, end: float, events: list[Any]) -> _Problem | None:
-        while True:
-            left = self._left(end)
+        while (left := self._left(end)) > 0:  # the overall bound is checked before every poll
             envelope, exc = _try(session.next_event, timeout_s=min(self._idle, left))
             if exc is not None and not isinstance(exc, TimeoutError):
-                return "AdapterError", _failure("next_event", exc), False
+                return "AdapterError", _failure("next_event", exc), True
             if envelope is None:
                 if left <= self._idle:
                     return "OverallTimeout", _OVERALL_OUT, True
@@ -226,10 +228,11 @@ class CopilotDriver:
             events.append(envelope)
             if not isinstance(envelope, dict) or envelope.get("type") in _ENDS:
                 return None
+        return "OverallTimeout", _OVERALL_OUT, True
 
     def _reply(self, events: list[Any], problem: _Problem | None) -> Reply:
         reply = reply_from_events(events, model=self._model, redactor=self._tokens)
-        sub_agent = any(isinstance(e, dict) and e.get("agentId") for e in events)
+        sub_agent = any(isinstance(e, dict) and e.get("agentId") is not None for e in events)
         if problem is None and reply.kind == "ok" and sub_agent:
             problem = "SubAgentEvent", "an event came from a sub-agent", False
         if problem is None:
@@ -259,5 +262,8 @@ class CopilotDriver:
             _log.warning("release step %s failed: %s", name, type(exc).__name__)
         return exc is None
 
-    def _text(self, value: str) -> str:
-        return home_paths(self._paths.text(self._tokens.text(value)))
+    def _text(self, value: str, parsed: bool = False) -> str:
+        text = home_paths(self._paths.text(self._tokens.text(value)))
+        if parsed and len(value) >= 500:  # the parser's 500 cut may halve a path: drop its length
+            text = text[: max(0, len(text) - self._longest)]
+        return text

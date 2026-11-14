@@ -12,14 +12,17 @@ class Fake:
         self.case, self.now = case, T0
         self.steps: list[str] = []
         self.bounds: dict[str, float] = {}
+        self.opened: dict[str, Any] = {}
+        self.sent: str | None = None
         self.script: list[object] = list(case["script"])
 
     def clock(self) -> float:
         return self.now
 
-    def step(self, name: str, timeout_s: float = 0) -> "Fake":
-        self.steps.append(name)
-        self.bounds[name] = timeout_s
+    def step(self, name: str, timeout_s: float = 0, *, seen: bool = True) -> "Fake":
+        if seen:
+            self.steps.append(name)
+            self.bounds[name] = timeout_s
         fail = self.case["fail"].get(name)
         if fail == "timeout":
             self.now += timeout_s
@@ -38,10 +41,12 @@ class Fake:
     def list_models(self, *, timeout_s: float) -> object:
         return self.step("list_models", timeout_s).case["models"]
 
-    def open_session(self, *, timeout_s: float, **_: str) -> "Fake":
+    def open_session(self, *, timeout_s: float, **given: Any) -> "Fake":
+        self.opened = given
         return self.step("open_session", timeout_s)
 
     def send(self, prompt: str, *, timeout_s: float) -> None:
+        self.sent = prompt
         self.step("send", timeout_s)
 
     def queued(self, *, timeout_s: float) -> object:
@@ -60,15 +65,18 @@ class Fake:
         self.step("force_stop", timeout_s)
 
     def next_event(self, *, timeout_s: float) -> object | None:
-        head: Any = self.script[0] if self.script else None
-        if type(head) is tuple:
-            if head[1] >= timeout_s:
-                self.now += timeout_s
-                self.script[0] = ("tick", head[1] - timeout_s)
-                return None
-            self.now += head[1]
+        self.step("next_event", timeout_s, seen=False)
+        waited = 0.0
+        while self.script and type(self.script[0]) is tuple:
+            gap = self.script[0][1]
+            if waited + gap >= timeout_s:  # the bound ends inside this tick
+                self.script[0] = ("tick", waited + gap - timeout_s)
+                break
+            waited += gap
             self.script.pop(0)
-        if self.script:
-            return self.script.pop(0)
+        else:
+            if self.script:
+                self.now += waited
+                return self.script.pop(0)
         self.now += timeout_s
         return None
