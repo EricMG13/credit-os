@@ -38,21 +38,21 @@ _NONE = {**_NOT_TIMED, "compactions": ()}
 # Two context compactions reported during one call. Each keeps its own counts and its own
 # charge; the second charge could not be read. Neither is added to the reply's billed_usd.
 _COMPACTION_USAGE_1 = {
-    "input_tokens": 242004,
-    "cached_read_tokens": 240831,
-    "cache_write_tokens": 1098,
-    "output_tokens": 7266,
+    "input_tokens": 177475,
+    "cached_read_tokens": 176500,
+    "cache_write_tokens": 900,
+    "output_tokens": 5200,
     "reasoning_tokens": None,
 }
 _COMPACTION_USAGE_2 = {
     "input_tokens": None,
     "cached_read_tokens": None,
     "cache_write_tokens": None,
-    "output_tokens": 8928,
+    "output_tokens": 6100,
     "reasoning_tokens": None,
 }
 _COMPACTIONS = (
-    {"usage": _COMPACTION_USAGE_1, "billed_usd": Decimal("0.0240831")},
+    {"usage": _COMPACTION_USAGE_1, "billed_usd": Decimal("0.0214050")},
     {"usage": _COMPACTION_USAGE_2, "billed_usd": None},
 )
 
@@ -70,7 +70,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
         "error_class": None,
         "message": None,
         "usage": _USAGE_1,
-        "billed_usd": Decimal("0.0996381"),
+        "billed_usd": Decimal("0.07319425613"),
         **_NOT_TIMED,
         "compactions": _COMPACTIONS,
     },
@@ -116,7 +116,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
         "error_class": "IdleTimeout",
         "message": None,
         "usage": _USAGE_3,
-        "billed_usd": Decimal("0.1112661"),
+        "billed_usd": Decimal("0.1305870"),
         **_NOT_TIMED,
         "compactions": _COMPACTIONS[:1],
     },
@@ -132,13 +132,13 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
 }
 
 # Decimal == ignores trailing zeros, so the digits are also compared as text.
-CANNED_BILLED_TEXT = {("cp1-synthetic", 0): "0.0996381", ("cp2-synthetic", 1): "0.1112661"}
+CANNED_BILLED_TEXT = {("cp1-synthetic", 0): "0.07319425613", ("cp2-synthetic", 1): "0.1305870"}
 CANNED_SCALE_TEXT = "1.50"  # arguments["scale"] of ("cp1-synthetic", 1)
 # str(c.billed_usd) for each compaction of a reply, None where the charge is unknown. The
 # reply's own billed_usd (CANNED_BILLED_TEXT) is the call's charge only: nothing is summed.
 CANNED_COMPACTION_BILLED_TEXT: dict[tuple[str, int], tuple[str | None, ...]] = {
-    ("cp1-synthetic", 0): ("0.0240831", None),
-    ("cp2-synthetic", 1): ("0.0240831",),
+    ("cp1-synthetic", 0): ("0.0214050", None),
+    ("cp2-synthetic", 1): ("0.0214050",),
 }
 
 # A request the recording has no reply for: complete() raises, never a default reply.
@@ -174,7 +174,7 @@ _ERR: dict[str, Any] = {
     "billed_usd": None,
     "compactions": [],
 }
-_COMPACTION: dict[str, Any] = {"usage": dict(_USAGE_3), "billed_usd": "0.0240831"}
+_COMPACTION: dict[str, Any] = {"usage": dict(_USAGE_3), "billed_usd": "0.0214050"}
 _CALL = {"call_id": "c", "name": "n", "arguments": {}}
 # A charge is read only from plain ASCII digits with an optional fraction: no sign, space,
 # underscore, exponent, leading zero or other digit script, and never from a JSON number.
@@ -190,6 +190,7 @@ _BAD_CHARGES = (
     "1.",
     ".5",
     "1\n",
+    "1\u0661",
     "",
     1,
 )
