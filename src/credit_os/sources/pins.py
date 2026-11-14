@@ -37,6 +37,8 @@ SUFFIX_KINDS: Mapping[str, SourceKind] = MappingProxyType(
 )
 
 _REFUSED_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Zl", "Zp", "Co", "Cn"})
+# Explicit forbidden characters: Windows-reserved punctuation, slash look-alikes, invisible fillers.
+_FORBIDDEN_CHARACTERS = frozenset('\\:<>"|?*\u2044\u2215\u2571\uff0f\u115f\u1160\u3164\uffa0')
 _PDF_SIGNATURE = b"%PDF-"
 _ZIP_SIGNATURE = b"PK\x03\x04"
 _MAX_NAME_BYTES = 1024
@@ -44,7 +46,7 @@ _MAX_SEGMENT_BYTES = 255
 
 
 def _bad_character(char: str) -> bool:
-    return char in '\\:<>"|?*' or unicodedata.category(char) in _REFUSED_CATEGORIES
+    return char in _FORBIDDEN_CHARACTERS or unicodedata.category(char) in _REFUSED_CATEGORIES
 
 
 def _segment_reason(segment: str) -> str | None:
