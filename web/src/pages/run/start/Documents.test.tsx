@@ -1,21 +1,7 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
+import { screen, within } from "@testing-library/react";
+import { runFixture, show } from "../test-helpers";
 
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: { drafts: { id: string; files?: { name: string }[] }[] } };
-
-function show(hash: string, run: unknown) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = { kind: "ok", data: { schema: "credit-os-data/1", issuers: [], run } };
-  return render(<App result={result} />);
-}
-afterEach(() => {
-  window.location.hash = "";
-});
+const fixture = runFixture() as { slice: { drafts: { id: string; files?: { name: string }[] }[] } };
 
 const REASON =
   "Not available here: this page shows a saved example and is not connected to the run service.";

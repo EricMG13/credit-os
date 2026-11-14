@@ -1,31 +1,17 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { fixture, show, showFixture } from "../test-helpers";
 
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: unknown };
-
-function show(hash: string, run: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], run },
-  };
-  return render(<App result={result} />);
-}
 afterEach(() => {
   cleanup();
-  window.location.hash = "";
 });
 
 const SUBMIT = "Submit, spend up to USD 20.00";
 
 describe("Start (frame 06)", () => {
   beforeEach(() => {
-    show("/run/start/start");
+    showFixture("/run/start/start");
   });
 
   it("draws the heading, the sentence and the recap", () => {
@@ -164,7 +150,7 @@ describe("Start (frame 06)", () => {
 
 describe("Run started (frame 08)", () => {
   beforeEach(() => {
-    show("/run/start/started");
+    showFixture("/run/start/started");
   });
 
   it("draws the alert with its title and text", () => {

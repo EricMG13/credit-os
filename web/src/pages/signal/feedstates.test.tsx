@@ -3,19 +3,9 @@
 import type { ComponentProps } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
 import { FeedPage, type FeedEntry } from "./FeedPage";
 import { readSlice } from "./slice";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
+import { show } from "./test-helpers";
 
 /** A copy of the fixture slice with scene `id` changed by `change`. */
 type Changeable = {
@@ -46,10 +36,6 @@ const noEmpty = () => {
 };
 
 describe("loading", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("draws a static skeleton of three stories in a busy region, with a hidden label", () => {
     show("/signal/loading/feed/for-you");
     expect(screen.getByRole("heading", { level: 1, name: "For you" })).toBeInTheDocument();
@@ -70,10 +56,6 @@ describe("loading", () => {
 });
 
 describe("the error alert", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("says the service cannot be reached, keeps the loaded stories and a disabled Retry with its reason", () => {
     show("/signal/unreachable/feed/for-you");
     const alert = screen.getByRole("alert");
@@ -118,10 +100,6 @@ describe("the error alert", () => {
 });
 
 describe("the empty states", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   const title = (name: string) => screen.getByRole("heading", { level: 2, name });
 
   it("says No stories yet on a ready view with no entries and approved sources", () => {
@@ -252,10 +230,6 @@ describe("the empty states", () => {
 });
 
 describe("the Saved and topic views", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("draws the saved stories under the title Saved (mock feed frame 3)", () => {
     show("/signal/main/feed/saved");
     expect(screen.getByRole("heading", { level: 1, name: "Saved" })).toBeInTheDocument();
@@ -361,10 +335,6 @@ describe("a loading feed has no list controls", () => {
 });
 
 describe("focus after Show with everything revealed hidden", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("moves to the page title when the search hides every newly shown story", () => {
     show("/signal/main/feed/for-you");
     fireEvent.change(screen.getByRole("textbox", { name: "Search stories" }), {

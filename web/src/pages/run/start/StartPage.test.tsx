@@ -1,21 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
-
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: unknown; params: Record<string, Record<string, string>[]> };
-
-function show(hash: string, run: unknown) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = { kind: "ok", data: { schema: "credit-os-data/1", issuers: [], run } };
-  return render(<App result={result} />);
-}
-afterEach(() => {
-  window.location.hash = "";
-});
+import { screen, within } from "@testing-library/react";
+import { fixture, show } from "../test-helpers";
 
 const ADDED = "At least one document added";
 const READABLE = "Every document can be read";
