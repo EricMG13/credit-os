@@ -140,8 +140,9 @@ describe("Show sources", () => {
     expect(within(screen.getByTestId("plain")).queryByRole("button")).toBeNull();
     const slice = fresh();
     const runs = slice.issuers[0]?.runs as Run[];
-    // The capped run's overview points at no trace, so the slice stays valid without any.
+    // The capped run's overview and changes point at no trace, so the slice stays valid without any.
     (runs[0] as Run)["overview"] = runs[2]?.["overview"];
+    (runs[0] as Run)["changes"] = runs[2]?.["changes"];
     (runs[0] as Run).traces = {};
     expect(() => renderFrame({ library: slice })).toThrow(RangeError);
   });

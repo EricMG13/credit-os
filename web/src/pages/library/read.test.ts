@@ -342,6 +342,7 @@ describe("readSlice, run frame", () => {
   it("does not read a prototype property as a trace", () => {
     const slice = fresh();
     runOf(slice, 0, 0)["overview"] = runOf(slice, 0, 2)["overview"];
+    runOf(slice, 0, 0)["changes"] = runOf(slice, 0, 2)["changes"];
     runOf(slice, 0, 0).traces = Object.create({ x: {} }) as Run["traces"];
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -516,5 +517,56 @@ describe("readSlice, overview", () => {
     const columns = fresh();
     ovOf(columns).sides.columns.pop();
     expect(invalidReason(columns)).toContain("issuers[0].runs[0].overview.sides.columns");
+  });
+});
+
+describe("readSlice, changes", () => {
+  type Run = Json & { changes: Json | null };
+  type Compared = Json & { changes: (Json & { from: unknown })[]; modules: { items: Json[] } };
+  const runOf = (slice: ReturnType<typeof fresh>, r: number) =>
+    (slice.issuers[0]?.["runs"] as Run[])[r] as Run;
+  const comparedOf = (slice: ReturnType<typeof fresh>) => runOf(slice, 0).changes as Compared;
+
+  const changeAt = (slice: ReturnType<typeof fresh>, i: number): Json => {
+    const found = comparedOf(slice).changes[i];
+    if (found === undefined) throw new Error(`no change ${String(i)}`);
+    return found;
+  };
+  it("reads the compared run, the first run's none, and a loading run's null", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const runs = result.data.issuers[0]?.runs ?? [];
+    const first = runs[0]?.changes;
+    expect(first?.kind).toBe("compared");
+    if (first?.kind !== "compared") throw new Error("not compared");
+    expect(first.changes.map((c) => c.measure)).toHaveLength(6);
+    expect(first.changes[3]?.from).toBeNull();
+    expect(first.changes[3]?.direction).toBe("none");
+    expect(runs[1]?.changes).toBeNull();
+    expect(runs[3]?.changes).toMatchObject({ kind: "none", title: "No earlier run to compare" });
+  });
+
+  it("names the path of a malformed change field", () => {
+    const direction = fresh();
+    changeAt(direction, 0)["direction"] = "sideways";
+    expect(invalidReason(direction)).toContain("issuers[0].runs[0].changes.changes[0].direction");
+    const cause = fresh();
+    delete changeAt(cause, 2)["cause"];
+    expect(invalidReason(cause)).toContain("issuers[0].runs[0].changes.changes[2].cause");
+    const kind = fresh();
+    (runOf(kind, 0).changes as Json)["kind"] = "later";
+    expect(invalidReason(kind)).toContain("issuers[0].runs[0].changes.kind");
+  });
+
+  it("rejects an empty changes list, a repeated measure, a trace the run lacks", () => {
+    const empty = fresh();
+    comparedOf(empty).changes.length = 0;
+    expect(invalidReason(empty)).toContain("issuers[0].runs[0].changes.changes");
+    const repeated = fresh();
+    changeAt(repeated, 1)["measure"] = changeAt(repeated, 0)["measure"];
+    expect(invalidReason(repeated)).toContain("issuers[0].runs[0].changes.changes[1].measure");
+    const trace = fresh();
+    changeAt(trace, 0)["trace"] = "nothing";
+    expect(invalidReason(trace)).toContain("issuers[0].runs[0].changes.changes[0].trace");
   });
 });

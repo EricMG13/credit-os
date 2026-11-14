@@ -655,6 +655,117 @@
                 ]
               }
             },
+            "changes": {
+              "kind": "compared",
+              "heading": "What changed since 30 June 2026",
+              "subtitle": "Six changes to the credit profile, three modules with a changed finding.",
+              "earlierLabel": "30 Jun 2026",
+              "currentLabel": "30 Sep 2026",
+              "tableNote": "All six changes, in the order the module wrote them.",
+              "changes": [
+                {
+                  "measure": "Net leverage",
+                  "kind": "Value",
+                  "current": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                  "from": { "kind": "value", "text": "4.9x", "at": 4.9 },
+                  "direction": "down",
+                  "change": "Lower by 0.3x",
+                  "cause": "EBITDA grew 10% while net debt rose 3%.",
+                  "effect": "The outlook moves from negative to stable.",
+                  "trace": "net-leverage"
+                },
+                {
+                  "measure": "EBITDA margin",
+                  "kind": "Value",
+                  "current": { "kind": "value", "text": "23.1%", "at": 23.1 },
+                  "from": { "kind": "value", "text": "22.5%", "at": 22.5 },
+                  "direction": "up",
+                  "change": "Higher by 0.6 points",
+                  "cause": "Aftermarket price rises took effect in April.",
+                  "effect": "Supports the deleveraging path in the base case.",
+                  "trace": "ebitda-margin"
+                },
+                {
+                  "measure": "Liquidity",
+                  "kind": "Value",
+                  "current": { "kind": "value", "text": "USD 412m", "at": 412 },
+                  "from": { "kind": "value", "text": "USD 455m", "at": 455 },
+                  "direction": "down",
+                  "change": "Lower by USD 43m",
+                  "cause": "Cash was used for the Corvane Fasteners purchase.",
+                  "effect": "Still covers eighteen months of maturities.",
+                  "trace": "liquidity"
+                },
+                {
+                  "measure": "Interest cover",
+                  "kind": "Value",
+                  "current": { "kind": "value", "text": "2.4x", "at": 2.4 },
+                  "from": null,
+                  "direction": "none",
+                  "change": null,
+                  "cause": "The earlier run did not establish cash interest.",
+                  "effect": "No comparison can be made; the figure is new.",
+                  "trace": "interest-cover"
+                },
+                {
+                  "measure": "Rating outlook",
+                  "kind": "Conclusion",
+                  "current": { "kind": "value", "text": "Stable", "at": null },
+                  "from": { "kind": "value", "text": "Negative", "at": null },
+                  "direction": "none",
+                  "change": "Changed",
+                  "cause": "Both agencies affirmed after the full-year results.",
+                  "effect": "Removes the nearest downgrade trigger from the watch list.",
+                  "trace": "triggers"
+                },
+                {
+                  "measure": "Refinancing of the 2028 notes",
+                  "kind": "Assumption",
+                  "current": { "kind": "value", "text": "By 30 Jun 2027", "at": null },
+                  "from": { "kind": "value", "text": "By 31 Dec 2026", "at": null },
+                  "direction": "none",
+                  "change": "Later by six months",
+                  "cause": "Management deferred the launch to follow first-quarter results.",
+                  "effect": "Leaves nine months before maturity instead of fifteen.",
+                  "trace": "notes-2028"
+                }
+              ],
+              "modules": {
+                "summary": "3 changed, 9 unchanged, 1 not assessable",
+                "items": [
+                  {
+                    "title": "Capital structure",
+                    "lead": "Now: secured debt is long-dated and the unsecured notes mature first. Before: the 2028 notes were expected to be refinanced within the year.",
+                    "state": "Changed",
+                    "module": "capital-structure"
+                  },
+                  {
+                    "title": "Rating outlook",
+                    "lead": "Now: both agencies stable. Before: one agency on negative outlook.",
+                    "state": "Changed",
+                    "module": "rating-outlook"
+                  },
+                  {
+                    "title": "Cash flow and liquidity",
+                    "lead": "Now: liquidity adequate for eighteen months. Before: adequate for twenty-four months.",
+                    "state": "Changed",
+                    "module": "cash-flow-and-liquidity"
+                  },
+                  {
+                    "title": "9 modules unchanged",
+                    "lead": "Business profile, Industry and competition, Financial performance, Covenants and documentation, Management and governance, Peer comparison, Environmental, social and governance, Forecast, Credit snapshot.",
+                    "state": "Unchanged",
+                    "module": null
+                  },
+                  {
+                    "title": "Recovery",
+                    "lead": "Not assessable in this run or the earlier one, so there is nothing to compare.",
+                    "state": "Not assessable",
+                    "module": "recovery"
+                  }
+                ]
+              }
+            },
             "traces": {
               "cash-conversion": {
                 "title": "Sources for cash conversion",
@@ -939,6 +1050,7 @@
             },
             "loading": true,
             "overview": null,
+            "changes": null,
             "traces": {}
           },
           {
@@ -1098,6 +1210,128 @@
                 ]
               }
             },
+            "changes": {
+              "kind": "compared",
+              "heading": "What changed since 31 December 2025",
+              "subtitle": "Two changes recorded before the run stopped at its cost cap.",
+              "earlierLabel": "31 Dec 2025",
+              "currentLabel": "31 Mar 2026",
+              "tableNote": "Both changes, in the order the module wrote them.",
+              "changes": [
+                {
+                  "measure": "EBITDA margin",
+                  "kind": "Value",
+                  "current": {
+                    "kind": "withheld",
+                    "reason": "Withheld until the financial performance module is delivered"
+                  },
+                  "from": { "kind": "value", "text": "22.0%", "at": 22 },
+                  "direction": "none",
+                  "change": null,
+                  "cause": "The financial performance module did not run before the cost cap.",
+                  "effect": "No comparison of earnings can be made for this run.",
+                  "trace": null
+                },
+                {
+                  "measure": "Drawn on the facility, USD m",
+                  "kind": "Value",
+                  "current": { "kind": "value", "text": "0", "at": 0 },
+                  "from": { "kind": "value", "text": "40", "at": 40 },
+                  "direction": "down",
+                  "change": "Lower by USD 40m",
+                  "cause": "The facility was repaid from cash in the quarter.",
+                  "effect": "Leaves the springing covenant untested.",
+                  "trace": null
+                }
+              ],
+              "modules": {
+                "summary": "1 changed, 1 unchanged, 1 not assessable",
+                "items": [
+                  {
+                    "title": "Capital structure",
+                    "lead": "Now: undrawn facility and long-dated secured debt. Before: USD 40m drawn.",
+                    "state": "Changed",
+                    "module": "capital-structure"
+                  },
+                  {
+                    "title": "Business profile",
+                    "lead": "Now and before: a sole-source aftermarket franchise.",
+                    "state": "Unchanged",
+                    "module": "business-profile"
+                  },
+                  {
+                    "title": "Recovery",
+                    "lead": "Not assessable in this run or the earlier one, so there is nothing to compare.",
+                    "state": "Not assessable",
+                    "module": "recovery"
+                  }
+                ]
+              }
+            },
+            "traces": {}
+          },
+          {
+            "id": "2025-09-30",
+            "head": {
+              "issuerName": "Halden Aerostructures",
+              "asOf": "As of 30 Sep 2025",
+              "pathway": "Full review",
+              "state": "Finished",
+              "tabs": { "modulesCount": "13" },
+              "firstModule": "capital-structure",
+              "forecastHref": null
+            },
+            "loading": false,
+            "overview": {
+              "bottomLine": {
+                "label": "Bottom line",
+                "lead": "Stable credit: leverage is high but the maturities are long-dated.",
+                "rest": "This is the first run on the issuer, so the view has no earlier run to be compared with.",
+                "trace": null
+              },
+              "metricsLabel": "Headline figures",
+              "metrics": [
+                {
+                  "label": "Net leverage",
+                  "value": { "kind": "value", "text": "4.9x", "at": 4.9 },
+                  "note": "Net debt to EBITDA",
+                  "trace": null
+                }
+              ],
+              "sides": {
+                "heading": "For and against",
+                "note": "Points from the first run on the issuer",
+                "columns": [
+                  { "name": "Supports the view", "items": [] },
+                  { "name": "Against the view", "items": [] }
+                ]
+              },
+              "findings": [
+                {
+                  "number": "01",
+                  "lead": "Maturities are long-dated",
+                  "body": "No secured debt falls due before the unsecured notes.",
+                  "trace": null
+                }
+              ],
+              "changeView": {
+                "title": "What would change the view",
+                "text": "A sustained rise in leverage would move the view to negative.",
+                "trace": null
+              },
+              "dates": [],
+              "modules": { "summary": "1 of 13 delivered", "items": [] },
+              "limitations": {
+                "count": "0",
+                "gapsLink": { "label": "See the gaps in Evidence" },
+                "items": []
+              }
+            },
+            "changes": {
+              "kind": "none",
+              "title": "No earlier run to compare",
+              "text": "This is the first run on Halden Aerostructures. What changed will appear here after the next run."
+            },
             "traces": {}
           }
         ]
@@ -1240,6 +1474,12 @@
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30" },
       { "issuer": "halden-aerostructures", "run": "2026-03-31" }
+    ],
+    "/library/:issuer/:run/changes": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" },
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
     ]
   }
 }
