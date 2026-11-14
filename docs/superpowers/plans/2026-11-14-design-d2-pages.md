@@ -46,6 +46,10 @@ Tests: `matchRoute` on a parameterised path, an unknown path and a trailing slas
 - Audit material (sources, file names, hashes, ids, registers, run codes, calculations) appears only on Evidence and in the trace drawer. One trace control per paragraph, row or figure, shown on hover and focus, always on touch, with the page-level "Show sources" switch.
 - Every state in the mock record is reachable from the fixture and has a test: gap, withheld, not assessable, n.a., no earlier run, long text, many modules, and the group's own states.
 - Every chart has its Chart or Table toggle and its table side. Only a live run page loops.
+- `docs/design/predecessor-behaviour.md` lists rules and exact wording that reached the
+  predecessor after the mocks were drawn (adjusted-EBITDA figures in the library list, forecast
+  case names and "Not calculable" cells, Signal's built wording). Build them in; where one
+  conflicts with a mock, the predecessor's rule wins and the report says so.
 - Fixtures are synthetic or the public TransDigm case; no private issuer, no real private person, no company name, tagline or wordmark.
 - Open product questions (decision 0003) are not settled by the build: where a screen depends on one, build what the mock draws and list it in the report as "built as mocked, awaits ruling".
 - Signal and the run pages draw fixture data only. No polling, no service call, no write: the served-page wiring belongs to roadmap step 5C and to Signal's own plan. Controls that would write are present and disabled with their reason, or act on in-memory state only.
