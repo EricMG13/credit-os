@@ -2,7 +2,7 @@
 
 import datetime
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from decimal import Decimal
 from itertools import chain
 from itertools import product as pairs
@@ -10,7 +10,6 @@ from typing import Annotated, Any, Literal, Self
 
 import pydantic
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic_core import ErrorDetails
 
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import echo
@@ -39,6 +38,7 @@ _UNNAMED = "an operand with an amount names its `row` and its `period` or `colum
 _LENGTH = ("Tuple should have at least", "List should have at least")
 _SCALED = ("dividends", "debt_repayment")
 _GROUPS = ("base_drivers", "upside_drivers", "downside_drivers")
+_PLAIN = (dict, list, str, int, bool, type(None))
 _CODE = re.compile(r"[A-Z]{3}")
 _THOUSANDS = re.compile(r"-?[0-9]{1,9}(\.[0-9])?")
 _MINUS_ZERO = re.compile(r"-0+(\.0)?")
@@ -181,11 +181,24 @@ def _plain(value: Value) -> Decimal:
     return value.amount
 
 
-def _copied(node: Any) -> Any:
+def _not_json(path: tuple[str, ...], what: str) -> TypeError:
+    where = ".".join(echo(part) for part in path) or "(root)"
+    return TypeError(f"document node {where} {what}")
+
+
+def _copied(node: Any, path: tuple[str, ...] = ()) -> Any:  # tuples become lists
+    kind = type(node)
+    if kind is tuple:
+        node = list(node)
+    elif kind not in _PLAIN:
+        raise _not_json(path, f"is a {kind.__name__}, not JSON data")
     if isinstance(node, dict):
-        return {key: _copied(item) for key, item in node.items()}
+        for key in node:
+            if type(key) is not str:
+                raise _not_json(path, f"has a key that is a {type(key).__name__}")
+        return {key: _copied(item, (*path, key)) for key, item in node.items()}
     if isinstance(node, list):
-        return [_copied(item) for item in node]
+        return [_copied(item, (*path, str(index))) for index, item in enumerate(node)]
     return node
 
 
@@ -203,7 +216,7 @@ def _base_slots(document: dict[str, Any]) -> Iterator[Slot]:
     base = document.get("base")
     for key, operand in base.items() if isinstance(base, dict) else ():
         if isinstance(operand, dict) and "amount" in operand:
-            yield f"base {key}", operand, "amount", True
+            yield f"base {echo(key)}", operand, "amount", True
 
 
 def _driver_slots(document: dict[str, Any]) -> Iterator[Slot]:
@@ -239,12 +252,12 @@ def _to_millions(document: dict[str, Any]) -> dict[str, str]:
     return stated
 
 
-def _issue(error: ErrorDetails) -> str:
+def _issue(error: Mapping[str, Any]) -> str:
     parts = (echo(part) if isinstance(part, str) else str(part) for part in error["loc"])
     return f"{'.'.join(parts) or '(root)'}: {error['msg']}"
 
 
-def _echoes(error: ErrorDetails, errors: list[ErrorDetails]) -> bool:
+def _echoes(error: Mapping[str, Any], errors: Sequence[Mapping[str, Any]]) -> bool:
     depth = len(error["loc"])
     failed = {
         item["loc"][depth]
@@ -258,9 +271,9 @@ def _echoes(error: ErrorDetails, errors: list[ErrorDetails]) -> bool:
     return actual + len(failed) >= minimum
 
 
-def without_echoes(errors: list[ErrorDetails]) -> list[ErrorDetails]:
-    def is_length(item: ErrorDetails) -> bool:
-        return item["type"] == "too_short" and item["msg"].startswith(_LENGTH)
+def without_echoes(errors: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    def is_length(item: Mapping[str, Any]) -> bool:
+        return bool(item["type"] == "too_short" and item["msg"].startswith(_LENGTH))
 
     return [item for item in errors if not (is_length(item) and _echoes(item, errors))]
 
@@ -273,9 +286,8 @@ def _validated(document: dict[str, Any]) -> ForecastInputs:
         issues = [_issue(item) for item in without_echoes(errors)]
         first = "; ".join(issues[:3])
         text = f"{len(issues)} problems; first: {first}" if len(issues) > 3 else first
-        raise ForecastRefused(
-            RefusalKind.SCHEMA, "forecast inputs", f"forecast inputs: {text}"
-        ) from None
+        message = f"forecast inputs: {text}"
+        raise ForecastRefused(RefusalKind.SCHEMA, "forecast inputs", message) from None
 
 
 def _check_repayment(inputs: ForecastInputs) -> None:
@@ -300,13 +312,10 @@ def parse_inputs(document: dict[str, object]) -> tuple[ForecastInputs, dict[str,
     if type(document) is not dict:
         raise TypeError("document must be a dict")
     work: dict[str, Any] = _copied(document)
-    stated: dict[str, str] = {}
-    if "scale" in work:
-        scale = work["scale"]
-        if type(scale) is not int or scale not in (1, 1000):
-            raise _scale_refused(work)
-        if scale == 1000:
-            stated = _to_millions(work)
+    scale = work.get("scale", 1)
+    if type(scale) is not int or scale not in (1, 1000):
+        raise _scale_refused(work)
+    stated = _to_millions(work) if scale == 1000 else {}
     inputs = _validated(work)
     _check_repayment(inputs)
     return inputs, stated

@@ -1,13 +1,11 @@
 """The forecast inputs schema, scale to millions and the repayment bound."""
 
-import contextlib
 import copy
 import decimal
 import json
 import re
 import typing
-from collections.abc import Iterator
-from decimal import Context
+from decimal import Context, Decimal
 from fractions import Fraction
 from pathlib import Path
 from typing import Any
@@ -32,7 +30,7 @@ VALID = KEY["valid"]
 def build(ops: list[Any]) -> dict[str, Any]:
     document: dict[str, Any] = copy.deepcopy(VALID)
     for op in ops:
-        for path, *value in KEY["thousands"] if op == "thousands" else [op]:
+        for path, *value in copy.deepcopy(KEY["thousands"]) if op == "thousands" else [op]:
             holder = document
             for step in path[:-1]:
                 holder = holder[step]
@@ -51,6 +49,10 @@ def outcome(document: dict[str, Any]) -> tuple[Any, ...]:
     return (got.model_dump(mode="json"), list(stated.items()))
 
 
+def at_scale(*ops: Any) -> dict[str, Any]:
+    return build(["thousands", [["scale"], 1000], *ops])
+
+
 def refusal(document: Any) -> ForecastRefused:
     with pytest.raises(ForecastRefused) as caught:
         parse_inputs(document)
@@ -66,11 +68,7 @@ def issues_of(document: dict[str, Any]) -> str:
 ACCEPTED, REFUSED = KEY["accepted"], KEY["refused"]
 
 
-def label(row: dict[str, Any]) -> str:
-    return str(row["label"])
-
-
-@pytest.mark.parametrize("row", ACCEPTED, ids=label)
+@pytest.mark.parametrize("row", ACCEPTED, ids=lambda row: row["label"])
 @pytest.mark.parametrize("through_json", [False, True])
 def test_accepted(row: dict[str, Any], through_json: bool) -> None:
     document = build(row["ops"])
@@ -84,7 +82,7 @@ def test_accepted(row: dict[str, Any], through_json: bool) -> None:
     assert list(stated) == list(row["stated"])
 
 
-@pytest.mark.parametrize("row", REFUSED, ids=label)
+@pytest.mark.parametrize("row", REFUSED, ids=lambda row: row["label"])
 def test_refused(row: dict[str, Any]) -> None:
     error = refusal(build(row["ops"]))
     got = (error.kind.value, error.subject, error.message)
@@ -100,8 +98,11 @@ def test_key_constants() -> None:
 
 def one_facility(**changes: Any) -> dict[str, Any]:
     base = {"name": "T", "balance": "4", "fixed_rate_pct": "6", "spread_pct": None}
-    base |= {"floor_pct": None, "reference_rate": None, "annual_amortisation": None}
-    return base | {"maturity": None} | changes
+    return (
+        base
+        | dict.fromkeys(("floor_pct", "reference_rate", "annual_amortisation", "maturity"))
+        | changes
+    )
 
 
 def test_forty_one_facilities() -> None:
@@ -124,16 +125,12 @@ def test_not_a_document(given: Any) -> None:
     ],
 )
 def test_sequences_are_lists_or_tuples_only(path: list[str], items: list[Any]) -> None:
-    want = f"{'.'.join(path)}: Input should be a valid tuple"
-    for other in ((i for i in items), {str(i) for i in items}):
-        assert issues_of(build([[path, other]])) == want
     got, _ = parse_inputs(build([[path, tuple(items)]]))
     assert got.model_dump(mode="json") == build([[path, items]])
 
 
 def test_returned_records_are_frozen() -> None:
-    row = next(r for r in ACCEPTED if r["label"].startswith("two facilities"))
-    got, _ = parse_inputs(build(row["ops"]))
+    got, _ = parse_inputs(build([[["facilities"], [one_facility()]]]))
     for target, name in (
         (got, "scale"),
         (got.base["revenue"], "amount"),
@@ -158,7 +155,9 @@ def leaves(node: Any, secret: bool = False) -> list[str]:
     return [x for v in node for x in leaves(v, secret)] if isinstance(node, list) else []
 
 
-@pytest.mark.parametrize("row", [r for r in REFUSED if r["kind"] == "schema"], ids=label)
+@pytest.mark.parametrize(
+    "row", [r for r in REFUSED if r["kind"] == "schema"], ids=lambda row: row["label"]
+)
 def test_schema_messages_hold_no_stated_text(row: dict[str, Any]) -> None:
     document = build(row["ops"])
     assert not [text for text in leaves(document) if text in row["message"]]
@@ -172,8 +171,7 @@ def handoff(document: dict[str, Any]) -> Any:
 
 def test_read_inputs_end_to_end() -> None:
     got, stated = read_inputs(handoff(VALID))
-    assert got.model_dump(mode="json") == VALID
-    assert stated == {}
+    assert (got.model_dump(mode="json"), stated) == (VALID, {})
     declined = copy.deepcopy(VALID)
     for driver in declined["base_drivers"].values():
         driver["values"] = [None, None, None]
@@ -191,24 +189,14 @@ HOSTILE = [r for r in ACCEPTED if r["ops"] and r["ops"][0] == [["scale"], 1000]]
 ]
 
 
-@contextlib.contextmanager
-def hostile_default() -> Iterator[None]:
-    d = decimal.DefaultContext
-    saved = (d.prec, d.rounding, d.Emax, d.Emin)
-    d.prec, d.rounding, d.Emax, d.Emin = 3, decimal.ROUND_DOWN, 5, -5
-    try:
-        yield
-    finally:
-        d.prec, d.rounding, d.Emax, d.Emin = saved
-
-
-@pytest.mark.parametrize("row", HOSTILE, ids=label)
-def test_ambient_decimal_context_is_not_used(row: dict[str, Any]) -> None:
+@pytest.mark.parametrize("row", HOSTILE, ids=lambda row: row["label"])
+def test_ambient_decimal_context_is_not_used(row: dict[str, Any], monkeypatch: Any) -> None:
     plain = outcome(build(row["ops"]))
     with decimal.localcontext(Context(prec=5, rounding=decimal.ROUND_UP)):
         assert outcome(build(row["ops"])) == plain
-    with hostile_default():
-        assert outcome(build(row["ops"])) == plain
+    for name, value in ("prec", 3), ("rounding", decimal.ROUND_DOWN), ("Emax", 5), ("Emin", -5):
+        monkeypatch.setattr(decimal.DefaultContext, name, value)
+    assert outcome(build(row["ops"])) == plain
 
 
 def millions(tenths: int) -> str:
@@ -225,21 +213,14 @@ units = st.integers(min_value=0, max_value=9_999_999_999)
 @given(revenue=units, negative=st.booleans(), dividends=st.tuples(units, units, units))
 def test_scale_property(revenue: int, negative: bool, dividends: tuple[int, int, int]) -> None:
     sign = "-" if negative and revenue else ""
-    thousand = [
-        "thousands",
-        [["scale"], 1000],
-        [["base", "revenue", "amount"], f"{sign}{revenue // 10}.{revenue % 10}"],
-        [["base_drivers", "dividends", "values"], [f"{t // 10}.{t % 10}" for t in dividends]],
-    ]
-    million = [
-        [["base", "revenue", "amount"], sign + millions(revenue)],
-        [["base_drivers", "dividends", "values"], [millions(t) for t in dividends]],
-    ]
-    got, stated = parse_inputs(build(thousand))
-    base, _ = parse_inputs(build(million))
+    rev, divs = f"{sign}{revenue // 10}.{revenue % 10}", [f"{t // 10}.{t % 10}" for t in dividends]
+    path = ["base_drivers", "dividends", "values"]
+    got, stated = parse_inputs(at_scale([["base", "revenue", "amount"], rev], [path, divs]))
+    millions_ops = [[["base", "revenue", "amount"], sign + millions(revenue)]]
+    base, _ = parse_inputs(build([*millions_ops, [path, [millions(t) for t in dividends]]]))
     assert got.model_dump(mode="json") == base.model_dump(mode="json") | {"scale": 1000}
-    assert stated["base revenue"] == thousand[2][1]
-    assert [stated[f"base_drivers dividends year {n}"] for n in (1, 2, 3)] == thousand[3][1]
+    assert stated["base revenue"] == rev
+    assert [stated[f"base_drivers dividends year {n}"] for n in (1, 2, 3)] == divs
 
 
 @settings(max_examples=200, deadline=None)
@@ -254,8 +235,8 @@ def test_bound_property(debt: int, repaid: tuple[int, int, int]) -> None:
             [["base_drivers", "debt_repayment", "values"], [text(x) for x in repaid]],
         ]
     )
-    sums = [sum(repaid[: n + 1]) for n in range(3)]
-    over = [n + 1 for n, s in enumerate(sums) if s > debt]
+    sums = [Fraction(sum(repaid[: n + 1]), 10000) for n in range(3)]
+    over = [n + 1 for n, s in enumerate(sums) if s > Fraction(debt, 10000)]
     result = outcome(document)
     if not over:
         assert isinstance(result[0], dict)
@@ -289,6 +270,7 @@ DROPS = [  # errors, indexes of the errors kept
     ([length_error(2, 0), failed_item(0), failed_item(1), failed_item(1)], [1, 2, 3]),
     ([length_error(1, 0, type_="value_error"), failed_item(0)], [0, 1]),
     ([length_error(1, 0, kind="List"), failed_item(0)], [1]),
+    ([length_error(1, 0), {**failed_item(0), "loc": ("g", 0)}], [0, 1]),
 ]
 
 
@@ -309,3 +291,62 @@ ODD = [[["base"], 0], [["base", "wc"], "amount"], [["facilities"], ["balance"]]]
 @pytest.mark.parametrize("op", ODD)
 def test_odd_holders_at_scale_1000_reach_the_schema(op: list[Any]) -> None:
     assert refusal(build([[["scale"], 1000], op])).kind is RefusalKind.SCHEMA
+
+
+def test_tuples_are_scaled_like_lists() -> None:
+    path, values = ["base_drivers", "dividends", "values"], ["20000", "20000", "25500"]
+    fac = one_facility(balance="400000", annual_amortisation="20000.5")
+    lists = at_scale([path, values], [["facilities"], [fac]])
+    tuples = at_scale([path, tuple(values)], [["facilities"], (fac,)])
+    assert outcome(tuples) == outcome(lists)
+    assert list(parse_inputs(tuples)[1])[-1] == "facility 1 annual_amortisation"
+
+
+class Text(str):
+    pass
+
+
+MODEL = inputs.Operand.model_construct(amount="9", reason=None)
+NOT_PLAIN = [
+    (["base", "debt"], MODEL, "base.debt is a Operand"),
+    (["base_drivers", "dividends"], MODEL, "base_drivers.dividends is a Operand"),
+    (["base", "debt", "amount"], Text("905000"), "base.debt.amount is a Text"),
+    (["base", "debt", "amount"], 905.5, "base.debt.amount is a float"),
+    (["base", "debt", "amount"], Decimal(905), "base.debt.amount is a Decimal"),
+    (["scope_limits"], {"a"}, "scope_limits is a set"),
+    (["scope_limits"], (c for c in "ab"), "scope_limits is a generator"),
+    (["years", 0, "year"], {1}, "years.0.year is a set"),
+    (["base", 7], "x", "base has a key that is a int"),
+    ([7], "x", "\\(root\\) has a key that is a int"),
+]
+
+
+@pytest.mark.parametrize(("path", "node", "text"), NOT_PLAIN)
+def test_only_plain_data_is_accepted(path: list[Any], node: Any, text: str) -> None:
+    for scale in (1, 1000):
+        with pytest.raises(TypeError, match=f"document node {text}"):
+            parse_inputs(build([[path, node], [["scale"], scale]]))
+
+
+@pytest.mark.parametrize("size", [81, 5000])
+def test_slot_names_echo_a_long_key(size: int) -> None:
+    key = "k" * size
+    error = refusal(at_scale([["base", key], {"amount": "1,0", "reason": None}]))
+    assert error.subject == "base " + "k" * 80 + "\u2026"
+    assert "k" * 81 not in error.message + error.subject
+
+
+def test_negative_zero_outside_base_is_refused() -> None:
+    error = refusal(at_scale([["base_drivers", "dividends", "values"], ["20000", "-00", "1"]]))
+    assert (error.kind, error.subject) == (RefusalKind.SCALE, "base_drivers dividends year 2")
+
+
+def test_unrelated_error_keeps_the_empty_facility_length_issue() -> None:
+    issues = issues_of(build([[["facilities"], []], [["base", "revenue", "amount"], "x"]]))
+    assert "base.revenue.amount: String should match pattern" in issues
+    assert "facilities: Tuple should have at least 1 item after validation, not 0" in issues
+
+
+def test_scale_message_has_no_code_for_a_long_currency() -> None:
+    message = refusal(build([[["scale"], 2], [["currency"], "EURO"]])).message
+    assert message == "`scale` must be 1 (CP-1 prints millions) or 1000 (thousands)"
