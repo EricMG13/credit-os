@@ -5,7 +5,7 @@ import os
 import unicodedata
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -14,6 +14,8 @@ from credit_os.sources.files import read_capped, source_path
 from credit_os.sources.pins import SourceKind, SourcePin, check_kind, kind_of, validate_name
 
 _EXCLUDED_PREFIXES = ("_", "~$")
+
+Action = Literal["skip", "skip_dir", "enter", "file"]
 
 
 class Skipped(BaseModel):
@@ -86,7 +88,7 @@ def _listing(folder: Path, directory: Path, prefix: str) -> list[os.DirEntry[str
         raise _cannot_list(folder, prefix, error) from error
 
 
-def _classify(folder: Path, prefix: str, entry: os.DirEntry[str]) -> tuple[str, str | None]:
+def _classify(folder: Path, prefix: str, entry: os.DirEntry[str]) -> tuple[Action, str | None]:
     """Return (action, reason) for one entry: skip, skip_dir, enter, or file."""
     try:
         if entry.is_symlink() or entry.is_junction():

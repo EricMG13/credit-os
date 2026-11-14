@@ -3,9 +3,12 @@
 import errno
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 from pydantic import ValidationError
 
 import credit_os.sources.walk as walk_module
@@ -404,7 +407,7 @@ def test_control_names_are_written_with_escapes(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot hold this name")
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows normalises or cannot hold these names")
 @pytest.mark.parametrize(
     ("directory", "files", "message"),
     [
@@ -427,6 +430,34 @@ def test_hidden_directory_with_a_bad_name_is_skipped(tmp_path: Path) -> None:
     result = pin_folder(_write(tmp_path, {"readme.txt": README, ".x\r/a.txt": b"x"}))
     assert [p.name for p in result.pins] == ["readme.txt"]
     assert result.skipped == _skipped((".x\\r/", "hidden name"))
+
+
+def test_bad_name_file_refuses_on_every_platform(tmp_path: Path) -> None:
+    folder = _write(tmp_path, {"readme.txt": README, "evil\u202e.txt": b"x"})
+    assert _refusal(folder) == "'evil\\u202e.txt': forbidden character U+202E"
+
+
+def test_bad_name_directory_refuses_before_it_is_listed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = _write(tmp_path, {"readme.txt": README, "bad\u202edir/x.png": b"x"})
+    real_scandir = os.scandir
+    listed: list[str] = []
+
+    def recording(path: str | Path) -> object:
+        listed.append(os.fspath(path))
+        return real_scandir(path)
+
+    monkeypatch.setattr(os, "scandir", recording)
+    assert _refusal(folder) == "'bad\\u202edir': forbidden character U+202E"
+    assert listed
+    assert not any(path.endswith("bad\u202edir") for path in listed)
+
+
+def test_hidden_bad_name_directory_is_skipped_on_every_platform(tmp_path: Path) -> None:
+    result = pin_folder(_write(tmp_path, {"readme.txt": README, ".h\u202e/a.txt": b"x"}))
+    assert [p.name for p in result.pins] == ["readme.txt"]
+    assert result.skipped == _skipped((".h\\u202e/", "hidden name"))
 
 
 def _non_utf8(folder: Path, suffix: bytes) -> None:
@@ -580,3 +611,84 @@ def test_public_surface() -> None:
     ]
     assert sorted(sources.__all__) == expected
     assert all(hasattr(sources, name) for name in expected)
+
+
+# --- property test: expected outcomes come from the drawn choices only ---
+
+_PREFIX_REASON: dict[str, str | None] = {
+    "": None,
+    ".": "hidden name",
+    "_": "excluded name",
+    "~$": "excluded name",
+}
+_ACCEPTED: dict[str, tuple[SourceKind, bytes]] = {
+    ".pdf": (SourceKind.PDF, b"%PDF-1.4\n"),
+    ".htm": (SourceKind.HTML, b"<p>x</p>\n"),
+    ".html": (SourceKind.HTML, b"<p>x</p>\n"),
+    ".docx": (SourceKind.DOCX, b"PK\x03\x04x"),
+    ".txt": (SourceKind.TEXT, b"text\n"),
+    ".md": (SourceKind.TEXT, b"# text\n"),
+    ".xlsx": (SourceKind.XLSX, b"PK\x03\x04x"),
+    ".csv": (SourceKind.CSV, b"a,b\n"),
+}
+_RESERVED = {"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") for i in range(10)}
+_stems = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789", min_size=1, max_size=6).filter(
+    lambda stem: stem not in _RESERVED
+)
+
+
+_Drawn = tuple[dict[str, bytes], list[tuple[str, SourceKind]], list[tuple[str, str]], list[str]]
+
+
+@st.composite
+def _folders(draw: st.DrawFn) -> _Drawn:
+    stems = draw(st.lists(_stems, min_size=2, max_size=8, unique_by=str.casefold))
+    dir_stem, file_stems = stems[0], stems[1:]
+    use_dir = draw(st.booleans())
+    dir_prefix = draw(st.sampled_from(list(_PREFIX_REASON)))
+    dir_name = dir_prefix + dir_stem
+    dir_reason = _PREFIX_REASON[dir_prefix]
+    files: dict[str, bytes] = {}
+    pinned: list[tuple[str, SourceKind]] = []
+    skipped: list[tuple[str, str]] = []
+    covered: list[str] = []
+    for stem in file_stems:
+        prefix = draw(st.sampled_from(list(_PREFIX_REASON)))
+        accepted = draw(st.booleans())
+        if accepted:
+            suffix = draw(st.sampled_from(list(_ACCEPTED)))
+            suffix = "".join(draw(st.sampled_from((c.lower(), c.upper()))) for c in suffix)
+            kind, raw = _ACCEPTED[suffix.lower()]
+        else:
+            suffix, raw = draw(st.sampled_from((".png", ".zip", ""))), b"x"
+        inside = use_dir and draw(st.booleans())
+        name = (dir_name + "/" if inside else "") + prefix + stem + suffix
+        files[name] = raw
+        if inside and dir_reason is not None:
+            if not covered:
+                skipped.append((dir_name + "/", dir_reason))
+            covered.append(name)
+        elif (prefix_reason := _PREFIX_REASON[prefix]) is not None:
+            skipped.append((name, prefix_reason))
+        elif accepted:
+            pinned.append((name, kind))
+        else:
+            skipped.append((name, "unsupported suffix"))
+    return files, sorted(pinned), sorted(skipped), covered
+
+
+@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(_folders())
+def test_every_file_is_accounted_for_once(drawn: _Drawn) -> None:
+    files, expected_pins, expected_skipped, covered = drawn
+    with tempfile.TemporaryDirectory() as root:
+        result = pin_folder(_write(Path(root), files))
+    assert [(p.name, p.kind) for p in result.pins] == expected_pins
+    assert result.skipped == _skipped(*expected_skipped)
+    pinned = {p.name for p in result.pins}
+    rows = {s.name for s in result.skipped}
+    for name in files:
+        homes = [name in pinned, name in rows, name in covered]
+        assert sum(homes) == 1
+        if name in covered:
+            assert any(name.startswith(row) for row in rows if row.endswith("/"))
