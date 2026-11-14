@@ -9,19 +9,23 @@ import { RunFrame } from "./parts/RunFrame";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
 import { SECTION_HEADING, SUBSECTION_HEADING } from "./parts/heading";
 
+const FIGURE = "text-[40px]/11 font-semibold tracking-tight tabular-nums break-words";
+
 function PointTile({ point }: { point: Point }) {
   return (
-    <li className={TRACE_HOST}>
+    <li className={`${TRACE_HOST} @container`}>
       <Tile>
-        <div className="flex items-start gap-5">
-          <span className="w-50 flex-none text-[40px]/11 font-semibold tracking-tight tabular-nums break-words">
-            <CellValue cell={point.figure} />
-          </span>
+        <div className="flex flex-col items-start gap-3 @md:flex-row @md:gap-5">
+          <div className="max-w-50 flex-none">
+            <CellValue cell={point.figure} figureClass={FIGURE} />
+          </div>
           <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
             <p className="text-body">{point.text}</p>
-            <Badge size="sm">{point.qualifier}</Badge>
+            <Badge size="sm" className="max-w-full whitespace-normal">
+              {point.qualifier}
+            </Badge>
           </div>
-          <TraceControl trace={point.trace} />
+          <TraceControl trace={point.trace} label="Show sources for this point" />
         </div>
       </Tile>
     </li>
@@ -35,7 +39,7 @@ function ForAndAgainst({ sides }: { sides: OverviewData["sides"] }) {
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-6">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <Heading id={headingId} className="font-display text-h3 text-text-primary">
+        <Heading id={headingId} className="font-display text-h2 text-text-primary">
           {sides.heading}
         </Heading>
         <span className="text-small text-text-tertiary">{sides.note}</span>
