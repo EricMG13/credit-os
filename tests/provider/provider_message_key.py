@@ -201,8 +201,14 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), ("D:\\Profiles\\Ilse",), "x D%3A%5CProfiles%5CI%CC%87lse y", "x <home> y"),
     ((), ("D:\\Profiles\\Ilse",), "x Profiles\\I\u0307lse y", "x <home> y"),
     ((), ("D:\\Profiles\\eli",), "x Profiles\\elI\u0307 y", "x <home> y"),
-    ((), ("D:\\Profiles\\\u03b1\u03b9cd",), "x D:\\Profiles\\\u1fb3cd y", "x <home> y"),
     # --- not guaranteed: pinned as the net alone gives it
+    # (2h-2 L1, Info: U+0345 composing with the letter before it under NFC; coordinator ruling)
+    (
+        (),
+        ("D:\\Profiles\\\u03b1\u03b9cd",),
+        "x D:\\Profiles\\\u1fb3cd y",
+        "x D:\\Profiles\\\u1fb3cd y",
+    ),
     (
         (),
         (_PE,),
