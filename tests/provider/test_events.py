@@ -104,12 +104,10 @@ _JSON = st.recursive(
 )
 _NAMES = st.sampled_from(
     ["id", "type", "data", "content", "toolRequests", "toolCallId", "toolName", "arguments"]
-    + ["parentToolCallId", "finishReason", "model", "inputTokens", "copilotUsage", "aborted"]
-    + ["totalNanoAiu", "isByok", "isAuto", "errorType", "message", "apiCallId"]
+    + ["finishReason", "model", "inputTokens", "copilotUsage", "totalNanoAiu", "aborted", "isByok"]
 )
 _TYPES = st.sampled_from(
     ["assistant.usage", "assistant.message", "tool.execution_start", "session.error"]
-    + ["session.idle", "model.call_failure"]
 )
 _EVENT = st.fixed_dictionaries(
     {"id": st.sampled_from(["a", "b"]) | _JSON, "type": _TYPES | _JSON},

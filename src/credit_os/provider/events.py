@@ -26,6 +26,8 @@ _STOPS: dict[str, StopReason] = {
     "length": "max_tokens",
     "max_tokens": "max_tokens",
 }
+_KINDS = ("assistant.message", "session.error", "session.idle", "model.call_failure")
+_ROUTES = {"isByok": "ByokRouted", "isAuto": "AutoRouted"}
 _MAX_NANO = 10**39  # a charge has at most 39 digits
 _MAX_FLOAT_NANO = 2**53  # a float holds every whole number up to here
 _USD_EXPONENT = -11  # totalNanoAiu counts units of 1E-11 USD
@@ -40,10 +42,8 @@ def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply
     event, so `ByokRouted` and `AutoRouted` are detected only for a failed model call; a
     successful call routed either way is not detected here."""
     raw = _serialise(given)
-    changed = False
-    if raw is not None:
-        redacted = redactor.bytes_(raw)
-        changed, raw = redacted != raw, redacted
+    redacted = None if raw is None else redactor.bytes_(raw)
+    changed, raw = redacted != raw, redacted
     events = _as_events(given)
     if raw is None or events is None:
         return _failed(None, ("UnparsableReply", BAD_SHAPE_MESSAGE), raw)
@@ -61,6 +61,8 @@ def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply
         return _failed(figures, problem, raw)
     stop = _stop_reason(usage_data[-1])
     calls = _tool_calls(events)
+    if isinstance(calls, str):
+        return _failed(figures, ("UnparsableReply", calls), raw)
     problem = _tool_problem(calls, events, stop)
     if problem:
         return _failed(figures, problem, raw)
@@ -163,38 +165,17 @@ def _usd(nanos: int) -> Decimal:
 def _early_problem(
     events: list[Any], usage_data: list[dict[str, Any]], model: str, redactor: Redactor
 ) -> _Problem | None:
-    return (
-        _message_problem(events)
-        or _session_problem(events, redactor)
-        or _idle_problem(events)
-        or _usage_problem(usage_data, model)
-        or _route_problem(events)
-    )
-
-
-def _of_type(events: list[Any], kind: str) -> list[dict[str, Any]]:
-    return [e["data"] for e in events if e["type"] == kind]
-
-
-def _message_problem(events: list[Any]) -> _Problem | None:
-    if all(isinstance(d.get("content"), str) for d in _of_type(events, "assistant.message")):
-        return None
-    return "UnparsableReply", "an assistant.message content is not a string"
-
-
-def _session_problem(events: list[Any], redactor: Redactor) -> _Problem | None:
-    errors = _of_type(events, "session.error")
-    if not errors:
-        return None
-    parts = [errors[0].get("errorType"), errors[0].get("message")]
-    joined = ": ".join(p for p in parts if isinstance(p, str) and p)
-    return "SessionError", redactor.text(home_paths(joined))[:500]
-
-
-def _idle_problem(events: list[Any]) -> _Problem | None:
-    if any(d.get("aborted") is True for d in _of_type(events, "session.idle")):
+    """Rules 4 to 9: the first that applies."""
+    data = {kind: _of_type(events, kind) for kind in _KINDS}
+    if any(not isinstance(d.get("content"), str) for d in data["assistant.message"]):
+        return "UnparsableReply", "an assistant.message content is not a string"
+    if data["session.error"]:
+        err = data["session.error"][0]
+        parts = [p for p in (err.get("errorType"), err.get("message")) if isinstance(p, str) and p]
+        return "SessionError", redactor.text(home_paths(": ".join(parts)))[:500]
+    if any(d.get("aborted") is True for d in data["session.idle"]):
         return "Aborted", "the session went idle after an abort"
-    return None
+    return _usage_problem(usage_data, model) or _route_problem(data["model.call_failure"])
 
 
 def _usage_problem(usage_data: list[dict[str, Any]], model: str) -> _Problem | None:
@@ -205,12 +186,15 @@ def _usage_problem(usage_data: list[dict[str, Any]], model: str) -> _Problem | N
     return None
 
 
-def _route_problem(events: list[Any]) -> _Problem | None:
-    failures = _of_type(events, "model.call_failure")
-    for flag, error_class in (("isByok", "ByokRouted"), ("isAuto", "AutoRouted")):
+def _route_problem(failures: list[dict[str, Any]]) -> _Problem | None:
+    for flag, name in _ROUTES.items():
         if any(d.get(flag) is True for d in failures):
-            return error_class, f"the reply was refused: {error_class}"
+            return name, f"the reply was refused: {name}"
     return None
+
+
+def _of_type(events: list[Any], kind: str) -> list[dict[str, Any]]:
+    return [e["data"] for e in events if e["type"] == kind]
 
 
 def _stop_reason(last_usage: dict[str, Any]) -> StopReason:
@@ -260,8 +244,11 @@ def _tool_calls(events: list[Any]) -> list[ToolCall] | str:
 
 def _requested_ids(events: list[Any]) -> set[str | None] | None:
     """The ids named by every `toolRequests` list, `None` when no message has one."""
-    lists = [d.get("toolRequests") for d in _of_type(events, "assistant.message")]
-    lists = [r for r in lists if isinstance(r, list)]
+    lists = [
+        r
+        for d in _of_type(events, "assistant.message")
+        if isinstance(r := d.get("toolRequests"), list)
+    ]
     if not lists:
         return None
     return {
@@ -271,9 +258,7 @@ def _requested_ids(events: list[Any]) -> set[str | None] | None:
     }
 
 
-def _tool_problem(calls: list[ToolCall] | str, events: list[Any], stop: str) -> _Problem | None:
-    if isinstance(calls, str):
-        return "UnparsableReply", calls
+def _tool_problem(calls: list[ToolCall], events: list[Any], stop: str) -> _Problem | None:
     requested = _requested_ids(events)
     if requested is not None and requested != {c.call_id for c in calls}:
         return "UnparsableReply", "tool requests and tool starts differ"
