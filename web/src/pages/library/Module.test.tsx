@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, renderHook, screen, within } from "@testing
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
 import { useSourcesOn } from "./parts/SourcesSwitch";
+import { moduleViewKey } from "./Module";
 import { routes } from "./routes";
 
 type Json = Record<string, unknown>;
@@ -507,6 +508,80 @@ describe("Module, the navigator", () => {
       "aria-current",
     );
     window.location.hash = "";
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
+  it("forgets the selected section when the run changes to one whose same module lacks it", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: fixture.slice,
+    };
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error(`no route ${PATH}`);
+    const at = (run: string) => (
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer: "halden-aerostructures", run, module: "business-profile" })}
+      </SourceContext.Provider>
+    );
+    const view = render(at("2026-09-30"));
+    fireEvent.click(within(nav()).getByRole("button", { name: "Contrary evidence" }));
+    expect(within(nav()).getByRole("button", { name: "Contrary evidence" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+    view.rerender(at("2026-03-31"));
+    expect(within(nav()).queryByRole("button", { name: "Contrary evidence" })).toBeNull();
+    const current = within(nav())
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("aria-current") === "location");
+    expect(current.map((b) => b.textContent)).toEqual(["Bottom line"]);
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
+  it("forgets the selected section when the issuer changes and run and module stay", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const slice = structuredClone(fixture.slice) as {
+      issuers: { id: string; name: string; runs: { id: string; modules: unknown }[] }[];
+    };
+    const [first] = slice.issuers;
+    if (first === undefined) throw new Error("no issuer");
+    const earlier = first.runs.find((r) => r.id === "2026-03-31");
+    if (earlier === undefined) throw new Error("no earlier run");
+    // The same run id and module under another issuer, whose copy of the run lacks the section:
+    // the earlier run, filed under the later run's id.
+    const other = structuredClone(first);
+    const slot = other.runs.findIndex((r) => r.id === "2026-09-30");
+    if (slot === -1) throw new Error("no run");
+    other.runs[slot] = { ...structuredClone(earlier), id: "2026-09-30" };
+    other.id = "halden-copy";
+    other.name = "Halden copy";
+    slice.issuers.push(other);
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: slice,
+    };
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error(`no route ${PATH}`);
+    const at = (issuer: string) => (
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer, run: "2026-09-30", module: "business-profile" })}
+      </SourceContext.Provider>
+    );
+    const view = render(at("halden-aerostructures"));
+    fireEvent.click(within(nav()).getByRole("button", { name: "Contrary evidence" }));
+    expect(within(nav()).getByRole("button", { name: "Contrary evidence" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+    view.rerender(at("halden-copy"));
+    expect(within(nav()).queryByRole("button", { name: "Contrary evidence" })).toBeNull();
+    const current = within(nav())
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("aria-current") === "location");
+    expect(current.map((b) => b.textContent)).toEqual(["Bottom line"]);
     Reflect.deleteProperty(Element.prototype, "scrollIntoView");
   });
 
@@ -1508,5 +1583,15 @@ describe("Module, the index route", () => {
     expect(screen.getByRole("heading", { level: 2, name: "No modules in this run" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Back to the library" })).toBeVisible();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+});
+
+describe("the module page's remount key", () => {
+  // Route params are decoded, so an id holds a "/" when its link carried "%2F" (links.ts encodes
+  // each segment): these addresses are different pages that a "/" join would key alike.
+  it("differs for triples that a slash join would run together", () => {
+    expect(moduleViewKey("a/b", "c", "d")).not.toBe(moduleViewKey("a", "b/c", "d"));
+    expect(moduleViewKey("a", "b/c", "d")).not.toBe(moduleViewKey("a", "b", "c/d"));
+    expect(moduleViewKey("a", "b", "c")).toBe(moduleViewKey("a", "b", "c"));
   });
 });

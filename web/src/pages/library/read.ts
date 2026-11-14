@@ -1241,21 +1241,38 @@ function statesMatch(
 }
 
 /**
- * The module names a collapsed item's lead lists, in order, each followed by ", " or the closing
- * full stop. Names hold commas themselves, so each is matched whole against the run's own names.
- * `null` when the lead is not such a list.
+ * The counts of modules a collapsed item's lead can list: every way to split it into names the run
+ * holds, each followed by ", " or the closing full stop. Names hold commas themselves, and one name
+ * can open another, so every split is tried. Empty when the lead is not such a list. Iterative: a
+ * long lead must not overflow the call stack. The caller has already refused a lead longer than the
+ * held names can make, so the places a name can start and the names tried at each are bounded by
+ * the names' own text.
  */
-function namesListed(lead: string, names: readonly string[]): string[] | null {
-  const listed: string[] = [];
-  let rest = lead.endsWith(".") ? lead.slice(0, -1) : null;
-  while (rest !== null && rest !== "") {
-    const left: string = rest;
-    const name = names.find((n) => left === n || left.startsWith(`${n}, `));
-    if (name === undefined) return null;
-    listed.push(name);
-    rest = left === name ? "" : left.slice(name.length + 2);
+function namesListed(lead: string, names: readonly string[]): Set<number> {
+  if (!lead.endsWith(".")) return new Set();
+  const body = lead.slice(0, -1);
+  const end = body.length;
+  // A name starts at the front or after any ", ".
+  const starts = new Set([0]);
+  for (let at = body.indexOf(", "); at !== -1; at = body.indexOf(", ", at + 1)) {
+    if (at + 2 !== end) starts.add(at + 2);
   }
-  return rest === null ? null : listed;
+  // Counts reachable from each place, filled from the end of the lead back to the front.
+  const reach = new Map<number, Set<number>>([[end, new Set([0])]]);
+  for (const from of [...starts].sort((x, y) => y - x)) {
+    if (from === end) continue;
+    const found = new Set<number>();
+    for (const name of names) {
+      if (!body.startsWith(name, from)) continue;
+      const after = from + name.length;
+      const next = after === end ? after : body.startsWith(", ", after) ? after + 2 : -1;
+      const tail = reach.get(next);
+      if (tail === undefined) continue;
+      for (const n of tail) found.add(n + 1);
+    }
+    reach.set(from, found);
+  }
+  return reach.get(0) ?? new Set();
 }
 
 /** A collapsed item's title opens with the count of the modules it stands for. */
@@ -1271,14 +1288,22 @@ function namesHeld(
   path: string,
 ): void {
   const names = modules.map((m) => m.name);
+  // The longest list of distinct held names: their own text and ", " between each.
+  const longest = names.reduce((sum, n) => sum + n.length, 0) + 2 * Math.max(names.length - 1, 0);
   for (const [index, item] of items.entries()) {
     const counted = item.module === null ? COLLAPSED_TITLE.exec(item.title) : null;
     if (counted === null) continue;
+    if (item.lead.length - 1 > longest) {
+      throw new SliceError(
+        child(nth(path, index), "lead"),
+        "the names of modules this run holds, no longer than those names together",
+      );
+    }
     const listed = namesListed(item.lead, names);
-    if (listed === null) {
+    if (listed.size === 0) {
       throw new SliceError(child(nth(path, index), "lead"), "the names of modules this run holds");
     }
-    if (listed.length !== Number(counted[1])) {
+    if (!listed.has(Number(counted[1]))) {
       throw new SliceError(
         child(nth(path, index), "title"),
         "the count of the modules its lead names",
