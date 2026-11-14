@@ -5,7 +5,15 @@ from decimal import Decimal
 from typing import Any
 
 from credit_os.provider.redact import Redactor, home_paths
-from credit_os.provider.types import Reply, StopReason, ToolCall, Turn, Usage
+from credit_os.provider.types import (
+    Compaction,
+    CompactionOutcome,
+    Reply,
+    StopReason,
+    ToolCall,
+    Turn,
+    Usage,
+)
 
 BAD_SHAPE_MESSAGE = "an event is not an object with an id, a type and data"
 _REDACTED_RAW = b'"[redacted]"'
@@ -22,6 +30,7 @@ _STOPS: dict[str, StopReason] = {
     **dict.fromkeys(("length", "max_tokens"), "max_tokens"),
 }
 _ROUTES = {"isByok": "ByokRouted", "isAuto": "AutoRouted"}
+_COMPACTION_TYPES = ("session.compaction_start", "session.compaction_complete")
 _MAX_NANO = 10**39  # a charge has at most 39 digits
 _Figures = tuple[Usage, Decimal | None]
 _Problem = tuple[str, str]  # (error class, message)
@@ -67,6 +76,49 @@ def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply
     last = usage_data[-1]
     turn = Turn(text, tuple(calls), figures[0], stop, last.get("model"), _request_id(last))
     return Reply("ok", turn, None, None, figures[0], figures[1], raw, None, None)
+
+
+def compactions_from_events(given: object) -> tuple[Compaction, ...]:
+    """The compactions the events report, each where its defining event stands (the complete, or
+    a start no complete consumed). A complete consumes a start only when exactly one is pending:
+    SDK 1.0.8 has no attempt id. Two differing events under one id are read as unknown: failed,
+    no counts, no charge. Never raises for events built from JSON values; nothing is summed."""
+    events = _as_events(given) if _serialise(given) is not None else None
+    found = [e for e in events or [] if e["type"] in _COMPACTION_TYPES]
+    ids = [e["id"] for e in found]
+    clash = {i for i in ids if ids.count(i) > 1}
+    out: list[Compaction] = []
+    pending: list[str] = []
+    for e in found:
+        _apply(e, e["id"] in clash, out, pending)
+    return tuple(out)
+
+
+def _apply(e: dict[str, Any], clashes: bool, out: list[Compaction], pending: list[str]) -> None:
+    """Add what event `e` defines to `out`; `pending` holds the ids of starts not yet consumed."""
+    if clashes:
+        if all(c.event_id != e["id"] for c in out):
+            out.append(Compaction(Usage(), None, "failed", e["id"], None))
+    elif e["type"] == "session.compaction_start":
+        out.append(Compaction(Usage(), None, "unfinished", e["id"], None))
+        pending.append(e["id"])
+    else:
+        consumed = pending.pop() if len(pending) == 1 else None
+        out[:] = [c for c in out if c.event_id != consumed]
+        out.append(_complete(e))
+
+
+def _complete(event: dict[str, Any]) -> Compaction:
+    data = event["data"]
+    outcome: CompactionOutcome = "done" if data.get("success") is True else "failed"
+    used = data.get("compactionTokensUsed")
+    wires = [(wire, field) for wire, field in _COUNTS if field != "reasoning_tokens"]
+    if not isinstance(used, dict) or not all(_is_count(used.get(w)) for w, _ in wires):
+        return Compaction(Usage(), None, outcome, event["id"], None)
+    nano = _nano(used)
+    charge = None if nano is None else _usd(nano)
+    usage = Usage(**{field: used.get(wire) for wire, field in wires})
+    return Compaction(usage, charge, outcome, event["id"], None)
 
 
 def _serialise(events: object) -> bytes | None:
