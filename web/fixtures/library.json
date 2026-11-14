@@ -374,7 +374,99 @@
               "changes": null
             }
           ]
-        }
+        },
+        "runs": [
+          {
+            "id": "2026-09-30",
+            "head": {
+              "issuerName": "Halden Aerostructures",
+              "asOf": "As of 30 Sep 2026",
+              "pathway": "Full review",
+              "state": "Finished",
+              "tabs": {
+                "modulesCount": "13"
+              },
+              "firstModule": "capital-structure",
+              "forecastHref": null
+            },
+            "loading": false,
+            "traces": {
+              "net-leverage": {
+                "title": "Sources for net leverage",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Net debt of USD 2,236m against company-adjusted EBITDA of USD 486m for the year to 30 September 2026.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Net leverage 4.6x",
+                  "note": "T-0014 · C-0412",
+                  "children": [
+                    {
+                      "label": "Formula",
+                      "value": "Net debt ÷ EBITDA",
+                      "note": "2,236 ÷ 486",
+                      "children": [
+                        {
+                          "label": "Input",
+                          "value": "Net debt 2,236",
+                          "note": "C-0398 · gross debt − cash",
+                          "children": [
+                            {
+                              "label": "Source",
+                              "value": "Gross debt 2,398",
+                              "note": "annual-report-2026.pdf · p. 112",
+                              "children": []
+                            },
+                            {
+                              "label": "Source",
+                              "value": "Cash 162",
+                              "note": "annual-report-2026.pdf · p. 84",
+                              "children": []
+                            }
+                          ]
+                        },
+                        {
+                          "label": "Input",
+                          "value": "EBITDA 486",
+                          "note": "company-adjusted",
+                          "children": [
+                            {
+                              "label": "Source",
+                              "value": "EBITDA 486",
+                              "note": "lender-presentation-nov-2026.pdf · p. 9",
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "excerpt": {
+                  "quote": "“Adjusted EBITDA for the twelve months ended 30 September 2026 was USD 486 million (2025: USD 441 million).”",
+                  "source": "lender-presentation-nov-2026.pdf · p. 9"
+                },
+                "qualification": "EBITDA is on the company-adjusted basis. The reported figure is not established for this run.",
+                "evidenceItem": "T-0014"
+              }
+            }
+          },
+          {
+            "id": "2026-06-30",
+            "head": {
+              "issuerName": "Halden Aerostructures",
+              "asOf": "As of 30 Jun 2026",
+              "pathway": "Full review",
+              "state": "Finished",
+              "tabs": {
+                "modulesCount": "13"
+              },
+              "firstModule": "capital-structure",
+              "forecastHref": null
+            },
+            "loading": true,
+            "traces": {}
+          }
+        ]
       },
       {
         "id": "corvane-packaging",
@@ -403,7 +495,8 @@
               "changes": null
             }
           ]
-        }
+        },
+        "runs": []
       },
       {
         "id": "tessaly-foods",
@@ -423,7 +516,8 @@
               "changes": null
             }
           ]
-        }
+        },
+        "runs": []
       },
       {
         "id": "ardenne-cable",
@@ -452,7 +546,8 @@
               "changes": null
             }
           ]
-        }
+        },
+        "runs": []
       },
       {
         "id": "lumora-health",
@@ -472,7 +567,8 @@
               "changes": null
             }
           ]
-        }
+        },
+        "runs": []
       },
       {
         "id": "corvane-fasteners",
@@ -492,7 +588,8 @@
               "changes": null
             }
           ]
-        }
+        },
+        "runs": []
       }
     ]
   },
