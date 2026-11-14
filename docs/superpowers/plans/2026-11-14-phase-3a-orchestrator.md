@@ -384,3 +384,12 @@ coordinator reads the diff and merges. The sub-session does not merge or edit sh
 - Peak memory of the text kept for a run of 200 files, and how long paging 400 MiB takes.
 - Whether the working assumptions under G hold; whether `mutmut`'s options give the stated
   timeout and child limit in the version used.
+
+## Amendment, 2026-11-14 (from step 3B's plan, ruling R9)
+
+The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. Step 3A writes
+the delivered folder of a run (each accepted handoff's bytes under a fixed name) and calls 2A's
+`admit_delivery` with its receipt, once the run has ended as `finished` or as `stopped` for the
+cap with at least one accepted module. It is a PR after PR 7c and waits for 2A PR 5b; the
+coordinator gives it a number and its rulings before it is briefed. Step 3B reads that folder
+and checks it against the receipt; 3A writes no library file.
