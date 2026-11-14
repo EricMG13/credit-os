@@ -359,6 +359,11 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
       edited([...ROW, "label"], "Base case"),
       `${ROW_PATH}.label`,
     ],
+    [
+      "a bridge titled as a case",
+      edited([...STM, "bridges", 0, "title"], "Downside case"),
+      "runs[0].statements.bridges[0].title",
+    ],
   ])("refuses %s, naming the second one", (_, source, where) => {
     expect(readSlice(source)).toEqual({ kind: "invalid", reason: `${where}: ${TRACE_REPEAT}` });
   });
@@ -479,6 +484,8 @@ describe("readSlice: a string the page draws is never empty", () => {
       ["statements", "statements", 0, "rows", 0, "cells", 0, "text"],
       `${P}.statements.statements[0].rows[0].cells[0].text`,
     ],
+    [["statements", "bridges", 0, "head", 0], `${P}.statements.bridges[0].head[0]`],
+    [["statements", "bridges", 0, "rows", 0, "label"], `${P}.statements.bridges[0].rows[0].label`],
   ] as [(string | number)[], string][])("refuses an empty string at %j", (steps, where) => {
     expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
       kind: "invalid",

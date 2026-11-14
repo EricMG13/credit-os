@@ -1024,6 +1024,184 @@
                 }
               ]
             }
+          ],
+          "bridges": [
+            {
+              "title": "EBITDA bridge",
+              "subtitle": "FY24 to FY25E, USD millions",
+              "note": "Costs include the first full year of the 2024 acquisitions.",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "yTicks": [
+                { "value": 0, "label": "0" },
+                { "value": 1500, "label": "1,500" },
+                { "value": 3000, "label": "3,000" },
+                { "value": 4500, "label": "4,500" },
+                { "value": 6000, "label": "6,000" }
+              ],
+              "caseSteps": [
+                [
+                  { "label": "FY24", "kind": "total", "from": 0, "to": 4173, "text": "4,173" },
+                  { "label": "Volume", "kind": "up", "from": 4173, "to": 4503, "text": "+330" },
+                  { "label": "Price", "kind": "up", "from": 4503, "to": 4793, "text": "+290" },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 4793,
+                    "to": 4913,
+                    "text": "+120"
+                  },
+                  { "label": "Costs", "kind": "down", "from": 4913, "to": 4690, "text": "-223" },
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 4690, "text": "4,690" }
+                ],
+                [
+                  { "label": "FY24", "kind": "total", "from": 0, "to": 4173, "text": "4,173" },
+                  { "label": "Volume", "kind": "up", "from": 4173, "to": 4323, "text": "+150" },
+                  { "label": "Price", "kind": "up", "from": 4323, "to": 4503, "text": "+180" },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 4503,
+                    "to": 4623,
+                    "text": "+120"
+                  },
+                  { "label": "Costs", "kind": "down", "from": 4623, "to": 4560, "text": "-63" },
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 4560, "text": "4,560" }
+                ]
+              ],
+              "head": ["USD millions", "Base case", "Downside case"],
+              "rows": [
+                {
+                  "label": "EBITDA as defined, FY24",
+                  "cells": ["4,173", "4,173"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Volume",
+                  "cells": ["330", "150"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Price",
+                  "cells": ["290", "180"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Acquisitions",
+                  "cells": ["120", "120"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Costs",
+                  "cells": ["-223", "-63"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "EBITDA as defined, FY25E",
+                  "cells": ["4,690", "4,560"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                }
+              ]
+            },
+            {
+              "title": "Net debt walk",
+              "subtitle": "FY25E to FY27E, USD millions",
+              "note": "Acquisitions are assumed at zero (0). Shareholder returns were not forecast (n.a.) and are not counted as zero.",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "yTicks": [
+                { "value": 0, "label": "0" },
+                { "value": 7500, "label": "7,500" },
+                { "value": 15000, "label": "15,000" },
+                { "value": 22500, "label": "22,500" },
+                { "value": 30000, "label": "30,000" }
+              ],
+              "caseSteps": [
+                [
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 26300, "text": "26,300" },
+                  {
+                    "label": "Cash flow FY26",
+                    "kind": "down",
+                    "from": 26300,
+                    "to": 23760,
+                    "text": "-2,540"
+                  },
+                  {
+                    "label": "Cash flow FY27",
+                    "kind": "down",
+                    "from": 23760,
+                    "to": 20924,
+                    "text": "-2,836"
+                  },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 20924,
+                    "to": 20924,
+                    "text": "0"
+                  },
+                  { "label": "Shareholder returns", "kind": "missing" },
+                  { "label": "FY27E", "kind": "total", "from": 0, "to": 20924, "text": "20,924" }
+                ],
+                [
+                  { "label": "FY25E", "kind": "total", "from": 0, "to": 26320, "text": "26,320" },
+                  {
+                    "label": "Cash flow FY26",
+                    "kind": "down",
+                    "from": 26320,
+                    "to": 24510,
+                    "text": "-1,810"
+                  },
+                  {
+                    "label": "Cash flow FY27",
+                    "kind": "down",
+                    "from": 24510,
+                    "to": 22640,
+                    "text": "-1,870"
+                  },
+                  {
+                    "label": "Acquisitions",
+                    "kind": "up",
+                    "from": 22640,
+                    "to": 22640,
+                    "text": "0"
+                  },
+                  { "label": "Shareholder returns", "kind": "missing" },
+                  { "label": "FY27E", "kind": "total", "from": 0, "to": 22640, "text": "22,640" }
+                ]
+              ],
+              "head": ["USD millions", "Base case", "Downside case"],
+              "rows": [
+                {
+                  "label": "Net debt, FY25E",
+                  "cells": ["26,300", "26,320"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Free cash flow, FY26",
+                  "cells": ["-2,540", "-1,810"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Free cash flow, FY27",
+                  "cells": ["-2,836", "-1,870"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Acquisitions",
+                  "cells": ["0", "0"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Shareholder returns",
+                  "cells": [null, null],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "label": "Net debt, FY27E",
+                  "cells": ["20,924", "22,640"],
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                }
+              ]
+            }
           ]
         }
       }

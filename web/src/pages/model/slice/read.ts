@@ -22,6 +22,7 @@ import {
   yes,
   type Reader,
 } from "./reader-kit";
+import { checkSections, sections } from "./read-sections";
 import type {
   Fact,
   Cell,
@@ -150,6 +151,7 @@ const statements = object<StatementsPage>({
   intro: text,
   columns: arrayOf(column),
   statements: arrayOf(object<Statement>({ name: text, rows: arrayOf(statementRow) })),
+  ...sections,
 });
 
 /** Every list the front page draws holds something, and no two of its trace controls share a name. */
@@ -201,6 +203,11 @@ function checkStatementNames(
 ): void {
   const shared = [
     ...cases.map((c, i) => ({ name: c.name, trace: c.trace, where: `${at(casesPath, i)}.name` })),
+    ...page.bridges.map((b, i) => ({
+      name: b.title,
+      trace: b.trace,
+      where: `${at(child(path, "bridges"), i)}.title`,
+    })),
   ];
   page.statements.forEach((statement, s) => {
     distinctTraceNames([
@@ -279,6 +286,7 @@ const run: Reader<ModelRun> = (value, path) => {
   checkFront(read.front, child(path, "front"));
   checkLimitations(read.limitations, child(path, "limitations"));
   checkStatements(read.statements, read.cases.length, child(path, "statements"));
+  checkSections(read.statements, read.cases, child(path, "statements"));
   checkStatementNames(read.statements, read.cases, child(path, "cases"), child(path, "statements"));
   return read;
 };
