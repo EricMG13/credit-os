@@ -35,9 +35,26 @@ function withDirs(files, body) {
   }
 }
 
-test("the committed fixtures produce a data.js with the schema, no issuers and no slices", () => {
+test("the committed fixtures are accepted and data.js holds exactly what they hold", () => {
+  const fixture = (group) =>
+    JSON.parse(
+      readFileSync(path.join(import.meta.dirname, "..", "fixtures", `${group}.json`), "utf8"),
+    );
+  const expected = { schema: "credit-os-data/1", issuers: fixture("library").issuers ?? [] };
+  for (const group of GROUPS) {
+    const committed = fixture(group);
+    if ("slice" in committed) expected[group] = committed.slice;
+  }
   withDirs({}, (_, out) => {
     const result = run(out);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(evaluate(path.join(out, "data.js")), expected);
+  });
+});
+
+test("four empty fixtures give the schema and no issuers, and no slice", () => {
+  withDirs({}, (fixtures, out) => {
+    const result = run(out, fixtures);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(evaluate(path.join(out, "data.js")), {
       schema: "credit-os-data/1",
