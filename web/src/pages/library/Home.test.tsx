@@ -354,10 +354,14 @@ describe("Library home, List side", () => {
       expect(within(halden).getByText(text)).toBeVisible();
     }
     expect(within(halden).getByText("12 of 13 modules")).toBeVisible();
-    for (const text of ["3.4x", "2.9x", "4.1x"]) {
+    // WBR-01 ruling: the row carries its run's own figures, company-adjusted; no gross leverage.
+    for (const text of ["4.6x adj.", "2.4x adj."]) {
       expect(within(halden).getByRole("button", { name: text })).toBeVisible();
     }
-    expect(within(halden).queryByText("adj.")).toBeNull();
+    expect(within(halden).getByRole("button", { name: "4.6x adj." })).toHaveAccessibleDescription(
+      "Company-adjusted EBITDA, year to 30 Sep 2026",
+    );
+    expect(within(halden).getAllByText("n.a.")).toHaveLength(1);
   });
 
   it("marks an adjusted figure adj. and describes it with its period", () => {
@@ -387,8 +391,8 @@ describe("Library home, List side", () => {
     expect(head("Leverage")).toHaveAttribute("aria-sort", "ascending");
     expect(names()).toEqual([
       "Corvane Packaging",
-      "Halden Aerostructures",
       "Ardenne Cable",
+      "Halden Aerostructures",
       "Tessaly Foods",
       "Lumora Health",
     ]);
@@ -396,8 +400,8 @@ describe("Library home, List side", () => {
     expect(head("Leverage")).toHaveAttribute("aria-sort", "descending");
     expect(names()).toEqual([
       "Ardenne Cable",
-      "Halden Aerostructures",
       "Corvane Packaging",
+      "Halden Aerostructures",
       "Tessaly Foods",
       "Lumora Health",
     ]);
@@ -406,31 +410,31 @@ describe("Library home, List side", () => {
   it("sorts a zero figure ahead of the others, not with the missing ones", () => {
     toList();
     fireEvent.click(head("Net leverage"));
-    expect(names().slice(0, 3)).toEqual([
-      "Corvane Packaging",
-      "Halden Aerostructures",
-      "Ardenne Cable",
-    ]);
+    expect(names().slice(0, 2)).toEqual(["Corvane Packaging", "Ardenne Cable"]);
   });
 
   it("delivers a count line for each measure, with and without the adjusted clause", () => {
     toList();
     expect(
-      screen.getByText("Leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened"),
+      screen.getByText("Leverage recorded for 3 of 5 runs · 1 on adjusted EBITDA, not screened"),
     ).toBeVisible();
     expect(
       screen.getByText(
-        "Net leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+        "Net leverage recorded for 4 of 5 runs · 2 on adjusted EBITDA, not screened",
       ),
     ).toBeVisible();
-    expect(screen.getByText("Interest coverage recorded for 4 of 5 runs")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Interest coverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+      ),
+    ).toBeVisible();
   });
 
   it("applies a band: an adjusted or missing figure passes none, and its rows are listed", () => {
     toList();
     expect(screen.queryByRole("heading", { name: /^Hidden by/ })).toBeNull();
-    band("Leverage", "3.0x to under 5.0x");
-    expect(names()).toEqual(["Halden Aerostructures"]);
+    band("Leverage", "Below 3.0x");
+    expect(names()).toEqual(["Corvane Packaging"]);
     const heading = screen.getByRole("heading", {
       level: 2,
       name: "Hidden by Leverage: no figure recorded, or a figure on adjusted EBITDA",
@@ -440,25 +444,26 @@ describe("Library home, List side", () => {
       within(hidden as HTMLElement)
         .getAllByRole("link")
         .map((l) => l.textContent),
-    ).toEqual(["Tessaly Foods", "Lumora Health"]);
+    ).toEqual(["Halden Aerostructures", "Tessaly Foods", "Lumora Health"]);
     band("Leverage", "5.0x and above");
     expect(names()).toEqual(["Ardenne Cable"]);
   });
 
-  it("uses the shorter heading when no figure of that measure is adjusted", () => {
+  it("names an adjusted interest coverage figure among the hidden rows (WBR-01 ruling)", () => {
     toList();
     band("Interest coverage", "4.0x and above");
-    expect(names().sort()).toEqual(["Corvane Packaging", "Halden Aerostructures"]);
+    expect(names()).toEqual(["Corvane Packaging"]);
     expect(
-      screen.getByRole("heading", { name: "Hidden by Interest coverage: no figure recorded" }),
+      screen.getByRole("heading", {
+        name: "Hidden by Interest coverage: no figure recorded, or a figure on adjusted EBITDA",
+      }),
     ).toBeVisible();
-    expect(screen.queryByText(/or a figure on adjusted EBITDA/)).toBeNull();
   });
 
   it("passes a zero figure in the lowest band", () => {
     toList();
     band("Net leverage", "Below 3.0x");
-    expect(names().sort()).toEqual(["Corvane Packaging", "Halden Aerostructures"]);
+    expect(names()).toEqual(["Corvane Packaging"]);
   });
 
   it("keeps the filters when the layout goes back to Cards", () => {
@@ -549,7 +554,7 @@ describe("Library home, List side", () => {
     expect(table().className).toMatch(/w-max/);
     const cells = within(row("Halden Aerostructures")).getAllByRole("gridcell");
     for (const cell of cells) expect(cell.className).toMatch(/\bpx-3\b/);
-    for (const text of ["As of 30 Sep 2026", "3.4x"]) {
+    for (const text of ["As of 30 Sep 2026", "4.6x"]) {
       expect(within(row("Halden Aerostructures")).getByText(text).closest("td")?.className).toMatch(
         /whitespace-nowrap/,
       );
