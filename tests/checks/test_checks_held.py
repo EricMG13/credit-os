@@ -342,10 +342,9 @@ def test_a_figure_held_only_in_an_accepted_or_an_upstream_document_is_not_held()
 
 def test_without_held_drops_exactly_the_two_held_checks_and_keeps_the_rest_in_order() -> None:
     names = ("figure.form", "figure.not-held", "prose.provider-marker", "figure.mismatch")
-    names += ("figure.form",)
     findings = [
         Finding(check=name, severity="refusal", line=index + 1, column=1, quoted="q", reason="r")
-        for index, name in enumerate(names)
+        for index, name in enumerate((*names, "figure.form"))
     ]
     kept = [(f.check, f.line) for f in without_held(findings)]
     assert kept == [("figure.form", 1), ("prose.provider-marker", 3), ("figure.form", 5)]
