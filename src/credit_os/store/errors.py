@@ -32,6 +32,10 @@ class StoreConflict(StoreError):
     """A constraint or state rule refused the write."""
 
 
+class StoreFenced(StoreError):
+    """The claim's token is not the run's writer; nothing was written."""
+
+
 class StoreCorrupt(StoreError):
     """What is stored cannot be trusted."""
 
