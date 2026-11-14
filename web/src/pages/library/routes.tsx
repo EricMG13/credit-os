@@ -3,10 +3,16 @@
 // to visit each in a browser, and a test fails if it cannot see one. A page reads its data with
 // `readSlice(useSource().library)`. Edit only this folder and fixtures/library.json.
 import type { Route } from "../route-table";
+import { History } from "./History";
 import { Home } from "./Home";
 
 export { readSlice } from "./read";
 
 export const routes: readonly Route[] = [
   { path: "/library/home", title: "Library", render: () => <Home /> },
+  {
+    path: "/library/:issuer/history",
+    title: "Report history",
+    render: (params) => <History issuer={params["issuer"]} />,
+  },
 ];

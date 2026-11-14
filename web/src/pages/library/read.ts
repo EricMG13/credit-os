@@ -3,6 +3,8 @@ import type { SliceResult } from "../route-table";
 import type {
   Cell,
   HomeCard,
+  History,
+  HistoryEntry,
   Issuer,
   IssuerCard,
   LibraryHome,
@@ -223,9 +225,52 @@ function readHome(value: unknown, path: string, issuerIds: ReadonlySet<string>):
   };
 }
 
+function readEntry(value: unknown, path: string): HistoryEntry {
+  const e = rec(value, path);
+  const changesValue = own(e, "changes");
+  const changesPath = child(path, "changes");
+  const changes =
+    changesValue === null
+      ? null
+      : {
+          label: str(rec(changesValue, changesPath), "label", changesPath),
+          run: str(rec(changesValue, changesPath), "run", changesPath),
+        };
+  return {
+    asOf: str(e, "asOf", path),
+    ran: str(e, "ran", path),
+    state: oneOf(e, "state", path, RUN_STATES),
+    pathway: str(e, "pathway", path),
+    text: str(e, "text", path),
+    report: strOrNull(e, "report", path),
+    changes,
+  };
+}
+
+function readHistory(value: unknown, path: string): History {
+  const h = rec(value, path);
+  const latest = strOrNull(h, "latest", path);
+  const empty = strOrNull(h, "empty", path);
+  const entries = list(h, "entries", path, readEntry);
+  if (latest === null && empty === null) {
+    throw new SliceError(child(path, "empty"), "a sentence when there is no latest run");
+  }
+  if (latest !== null && empty !== null) {
+    throw new SliceError(child(path, "empty"), "null when there is a latest run");
+  }
+  if (latest !== null && !entries.some((entry) => entry.report === latest)) {
+    throw new SliceError(child(path, "latest"), "a run an entry's report opens");
+  }
+  return { subtitle: str(h, "subtitle", path), latest, empty, entries };
+}
+
 function readIssuer(value: unknown, path: string): Issuer {
   const i = rec(value, path);
-  return { id: str(i, "id", path), name: str(i, "name", path) };
+  return {
+    id: str(i, "id", path),
+    name: str(i, "name", path),
+    history: readHistory(own(i, "history"), child(path, "history")),
+  };
 }
 
 /** The library slice, or `absent` when the data file has none, or `invalid` naming the first failing path. */
