@@ -158,7 +158,10 @@ def test_pipe_line_that_is_not_a_table_row_is_refused(lines: list[str], line: in
     with pytest.raises(HandoffError) as caught:
         read_blocks(scan(lines))
     assert caught.value.line == line
-    assert caught.value.message == "a | line indented more than three spaces is not a table row"
+    assert caught.value.message == (
+        "a line starting with | after a tab, a no-break space or more than three spaces "
+        "is not a table row"
+    )
 
 
 def test_first_below_one_is_a_caller_error() -> None:
