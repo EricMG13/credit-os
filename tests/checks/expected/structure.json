@@ -42,6 +42,8 @@
     {"name": "second heading with a used id and its own tag", "findings": "{prose}### a.b — A\n<!-- table-id: a.b -->\n### a.b — B\n<!-- table-id: a.b -->\n", "expect": [["structure.register-id", "refusal", 17, "a.b — B"]]},
     {"name": "tag elsewhere, then a heading with its own tag", "findings": "{prose}### Other\n<!-- table-id: a.b -->\n### a.b — B\n<!-- table-id: a.b -->\n", "expect": [["structure.register-id", "refusal", 17, "a.b — B"]]},
     {"name": "nested headings with one id; the tag belongs to the inner one", "findings": "{prose}### a.b — t\n#### a.b — u\n<!-- table-id: a.b -->\n", "expect": [["structure.register-id", "refusal", 16, "a.b — u"]]},
+    {"name": "a tag on its heading's own line", "findings": "{prose}### a.b — t <!-- table-id: a.b -->\n", "expect": []},
+    {"name": "a repeated tag after another comment on its line", "findings": "{prose}### Other\n<!-- table-id: a.b -->\n<!-- note --><!-- table-id: a.b -->\n", "expect": [["structure.register-id", "refusal", 17, "table-id: a.b"]]},
     {"name": "ids differing by case", "findings": "{prose}### Other\n<!-- table-id: A.b -->\n<!-- table-id: a.b -->\n", "expect": []},
     {"name": "required registers, two missing", "required_registers": ["T7", "model_reg", "T9", "P2"], "findings": "{prose}### T7 — x\na\n<!-- table-id: cp1.model_reg -->\n", "expect": [["structure.registers", "refusal", 6, "Findings"]], "reason_has": {"0": ["T9, P2"]}, "reason_lacks": {"0": ["T7", "model_reg"]}},
     {"name": "required register, full tag id", "required_registers": ["cp1.model_reg"], "findings": "{prose}### O\n<!-- table-id: cp1.model_reg -->\n", "expect": []},
