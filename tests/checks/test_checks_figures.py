@@ -70,7 +70,9 @@ def test_reader(row: dict[str, Any], side: str) -> None:
     ]
 
 
-@pytest.mark.parametrize("name", list(FIGURE_CASES))
+@pytest.mark.parametrize(
+    "name", list(FIGURE_CASES), ids=[f"case{i}" for i in range(len(FIGURE_CASES))]
+)
 def test_case(name: str) -> None:
     case = FIGURE_CASES[name]
     found = check_handoff(_document(case), _context(case))
@@ -82,7 +84,9 @@ def test_case(name: str) -> None:
             assert text in found[int(index)].reason
 
 
-@pytest.mark.parametrize("name", list(FIGURE_CASES))
+@pytest.mark.parametrize(
+    "name", list(FIGURE_CASES), ids=[f"case{i}" for i in range(len(FIGURE_CASES))]
+)
 def test_every_finding_has_a_reason(name: str) -> None:
     case = FIGURE_CASES[name]
     for finding in check_handoff(_document(case), _context(case)):
@@ -264,6 +268,7 @@ def test_a_hundred_digit_figure() -> None:
         ("1899", True),
         ("1900", False),
     ],
+    ids=[f"row{i}" for i in range(9)],
 )
 def test_whole_number_judgement_is_by_value(digits: str, refused: bool) -> None:
     # `figures.check_form` called directly (no `prose.hash` finding); Decimal, never int().
@@ -318,6 +323,7 @@ def test_a_dash_before_an_ordinal_is_not_a_figure() -> None:
         ("\u20135 and 2", ["\u20135"]),
         ("5\u201310% of it.", []),
     ],
+    ids=[f"row{i}" for i in range(21)],
 )
 def test_a_dash_is_a_range_only_after_a_figure(line: str, quoted: list[str]) -> None:
     assert [f.quoted for f in _form(_bottom_line(line))] == quoted
@@ -403,6 +409,7 @@ def test_a_dash_after_one_letter_at_the_line_start_is_refused() -> None:
         ("Debt was (R$ -9M).", "9M"),
         ("Debt was R$ -(9M).", "9M"),
     ],
+    ids=[f"row{i}" for i in range(4)],
 )
 def test_a_month_count_with_an_unrecognised_currency_is_an_amount(line: str, quoted: str) -> None:
     # Hand mutants of `_reads_currency` (unrecognised counted as none; the prefix currency, the
