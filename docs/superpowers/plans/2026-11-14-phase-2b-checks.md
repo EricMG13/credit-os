@@ -181,6 +181,17 @@ Written by the controller before each task, by reading, never by running a check
 | 6 | Confidence inputs and score (sensitive); `check_handoff` and the key over all fixtures |
 
 None of the six imports `model/`. A PR that would pass 800 lines is split, not trimmed of tests.
+PR 3 (#198) is merged. Confirmed from it: the Sources headers are matched exactly as `sha256`
+and `Source type`, and a stated sha256 on an `other_sources` row is refused; a row refused by
+name is judged for type, not for sha256; `prose.register-id` gives one finding per match, the
+id cell stripped of backticks, asterisks and spaces; a limitation item is each paragraph or
+list item, quoted by its first line; the three Sources checks that read the table alone run
+when `read_reader` raised. Ruled for the next checks PR, key rows first: `sources.table`
+refuses a table with no rows in a module that is not blocked; a register id in underscore
+emphasis is reported; the register-id reason points to the Basis line. Left and pinned:
+`<anything> (CP-X)` is accepted whatever the name; a second table or a list under `## Sources`
+is unread; `normalise_limitation` keeps the predecessor's key (`+5%` and `-5%` share one).
+
 PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b (#170) the
 structure checks and `check_handoff`. PR 4 will be split: the reader with the no-float test,
 then `figure.form`.
