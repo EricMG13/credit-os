@@ -1241,6 +1241,19 @@
       { "draft": "context" },
       { "draft": "start" },
       { "draft": "started" }
+    ],
+    "/run/activity/:run": [
+      { "run": "running" },
+      { "run": "queued" },
+      { "run": "starting" },
+      { "run": "finished" },
+      { "run": "failed" },
+      { "run": "capped" },
+      { "run": "rejected" },
+      { "run": "interrupted" },
+      { "run": "many-modules" },
+      { "run": "none" },
+      { "run": "unreadable" }
     ]
   }
 }
