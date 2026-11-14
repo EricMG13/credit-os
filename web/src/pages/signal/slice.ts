@@ -1,0 +1,1448 @@
+// Signal's slice: what the service will later serve, read by hand. Each reader takes a value and
+// its path and returns the value or the first failing path; one malformed record fails the slice.
+import type { SliceResult } from "../route-table";
+
+type SignalViewer = {
+  name: string | null;
+  initials: string | null;
+  role: "reader" | "writer";
+  roleLabel: string;
+};
+type SignalTopicChannel = {
+  id: string;
+  name: string;
+  count: string | null;
+  followed: boolean;
+  /** The words the topic follows, drawn as tags in its view's header. */
+  keywords: string[];
+};
+type SignalGroupChannel = { id: string; name: string; unread: string | null };
+type SignalDigestChannel = { id: string; name: string; unread: boolean; paused: boolean };
+type SignalChannels = {
+  topics: SignalTopicChannel[];
+  groups: SignalGroupChannel[];
+  digests: SignalDigestChannel[];
+  savedCount: string | null;
+};
+export type SignalStory = {
+  id: string;
+  kind: "regulator" | "news" | "ratings" | "research";
+  kindLabel: string;
+  headline: string;
+  url: string | null;
+  source: { name: string; monogram: string };
+  time: string | null;
+  summary: string | null;
+  tags: string[];
+  alsoIn: { label: string; monograms: string[]; more: string | null } | null;
+  sharedBy: { initials: string; label: string } | null;
+  ai: { line: string } | null;
+  strength: { marks: 1 | 2 | 3; word: string } | null;
+  saved: boolean;
+  commentCount: string | null;
+  /** The thread this story has in a group, where its Comment control goes; null when it has none (Comment then opens Share to group). */
+  threadRef: { groupId: string; threadId: string } | null;
+  /** A regulatory case's stage; `label` ("Stage 3 of 4") is delivered, `position` (0 to 1) only places the bar. */
+  stage: {
+    current: string;
+    label: string;
+    position: number;
+    stages: { name: string; current: boolean }[];
+  } | null;
+  /** Rating moves as delivered (from, to and the word); an affirmed rating keeps from equal to to. */
+  ratingMoves: { from: string; to: string; word: string }[];
+};
+/** A digest card in the feed; with `nothing` set it is the one-sentence card and holds no points. */
+export type SignalDigestCard = {
+  id: string;
+  /** The digest this card is an issue of (the reader checks) and the issue: the card links to the digest's page. */
+  digestId: string;
+  issueId: string;
+  digestName: string;
+  monogram: string;
+  title: string;
+  date: string | null;
+  unread: boolean;
+  ai: boolean;
+  /** The delivered number and bold lead of each point. */
+  points: { number: string; lead: string }[];
+  summary: string | null;
+  nothing: string | null;
+};
+/** One issue of a digest; with `nothing` set it holds no points and no model wrote it. */
+export type SignalDigestIssue = {
+  id: string;
+  title: string;
+  date: string | null;
+  ai: boolean;
+  summary: string | null;
+  nothing: string | null;
+  /** Only the newest issue of a digest that is not paused is drawn with its points; an earlier one is a row (title, date, summary). */
+  points: {
+    number: string;
+    lead: string;
+    body: string | null;
+    /** The delivered "3 stories behind this point"; never counted on the page. */
+    storiesLine: string | null;
+    stories: { headline: string; url: string | null; source: string; time: string | null }[];
+  }[];
+};
+/** A digest and its issues, newest first. `paused` is the delivered sentence when no new issue is written. */
+export type SignalDigest = {
+  id: string;
+  name: string;
+  /** The tile of an earlier-digest row. */
+  monogram: string;
+  paused: string | null;
+  issues: SignalDigestIssue[];
+};
+/**
+ * Entry ids (story or digest card) in each order the service supplies; the page orders by them and
+ * ranks nothing. `waiting` is the delivered pill label ("4 new stories") with the entries it reveals;
+ * `older` holds the entries Show older reveals (none: no button). `top` and `latest` hold the same ids; `waiting` and `older` hold others, and no id repeats (the reader checks).
+ */
+export type SignalFeedView = {
+  top: string[];
+  latest: string[];
+  waiting: { label: string; ids: string[] } | null;
+  older: string[];
+};
+/** The freshness line: `checked` is the delivered time, `failing` and `error` the delivered suffix texts. */
+export type SignalFreshness = {
+  state: "checking" | "checked" | "not-checked" | "unavailable";
+  checked: string | null;
+  failing: string | null;
+  error: string | null;
+};
+type SignalFeed = {
+  status: "loading" | "ready";
+  error: null | "unreachable" | "request" | "unreadable";
+  /** False when no source is approved yet (the empty states say so). */
+  sources: { approved: boolean };
+  freshness: SignalFreshness;
+  stories: SignalStory[];
+  digests: SignalDigestCard[];
+  views: { "for-you": SignalFeedView; latest: SignalFeedView; saved: SignalFeedView };
+  topics: Record<string, SignalFeedView>;
+};
+/** One item shared in a group: a story, a note, or both (a story with the sharer's note). */
+export type SignalThreadSummary = {
+  id: string;
+  /** Names a story in the snapshot's feed (the reader checks). */
+  storyId: string | null;
+  note: string | null;
+  /** The delivered "shared by" line, e.g. "Shared by Tobias O, 1 h ago". */
+  sharedBy: { initials: string; label: string };
+  commentCount: string | null;
+  archived: boolean;
+  unread: boolean;
+  /** The delivered time of the latest activity. */
+  lastActivity: string | null;
+};
+export type SignalGroup = {
+  id: string;
+  name: string;
+  /** Delivered, e.g. "Open to everyone" or "Invited only". */
+  visibility: string;
+  /** Delivered, e.g. "6 members". */
+  memberSummary: string;
+  members: { initials: string; name: string }[];
+  /** The delivered "+N" after the shown members. */
+  moreMembers: string | null;
+  threads: SignalThreadSummary[];
+};
+/** One reaction a comment holds: the word, the delivered count and whether the viewer's own is set. */
+type SignalReaction = { word: "Agree" | "Disagree" | "Seen"; count: string; mine: boolean };
+/**
+ * A comment. A removed comment holds no text and no reactions; any other holds text. A reply is one
+ * level deep: its own `replies` is empty. `time` is delivered ("10:02"); the page adds ", edited".
+ */
+export type SignalComment = {
+  id: string;
+  author: { initials: string; name: string };
+  own: boolean;
+  time: string | null;
+  text: string | null;
+  edited: boolean;
+  removed: boolean;
+  reactions: SignalReaction[];
+  replies: SignalComment[];
+};
+/**
+ * The thread a group's item opens. Every item of a group names exactly one thread (same group, story,
+ * note and archived state) and every thread is named by an item (the reader checks both ways).
+ * `title`, `subline` and `archivedLine` are delivered text.
+ */
+export type SignalThread = {
+  id: string;
+  groupId: string;
+  storyId: string | null;
+  note: string | null;
+  archived: boolean;
+  title: string;
+  subline: string;
+  archivedLine: string | null;
+  comments: SignalComment[];
+};
+/**
+ * One group as Settings lists it: the delivered member line and avatars, who can see it (a word from
+ * `visibilityOptions`, which the Select offers). A group may hold no members ("No members yet").
+ */
+export type SignalSettingsGroup = {
+  id: string;
+  name: string;
+  members: { initials: string; name: string }[];
+  moreMembers: string | null;
+  memberSummary: string;
+  visibility: string;
+  visibilityOptions: string[];
+};
+/** A thread rule: a switch with its label and an optional hint line. */
+export type SignalSettingsRule = { id: string; label: string; hint: string | null; on: boolean };
+/** A notification event with its two switches, one per channel. */
+export type SignalNotificationEvent = {
+  id: string;
+  label: string;
+  inSignal: boolean;
+  onDesktop: boolean;
+};
+/**
+ * One week of a source's items: the delivered label and count text (`null` is no reading, `"0"` a
+ * reading of zero) and the bar's height from 0 to 1, used to position the bar only.
+ */
+export type SignalSourceWeek = { label: string; items: string | null; height: number | null };
+/**
+ * A source as Settings lists it. `health` is null for a source that is not checked (proposed or
+ * paused); `reason` is the failing text; the two notes are the delivered lines under each badge;
+ * `sort` holds the delivered ranks the table sorts by. `weeks` is empty when no week was read.
+ */
+export type SignalSource = {
+  id: string;
+  name: string;
+  kind: string;
+  state: "Proposed" | "Approved" | "Paused";
+  health: "Healthy" | "Quiet" | "Failing" | null;
+  reason: string | null;
+  stateNote: string | null;
+  healthNote: string | null;
+  lastCheck: string | null;
+  lastItem: string | null;
+  weeks: SignalSourceWeek[];
+  sort: { name: number; state: number; health: number };
+};
+/**
+ * A topic as Settings lists it: the delivered "N stories this week" line, its keywords (none means
+ * every story of its kinds) and the kinds it takes, as the labels to draw.
+ */
+export type SignalSettingsTopic = {
+  id: string;
+  name: string;
+  weekly: string;
+  keywords: string[];
+  kinds: string[];
+};
+/**
+ * The digest form: the delivered name and, for covers, schedule and length, the chosen option (one
+ * of the listed options, which the Select offers); the brief is optional text.
+ */
+export type SignalDigestForm = {
+  name: string;
+  covers: string;
+  coversOptions: string[];
+  schedule: string;
+  scheduleOptions: string[];
+  length: string;
+  lengthOptions: string[];
+  brief: string;
+};
+/** An AI part's switch (as delivered: it is not changed here) with its label and optional hint. */
+export type SignalAiPart = { id: string; label: string; hint: string | null; on: boolean };
+/**
+ * AI and cost. The notice (an alert) is present exactly when AI is off or at its cap. The spend
+ * line is the delivered title, label ("USD 6.40 of USD 15.00") and optional note; `position` (0 to
+ * 1) places the bar only. No spend reading is null.
+ */
+export type SignalAi = {
+  state: "on" | "off" | "capped";
+  notice: { title: string; text: string } | null;
+  spend: { title: string; label: string; note: string | null; position: number } | null;
+  parts: SignalAiPart[];
+};
+export type SignalSettings = {
+  topics: SignalSettingsTopic[];
+  digestForm: SignalDigestForm;
+  ai: SignalAi;
+  groups: SignalSettingsGroup[];
+  rules: SignalSettingsRule[];
+  notifications: { events: SignalNotificationEvent[] };
+  sources: SignalSource[];
+  /** The Items per week column's heading, with its delivered week count ("Items per week, 6 weeks"). */
+  sourceWeeksHeading: string;
+};
+type SignalSnapshot = {
+  viewer: SignalViewer;
+  channels: SignalChannels;
+  feed: SignalFeed;
+  groups: SignalGroup[];
+  threads: SignalThread[];
+  digests: SignalDigest[];
+  settings: SignalSettings;
+};
+export type SignalScene = { id: string; snapshot: SignalSnapshot };
+export type SignalSlice = { scenes: [SignalScene, ...SignalScene[]] };
+
+type Got<T> = { ok: true; value: T } | { ok: false; reason: string };
+type Reader<T> = (value: unknown, path: string) => Got<T>;
+
+const good = <T>(value: T): Got<T> => ({ ok: true, value });
+const bad = (path: string, expected: string): Got<never> => ({
+  ok: false,
+  reason: `${path === "" ? "slice" : path}: expected ${expected}`,
+});
+
+const str: Reader<string> = (v, path) => (typeof v === "string" ? good(v) : bad(path, "a string"));
+/** An id names a record in a link: it is not empty and has no lone surrogate (the address could not be made). */
+const id: Reader<string> = (v, path) => {
+  if (typeof v !== "string") return bad(path, "a string");
+  return v === "" || /\p{Surrogate}/u.test(v)
+    ? bad(path, "a non-empty id that an address can hold")
+    : good(v);
+};
+const bool: Reader<boolean> = (v, path) =>
+  typeof v === "boolean" ? good(v) : bad(path, "true or false");
+const strOrNull: Reader<string | null> = (v, path) =>
+  typeof v === "string" || v === null ? good(v) : bad(path, "a string or null");
+
+/** A reader for a value that is one of the listed words (`null` may be one of them). */
+function oneOf<T extends string | null>(words: readonly T[], expected: string): Reader<T> {
+  return (v, path) => {
+    const found = words.find((word) => word === v);
+    return found === undefined ? bad(path, expected) : good(found);
+  };
+}
+
+function orNull<T>(each: Reader<T>): Reader<T | null> {
+  return (v, path) => (v === null ? good(null) : each(v, path));
+}
+
+function list<T>(each: Reader<T>): Reader<T[]> {
+  return (v, path) => {
+    if (!Array.isArray(v)) return bad(path, "a list");
+    const items: T[] = [];
+    for (const [index, item] of (v as unknown[]).entries()) {
+      const got = each(item, `${path}[${String(index)}]`);
+      if (!got.ok) return got;
+      items.push(got.value);
+    }
+    return good(items);
+  };
+}
+
+/** Members are read in the order given; a missing member reads as `undefined`, which its reader refuses. */
+function shape<T extends object>(readers: { [K in keyof T]-?: Reader<T[K]> }): Reader<T> {
+  return (v, path) => {
+    if (typeof v !== "object" || v === null || Array.isArray(v)) return bad(path, "an object");
+    const record = v as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, read] of Object.entries<Reader<unknown>>(readers)) {
+      const got = read(
+        Object.hasOwn(record, key) ? record[key] : undefined,
+        path === "" ? key : `${path}.${key}`,
+      );
+      if (!got.ok) return got;
+      out[key] = got.value;
+    }
+    return good(out as T);
+  };
+}
+
+/**
+ * A record of readers' values keyed by any name, read in key order. The result has no prototype, so
+ * a key such as "__proto__" or "constructor" from the data stays an ordinary own entry, validated
+ * like any other; look keys up with `Object.hasOwn`.
+ */
+function record<T>(each: Reader<T>): Reader<Record<string, T>> {
+  return (v, path) => {
+    if (typeof v !== "object" || v === null || Array.isArray(v)) return bad(path, "an object");
+    const out: Record<string, T> = Object.create(null) as Record<string, T>;
+    for (const [key, item] of Object.entries(v)) {
+      const got = each(item, `${path}.${key}`);
+      if (!got.ok) return got;
+      out[key] = got.value;
+    }
+    return good(out);
+  };
+}
+
+const unit: Reader<number> = (v, path) =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1
+    ? good(v)
+    : bad(path, "a number from 0 to 1");
+
+/** A case stage lists its steps (the count is not fixed) and marks exactly one of them as the current one. */
+const stageSteps: Reader<{ name: string; current: boolean }[]> = (v, path) => {
+  const got = list(shape({ name: str, current: bool }))(v, path);
+  if (!got.ok) return got;
+  return got.value.filter((step) => step.current).length === 1
+    ? got
+    : bad(path, "exactly one current step");
+};
+
+const marks: Reader<1 | 2 | 3> = (v, path) =>
+  v === 1 || v === 2 || v === 3 ? good(v) : bad(path, "1, 2 or 3");
+
+const story = shape<SignalStory>({
+  id,
+  kind: oneOf(["regulator", "news", "ratings", "research"], "regulator, news, ratings or research"),
+  kindLabel: str,
+  headline: str,
+  url: strOrNull,
+  source: shape({ name: str, monogram: str }),
+  time: strOrNull,
+  summary: strOrNull,
+  tags: list(str),
+  alsoIn: orNull(shape({ label: str, monograms: list(str), more: strOrNull })),
+  sharedBy: orNull(shape({ initials: str, label: str })),
+  ai: orNull(shape({ line: str })),
+  strength: orNull(shape({ marks, word: str })),
+  saved: bool,
+  commentCount: strOrNull,
+  threadRef: orNull(shape({ groupId: id, threadId: id })),
+  stage: orNull(
+    shape({
+      current: str,
+      label: str,
+      position: unit,
+      stages: stageSteps,
+    }),
+  ),
+  ratingMoves: list(shape({ from: str, to: str, word: str })),
+});
+const digestBase = shape<SignalDigestCard>({
+  id,
+  digestId: id,
+  issueId: id,
+  digestName: str,
+  monogram: str,
+  title: str,
+  date: strOrNull,
+  unread: bool,
+  ai: bool,
+  points: list(shape({ number: str, lead: str })),
+  summary: strOrNull,
+  nothing: strOrNull,
+});
+/** A nothing-to-report entry needs no model and no list: it holds no points and is not marked AI. */
+function noModel<T extends { ai: boolean; points: unknown[]; nothing: string | null }>(
+  base: Reader<T>,
+  what: string,
+): Reader<T> {
+  return (v, path) => {
+    const got = base(v, path);
+    if (!got.ok || got.value.nothing === null) return got;
+    if (got.value.points.length > 0) return bad(`${path}.points`, `no points on a ${what}`);
+    if (got.value.ai) return bad(`${path}.ai`, `false on a ${what}`);
+    return got;
+  };
+}
+const nothingCard = noModel(digestBase, "nothing-to-report card");
+/**
+ * A nothing-to-report card draws its one sentence only; a summary beside it would never be drawn. Any
+ * other card draws its points, which are model text (so it is marked AI), and so needs some.
+ */
+const digestCard: Reader<SignalDigestCard> = (v, path) => {
+  const got = nothingCard(v, path);
+  if (!got.ok) return got;
+  const card = got.value;
+  if (card.nothing !== null) {
+    return card.summary === null ? got : bad(`${path}.summary`, "null on a nothing-to-report card");
+  }
+  if (card.points.length === 0) {
+    return bad(`${path}.points`, "points or a nothing-to-report sentence");
+  }
+  return card.ai ? got : bad(`${path}.ai`, "true on a card with points");
+};
+const digestIssue = noModel(
+  shape<SignalDigestIssue>({
+    id,
+    title: str,
+    date: strOrNull,
+    ai: bool,
+    summary: strOrNull,
+    nothing: strOrNull,
+    points: list(
+      shape({
+        number: str,
+        lead: str,
+        body: strOrNull,
+        storiesLine: strOrNull,
+        stories: list(shape({ headline: str, url: strOrNull, source: str, time: strOrNull })),
+      }),
+    ),
+  }),
+  "nothing-to-report issue",
+);
+const digestRecord = shape<SignalDigest>({
+  id,
+  name: str,
+  monogram: str,
+  paused: strOrNull,
+  issues: list(digestIssue),
+});
+const feedView = shape<SignalFeedView>({
+  top: list(str),
+  latest: list(str),
+  waiting: orNull(shape({ label: str, ids: list(str) })),
+  older: list(str),
+});
+/** Checked sources always come with the delivered time to show. */
+const freshness: Reader<SignalFreshness> = (v, path) => {
+  const got = shape<SignalFreshness>({
+    state: oneOf(
+      ["checking", "checked", "not-checked", "unavailable"],
+      '"checking", "checked", "not-checked" or "unavailable"',
+    ),
+    checked: strOrNull,
+    failing: strOrNull,
+    error: strOrNull,
+  })(v, path);
+  if (!got.ok) return got;
+  if (got.value.state === "checked" && got.value.checked === null) {
+    return bad(`${path}.checked`, "the delivered time when the state is checked");
+  }
+  // Only the checked state draws a time; a time on any other state would be accepted and never shown.
+  return got.value.state !== "checked" && got.value.checked !== null
+    ? bad(`${path}.checked`, "null unless the state is checked")
+    : got;
+};
+
+const viewerBase = shape<SignalViewer>({
+  name: strOrNull,
+  initials: strOrNull,
+  role: oneOf(["reader", "writer"], "reader or writer"),
+  roleLabel: str,
+});
+/** A name comes with its initials and no name has none: the chip draws both or neither. */
+const viewer: Reader<SignalViewer> = (v, path) => {
+  const got = viewerBase(v, path);
+  if (!got.ok) return got;
+  return (got.value.name === null) === (got.value.initials === null)
+    ? got
+    : bad(`${path}.initials`, "initials when the viewer has a name, and null when there is none");
+};
+/** A shared item holds a story, a note or both; a thread with neither has nothing to draw. */
+const thread: Reader<SignalThreadSummary> = (v, path) => {
+  const got = shape<SignalThreadSummary>({
+    id,
+    storyId: strOrNull,
+    note: strOrNull,
+    sharedBy: shape({ initials: str, label: str }),
+    commentCount: strOrNull,
+    archived: bool,
+    unread: bool,
+    lastActivity: strOrNull,
+  })(v, path);
+  if (!got.ok) return got;
+  return got.value.storyId === null && got.value.note === null
+    ? bad(`${path}.note`, "a note when the thread names no story")
+    : got;
+};
+/** A name is listed once in a group: the avatars and the screen-reader list key on it. */
+function repeatedName(members: { name: string }[], path: string): Got<never> | null {
+  const at = repeatAt(members.map((m) => m.name));
+  return at === -1
+    ? null
+    : bad(`${path}.members[${String(at)}].name`, "a name the group does not repeat");
+}
+const groupBase = shape<SignalGroup>({
+  id,
+  name: str,
+  visibility: str,
+  memberSummary: str,
+  members: list(shape({ initials: str, name: str })),
+  moreMembers: strOrNull,
+  threads: list(thread),
+});
+/** A "+N" counts members after the shown ones, so it needs shown members. */
+const group: Reader<SignalGroup> = (v, path) => {
+  const got = groupBase(v, path);
+  if (!got.ok) return got;
+  const twice = repeatedName(got.value.members, path);
+  if (twice !== null) return twice;
+  return got.value.members.length === 0 && got.value.moreMembers !== null
+    ? bad(`${path}.moreMembers`, "null when the group lists no members")
+    : got;
+};
+const channelsBase = shape<SignalChannels>({
+  topics: list(
+    shape<SignalTopicChannel>({
+      id,
+      name: str,
+      count: strOrNull,
+      followed: bool,
+      keywords: list(str),
+    }),
+  ),
+  groups: list(shape<SignalGroupChannel>({ id, name: str, unread: strOrNull })),
+  digests: list(shape<SignalDigestChannel>({ id, name: str, unread: bool, paused: bool })),
+  savedCount: strOrNull,
+});
+/**
+ * Each channel list holds an id once (its links and keys are made from it), and a paused digest has
+ * no unread mark (the list draws the Paused badge in its place).
+ */
+const channels: Reader<SignalChannels> = (v, path) => {
+  const got = channelsBase(v, path);
+  if (!got.ok) return got;
+  const lists: [string, { id: string }[]][] = [
+    ["topics", got.value.topics],
+    ["groups", got.value.groups],
+    ["digests", got.value.digests],
+  ];
+  for (const [name, items] of lists) {
+    const again = repeatAt(items.map((item) => item.id));
+    if (again !== -1) {
+      return bad(`${path}.${name}[${String(again)}].id`, "an id the list does not repeat");
+    }
+  }
+  const marked = got.value.digests.findIndex((d) => d.paused && d.unread);
+  return marked === -1
+    ? got
+    : bad(`${path}.digests[${String(marked)}].unread`, "false on a paused digest");
+};
+/** Every id a view or topic names must be a story or digest card the feed holds, and no id repeats. */
+const feedBase = shape<SignalFeed>({
+  status: oneOf(["loading", "ready"], '"loading" or "ready"'),
+  error: oneOf(
+    [null, "unreachable", "request", "unreadable"],
+    'null, "unreachable", "request" or "unreadable"',
+  ),
+  sources: shape({ approved: bool }),
+  freshness,
+  stories: list(story),
+  digests: list(digestCard),
+  views: shape({ "for-you": feedView, latest: feedView, saved: feedView }),
+  topics: record(feedView),
+});
+type IdProblem = { at: string; expected: string };
+
+/**
+ * One coherent id set per view: every id is in the feed; none repeats inside `top`, `latest`,
+ * `waiting.ids` or `older`; `top` and `latest` hold the same ids; `waiting.ids` and `older` are
+ * disjoint from them and from each other. The first failing id is named by its list and position.
+ */
+function viewIdProblem(view: SignalFeedView, known: Set<string>): IdProblem | null {
+  const lists: [string, string[]][] = [
+    ["top", view.top],
+    ["latest", view.latest],
+    ["older", view.older],
+    ["waiting.ids", view.waiting?.ids ?? []],
+  ];
+  const found = (name: string, ids: string[], fails: (id: string) => boolean, expected: string) => {
+    const index = ids.findIndex((id) => fails(id));
+    return index === -1 ? null : { at: `${name}[${String(index)}]`, expected };
+  };
+  const seen = () => {
+    const once = new Set<string>();
+    return (id: string) => (once.has(id) ? true : (once.add(id), false));
+  };
+  const checks: (() => IdProblem | null)[] = [
+    ...lists.map(
+      ([name, ids]) =>
+        () =>
+          found(name, ids, (id) => !known.has(id), "the id of a story or digest in the feed"),
+    ),
+    ...lists.map(
+      ([name, ids]) =>
+        () =>
+          found(name, ids, seen(), "an id the list does not already hold"),
+    ),
+    () => found("latest", view.latest, (id) => !view.top.includes(id), "an id in the view's top"),
+    () => found("top", view.top, (id) => !view.latest.includes(id), "an id in the view's latest"),
+    () =>
+      found(
+        "older",
+        view.older,
+        (id) => view.top.includes(id),
+        "an id the view does not already list",
+      ),
+    () =>
+      found(
+        "waiting.ids",
+        view.waiting?.ids ?? [],
+        (id) => view.top.includes(id),
+        "an id the view does not already list",
+      ),
+    () =>
+      found(
+        "older",
+        view.older,
+        (id) => view.waiting?.ids.includes(id) ?? false,
+        "an id the view does not already list",
+      ),
+  ];
+  for (const check of checks) {
+    const problem = check();
+    if (problem !== null) return problem;
+  }
+  return null;
+}
+
+const feed: Reader<SignalFeed> = (v, path) => {
+  const got = feedBase(v, path);
+  if (!got.ok) return got;
+  const again = repeatAt(got.value.stories.map((s) => s.id));
+  if (again !== -1) {
+    return bad(`${path}.stories[${String(again)}].id`, "an id no other story uses");
+  }
+  // A comment count is a thread's: a story with no thread has nothing for Comment to open.
+  const loose = got.value.stories.findIndex((s) => s.commentCount !== null && s.threadRef === null);
+  if (loose !== -1) {
+    return bad(
+      `${path}.stories[${String(loose)}].commentCount`,
+      "null on a story with no thread to open",
+    );
+  }
+  const known = new Set(got.value.stories.map((s) => s.id));
+  for (const [index, card] of got.value.digests.entries()) {
+    if (known.has(card.id)) {
+      return bad(`${path}.digests[${String(index)}].id`, "an id no story or digest already uses");
+    }
+    known.add(card.id);
+  }
+  const views: [string, SignalFeedView][] = [
+    ...Object.entries(got.value.views).map(([k, w]): [string, SignalFeedView] => [`views.${k}`, w]),
+    ...Object.entries(got.value.topics).map(([k, w]): [string, SignalFeedView] => [
+      `topics.${k}`,
+      w,
+    ]),
+  ];
+  for (const [where, view] of views) {
+    const problem = viewIdProblem(view, known);
+    if (problem !== null) {
+      return bad(`${path}.${where}.${problem.at}`, problem.expected);
+    }
+  }
+  if (got.value.status === "loading") {
+    // A loading feed draws a skeleton in place of every list, so an entry would be accepted and never drawn.
+    for (const [where, view] of views) {
+      const held: [string, string[]][] = [
+        ["top", view.top],
+        ["latest", view.latest],
+        ["waiting.ids", view.waiting?.ids ?? []],
+        ["older", view.older],
+      ];
+      const full = held.find(([, ids]) => ids.length > 0);
+      if (full !== undefined) {
+        return bad(`${path}.${where}.${full[0]}[0]`, "no entries while the feed is loading");
+      }
+      if (view.waiting !== null) {
+        return bad(`${path}.${where}.waiting`, "no new-story pill while the feed is loading");
+      }
+    }
+  }
+  for (const [where, view] of views) {
+    // The pill's Show reveals these entries: a pill that reveals none is drawn and does nothing.
+    if (view.waiting !== null && view.waiting.ids.length === 0) {
+      return bad(`${path}.${where}.waiting.ids`, "at least one id for the new-stories pill");
+    }
+  }
+  return got;
+};
+
+const reaction = shape<SignalReaction>({
+  word: oneOf(["Agree", "Disagree", "Seen"], '"Agree", "Disagree" or "Seen"'),
+  count: str,
+  mine: bool,
+});
+/** A reply is the last level: it holds no replies of its own. */
+const noReplies: Reader<SignalComment[]> = (v, path) =>
+  Array.isArray(v) && v.length === 0 ? good([]) : bad(path, "no replies on a reply");
+/** A removed comment has no text and no reactions; any other has text; a word is used once. */
+function comment(replies: Reader<SignalComment[]>): Reader<SignalComment> {
+  const base = shape<SignalComment>({
+    id: str,
+    author: shape({ initials: str, name: str }),
+    own: bool,
+    time: strOrNull,
+    text: strOrNull,
+    edited: bool,
+    removed: bool,
+    reactions: list(reaction),
+    replies,
+  });
+  return (v, path) => {
+    const got = base(v, path);
+    if (!got.ok) return got;
+    const one = got.value;
+    if (one.removed && one.text !== null) return bad(`${path}.text`, "null on a removed comment");
+    if (one.removed && one.reactions.length > 0) {
+      return bad(`${path}.reactions`, "no reactions on a removed comment");
+    }
+    if (!one.removed && one.text === null) {
+      return bad(`${path}.text`, "the comment's text (only a removed comment has none)");
+    }
+    const words = new Set<string>();
+    for (const [index, held] of one.reactions.entries()) {
+      if (words.has(held.word)) {
+        return bad(
+          `${path}.reactions[${String(index)}].word`,
+          "a word the comment does not already hold",
+        );
+      }
+      words.add(held.word);
+    }
+    return got;
+  };
+}
+const topComment = comment(list(comment(noReplies)));
+
+/** Comment ids are used once in a thread, replies included; an archived line belongs to an archived thread. */
+const threadRecord: Reader<SignalThread> = (v, path) => {
+  const got = shape<SignalThread>({
+    id,
+    groupId: id,
+    storyId: strOrNull,
+    note: strOrNull,
+    archived: bool,
+    title: str,
+    subline: str,
+    archivedLine: strOrNull,
+    comments: list(topComment),
+  })(v, path);
+  if (!got.ok) return got;
+  if (got.value.archived && got.value.archivedLine === null) {
+    return bad(`${path}.archivedLine`, "the delivered line when the thread is archived");
+  }
+  if (!got.value.archived && got.value.archivedLine !== null) {
+    return bad(`${path}.archivedLine`, "null when the thread is not archived");
+  }
+  const seen = new Set<string>();
+  for (const [index, top] of got.value.comments.entries()) {
+    const at = `${path}.comments[${String(index)}]`;
+    const ones = [
+      { one: top, where: `${at}.id` },
+      ...top.replies.map((r, i) => ({ one: r, where: `${at}.replies[${String(i)}].id` })),
+    ];
+    for (const { one, where } of ones) {
+      if (seen.has(one.id)) return bad(where, "an id the thread does not already use");
+      seen.add(one.id);
+    }
+  }
+  return got;
+};
+const settingsGroupBase = shape<SignalSettingsGroup>({
+  id,
+  name: str,
+  members: list(shape({ initials: str, name: str })),
+  moreMembers: strOrNull,
+  memberSummary: str,
+  visibility: str,
+  visibilityOptions: list(str),
+});
+/** The chosen visibility is one the Select offers; the offers repeat none; "+N" needs shown members. */
+const settingsGroup: Reader<SignalSettingsGroup> = (v, path) => {
+  const got = settingsGroupBase(v, path);
+  if (!got.ok) return got;
+  const { visibility, visibilityOptions: options, members, moreMembers } = got.value;
+  if (options.length === 0) return bad(`${path}.visibilityOptions`, "at least one option");
+  const repeat = repeatAt(options);
+  if (repeat !== -1) {
+    return bad(
+      `${path}.visibilityOptions[${String(repeat)}]`,
+      "an option the list does not repeat",
+    );
+  }
+  const twice = repeatedName(members, path);
+  if (twice !== null) return twice;
+  if (!options.includes(visibility)) {
+    return bad(`${path}.visibility`, "one of the group's visibilityOptions");
+  }
+  return members.length === 0 && moreMembers !== null
+    ? bad(`${path}.moreMembers`, "null when the group lists no members")
+    : got;
+};
+const rank: Reader<number> = (v, path) =>
+  typeof v === "number" && Number.isFinite(v) ? good(v) : bad(path, "a number");
+const sourceWeek: Reader<SignalSourceWeek> = (v, path) => {
+  const got = shape<SignalSourceWeek>({
+    label: str,
+    items: strOrNull,
+    height: orNull(unit),
+  })(v, path);
+  if (!got.ok) return got;
+  const { items, height } = got.value;
+  if ((items === null) !== (height === null)) {
+    return bad(
+      `${path}.${items === null ? "items" : "height"}`,
+      "both a count and a height, or neither",
+    );
+  }
+  return (items === "0") !== (height === 0)
+    ? bad(`${path}.height`, "0 exactly when the count is 0")
+    : got;
+};
+const sourceBase = shape<SignalSource>({
+  id: str,
+  name: str,
+  kind: str,
+  state: oneOf(["Proposed", "Approved", "Paused"], "Proposed, Approved or Paused"),
+  health: oneOf(["Healthy", "Quiet", "Failing", null], "Healthy, Quiet, Failing or null"),
+  reason: strOrNull,
+  stateNote: strOrNull,
+  healthNote: strOrNull,
+  lastCheck: strOrNull,
+  lastItem: strOrNull,
+  weeks: list(sourceWeek),
+  sort: shape({ name: rank, state: rank, health: rank }),
+});
+/** A reason goes with Failing and only with it; a proposed source is not checked, so has no health. */
+const source: Reader<SignalSource> = (v, path) => {
+  const got = sourceBase(v, path);
+  if (!got.ok) return got;
+  const one = got.value;
+  if (one.state === "Proposed" && one.health !== null) {
+    return bad(`${path}.health`, "null for a proposed source");
+  }
+  if ((one.reason === null) !== (one.health !== "Failing")) {
+    return bad(`${path}.reason`, "a reason exactly when the health is Failing");
+  }
+  if (one.health === null && one.healthNote !== null) {
+    return bad(`${path}.healthNote`, "null when the source has no health");
+  }
+  return one.lastCheck === null && one.lastItem !== null
+    ? bad(`${path}.lastItem`, "null when there is no last check")
+    : got;
+};
+/** Each chosen option is one the Select offers, and an option list is not empty and repeats none. */
+const digestForm: Reader<SignalDigestForm> = (v, path) => {
+  const got = shape<SignalDigestForm>({
+    name: str,
+    covers: str,
+    coversOptions: list(str),
+    schedule: str,
+    scheduleOptions: list(str),
+    length: str,
+    lengthOptions: list(str),
+    brief: str,
+  })(v, path);
+  if (!got.ok) return got;
+  for (const field of ["covers", "schedule", "length"] as const) {
+    const options = got.value[`${field}Options`];
+    if (options.length === 0) return bad(`${path}.${field}Options`, "at least one option");
+    const repeat = repeatAt(options);
+    if (repeat !== -1) {
+      return bad(
+        `${path}.${field}Options[${String(repeat)}]`,
+        "an option the list does not repeat",
+      );
+    }
+    if (!options.includes(got.value[field])) {
+      return bad(`${path}.${field}`, `one of ${field}Options`);
+    }
+  }
+  return got;
+};
+const aiBase = shape<SignalAi>({
+  state: oneOf(["on", "off", "capped"], "on, off or capped"),
+  notice: orNull(shape({ title: str, text: str })),
+  spend: orNull(shape({ title: str, label: str, note: strOrNull, position: unit })),
+  parts: list(shape<SignalAiPart>({ id: str, label: str, hint: strOrNull, on: bool })),
+});
+const settings = shape<SignalSettings>({
+  topics: list(
+    shape<SignalSettingsTopic>({
+      id,
+      name: str,
+      weekly: str,
+      keywords: list(str),
+      kinds: list(str),
+    }),
+  ),
+  digestForm,
+  ai: (v, path) => {
+    const got = aiBase(v, path);
+    if (!got.ok) return got;
+    const { state, notice, parts } = got.value;
+    if ((notice === null) !== (state === "on")) {
+      return bad(`${path}.notice`, state === "on" ? "null while AI is on" : "the delivered notice");
+    }
+    const repeat = repeatAt(parts.map((p) => p.id));
+    if (repeat !== -1)
+      return bad(`${path}.parts[${String(repeat)}].id`, "an id the list does not repeat");
+    const lit = parts.findIndex((p) => p.on);
+    return state === "off" && lit !== -1
+      ? bad(`${path}.parts[${String(lit)}].on`, "false while AI is off")
+      : got;
+  },
+  groups: list(settingsGroup),
+  rules: list(shape<SignalSettingsRule>({ id: str, label: str, hint: strOrNull, on: bool })),
+  notifications: shape({
+    events: list(
+      shape<SignalNotificationEvent>({ id: str, label: str, inSignal: bool, onDesktop: bool }),
+    ),
+  }),
+  sources: list(source),
+  sourceWeeksHeading: str,
+});
+const snapshotBase = shape<SignalSnapshot>({
+  viewer,
+  channels,
+  feed,
+  groups: list(group),
+  threads: list(threadRecord),
+  digests: list(digestRecord),
+  settings,
+});
+
+/** A thread is named by (group, id); the key is a pair so no id can run into another's. */
+const threadKey = (groupId: string, id: string) => JSON.stringify([groupId, id]);
+
+/** Each group item names exactly one thread and each thread is named by an item, with the same story, note and state. */
+function threadProblem(snap: SignalSnapshot, path: string): string | null {
+  const held = new Map<string, SignalThread>();
+  for (const [index, one] of snap.threads.entries()) {
+    const key = threadKey(one.groupId, one.id);
+    if (held.has(key)) {
+      return `${path}.threads[${String(index)}].id: expected an id no other thread in its group uses`;
+    }
+    held.set(key, one);
+  }
+  const named = new Set<string>();
+  for (const [g, one] of snap.groups.entries()) {
+    for (const [t, item] of one.threads.entries()) {
+      const at = `${path}.groups[${String(g)}].threads[${String(t)}]`;
+      const key = threadKey(one.id, item.id);
+      const own = held.get(key);
+      if (own === undefined)
+        return `${at}.id: expected the id of a thread in the snapshot's threads`;
+      named.add(key);
+      const same: [string, boolean][] = [
+        ["storyId", own.storyId === item.storyId],
+        ["note", own.note === item.note],
+        ["archived", own.archived === item.archived],
+      ];
+      const differs = same.find(([, ok]) => !ok);
+      if (differs !== undefined) {
+        return `${at}.${differs[0]}: expected the ${differs[0]} the thread itself holds`;
+      }
+    }
+  }
+  const stray = snap.threads.findIndex((one) => !named.has(threadKey(one.groupId, one.id)));
+  return stray === -1
+    ? null
+    : `${path}.threads[${String(stray)}].id: expected the id of an item in its group's threads`;
+}
+
+/** A story's thread reference names a thread of the snapshot that is about this very story. */
+function threadRefProblem(snap: SignalSnapshot, path: string): string | null {
+  for (const [index, one] of snap.feed.stories.entries()) {
+    const ref = one.threadRef;
+    if (ref === null) continue;
+    const found = snap.threads.find((t) => t.groupId === ref.groupId && t.id === ref.threadId);
+    if (found?.storyId !== one.id) {
+      return `${path}.feed.stories[${String(index)}].threadRef: expected a thread of this story in the snapshot's threads`;
+    }
+  }
+  return null;
+}
+
+/** A group id is used once; each thread id once in its group; each thread's story is in the feed. */
+function groupProblem(groups: SignalGroup[], stories: Set<string>, path: string): string | null {
+  const seen = new Set<string>();
+  for (const [g, one] of groups.entries()) {
+    const at = `${path}.groups[${String(g)}]`;
+    if (seen.has(one.id)) return `${at}.id: expected an id no other group uses`;
+    seen.add(one.id);
+    const threads = new Set<string>();
+    for (const [t, item] of one.threads.entries()) {
+      if (threads.has(item.id))
+        return `${at}.threads[${String(t)}].id: expected an id the group does not already use`;
+      threads.add(item.id);
+      if (item.storyId !== null && !stories.has(item.storyId)) {
+        return `${at}.threads[${String(t)}].storyId: expected the id of a story in the feed`;
+      }
+    }
+  }
+  return null;
+}
+
+/** The channel list and the groups name the same groups, in both directions. */
+function channelGroupProblem(snap: SignalSnapshot, path: string): string | null {
+  const held = new Set(snap.groups.map((g) => g.id));
+  const listed = new Set(snap.channels.groups.map((g) => g.id));
+  const channel = snap.channels.groups.findIndex((g) => !held.has(g.id));
+  if (channel !== -1) {
+    return `${path}.channels.groups[${String(channel)}].id: expected the id of a group in the snapshot's groups`;
+  }
+  const one = snap.groups.findIndex((g) => !listed.has(g.id));
+  if (one !== -1) {
+    return `${path}.groups[${String(one)}].id: expected the id of a group in the channel list`;
+  }
+  const named = snap.groups.findIndex(
+    (g) => snap.channels.groups.find((c) => c.id === g.id)?.name !== g.name,
+  );
+  return named === -1
+    ? null
+    : `${path}.groups[${String(named)}].name: expected the name the channel list gives this group`;
+}
+
+/**
+ * Ids are used once in each Settings list. Settings lists every group the channel list holds, with
+ * the same name, and may list more (a group the viewer has not joined, as the mock's frame draws).
+ */
+function settingsProblem(snap: SignalSnapshot, path: string): string | null {
+  const at = `${path}.settings`;
+  const lists: [string, string[]][] = [
+    ["groups", snap.settings.groups.map((g) => g.id)],
+    ["rules", snap.settings.rules.map((r) => r.id)],
+    ["notifications.events", snap.settings.notifications.events.map((e) => e.id)],
+    ["sources", snap.settings.sources.map((o) => o.id)],
+    ["topics", snap.settings.topics.map((t) => t.id)],
+  ];
+  for (const [name, ids] of lists) {
+    const repeat = repeatAt(ids);
+    if (repeat !== -1)
+      return `${at}.${name}[${String(repeat)}].id: expected an id the list does not repeat`;
+  }
+  for (const [c, channel] of snap.channels.groups.entries()) {
+    const held = snap.settings.groups.find((g) => g.id === channel.id);
+    if (held === undefined) {
+      return `${path}.channels.groups[${String(c)}].id: expected the id of a group in settings.groups`;
+    }
+    if (held.name !== channel.name) {
+      const index = snap.settings.groups.indexOf(held);
+      return `${at}.groups[${String(index)}].name: expected the name the channel list gives this group`;
+    }
+  }
+  return (
+    settingsTopicsProblem(snap, path) ??
+    settingsAiProblem(snap, path) ??
+    settingsSourcesProblem(snap, path) ??
+    settingsMembersProblem(snap, path)
+  );
+}
+
+/**
+ * Settings lists the channel list's topics and no others, each with the channel's name (frame 4
+ * shows no settings-only topic) and the same keywords in the same order: a topic's keywords are one
+ * fact, drawn on its page and in Settings. The "N stories" line is delivered text, not compared.
+ */
+function settingsTopicsProblem(snap: SignalSnapshot, path: string): string | null {
+  const at = `${path}.settings.topics`;
+  for (const [i, held] of snap.settings.topics.entries()) {
+    const channel = snap.channels.topics.find((t) => t.id === held.id);
+    if (channel === undefined) {
+      return `${at}[${String(i)}].id: expected the id of a topic in the channel list`;
+    }
+    if (channel.name !== held.name) {
+      return `${at}[${String(i)}].name: expected the name the channel list gives this topic`;
+    }
+    if (JSON.stringify(channel.keywords) !== JSON.stringify(held.keywords)) {
+      return `${at}[${String(i)}].keywords: expected the keywords the channel list gives this topic, in order`;
+    }
+  }
+  const missing = snap.channels.topics.find(
+    (t) => !snap.settings.topics.some((o) => o.id === t.id),
+  );
+  return missing === undefined
+    ? null
+    : `${at}: expected a topic for the channel list's "${missing.id}"`;
+}
+
+/**
+ * AI state against the rest of the snapshot, without reading any text: every digest in the channel
+ * list is paused exactly when AI is off or at its cap, and with AI off or capped no story carries an
+ * AI line or a signal strength. (Which sentence a paused digest shows is not compared.)
+ */
+function settingsAiProblem(snap: SignalSnapshot, path: string): string | null {
+  const stopped = snap.settings.ai.state !== "on";
+  const wrong = snap.channels.digests.findIndex((d) => d.paused !== stopped);
+  if (wrong !== -1) {
+    return `${path}.channels.digests[${String(wrong)}].paused: expected ${String(stopped)}, as settings.ai.state ${snap.settings.ai.state} says`;
+  }
+  if (!stopped) return null;
+  const lit = snap.feed.stories.findIndex((s) => s.ai !== null || s.strength !== null);
+  return lit === -1
+    ? null
+    : `${path}.feed.stories[${String(lit)}].ai: expected null (and strength null), as settings.ai.state ${snap.settings.ai.state} says`;
+}
+
+/**
+ * Every source has as many weeks as the others that have any. The feed's own claims about sources
+ * agree with the list: it says a source is approved exactly when one is listed Approved, and gives the failing text exactly
+ * when one is listed Failing (the count inside the text is not parsed).
+ */
+function settingsSourcesProblem(snap: SignalSnapshot, path: string): string | null {
+  const { sources } = snap.settings;
+  const at = `${path}.settings.sources`;
+  const width = sources.find((o) => o.weeks.length > 0)?.weeks.length ?? 0;
+  const odd = sources.findIndex((o) => o.weeks.length > 0 && o.weeks.length !== width);
+  if (odd !== -1) {
+    return `${at}[${String(odd)}].weeks: expected ${String(width)} weeks, as the other sources have`;
+  }
+  const approved = sources.some((o) => o.state === "Approved");
+  if (snap.feed.sources.approved !== approved) {
+    return `${path}.feed.sources.approved: expected ${String(approved)}, as settings.sources lists`;
+  }
+  const failing = sources.some((o) => o.health === "Failing");
+  if ((snap.feed.freshness.failing !== null) === failing) return null;
+  return failing
+    ? `${path}.feed.freshness.failing: expected the failing text, as settings.sources lists a failing source`
+    : `${path}.feed.freshness.failing: expected null, as settings.sources lists no failing source`;
+}
+
+/**
+ * A group in both lists has one membership: the same member line, the same names in the same order
+ * (Settings' initials may be the frame's one-letter form) and, where both carry a "+N", the same one.
+ * Visibility is not compared: the two pages use two vocabularies (an open product question).
+ */
+function settingsMembersProblem(snap: SignalSnapshot, path: string): string | null {
+  for (const [i, held] of snap.settings.groups.entries()) {
+    const page = snap.groups.find((g) => g.id === held.id);
+    if (page === undefined) continue;
+    const at = `${path}.settings.groups[${String(i)}]`;
+    if (held.memberSummary !== page.memberSummary) {
+      return `${at}.memberSummary: expected the member line the group page gives this group`;
+    }
+    const names = (g: { members: { name: string }[] }) =>
+      JSON.stringify(g.members.map((m) => m.name));
+    if (names(held) !== names(page)) {
+      return `${at}.members: expected the member names, in order, the group page gives this group`;
+    }
+    if (
+      held.moreMembers !== null &&
+      page.moreMembers !== null &&
+      held.moreMembers !== page.moreMembers
+    ) {
+      return `${at}.moreMembers: expected the "+N" the group page gives this group`;
+    }
+  }
+  return null;
+}
+
+/** The index of the first id that an earlier one in the list repeats, or -1. */
+function repeatAt(ids: string[]): number {
+  const seen = new Set<string>();
+  return ids.findIndex((id) => (seen.has(id) ? true : (seen.add(id), false)));
+}
+
+/**
+ * Only the newest issue of a running digest is drawn with its points; any other issue is a row and
+ * would drop them. Points are model text, so their issue is marked AI; a running digest's newest issue
+ * has points or says nothing was material.
+ */
+function issuesProblem(digest: SignalDigest, path: string): string | null {
+  for (const [j, issue] of digest.issues.entries()) {
+    const at = `${path}[${String(j)}]`;
+    const rowOnly = digest.paused !== null || j > 0;
+    if (rowOnly && issue.points.length > 0) {
+      return `${at}.points: expected no points on an issue drawn only as a row`;
+    }
+    if (issue.points.length > 0 && !issue.ai)
+      return `${at}.ai: expected true on an issue with points`;
+    if (!rowOnly && issue.points.length === 0 && issue.nothing === null) {
+      return `${at}.points: expected points or a nothing-material sentence on the newest issue of a running digest`;
+    }
+  }
+  return null;
+}
+
+/** Digests and issues have unique ids; the channel list and the digests name the same ones, in both directions; each feed card names an issue of its digest. */
+function digestProblem(snap: SignalSnapshot, path: string): string | null {
+  const { digests, channels: lists } = snap;
+  const at = (i: number) => `${path}.digests[${String(i)}]`;
+  const twice = repeatAt(digests.map((d) => d.id));
+  if (twice !== -1) return `${at(twice)}.id: expected an id no other digest uses`;
+  for (const [i, one] of digests.entries()) {
+    const again = repeatAt(one.issues.map((issue) => issue.id));
+    if (again !== -1) {
+      return `${at(i)}.issues[${String(again)}].id: expected an id the digest does not already use`;
+    }
+  }
+  const channel = lists.digests.findIndex((c) => !digests.some((d) => d.id === c.id));
+  if (channel !== -1) {
+    return `${path}.channels.digests[${String(channel)}].id: expected the id of a digest in the snapshot's digests`;
+  }
+  for (const [i, one] of digests.entries()) {
+    const listed = lists.digests.find((c) => c.id === one.id);
+    if (listed === undefined) {
+      return `${at(i)}.id: expected the id of a digest in the channel list`;
+    }
+    if (listed.name !== one.name) {
+      return `${at(i)}.name: expected the name the channel list gives this digest`;
+    }
+    if (listed.paused && one.paused === null) {
+      return `${at(i)}.paused: expected the delivered sentence, as the channel list marks the digest paused`;
+    }
+    if (!listed.paused && one.paused !== null) {
+      return `${at(i)}.paused: expected null, as the channel list marks the digest not paused`;
+    }
+  }
+  for (const [i, one] of digests.entries()) {
+    const found = issuesProblem(one, `${at(i)}.issues`);
+    if (found !== null) return found;
+  }
+  for (const [i, card] of snap.feed.digests.entries()) {
+    const where = `${path}.feed.digests[${String(i)}]`;
+    const named = digests.find((d) => d.id === card.digestId);
+    if (named === undefined) {
+      return `${where}.digestId: expected the id of a digest in the snapshot's digests`;
+    }
+    if (!named.issues.some((issue) => issue.id === card.issueId)) {
+      return `${where}.issueId: expected the id of an issue of the digest the card names`;
+    }
+    const issue = named.issues.find((i) => i.id === card.issueId);
+    if (issue !== undefined && card.title !== issue.title) {
+      return `${where}.title: expected the title of the issue the card names`;
+    }
+    if (card.digestName !== named.name) {
+      return `${where}.digestName: expected the name of the digest the card names`;
+    }
+    if (card.monogram !== named.monogram) {
+      return `${where}.monogram: expected the monogram of the digest the card names`;
+    }
+  }
+  return null;
+}
+
+/**
+ * The Saved view lists stories marked saved, and a story marked saved means the view lists something
+ * (the view may be a first page of a longer list, so nothing more is compared). Digest cards are no stories.
+ */
+function savedProblem(snap: SignalSnapshot, path: string): string | null {
+  const { stories } = snap.feed;
+  const view = snap.feed.views.saved;
+  const listed: [string, string[]][] = [
+    ["top", view.top],
+    ["latest", view.latest],
+    ["waiting.ids", view.waiting?.ids ?? []],
+    ["older", view.older],
+  ];
+  for (const [name, ids] of listed) {
+    const at = ids.findIndex((id) => stories.find((s) => s.id === id)?.saved !== true);
+    if (at !== -1) {
+      return `${path}.feed.views.saved.${name}[${String(at)}]: expected the id of a story marked saved`;
+    }
+  }
+  if (listed.every(([, ids]) => ids.length === 0)) {
+    const marked = stories.findIndex((s) => s.saved);
+    if (marked !== -1) {
+      return `${path}.feed.stories[${String(marked)}].saved: expected false while the Saved view lists nothing`;
+    }
+  }
+  return null;
+}
+
+/**
+ * A delivered count never sits beside a page that says there is nothing, and the reader never counts:
+ * a topic's count is null or "0" exactly when its view lists no story (a loading feed lists nothing, so
+ * it is skipped), and a group's unread badge is null or "0" when the group holds no thread.
+ */
+function countProblem(snap: SignalSnapshot, path: string): string | null {
+  const { channels: lists, feed: items } = snap;
+  if (items.status !== "loading") {
+    for (const [i, topic] of lists.topics.entries()) {
+      const listed = (
+        Object.hasOwn(items.topics, topic.id) ? items.topics[topic.id]?.top : undefined
+      )?.length;
+      const at = `${path}.channels.topics[${String(i)}].count`;
+      const none = topic.count === null || topic.count === "0";
+      if (listed === 0 && !none) {
+        return `${at}: expected null or "0" while the topic's view lists no stories`;
+      }
+      if (listed !== undefined && listed > 0 && topic.count === "0") {
+        return `${at}: expected a count other than "0" while the topic's view lists stories`;
+      }
+    }
+  }
+  for (const [i, channel] of lists.groups.entries()) {
+    const held = snap.groups.find((g) => g.id === channel.id);
+    if (held?.threads.length === 0 && channel.unread !== null && channel.unread !== "0") {
+      return `${path}.channels.groups[${String(i)}].unread: expected null or "0" while the group holds no thread`;
+    }
+  }
+  return null;
+}
+
+/** Each channel topic has exactly one order in the feed: a missing order is not an empty topic. */
+const snapshot: Reader<SignalSnapshot> = (v, path) => {
+  const got = snapshotBase(v, path);
+  if (!got.ok) return got;
+  const stories = new Set(got.value.feed.stories.map((s) => s.id));
+  const problem =
+    groupProblem(got.value.groups, stories, path) ??
+    channelGroupProblem(got.value, path) ??
+    settingsProblem(got.value, path) ??
+    threadProblem(got.value, path) ??
+    threadRefProblem(got.value, path) ??
+    digestProblem(got.value, path);
+  if (problem !== null) return { ok: false, reason: problem };
+  const { channels: lists, feed: items } = got.value;
+  // The badge is a delivered count, never recounted: it is null or "0" exactly when the Saved view lists nothing.
+  const none = items.views.saved.top.length === 0;
+  if ((lists.savedCount === null || lists.savedCount === "0") !== none) {
+    return bad(
+      `${path}.channels.savedCount`,
+      none
+        ? 'null or "0" while the Saved view lists no stories'
+        : "the delivered count while the Saved view lists stories",
+    );
+  }
+  const saved = savedProblem(got.value, path);
+  if (saved !== null) return { ok: false, reason: saved };
+  const where = `${path}.feed.topics`;
+  const missing = lists.topics.find((t) => !Object.hasOwn(items.topics, t.id));
+  if (missing !== undefined) {
+    return bad(`${where}.${missing.id}`, "an order for this channel topic");
+  }
+  const known = new Set(lists.topics.map((t) => t.id));
+  const extra = Object.keys(items.topics).find((id) => !known.has(id));
+  if (extra !== undefined) return bad(`${where}.${extra}`, "the id of a channel topic");
+  const counted = countProblem(got.value, path);
+  return counted === null ? got : { ok: false, reason: counted };
+};
+/** The slice always has a first scene, so the unknown-scene page can link home to it. */
+function nonEmpty<T>(each: Reader<T>): Reader<[T, ...T[]]> {
+  return (v, path) => {
+    const got = list(each)(v, path);
+    if (!got.ok) return got;
+    const [first, ...rest] = got.value;
+    return first === undefined ? bad(path, "at least one scene") : good([first, ...rest]);
+  };
+}
+
+/** A scene id is used once: the route finds a scene by it, so a second would never be reachable. */
+function uniqueScenes(
+  each: Reader<[SignalScene, ...SignalScene[]]>,
+): Reader<[SignalScene, ...SignalScene[]]> {
+  return (v, path) => {
+    const got = each(v, path);
+    if (!got.ok) return got;
+    const again = repeatAt(got.value.map((scene) => scene.id));
+    return again === -1 ? got : bad(`${path}[${String(again)}].id`, "an id no other scene uses");
+  };
+}
+
+/** The home route names the scene "main", so the slice must hold it. */
+function withMain(
+  each: Reader<[SignalScene, ...SignalScene[]]>,
+): Reader<[SignalScene, ...SignalScene[]]> {
+  return (v, path) => {
+    const got = each(v, path);
+    if (!got.ok) return got;
+    return got.value.some((scene) => scene.id === "main")
+      ? got
+      : bad(path, 'a scene with id "main"');
+  };
+}
+
+const scenes = shape<SignalSlice>({
+  scenes: uniqueScenes(withMain(nonEmpty(shape<SignalScene>({ id, snapshot })))),
+});
+
+export function readSlice(source: unknown): SliceResult<SignalSlice> {
+  if (source === undefined) return { kind: "absent" };
+  const got = scenes(source, "");
+  return got.ok ? { kind: "ok", data: got.value } : { kind: "invalid", reason: got.reason };
+}

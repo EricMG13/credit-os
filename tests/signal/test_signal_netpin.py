@@ -23,6 +23,7 @@ from credit_os.signal.netpin import (
     ConnectionLike,
     ConnectionTarget,
     PinnedHTTPSConnection,
+    ReceivedTooMuch,
     ResponseLike,
     is_public,
     pinned_connection,
@@ -31,6 +32,7 @@ from credit_os.signal.netpin import (
 
 IP = "93.184.216.34"
 HOST = "feeds.example.org"
+LIMIT = 1000  # received bytes a test connection may take, unless the test is about the limit
 
 NON_PUBLIC = [
     # the predecessor's list (tests/test_signal_fetch.py, NON_PUBLIC)
@@ -415,6 +417,7 @@ def _connection(
     port: int = 443,
     timeout: float = 10.0,
     deadline: float = 100.0,
+    max_received: int = LIMIT,
 ) -> PinnedHTTPSConnection:
     return PinnedHTTPSConnection(
         HOST,
@@ -424,6 +427,7 @@ def _connection(
         context=wire.context(monkeypatch),
         deadline=deadline,
         clock=clock,
+        max_received=max_received,
     )
 
 
@@ -463,6 +467,7 @@ def test_connect_refuses_an_address_that_is_not_public_before_any_socket(
         context=wire.context(monkeypatch),
         deadline=100.0,
         clock=Clock(),
+        max_received=LIMIT,
     )
     with pytest.raises(ValueError, match="not a public address"):
         connection.connect()
@@ -648,7 +653,7 @@ def test_a_response_that_is_not_http_is_refused_by_the_standard_library(
 
 
 def _target(clock: Callable[[], float], deadline: float = 100.0) -> ConnectionTarget:
-    return ConnectionTarget(HOST, IP, 443, 10.0, deadline, clock)
+    return ConnectionTarget(HOST, IP, 443, 10.0, deadline, clock, 4096)
 
 
 def test_the_production_connector_is_pinned_to_the_checked_address(
@@ -673,6 +678,7 @@ def test_the_production_connector_is_pinned_to_the_checked_address(
             "context": "context",
             "deadline": 55.0,
             "clock": clock,
+            "max_received": 4096,
         }
     ]
 
@@ -693,9 +699,14 @@ def test_the_connector_makes_a_connection_that_connects_to_the_target_address(
 
 
 def _budgeted(
-    wire: Wire, clock: Clock, *, timeout: float = 5.0, deadline: float = 100.0
+    wire: Wire,
+    clock: Clock,
+    *,
+    timeout: float = 5.0,
+    deadline: float = 100.0,
+    max_received: int = LIMIT,
 ) -> netpin._BudgetedSocket:
-    return netpin._BudgetedSocket(wire.client, timeout, deadline, clock)
+    return netpin._BudgetedSocket(wire.client, timeout, deadline, clock, max_received)
 
 
 def test_every_send_and_receive_is_bounded_by_the_per_operation_timeout(wire: Wire) -> None:
@@ -772,3 +783,94 @@ def test_a_file_closed_before_the_socket_leaves_the_socket_open(wire: Wire) -> N
     assert wire.client.fileno() != -1
     budget.close()
     assert wire.client.fileno() == -1
+
+
+# the received-bytes limit: counted as the bytes http.client sees, after TLS
+
+
+def test_a_socket_takes_exactly_its_limit_and_then_the_end_of_the_stream(wire: Wire) -> None:
+    reader = _budgeted(wire, Clock(), max_received=5).makefile("rb")
+    wire.peer.sendall(b"abcde")
+    wire.peer.shutdown(socket.SHUT_WR)
+    assert reader.read(10) == b"abcde"
+
+
+def test_a_socket_refuses_the_byte_after_its_limit(wire: Wire) -> None:
+    reader = _budgeted(wire, Clock(), max_received=5).makefile("rb")
+    wire.peer.sendall(b"abcdef")
+    with pytest.raises(ReceivedTooMuch, match="more than 5 bytes"):
+        reader.read(10)
+
+
+def test_the_count_is_over_every_receive_not_per_call(wire: Wire) -> None:
+    budget = _budgeted(wire, Clock(), max_received=5)
+    buffer = bytearray(10)
+    wire.peer.sendall(b"abc")
+    assert budget.recv_into(buffer, 10) == 3
+    wire.peer.sendall(b"def")
+    with pytest.raises(ReceivedTooMuch):
+        budget.recv_into(buffer, 10)
+
+
+def test_a_socket_reads_no_more_than_one_byte_past_its_limit(wire: Wire) -> None:
+    budget = _budgeted(wire, Clock(), max_received=5)
+    wire.peer.sendall(b"0123456789")
+    with pytest.raises(ReceivedTooMuch):
+        budget.recv_into(bytearray(10), 10)
+    wire.client.settimeout(2.0)
+    assert wire.client.recv(100) == b"6789"  # 6 of the 10 were taken: the limit and one more
+
+
+def test_a_refused_socket_refuses_every_later_read_and_never_reports_an_end(wire: Wire) -> None:
+    budget = _budgeted(wire, Clock(), max_received=2)
+    wire.peer.sendall(b"abcd")
+    for _ in range(3):
+        with pytest.raises(ReceivedTooMuch):
+            budget.recv_into(bytearray(4), 4)
+
+
+def test_the_read_past_the_limit_is_refused_at_once_while_the_peer_stays_silent(
+    wire: Wire,
+) -> None:
+    budget = _budgeted(wire, Clock(), max_received=3)
+    buffer = bytearray(4)
+    wire.peer.sendall(b"abcd")  # exactly the limit and one byte; then the peer says nothing more
+    with pytest.raises(ReceivedTooMuch):
+        budget.recv_into(buffer, 4)
+    wire.client.settimeout(2.0)
+    with pytest.raises(ReceivedTooMuch):  # not TimeoutError from waiting on the silent peer
+        budget.recv_into(buffer, 4)
+
+
+def test_a_limit_of_zero_takes_the_first_byte_as_too_much(wire: Wire) -> None:
+    budget = _budgeted(wire, Clock(), max_received=0)
+    wire.peer.sendall(b"a")
+    with pytest.raises(ReceivedTooMuch):
+        budget.recv_into(bytearray(4), 4)
+
+
+def test_received_too_much_is_an_os_error_with_fixed_text() -> None:
+    assert issubclass(ReceivedTooMuch, OSError)
+    assert str(ReceivedTooMuch(7)) == "the server sent more than 7 bytes"
+
+
+def test_a_connection_takes_an_answer_of_exactly_its_limit(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 17 + 20 + 2 bytes of status line and headers, then 50 of body: 89 in all
+    answer = b"HTTP/1.1 200 OK\r\nContent-Length: 50\r\n\r\n" + b"x" * 50
+    assert len(answer) == 89
+    wire.peer.sendall(answer)
+    connection = _connection(wire, monkeypatch, Clock(), max_received=89)
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert connection.getresponse().read(50) == b"x" * 50
+
+
+def test_a_connection_refuses_an_answer_one_byte_over_its_limit(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    wire.peer.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 50\r\n\r\n" + b"x" * 50)
+    connection = _connection(wire, monkeypatch, Clock(), max_received=88)
+    connection.request("GET", "/", headers={"Host": HOST})
+    with pytest.raises(ReceivedTooMuch):
+        connection.getresponse().read(50)
