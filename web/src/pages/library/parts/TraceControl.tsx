@@ -13,9 +13,12 @@ export const TRACE_HOST = "group/trace relative";
  */
 export function TraceControl({
   trace,
+  label,
   onDark = false,
 }: {
   trace: string | null;
+  /** The accessible name, the mock's own for the item: "Show sources for this figure", "…the bottom line". */
+  label: string;
   /** Set on the navy bottom-line band: a transparent control with a white outline. */
   onDark?: boolean;
 }) {
@@ -28,7 +31,7 @@ export function TraceControl({
   return (
     <Tooltip title="Show sources" placement="top right">
       <TooltipTrigger
-        aria-label="Show sources for this figure"
+        aria-label={label}
         onPress={() => {
           run.open(trace);
         }}

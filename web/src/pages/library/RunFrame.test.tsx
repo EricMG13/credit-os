@@ -37,10 +37,10 @@ function renderFrame(
       >
         <p>Page body</p>
         <div data-testid="figure" className={TRACE_HOST}>
-          <TraceControl trace="net-leverage" />
+          <TraceControl trace="net-leverage" label="Show sources for this figure" />
         </div>
         <div data-testid="plain">
-          <TraceControl trace={null} />
+          <TraceControl trace={null} label="Show sources for this figure" />
         </div>
       </RunFrame>
     </SourceContext.Provider>,
@@ -144,6 +144,19 @@ describe("Show sources", () => {
     (runs[0] as Run)["overview"] = runs[2]?.["overview"];
     (runs[0] as Run).traces = {};
     expect(() => renderFrame({ library: slice })).toThrow(RangeError);
+  });
+});
+
+describe("Trace drawer, keyboard", () => {
+  it("draws the design focus ring on a branch's summary row", () => {
+    renderFrame();
+    openDrawer();
+    const summary = screen.getAllByText(/^Result/)[0]?.closest("summary");
+    expect(summary).toHaveClass(
+      "focus-visible:ring-2",
+      "focus-visible:ring-brand",
+      "rounded-ds-xs",
+    );
   });
 });
 

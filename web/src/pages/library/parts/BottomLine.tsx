@@ -29,7 +29,7 @@ export function BottomLine({ text, level }: { text: BottomLineText; level: Level
         <Lead className="font-display text-h3">{text.lead}</Lead>
         <p className="max-w-[76ch] text-body">{text.rest}</p>
       </div>
-      <TraceControl trace={text.trace} onDark />
+      <TraceControl trace={text.trace} label="Show sources for the bottom line" onDark />
     </section>
   );
 }
