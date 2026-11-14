@@ -130,8 +130,12 @@ describe("Report history, a normal issuer", () => {
   it("shows no run code or id, in text or attributes, beyond the routing links", () => {
     const { container } = renderHistory("halden-aerostructures");
     expect(container.textContent).not.toMatch(/CP-\d|RUN-|sha|\.pdf|\d{4}-\d{2}-\d{2}/);
-    for (const el of container.querySelectorAll("[id],[title],[data-id],[aria-label]")) {
-      expect(el.getAttribute("id") ?? "").not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    for (const el of container.querySelectorAll("*")) {
+      for (const attr of el.attributes) {
+        if (attr.name === "id" || attr.name === "title" || /^(aria|data)-/.test(attr.name)) {
+          expect(attr.value, `${el.tagName} ${attr.name}`).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+        }
+      }
       expect(el.getAttribute("title")).toBeNull();
     }
   });
@@ -180,5 +184,37 @@ describe("Report history, a malformed entry", () => {
     renderHistory("halden-aerostructures", slice);
     expect(screen.getByText(/issuers\[0\]\.history\.entries\[2\]\.state/)).toBeVisible();
     expect(screen.queryByText("Run as of 30 Sep 2026")).toBeNull();
+  });
+});
+
+describe("Report history, heading levels", () => {
+  it("draws the issuer at h2 and its empty state one level below at h3", () => {
+    renderHistory("corvane-fasteners");
+    expect(screen.getByRole("heading", { level: 2, name: "Corvane Fasteners" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 3, name: "No report yet" })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 2, name: "No report yet" })).toBeNull();
+  });
+
+  it("draws an unknown issuer's empty state at h2, directly under the page h1", () => {
+    renderHistory("no-such-issuer");
+    expect(screen.getByRole("heading", { level: 2, name: "No such issuer" })).toBeVisible();
+  });
+});
+
+describe("Report history, fixture against the Library home cards", () => {
+  it("gives every carded issuer a history that opens the card's run, in the card's state", () => {
+    const cards = (fixture.slice.home["cards"] as Json[]).filter((c) => c["kind"] === "issuer");
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of cards) {
+      const issuer = fixture.slice.issuers.find((i) => i["id"] === card["issuer"]);
+      const list = issuer?.history.entries ?? [];
+      const opened = list.find((e) => e["report"] === card["href"]);
+      expect(opened, `${String(card["issuer"])} opens ${String(card["href"])}`).toBeDefined();
+      expect(["Failed", "Running"]).not.toContain(opened?.["state"]);
+      expect(
+        list.map((e) => e["state"]),
+        String(card["issuer"]),
+      ).toContain(card["state"]);
+    }
   });
 });
