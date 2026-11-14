@@ -93,15 +93,66 @@ _HOME_PATH_FWD = re.compile(
     r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
     rf"|{_ROOT})"
 )
+# A home folder inside a path is a home too (owner ruling, 2026-11-14), but only on a path that is
+# one: reached through path segments from a drive, a UNC share (either slash, long-path form
+# included) or "/mnt/<drive>/", or from the end of a home the three patterns above matched. It is
+# its own pass whose spans join the union, so it never redacts less than they do. A path reaches
+# as far as the user-name rule of its form: a Windows path to a reserved character (< > : " | ? *)
+# or the line's end, a POSIX path to ":" or the line's end; a space does not end it, since a
+# folder name may hold one and the two cannot be told apart, so it fails closed. The span is the
+# separators before the folder, the folder, its separators and the user name; the name follows the
+# rule of the path's form. A folder must be a whole segment, and "root" has no nested form. A path
+# is scanned once: a start inside an earlier start's reach adds nothing and is skipped.
+_NEST_START = re.compile(rf"{_LEAD}(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z]|{_UNC_FWD}{_UNC_BODY})[\\/]+")
+_NEST_WORD = re.compile(r"(?i:users|home)")  # every folder in _HOME_DIRS holds one
+_NEST_HEAD = re.compile(rf"(?<![\\/])[\\/]++{_HOME_DIRS}[\\/]++")
+_NEST_WIN_NAME = re.compile(
+    rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
+)
+_NEST_POSIX_NAME = re.compile(r"(?:[^/:\\\r\n]|\\[^\r\n]*)+")
+_NEST_WIN_REACH = re.compile(r"[^<>:\"|?*\r\n]*")
+_NEST_POSIX_REACH = re.compile(r"[^:\r\n]*")
+_NEST_FORMS = {
+    True: (_NEST_WIN_REACH, _NEST_WIN_NAME),
+    False: (_NEST_POSIX_REACH, _NEST_POSIX_NAME),
+}
+
+
+def _nested_spans(text: str, homes: list[tuple[int, bool]]) -> list[tuple[int, int]]:
+    """Spans of the home folders inside paths. ``homes`` is the end and Windows-form flag of each
+    match of the three patterns; a match that ends at a separator has the rest of its path."""
+    if _NEST_WORD.search(text) is None:  # no folder name anywhere: nothing to find, skip the scan
+        return []
+    starts = [(m.end(), True) for m in _NEST_START.finditer(text)]
+    starts += [(end, win) for end, win in homes if text[end : end + 1] in ("/", "\\")]
+    spans: list[tuple[int, int]] = []
+    scanned = {True: 0, False: 0}
+    for start, win in sorted(starts):
+        if start < scanned[win]:
+            continue
+        reach, name = _NEST_FORMS[win]
+        end = next(reach.finditer(text, start)).end()  # the reach pattern matches, empty or not
+        at = start
+        while (head := _NEST_HEAD.search(text, at, end)) is not None:
+            at = head.end()
+            if (user := name.match(text, at)) is not None:
+                spans.append((head.start(), user.end()))
+                at = user.end()
+        scanned[win] = max(end, at)
+    return spans
 
 
 def home_paths(text: str) -> str:
     """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
     name that no slash or reserved character ends takes the rest of its line. It does not redact
     keys."""
-    spans = [
-        m.span() for p in (_HOME_PATH, _HOME_PATH_FWD, _HOME_PATH_PLAIN) for m in p.finditer(text)
+    matches = [
+        (m.span(), m.group("win") is not None)
+        for p in (_HOME_PATH, _HOME_PATH_FWD, _HOME_PATH_PLAIN)
+        for m in p.finditer(text)
     ]
+    spans = [span for span, _ in matches]
+    spans += _nested_spans(text, [(span[1], win) for span, win in matches])
     return _replace_spans(text, spans, "<home>")
 
 
