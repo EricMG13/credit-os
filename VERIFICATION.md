@@ -3,6 +3,86 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 1B facilities and forecast block, 2A store location
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its source diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #200 | 1B PR 3 | `cee12ff`, `7312294` | `model/facilities.py`: `Facility` (stated terms, one rate form, ceilings), `schedule` and `Schedule.totals`, three years of interest and repayment (575 lines) |
+| #214 | 1B PR 4a | `c5018b4`, `1125c42` | `model/refusals.py` (`ForecastRefused`, `ForecastDeclined`) and `model/inputs_json.py`: the forecast block, strict JSON, the declined block (641) |
+| #201 | 2A PR 1c | `23c6112`, `0e14a79` | `store/location.py`: `prepare` and `locate`, the path rules and the checks on an existing file before SQLite sees it (485) |
+
+**Reviews.** As each controller reported.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #200 | `mx-precise` and `mx-adversary` on `f099430`: Medium 1 each; one fix round; `mx-precise` re-review pass on `cee12ff` | 0 open | Pass on `cee12ff`: High 0, Medium 0, Low 3, Info 8 |
+| #214 | `mx-precise` pass; `mx-adversary` Medium 1 on `037d5f6`; one fix round; `mx-precise` re-review pass on `c5018b4` | 0 open | Pass on `c5018b4`: High 0, Medium 0, Low 2, Info 7 |
+| #201 | Three rounds on the task before the PR (two Sonnet, one from an `mx-autonomous` plan); on `23c6112` `mx-precise` and `mx-adversary` pass | register written | Changes required on `58519bd`: Medium 1, Low 1; scoped re-review pass on `23c6112`: High 0, Medium 0 |
+
+- #200's Mediums: `reference_rate` accepted a set, so each year's rate followed the process
+  hash seed (it now takes exactly a list or a tuple of three); a property test took its
+  expected totals from the code's own rows.
+- #214's Medium was in a test: the integer test could not fail, since `1 == 1.0 == True`. The
+  source was right.
+- **#201's fourth round is the owner's.** The whole-branch review found that `prepare` set an
+  existing folder to mode 0700 when the path had `..` after a missing component. Asked
+  "Authorise a fourth fix round on #201 for the `..` path Medium?", the owner answered "Yes,
+  one round". The controller had proposed treating the fix as a new task; the coordinator
+  declined that and asked.
+
+**Gates and CI.** `uv run --locked python tools/gates.py` exit 0: #200 on `cee12ff`, #214 on
+`c5018b4`. #201: the controller's local run exits 1 on one test
+(`test_duplication_gate_arguments_are_pinned`, from a linked `web/node_modules` in its
+scratch worktree); CI passes it on both runners; `tests/store` 306 passed. Mutation
+(`mutmut`): #200, no survivor; #214, 220 mutants, 216 killed, 4 equivalent; #201, 355, 329
+killed, the one survivor in the new lines equivalent.
+
+**Ledger.**
+- `1B-3 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `1B-4a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2A-1c task=1 agent=mx-feature fix-rounds=4 gates-first-pass=n` (two Sonnet, one planned, one
+  the owner's)
+
+**Rulings by the coordinator.** In the plans.
+- 1B: tuple fields take exactly a list or a tuple (`LIST_AS_TUPLE`), never `strict=False`;
+  the predecessor differs, and `docs/legacy/ports.md` says so. The answer-key scripts are
+  committed in two tests-only PRs after PR 4b and with each PR from PR 5, with a test that
+  each script's output equals the committed key as parsed JSON.
+- 2A: the errors-test additions move to a tests-only PR 1d-b, which merges before PR 1e is
+  ready. For the transaction helper (PR 1d, not merged) the owner chose to document, not
+  change, that an interrupt during a write leaves as `StoreUnusable` (asked "Authorise one
+  round on the transaction helper to document and pin the Ctrl-C behaviour?", answered "Yes,
+  document it"); step 3A's plan will say `StoreUnusable` always ends the run.
+
+**Open, for the owner.**
+- 1B: a facility that matures before or inside the three forecast years is assumed
+  refinanced; no repayment at maturity is modelled. It is the predecessor's reading and is
+  stated as a limitation per facility (ported in PR 7). The assumption is the owner's to
+  confirm.
+- 1C driver (#187, not merged): its third round closed three redaction leaks and opened one,
+  an escaped non-ASCII Windows home in failure text. With the owner: one more scoped round, or
+  a reset to round 2.
+- Signal's feeds (not merged): the piece-boundary fix failed on Windows CI, which runs
+  Python 3.12.10 where Ubuntu runs 3.12.14; on 3.12.10 it refused ordinary markup. The
+  memory fix is split out (#215) and passes both. A rework plan is written; the round is with
+  the owner. `html.parser` itself reads 25 hostile shapes differently on the two levels.
+- 2A: a store error message carries the operating system's error text, and so the folder
+  path; where such messages may be shown is for PR 1e's brief.
+- Handoff layer, no step owns these: a second json fence under a subheading of the forecast
+  section is ignored; `HandoffError` cannot be pickled; the block finder differs from the
+  predecessor's on tilde, long and indented fences (same text or a refusal each time).
+
+**Not verified.**
+- #200: totals near the 38-digit limit; more than 1,000 facilities; pydantic other than
+  2.13.4.
+- #214: nesting beyond 66 levels, texts beyond 200,001 characters; real model-written blocks.
+- #201: root; NFS; races beyond two processes; the PR 1e caller.
+- For all three the merge result with `main` was not built before merging; nothing else on
+  `main` touched their folders.
+
 ## 2026-11-14 Roadmap back end: 1D text and csv readers, 2B passages and Sources checks, a redactor fix
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -910,62 +990,3 @@ group's live page:** 22 horizontal progress steps do not fit a 1280 or 1920 row.
 - Each stacked PR's size against the 800-line cap rests on CI; three PRs exceed 800 with lock
   files counted, and the coordinator did not recount them without.
 - The route and slice scaffolding has no page built on it yet; D2b to D2e are its first use.
-
-## 2026-11-14 Roadmap back end: 1A PR 2 and 1D PR 1
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with CI green
-on `ubuntu-latest`, `windows-latest` and the review job, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #41 | 1D PR 1 | `1158cea`, `046b56a` | Typed source errors, `SourcePin`, name and kind rules (427 lines) |
-| #42 | 1A PR 2 | `e08e547`, `9e66434` | Tables, paragraphs, list items, code blocks; equal-length code spans (789 lines) |
-| #45 | records | `9e6ec4e`, `8378d36` | The entry below and the 1C plan amendments |
-
-**Reviews.**
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #41 | `mx-precise`, and `mx-adversary` on task 1 (names, links, capped read; two fix rounds on the development branch, the second in `files.py`, which is not in #41; re-review pass) | 0 confirmed defects; 3 evidence gaps, ruled below | PASS on `076aefd`: High 0, Medium 0, Low 5, Info 4. A 21-line Low batch followed with no review round |
-| #42 | `mx-precise`: three tasks approved (task 1 one docs fix round) | no confirmed defect, 5 Info | FAIL on `4af30f8`: Medium 1, Low 2. Fixed in `e08e547`; scoped `mx-precise` re-review APPROVED, Medium closed |
-
-#42's Medium: a one-line bold paragraph directly above a table was removed from the blocks and
-kept only as the table's label, so a bold bottom line above a table would have lost its
-paragraph. The coordinator overruled the earlier label ruling: the parser removes no text. No
-table in the 27 fixtures has such a label; the rule rests on example tests.
-
-**Gates.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #41 on
-`1158cea`, #42 on `e08e547` (333 tests). Mutation on #41 (`mutmut`): 35 of 35 killed at
-`076aefd`, not rerun on `1158cea`, where a reviewer's harness of 39 hand mutants left none
-alive.
-
-**Ledger.**
-- `1A-2 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1A-2 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1A-2 task=3 agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1A-2 task=4(low batch) agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1D-1 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n` (pins, name and kind rules,
-  capped read; the capped read is not in #41)
-- `1D-1 low batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
-
-Eight of the twelve ledger lines so far (this entry and the one below) failed the gates on the
-first run, several on `ruff format` or `mypy` in the task's own tests. Briefs from here tell the implementer to run
-`ruff format` and `mypy` before the full gate.
-
-**Rulings by the coordinator.** The 1A grammar rules and the 1D name, length and kind rules are
-in their plans. 1D's evidence gaps: odd characters, edge spaces and `CLOCK$` are refused; names
-are capped in length; the pin stays signature-only and each reader proves its kind.
-
-**Parked Low findings.** 1A, riding with PR 3: `read_table` called with a label and no label
-line; the stray-pipe message names only spaces. 1D: none beyond the amendments.
-
-**Not verified.**
-- Table labels, escaped pipes and the stray-pipe refusal have no fixture; they rest on example
-  tests. Mutation strength of the refusal branch and the label-line plumbing was not measured.
-- Anything on a real Windows file system for 1D (reserved device names by CPython patch level,
-  over-long paths, the refused characters on NTFS): Windows evidence is the CI run only.
-- The whole-branch review of #41 read `076aefd`; the Low batch after it had no review round, by
-  rule. That of #42 read `4af30f8`; the fix was re-reviewed for the findings it fixed.
-- Reviewer probes live in git-ignored folders; that they were not edited rests on the
-  controllers' word and file times.
-- `npm --prefix web run gates` did not run for these pull requests; none changes a web file.
