@@ -10,7 +10,7 @@ check green on Ubuntu, Windows and the review job, and its diff read by the coor
 
 | PR | Step | Head, merge | Content |
 | :--- | :--- | :--- | :--- |
-| #209 | 1D PR 2b-1 | `33185f3`, `eb8a83a` | `sources/html.py`: HTML decoding and the line writer (510 lines) |
+| #209 | 1D PR 2b-1 | `33185f3`, `eb8a83a` | `sources/html.py`: HTML decoding and the line writer (511 lines) |
 | #226 | 2A PR 1d | `f4dbd73`, `567f088` | `store/txn.py`: the write transaction and the migration runner (778) |
 | #246 | 2A PR 1d-b | `5622f25`, `d32b08a` | store scans, value-free messages, parked test rows, the fail-open docstring (145) |
 | #245 | decision 0011 | `42d8410`, `a2b4f1c` | Python pinned to 3.12.14 in `pyproject.toml`, `.python-version` and both CI runners; the record |
@@ -23,7 +23,7 @@ check green on Ubuntu, Windows and the review job, and its diff read by the coor
 The six feed PRs were stacked. Each was merged in order after its base was set to `main`, the
 PR closed and reopened so CI ran on the merge with `main`, and all three checks passed at the
 expected head. Parts 1 to 4 hold defects that later parts fix (a hex-looking last host label,
-the memory bound), so the stack was merged only as a whole, within about two hours. Parts 7a
+the memory bound), so the stack was merged only as a whole, within about an hour. Parts 7a
 and 7 (#215, #207) were still in CI when this entry was written and are not recorded here.
 
 **Reviews.** As each controller reported.
@@ -34,8 +34,8 @@ and 7 (#215, #207) were still in CI when this entry was written and are not reco
 | #226 | Four rounds on the task (two Sonnet, one from an `mx-autonomous` plan, one the owner's); `mx-invariants` pass on `fd66ecc` | as reported | Pass on `f4dbd73`: High 0, Medium 0, Low 2, Info 3 |
 | #246 | batched `mx-feature` on `4308974`: pass, Low 1; parked Lows checked against the reviewers' probes (exit 0) | none (tests and messages) | none, by the batching rule |
 | #245 | batched `mx-feature`: pass, Low 1 (fixed in `42d8410`) | none (config, record) | none |
-| #244, #255 | batched `mx-feature`: pass (Info only; Low 2, Info 2) | none (tests only) | none, by ruling R22 |
-| #243 | `mx-precise` and `mx-adversary` on `a42a349`: Medium 1 and Medium 2; one fix round; `mx-precise` re-review pass on `8af69fa` | as reported | Pass on `8759d10`: High 0, Medium 0, Low 1, Info 7 |
+| #244, #255 | batched `mx-feature`: #244 pass (Info only); #255 pass (Low 2, Info 2) | none (tests only) | none, by ruling R22 |
+| #243 | on `a42a349`, `mx-precise` Medium 1 and `mx-adversary` Medium 2 (the same holder defect, and a base key printed in full); one fix round; `mx-precise` re-review pass on `8af69fa` | as reported | Pass on `8759d10`: High 0, Medium 0, Low 1, Info 7 |
 | #248 | `mx-adversary`, two rounds: Medium 1 (a folder word in the user-name slot hid the next home), fixed in `2e4cc4d`; pass | none | none (a 198-line fix from the owner's process) |
 | Feeds | `mx-precise` and `mx-adversary` on `f970282` and `d41a8f0`; `mx-adversary` re-reviews on part 3 and on `fdfb1e7`; a third round planned by `mx-autonomous`; `mx-adversary` re-review on `ae46734` (the final tree of parts 1 to 6): pass, R24 closed by construction, Info 3 | not run on these parts | on `d41a8f0`: Medium 1 and the memory bound open, both closed by parts 3 and 5 |
 

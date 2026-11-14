@@ -208,8 +208,7 @@ refused; `In March 1.5% growth` reads 5% in passage text. The owner authorised a
 tests-only round on PR 4 for two test-strength Mediums of #250's whole-branch review.
 
 PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b (#170) the
-structure checks and `check_handoff`. PR 4 will be split: the reader with the no-float test,
-then `figure.form`.
+structure checks and `check_handoff`. PR 4 is split 4a, 4b (above).
 
 Ruled by the controller in PR 1 and confirmed: `Finding` has a 1-based `column`, used for
 ordering only; `CHECKS` is closed at 32 ids; `check_handoff` starts in PR 1b and later PRs add
