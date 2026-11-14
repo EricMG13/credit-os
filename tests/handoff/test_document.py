@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from credit_os.handoff.blocks import CodeBlock, ListItem, Paragraph, read_blocks
 from credit_os.handoff.document import HandoffDocument, Section, parse
@@ -77,14 +79,16 @@ def test_ok_document() -> None:
     assert document.front_matter is None
     assert _tree(document) == TREE
     assert len(document.sections) == 6
-    request = _find(document, "Request")
-    assert [(b.line, b.lines) for b in request.blocks if isinstance(b, Paragraph)] == [(2, ("r",))]
-    assert [b.line for b in _find(document, "A").blocks] == [6]
-    assert [b.line for b in _find(document, "B").blocks] == [8]
+    for title, line, text in (("Request", 2, "r"), ("A", 6, "x"), ("B", 8, "y")):
+        blocks = _find(document, title).blocks
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], Paragraph)
+        assert (blocks[0].line, blocks[0].lines) == (line, (text,))
 
 
 def test_bom_and_crlf() -> None:
-    bom = ("﻿" + OK).encode()
+    bom = ("\ufeff" + OK).encode()
+    assert bom.startswith(b"\xef\xbb\xbf")
     document = parse(bom)
     assert _tree(document) == TREE
     assert document.line_count == 13
@@ -117,6 +121,7 @@ def _oneline(text: str, old: str, new: str) -> str:
     return text.replace(old, new)
 
 
+MISSING_FINDINGS = "level-2 heading `Findings` is missing"
 REFUSED: list[tuple[bytes, int, str]] = [
     (b"", 1, "level-2 heading `Request` is missing"),
     (b"## Request\n## Sources\n", 2, "level-2 heading `Findings` is missing"),
@@ -161,6 +166,20 @@ REFUSED: list[tuple[bytes, int, str]] = [
     ),
     (b"## Request\n\xff\n", 2, "the file is not valid UTF-8"),
     (b"a\r\xff", 2, "the file is not valid UTF-8"),
+    (b"a\r\n\xff", 2, "the file is not valid UTF-8"),
+    (b"intro\n## Request\n## Sources\n", 3, MISSING_FINDINGS),
+    (b"## Request\n| a | b |\n| 1 |\n## Sources\n", 4, MISSING_FINDINGS),
+    (
+        ("### Early\nintro\n# T\n# U\n" + OK).encode(),
+        4,
+        "a level-1 heading is allowed only once, before `## Request`",
+    ),
+    (
+        ("# T\n# U\n" + _oneline(OK, "## Gaps\n", "")).encode(),
+        13,
+        "level-2 heading `Next module` found where `Gaps` is required",
+    ),
+    (("intro\n### Early\n" + OK).encode(), 2, "heading before `## Request` belongs to no section"),
 ]
 
 
@@ -178,8 +197,26 @@ def test_table_error_passes_through() -> None:
         read_blocks(scan(split_lines(text)), 1)
     with pytest.raises(HandoffError) as caught:
         parse(text.encode())
-    assert caught.value.line == direct.value.line
+    assert caught.value.line == direct.value.line == 2
     assert caught.value.message == direct.value.message
+    assert (
+        caught.value.message == "the table header is not followed by a separator row of --- cells"
+    )
+
+
+FRAGMENTS = [
+    "## Request", "## Sources", "## Findings", "### A", "---", "k: v", BT, "<!--", "-->",
+    "| a | b |", "| --- | --- |", "| 1 |", "# T", "text", "\r", "\r\n", "\n", "\xff",
+]  # fmt: skip
+
+
+@given(st.binary() | st.lists(st.sampled_from(FRAGMENTS)).map("\n".join).map(str.encode))
+def test_only_handoff_error_leaves_parse(data: bytes) -> None:
+    try:
+        result = parse(data)
+    except HandoffError:
+        return
+    assert isinstance(result, HandoffDocument)
 
 
 def test_many_subsections() -> None:
