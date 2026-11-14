@@ -245,3 +245,75 @@ def test_pipeline_wording_runs_in_bounded_time(line: str) -> None:
     start = time.perf_counter()
     check_handoff(document, _ctx())
     assert time.perf_counter() - start < 2.0
+
+
+def test_marker_in_an_info_string_at_its_column() -> None:
+    document = _document("### Bottom line\nThe view holds.\n\n```json citeturn0search1\nx\n```\n")
+    found = prose.check_provider_marker(document, _ctx())
+    assert [(f.line, f.column, f.quoted) for f in found] == [(10, 6, "citeturn0search1")]
+
+
+_UNDERSCORE_LINES = [
+    "_a" * 5000,
+    "_" * 10000,
+    "CP-_" * 2500,
+    "page _" * 1666,
+    "_" + "a" * 9999,
+]
+
+
+@pytest.mark.parametrize("line", _UNDERSCORE_LINES, ids=range(len(_UNDERSCORE_LINES)))
+def test_underscore_boundaries_run_in_bounded_time(line: str) -> None:
+    assert len(line) <= 10000
+    document = _document("### Bottom line\n" + line + "\n")
+    start = time.perf_counter()
+    check_handoff(document, _ctx())
+    assert time.perf_counter() - start < 2.0
+
+
+# The patterns as they were with `\b` for "not inside a word"; on text with no underscore the new
+# boundary must find the same spans.
+_OLD_PATTERNS = {
+    "_MODULE_CODE": re.compile(r"\bCP-[A-Z0-9]+\b"),
+    "_PAGE": re.compile(r"\bpp?\.\s*\d|\bpages?\s+\d|\bpg\.?\s*\d", re.IGNORECASE),
+    "_HASH": re.compile(r"\b[0-9a-fA-F]{12,}\b|sha256", re.IGNORECASE),
+    "_WORDING": re.compile(
+        r"(?i:\bhandoffs?\b|\bthis transport\b|\bthe pack\b|\bfact pack\b|\bsource pack\b"
+        r"|\bcanonical\b|\bre-anchor\w*|\bhelper scripts?\b|\bupstream modules?\b"
+        r"|\bdownstream (?:modules?|owners?|work|analys[ie]s|use)\b)"
+        r"|\b\w*[a-z]_[a-z]\w*"
+        r"|\b(?=[A-Z0-9_]*[A-Z])[A-Z0-9]+(?:_[A-Z0-9]+)+\b"
+    ),
+}
+_BOUNDARY_ALPHABET = list("CP-2Dpage 4.pg0123456789abcdefABCDEF[]handoffsthe pack,") + [" "]
+
+
+def _lines_without_underscore() -> list[str]:
+    lines = [
+        line[:_LINE_CAP]
+        for path in sorted(
+            (Path(__file__).resolve().parents[1] / "fixtures" / "handoffs").rglob("*.md")
+        )
+        for line in path.read_text("utf-8").splitlines()
+        if "_" not in line[:_LINE_CAP]
+    ]
+    return [lines[index * len(lines) // _FIXTURE_LINES] for index in range(_FIXTURE_LINES)]
+
+
+def _boundary_strings() -> list[str]:
+    rng = random.Random(20261115)
+    words = ["CP-2D", "page 4", "p. 4", "0123456789abcdef", "sha256", "handoff", "the pack", "x"]
+    return [
+        "".join(rng.choices(_BOUNDARY_ALPHABET + words, k=rng.randint(0, 12)))
+        for _ in range(_GENERATED)
+    ]
+
+
+@pytest.mark.parametrize("name", list(_OLD_PATTERNS))
+def test_new_boundary_matches_the_old_on_text_without_underscores(name: str) -> None:
+    new = getattr(prose, name)
+    texts = [*_lines_without_underscore(), *_boundary_strings()]
+    assert len(texts) == 2000
+    assert all("_" not in text for text in texts)
+    for text in texts:
+        assert _spans(new, text) == _spans(_OLD_PATTERNS[name], text)
