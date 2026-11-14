@@ -90,3 +90,35 @@ describe("picking the address already shown, from the jump menu", () => {
     window.location.hash = "";
   });
 });
+
+describe("picking the address already shown, on the Trace tab", () => {
+  it("starts the tab unfiltered and focuses the row the filter had hidden", () => {
+    const href = "#/library/halden-aerostructures/2026-09-30/evidence/trace/T-0104";
+    window.location.hash = href;
+    render(page("trace/:item", { ...P, item: "T-0104" }));
+    pick("Recovery");
+    expect(screen.queryByRole("rowheader", { name: "T-0104" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Jump to an item/ }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Jump to an item" })).getByRole("option", {
+        name: /Secured leverage/,
+      }),
+    );
+    expect(window.location.hash).toBe(href);
+    expect(screen.getByRole("button", { name: /^Module: All/ })).toBeVisible();
+    expect(screen.getByRole("rowheader", { name: "T-0104" }).closest("tr")).toHaveFocus();
+    window.location.hash = "";
+  });
+});
+
+describe("a filtered Evidence tab of another run", () => {
+  // The app draws a route at one place, so a hash change between two runs keeps component state:
+  // each tab of each run is its own page and starts at All.
+  it.each(["sources", "trace", "gaps"])("starts the %s tab at All", (tab) => {
+    const view = render(page(tab, P));
+    pick("Capital structure");
+    expect(screen.getByRole("button", { name: /^Module: Capital structure/ })).toBeVisible();
+    view.rerender(page(tab, { ...P, run: "2025-09-30" }));
+    expect(screen.getByRole("button", { name: /^Module: All/ })).toBeVisible();
+  });
+});

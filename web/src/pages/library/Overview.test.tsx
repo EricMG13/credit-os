@@ -576,3 +576,27 @@ describe("Overview, the first run on the issuer", () => {
     expect(within(region).getAllByRole("listitem")).toHaveLength(overview.limitations.items.length);
   });
 });
+
+describe("Overview, another run", () => {
+  it("sweep SW-05: draws the limitations open again when the run changes under the page", () => {
+    const view = renderOverview("2026-09-30");
+    const region = screen.getByRole("region", { name: "Limitations" });
+    fireEvent.click(within(region).getByRole("button", { name: "Collapse limitations" }));
+    expect(within(region).queryByRole("listitem")).toBeNull();
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error("no overview route");
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: fixture.slice,
+    };
+    view.rerender(
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer: "halden-aerostructures", run: "2026-03-31" })}
+      </SourceContext.Provider>,
+    );
+    const next = screen.getByRole("region", { name: "Limitations" });
+    expect(within(next).getByRole("button", { name: "Collapse limitations" })).toBeVisible();
+    expect(within(next).getAllByRole("listitem").length).toBeGreaterThan(0);
+  });
+});

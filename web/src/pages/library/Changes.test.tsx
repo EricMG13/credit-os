@@ -365,3 +365,24 @@ describe("Changes, the other states of the frame", () => {
     expect(document.querySelector("[data-sources='on']")).not.toBeNull();
   });
 });
+
+describe("Changes, another run", () => {
+  it("sweep SW-05: opens at Cards again when the run changes under the page", () => {
+    const view = renderChanges("2026-09-30");
+    click(within(presentation()).getByRole("radio", { name: "Table" }));
+    expect(within(presentation()).getByRole("radio", { name: "Table" })).toBeChecked();
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error("no changes route");
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: fixture.slice,
+    };
+    view.rerender(
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer: "halden-aerostructures", run: "2026-03-31" })}
+      </SourceContext.Provider>,
+    );
+    expect(within(presentation()).getByRole("radio", { name: "Cards" })).toBeChecked();
+  });
+});
