@@ -244,7 +244,23 @@ def test_beyond_rounding_near_ties(
 
 @pytest.mark.parametrize(
     ("stated", "host", "printed", "beyond"),
-    [("1.5", "1.50", None, False), ("1", "1.5", [], False), ("-1", "-1.5001", [], True)],
+    [
+        ("1.5", "1.50", None, False),
+        ("1", "1.5", [], False),
+        ("-1", "-1.5001", [], True),
+        (
+            "12345678901234567890123456789012345678",
+            "12345678901234567890123456789012345678.4999",
+            [],
+            False,
+        ),
+        (
+            "12345678901234567890123456789012345678",
+            "12345678901234567890123456789012345678.5001",
+            [],
+            True,
+        ),
+    ],
 )
 def test_beyond_rounding_written_ties(
     stated: str, host: str, printed: list[str] | None, beyond: bool
