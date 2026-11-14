@@ -1030,6 +1030,7 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
     ["rules", snap.settings.rules.map((r) => r.id)],
     ["notifications.events", snap.settings.notifications.events.map((e) => e.id)],
     ["sources", snap.settings.sources.map((o) => o.id)],
+    ["topics", snap.settings.topics.map((t) => t.id)],
   ];
   for (const [name, ids] of lists) {
     const repeat = repeatAt(ids);

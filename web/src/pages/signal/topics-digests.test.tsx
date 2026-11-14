@@ -53,6 +53,12 @@ describe("Topics (frame 4)", () => {
     expect(tags("Kinds: Rating actions")).toEqual(["Rating actions"]);
   });
 
+  it("says No topics yet, as the predecessor does, when a scene has none", () => {
+    show("/signal/no-topics/settings/topics");
+    expect(page().getByText("No topics yet")).toBeTruthy();
+    expect(page().queryByText("No topics yet.")).toBeNull();
+  });
+
   it("draws New topic and Edit disabled for a writer, each tied to the reason in view", () => {
     show("/signal/main/settings/topics");
     const reason = page().getByText("Sample data: topics cannot be changed here.");
