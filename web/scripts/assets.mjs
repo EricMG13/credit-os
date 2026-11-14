@@ -41,3 +41,25 @@ export function assetProblems(folder) {
   }
   return problems;
 }
+
+// Every url(...) in a built stylesheet must be relative to that stylesheet and name a file in
+// the folder. Chrome does not log a font that fails to load from file://, so it is checked here.
+export function fontProblems(folder) {
+  const problems = [];
+  for (const { kind, ref } of referencedAssets(folder).assets) {
+    if (kind !== "stylesheet" || ref === undefined || NOT_RELATIVE.test(ref)) continue;
+    const sheet = path.join(folder, ...ref.split("/"));
+    if (!existsSync(sheet)) continue;
+    const css = readFileSync(sheet, "utf8");
+    for (const m of css.matchAll(/url\(\s*(["']?)([^"')]*)\1\s*\)/g)) {
+      const target = m[2];
+      if (NOT_RELATIVE.test(target)) {
+        problems.push(`url is absolute or has a scheme: ${target}`);
+        continue;
+      }
+      const file = path.resolve(path.dirname(sheet), ...target.split(/[?#]/)[0].split("/"));
+      if (!existsSync(file)) problems.push(`missing or unreadable url target: ${target}`);
+    }
+  }
+  return problems;
+}
