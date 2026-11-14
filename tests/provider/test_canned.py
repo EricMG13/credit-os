@@ -141,16 +141,13 @@ def test_refusal_text(tmp_path: Path, line: dict[str, Any] | str, message: str) 
         canned_model("c", _file(tmp_path, line))
 
 
-@pytest.mark.parametrize("line", key.CANNED_GOOD_LINES)
-def test_good_lines_accepted(tmp_path: Path, line: dict[str, Any]) -> None:
-    reply = _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
-    assert (reply.raw, reply.started_at, reply.finished_at) == (None, None, None)
-
-
-def test_good_line_details(tmp_path: Path) -> None:
+def test_good_lines_accepted_and_details(tmp_path: Path) -> None:
     def load(line: dict[str, Any]) -> Reply:
         return _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
 
+    for line in key.CANNED_GOOD_LINES:
+        reply = load(line)
+        assert (reply.raw, reply.started_at, reply.finished_at) == (None, None, None)
     bad = load(key.CANNED_GOOD_LINES[2])
     assert bad.turn is not None
     assert bad.turn.tool_calls[0].bad_arguments == "[1]"
