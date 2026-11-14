@@ -158,26 +158,30 @@ REDACT_ENVIRON: tuple[tuple[dict[str, str], str, str], ...] = (
 )
 
 # (input text, expected text) for home-directory removal. Expected values written by hand.
+# The user name fails closed (coordinator ruling, 2026-11-14): it ends only at a character no
+# such name can hold, otherwise at the end of its line, and prose after it on the line goes with
+# it. On a Windows form (a drive, a UNC share, /mnt/<drive>, a leading backslash) the name ends
+# at a slash of either kind or at one of < > : " | ? *; on a POSIX form at "/" or ":". "/root"
+# holds no other name. A second home on the line is still removed, inside the first span or on
+# its own; the ":" of its drive may be all that is left between them.
 HOME_PATHS: tuple[tuple[str, str], ...] = (
     ('File "/home/jane/src/x.py", line 3', 'File "<home>/src/x.py", line 3'),
     ("/Users/Jane/a /var/home/bo/b /root/.cache", "<home>/a <home>/b <home>/.cache"),
     ("/root", "<home>"),
-    (r"C:\Users\Jane Doe\AppData\x.js", r"<home>\AppData\x.js"),
-    (r"'C:\\Users\\Jane Doe\\y.js'", r"'<home>\\y.js'"),
+    ("C:\\Users\\Jane Doe\\AppData\\x.js", "<home>\\AppData\\x.js"),
+    ("'C:\\\\Users\\\\Jane Doe\\\\y.js'", "'<home>\\\\y.js'"),
     ("c:/users/eric/Documents", "<home>/Documents"),
-    (r"\\fs01\share\Users\jdoe\x.txt", r"<home>\x.txt"),
+    ("\\\\fs01\\share\\Users\\jdoe\\x.txt", "<home>\\x.txt"),
     ("/mnt/c/Users/jane/x", "<home>/x"),
     ("open 'file:///home/jane/x.txt'", "open 'file://<home>/x.txt'"),
-    (r"C:\Users\jane and /home/bob/x", "<home> and <home>/x"),
-    (r"profile 'C:\Users\Jane Doe' set", "profile '<home>' set"),
-    ("No such file: /home/jan.", "No such file: <home>."),
-    ("/home/jan.doe/x and /Users/a.b.", "<home>/x and <home>."),
+    ("C:\\Users\\jane and /home/bob/x", "<home><home>/x"),
+    ("profile 'C:\\Users\\Jane Doe' set", "profile '<home>"),
+    ("No such file: /home/jan.", "No such file: <home>"),
+    ("/home/jan.doe/x and /Users/a.b.", "<home>/x and <home>"),
     (
         "./home/x ../Users/y /usr/lib/x /tmp/home /opt/Users C:\\Program Files\\x",
         "./home/x ../Users/y /usr/lib/x /tmp/home /opt/Users C:\\Program Files\\x",
     ),
-    # a Windows user name may hold spaces, "'", "(" and ")": it runs to the next slash of either
-    # kind, to a closing quote, or (with spaces, on a drive, UNC or /mnt path) to the line's end
     ("C:/Users/Jane Doe/AppData/x.js", "<home>/AppData/x.js"),
     ("cwd: C:\\Users\\Jane Doe", "cwd: <home>"),
     ("cwd: C:\\Users\\Jane Doe\nnext line", "cwd: <home>\nnext line"),
@@ -186,46 +190,55 @@ HOME_PATHS: tuple[tuple[str, str], ...] = (
     ("C:\\Users\\O'Brien\\AppData\\x", "<home>\\AppData\\x"),
     ("C:\\Users\\John(Work)\\AppData", "<home>\\AppData"),
     ("file:///C:/Users/Jane Doe/x", "file:///<home>/x"),
-    # words after a Windows home at the end of a line go with it: the name cannot be told apart
     ("open C:\\Users\\jane and retry", "open <home>"),
-    # not so on a POSIX path, nor before a closing bracket or a sentence's full stop
-    ("/home/jane and more", "<home> and more"),
-    ("(see C:\\Users\\jane) at C:\\Users\\jane.", "(see <home>) at <home>."),
-    # the sentence's full stop may stand before the line's end; it is kept
-    ("cwd: C:\\Users\\Jane Doe.", "cwd: <home>."),
-    ("cwd: C:\\Users\\Jane Doe.\r\nnext", "cwd: <home>.\r\nnext"),
-    # a Windows name of several words also ends before "," ";" ":" ")" or ">"
-    ("C:\\Users\\Jane Doe, retry (see C:\\Users\\Jane Doe)", "<home>, retry (see <home>)"),
-    ("<C:\\Users\\Jane Doe> C:\\Users\\Jane Doe; x", "<<home>> <home>; x"),
-    # "'", "(" and ")" are inside a Windows name when a name character or a slash follows them
+    ("/home/jane and more", "<home>"),
+    ("(see C:\\Users\\jane) at C:\\Users\\jane.", "(see <home>:<home>"),
+    ("cwd: C:\\Users\\Jane Doe.", "cwd: <home>"),
+    ("cwd: C:\\Users\\Jane Doe.\r\nnext", "cwd: <home>\r\nnext"),
+    ("C:\\Users\\Jane Doe, retry (see C:\\Users\\Jane Doe)", "<home>:<home>"),
+    ("<C:\\Users\\Jane Doe> C:\\Users\\Jane Doe; x", "<<home>> <home>"),
     ("C:\\Users\\O'Brien", "<home>"),
-    ("open 'C:\\Users\\O'Brien'", "open '<home>'"),
-    # the longest candidate is the name: where a slash follows later, a closing quote or bracket
-    # is taken for part of a name that runs to it (prose is lost; no part of a name is kept)
+    ("open 'C:\\Users\\O'Brien'", "open '<home>"),
     ("cp 'C:\\Users\\jane' 'bin/x'", "cp '<home>/x'"),
     ("echo (C:\\Users\\jane) (a/b)", "echo (<home>/b)"),
     ("C:\\Users\\Jane (Work) Doe\\x and C:\\Users\\D' Arcy\\x", "<home>\\x and <home>\\x"),
-    ("cwd: C:\\Users\\Jane (Work) Doe.", "cwd: <home>."),
-    ('C:\\Users\\Jane Doe\'s "x"', '<home>\'s "x"'),
+    ("cwd: C:\\Users\\Jane (Work) Doe.", "cwd: <home>"),
+    ('C:\\Users\\Jane Doe\'s "x"', '<home>"x"'),
     ("cwd: C:\\Users\\Mary  Ann", "cwd: <home>"),
-    ("C:\\Users\\Mary  Ann, x", "<home>, x"),
-    # a folder named n, r or t is not a written-out escape
+    ("C:\\Users\\Mary  Ann, x", "<home>"),
     (
         "C:\\data\\n\\Users\\jane\\x D:\\t\\home\\bob",
         "C:\\data\\n\\Users\\jane\\x D:\\t\\home\\bob",
     ),
     ("msg\\nC:\\Users\\jane\\x", "msg\\n<home>\\x"),
     ("C:\\Users\\John(Work)x\\AppData", "<home>\\AppData"),
-    # words of a name may be separated by more than one space
     ("C:\\Users\\Mary  Ann\\x", "<home>\\x"),
-    # rule 1 on a POSIX path, and /mnt/<drive> as a Windows form
     ("/Users/Jane Doe/x", "<home>/x"),
     ("/mnt/c/Users/Jane Doe", "<home>"),
-    # a long-path UNC prefix, and a path straight after a written-out "\n"
     ("\\\\?\\UNC\\srv\\share\\Users\\jane\\x", "<home>\\x"),
     ("msg\\n/home/jane/x", "msg\\n<home>/x"),
     (
         "/homework/x /rootfs/y /home https://example.com/Users/jane/p",
         "/homework/x /rootfs/y /home https://example.com/Users/jane/p",
     ),
+    # ---- rows added with the fail-closed rule
+    ("'C:\\Users\\Zed (Wk) Quo', retry", "'<home>"),
+    ("C:\\Users\\'Zed Quo\" x", '<home>" x'),
+    ("C:\\Users\\D' Arcy", "<home>"),
+    ("C:\\Users\\Zed Quo.), x", "<home>"),
+    ("C:\\Users\\jane C:\\Users\\Bob Smith", "<home>:<home>"),
+    ("/home/jane C:\\Users\\O'Brien Smith\\x", "<home>:<home>\\x"),
+    ("C:\\Users\\Zed\tQuo\\x", "<home>\\x"),
+    ("C:\\Users\\Zed\xa0Quo", "<home>"),
+    ("C:\\Users\\Zed Quo: access denied", "<home>: access denied"),
+    ('"C:\\Users\\Zed Quo" not found', '"<home>" not found'),
+    ("/home/jane said it's fine", "<home>"),
+    ("\\Users\\Zed Quo\\x", "<home>\\x"),
+    ("cwd=C:\\Users\\Zed Quo|more", "cwd=<home>|more"),
+    ('{"cwd": "/home/jane", "n": 1}', '{"cwd": "<home>: 1}'),
+    ("/home/jane\\nnext", "<home>"),
+    ("/home/jane:x C:\\Users\\Bob Smith\r\nnext", "<home>:x <home>\r\nnext"),
+    ("C:\\Users\\" + "(a)a" * 30, "<home>"),
+    # an empty name is not a home
+    ("dir C:\\Users\\", "dir C:\\Users\\"),
 )
