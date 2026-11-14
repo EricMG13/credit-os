@@ -48,14 +48,18 @@ export function Section({
 
 /**
  * A block the mock draws without a visible heading (headline figures, measures): a region named by
- * its title, which a screen reader finds as a heading the navigator can focus. Nothing shows.
+ * its title, which a screen reader finds as a heading the navigator can focus. Nothing shows but
+ * the design focus ring, drawn on the section while that heading has focus, since the heading is 1px.
  */
 export function QuietSection({ title, children }: { title: string; children: ReactNode }) {
   const Heading = SUBSECTION_HEADING;
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId}>
-      <Heading id={headingId} tabIndex={-1} className="sr-only">
+    <section
+      aria-labelledby={headingId}
+      className="rounded-ds-xs has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand"
+    >
+      <Heading id={headingId} tabIndex={-1} className="sr-only outline-hidden">
         {title}
       </Heading>
       {children}

@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
+import { useSourcesOn } from "./parts/SourcesSwitch";
 import { routes } from "./routes";
 
 type Json = Record<string, unknown>;
@@ -33,6 +34,11 @@ function renderRoute(
 
 const renderModule = (module: string, run = "2026-09-30", library: unknown = fixture.slice) =>
   renderRoute(PATH, { issuer: "halden-aerostructures", run, module }, library);
+
+/** Show sources is kept for the session, so each test starts with it off. */
+afterEach(() => {
+  renderHook(() => useSourcesOn()).result.current[1](false);
+});
 
 const nav = () => screen.getByRole("navigation", { name: "Modules and sections" });
 const region = (name: string) => screen.getByRole("region", { name });
@@ -598,6 +604,7 @@ describe("Module, the headline figures", () => {
     renderModule("capital-structure");
     const heading = screen.getByRole("heading", { level: 3, name: "Headline figures" });
     expect(heading).toHaveClass("sr-only");
+    expect(figures()).toHaveClass("has-[:focus-visible]:ring-2", "has-[:focus-visible]:ring-brand");
     const scroll = vi.fn();
     Element.prototype.scrollIntoView = scroll;
     fireEvent.click(within(nav()).getByRole("button", { name: "Headline figures" }));
@@ -879,6 +886,39 @@ describe("Module, the statement by year", () => {
     expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
       "Show sources for this table",
     ]);
+  });
+
+  it("reveals the block's trace control on hover of the table, as the other blocks do", () => {
+    const library = withRecords((records) => {
+      (records.find((r) => r["kind"] === "statement") as Json)["trace"] = "cs-net-debt";
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const button = within(statement()).getByRole("button", {
+      name: "Show sources for this table",
+    });
+    expect(button.closest('[class~="group/trace"]')).toBe(
+      table().closest('[class~="group/trace"]'),
+    );
+    expect(table().closest('[class~="group/trace"]')).not.toBeNull();
+  });
+
+  it("keeps n.a. and the badges at regular weight in an emphasised line, and values semibold", () => {
+    const library = withRecords((records) => {
+      const rows = (records.find((r) => r["kind"] === "statement") as Json)["rows"] as Json[];
+      (rows[1] as Json)["cells"] = [
+        null,
+        { kind: "withheld", reason: null },
+        { kind: "gap", reason: "Not read." },
+        { kind: "value", text: "0", at: 0 },
+        { kind: "value", text: "162", at: 162 },
+      ];
+      (rows[1] as Json)["emphasis"] = true;
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const line = within(table()).getAllByRole("row")[2] as HTMLElement;
+    const [missing, withheld, gap, zero, value] = cells(line);
+    for (const cell of [missing, withheld, gap]) expect(cell).not.toHaveClass("font-semibold");
+    for (const cell of [zero, value]) expect(cell).toHaveClass("font-semibold");
   });
 
   it("draws zero as zero, a withheld figure, a gap and an emphasised line as delivered", () => {

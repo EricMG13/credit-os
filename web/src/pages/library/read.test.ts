@@ -1189,8 +1189,6 @@ describe("readSlice, the data module's records", () => {
   const records = (slice: ReturnType<typeof fresh>) => mod(slice).body.records;
   const blockOf = (slice: ReturnType<typeof fresh>, kind: string) =>
     records(slice).find((r) => r["kind"] === kind) as Json;
-  const items = (slice: ReturnType<typeof fresh>, kind: string) =>
-    blockOf(slice, kind)["items"] as Json[];
   const where = (slice: ReturnType<typeof fresh>, kind: string) =>
     `issuers[0].runs[0].modules[${String((slice.issuers[0]?.["runs"] as { modules: Json[] }[])[0]?.modules.findIndex((m) => m["id"] === "capital-structure"))}].body.records[${String(records(slice).findIndex((r) => r["kind"] === kind))}]`;
 
@@ -1431,6 +1429,27 @@ describe("readSlice, the data module's records", () => {
       "items[0].delta",
     ],
     [
+      "a measure with both periods as values and no delta",
+      "measures",
+      (b: Json) => (((b["items"] as Json[])[0] as Json)["delta"] = null),
+      "items[0].delta",
+    ],
+    [
+      "a delta given beside a withheld earlier period",
+      "measures",
+      (b: Json) => {
+        const item = (b["items"] as Json[])[1] as Json;
+        item["earlier"] = { kind: "withheld", reason: null };
+      },
+      "items[1].delta",
+    ],
+    [
+      "a statement period given twice",
+      "statement",
+      (b: Json) => ((b["periods"] as string[])[3] = "2022"),
+      "periods[3]",
+    ],
+    [
       "a measure with a missing consequence",
       "measures",
       (b: Json) => delete ((b["items"] as Json[])[1] as Json)["consequence"],
@@ -1520,11 +1539,5 @@ describe("readSlice, the data module's records", () => {
       emphasis: false,
     });
     expect(gap).toMatchObject({ title: "Hedge expiries", nav: "Hedges" });
-  });
-
-  it("accepts a measure with both periods as values and no delta, and counts the items read", () => {
-    const slice = fresh();
-    (items(slice, "measures")[0] as Json)["delta"] = null;
-    expect(readSlice(slice).kind).toBe("ok");
   });
 });

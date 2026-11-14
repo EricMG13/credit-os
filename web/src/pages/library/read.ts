@@ -805,7 +805,11 @@ function readMetrics(m: Rec, path: string, traces: Traces): RecordBlock {
 
 function readDelta(o: Rec, path: string, held: boolean) {
   const at = child(path, "delta");
-  if (own(o, "delta") === null) return null;
+  if (own(o, "delta") === null) {
+    // The page words a measure with no delta as "Earlier period n.a.": only that case may carry none.
+    if (held) throw new SliceError(at, "a change, since both periods are values");
+    return null;
+  }
   if (!held) throw new SliceError(at, "null unless both periods are values");
   const d = rec(own(o, "delta"), at);
   return {
@@ -963,6 +967,11 @@ function readStatement(s: Rec, path: string, traces: Traces): RecordBlock {
     }),
     periodsPath,
   );
+  periods.forEach((period, index) => {
+    if (periods.indexOf(period) !== index) {
+      throw new SliceError(nth(periodsPath, index), "a period not used by an earlier one");
+    }
+  });
   const rowsPath = child(path, "rows");
   return {
     kind: "statement",
