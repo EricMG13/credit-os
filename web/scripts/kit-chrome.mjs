@@ -3,7 +3,7 @@
 // visibility:hidden, Chrome does not) and the colour of a keyboard-focused invalid field's ring.
 // Drives the browser over its debugging protocol with Node's own fetch and WebSocket.
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -26,11 +26,42 @@ function focusColour() {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-async function connect(profile, browserProcess) {
+// Errors Windows (and a loaded machine) give for a file the browser still holds open.
+const HELD = new Set(["EBUSY", "EPERM", "EACCES"]);
+
+/**
+ * Reads the debugging port a browser writes to DevToolsActivePort in its profile folder. The
+ * browser creates the file before it has finished writing it, so the first line counts only once
+ * a newline follows it and it is a whole port number (1 to 65535). A missing file, an unfinished
+ * or invalid first line and a read that fails with EBUSY, EPERM or EACCES are retried, up to
+ * `tries` waits of 100 ms; any other read error is thrown at once.
+ */
+export async function readDebugPort(
+  profile,
+  { wait: pause = wait, tries = 100, read = (file) => readFileSync(file, "utf8") } = {},
+) {
   const portFile = path.join(profile, "DevToolsActivePort");
-  for (let i = 0; i < 100 && !existsSync(portFile); i++) await wait(100);
-  if (!existsSync(portFile)) throw new Error("the browser did not open its debugging port");
-  const port = readFileSync(portFile, "utf8").split("\n")[0];
+  let seen = "file missing";
+  for (let i = 0; i <= tries; i++) {
+    try {
+      const text = read(portFile);
+      const newline = text.indexOf("\n");
+      const line = text.slice(0, newline);
+      if (newline < 0) seen = "empty first line";
+      else if (/^\d+$/.test(line) && Number(line) >= 1 && Number(line) <= 65535) return line;
+      else seen = `first line "${line}"`;
+    } catch (error) {
+      if (error.code === "ENOENT") seen = "file missing";
+      else if (HELD.has(error.code)) seen = error.code;
+      else throw error;
+    }
+    if (i < tries) await pause(100);
+  }
+  throw new Error(`the browser did not open its debugging port (last seen: ${seen})`);
+}
+
+async function connect(profile, browserProcess) {
+  const port = await readDebugPort(profile);
   const target = await (
     await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" })
   ).json();
