@@ -49,6 +49,16 @@ def test_lone_surrogate_value_does_not_raise_and_its_encodable_forms_match() -> 
     assert redactor.bytes_(b"x ab-4711 y") == b"x ab-4711 y"
 
 
+def test_json_forms_unescaped_non_ascii_twice_escaped_matches() -> None:
+    redactor = Redactor(['p\u00e4"x-4711'])
+    assert redactor.text('"p\u00e4\\\\\\"x-4711"') == '"[redacted]"'
+    assert redactor.bytes_('"p\u00e4\\\\\\"x-4711"'.encode()) == b'"[redacted]"'
+
+
+def test_three_levels_of_escaping_are_not_matched() -> None:
+    assert Redactor(['a"b-4711']).text(r"a\\\\\\\"b-4711") == r"a\\\\\\\"b-4711"
+
+
 def test_empty_redactors_leave_text_unchanged() -> None:
     assert Redactor().text("x") == "x"
     assert Redactor.from_environ({}).text("x") == "x"
