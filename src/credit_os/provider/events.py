@@ -87,10 +87,9 @@ def _as_events(events: object) -> list[Any] | None:
 
 def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> Reply:
     error_class, message = problem
-    if figures is not None and (
-        figures[1] is not None or any(v is not None for v in vars(figures[0]).values())
-    ):
-        return Reply("sent_usage", None, error_class, message, *figures, raw, None, None)
+    usage, charge = figures or (Usage(), None)
+    if charge is not None or any(v is not None for v in vars(usage).values()):
+        return Reply("sent_usage", None, error_class, message, usage, charge, raw, None, None)
     return Reply("sent_unknown", None, error_class, message, None, None, raw, None, None)
 
 
@@ -100,13 +99,10 @@ def _contents(events: list[Any]) -> list[str]:
 
 
 def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
-    seen: set[str] = set()
-    out: list[dict[str, Any]] = []
+    first: dict[str, dict[str, Any]] = {}
     for e in events:
-        if e["id"] not in seen and e["type"] == "assistant.usage":
-            out.append(e["data"])
-        seen.add(e["id"])
-    return out
+        first.setdefault(e["id"], e)
+    return [e["data"] for e in first.values() if e["type"] == "assistant.usage"]
 
 
 def _is_count(value: object) -> bool:
