@@ -8,6 +8,7 @@ from typing import Any, Literal, Protocol, get_args
 Role = Literal["system", "user", "assistant", "tool"]
 StopReason = Literal["end", "tool_use", "max_tokens", "other"]
 ReplyKind = Literal["ok", "not_sent", "sent_usage", "sent_unknown"]
+CompactionOutcome = Literal["done", "failed", "unfinished"]
 
 
 class ProviderDataError(ValueError):
@@ -86,12 +87,72 @@ class Turn:
             raise ProviderDataError(f"unknown stop_reason {self.stop_reason!r}")
 
 
+def _check_charge_value(value: Decimal | None) -> None:
+    """The one check of a charge: a `Decimal` that is finite and not negative, or `None`."""
+    if value is None:
+        return
+    if not isinstance(value, Decimal):
+        raise ProviderDataError("billed_usd must be a Decimal")
+    if not value.is_finite() or value.is_signed():
+        raise ProviderDataError("billed_usd must be finite and not negative")
+
+
+@dataclass(frozen=True)
+class Compaction:
+    """One context compaction the runtime reported: its own counts and its own charge.
+    `billed_usd` `None` is unknown, never zero, whatever the outcome. `outcome` is `done` (the
+    runtime reported success), `failed` (it reported failure) or `unfinished` (a start whose
+    complete had not arrived when the call ended or the model was closed; it knows nothing:
+    every count `None` and no charge). `event_id` is the id of the SDK event that reported it,
+    so an event delivered twice is counted once. `supersedes` is the `event_id` of an
+    unfinished compaction, delivered earlier, that this one completes (`None` when it completes
+    none); an unfinished one supersedes nothing. It has no reasoning-token count."""
+
+    usage: Usage
+    billed_usd: Decimal | None
+    outcome: CompactionOutcome
+    event_id: str
+    supersedes: str | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.usage, Usage):
+            raise ProviderDataError("usage must be a Usage")
+        if self.usage.reasoning_tokens is not None:
+            raise ProviderDataError("a compaction has no reasoning-token count")
+        _check_charge_value(self.billed_usd)
+        self._check_outcome_and_event()
+
+    def _check_outcome_and_event(self) -> None:
+        if type(self.outcome) is not str or self.outcome not in get_args(CompactionOutcome):
+            raise ProviderDataError(f"unknown compaction outcome {self.outcome!r}")
+        if self.outcome == "unfinished" and (
+            self.billed_usd is not None
+            or any(getattr(self.usage, f.name) is not None for f in fields(self.usage))
+        ):
+            raise ProviderDataError("an unfinished compaction has no counts and no charge")
+        if type(self.event_id) is not str or not self.event_id:
+            raise ProviderDataError("event_id must be a non-empty string")
+        if self.supersedes is None:
+            return
+        if type(self.supersedes) is not str or not self.supersedes:
+            raise ProviderDataError("supersedes must be a non-empty string or None")
+        if self.outcome == "unfinished":
+            raise ProviderDataError("an unfinished compaction supersedes nothing")
+        if self.supersedes == self.event_id:
+            raise ProviderDataError("a compaction cannot supersede itself")
+
+
 @dataclass(frozen=True)
 class Reply:
     """`ok`: a turn came back. `not_sent`: the call never left. `sent_usage`: sent, failed,
     at least one count in usage or the charge known. `sent_unknown`: may have been sent, cost
     unknown. `started_at` and `finished_at` are epoch seconds, `None` when the call never
-    started."""
+    started or the reply was read from a recording (no times). `billed_usd` is the call's own
+    charge only: a compaction's charge is never added to it and nothing in this layer sums
+    them (a total with any `None` is unknown; step 3A decides). When a call made several model
+    requests (a retried turn), `usage` and `billed_usd` are the sums over its usage events; if
+    the runtime reports such events cumulatively rather than per attempt the sum overstates
+    the call's cost and never understates it (not verified against a live run)."""
 
     kind: ReplyKind
     turn: Turn | None
@@ -102,6 +163,7 @@ class Reply:
     raw: bytes | None
     started_at: float | None
     finished_at: float | None
+    compactions: tuple[Compaction, ...] = ()
 
     def __post_init__(self) -> None:
         if self.kind not in get_args(ReplyKind):
@@ -111,6 +173,7 @@ class Reply:
         self._check_outcome()
         self._check_usage()
         self._check_charge()
+        self._check_compactions()
 
     def _check_outcome(self) -> None:
         if self.kind == "ok":
@@ -144,10 +207,20 @@ class Reply:
             return
         if self.kind in ("not_sent", "sent_unknown"):
             raise ProviderDataError(f"a {self.kind} reply has no charge")
-        if not isinstance(self.billed_usd, Decimal):
-            raise ProviderDataError("billed_usd must be a Decimal")
-        if not self.billed_usd.is_finite() or self.billed_usd < 0:
-            raise ProviderDataError("billed_usd must be finite and not negative")
+        _check_charge_value(self.billed_usd)
+
+    def _check_compactions(self) -> None:
+        if not isinstance(self.compactions, tuple) or not all(
+            isinstance(c, Compaction) for c in self.compactions
+        ):
+            raise ProviderDataError("compactions must be a tuple of Compaction")
+        if len({c.event_id for c in self.compactions}) != len(self.compactions):
+            raise ProviderDataError("two compactions share an event_id")
+        named = [c.supersedes for c in self.compactions if c.supersedes is not None]
+        if len(set(named)) != len(named):
+            raise ProviderDataError("two compactions supersede the same one")
+        if self.compactions and self.kind == "not_sent":
+            raise ProviderDataError("a not_sent reply has no compactions")
 
 
 class Model(Protocol):
@@ -155,11 +228,15 @@ class Model(Protocol):
     failure included; it raises only when it cannot answer at all (the canned adapter, for a
     request it has no reply for). `exchange_id` is the caller's name for one exchange and
     `call_index` the position of the call within it, counted from 0; together they name one
-    call. `message` and `raw` are already redacted when a `Reply` leaves an adapter."""
+    call. `message` and `raw` are already redacted when a `Reply` leaves an adapter.
+
+    A compaction is on the reply of the call during which it was observed; one observed after
+    a call returned is on the next reply that may carry one (a `not_sent` reply carries none),
+    else `close` returns it. An adapter never drops one."""
 
     @property
     def config_id(self) -> str: ...
 
     def complete(self, request: Request, *, exchange_id: str, call_index: int) -> Reply: ...
 
-    def close(self) -> None: ...
+    def close(self) -> tuple[Compaction, ...]: ...
