@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { cell, readSlice } from "./read";
+import { cell, readSlice, traceKey } from "./read";
 
 type Json = Record<string, unknown>;
 
@@ -323,6 +323,13 @@ describe("readSlice, run frame", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.subtitle");
   });
 
+  it("names the path of a trace with no visible heading", () => {
+    const slice = fresh();
+    const trace = runOf(slice, 0, 0).traces["net-leverage"] as Json;
+    trace["heading"] = 4;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].traces.net-leverage.heading");
+  });
+
   it("rejects two runs with one id and an issuer with no runs list", () => {
     const slice = fresh();
     (slice.issuers[0] as Json)["runs"] = [runOf(slice, 0, 0), runOf(slice, 0, 0)];
@@ -338,5 +345,22 @@ describe("readSlice, run frame", () => {
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     expect(Object.keys(result.data.issuers[0]?.runs[0]?.traces ?? {})).toEqual([]);
+  });
+});
+
+describe("traceKey", () => {
+  const traces = { "net-leverage": {} } as never;
+
+  it("reads a key the run holds and a null as no trace", () => {
+    expect(traceKey({ trace: "net-leverage" }, "trace", "p", traces)).toBe("net-leverage");
+    expect(traceKey({ trace: null }, "trace", "p", traces)).toBeNull();
+  });
+
+  it("is invalid, with the item's path, for a key the run does not hold or a wrong type", () => {
+    expect(() => traceKey({ trace: "ghost" }, "trace", "p.metrics[1]", traces)).toThrow(
+      "p.metrics[1].trace: expected a key of the run's traces",
+    );
+    expect(() => traceKey({ trace: 3 }, "trace", "p", traces)).toThrow("p.trace");
+    expect(() => traceKey({ trace: "toString" }, "trace", "p", traces)).toThrow("p.trace");
   });
 });

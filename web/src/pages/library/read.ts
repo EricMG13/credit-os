@@ -308,6 +308,7 @@ function readTrace(value: unknown, path: string): Trace {
   const t = rec(value, path);
   return {
     title: str(t, "title", path),
+    heading: str(t, "heading", path),
     subtitle: str(t, "subtitle", path),
     statement: str(t, "statement", path),
     derivation: readTree(own(t, "derivation"), child(path, "derivation")),
@@ -360,6 +361,23 @@ function readRuns(i: Rec, path: string): Run[] {
     seen.add(run.id);
   }
   return runs;
+}
+
+/**
+ * The trace key an item carries: `null` for no trace, else a key of its run's `traces`. Pages read
+ * their items' `trace` field through this, so a control never points at a trace the run lacks.
+ */
+export function traceKey(
+  o: Rec,
+  key: string,
+  path: string,
+  traces: Readonly<Record<string, Trace>>,
+): string | null {
+  const value = strOrNull(o, key, path);
+  if (value !== null && !Object.hasOwn(traces, value)) {
+    throw new SliceError(child(path, key), "a key of the run's traces");
+  }
+  return value;
 }
 
 function readIssuer(value: unknown, path: string): Issuer {
