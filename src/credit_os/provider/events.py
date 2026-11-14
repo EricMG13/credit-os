@@ -65,9 +65,8 @@ def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply
     if stop == "max_tokens" and not calls:
         return _failed(figures, ("ReplyCut", "finishReason length or max_tokens"), raw)
     last = usage_data[-1]
-    usage, charge = figures
-    turn = Turn(text, tuple(calls), usage, stop, last.get("model"), _request_id(last))
-    return Reply("ok", turn, None, None, usage, charge, raw, None, None)
+    turn = Turn(text, tuple(calls), figures[0], stop, last.get("model"), _request_id(last))
+    return Reply("ok", turn, None, None, figures[0], figures[1], raw, None, None)
 
 
 def _serialise(events: object) -> bytes | None:
