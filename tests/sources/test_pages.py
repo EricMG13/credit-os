@@ -26,6 +26,8 @@ def _p(number: int, text: str) -> Page:
         ("a\nb c d e", 6, ("a\n", "b c d ", "e")),
         ("a\r\nb\r\n", 3, ("a\r\n", "b\r\n")),
         ("ab\tcd", 3, ("ab\t", "cd")),
+        ("ab cd", 5, ("ab cd",)),
+        ("a\nb", 3, ("a\nb",)),
     ],
 )
 def test_cut_pages_rows(text: str, size: int, pages: tuple[str, ...]) -> None:
@@ -33,8 +35,9 @@ def test_cut_pages_rows(text: str, size: int, pages: tuple[str, ...]) -> None:
 
 
 def test_cut_pages_size_below_one_raises() -> None:
-    with pytest.raises(ValueError):
-        cut_pages("abc", 0)
+    with pytest.raises(ValueError) as caught:
+        cut_pages("x" * 5, 0)
+    assert str(caught.value) == "size must be at least 1"
 
 
 @given(
@@ -63,13 +66,34 @@ def test_source_pages_round_trip() -> None:
         lambda: SourcePages(pages=(), encoding=None),
         lambda: SourcePages(pages=(_p(2, "a"),), encoding=None),
         lambda: SourcePages(pages=(_p(1, "a"), _p(1, "b")), encoding=None),
-        lambda: Page.model_validate({"number": 1, "text": "a", "state": "text", "x": 1}),
-        lambda: SourcePages.model_validate({"pages": [_p(1, "a")], "encoding": None, "x": 1}),
+        lambda: SourcePages(pages=(_p(2, "a"), _p(1, "b")), encoding=None),
+        lambda: Page(number=True, text="a", state="text"),
+        lambda: Page.model_validate_json('{"number":"1","text":"a","state":"text"}'),
     ],
 )
 def test_models_refuse(build: Any) -> None:
     with pytest.raises(ValidationError):
         build()
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda: Page.model_validate({"number": 1, "text": "a", "state": "text", "x": 1}),
+        lambda: SourcePages.model_validate({"pages": (_p(1, "a"),), "encoding": None, "x": 1}),
+    ],
+)
+def test_models_refuse_an_extra_field(build: Any) -> None:
+    with pytest.raises(ValidationError) as caught:
+        build()
+    assert [error["type"] for error in caught.value.errors()] == ["extra_forbidden"]
+
+
+def test_other_states_are_accepted() -> None:
+    empty = Page(number=1, text="", state="empty")
+    unreadable = Page(number=2, text="", state="unreadable")
+    assert (empty.state, unreadable.state) == ("empty", "unreadable")
+    assert SourcePages(pages=(_p(1, "a"), unreadable), encoding=None).pages[1] == unreadable
 
 
 def test_models_are_frozen() -> None:

@@ -1,6 +1,7 @@
 """The text and csv readers."""
 
 import csv
+import unicodedata
 
 import pytest
 
@@ -25,11 +26,18 @@ def _p(number: int, text: str) -> Page:
         ),
         (b"a\r\nb\r\n", ("a\r\nb\r\n",), "utf-8"),
         (b"a\tb\x0cc\n", ("a\tb\x0cc\n",), "utf-8"),
-        (
+        pytest.param(
             (b"x" * 99 + b"\n") * 130,
             (("x" * 99 + "\n") * 120, ("x" * 99 + "\n") * 10),
             "utf-8",
+            id="13000-bytes-two-pages",
         ),
+        (
+            b"a\xe2\x80\x8bb\xef\xbb\xbfc\n",
+            ("a\N{ZERO WIDTH SPACE}b\N{ZERO WIDTH NO-BREAK SPACE}c\n",),
+            "utf-8",
+        ),
+        pytest.param(b"x" * 12_001, ("x" * 12_000, "x"), "utf-8", id="12001-bytes-two-pages"),
     ],
 )
 def test_text_pages_rows(raw: bytes, pages: tuple[str, ...], encoding: str) -> None:
@@ -59,10 +67,11 @@ def test_text_pages_rows(raw: bytes, pages: tuple[str, ...], encoding: str) -> N
         ),
         ("notes.txt", b"", "notes.txt: has no text"),
         ("notes.txt", b" \n\t\r\n", "notes.txt: has no text"),
-        (
+        pytest.param(
             "a" * 130 + ".txt",
             b"\x00",
             "a" * 120 + "\N{HORIZONTAL ELLIPSIS}: control character U+0000 on line 1",
+            id="long-name",
         ),
         (
             "notes.txt",
@@ -129,10 +138,21 @@ def test_csv_pages_paging() -> None:
     [
         (b'a,"b\n', "t.csv: not valid csv"),
         (b'"a"b,c\n', "t.csv: not valid csv"),
-        (b"x," + b"y" * 131_073 + b"\n", "t.csv: not valid csv"),
+        pytest.param(b"x," + b"y" * 131_073 + b"\n", "t.csv: not valid csv", id="field-limit"),
         (b"a,\x00b\n", "t.csv: control character U+0000 on line 1"),
         (b"a,b\nc,\x1bd\n", "t.csv: control character U+001B on line 2"),
         (b",,\n,\n", "t.csv: has no text"),
+        (b" , \n", "t.csv: has no text"),
+        pytest.param(
+            b"a," * 524_289 + b"b\n",
+            "t.csv: a row is longer than 1,048,576 characters",
+            id="row-over-cap",
+        ),
+        pytest.param(
+            b'"' + (b"x" * 99 + b"\n") * 1_400 + b'"\n',
+            "t.csv: not valid csv",
+            id="quoted-row-over-field-limit",
+        ),
         (b"", "t.csv: has no text"),
         (b"\x81,a\n", "t.csv: not valid UTF-8 or windows-1252"),
     ],
@@ -150,3 +170,46 @@ def test_csv_error_is_the_cause_and_limit_is_untouched() -> None:
     with pytest.raises(SourceUnreadable):
         csv_pages("t.csv", b"x," + b"y" * 131_073 + b"\n")
     assert csv.field_size_limit() == 131072
+
+
+def test_csv_many_cells_in_one_row_is_one_page() -> None:
+    expected = SourcePages(pages=(_p(1, "a | " * 1_000 + "b\n"),), encoding="utf-8")
+    assert csv_pages("t.csv", b"a," * 1_000 + b"b\n") == expected
+
+
+def test_csv_row_cap_counts_one_row_at_a_time() -> None:
+    at_cap = csv_pages("t.csv", b"a," * 524_287 + b"bb")
+    assert "".join(p.text for p in at_cap.pages) == "a | " * 524_287 + "bb\n"
+    with pytest.raises(SourceUnreadable) as caught:
+        csv_pages("t.csv", b"a," * 524_287 + b"bbb")
+    assert str(caught.value) == "t.csv: a row is longer than 1,048,576 characters"
+    many_rows = csv_pages("t.csv", b"a\n" * 524_289)
+    assert "".join(p.text for p in many_rows.pages) == "a\n" * 524_289
+
+
+def test_csv_text_in_an_earlier_row_counts() -> None:
+    assert csv_pages("t.csv", b"a\n , \n") == SourcePages(
+        pages=(_p(1, "a\n  |  \n"),), encoding="utf-8"
+    )
+
+
+def test_control_scan_refuses_exactly_the_cc_characters_but_four() -> None:
+    for code in range(0x300):
+        char = chr(code)
+        refused = unicodedata.category(char) == "Cc" and char not in "\t\n\r\x0c"
+        try:
+            text_pages("n.txt", ("a" + char + "b").encode())
+        except SourceUnreadable:
+            assert refused, hex(code)
+        else:
+            assert not refused, hex(code)
+
+
+def test_node_ids_fit_the_windows_environment_value(request: pytest.FixtureRequest) -> None:
+    ids = [
+        item.nodeid
+        for item in request.session.items
+        if "tests/sources" in item.nodeid.replace("\\", "/")
+    ]
+    assert ids
+    assert all(len(nodeid) <= 3_000 for nodeid in ids)

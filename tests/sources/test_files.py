@@ -536,15 +536,17 @@ def test_read_capped_close_error_without_any_text(
     assert caught.value.__cause__ is failure
 
 
-@pytest.mark.parametrize("error", [OSError(), ValueError()])
+@pytest.mark.parametrize(
+    ("error", "reason"), [(OSError(), "OSError"), (ValueError(), "ValueError")]
+)
 def test_read_capped_open_error_without_any_text(
-    folder: Path, monkeypatch: pytest.MonkeyPatch, error: Exception
+    folder: Path, monkeypatch: pytest.MonkeyPatch, error: Exception, reason: str
 ) -> None:
     monkeypatch.setattr(os, "open", _raising(error))
     path = folder / "readme.txt"
     with pytest.raises(SourceUnreadable) as caught:
         read_capped(path)
-    assert str(caught.value) == f"{path}: cannot open ({type(error).__name__})"
+    assert str(caught.value) == f"{path}: cannot open ({reason})"
     assert caught.value.__cause__ is error
 
 
