@@ -343,19 +343,25 @@ class CopilotDriver:
             else None
         )
         out: list[Compaction] = []
+        changed = False
         for c in compactions_from_events(listed):
             mark = (c.outcome, c.usage, c.billed_usd)
             if c.event_id in self._seen:
-                failed = failed or self._seen[c.event_id] != mark
+                changed = changed or self._seen[c.event_id] != mark
                 continue
             self._seen[c.event_id] = mark
             out.append(self._shaped(c, link, kept.pending))
-        return out, failed
+        if changed:
+            _log.warning(
+                "a compaction repeats a delivered id with other figures"
+                " (call events or queued read)"
+            )
+        return out, failed or changed
 
     def _shaped(self, c: Compaction, link: str | None, pending: list[str | None]) -> Compaction:
-        """`c` as delivered: withheld when its id would need redacting or starts `driver:` (a
-        fixed id of this driver's), linked to the one
-        unfinished compaction its session delivered when `link` names it."""
+        """`c` as delivered: withheld when its id would need redacting or starts `driver:` (a fixed
+        id of this driver's), linked to the one unfinished compaction its session delivered when
+        `link` names it."""
         if c.event_id.startswith("driver:") or self._text(c.event_id) != c.event_id:
             self._withheld += 1
             pending += [None] * (c.outcome == "unfinished")
