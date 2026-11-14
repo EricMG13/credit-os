@@ -17,8 +17,9 @@ agent re-reviewed at `b32a784` (pass); the final head `3ca2f8c7` (33 lines, the 
 two Lows) was gated and checked against the reviewer's probe and had no review round of its
 own, as the owner's rule for Low findings allows. No reviewer read `3ca2f8c7`.
 
-**Order of merging.** #57 to #287 were merged between about 18:05 and 18:20 UTC, and the fix
-PR #294 was merged in the same sequence, last.
+**Order of merging.** #57 was merged at 18:04:21 UTC and #287 at 18:09:09; the fix PR #294
+was merged in the same sequence, last, at 18:09:14 (`git log origin/main --merges`). The
+whole stack merged in under five minutes.
 
 - **D2b, library pages**: 57 stacked PRs, #57 on `main`, each based on the one before. The
   stack touches only `web/src/pages/library/` and `web/fixtures/library.json` (at `39f34eca`:
@@ -61,7 +62,9 @@ repository, in the session notes folder `d2b-records/`; the D2b worktree was arc
   had typecheck and its test file only, full gates left to CI. Task 13: the final tree by
   steps (the one-command run timed out under load); commits 4 to 7 only partly gated locally;
   fix `9737240` by steps (one drawer test took 5.2 s against its 5 s limit under load).
-  Tasks 8 and 12 were re-cut to at most 800 lines per commit with a tree identical to the
+  Task 14: gates at `22f0882` and at fix `0bef3da`, not at each of the first four commits.
+  Whole-branch fix round: one gates run at `b32a784`, not per commit, for the seven commits
+  `2f032bd` to `b32a784`. Tasks 8 and 12 were re-cut to at most 800 lines per commit with a tree identical to the
   gated one (diff checked empty).
 - CI: every PR head had `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
   passing before its merge, with one exception: #168 was merged while a rerun of one of its
@@ -115,8 +118,11 @@ repository, in the session notes folder `d2b-records/`; the D2b worktree was arc
   library folder: a leading space or tab before `https://`, `//` or `/`, a tab or newline
   inside a scheme, `%2e%2e` segments; now an allow-list of relative paths; probe
   `wbr-rr-reader.sh` part B exit 1 at `b32a784`, exit 0 after, 14 of 14) and RR-02 (a Home
-  test title retitled). Info RR-03 to RR-06 (module and issuer ids are still read with
-  `str`, so an empty one passes; the run header remounts with the body on a run change).
+  test title retitled). The re-review also raised four Infos: RR-03 (module and issuer ids
+  are still read with `str`, so an empty one passes), RR-04 (a Home sort test now compares
+  the first two rows where it compared three; not a weakening), RR-05 (the run header
+  remounts with the body on a run change) and RR-06 (unchanged from the first review: SW-07
+  stands as the owner question, CI on `39f34eca` was pending).
 - Deferred Infos: WBR-10 (the model-calls table styling assumes a column order the slice
   does not state), WBR-11 (the slice is validated on every render, twice; 0.59 ms at fixture
   size), WBR-12 (`readTree` and `DerivationTree` recurse without a depth bound, so a very
@@ -124,8 +130,9 @@ repository, in the session notes folder `d2b-records/`; the D2b worktree was arc
 
 **Live validation** (the D2b controller, 2026-11-14; no input shows a walk by the owner).
 - `file://` in headed Chrome over its debugging protocol, after tasks 1 to 3, 5, 5b, 6 and 7,
-  8 to 15 and the sweep fix batch (walks `t1` to `t15`, `sw1`; task 4 had no walk of its
-  own), on that task's head. On the finished stack at `39f34eca`: 18 routes at 1440 and
+  8 to 15 and the sweep fix batch (walks named `t1` to `t15` with `t5b`, `t67` and `t8c`,
+  and `sw1`, as the progress file names them; task 4 had no walk of its own), on that
+  task's head. On the finished stack at `39f34eca`: 18 routes at 1440 and
   1024, 36 of 36 with one `h1`, no overflowing leaf, no horizontal scroll, no console or CSP
   problem, no request outside `file://`.
 - `file://`, `b32a784` (walk `wbr`): the Halden List row reads n.a. (leverage not recorded),
@@ -169,7 +176,11 @@ folder: nothing lost.
   stays in the slice as the fixture-agreement contract); Trace and Gaps are native tables.
 - Departures: Secured leverage targets T-0104 (mock T-0016); the timings table draws its
   Module-state badge in the end column; "Ctrl K" off Apple, first jump item not highlighted
-  on open; the file note reads "7 read in full, 1 read in part, 1 unreadable". The final
+  on open; the file note reads "7 read in full, 1 read in part, 1 unreadable". Task 9:
+  unanswered questions draw as plain rows, not empty details; pathway numbers come from the
+  list position (a CSS counter). Task 13: Trace tab counts equal the rows held (60 / 0 / 0),
+  a departure from the mock sample "148". Task 8: contrary evidence text size ("departure
+  8"; computes 16px/26px in the built CSS). The final
   report lists more (per-file copy names, only rows with a calculation expand, local
   `MetricTile` and statement table); those were not rechecked against task reports.
 - SW-01: "Modules N" counts the modules the run lists. SW-07 not fixed (owner question).
@@ -189,7 +200,8 @@ folder: nothing lost.
   delivered nothing; the Trace mock's T-0068 "listed under Gaps" against the Gaps mock;
   Delivered modules holding gaps (G-04, G-06) and G-06 linked to Financial performance while
   its n.a. cell is on Capital structure.
-- A module lead repeating a held name is accepted (SW-08: 1,105 ms for one read of a
+- The reader accepts a module lead repeating a held name or counting more modules than held
+  (predates D2b; SW-08: 1,105 ms for one read of a
   36,399-character lead over 13 names); mutants "none draws a mark" and "default weight
   medium" (task 8) predate the fix.
 - Deferred to the next phase sweep: SW-14 to SW-20 (SW-18, two parallel reader kits, needs
@@ -211,7 +223,12 @@ folder: nothing lost.
 reviewer's probe only); that the re-review was by a fresh agent (it was the agent that wrote
 the review); a live walk on `3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home
 list and the drawer only); the `web` and `python` push runs on `main` `4a0cbdbb` (queued when
-this entry was written, about 88 runs queued on superseded `main` commits); any CI run of a PR
+this entry was written, about 88 runs queued on superseded `main` commits by the
+coordinator's reading); per-commit gating of the seven fix-round commits (the re-review
+lists it); the print preview of collapsed limitations (task 7 walk: "Not walked"); open
+Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex` on
+issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer
+across runs, was fixed in the fix round); any CI run of a PR
 head merged with `main` after `718a13b4` (the stack was forwarded once; `git merge-tree` with
 `9f900d53` was clean); the rerun of #168's second Windows job (queued at its merge); the full
 gates at `3ca2f8c7` by the controller (the fixer ran them); the whole-branch review did not
@@ -232,7 +249,8 @@ there): no real-time wait; about 70% of the test is three renders (the first ren
 case switches, each re-rendering every chart section, including debt and recovery sections
 that do not depend on the case); the row and cell helpers ran a role query per row. Change:
 the helpers read the table elements directly; that one test has its own 20 s limit with the
-reason in a comment; no assertion changed; no global timeout. Review `mx-precise`: approve,
+reason in a comment; no assertion changed; no global timeout. This closes the "Open Low" recorded in the D2c
+entry (the test running close to the 5 s limit on Windows CI). Review `mx-precise`: approve,
 High 0, Medium 0, Low 2 (the comment says "close to" the limit where the runs were over it;
 three other tests in the file estimated at 3.9 to 4.6 s on Windows), Info 1; five mutation
 probes each turned the file red (probes kept in the notes folder `pr295-review/`). Gates:
@@ -890,95 +908,3 @@ or by the coordinator on #191.
   commit.
 - Every memory figure above is `tracemalloc` on macOS; nothing above 4 MiB was run for the
   readers.
-
-## 2026-11-14 Roadmap back end: first PRs of 1B, 2A and 2B; 1C PR 2c; a Signal fix
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #147 | 1C PR 2c | `d861baa`, `1c811da` | `provider/`: an exact redaction value is also matched as JSON writes it; compactions read from events (327 lines) |
-| #163 | 1B PR 1 | `f6328c5`, `791c05d` | `model/value.py`: `Value`, `Missing`, the two contexts, operand text, amount text (620) |
-| #162 | 2A PR 1a | `a0494c2`, `f46eca6` | `store/errors.py`: the typed errors and the SQLite error mapping (268) |
-| #157 | 2B PR 1a | `30b2c25`, `a63898d` | `checks/`: `Finding`, `CheckContext`, the text views (529) |
-| #170 | 2B PR 1b | `f52241f`, `77d000a` | `checks/`: the seven structure checks and `check_handoff` (624) |
-| #160 | Signal S-2b | `bd608b0`, `bdc441e` | `signal/fetch.py`: a lookup thread that cannot be built frees its slot (26) |
-
-**Reviews.** Verdicts and counts are as each controller reported; the coordinator read the
-diffs and the checks.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #147 | both tasks approved for what merged; every finding was in the home-directory part, since removed | 0 defects at `313faa0`, 4 costs; not rerun after the removal | PASS on `d861baa`: High 0, Medium 0, Low 3, Info 5 |
-| #163 | `mx-precise` pass; `mx-adversary` Medium 2, fixed, re-review pass | 0 open, 1 deferred | Changes required on `d0214a8`: Medium 1; fixed in the key only; `mx-precise` re-review pass on `f6328c5` |
-| #162 | `mx-precise` Medium 1 and `mx-adversary` Medium 1 (before the split), fixed, re-review PASS | 0 defects, 0 costs | PASS on `a0494c2`: High 0, Medium 0, Low 1, Info 3 |
-| #157 | `mx-precise` approved | 1 Low defect, fixed test first | Medium 1, Low 4 on `457915d`; fixed test first; re-review pass on `30b2c25` |
-| #170 | `mx-precise` Medium 1, fixed, re-review approved | 2 defects fixed test first, 1 cost deferred | Medium 1, Low 5 on `661a5bf`; fixed test first; `mx-precise` re-review pass on `f52241f` |
-| #160 | `mx-adversary` PASS, no finding in the diff | not run (a 26-line review fix) | not run |
-
-- #163's Medium: the key's operands were carried from a predecessor test table and could be
-  traced to a run of a public case. The plan's ruling 9 forbids that; its answer key 4 had
-  called those tables synthetic, which was the coordinator's error. The key now holds invented
-  figures. The earlier commits, with the carried figures, are in the merged history.
-- #163's task Mediums: the two number contexts inherited Python's default context, and the
-  test could not see it. Each context is now built with every setting stated.
-- #170's Medium: two `table-id` tags on one line were read as one register, so a repeated id
-  there was accepted. #157's: the context's default mappings could still be changed.
-- #162's Mediums: `StoreRefused` was not pinned as a `StoreError`; a very large integer in a
-  detail left the codecs as a bare `ValueError` (the codecs land in PR 1b).
-
-**The home-directory redactor (1C).** Its fix failed review three times, the limit (global
-rules 1). The third round followed the coordinator's rule that the redactor fails closed and
-still lost a second home path on a line that mixes a POSIX home with a backslash-led one, a
-case `main` handles. The rewrite was taken out of #147, so `home_paths` on `main` is unchanged
-and the open Medium M2 of #36 stays open. The owner authorised one more round (asked
-"Authorise one more scoped fix round for the 1C home-directory redactor?", answered "Yes, one
-round"): the reviewer's one-line change, key rows first, an adversarial check of that change
-only, as its own PR (#171, a draft at this entry). Nothing further is authorised.
-
-**Gates and CI.** As each controller reported. `uv run --locked python tools/gates.py` exit
-0: #147 on `d861baa` (1,857 passed); #163 on `d0214a8` (the last commit changed the JSON key
-only); #162 on `a0494c2`; #157 on `30b2c25`; #170 and #160 on their heads. CI on #162 printed
-SQLite 3.53.1 on Ubuntu and 3.49.1 on Windows, both above the plan's 3.37 floor. Mutation
-(`mutmut`): #147, 1,438 mutants, 1,428 killed, 10 equivalent; #163 at `d8f925e`, 204, 153
-killed, 51 judged equivalent (45 change message text only); #162 at `959ab82`, 192, 183
-killed, 9 equivalent. Not run on #157, #170 (not sensitive code) or #160.
-
-**Ledger.**
-- `1C-2c task=1 agent=mx-feature fix-rounds=3 gates-first-pass=y` (all three on the part removed)
-- `1C-2c task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1C-2c task=remove-home agent=mx-scaffold fix-rounds=0 gates-first-pass=n`
-- `1B-1 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `2A-1a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `2B-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-1 task=2 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `2B-1a task=sweep-defect agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-1a task=review-fix agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `2B-1b task=assembly agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-1b task=sweep-defects agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `2B-1b task=whole-branch-fix agent=mx-feature fix-rounds=1 gates-first-pass=y`
-
-**Rulings by the coordinator.** In the plans. The ones the owner may want to see:
-- 1C driver: closing a session that does not answer in 5 seconds, or whose queued events
-  cannot be read, returns one compaction marked failed with no charge known; the predecessor
-  returned nothing. A leftover event that carries usage is reported the same way. Events from
-  a sub-agent keep their figures and make the reply not ok; the predecessor dropped them.
-- 1D readers: pages are consecutive slices that rejoin to the text exactly, so page numbers
-  differ from the predecessor's for the same file. A csv with semicolons is read as one cell
-  per row. The HTML reader must hold a stated peak-memory bound, by a committed test.
-- 1B: every key and fixture figure is invented by the controller.
-- 2A: the plan's PR 1 is three PRs. 2B: PR 1 was two; PR 4 will be two.
-
-**Not verified.**
-- Any live event stream (1C); whether the runtime also reports usage for a compaction request,
-  which would count it twice.
-- 2A: `store_error` and `safe_text` have no caller until PR 1c, so "a SQLite error never
-  leaves the store" is untested until then; the work PC's SQLite version.
-- 2B: nothing was checked against a retained reply in the new format (none exists); no
-  property test for the structure checks.
-- 1B: builds without the C decimal module beyond one reviewer run; mutation was not repeated
-  after the last test and key commits.
-- #160: a real failure to create a thread (simulated only). Three leftovers in the same
-  function are unchanged: a slot leaks if the outcome record cannot be built or on an
-  interrupt, and a start that fails after the thread began would release twice.
