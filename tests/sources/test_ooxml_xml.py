@@ -192,12 +192,13 @@ ROWS = [
 
 
 U = b"u" * 1_048_000
-CHARACTERS = "XML names longer than 1,048,576 characters in all"
+LENGTH = "an XML name longer than 255 characters"
+OPEN = "more than 4,096 namespace declarations open at once"
 H3_NAMES = [
     e for _ in range(2) for i in range(2048) for e in (_start(f"u}}n{i}"), ("end", f"u}}n{i}"))
 ]
 HIDDEN = [
-    _case("h1", b'<r xmlns:p="' + U + b'"><p:a/><p:b/></r>', None, CHARACTERS),
+    _case("h1", b'<r xmlns:p="' + U + b'"><p:a/><p:b/></r>', None, LENGTH),
     _case(
         "h2",
         b'<r xmlns:p="u" xmlns:q="u">'
@@ -212,7 +213,7 @@ HIDDEN = [
         b'<r xmlns:p="u">' + b"".join(b"<p:n%d/>" % i for i in range(2048)) * 2 + b"</r>",
         [_start("r")] + H3_NAMES + [("end", "r")],
     ),
-    _case("h4", b"<r><" + b"n" * 600_000 + b"/><" + b"m" * 600_000 + b"/></r>", None, CHARACTERS),
+    _case("h4", b"<r><" + b"n" * 600_000 + b"/><" + b"m" * 600_000 + b"/></r>", None, LENGTH),
     _case("h5", b'<a xmlns="x}y"/>', None, MALFORMED, expat.ExpatError),
     _case(
         "h6",
@@ -229,7 +230,38 @@ HIDDEN = [
 ]
 
 
-@pytest.mark.parametrize(("data", "expected", "reason", "cause"), ROWS + HIDDEN)
+def _declarations(count: int) -> bytes:
+    return b" ".join(b'xmlns:p%d="u"' % i for i in range(count))
+
+
+N4 = b"<a " + _declarations(2048) + b"><b " + _declarations(2049) + b"/></a>"
+N5 = b"<a " + _declarations(2048) + b"><b " + _declarations(2048) + b"/></a>"
+NAME_ROWS = [
+    _case("n1", b"<" + b"n" * 255 + b"/>", [_start("n" * 255), ("end", "n" * 255)]),
+    _case("n2", b"<" + b"n" * 256 + b"/>", None, LENGTH),
+    _case(
+        "n3",
+        b"<r>" + b"".join(b'<a xmlns="u%d"/>' % i for i in range(4096)) + b"</r>",
+        None,
+        NAMES,
+    ),
+    _case("n4", N4, None, OPEN),
+    _case("n5", N5, [_start("a"), _start("b"), ("end", "b"), ("end", "a")]),
+    _case(
+        "n6",
+        b"<r>" + b'<a xmlns:p="u"/>' * 10_000 + b"</r>",
+        [_start("r")] + [_start("a"), ("end", "a")] * 10_000 + [("end", "r")],
+    ),
+    _case("n7", b"\xef\xbb\xbf\xef\xbb\xbf<a>t</a>", [_start("a"), "t", ("end", "a")]),
+    _case(
+        "n8",
+        b'<a xmlns="u"><b xmlns=""/></a>',
+        [_start("u}a"), _start("b"), ("end", "b"), ("end", "u}a")],
+    ),
+]
+
+
+@pytest.mark.parametrize(("data", "expected", "reason", "cause"), ROWS + HIDDEN + NAME_ROWS)
 def test_xml_rows(
     data: bytes, expected: list[Any] | None, reason: str, cause: type[BaseException] | None
 ) -> None:
@@ -297,7 +329,7 @@ def test_an_end_below_the_root_restores_the_depth_by_one() -> None:
 
 def test_the_limits() -> None:
     assert ooxml.CHUNK_BYTES <= ooxml.MAX_TOKEN_BYTES
-    assert ooxml.MAX_NAME_CHARACTERS == 1_048_576
+    assert ooxml.MAX_NAME_LENGTH == 255
 
 
 @pytest.mark.parametrize("data", [XM2, XM3], ids=["xm2", "xm3"])
@@ -371,9 +403,11 @@ def test_pin11_reparse_deferral_is_on_by_default() -> None:
 
 def test_pin12_a_namespace_name_holding_the_separator_is_refused() -> None:
     parser = expat.ParserCreate(None, "}")
-    with pytest.raises(expat.ExpatError) as caught:
+    try:
         parser.Parse('<a xmlns="x}y"/>', True)
-    assert caught.value is not None, sys.version
+    except expat.ExpatError:
+        return
+    pytest.fail(f"expat accepted a namespace name holding the separator on {sys.version}")
 
 
 def _peak(data: bytes, reason: str) -> int:

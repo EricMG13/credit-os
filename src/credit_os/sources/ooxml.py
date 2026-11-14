@@ -7,8 +7,8 @@ names the file, and the part where one is meant, and chains its cause.
 XML half (`Package.parse`): a part is never held whole. Each piece is checked on its bytes (a NUL
 byte, a DOCTYPE or ENTITY declaration, an unfinished markup token over `MAX_TOKEN_BYTES`) and
 decoded as UTF-8 before the parser is given it; expat's own DOCTYPE handler is a second guard
-behind the byte search, and the depth, the count of different names and the characters of those
-names and of the namespace names are measured as elements arrive. Expat's reparse deferral is left on. Only `xml.parsers.expat` is used.
+behind the byte search, and the depth, the length and count of different names (namespace names
+included) and the namespace declarations open at once are measured as elements arrive. Expat's reparse deferral is left on. Only `xml.parsers.expat` is used.
 
 Limits are module constants read at call time; a test lowers one with `monkeypatch`.
 """
@@ -42,9 +42,10 @@ MAX_TOKEN_BYTES = 1_048_576
 MAX_DEPTH = 256
 # expat keeps every different element, attribute and prefix name for the life of a part.
 MAX_NAMES = 4_096
-# expat and its Python binding keep every different name, and every namespace name, for the life
-# of a part: the characters of those, counted here, are bounded as well as their number.
-MAX_NAME_CHARACTERS = 1_048_576
+# expat builds and binds every name on every tag, so a long name costs time and memory per tag and
+# per open element; OOXML's are under about 110 characters. With MAX_NAMES it bounds the characters
+# of all names, namespace names included, to 255 x 4,096.
+MAX_NAME_LENGTH = 255
 
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _LOCAL_SIGNATURE = b"PK\x03\x04"
@@ -242,6 +243,7 @@ class Package:
         parser.EndElementHandler = shape.end
         parser.CharacterDataHandler = target.text
         parser.StartNamespaceDeclHandler = shape.prefix
+        parser.EndNamespaceDeclHandler = shape.unprefix
         parser.StartDoctypeDeclHandler = shape.doctype
         decoder = codecs.getincrementaldecoder("utf-8-sig")()
         held = b""
@@ -299,41 +301,36 @@ def _bare(name: str) -> str:
 
 
 class _Shape:
-    """Between the parser and a target: the depth, and the different names and their characters."""
+    """Between the parser and a target: the depth, the names and the open namespace declarations."""
 
     def __init__(self, package: Package, part: str, target: Target) -> None:
         self._package = package
         self._part = part
         self._target = target
         self._depth = 0
+        self._open = 0
         self._names: set[str] = set()
         self._uris: set[str] = set()
-        self._characters = 0
 
-    def _known(self, name: str) -> None:
-        self._names.add(name)
-        self._characters += len(name)
-        if len(self._names) > MAX_NAMES:
-            raise self._package.refuse(f"more than {MAX_NAMES:,} different XML names", self._part)
-        self._bounded()
-
-    def _bounded(self) -> None:
-        if self._characters > MAX_NAME_CHARACTERS:
-            limit = f"{MAX_NAME_CHARACTERS:,}"
+    def _known(self, name: str, kept: set[str]) -> None:
+        if len(name) > MAX_NAME_LENGTH:
             raise self._package.refuse(
-                f"XML names longer than {limit} characters in all", self._part
+                f"an XML name longer than {MAX_NAME_LENGTH} characters", self._part
             )
+        kept.add(name)
+        if len(self._names) + len(self._uris) > MAX_NAMES:
+            raise self._package.refuse(f"more than {MAX_NAMES:,} different XML names", self._part)
 
     def start(self, name: str, attributes: dict[str, str]) -> None:
         self._depth += 1
         if self._depth > MAX_DEPTH:
             raise self._package.refuse(f"XML nested deeper than {MAX_DEPTH} elements", self._part)
         if name not in self._names:
-            self._known(name)
+            self._known(name, self._names)
         if attributes and not self._names.issuperset(attributes):
             for attribute in attributes:
                 if attribute not in self._names:
-                    self._known(attribute)
+                    self._known(attribute, self._names)
         bare = {_bare(key): value for key, value in attributes.items()}
         self._target.start(_bare(name), bare)
 
@@ -346,9 +343,15 @@ class _Shape:
         raise self._package.refuse(_DECLARED, self._part)
 
     def prefix(self, name: str | None, uri: str | None) -> None:
+        self._open += 1
+        if self._open > MAX_NAMES:
+            raise self._package.refuse(
+                f"more than {MAX_NAMES:,} namespace declarations open at once", self._part
+            )
         if name is not None and "xmlns:" + name not in self._names:
-            self._known("xmlns:" + name)
+            self._known("xmlns:" + name, self._names)
         if uri is not None and uri not in self._uris:
-            self._uris.add(uri)
-            self._characters += len(uri)
-            self._bounded()
+            self._known(uri, self._uris)
+
+    def unprefix(self, _name: str | None) -> None:
+        self._open -= 1
