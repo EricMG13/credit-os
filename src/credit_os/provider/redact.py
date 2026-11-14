@@ -243,8 +243,7 @@ _ESCAPE = r"\\{1,8}+"
 _PERCENT = r"%(?:25){0,2}"
 _SEPARATOR = rf"(?>(?:[/\\]|{_PERCENT}(?:2f|5c)){{1,16}})"
 _SHARED = "|".join(
-    [r"(?<=[/\\]\\)"]
-    + [rf"(?<=%{p}(?:2f|5c)\\{{{k}}})" for p in ("", "25", "2525") for k in range(1, 9)]
+    rf"(?<={s}\\)" for s in (r"[/\\]", *(rf"%{p}(?:2f|5c)" for p in ("", "25", "2525")))
 )
 _DRIVE = re.compile(r"[A-Za-z]:")
 _LONG_PATH = re.compile(r"[/\\]{2}[?.](?:[/\\]|\Z)")  # "\\?\", "\\.\": a prefix, not a folder
@@ -281,7 +280,10 @@ def _char_pattern(char: str, after_separator: bool, taken: bool = False) -> str:
         if ord(form) < 0x100:
             escaped.add(_escapes("x", [ord(form)], 2))
     lead = rf"(?:{_ESCAPE}|{_SHARED})" if after_separator else rf"{_ESCAPE}"
-    lead = "" if taken else lead  # the separator run took the escape's backslashes
+    if (
+        taken
+    ):  # the separator run took some of the escape's backslashes; a literal is not found here
+        return r"\\{0,8}+(?:" + "|".join(_longest_first(escaped)) + ")"
     return (
         "(?:"
         + "|".join([lead + "(?:" + "|".join(_longest_first(escaped)) + ")", *_longest_first(plain)])
@@ -302,7 +304,7 @@ def _form_patterns(form: str, after_separator: bool) -> list[str]:
         for width in (3, 5, 7):
             if _SEPARATOR_TOKEN.fullmatch(form[:width]):
                 rest = "".join(_char_pattern(c, False) for c in form[width:])
-                found.append(rf"{_token_lookbehinds(form[:width], range(9))}{rest}")
+                found.append(rf"{_token_lookbehinds(form[:width])}{rest}")
                 found.append(
                     _token_lookbehinds(form[:width], range(1, 9))
                     + "".join(_char_pattern(c, False, i == 0) for i, c in enumerate(form[width:]))
