@@ -39,6 +39,8 @@ _NONE = {**_NOT_TIMED, "compactions": ()}
 # charge; the second failed and its charge could not be read (unknown, not zero). Neither is
 # added to the reply's billed_usd. event_id is the id of the event that reported it. outcome is
 # "done", "failed" or "unfinished" (a start whose complete had not arrived: nothing is known).
+# supersedes is the event_id of an unfinished compaction, delivered earlier, that this one
+# completes; None when it completes none.
 _COMPACTION_USAGE_1 = {
     "input_tokens": 177475,
     "cached_read_tokens": 176500,
@@ -59,12 +61,14 @@ _UNFINISHED = {
     "billed_usd": None,
     "outcome": "unfinished",
     "event_id": "evt-synthetic-3",
+    "supersedes": None,
 }
 _COMPACTION_4 = {
     "usage": _COMPACTION_USAGE_1,
     "billed_usd": Decimal("0.0214050"),
-    "outcome": "done",
+    "outcome": "failed",
     "event_id": "evt-synthetic-4",
+    "supersedes": "evt-synthetic-0",
 }
 _COMPACTIONS = (
     {
@@ -72,12 +76,14 @@ _COMPACTIONS = (
         "billed_usd": Decimal("0.0214050"),
         "outcome": "done",
         "event_id": "evt-synthetic-1",
+        "supersedes": None,
     },
     {
         "usage": _COMPACTION_USAGE_2,
         "billed_usd": None,
         "outcome": "failed",
         "event_id": "evt-synthetic-2",
+        "supersedes": None,
     },
 )
 
@@ -111,6 +117,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
                         "path": "annual-report.pdf",
                         "page": 12,
                         "scale": 1.5,
+                        "offset": -2.5,
                     },
                     "bad_arguments": None,
                 },
@@ -208,6 +215,7 @@ _COMPACTION: dict[str, Any] = {
     "billed_usd": "0.0214050",
     "outcome": "done",
     "event_id": "evt-1",
+    "supersedes": None,
 }
 _COMPACTION_2 = {**_COMPACTION, "billed_usd": None, "outcome": "failed", "event_id": "evt-2"}
 _COMPACTION_3 = {**_COMPACTION_2, "usage": _NO_COUNTS, "outcome": "unfinished", "event_id": "evt-3"}
@@ -296,7 +304,30 @@ CANNED_BAD_LINES: tuple[dict[str, Any] | str, ...] = (
     # a compaction has no reasoning-token count: None, never a number
     _line({**_OK, "compactions": [{**_COMPACTION, "usage": {**_USAGE_3, "reasoning_tokens": 0}}]}),
     _line({**_OK, "compactions": [{**_COMPACTION, "usage": {**_USAGE_3, "reasoning_tokens": 5}}]}),
+    *(
+        _line({**_OK, "compactions": [{**_COMPACTION, "supersedes": bad}]})
+        for bad in (7, "", True, "evt-1")  # the last names itself
+    ),
+    _line({**_OK, "compactions": [{**_COMPACTION_3, "supersedes": "evt-0"}]}),
+    # two compactions completing the same unfinished one
+    _line(
+        {
+            **_ERR,
+            "compactions": [
+                {**_COMPACTION, "supersedes": "evt-0"},
+                {**_COMPACTION_2, "supersedes": "evt-0"},
+            ],
+        }
+    ),
+    _line({**_ERR, "compactions": [_COMPACTION, _COMPACTION]}),
+    # a whole-valued float is not an integer
+    _line({**_ERR, "usage": {**_USAGE_3, "input_tokens": 12.0}}),
+    _line(_OK, call_index=0.0),
     # an unfinished compaction knows nothing: a count or a charge on one is refused
+    *(
+        _line({**_OK, "compactions": [{**_COMPACTION_3, "usage": {**_NO_COUNTS, name: 0}}]})
+        for name in ("input_tokens", "cached_read_tokens", "cache_write_tokens", "output_tokens")
+    ),
     _line({**_OK, "compactions": [{**_COMPACTION_3, "usage": dict(_USAGE_3)}]}),
     _line({**_OK, "compactions": [{**_COMPACTION_3, "billed_usd": "0"}]}),
     *(_line({**_OK, "compactions": [{**_COMPACTION, "event_id": bad}]}) for bad in (None, "", 7)),
@@ -347,6 +378,8 @@ CANNED_GOOD_LINES: tuple[dict[str, Any], ...] = (
     _line({**_ERR, "billed_usd": "10.50", "usage": {**_USAGE_3, "input_tokens": 10**18 - 1}}),
     _line({**_ERR, "compactions": [{**_COMPACTION, "outcome": "failed"}]}),
     _line({**_OK, "compactions": [_COMPACTION, _COMPACTION_2, _COMPACTION_3]}),
+    _line({**_OK, "compactions": [{**_COMPACTION, "event_id": " evt ", "supersedes": "evt-0"}]}),
+    _line({**_ERR, "compactions": [{**_COMPACTION_2, "supersedes": "evt-0"}]}),
 )
 
 # Two lines with the same (exchange_id, call_index): refused, naming "line 2".
