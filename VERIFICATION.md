@@ -276,21 +276,29 @@ repository, in the session notes folder `d2b-records/`; the D2b worktree was arc
   Whole-branch fix round: one gates run at `b32a784`, not per commit, for the seven commits
   `2f032bd` to `b32a784`. Tasks 8 and 12 were re-cut to at most 800 lines per commit with a tree identical to the
   gated one (diff checked empty).
-- CI: every PR head had `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
-  passing before its merge, with one exception: #168 was merged with one of its
-  two Windows jobs failed: the rerun of that job (run 43622974167, attempt 2) ended
-  cancelled and never produced a result, so on #168's commit that job has one failure and no
-  pass. The failure was
-  `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on focus, and
-  draws it n.a., never 0" (`Test timed out in 5000ms`, 5,130 ms), a model-pages test outside
-  this stack (see "Model pages test timeout (#295)" below); the duplicate Windows job on the
-  same commit (run 43622974170) passed. #168's first run (43613658822) failed "Changed lines
-  at most 800" because it still measured against its old base (10,753 lines against the old
-  base, 296 against the new one); the D2b session closed and reopened the PR with no new
-  commit to get runs on the right base. Earlier failed checks on #127 and #139 were the
-  Windows `DevToolsActivePort` read race fixed by #156, on heads the end push replaced; #71
-  and #83 failed once in the shared kit page check and #264 and #280 had Windows gates
-  cancelled under queue load, each rerun.
+- CI: every PR head had `gates (ubuntu-latest)` and `review` passing and at least one passing `gates
+  (windows-latest)` job before its merge, but not every Windows job passed. #140 (run 43613667245,
+  17:23:45 to 17:43:47; duplicate run 43613667111 passed), #282, #284, #286, #287 and #294 each also
+  carry one Windows job that ended cancelled; #168's failed job was rerun and the rerun was cancelled
+  (18:04:13 to 18:24:17). Those jobs were cut off by the `web` workflow's 20-minute job limit, not by a
+  failed check; omitted here because the coordinator's pre-merge check counted only failed and pending
+  jobs. Measured on `main` `4a0cbdbb` (run 43624986501, Windows, attempt 2, the first rerun, started
+  18:49 UTC): `npm run gates` 10 min 5 s and "Open from disk in Edge" 6 min 1 s passed; "Open from disk
+  in Chrome" was cancelled after 3 min 13 s at the 20-minute mark. With all four page groups on `main`
+  the Windows job no longer fits 20 minutes on a slow runner; Linux takes about 8 minutes. #58, #70,
+  #83, #107 and #130 each have two Windows jobs cancelled within a minute at about 16:04 UTC (not the
+  limit; cause not established) and each later has two passing Windows jobs. The other exception: #168
+  was merged with one of its two Windows jobs failed: the rerun of that job (run 43622974167, attempt 2)
+  never produced a result, so on #168's commit that job has one failure and no pass. The failure was
+  `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on focus, and draws it
+  n.a., never 0" (`Test timed out in 5000ms`, 5,130 ms), a model-pages test outside this stack (see
+  "Model pages test timeout (#295)" below); the duplicate Windows job on the same commit (run
+  43622974170) passed. #168's first run (43613658822) failed "Changed lines at most 800" because it
+  still measured against its old base (10,753 lines against the old base, 296 against the new one); the
+  D2b session closed and reopened the PR with no new commit to get runs on the right base. Earlier
+  failed checks on #127 and #139 were the Windows `DevToolsActivePort` read race fixed by #156, on heads
+  the end push replaced; #71 and #83 failed once in the shared kit page check and #264 and #280 had
+  Windows gates cancelled under queue load, each rerun.
 
 **Reviews.**
 - Task review per task, `mx-precise`; scoped re-reviews by `mx-precise`, except task 5's
@@ -431,30 +439,36 @@ folder: nothing lost.
   TraceDrawer, DerivationTree, avatar group, copy snippet and toast, command menu,
   DownloadButton, details list, numbered list panel.
 
-**Not verified.** That any reviewer read `3ca2f8c7` (RR-01 and RR-02 were checked against the
-reviewer's probe only); that the re-review was by a fresh agent (it was the agent that wrote
-the review); a live walk on `3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home
-list and the drawer only); the Windows web gates on the merged tree (`main` `4a0cbdbb`: `python` push run
-43624986619 passed; `web` push run 43624986501 had `gates (ubuntu-latest)` passed and
-`gates (windows-latest)` cancelled before it finished, requeued by the coordinator at 18:50
-UTC with no result when this was written; the "about 88 runs queued on superseded `main`
-commits" remark, the coordinator's reading at about 18:08 UTC, is the state before the lead
-coordinator cancelled 79 queued push runs on 41 superseded `main` commits at about 18:27 UTC
-on the owner's instruction, keeping the tip's two runs); per-commit gating of the seven fix-round commits (the re-review
-lists it); the print preview of collapsed limitations (task 7 walk: "Not walked"); open
-Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex` on
-issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer
-across runs, was fixed in the fix round); any CI run of a PR
-head merged with `main` after `718a13b4` (the stack was forwarded once; `git merge-tree` with
-`9f900d53` was clean); a passing run of #168's failed Windows job (its rerun was cancelled); the full
-gates at `3ca2f8c7` by the controller (the fixer ran them); the whole-branch review did not
-rerun the gates (taken from the ledger), read the tests in full (about 13k lines, sampled),
-compare each page with its mock frame again, run WBR-12's deep tree, or probe WBR-05 for
-issuer and module ids; the fixer's WBR-08 mutant; RR-01 in a real browser (judged by Node's
-URL parser); Edge and Windows browsers beyond CI; screen-reader announcements; print output;
-the Chart sides of the missing chart kinds; real download files; the Halden Forecast link
-against a model fixture holding Halden; any slice against a real delivered run (step 3B does
-not exist); whether the fixture's invented issuer names match a real company.
+**Not verified.** That any reviewer read `3ca2f8c7` (RR-01 and RR-02 were checked against the reviewer's probe
+only); that the re-review was by a fresh agent (it was the agent that wrote the review); a live walk on
+`3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home list and the drawer only); per-commit gating
+of the seven fix-round commits (the re-review lists it); the print preview of collapsed limitations (task 7
+walk: "Not walked"); open Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex`
+on issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer across runs, was fixed
+in the fix round); any CI run of a PR head merged with `main` after `718a13b4` (the stack was forwarded once;
+`git merge-tree` with `9f900d53` was clean); a passing run of #168's failed Windows job on its own commit (its
+rerun was cancelled); a complete Windows run of the cancelled job on each of #140, #282, #284, #286, #287 and
+#294 (each has a passing duplicate job on the same commit); cancelled Windows jobs on earlier commits of the
+stack's PRs (only each PR's last commit was read); the full gates at `3ca2f8c7` by the controller (the fixer ran
+them); the whole-branch review did not rerun the gates (taken from the ledger), read the tests in full (about
+13k lines, sampled), compare each page with its mock frame again, run WBR-12's deep tree, or probe WBR-05 for
+issuer and module ids; the fixer's WBR-08 mutant; RR-01 in a real browser (judged by Node's URL parser); Edge
+and Windows browsers beyond CI; screen-reader announcements; print output; the Chart sides of the missing chart
+kinds; real download files; the Halden Forecast link against a model fixture holding Halden; any slice against a
+real delivered run (step 3B does not exist); whether the fixture's invented issuer names match a real company;
+any report kept only in the git-ignored `.superpowers/` folders of eight finished design-track worktrees
+(`agent-a72a…`, `agent-aeee…`, `agent-a44c…`, `agent-ac21…`, `d2c-pr-a`, `d2c-pr-b`, `d2c-split`,
+`kit-link-toggle`): the coordinator removed them at about 19:50 UTC after checking only for uncommitted tracked
+files, so such reports were deleted unread (the D2b, D2c and D2e records cited in the entries were copied to the
+notes folder before and are unaffected).
+**Corrected, the Windows web gates on the merged tree.** On `main` `4a0cbdbb`, `python` push run 43624986619
+passed; `web` push run 43624986501 passed on Linux and its Windows job was cancelled three times (the original
+run and two reruns started 18:49 and 19:11 UTC), each at the 20-minute limit, none with a failed check; in the
+second rerun gates took 11 min 50 s and the Edge check 6 min 17 s before the Chrome check was cut off. PR #311
+(back-end coordinator, merged; `web.yml` only) raised the limit to 40 minutes. The `web` push run 43632557384 on
+`main` `cb091afe` (the merge of #311; `git diff --stat 4a0cbdbb cb091afe -- web` prints nothing, checked) passed
+on both systems; on Windows `npm run gates` took 10 min 37 s, the Edge check 5 min 33 s and the Chrome check 3
+min 26 s.
 
 **Model pages test timeout (#295).** PR #295, test only
 (`web/src/pages/model/StatementsPage.test.tsx`, +16/-6), merged at about 18:04 UTC. The test
