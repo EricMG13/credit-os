@@ -210,9 +210,7 @@ def make(c: int, e: int) -> Decimal:
 PARTS = st.tuples(st.integers(-(10**38) + 1, 10**38 - 1), st.integers(-60, 60))
 
 
-@settings(max_examples=200, deadline=None)
-@given(PARTS, PARTS, st.one_of(st.none(), st.lists(PARTS, max_size=3)))
-def test_beyond_rounding_matches_fractions(
+def beyond_oracle(
     a: tuple[int, int], b: tuple[int, int], printed: list[tuple[int, int]] | None
 ) -> None:
     stated, host = make(*a), make(*b)
@@ -221,6 +219,45 @@ def test_beyond_rounding_matches_fractions(
     expected = abs(Fraction(stated) - Fraction(host)) > limit
     shown = None if printed is None else [make(c, e) for c, e in printed]
     assert beyond_rounding(stated, host, shown) is expected
+
+
+PRINTED = st.one_of(st.none(), st.lists(PARTS, max_size=3))
+
+
+@settings(max_examples=200, deadline=None)
+@given(PARTS, PARTS, PRINTED)
+def test_beyond_rounding_matches_fractions(
+    a: tuple[int, int], b: tuple[int, int], printed: list[tuple[int, int]] | None
+) -> None:
+    beyond_oracle(a, b, printed)
+
+
+@settings(max_examples=200, deadline=None)
+@given(PARTS, st.integers(0, 3), st.integers(-60, 60), PRINTED)
+def test_beyond_rounding_near_ties(
+    a: tuple[int, int], places: int, nudge: int, printed: list[tuple[int, int]] | None
+) -> None:
+    """Host within a few units of stated, at a finer place, so ties and near ties occur."""
+    scaled = a[0] * 10**places + nudge % 7 - 3
+    beyond_oracle(a, (scaled, a[1] - places), printed)
+
+
+@pytest.mark.parametrize(
+    ("stated", "host", "printed", "beyond"),
+    [("1.5", "1.50", None, False), ("1", "1.5", [], False), ("-1", "-1.5001", [], True)],
+)
+def test_beyond_rounding_written_ties(
+    stated: str, host: str, printed: list[str] | None, beyond: bool
+) -> None:
+    shown = None if printed is None else [Decimal(p) for p in printed]
+    assert beyond_rounding(Decimal(stated), Decimal(host), shown) is beyond
+
+
+def test_beyond_rounding_exponent_spread_is_bounded() -> None:
+    assert beyond_rounding(Decimal("1E+1999999"), Decimal(0))
+    for stated, host in (("1E+2000000", "0"), ("0", "1E+2000000")):
+        with pytest.raises(decimal.Overflow):
+            beyond_rounding(Decimal(stated), Decimal(host))
 
 
 HOSTILE = [
