@@ -84,4 +84,51 @@ describe("Button", () => {
     expect(button.querySelector("[data-text]")).toHaveClass("px-0.5");
     expect(button.className).not.toMatch(/underline-offset/);
   });
+  describe("with href", () => {
+    it("is a link with the label as its name and the given href, target and rel", () => {
+      render(
+        <Button href="#/library" target="_blank" rel="noreferrer">
+          Open the library
+        </Button>,
+      );
+      const link = screen.getByRole("link", { name: "Open the library" });
+      expect(link.tagName).toBe("A");
+      expect(link).toHaveAttribute("href", "#/library");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noreferrer");
+      expect(screen.queryByRole("button")).toBeNull();
+    });
+
+    it("keeps the button's size, colour and icon styles", () => {
+      render(
+        <Button href="#/x" size="lg" color="secondary" iconLeading={Icon}>
+          Back
+        </Button>,
+      );
+      const link = screen.getByRole("link", { name: "Back" });
+      expect(link).toHaveClass("text-md", "ring-primary", "inline-flex");
+      expect(link.querySelector("[data-icon=leading]")).not.toBeNull();
+      expect(link.querySelector("[data-text]")).toHaveClass("px-0.5");
+    });
+
+    it("is announced disabled and carries no href when disabled", () => {
+      render(
+        <Button href="#/x" isDisabled>
+          Gone
+        </Button>,
+      );
+      const link = screen.getByRole("link", { name: "Gone" });
+      expect(link).toHaveAttribute("aria-disabled", "true");
+      expect(link).not.toHaveAttribute("href");
+      expect(link).toHaveClass("data-disabled:opacity-50", "data-disabled:cursor-not-allowed");
+    });
+
+    it("leaves a button without href as a button with no link attributes", () => {
+      render(<Button>Plain</Button>);
+      const button = screen.getByRole("button", { name: "Plain" });
+      expect(button.tagName).toBe("BUTTON");
+      expect(button).not.toHaveAttribute("href");
+      expect(screen.queryByRole("link")).toBeNull();
+    });
+  });
 });

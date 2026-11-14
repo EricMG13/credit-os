@@ -1,7 +1,10 @@
 import type { FC, ReactNode } from "react";
 import { isValidElement } from "react";
-import type { ButtonProps as AriaButtonProps } from "react-aria-components";
-import { Button as AriaButton } from "react-aria-components";
+import type {
+  ButtonProps as AriaButtonProps,
+  LinkProps as AriaLinkProps,
+} from "react-aria-components";
+import { Button as AriaButton, Link as AriaLink } from "react-aria-components";
 import { cx, sortCx } from "@/utils/cx";
 import type { IconProps } from "@/utils/is-react-component";
 import { isReactComponent } from "@/utils/is-react-component";
@@ -11,7 +14,7 @@ export const styles = sortCx({
     root: [
       "group relative inline-flex h-max cursor-pointer items-center justify-center whitespace-nowrap outline-brand transition duration-100 ease-linear before:absolute focus-visible:outline-2 focus-visible:outline-offset-2",
       // Disabled styles
-      "disabled:cursor-not-allowed disabled:opacity-50",
+      "disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed data-disabled:opacity-50",
       // Same as `icon` but for SSR icons that cannot be passed to the client as functions.
       "*:data-icon:pointer-events-none *:data-icon:size-5 *:data-icon:shrink-0 *:data-icon:transition-inherit-all",
     ].join(" "),
@@ -90,8 +93,8 @@ export const styles = sortCx({
   },
 });
 
-export interface ButtonProps extends Omit<AriaButtonProps, "children" | "className"> {
-  /** Shows a loading spinner and disables the button */
+interface CommonProps {
+  /** Shows a loading spinner and disables the button (not on a link) */
   isLoading?: boolean;
   /** The size variant of the button */
   size?: keyof typeof styles.sizes;
@@ -107,6 +110,18 @@ export interface ButtonProps extends Omit<AriaButtonProps, "children" | "classNa
   className?: string;
 }
 
+export interface ButtonProps
+  extends CommonProps, Omit<AriaButtonProps, "children" | "className" | "href"> {
+  href?: undefined;
+}
+
+/** With `href` the button is a link (an anchor) with the same look. */
+export interface LinkButtonProps
+  extends Omit<CommonProps, "isLoading">, Omit<AriaLinkProps, "children" | "className" | "style"> {
+  href: string;
+  isLoading?: undefined;
+}
+
 export const Button = ({
   size = "md",
   color = "primary",
@@ -116,7 +131,7 @@ export const Button = ({
   iconTrailing: IconTrailing,
   isLoading: loading,
   ...props
-}: ButtonProps) => {
+}: ButtonProps | LinkButtonProps) => {
   const isIcon = (IconLeading || IconTrailing) && !children;
   const isLinkType = color === "link-color" || color === "link-destructive";
 
@@ -176,6 +191,32 @@ export const Button = ({
     </>
   );
 
+  const classes = cx(
+    styles.common.root,
+    styles.sizes[size].root,
+    styles.colors[color].root,
+    isLinkType && styles.sizes[size].linkRoot,
+    loading && "pointer-events-none",
+    // If in `loading` state, hide everything except the loading icon. Opacity, not visibility:
+    // hidden text names nothing in Chrome, and the label is the button's name.
+    loading && "[&>*:not([data-icon=loading])]:opacity-0",
+    className,
+  );
+
+  if (props.href !== undefined) {
+    return (
+      <AriaLink
+        {...props}
+        // A disabled link has no destination: it renders as a span with role link, aria-disabled.
+        href={props.isDisabled ? undefined : props.href}
+        data-icon-only={isIcon ? true : undefined}
+        className={classes}
+      >
+        {commonChildren}
+      </AriaLink>
+    );
+  }
+
   return (
     <AriaButton
       data-loading={loading ? true : undefined}
@@ -183,17 +224,7 @@ export const Button = ({
       {...props}
       type={props.type ?? "button"}
       isPending={loading}
-      className={cx(
-        styles.common.root,
-        styles.sizes[size].root,
-        styles.colors[color].root,
-        isLinkType && styles.sizes[size].linkRoot,
-        loading && "pointer-events-none",
-        // If in `loading` state, hide everything except the loading icon. Opacity, not visibility:
-        // hidden text names nothing in Chrome, and the label is the button's name.
-        loading && "[&>*:not([data-icon=loading])]:opacity-0",
-        className,
-      )}
+      className={classes}
     >
       {commonChildren}
     </AriaButton>

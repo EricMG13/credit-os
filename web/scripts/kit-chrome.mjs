@@ -105,6 +105,29 @@ async function invalidRingColours(send) {
   return colours;
 }
 
+// The link button: its role and name in the browser's accessibility tree, and the ring a
+// keyboard-focused link draws (the focus colour, 2px: computed outline).
+async function linkButton(send) {
+  const { nodes } = await send("Accessibility.getFullAXTree");
+  const link = nodes.find(
+    (n) => !n.ignored && n.role?.value === "link" && n.name?.value === "Open the library",
+  );
+  const disabled = nodes.find(
+    (n) => !n.ignored && n.role?.value === "link" && n.name?.value === "Library unavailable",
+  );
+  const target = `[...document.querySelectorAll("section[aria-labelledby=kit-link-button] a")][0]`;
+  await evaluate(
+    send,
+    `(() => { const all = [...document.querySelectorAll("a[href],button,input,select,textarea,[tabindex]")].filter((e) => e.tabIndex >= 0 && !e.disabled && e.getBoundingClientRect().width > 1); all[all.indexOf(${target}) - 1].focus(); })()`,
+  );
+  await press(send, "Tab", "Tab", 9);
+  const ring = await evaluate(
+    send,
+    `(() => { const f = ${target}; if (document.activeElement !== f) return null; const c = getComputedStyle(f); return { colour: c.outlineColor, width: c.outlineWidth, style: c.outlineStyle }; })()`,
+  );
+  return { found: Boolean(link), disabledFound: Boolean(disabled), ring };
+}
+
 /** Prints PASS or FAIL lines for the kit page opened from file:// and returns true when all pass. */
 export async function checkKitInChrome({ browser, folder }) {
   const profile = mkdtempSync(path.join(tmpdir(), "credit-os-cdp-"));
@@ -140,8 +163,18 @@ export async function checkKitInChrome({ browser, folder }) {
     console.log(
       `${ok ? "PASS" : "FAIL"} kit page: ${rings.length} keyboard-focused invalid fields draw the focus colour ${want}${ok ? "" : ` (found: ${wrong.join(" | ") || "no invalid fields"})`}`,
     );
+    const link = await linkButton(send);
+    const linkOk =
+      link.found &&
+      link.disabledFound &&
+      link.ring?.colour === want &&
+      link.ring?.width === "2px" &&
+      link.ring?.style === "solid";
+    console.log(
+      `${linkOk ? "PASS" : "FAIL"} kit page: the link button has role link and its label as name (disabled one too) and a keyboard-focused one draws a 2px ${want} outline${linkOk ? "" : ` (found: ${JSON.stringify(link)})`}`,
+    );
     close();
-    return names.length === 0 && ok;
+    return names.length === 0 && ok && linkOk;
   } finally {
     child.kill("SIGKILL");
     rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
