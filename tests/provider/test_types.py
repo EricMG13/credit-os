@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from credit_os.provider.types import (
+    Compaction,
     Message,
     Model,
     ProviderDataError,
@@ -29,10 +30,15 @@ USAGE_FIELDS = (
 CALL = ToolCall(call_id="c1", name="f", arguments={})
 _TURN = Turn("t", (), Usage(input_tokens=5), "end", None, None)
 _REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
+_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0240831"))
 
 
 def _message(**kw: Any) -> Message:
     return dataclasses.replace(Message("user", "x"), **kw)
+
+
+def _compaction(**kw: Any) -> Compaction:
+    return dataclasses.replace(_COMPACTION, **kw)
 
 
 def _turn(**kw: Any) -> Turn:
@@ -53,6 +59,7 @@ _sent = partial(_reply, kind="sent_usage", usage=Usage())
 _M = {"role": "tool", "tool_call_id": "c"}
 _CHARGE = "billed_usd must be a Decimal"
 _FINITE = "billed_usd must be finite and not negative"
+_COMPACTIONS = "compactions must be a tuple of Compaction"
 # (builder, keyword arguments, fragment of the refusal message)
 REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_message, {"role": "bot"}, "unknown role 'bot'"),
@@ -90,6 +97,13 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_turn, {"usage": {"input_tokens": 5}}, "usage must be a Usage"),
     (_sent, {"usage": {"input_tokens": 5}}, "usage must be a Usage or None"),
     (_sent, {"usage": Message("user", "x")}, "usage must be a Usage or None"),
+    (_compaction, {"usage": {"input_tokens": 5}}, "usage must be a Usage"),
+    (_compaction, {"billed_usd": 0.5}, _CHARGE),
+    (_compaction, {"billed_usd": Decimal("NaN")}, _FINITE),
+    (_compaction, {"billed_usd": Decimal("-1")}, _FINITE),
+    (_ok, {"compactions": []}, _COMPACTIONS),
+    (_ok, {"compactions": ({"usage": {}},)}, _COMPACTIONS),
+    (_reply, {"compactions": (_COMPACTION,)}, "a not_sent reply has no compactions"),
 ]
 BAD_COUNTS = [-1, True, False, 1.0, "1"]
 REFUSALS += [
@@ -153,6 +167,24 @@ def test_sent_unknown_reply() -> None:
     assert reply == Reply("sent_unknown", None, "Timeout", "timed out", *[None] * 5)
 
 
+@pytest.mark.parametrize("charge", [None, Decimal(0), Decimal("0.0240831")])
+def test_compaction_charge_kept(charge: Decimal | None) -> None:
+    assert _compaction(billed_usd=charge).billed_usd == charge
+
+
+def test_compactions_default_empty() -> None:
+    assert _REPLY.compactions == ()
+
+
+@pytest.mark.parametrize("kind", ["ok", "sent_usage", "sent_unknown"])
+def test_reply_carries_compactions_without_taking_their_charge(kind: str) -> None:
+    kw: dict[str, Any] = {"ok": {}, "sent_usage": {"usage": Usage(input_tokens=1)}}.get(kind, {})
+    build = _ok if kind == "ok" else partial(_reply, kind=kind, **kw)
+    reply = build(compactions=(_COMPACTION, _compaction(billed_usd=None)))
+    assert reply.billed_usd is None
+    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0240831"), None]
+
+
 def test_types_are_frozen() -> None:
     instances: list[Any] = [
         ToolSpec(name="f", description="d", parameters={}),
@@ -162,6 +194,7 @@ def test_types_are_frozen() -> None:
         Request((_message(),), (), 10, "medium"),
         _turn(),
         _reply(),
+        _COMPACTION,
     ]
     for obj in instances:
         field = dataclasses.fields(obj)[0].name
