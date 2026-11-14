@@ -35,18 +35,12 @@ describe("readLibraryData page group members", () => {
   const base = { schema: "credit-os-data/1", issuers: [] };
 
   it("copies a group's member through unchanged when the source has it", () => {
-    const result = readLibraryData({ ...base, library: { a: 1 }, run: [], signal: null });
-    expect(result.kind === "ok" && result.data).toEqual({
-      ...base,
-      library: { a: 1 },
-      run: [],
-      signal: null,
-    });
+    const member = { ...base, library: { a: 1 }, run: [], signal: null };
+    expect(readLibraryData(member)).toEqual({ kind: "ok", data: member });
   });
 
   it("leaves a member absent, not undefined or empty, when the source lacks it", () => {
     const result = readLibraryData({ ...base, model: undefined });
-    if (result.kind !== "ok") throw new Error("expected ok");
-    expect(Object.keys(result.data)).toEqual(["schema", "issuers"]);
+    expect(result.kind === "ok" && Object.keys(result.data)).toEqual(["schema", "issuers"]);
   });
 });

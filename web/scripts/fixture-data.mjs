@@ -13,19 +13,14 @@ function isObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function paramProblem(params) {
+function badParams(params) {
   if (!isObject(params)) return '"params" must be an object';
-  for (const [pattern, sets] of Object.entries(params)) {
-    if (!Array.isArray(sets) || !sets.every(isObject)) {
-      return `"params" for "${pattern}" must be a list of objects`;
-    }
-    for (const set of sets) {
-      if (!Object.values(set).every((value) => typeof value === "string")) {
-        return `"params" for "${pattern}" must hold string values`;
-      }
-    }
-  }
-  return undefined;
+  const bad = Object.entries(params).find(
+    ([, sets]) =>
+      !Array.isArray(sets) ||
+      !sets.every((set) => isObject(set) && Object.values(set).every((v) => typeof v === "string")),
+  );
+  return bad && `"params" for "${bad[0]}" must be a list of objects with string values`;
 }
 
 /** The parsed fixture of one group. Throws an error naming the file when it is not valid. */
@@ -42,11 +37,10 @@ export function readFixture(group, dir = defaultDir) {
   for (const key of Object.keys(value)) {
     if (!known.includes(key)) throw new Error(`${file}: unknown key "${key}"`);
   }
-  const problem = "params" in value ? paramProblem(value.params) : undefined;
+  const problem =
+    ("params" in value && badParams(value.params)) ||
+    ("issuers" in value && !Array.isArray(value.issuers) && '"issuers" must be a list');
   if (problem) throw new Error(`${file}: ${problem}`);
-  if ("issuers" in value && !Array.isArray(value.issuers)) {
-    throw new Error(`${file}: "issuers" must be a list`);
-  }
   return value;
 }
 
@@ -61,9 +55,14 @@ export function buildData(dir = defaultDir) {
 }
 
 export function writeDataFile(outDir, dir = defaultDir) {
-  const text = `window.CREDIT_OS_DATA = ${JSON.stringify(buildData(dir), null, 2)};\n`;
+  // JSON.parse of a string keeps a "__proto__" key an own key (an object literal would not); `<`
+  // and the line separators are escaped so the text is safe inside a script element.
+  const literal = JSON.stringify(JSON.stringify(buildData(dir))).replace(
+    /[<\u2028\u2029]/g,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(path.join(outDir, "data.js"), text);
+  writeFileSync(path.join(outDir, "data.js"), `window.CREDIT_OS_DATA = JSON.parse(${literal});\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

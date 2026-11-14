@@ -1,8 +1,8 @@
-// Opens every route the page groups declare in the built library, from file://, with the fixture
-// data. open-from-disk.mjs passes in its own browser helpers so this module stays self-contained.
+// Opens every route the page groups declare, from file:// with the fixture data, using the browser
+// helpers open-from-disk.mjs passes in.
 import { cpSync } from "node:fs";
 import path from "node:path";
-import { declaredPaths } from "./route-paths.mjs";
+import { declaredPaths, fillParams } from "./route-paths.mjs";
 import { GROUPS, readFixture, writeDataFile } from "./fixture-data.mjs";
 
 const pagesDir = path.resolve(import.meta.dirname, "..", "src", "pages");
@@ -14,20 +14,17 @@ function visitsFor(group) {
   const visits = [];
   const failures = [];
   for (const pattern of declaredPaths(path.join(pagesDir, group))) {
-    if (!pattern.includes(":")) {
-      visits.push({ label: pattern, hash: `#${pattern}` });
-      continue;
-    }
-    const sets = params[pattern] ?? [];
+    const sets = pattern.includes(":") ? (params[pattern] ?? []) : [{}];
     if (sets.length === 0)
       failures.push(`${pattern} is parameterised and fixtures/${group}.json has no params for it`);
     for (const set of sets) {
-      const hash = pattern.replace(/:(\w+)/g, (_, name) => {
-        if (!(name in set))
-          failures.push(`${pattern}: a parameter set in fixtures/${group}.json lacks "${name}"`);
-        return encodeURIComponent(set[name] ?? "");
+      const { hash, missing } = fillParams(pattern, set);
+      for (const name of missing)
+        failures.push(`${pattern}: a parameter set in fixtures/${group}.json lacks "${name}"`);
+      visits.push({
+        label: hash === pattern ? pattern : `${pattern} as ${hash}`,
+        hash: `#${hash}`,
       });
-      visits.push({ label: `${pattern} as ${hash}`, hash: `#${hash}` });
     }
   }
   return { visits, failures };
@@ -41,10 +38,8 @@ export function checkRoutes({ browser, folder, work, dumpPage, problems }) {
   const all = GROUPS.map((group) => ({ group, ...visitsFor(group) }));
   const results = [];
   for (const { group, failures } of all) {
-    for (const failure of failures) {
-      console.log(`FAIL route ${group}: ${failure}`);
-      results.push(false);
-    }
+    for (const failure of failures) console.log(`FAIL route ${group}: ${failure}`);
+    results.push(...failures.map(() => false));
   }
   const visits = all.flatMap(({ group, visits }) => visits.map((visit) => ({ group, ...visit })));
   if (visits.length === 0 && results.length === 0) {
@@ -72,6 +67,5 @@ export function checkRoutes({ browser, folder, work, dumpPage, problems }) {
     `${unknownOk ? "PASS" : "FAIL"} route visits: an unknown hash expects "${NOT_FOUND}"`,
   );
   if (!unknownOk) console.log(`  stderr:\n${unknown.log}\n  dom:\n${unknown.dom}`);
-  results.push(unknownOk);
-  return results.every(Boolean);
+  return [...results, unknownOk].every(Boolean);
 }

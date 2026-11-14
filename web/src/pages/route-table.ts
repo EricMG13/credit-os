@@ -48,9 +48,8 @@ function matchSegments(
 }
 
 /**
- * `hash` is what useHashRoute returns. Segments split on "/", `:name` captures one non-empty
- * segment (decoded), one trailing slash is ignored and the first matching route wins. There is
- * no wildcard, no optional segment and no query string.
+ * `hash` is what useHashRoute returns. `:name` captures one non-empty segment (decoded), one
+ * trailing slash is ignored and the first matching route wins. No wildcard, optional segment or query.
  */
 export function matchRoute(
   hash: string,

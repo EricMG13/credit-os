@@ -51,23 +51,19 @@ function areaOf(routePath: string): SliceKey {
   return SLICE_KEYS.find((key) => key === first) ?? "library";
 }
 
-function Unreadable({ title, area, reason }: { title: string; area: Area; reason: string }) {
-  return (
-    <Shell current={area}>
-      <PageHeader title={title} />
-      <p className="mt-6 text-text-secondary">This part of the library could not be read</p>
-      <p className="mt-2 text-text-secondary">{reason}</p>
-    </Shell>
-  );
-}
-
 function Page({ result, table, route }: { result: LoadResult; table: RouteTable; route: string }) {
   const matched = matchRoute(route, table.routes);
   if (matched !== null && result.kind === "ok") {
     const area = areaOf(matched.route.path);
     const slice = table.readers[area](result.data[area]);
     if (slice.kind === "invalid") {
-      return <Unreadable title={matched.route.title} area={area} reason={slice.reason} />;
+      return (
+        <Shell current={area}>
+          <PageHeader title={matched.route.title} />
+          <p className="mt-6 text-text-secondary">This part of the library could not be read</p>
+          <p className="mt-2 text-text-secondary">{slice.reason}</p>
+        </Shell>
+      );
     }
     return (
       <Shell current={area}>

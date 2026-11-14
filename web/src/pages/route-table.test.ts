@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { declaredPaths, pathsIn } from "../../scripts/route-paths.mjs";
+import { declaredPaths, fillParams, pathsIn } from "../../scripts/route-paths.mjs";
 import { SLICE_KEYS } from "../data";
 import { matchRoute, routeTable, type Route } from "./route-table";
 
@@ -9,61 +10,41 @@ function route(pathPattern: string): Route {
 
 describe("matchRoute", () => {
   const routes = [route("/library/:issuer/:run/overview"), route("/model/about"), route("/x")];
+  const overview = "/library/:issuer/:run/overview";
 
-  it("captures the named segments of a parameterised path", () => {
-    const found = matchRoute("/library/tdg/r1/overview", routes);
-    expect(found?.route.path).toBe("/library/:issuer/:run/overview");
-    expect(found?.params).toEqual({ issuer: "tdg", run: "r1" });
+  it.each([
+    ["/library/tdg/r1/overview", overview, { issuer: "tdg", run: "r1" }],
+    ["/library/tdg/r1/overview/", overview, { issuer: "tdg", run: "r1" }],
+    ["/model/about/", "/model/about", {}],
+    ["/library/a%20b/r%2F1/overview", overview, { issuer: "a b", run: "r/1" }],
+  ])("matches %s, ignoring one trailing slash and decoding segments", (hash, pattern, params) => {
+    const found = matchRoute(hash, routes);
+    expect(found?.route.path).toBe(pattern);
+    expect(found?.params).toEqual(params);
   });
 
-  it("returns null for an unknown path", () => {
-    expect(matchRoute("/library/tdg/r1/changes", routes)).toBeNull();
-    expect(matchRoute("/nowhere", routes)).toBeNull();
-    expect(matchRoute("", routes)).toBeNull();
-  });
-
-  it("ignores one trailing slash", () => {
-    expect(matchRoute("/model/about/", routes)?.route.path).toBe("/model/about");
-    expect(matchRoute("/library/tdg/r1/overview/", routes)?.params).toEqual({
-      issuer: "tdg",
-      run: "r1",
-    });
-  });
-
-  it("does not ignore a second trailing slash", () => {
-    expect(matchRoute("/model/about//", routes)).toBeNull();
-  });
-
-  it("decodes a captured segment", () => {
-    expect(matchRoute("/library/a%20b/r%2F1/overview", routes)?.params).toEqual({
-      issuer: "a b",
-      run: "r/1",
-    });
-  });
-
-  it("rejects an empty segment for a parameter", () => {
-    expect(matchRoute("/library//r1/overview", routes)).toBeNull();
-  });
-
-  it("rejects a malformed escape instead of throwing", () => {
-    expect(matchRoute("/library/%E0%A4%A/r1/overview", routes)).toBeNull();
+  it.each([
+    ["an unknown path", "/library/tdg/r1/changes"],
+    ["another unknown path", "/nowhere"],
+    ["the empty hash", ""],
+    ["a second trailing slash", "/model/about//"],
+    ["an empty parameter segment", "/library//r1/overview"],
+    ["a malformed escape", "/library/%E0%A4%A/r1/overview"],
+    ["a query string", "/x?a=1"],
+    ["a longer path", "/x/y"],
+  ])("returns null for %s", (_, hash) => {
+    expect(matchRoute(hash, routes)).toBeNull();
   });
 
   it("lets the first matching route win", () => {
     const first = route("/a/:one");
-    const second = route("/a/:two");
-    expect(matchRoute("/a/v", [first, second])?.route).toBe(first);
+    expect(matchRoute("/a/v", [first, route("/a/:two")])?.route).toBe(first);
   });
 
   it("does not treat a name from Object.prototype as a parameter value store", () => {
     const found = matchRoute("/a/constructor", [route("/a/:toString")]);
     expect(found?.params).toEqual({ toString: "constructor" });
     expect(Object.getPrototypeOf(found?.params)).toBeNull();
-  });
-
-  it("does not match a query string or a longer path", () => {
-    expect(matchRoute("/x?a=1", routes)).toBeNull();
-    expect(matchRoute("/x/y", routes)).toBeNull();
   });
 });
 
@@ -81,7 +62,23 @@ describe("pathsIn", () => {
   });
 });
 
+describe("fillParams", () => {
+  it("replaces the whole segment after a colon, as matchRoute reads it", () => {
+    const pattern = "/library/:issuer-id/:run_2/overview";
+    const { hash, missing } = fillParams(pattern, { "issuer-id": "a b", run_2: "r1" });
+    expect(hash).toBe("/library/a%20b/r1/overview");
+    expect(missing).toEqual([]);
+    expect(matchRoute(hash, [route(pattern)])?.params).toEqual({ "issuer-id": "a b", run_2: "r1" });
+    expect(fillParams(pattern, { run_2: "r1" }).missing).toEqual(["issuer-id"]);
+  });
+});
+
 describe("the real page groups", () => {
+  it.each(SLICE_KEYS)("%s: routes.tsx states the path rule in its convention comment", (group) => {
+    const text = readFileSync(path.join(import.meta.dirname, group, "routes.tsx"), "utf8");
+    expect(text).toContain(`every path starts with /${group}/`);
+  });
+
   it.each(SLICE_KEYS)("%s: the script sees exactly the routes the module declares", (group) => {
     const dir = path.join(import.meta.dirname, group);
     const declared = routeTable.routes.filter((r) => r.path.split("/")[1] === group);
