@@ -50,8 +50,12 @@ def _pin(name: str) -> SourcePin:
 def _symlink(link: Path, target: Path) -> None:
     try:
         link.symlink_to(target)
-    except (OSError, NotImplementedError):
-        pytest.skip("this platform or account cannot create symbolic links")
+    except NotImplementedError:
+        pytest.skip("this platform cannot create symbolic links")
+    except OSError as error:
+        if getattr(error, "winerror", None) == 1314:
+            pytest.skip("this account cannot create symbolic links")
+        raise
 
 
 def test_max_bytes_literal() -> None:
@@ -153,7 +157,9 @@ def test_source_path_nul_in_folder() -> None:
     with pytest.raises(SourceRefused) as caught:
         source_path(bad, "readme.txt")
     assert str(caught.value) == "bad\x00folder: not a folder"
-    assert isinstance(caught.value.__cause__, ValueError)
+    cause = caught.value.__cause__
+    assert isinstance(cause, (ValueError, OSError))
+    assert "embedded null character in path" in str(cause)
 
 
 def test_read_pinned_nul_in_folder() -> None:

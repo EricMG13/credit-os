@@ -63,7 +63,8 @@ def source_path(folder: Path, name: str) -> Path:
     if not root.is_dir():
         raise SourceRefused(f"{folder}: not a folder")
     # The check and the later open are two steps: a link swapped in between them is not
-    # closed here. The pin's size and SHA-256 remain the guard on content.
+    # closed here. The pin's size and SHA-256 remain the guard on content. The resolve and
+    # containment check below the walk stay as the second guard for that case.
     walked = root
     for segment in name.split("/"):
         walked = walked / segment
