@@ -41,7 +41,8 @@ function withoutGroups(): unknown {
   snapshot.channels.groups = [];
   snapshot.groups = [];
   snapshot.threads = [];
-  for (const one of snapshot.feed.stories) Object.assign(one, { threadRef: null });
+  for (const one of snapshot.feed.stories)
+    Object.assign(one, { threadRef: null, commentCount: null });
   return copy;
 }
 
@@ -168,7 +169,7 @@ describe("Comment on a story", () => {
 
   it("links to the story's thread when it has one", () => {
     show(FEED);
-    const comment = screen.getByRole("link", { name: `Comment 3: ${CORVANE}` });
+    const comment = screen.getByRole("link", { name: `Comment 4: ${CORVANE}` });
     expect(comment).toHaveAttribute(
       "href",
       "#/signal/main/group/leveraged-credit/thread/corvane-thread",

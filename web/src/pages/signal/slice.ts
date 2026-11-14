@@ -438,7 +438,14 @@ function noModel<T extends { ai: boolean; points: unknown[]; nothing: string | n
     return got;
   };
 }
-const digestCard = noModel(digestBase, "nothing-to-report card");
+const nothingCard = noModel(digestBase, "nothing-to-report card");
+/** A nothing-to-report card draws its one sentence only; a summary beside it would never be drawn. */
+const digestCard: Reader<SignalDigestCard> = (v, path) => {
+  const got = nothingCard(v, path);
+  return got.ok && got.value.nothing !== null && got.value.summary !== null
+    ? bad(`${path}.summary`, "null on a nothing-to-report card")
+    : got;
+};
 const digestIssue = noModel(
   shape<SignalDigestIssue>({
     id: str,
@@ -546,7 +553,7 @@ const group: Reader<SignalGroup> = (v, path) => {
     ? bad(`${path}.moreMembers`, "null when the group lists no members")
     : got;
 };
-const channels = shape<SignalChannels>({
+const channelsBase = shape<SignalChannels>({
   topics: list(
     shape<SignalTopicChannel>({
       id: str,
@@ -560,6 +567,29 @@ const channels = shape<SignalChannels>({
   digests: list(shape<SignalDigestChannel>({ id: str, name: str, unread: bool, paused: bool })),
   savedCount: strOrNull,
 });
+/**
+ * Each channel list holds an id once (its links and keys are made from it), and a paused digest has
+ * no unread mark (the list draws the Paused badge in its place).
+ */
+const channels: Reader<SignalChannels> = (v, path) => {
+  const got = channelsBase(v, path);
+  if (!got.ok) return got;
+  const lists: [string, { id: string }[]][] = [
+    ["topics", got.value.topics],
+    ["groups", got.value.groups],
+    ["digests", got.value.digests],
+  ];
+  for (const [name, items] of lists) {
+    const again = repeatAt(items.map((item) => item.id));
+    if (again !== -1) {
+      return bad(`${path}.${name}[${String(again)}].id`, "an id the list does not repeat");
+    }
+  }
+  const marked = got.value.digests.findIndex((d) => d.paused && d.unread);
+  return marked === -1
+    ? got
+    : bad(`${path}.digests[${String(marked)}].unread`, "false on a paused digest");
+};
 /** Every id a view or topic names must be a story or digest card the feed holds, and no id repeats. */
 const feedBase = shape<SignalFeed>({
   status: oneOf(["loading", "ready"], '"loading" or "ready"'),
@@ -641,6 +671,18 @@ function viewIdProblem(view: SignalFeedView, known: Set<string>): IdProblem | nu
 const feed: Reader<SignalFeed> = (v, path) => {
   const got = feedBase(v, path);
   if (!got.ok) return got;
+  const again = repeatAt(got.value.stories.map((s) => s.id));
+  if (again !== -1) {
+    return bad(`${path}.stories[${String(again)}].id`, "an id no other story uses");
+  }
+  // A comment count is a thread's: a story with no thread has nothing for Comment to open.
+  const loose = got.value.stories.findIndex((s) => s.commentCount !== null && s.threadRef === null);
+  if (loose !== -1) {
+    return bad(
+      `${path}.stories[${String(loose)}].commentCount`,
+      "null on a story with no thread to open",
+    );
+  }
   const known = new Set(got.value.stories.map((s) => s.id));
   for (const [index, card] of got.value.digests.entries()) {
     if (known.has(card.id)) {
@@ -1057,8 +1099,8 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
 
 /**
  * Settings lists the channel list's topics and no others, each with the channel's name (frame 4
- * shows no settings-only topic). The keywords and the "N stories" line are not tied to the channel
- * list's: they are delivered text, not compared.
+ * shows no settings-only topic) and the same keywords in the same order: a topic's keywords are one
+ * fact, drawn on its page and in Settings. The "N stories" line is delivered text, not compared.
  */
 function settingsTopicsProblem(snap: SignalSnapshot, path: string): string | null {
   const at = `${path}.settings.topics`;
@@ -1069,6 +1111,9 @@ function settingsTopicsProblem(snap: SignalSnapshot, path: string): string | nul
     }
     if (channel.name !== held.name) {
       return `${at}[${String(i)}].name: expected the name the channel list gives this topic`;
+    }
+    if (JSON.stringify(channel.keywords) !== JSON.stringify(held.keywords)) {
+      return `${at}[${String(i)}].keywords: expected the keywords the channel list gives this topic, in order`;
     }
   }
   const missing = snap.channels.topics.find(
@@ -1245,6 +1290,16 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
     digestProblem(got.value, path);
   if (problem !== null) return { ok: false, reason: problem };
   const { channels: lists, feed: items } = got.value;
+  // The badge is a delivered count, never recounted: it is null or "0" exactly when the Saved view lists nothing.
+  const none = items.views.saved.top.length === 0;
+  if ((lists.savedCount === null || lists.savedCount === "0") !== none) {
+    return bad(
+      `${path}.channels.savedCount`,
+      none
+        ? 'null or "0" while the Saved view lists no stories'
+        : "the delivered count while the Saved view lists stories",
+    );
+  }
   const where = `${path}.feed.topics`;
   const missing = lists.topics.find((t) => !Object.hasOwn(items.topics, t.id));
   if (missing !== undefined) {
@@ -1265,6 +1320,18 @@ function nonEmpty<T>(each: Reader<T>): Reader<[T, ...T[]]> {
   };
 }
 
+/** A scene id is used once: the route finds a scene by it, so a second would never be reachable. */
+function uniqueScenes(
+  each: Reader<[SignalScene, ...SignalScene[]]>,
+): Reader<[SignalScene, ...SignalScene[]]> {
+  return (v, path) => {
+    const got = each(v, path);
+    if (!got.ok) return got;
+    const again = repeatAt(got.value.map((scene) => scene.id));
+    return again === -1 ? got : bad(`${path}[${String(again)}].id`, "an id no other scene uses");
+  };
+}
+
 /** The home route names the scene "main", so the slice must hold it. */
 function withMain(
   each: Reader<[SignalScene, ...SignalScene[]]>,
@@ -1279,7 +1346,7 @@ function withMain(
 }
 
 const scenes = shape<SignalSlice>({
-  scenes: withMain(nonEmpty(shape<SignalScene>({ id: str, snapshot }))),
+  scenes: uniqueScenes(withMain(nonEmpty(shape<SignalScene>({ id: str, snapshot })))),
 });
 
 export function readSlice(source: unknown): SliceResult<SignalSlice> {

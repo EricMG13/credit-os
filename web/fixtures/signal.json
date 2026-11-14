@@ -294,21 +294,21 @@
                 "name": "Packaging",
                 "count": "8",
                 "followed": true,
-                "keywords": ["plant closures", "volumes", "resin"]
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
               },
               {
                 "id": "telecoms",
                 "name": "Telecoms",
                 "count": "5",
                 "followed": false,
-                "keywords": ["towers", "spectrum"]
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
               },
               {
                 "id": "rating-actions",
                 "name": "Rating actions",
                 "count": "9",
                 "followed": true,
-                "keywords": ["downgrade", "outlook"]
+                "keywords": []
               }
             ],
             "groups": [
@@ -350,7 +350,7 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": "3",
+                "commentCount": "4",
                 "threadRef": { "groupId": "leveraged-credit", "threadId": "corvane-thread" },
                 "stage": null,
                 "ratingMoves": []
@@ -484,7 +484,7 @@
                 "ai": null,
                 "strength": null,
                 "saved": true,
-                "commentCount": null,
+                "commentCount": "2",
                 "threadRef": { "groupId": "leveraged-credit", "threadId": "brightwell-thread" },
                 "tags": [],
                 "stage": {
@@ -1032,28 +1032,34 @@
                 "name": "Shipping",
                 "count": "12",
                 "followed": true,
-                "keywords": ["charter rates", "tanker"]
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
               },
               {
                 "id": "packaging",
                 "name": "Packaging",
                 "count": "8",
                 "followed": true,
-                "keywords": ["plant closures", "volumes"]
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
               },
               {
                 "id": "telecoms",
                 "name": "Telecoms",
                 "count": "5",
                 "followed": false,
-                "keywords": ["towers", "spectrum"]
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
               },
               {
                 "id": "rating-actions",
                 "name": "Rating actions",
                 "count": "9",
                 "followed": true,
-                "keywords": ["downgrade", "outlook"]
+                "keywords": []
               }
             ],
             "groups": [
@@ -1064,7 +1070,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": "0"
           },
           "feed": {
             "status": "ready",
@@ -1091,7 +1097,7 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": "3",
+                "commentCount": "4",
                 "threadRef": { "groupId": "leveraged-credit", "threadId": "corvane-thread" },
                 "stage": null,
                 "ratingMoves": []
@@ -1394,28 +1400,34 @@
                 "name": "Shipping",
                 "count": "12",
                 "followed": true,
-                "keywords": ["charter rates", "tanker"]
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
               },
               {
                 "id": "packaging",
                 "name": "Packaging",
                 "count": "8",
                 "followed": true,
-                "keywords": ["plant closures", "volumes"]
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
               },
               {
                 "id": "telecoms",
                 "name": "Telecoms",
                 "count": "5",
                 "followed": false,
-                "keywords": ["towers", "spectrum"]
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
               },
               {
                 "id": "rating-actions",
                 "name": "Rating actions",
                 "count": "9",
                 "followed": true,
-                "keywords": ["downgrade", "outlook"]
+                "keywords": []
               }
             ],
             "groups": [
@@ -1426,7 +1438,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": true, "paused": false },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": false }
             ],
-            "savedCount": "6"
+            "savedCount": "0"
           },
           "feed": {
             "status": "ready",
@@ -1459,7 +1471,7 @@
                 },
                 "strength": { "marks": 3, "word": "Strong" },
                 "saved": false,
-                "commentCount": "3",
+                "commentCount": null,
                 "threadRef": null,
                 "stage": null,
                 "ratingMoves": []
@@ -1522,7 +1534,7 @@
                 "ai": { "line": "B+ is one notch above the level that raises its loan margin." },
                 "strength": { "marks": 3, "word": "Strong" },
                 "saved": true,
-                "commentCount": "1",
+                "commentCount": null,
                 "threadRef": null,
                 "tags": ["Shipping", "Rating actions"],
                 "stage": null,
@@ -1922,28 +1934,34 @@
                 "name": "Shipping",
                 "count": "12",
                 "followed": true,
-                "keywords": ["charter rates", "tanker"]
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
               },
               {
                 "id": "packaging",
                 "name": "Packaging",
                 "count": "8",
                 "followed": true,
-                "keywords": ["plant closures", "volumes"]
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
               },
               {
                 "id": "telecoms",
                 "name": "Telecoms",
                 "count": "5",
                 "followed": false,
-                "keywords": ["towers", "spectrum"]
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
               },
               {
                 "id": "rating-actions",
                 "name": "Rating actions",
                 "count": "9",
                 "followed": true,
-                "keywords": ["downgrade", "outlook"]
+                "keywords": []
               }
             ],
             "groups": [
@@ -1954,7 +1972,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": null
           },
           "feed": {
             "status": "loading",
@@ -2089,7 +2107,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": "0"
           },
           "feed": {
             "status": "ready",
@@ -2224,7 +2242,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": "0"
           },
           "feed": {
             "status": "ready",
@@ -2359,7 +2377,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": null
           },
           "feed": {
             "status": "loading",
@@ -2489,7 +2507,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": "0"
           },
           "feed": {
             "status": "ready",
@@ -2516,7 +2534,7 @@
                 "ai": null,
                 "strength": null,
                 "saved": false,
-                "commentCount": "3",
+                "commentCount": null,
                 "threadRef": null,
                 "stage": null,
                 "ratingMoves": []
@@ -2827,28 +2845,34 @@
                 "name": "Shipping",
                 "count": "12",
                 "followed": false,
-                "keywords": ["charter rates", "tanker"]
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
               },
               {
                 "id": "packaging",
                 "name": "Packaging",
                 "count": "8",
                 "followed": false,
-                "keywords": ["plant closures", "volumes"]
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
               },
               {
                 "id": "telecoms",
                 "name": "Telecoms",
                 "count": "5",
                 "followed": false,
-                "keywords": ["towers", "spectrum"]
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
               },
               {
                 "id": "rating-actions",
                 "name": "Rating actions",
                 "count": "9",
                 "followed": false,
-                "keywords": ["downgrade", "outlook"]
+                "keywords": []
               }
             ],
             "groups": [
@@ -3018,7 +3042,7 @@
               { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
               { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
             ],
-            "savedCount": "6"
+            "savedCount": "0"
           },
           "feed": {
             "status": "ready",
