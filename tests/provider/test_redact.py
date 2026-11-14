@@ -88,10 +88,10 @@ def test_home_paths_rows(text: str, expected: str) -> None:
         ("C:\\Users\\mary\\'s D:\\Users\\bob", "<home>"),
         # Without the written-out apostrophe: the base's output.
         ("C:\\Users\\mary D:\\Users\\bob", "<home>:<home>"),
-        # POSIX heads: a backslash after the separator stays in the name (base output).
-        ("/home/\\:x", "<home>:x"),
-        ("/Users\\\\:y", "<home>:y"),
-        ("/var/home/\\:z", "<home>:z"),
+        # POSIX heads: a backslash in the name takes the rest of the line (main's rule).
+        ("/home/\\:x", "<home>"),
+        ("/Users\\\\:y", "<home>"),
+        ("/var/home/\\:z", "<home>"),
         # A real separator still ends the name (same as the base's output).
         ("C:\\Users\\mary\\Documents\\x", "<home>\\Documents\\x"),
     ],
@@ -209,13 +209,13 @@ def test_no_word_of_a_home_name_survives(
     assert kept == []
 
 
-def test_home_path_plain_is_the_base_pattern() -> None:
-    # 781bbc6's compiled pattern, verbatim: the fail-closed floor must not drift silently.
+def test_home_path_plain_is_mains_pattern() -> None:
+    # main's compiled pattern at 54073086, verbatim: the fail-closed floor must not drift silently.
     base = (
         r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
         r"(?:(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
         r"[\\/]+|\\)|/)"
-        r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|[^/:\r\n])+"
+        r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+"
         r"|root(?![^\s\\/:*?\"'<>|(),;]))"
     )
     assert redact._HOME_PATH_PLAIN.pattern == base
