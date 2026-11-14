@@ -123,7 +123,8 @@ function Body({
             title={VIEWS[id]}
             freshness={scene.snapshot.feed.freshness}
             entries={entriesOf(scene, scene.snapshot.feed.views[id])}
-            startOn={id === "latest" ? "latest" : "top"}
+            startOn={id === "for-you" ? "top" : "latest"}
+            switchable={id === "for-you"}
             writer={scene.snapshot.viewer.role === "writer"}
           />
         ),
@@ -150,6 +151,7 @@ function Body({
             freshness={scene.snapshot.feed.freshness}
             entries={entriesOf(scene, topicView(scene, topic.id))}
             startOn="top"
+            switchable
             writer={scene.snapshot.viewer.role === "writer"}
           />
         ),

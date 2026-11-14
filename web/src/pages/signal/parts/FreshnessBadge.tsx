@@ -8,32 +8,33 @@ import { StatusShape } from "@/components/status/shapes";
 import { cx } from "@/utils/cx";
 import type { SignalFreshness } from "../slice";
 
-const COLOUR: Partial<Record<Tone, BadgeColors>> = {
+const COLOUR: Record<Tone, BadgeColors> = {
   success: "success",
   warning: "warning",
+  error: "error",
+  info: "sky",
   neutral: "gray",
+  action: "brand",
+  gap: "gap",
 };
 const MARK: Partial<Record<Tone, string>> = {
   success: "text-success-mark",
   warning: "text-warning-mark",
 };
 
+/** A delivered suffix (failing sources, a check error) is a problem in any state. */
+const suffixes = (freshness: SignalFreshness) =>
+  [freshness.failing, freshness.error].filter((part) => part !== null);
+
 function look(freshness: SignalFreshness): State {
   const { Checked, "Not checked yet": NotChecked } = STATUS_SETS.Freshness;
-  const problem = freshness.failing !== null || freshness.error !== null;
-  switch (freshness.state) {
-    case "checked":
-      return problem ? STATUS_SETS.Status.Warning : Checked;
-    case "checking":
-    case "not-checked":
-      return NotChecked;
-    case "unavailable":
-      return STATUS_SETS.Status.Warning;
+  if (freshness.state === "unavailable" || suffixes(freshness).length > 0) {
+    return STATUS_SETS.Status.Warning;
   }
+  return freshness.state === "checked" ? Checked : NotChecked;
 }
 
-/** The delivered text: "Sources checked <time>", then each delivered suffix after " · ". */
-function words(freshness: SignalFreshness): string {
+function lead(freshness: SignalFreshness): string {
   switch (freshness.state) {
     case "checking":
       return "Checking sources";
@@ -45,17 +46,18 @@ function words(freshness: SignalFreshness): string {
       if (freshness.checked === null) {
         throw new Error("the slice reader let through checked sources with no time");
       }
-      return [`Sources checked ${freshness.checked}`, freshness.failing, freshness.error]
-        .filter((part) => part !== null)
-        .join(" · ");
+      return `Sources checked ${freshness.checked}`;
   }
 }
+
+/** The delivered text: the state's words, then each delivered suffix after " · ". */
+const words = (freshness: SignalFreshness) => [lead(freshness), ...suffixes(freshness)].join(" · ");
 
 export function FreshnessBadge({ freshness }: { freshness: SignalFreshness }) {
   const { shape, tone } = look(freshness);
   return (
     <Badge
-      color={COLOUR[tone] ?? "gray"}
+      color={COLOUR[tone]}
       className="gap-1.5 pl-2"
       icon={
         <span className={cx("inline-flex rounded-ds-full", MARK[tone])}>
