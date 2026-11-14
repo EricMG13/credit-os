@@ -40,6 +40,20 @@ export const addressOrNull: Reader<string | null> = (value, path) => {
 export const num: Reader<number> = (value, path) =>
   typeof value === "number" && Number.isFinite(value) ? value : fail(path, "expected a number");
 
+export const numOrNull: Reader<number | null> = (value, path) =>
+  value === null ? null : num(value, path);
+
+export function pairOf<T>(item: Reader<T>): Reader<[T, T]> {
+  const list = arrayOf(item);
+  return (value, path) => {
+    const [first, second, ...more] = list(value, path);
+    if (first === undefined || second === undefined || more.length > 0) {
+      return fail(path, "expected 2 entries");
+    }
+    return [first, second];
+  };
+}
+
 export const bool: Reader<boolean> = (value, path) =>
   typeof value === "boolean" ? value : fail(path, "expected true or false");
 

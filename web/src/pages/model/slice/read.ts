@@ -208,6 +208,22 @@ function checkStatementNames(
       trace: b.trace,
       where: `${at(child(path, "bridges"), i)}.title`,
     })),
+    {
+      name: page.comparison.title,
+      trace: page.comparison.trace,
+      where: child(path, "comparison.title"),
+    },
+    {
+      name: page.debt.stack.title,
+      trace: page.debt.stack.trace,
+      where: child(path, "debt.stack.title"),
+    },
+    {
+      name: page.debt.maturities.title,
+      trace: page.debt.maturities.trace,
+      where: child(path, "debt.maturities.title"),
+    },
+    { name: page.recovery.title, trace: page.recovery.trace, where: child(path, "recovery.title") },
   ];
   page.statements.forEach((statement, s) => {
     distinctTraceNames([

@@ -1202,7 +1202,189 @@
                 }
               ]
             }
-          ]
+          ],
+          "comparison": {
+            "title": "The two cases side by side",
+            "subtitle": "FY27, each measure on its own scale",
+            "note": "Lowest cash balance was not worked out for the downside case because the revolver terms are withheld.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "rowLabels": ["Base", "Downside"],
+            "tableHead": "FY27",
+            "panels": [
+              {
+                "measure": "Revenue, USD millions",
+                "tableLabel": "Revenue, USD millions",
+                "max": 10190,
+                "values": [10190, 9050],
+                "texts": ["10,190", "9,050"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "EBITDA as defined, USD millions",
+                "tableLabel": "EBITDA as defined, USD millions",
+                "max": 5460,
+                "values": [5460, 4350],
+                "texts": ["5,460", "4,350"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Free cash flow, USD millions",
+                "tableLabel": "Free cash flow, USD millions",
+                "max": 2836,
+                "values": [2836, 1870],
+                "texts": ["2,836", "1,870"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Net leverage, times",
+                "tableLabel": "Net leverage",
+                "max": 5.2,
+                "values": [3.8, 5.2],
+                "texts": ["3.8x", "5.2x"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Interest cover, times",
+                "tableLabel": "Interest cover",
+                "max": 3.6,
+                "values": [3.6, 2.4],
+                "texts": ["3.6x", "2.4x"],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "measure": "Lowest cash balance, USD millions",
+                "tableLabel": "Lowest cash balance, USD millions",
+                "max": 2790,
+                "values": [2790, null],
+                "texts": ["2,790", null],
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "debt": {
+            "stack": {
+              "title": "Debt by instrument",
+              "subtitle": "30 June 2025, USD 29,700 million in all",
+              "note": "Ranked by size. Term loans and secured notes share the same security.",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "head": ["Instrument", "USD millions", "Share"],
+              "parts": [
+                {
+                  "name": "Term loans",
+                  "value": 38,
+                  "text": "11,300",
+                  "share": "38%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "name": "Senior secured notes",
+                  "value": 35.2,
+                  "text": "10,450",
+                  "share": "35%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "name": "Senior subordinated notes",
+                  "value": 24.6,
+                  "text": "7,300",
+                  "share": "25%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                },
+                {
+                  "name": "Receivables facility",
+                  "value": 2.2,
+                  "text": "650",
+                  "share": "2%",
+                  "trace": "#/library/transdigm/2025-06-30/evidence"
+                }
+              ]
+            },
+            "maturities": {
+              "title": "Maturities by year",
+              "subtitle": "Calendar years, USD millions",
+              "note": "Nothing falls due in 2026 on the notes (0). Loan repayments for 2026 were not established (n.a.).",
+              "trace": "#/library/transdigm/2025-06-30/evidence",
+              "yTicks": [
+                { "value": 0, "label": "0" },
+                { "value": 1250, "label": "1,250" },
+                { "value": 2500, "label": "2,500" },
+                { "value": 3750, "label": "3,750" },
+                { "value": 5000, "label": "5,000" }
+              ],
+              "head": "Year",
+              "groups": [
+                { "label": "2026", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2027", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2028", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2029", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2030", "trace": "#/library/transdigm/2025-06-30/evidence" },
+                { "label": "2031 on", "trace": "#/library/transdigm/2025-06-30/evidence" }
+              ],
+              "series": [
+                {
+                  "name": "Term loans",
+                  "values": [null, 0, 3600, 0, 4500, 3200],
+                  "labels": [null, "0", "3,600", "0", "4,500", "3,200"]
+                },
+                {
+                  "name": "Secured notes",
+                  "values": [0, 0, 2100, 2750, 1450, 4150],
+                  "labels": ["0", "0", "2,100", "2,750", "1,450", "4,150"]
+                },
+                {
+                  "name": "Subordinated notes",
+                  "values": [0, 550, 0, 2650, 0, 4100],
+                  "labels": ["0", "550", "0", "2,650", "0", "4,100"]
+                }
+              ]
+            }
+          },
+          "recovery": {
+            "title": "Recovery by class and case",
+            "subtitle": "Share of the claim recovered if the company defaulted",
+            "note": "Recovery on the receivables facility was not worked out for the downside case.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 25, "label": "25%" },
+              { "value": 50, "label": "50%" },
+              { "value": 75, "label": "75%" },
+              { "value": 100, "label": "100%" }
+            ],
+            "head": "Class",
+            "groups": [
+              {
+                "label": "Term loans and secured notes",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Senior subordinated notes",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Receivables facility",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ],
+            "series": [
+              { "name": "Base case", "values": [100, 62, 100], "labels": ["100%", "62%", "100%"] },
+              {
+                "name": "Downside case",
+                "values": [100, 31, null],
+                "labels": ["100%", "31%", null]
+              }
+            ]
+          },
+          "gap": {
+            "title": "Months of liquidity under the downside case",
+            "reason": "The revolver terms are withheld, so the chart could not be drawn."
+          },
+          "checkFigure": {
+            "title": "Check a figure",
+            "text": "Every figure here traces to its source in the run's Evidence, filtered to the model.",
+            "href": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "published": null
         }
       }
     ]
