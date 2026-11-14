@@ -105,6 +105,38 @@ not `pyproject.toml` (standard library and pydantic 2.13.4 only), not `VERIFICAT
 - Amounts, units, periods and source names are kept as the exact text; nothing is converted
   to a number in this layer.
 
+**Rules added while building PR 1 and PR 2 (coordinator, 2026-11-14; each is a test):**
+
+Scan (PR 1, #35):
+1. `<!--` inside an inline code span is literal; spans are read left to right as tokens.
+2. A line that began inside a comment is never a heading or a fence line; the text after its
+   `-->` is shown.
+3. A fence opener is tested before comments, so comment text on an opener line stays in the
+   fence info.
+4. A backtick fence's info holds no backtick; a closer is the same character, at least as
+   long, with only spaces or tabs after it.
+5. A `## ` line inside a fence ends it, even when a closer follows, and is read again in the
+   normal state. Known limit: a fenced block that itself holds such a line is read as unclosed
+   there.
+6. The heading test is on the line as written (`#{1,6}` and a space; a bare `##` or a tab is
+   prose); the title is the shown text.
+7. A shown text left with only whitespace after a removal becomes `""`.
+8. `shown` is the line with comments removed; a one-line comment is hidden too.
+
+Blocks (PR 2, #42):
+- Inline code spans: a run of n backticks opens a span only when a later run of exactly n
+  follows on the same line, the nearest closing it; an unmatched run is text. This replaced a
+  backtracking pattern and changes no line of the 27 fixtures.
+- A table may have a header and no rows, and an empty first cell. A pipe inside a code span
+  still splits a cell.
+- The parser removes no text. A one-line bold paragraph directly above a table stays a
+  paragraph, and the table also carries it as `label` with `label_line`; the layer that knows
+  the section decides whether it is a caption or prose.
+- A line outside a fence whose first non-blank character is `|` but which is not a table row
+  (any leading whitespace other than up to three spaces: four spaces, a tab, a no-break space)
+  is refused; it is never read as a paragraph.
+- Lists are flat. `read_blocks` takes whole heading-to-heading ranges.
+
 ## PR sequence
 
 | PR | Delivers |
