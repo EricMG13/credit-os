@@ -9,10 +9,17 @@ import json
 import logging
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from typing import Any
 
-from credit_os.provider.events import reply_from_events
+from credit_os.provider.events import (
+    _COMPACTION_TYPES,
+    _COUNTS,
+    _as_events,
+    _serialise,
+    compactions_from_events,
+    reply_from_events,
+)
 from credit_os.provider.redact import Redactor, home_paths
 from credit_os.provider.session import ClientLike, SessionLike
 from credit_os.provider.types import Compaction, Reply, Request, Usage
@@ -30,6 +37,31 @@ _NO_REUSE = "the exchange is already open or was released"
 _NO_KEY = "COPILOT_GITHUB_TOKEN is not set"
 _NO_RUNTIME = "COPILOT_CLI_PATH is not set"
 _Problem = tuple[str, str, bool]  # (error class, message, whether to abort before release)
+_UNREAD = object()  # what a release read gives when queued() failed
+_SPEND_FIELDS = ("copilotUsage", *(wire for wire, _ in _COUNTS))
+
+
+def _unread(name: str) -> Compaction:
+    return Compaction(Usage(), None, "failed", f"driver:{name}-unread", None)
+
+
+def _valid(value: object) -> list[Any] | None:
+    return None if _serialise(value) is None else _as_events(value)
+
+
+def _spends(event: dict[str, Any]) -> bool:
+    return event["type"] == "assistant.usage" or any(f in event["data"] for f in _SPEND_FIELDS)
+
+
+@dataclass
+class _Kept:
+    """A session held open after an ok reply. `pending` holds the ids of the unfinished
+    compactions delivered on that reply (`None` for a withheld one)."""
+
+    client: ClientLike
+    session: SessionLike
+    pending: list[str | None] = field(default_factory=list)
+    unread: bool = False
 
 
 class _Refused(Exception):
@@ -126,7 +158,9 @@ class CopilotDriver:
         self._paths = Redactor(forms | {i for i in images if len(i.replace("<home>", "")) > 3})
         self._longest = max((len(json.dumps(json.dumps(f)[1:-1])[1:-1]) for f in forms), default=0)
         self._used: set[str] = set()
-        self._kept: list[tuple[ClientLike, SessionLike]] = []
+        self._kept: list[_Kept] = []
+        self._seen: dict[str, tuple[Any, ...]] = {}  # envelope id -> outcome, usage, charge
+        self._withheld = 0
         self._closed = False
 
     def complete(self, request: Request, *, exchange_id: str, call_index: int) -> Reply:
@@ -140,10 +174,15 @@ class CopilotDriver:
 
     def close(self) -> tuple[Compaction, ...]:
         kept, self._kept = self._kept, []
-        for client, session in kept:
-            self._release(client, session, timed_out=False)
+        out: list[Compaction] = []
+        unread = False
+        for k in kept:
+            left = self._release(k.client, k.session, timed_out=False)
+            found, failed = self._read([], left, k, closing=True)
+            out += found
+            unread = unread or failed or k.unread
         self._closed = True
-        return ()
+        return tuple(out + [_unread("close")] * unread)
 
     def _refuse(self, request: Request, exchange_id: str, call_index: int) -> None:
         roles = [m.role for m in request.messages]
@@ -209,10 +248,15 @@ class CopilotDriver:
         problem = self._collect(session, end, events) if exc is None else _send_problem(exc)
         finished = self._clock()
         reply = self._reply(events, problem)
+        kept = _Kept(client, session)
         if reply.kind == "ok":
-            self._kept.append((client, session))
+            self._kept.append(kept)
+            found, kept.unread = self._read(events, [], kept)
         else:
-            self._release(client, session, timed_out=bool(problem and problem[2]))
+            left = self._release(client, session, timed_out=bool(problem and problem[2]))
+            found, failed = self._read(events, left, kept)
+            found += [_unread("release")] * failed
+        reply = replace(reply, compactions=tuple(found))
         message = reply.message and self._text(reply.message, problem is None)[:500]
         raw = None if reply.raw is None else scrub_raw(reply.raw, self._text)
         return replace(reply, message=message, raw=raw, started_at=started, finished_at=finished)
@@ -246,22 +290,75 @@ class CopilotDriver:
         usage, charge = reply.usage or Usage(), reply.billed_usd
         return Reply("sent_usage", None, error_class, message, usage, charge, reply.raw, None, None)
 
-    def _release(self, client: ClientLike, session: SessionLike, *, timed_out: bool) -> None:
+    def _release(self, client: ClientLike, session: SessionLike, *, timed_out: bool) -> object:
+        """The steps in order; what queued() returned, or `_UNREAD` when that step failed."""
         if timed_out:
             self._log_step("abort", session.abort)
-        self._log_step("queued", session.queued)
+        left, read = self._log_step("queued", session.queued)
         self._log_step("disconnect", session.disconnect)
         self._stop(client)
+        return left if read else _UNREAD
 
     def _stop(self, client: ClientLike) -> None:
-        if not self._log_step("stop", client.stop):
+        if not self._log_step("stop", client.stop)[1]:
             self._log_step("force_stop", client.force_stop)
 
-    def _log_step(self, name: str, fn: Callable[..., Any]) -> bool:
-        _, exc = _try(fn, timeout_s=self._bounds[name])
+    def _log_step(self, name: str, fn: Callable[..., Any]) -> tuple[Any, bool]:
+        value, exc = _try(fn, timeout_s=self._bounds[name])
         if exc is not None:
             _log.warning("release step %s failed: %s", name, type(exc).__name__)
-        return exc is None
+        return value, exc is None
+
+    def _leftovers(self, left: object) -> tuple[list[Any], bool]:
+        """The events a release read gave, and whether the read failed: it did not give a list
+        of events, or an event in it reports spend. A leftover that is neither a compaction nor
+        spend is dropped and its type logged, never its content."""
+        events = None if left is _UNREAD else _valid(left)
+        if events is None:
+            return [], True
+        others = [e for e in events if e["type"] not in _COMPACTION_TYPES]
+        for e in others:
+            if not _spends(e):
+                _log.warning("a leftover event was dropped: %s", self._text(e["type"]))
+        return events, any(_spends(e) for e in others)
+
+    def _read(
+        self, base: list[Any], left: object, kept: _Kept, *, closing: bool = False
+    ) -> tuple[list[Compaction], bool]:
+        """The compactions of the call's events then the leftovers, as delivered, and whether
+        the read failed."""
+        fresh, failed = self._leftovers(left)
+        listed = _valid(base + fresh) or []
+        kinds = [e["type"] for e in listed]
+        alone = kinds.count("session.compaction_complete") == 1 and len(kept.pending) == 1
+        link = (
+            kept.pending[0]
+            if closing and alone and "session.compaction_start" not in kinds
+            else None
+        )
+        out: list[Compaction] = []
+        for c in compactions_from_events(listed):
+            mark = (c.outcome, c.usage, c.billed_usd)
+            if c.event_id in self._seen:
+                failed = failed or self._seen[c.event_id] != mark
+                continue
+            self._seen[c.event_id] = mark
+            out.append(self._shaped(c, link, kept.pending))
+        return out, failed
+
+    def _shaped(self, c: Compaction, link: str | None, pending: list[str | None]) -> Compaction:
+        """`c` as delivered: withheld when its id would need redacting, linked to the one
+        unfinished compaction its session delivered when `link` names it."""
+        if c.event_id.startswith("driver:") or self._text(c.event_id) != c.event_id:
+            self._withheld += 1
+            pending += [None] * (c.outcome == "unfinished")
+            return Compaction(Usage(), None, "failed", f"driver:withheld-{self._withheld}", None)
+        if c.outcome == "unfinished":
+            pending.append(c.event_id)
+        elif link:
+            pending.clear()
+            return replace(c, supersedes=link)
+        return c
 
     def _text(self, value: str, parsed: bool = False) -> str:
         text = self._paths.text(home_paths(self._tokens.text(value)))  # as the parser does
