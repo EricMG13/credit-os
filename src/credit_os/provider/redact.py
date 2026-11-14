@@ -6,6 +6,7 @@ given, and ``Redactor()`` matches key shapes only. This module does not import `
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Iterable, Mapping
 
@@ -42,13 +43,19 @@ _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
 # "<drive>:\Users\<user>", a UNC share's "\\host\share\Users\<user>" or WSL's
 # "/mnt/<drive>/Users/<user>", in either slash, repr-escaped or not. A Windows user name may hold
-# spaces when a backslash or a closing quote follows it. A path inside a longer name or a URL's
-# host part ("example.com/home/x") is not one; "file:///home/<user>" is. A closing "." is the
+# spaces when a slash or a closing quote follows it, or, on a Windows-form path, the line ends
+# after it; there "'", "(" and ")" are name characters when a slash follows. A path inside a
+# longer name or a URL's host part ("example.com/home/x") is not one; "file:///home/<user>" is. A closing "." is the
 # sentence's.
+_WIN_NAME = r"[^\s\\/:*?\"<>|,;]"  # on a Windows path "'", "(" and ")" are name characters too
+_WIN_PREFIX = r"(?P<win>(?:[A-Za-z]:|\\\\[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+)"
 _HOME_PATH = re.compile(
-    r"(?<![\w.-])(?:(?:[A-Za-z]:|\\\\[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])[\\/]+|[\\/])"
-    rf"(?:(?i:users|home|var[\\/]+home)[\\/]+"
-    rf"(?:{_NAME}+(?: {_NAME}+)*(?=[\\'\"])|{_NAME}+(?<!\.))"
+    rf"(?<![\w.-])(?:{_WIN_PREFIX}|[\\/])"
+    rf"(?:(?i:users|home|var[\\/]+home)[\\/]+(?:"
+    rf"(?(win){_WIN_NAME}+(?: {_WIN_NAME}+)*(?=[\\/])|(?!))"
+    rf"|{_NAME}+(?: {_NAME}+)*(?=[\\/'\"])"
+    rf"|(?(win){_NAME}+(?: {_NAME}+)+(?<!\.)(?=\r?\n|\Z)|(?!))"
+    rf"|{_NAME}+(?<!\.))"
     rf"|root(?!{_NAME}))"
 )
 
@@ -83,16 +90,44 @@ def _with_stripped(value: str | None) -> tuple[str, ...]:
     return (value, value.strip()) if value and value.strip() else ()
 
 
+def _json_forms(value: str) -> set[str]:
+    """``value`` and its text as ``json.dumps`` writes it inside a string, ASCII-escaped or not,
+    and the same again applied to each of those: up to two levels of escaping."""
+    forms = {value}
+    for _ in range(2):
+        forms |= {json.dumps(f, ensure_ascii=a)[1:-1] for f in forms for a in (True, False)}
+    return forms
+
+
+def _utf8(form: str) -> bytes | None:
+    try:
+        return form.encode("utf-8")
+    except UnicodeEncodeError:  # a lone surrogate: no bytes form, its other forms still match
+        return None
+
+
 class Redactor:
+    """Matches key shapes and exact values. An exact value is also matched as ``json.dumps``
+    writes it inside a string, once or twice escaped (text and bytes). Not matched: other
+    serialisers' escapes (upper-case ``\\uXXXX`` hex, ``\\/``, URL or HTML encodings) and deeper
+    nesting. A value that is not valid UTF-8 text still matches as text; in bytes only its forms
+    that can be encoded match."""
+
     def __init__(self, exact_values: Iterable[str] = ()) -> None:
-        values = sorted({v for v in exact_values if v}, key=lambda v: (-len(v), v))
+        values = sorted(
+            {f for v in exact_values if v for f in _json_forms(v)}, key=lambda v: (-len(v), v)
+        )
+        encoded = sorted(
+            {b for v in values if (b := _utf8(v)) is not None}, key=lambda b: (-len(b), b)
+        )
         # A lookahead finds every occurrence, including ones that overlap an earlier match.
         self._exact: re.Pattern[str] | None = None
         self._exact_bytes: re.Pattern[bytes] | None = None
         if values:
             self._exact = re.compile("(?=(" + "|".join(re.escape(v) for v in values) + "))")
+        if encoded:
             self._exact_bytes = re.compile(
-                b"(?=(" + b"|".join(re.escape(v.encode("utf-8")) for v in values) + b"))"
+                b"(?=(" + b"|".join(re.escape(b) for b in encoded) + b"))"
             )
 
     @classmethod

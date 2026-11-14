@@ -42,6 +42,13 @@ def test_home_paths_rows(text: str, expected: str) -> None:
     assert home_paths(text) == expected
 
 
+def test_lone_surrogate_value_does_not_raise_and_its_encodable_forms_match() -> None:
+    redactor = Redactor(["ab\ud800cd-4711"])
+    assert redactor.text("x ab\ud800cd-4711 y") == "x [redacted] y"
+    assert redactor.bytes_(rb'x "ab\ud800cd-4711" y') == b'x "[redacted]" y'
+    assert redactor.bytes_(b"x ab-4711 y") == b"x ab-4711 y"
+
+
 def test_empty_redactors_leave_text_unchanged() -> None:
     assert Redactor().text("x") == "x"
     assert Redactor.from_environ({}).text("x") == "x"
