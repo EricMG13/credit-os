@@ -55,13 +55,17 @@ class Reader(Node):
     summary_section: Section | None
 
     @property
-    def blocked(self) -> bool:
+    def blocked(self) -> bool | None:
         """True when the new format's Bottom line opens with a paragraph `Not assessable:`.
+
+        None in the earlier format: this view cannot tell.
 
         The test is on the paragraph's first line as the parser shows it (comments removed,
         surrounding whitespace stripped).
         """
-        if self.format != "new" or self.bottom_line is None or not self.bottom_line.blocks:
+        if self.format != "new":
+            return None
+        if self.bottom_line is None or not self.bottom_line.blocks:
             return False
         first = self.bottom_line.blocks[0]
         return isinstance(first, Paragraph) and first.lines[0].startswith(_BLOCKED)

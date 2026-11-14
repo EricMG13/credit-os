@@ -224,3 +224,9 @@ def test_known_source_names(x: str, items: tuple[BasisItem, ...]) -> None:
 def test_no_known_names_is_the_earlier_reading() -> None:
     assert _known("context, page 1", ()) == (txt("context, page 1"),)
     assert _items("context, page 1") == (txt("context, page 1"),)
+
+
+def test_known_name_holding_a_page_phrase_is_the_whole_name() -> None:
+    assert _known("a, page 1", ("a", "a, page 1")) == (
+        BasisItem(kind="source", text="a, page 1", file="a, page 1"),
+    )

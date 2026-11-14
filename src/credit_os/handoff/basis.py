@@ -4,7 +4,8 @@ The line starts `Basis: `; its items are split on `; ` and each is a calculation
 upstream module, a source file with optional pages, or plain text. Nothing is guessed: a piece
 that does not fit is kept as text.
 
-Known source names may be passed in: an item equal to a name, or a name followed by `, page ` or
+Known source names may be passed in; they are tried after a calculation id and `name (CP-X)`, so
+a Sources-table row naming a module is not a source file. An item equal to a name, or a name followed by `, page ` or
 `, pages ` and a page list, is that source, longest name first and compared exactly. Known limit:
 a known name holding `; ` is still split, and a known name ending in a full stop never
 matches as the last item of a line, because the line's final full stop is dropped first. Page
@@ -79,9 +80,6 @@ def _known_source(piece: str, known: Sequence[str]) -> BasisItem | None:
 
 
 def _item(piece: str, known: Sequence[str]) -> BasisItem:
-    named = _known_source(piece, known)
-    if named is not None:
-        return named
     calculation = _CALCULATION.fullmatch(piece)
     if calculation is not None:
         return BasisItem(kind="calculation", text=piece, calculation=calculation.group(1))
@@ -90,7 +88,7 @@ def _item(piece: str, known: Sequence[str]) -> BasisItem:
         return BasisItem(
             kind="module", text=piece, name=module.group(1), code=f"CP-{module.group(2)}"
         )
-    return _source(piece) or BasisItem(kind="text", text=piece)
+    return _known_source(piece, known) or _source(piece) or BasisItem(kind="text", text=piece)
 
 
 def read_basis(block: Paragraph | ListItem, known: Sequence[str] = ()) -> Basis | None:

@@ -5,13 +5,16 @@ the caller applies `read_value` to the cells it means. `sources_table` and `sour
 the table directly under `## Sources` and never refuse. `read_data_sections` and
 `read_registers` list the typed sections and table registers; a table or text that cannot be
 read is None, never a refusal. A typed section is found by its title prefix at any depth; a
-register is a heading `id — title` or a `table-id` comment tag. Of several tags before one
-table, only the last in the text names it.
+register is a heading `id — title` or a `table-id` comment tag. A heading id is dotted
+(`T2R.10`), capitals then digits (`T1`, `P3`) or lower case with an underscore (`a_1`). A tag
+names the next table of its own section, prose between allowed; a heading, a later tag or the
+section's end before a table gives None.
 """
 
 import re
 from typing import Literal
 
+from credit_os.handoff.basis import read_basis
 from credit_os.handoff.blocks import CodeBlock, ListItem, Paragraph
 from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.scan import Comment, Node
@@ -32,12 +35,12 @@ def read_value(text: str) -> Gap | str:
 
 
 def passage_value(block: Paragraph | ListItem) -> Gap | str:
-    return read_value(" ".join(block.lines))
+    basis = read_basis(block)
+    return read_value(" ".join(block.lines if basis is None else basis.body))
 
 
 def sources_table(document: HandoffDocument) -> Table | None:
-    tables = [block for block in document.sections[1].blocks if isinstance(block, Table)]
-    return tables[0] if len(tables) == 1 else None
+    return _one_table(document.sections[1])
 
 
 def source_names(document: HandoffDocument) -> tuple[str, ...]:
@@ -54,7 +57,9 @@ _PREFIXES: tuple[tuple[str, Literal["chart", "events", "map", "forecast", "confi
     ("Forecast inputs", "forecast"),
     ("Confidence inputs", "confidence"),
 )
-_HEADING_ID = re.compile(r"([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+) — ")
+_HEADING_ID = re.compile(
+    r"([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+|[A-Z]+[0-9]+|[a-z](?=[a-z0-9_]*_)[a-z0-9_]*) — "
+)
 _TAG = re.compile(r"table-id: ([A-Za-z0-9_.:-]+)")
 
 
@@ -114,10 +119,11 @@ def read_data_sections(document: HandoffDocument) -> tuple[DataSection, ...]:
 def _tag_table(owner: Section | None, comment: Comment, later_tags: list[Comment]) -> Table | None:
     if owner is None:
         return None
-    later = [block for block in owner.blocks if block.line > comment.end]
-    if not later or not isinstance(later[0], Table):
+    later = [block for block in owner.blocks if block.line >= comment.end]
+    tables = [block for block in later if isinstance(block, Table)]
+    if not tables:
         return None
-    table = later[0]
+    table = tables[0]
     between = [tag for tag in later_tags if tag.start < table.line]
     return None if between else table
 

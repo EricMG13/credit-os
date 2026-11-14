@@ -285,6 +285,7 @@ def test_blocked_true(findings: str) -> None:
         "### Bottom line\n**Not assessable: x**\n",
         "### Bottom line\n- Not assessable: x\n",
         "### Bottom line\n",
+        "### Bottom line\nx\nNot assessable: y\n",
         "### Bottom line\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nNot assessable: x\n",
     ],
 )
@@ -295,3 +296,10 @@ def test_blocked_false(findings: str) -> None:
 def test_blocked_is_unknown_in_the_earlier_format() -> None:
     assert _blocked("### Reader summary\nNot assessable: x\n") is None
     assert _blocked("") is None
+
+
+def test_empty_passage_is_a_section_without_blocks() -> None:
+    reader = _read("### Bottom line\n### Key findings\nx\n")
+    assert reader.bottom_line is not None
+    assert reader.bottom_line.blocks == ()
+    assert reader.blocked is False

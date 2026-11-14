@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from credit_os.handoff.basis import read_basis
 from credit_os.handoff.blocks import ListItem, Paragraph
 from credit_os.handoff.data import (
     Gap,
@@ -23,6 +24,8 @@ from credit_os.handoff.tables import Table
 HERE = Path(__file__).resolve().parent
 HANDOFFS = HERE.parent / "fixtures" / "handoffs"
 KEY = json.loads((HERE / "expected" / "data.json").read_text(encoding="utf-8"))
+VIEWS = json.loads((HERE / "expected" / "data-views.json").read_text(encoding="utf-8"))
+ALL_KEYS: dict[str, Any] = {**KEY, **VIEWS}
 GAPS = [
     "",
     "—",
@@ -69,6 +72,23 @@ def test_passage_value() -> None:
         text="Not supplied: no filing"
     )
     assert passage_value(ListItem(line=1, marker="-", lines=("Fine.",))) == "Fine."
+
+
+PASSAGES = [
+    ("Insufficient Information\nBasis: context, page 1.\n", Gap(text="Insufficient Information")),
+    ("Not reconstructed\nBasis: calculation C1.\n", Gap(text="Not reconstructed")),
+    ("—\nBasis: context.\n", Gap(text="—")),
+    ("Not supplied: no filing\nBasis: context, page 1.\n", Gap(text="Not supplied: no filing")),
+    ("Insufficient Information\n", Gap(text="Insufficient Information")),
+    ("Leverage is 5.2x.\nBasis: calculation C1.\n", "Leverage is 5.2x."),
+]
+
+
+@pytest.mark.parametrize(("passage", "want"), PASSAGES)
+def test_passage_value_ignores_the_basis_line(passage: str, want: Gap | str) -> None:
+    block = _doc("", "### Bottom line\n" + passage).sections[2].sections[0].blocks[0]
+    assert isinstance(block, Paragraph)
+    assert passage_value(block) == want
 
 
 def _doc(sources: str, extra: str = "") -> HandoffDocument:
@@ -128,9 +148,9 @@ def _gap_cells(document: HandoffDocument) -> int:
     return sum(isinstance(read_value(c), Gap) for t in tables for r in t.rows for c in r.cells)
 
 
-@pytest.mark.parametrize("name", sorted(KEY))
+@pytest.mark.parametrize("name", sorted(ALL_KEYS))
 def test_golden_data(name: str) -> None:
-    want: Any = KEY[name]
+    want: Any = ALL_KEYS[name]
     document = parse((HANDOFFS / name).read_bytes())
     assert read_reader(document).blocked is want["blocked"]
     table = sources_table(document)
@@ -145,6 +165,27 @@ def test_golden_data(name: str) -> None:
         [r.id, r.source, r.line, None if r.table is None else r.table.line]
         for r in read_registers(document)
     ] == want["registers"]
+
+
+@pytest.mark.parametrize("name", sorted(VIEWS))
+def test_golden_data_views(name: str) -> None:
+    want: Any = VIEWS[name]
+    document = parse((HANDOFFS / name).read_bytes())
+    reader = read_reader(document)
+    assert reader.bottom_line is not None
+    assert reader.contrary is not None
+    assert reader.limitations is not None
+    first = reader.bottom_line.blocks[0]
+    assert isinstance(first, Paragraph | ListItem)
+    basis = read_basis(first, known=source_names(document))
+    assert basis is not None
+    assert [[i.kind, i.text] for i in basis.items] == want["bottom_line_basis"]
+    gap = reader.contrary.blocks[0]
+    assert isinstance(gap, Paragraph | ListItem)
+    value = passage_value(gap)
+    assert isinstance(value, Gap)
+    assert value.text == want["contrary_gap"]
+    assert len(reader.limitations.blocks) == want["limitations_blocks"]
 
 
 def _sha(text: str | None) -> str | None:
@@ -195,6 +236,8 @@ def _sections(extra: str, tail: str = "") -> list[tuple[str, str, bool, str | No
             [("forecast", "", False, None)],
         ),
         ("### Forecast inputs\ntext only\n", [("forecast", "", False, None)]),
+        ("### Forecast inputs\n" + TB, [("forecast", "", False, None)]),
+        ("### Chart data: x\n" + JS, [("chart", "x", False, None)]),
         ("### Forecast inputs\n```json\n{}\n", [("forecast", "", False, None)]),
         ("### Forecast inputs\nnote\n\n" + JS, [("forecast", "", False, JSON_TEXT)]),
     ],
@@ -282,6 +325,16 @@ def _regs(extra: str) -> list[tuple[str, str, int, int | None]]:
             "### T1.a — t\n<!-- table-id: t1.a -->\n" + TB,
             [("T1.a", "heading", 6, 9), ("t1.a", "tag", 7, 9)],
         ),
+        ("### Table T2.1 — x\n", []),
+        (
+            "### T1.a — t <!-- table-id: x -->\n" + TB,
+            [("T1.a", "heading", 6, 8), ("x", "tag", 6, 8)],
+        ),
+        (
+            "### A\n<!-- table-id: x -->\ntext\n### T1 — y\n" + TB,
+            [("x", "tag", 7, None), ("T1", "heading", 9, 11)],
+        ),
+        ("<!--\ntable-id: x -->\n" + TB, [("x", "tag", 6, 9)]),
         ("text\n", []),
     ],
 )
