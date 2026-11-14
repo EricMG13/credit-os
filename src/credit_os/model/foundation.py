@@ -16,8 +16,11 @@ from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.errors import echo
 from credit_os.handoff.reader import read_reader
 from credit_os.handoff.tables import Row, Table
+from credit_os.model.arithmetic import product, total
+from credit_os.model.facilities import Facility, schedule
 from credit_os.model.inputs import OPERANDS, ForecastInputs, Operand
 from credit_os.model.refusals import ForecastRefused, RefusalKind
+from credit_os.model.value import Value, amount_text, parse_operand
 
 _DIGITS = r"(?P<digits>[0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?)"
 _SIGNED = re.compile(r"(?:\+|(?P<minus>[-−]))?" + _DIGITS)
@@ -45,6 +48,18 @@ _CURRENCY = (
     "CP-1 nowhere names `{currency}`: state `currency` as the three-letter code of the "
     "currency CP-1 reports its figures in."
 )
+_BALANCE = "facility {name} balance {balance} is not printed in CP-1"
+_RATE = "facility {name} {field} {value}% is not printed in CP-1"
+_BALANCES = (
+    "facility balances total {total}, more than 1.25 times base debt {debt}{divided}; "
+    "check the unit"
+)
+_SCHEDULE = (
+    "scheduled repayments through forecast year {year} total {total}, more than base "
+    "debt {debt}{divided}"
+)
+_CASE = "{name} states debt_repayment, which is not used when facilities are stated"
+_RATES = ("fixed_rate_pct", "spread_pct", "floor_pct")
 _OTHER = "base {key} {amount} is not CP-1's cell at {where} ({cell})"
 
 
@@ -261,9 +276,92 @@ def check_currency(inputs: ForecastInputs, foundation: HandoffDocument) -> None:
     raise ForecastRefused(RefusalKind.CURRENCY, "currency", message)
 
 
+def _stored(value: Value) -> Decimal:
+    if value.amount is None:
+        raise ValueError("a facility figure is missing")
+    return value.amount
+
+
+def _printed(pieces: tuple[str, ...], amount: str) -> bool:
+    whole, dot, fraction = amount.removeprefix("-").partition(".")
+    forms = (f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}")
+    patterns = [rf"(?<![0-9.,]){re.escape(form)}(?![0-9]|[.,][0-9])" for form in forms]
+    return any(re.search(pattern, piece) for piece in pieces for pattern in patterns)
+
+
+def _printed_percent(pieces: tuple[str, ...], value: str) -> bool:
+    pattern = rf"(?<![0-9.,]){re.escape(value)} ?%"
+    return any(re.search(pattern, piece) for piece in pieces)
+
+
+def _unprinted(
+    number: int, facility: Facility, balance: str, pieces: tuple[str, ...]
+) -> str | None:
+    if not _printed(pieces, balance):
+        return _BALANCE.format(name=echo(facility.name), balance=balance)
+    for field in _RATES:
+        value: str | None = getattr(facility, field)
+        if value is not None and not _printed_percent(pieces, value):
+            return _RATE.format(name=echo(facility.name), field=field, value=value)
+    return None
+
+
+def _check_terms(
+    inputs: ForecastInputs,
+    facilities: tuple[Facility, ...],
+    stated: Mapping[str, str],
+    pieces: tuple[str, ...],
+) -> None:
+    for number, facility in enumerate(facilities, 1):
+        balance = stated[f"facility {number} balance"] if inputs.scale == 1000 else facility.balance
+        message = _unprinted(number, facility, balance, pieces)
+        if message is not None:
+            raise ForecastRefused(RefusalKind.FACILITY, f"facility {number}", message)
+
+
+def _check_bounds(inputs: ForecastInputs, facilities: tuple[Facility, ...], debt: Decimal) -> None:
+    divided = f", in {inputs.currency} millions after dividing by scale 1000"
+    divided = divided if inputs.scale == 1000 else ""
+    balances = _stored(total([Value(amount=parse_operand(item.balance)) for item in facilities]))
+    if balances > _stored(product([Value(amount=Decimal("1.25")), Value(amount=debt)])):
+        message = _BALANCES.format(
+            total=amount_text(balances), debt=amount_text(debt), divided=divided
+        )
+        raise ForecastRefused(RefusalKind.FACILITY, "facilities", message)
+    running = Decimal(0)
+    for year, (_, repaid) in enumerate(schedule(facilities).totals(), 1):
+        running = _stored(total([Value(amount=running), Value(amount=repaid)]))
+        if running > debt:
+            message = _SCHEDULE.format(
+                year=year, total=amount_text(running), debt=amount_text(debt), divided=divided
+            )
+            raise ForecastRefused(RefusalKind.REPAYMENT, "facilities", message)
+
+
+def check_facilities(
+    inputs: ForecastInputs, stated: Mapping[str, str], foundation: HandoffDocument
+) -> None:
+    """Refuse facility terms the foundation does not print, or facility totals past base debt.
+
+    A case that states `debt_repayment` beside facilities is refused as well.
+    """
+    facilities = inputs.facilities
+    if facilities is None:
+        return
+    _check_terms(inputs, facilities, stated, foundation_text(foundation))
+    stated_debt = inputs.base["debt"].amount
+    if stated_debt is not None:
+        _check_bounds(inputs, facilities, _stored(Value(amount=parse_operand(stated_debt))))
+    for name in ("upside_drivers", "downside_drivers"):
+        case = getattr(inputs, name)
+        if case is not None and case.debt_repayment is not None:
+            raise ForecastRefused(RefusalKind.FACILITY, name, _CASE.format(name=name))
+
+
 def check_foundation(
     inputs: ForecastInputs, stated: Mapping[str, str], foundation: HandoffDocument
 ) -> None:
-    """The base checks, then the currency check; the first refusal is raised."""
+    """The base checks, the facility checks, then the currency check; the first is raised."""
     check_base(inputs, stated, foundation)
+    check_facilities(inputs, stated, foundation)
     check_currency(inputs, foundation)
