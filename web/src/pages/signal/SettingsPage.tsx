@@ -10,6 +10,7 @@ import type { SignalScene } from "./slice";
 import { GroupsSection } from "./settings/GroupsSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { RulesSection } from "./settings/RulesSection";
+import { SourcesSection } from "./settings/SourcesSection";
 
 type SectionId =
   "groups" | "thread-rules" | "sources" | "topics" | "digests" | "notifications" | "ai";
@@ -82,6 +83,9 @@ export function SettingsPage({
           />
         );
       case "sources":
+        return (
+          <SourcesSection sources={settings.sources} weeksHeading={settings.sourceWeeksHeading} />
+        );
       case "topics":
       case "digests":
       case "ai":

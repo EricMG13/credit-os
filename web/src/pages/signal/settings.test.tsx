@@ -81,7 +81,7 @@ describe("the section list", () => {
     ).toEqual(NAMES.map(() => "false"));
   });
 
-  it.each(["sources", "topics", "digests", "ai"])("says %s is not built yet", (id) => {
+  it.each(["topics", "digests", "ai"])("says %s is not built yet", (id) => {
     show(`/signal/main/settings/${id}`);
     expect(page().getByText("Not built yet")).toBeTruthy();
     expect(page().getByRole("heading", { level: 1 }).textContent).toBe("Settings");
