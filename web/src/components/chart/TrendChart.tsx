@@ -8,8 +8,8 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import { Missing } from "@/components/gap/Missing";
 import { ChartFrame } from "./ChartFrame";
+import { ChartTable } from "./ChartTable";
 import { Mark } from "./marks";
 import { assignSeries, SERIES, type SeriesStyle } from "./series";
 
@@ -38,14 +38,14 @@ interface TrendChartProps {
   yTicks?: YTick[];
 }
 
-interface YTick {
+export interface YTick {
   value: number;
   label: string;
 }
 
-const HEIGHT = 240;
-const TICK = { fontSize: 12, fill: "var(--color-text-tertiary)" };
-const BASELINE = { stroke: "var(--color-border-control)", strokeWidth: 1 };
+export const HEIGHT = 240;
+export const TICK = { fontSize: 12, fill: "var(--color-text-tertiary)" };
+export const BASELINE = { stroke: "var(--color-border-control)", strokeWidth: 1 };
 
 function keyOf(i: number): string {
   return `s${String(i)}`;
@@ -61,7 +61,7 @@ function legendEntries(names: string[], styles: Map<string, SeriesStyle>) {
   return names.length > SERIES.length - 1 ? [...entries, { name: "Other", style: other }] : entries;
 }
 
-function Legend({ names, styles }: { names: string[]; styles: Map<string, SeriesStyle> }) {
+export function Legend({ names, styles }: { names: string[]; styles: Map<string, SeriesStyle> }) {
   return (
     <ul aria-label="Legend" className="flex flex-wrap gap-x-5 gap-y-2">
       {legendEntries(names, styles).map(({ name, style }) => (
@@ -110,7 +110,7 @@ function ChartTooltip({
   );
 }
 
-function YAxisLabels({ yTicks }: { yTicks: YTick[] | undefined }) {
+export function YAxisLabels({ yTicks }: { yTicks: YTick[] | undefined }) {
   if (yTicks === undefined || yTicks.length === 0) {
     return <YAxis width={0} tick={false} tickLine={false} axisLine={false} />;
   }
@@ -202,44 +202,6 @@ function Chart({ title, periods, series, table, yTicks }: Omit<TrendChartProps, 
   );
 }
 
-function DataTable({
-  title,
-  periods,
-  table,
-}: Pick<TrendChartProps, "title" | "periods" | "table">) {
-  return (
-    <div className="relative overflow-x-auto">
-      <table className="w-full border-collapse text-small">
-        <caption className="sr-only">{title}</caption>
-        <thead>
-          <tr className="border-b border-border-hairline">
-            <td />
-            {periods.map((p) => (
-              <th key={p} scope="col" className="px-3 py-2 text-right font-semibold">
-                {p}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {table.map((row) => (
-            <tr key={row.name} className="border-b border-border-hairline">
-              <th scope="row" className="px-3 py-2 text-left font-semibold">
-                {row.name}
-              </th>
-              {periods.map((p, i) => (
-                <td key={p} className="px-3 py-2 text-right tabular-nums">
-                  {row.cells[i] ?? <Missing />}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 /** A line chart over periods, with the Chart or Table toggle on the same data. */
 export function TrendChart({ title, as, note, periods, series, table, yTicks }: TrendChartProps) {
   check({ periods, series, table });
@@ -249,7 +211,11 @@ export function TrendChart({ title, as, note, periods, series, table, yTicks }: 
         view === "chart" ? (
           <Chart title={title} periods={periods} series={series} table={table} yTicks={yTicks} />
         ) : (
-          <DataTable title={title} periods={periods} table={table} />
+          <ChartTable
+            caption={title}
+            head={[title, ...periods]}
+            rows={table.map((row) => ({ label: row.name, cells: row.cells }))}
+          />
         )
       }
     </ChartFrame>
