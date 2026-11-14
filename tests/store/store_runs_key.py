@@ -108,16 +108,14 @@ CORRUPT_PINS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
 )
 CORRUPT_PIN_POSITION = 0
 
-# A pin of PINS[0]'s name, hash and kind whose size_bytes is one past SQLite's largest integer
-# (2**63 - 1): a valid SourcePin, refused by create_run before BEGIN (StoreRefused, the clock never
-# called, nothing written).
+# PINS[0] with size_bytes one past SQLite's largest integer: a valid SourcePin that create_run
+# refuses before BEGIN (StoreRefused, the clock never called, nothing written).
 OVERSIZE_PIN_SIZE_BYTES = 2**63
 
-# Pins that are SourcePin instances the model never checked, passed second after PINS[0] (a valid
-# pin): SourcePin.model_construct(...) of PINS[1]'s fields (kind as SourceKind) with this override,
-# each value passed as written (a kind override stays a str). create_run refuses each before BEGIN:
-# StoreRefused with exactly FORGED_PIN_MESSAGE.format(<field>), the clock never called, nothing
-# written. (label, override, the field named.)
+# Pins the model never checked, passed second after PINS[0]: SourcePin.model_construct of PINS[1]'s
+# fields with this override (values as written), and PINS[1] renamed to RENAMED_PIN_NAME by
+# model_copy (field "name"). create_run refuses each before BEGIN: StoreRefused with exactly
+# FORGED_PIN_MESSAGE.format(<field>), the clock never called, nothing written.
 FORGED_PINS: tuple[tuple[str, dict[str, object], str], ...] = (
     ("name with a parent step", {"name": "../outside.exe"}, "name"),
     ("kind a str", {"kind": "xlsx"}, "kind"),
@@ -125,7 +123,5 @@ FORGED_PINS: tuple[tuple[str, dict[str, object], str], ...] = (
     ("size a bool", {"size_bytes": False}, "size_bytes"),
     ("hash not hex", {"sha256": "zz" * 32}, "sha256"),
 )
-# A valid PINS[1] pin renamed with model_copy(update={"name": RENAMED_PIN_NAME}), passed second:
-# refused the same way, naming "name".
 RENAMED_PIN_NAME = "../outside.exe"
 FORGED_PIN_MESSAGE = "pin 1 is refused by the source model: {}"
