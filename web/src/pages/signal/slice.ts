@@ -184,6 +184,33 @@ export type SignalThread = {
   archivedLine: string | null;
   comments: SignalComment[];
 };
+/**
+ * One group as Settings lists it: the delivered member line and avatars, who can see it (a word from
+ * `visibilityOptions`, which the Select offers). A group may hold no members ("No members yet").
+ */
+export type SignalSettingsGroup = {
+  id: string;
+  name: string;
+  members: { initials: string; name: string }[];
+  moreMembers: string | null;
+  memberSummary: string;
+  visibility: string;
+  visibilityOptions: string[];
+};
+/** A thread rule: a switch with its label and an optional hint line. */
+export type SignalSettingsRule = { id: string; label: string; hint: string | null; on: boolean };
+/** A notification event with its two switches, one per channel. */
+export type SignalNotificationEvent = {
+  id: string;
+  label: string;
+  inSignal: boolean;
+  onDesktop: boolean;
+};
+export type SignalSettings = {
+  groups: SignalSettingsGroup[];
+  rules: SignalSettingsRule[];
+  notifications: { events: SignalNotificationEvent[] };
+};
 type SignalSnapshot = {
   viewer: SignalViewer;
   channels: SignalChannels;
@@ -191,6 +218,7 @@ type SignalSnapshot = {
   groups: SignalGroup[];
   threads: SignalThread[];
   digests: SignalDigest[];
+  settings: SignalSettings;
 };
 export type SignalScene = { id: string; snapshot: SignalSnapshot };
 export type SignalSlice = { scenes: [SignalScene, ...SignalScene[]] };
@@ -658,6 +686,44 @@ const threadRecord: Reader<SignalThread> = (v, path) => {
   }
   return got;
 };
+const settingsGroupBase = shape<SignalSettingsGroup>({
+  id: str,
+  name: str,
+  members: list(shape({ initials: str, name: str })),
+  moreMembers: strOrNull,
+  memberSummary: str,
+  visibility: str,
+  visibilityOptions: list(str),
+});
+/** The chosen visibility is one the Select offers; the offers repeat none; "+N" needs shown members. */
+const settingsGroup: Reader<SignalSettingsGroup> = (v, path) => {
+  const got = settingsGroupBase(v, path);
+  if (!got.ok) return got;
+  const { visibility, visibilityOptions: options, members, moreMembers } = got.value;
+  if (options.length === 0) return bad(`${path}.visibilityOptions`, "at least one option");
+  const repeat = repeatAt(options);
+  if (repeat !== -1) {
+    return bad(
+      `${path}.visibilityOptions[${String(repeat)}]`,
+      "an option the list does not repeat",
+    );
+  }
+  if (!options.includes(visibility)) {
+    return bad(`${path}.visibility`, "one of the group's visibilityOptions");
+  }
+  return members.length === 0 && moreMembers !== null
+    ? bad(`${path}.moreMembers`, "null when the group lists no members")
+    : got;
+};
+const settings = shape<SignalSettings>({
+  groups: list(settingsGroup),
+  rules: list(shape<SignalSettingsRule>({ id: str, label: str, hint: strOrNull, on: bool })),
+  notifications: shape({
+    events: list(
+      shape<SignalNotificationEvent>({ id: str, label: str, inSignal: bool, onDesktop: bool }),
+    ),
+  }),
+});
 const snapshotBase = shape<SignalSnapshot>({
   viewer,
   channels,
@@ -665,6 +731,7 @@ const snapshotBase = shape<SignalSnapshot>({
   groups: list(group),
   threads: list(threadRecord),
   digests: list(digestRecord),
+  settings,
 });
 
 /** A thread is named by (group, id); the key is a pair so no id can run into another's. */
@@ -759,6 +826,35 @@ function channelGroupProblem(snap: SignalSnapshot, path: string): string | null 
     : `${path}.groups[${String(named)}].name: expected the name the channel list gives this group`;
 }
 
+/**
+ * Ids are used once in each Settings list. Settings lists every group the channel list holds, with
+ * the same name, and may list more (a group the viewer has not joined, as the mock's frame draws).
+ */
+function settingsProblem(snap: SignalSnapshot, path: string): string | null {
+  const at = `${path}.settings`;
+  const lists: [string, string[]][] = [
+    ["groups", snap.settings.groups.map((g) => g.id)],
+    ["rules", snap.settings.rules.map((r) => r.id)],
+    ["notifications.events", snap.settings.notifications.events.map((e) => e.id)],
+  ];
+  for (const [name, ids] of lists) {
+    const repeat = repeatAt(ids);
+    if (repeat !== -1)
+      return `${at}.${name}[${String(repeat)}].id: expected an id the list does not repeat`;
+  }
+  for (const [c, channel] of snap.channels.groups.entries()) {
+    const held = snap.settings.groups.find((g) => g.id === channel.id);
+    if (held === undefined) {
+      return `${path}.channels.groups[${String(c)}].id: expected the id of a group in settings.groups`;
+    }
+    if (held.name !== channel.name) {
+      const index = snap.settings.groups.indexOf(held);
+      return `${at}.groups[${String(index)}].name: expected the name the channel list gives this group`;
+    }
+  }
+  return null;
+}
+
 /** The index of the first id that an earlier one in the list repeats, or -1. */
 function repeatAt(ids: string[]): number {
   const seen = new Set<string>();
@@ -848,6 +944,7 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
   const problem =
     groupProblem(got.value.groups, stories, path) ??
     channelGroupProblem(got.value, path) ??
+    settingsProblem(got.value, path) ??
     threadProblem(got.value, path) ??
     threadRefProblem(got.value, path) ??
     digestProblem(got.value, path);
