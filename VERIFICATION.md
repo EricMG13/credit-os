@@ -3,6 +3,75 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 2B confidence, the run store's first tables, Signal's names and topics
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #312 | 2B PR 6 | `23c00a4`, `5e378d0` | `checks/confidence.py`: the confidence checks and the exact score; `check_handoff` is complete (525 lines) |
+| #296 | 2A PR 2a | `d5f83c9`, `a1a99f4` | `store/schema.py`: migration 1, the runs, pins and events tables (478) |
+| #297 | 2A PR 2a-b | `d2e62b0`, `a20f04e` | migration 1's CHECKs and triggers tested on a raw connection (788, tests only) |
+| #300 | 2A PR 2b | `eaf01a0`, `3a17fb9` | `store/runs.py`, `records.py`, `db.py`: create a run and read it back (799) |
+| #164 | Signal S-4, 1 of 3 | `0645a12`, `4a976e2` | `signal/identity.py`, `topics.py`: names and topics (777) |
+| #165 | Signal S-4, 2 of 3 | `917823b`, `b7076a3` | clean names and topic text, caps, short error texts (640) |
+| #166 | Signal S-4, 3 of 3 | `0bf4852`, `7a3871a` | topics listed for no user; distinct kinds; surviving mutants killed (197) |
+
+Stacked PRs were retargeted to `main` and their CI rerun there before each merge. #166's
+first merge attempt stopped because its base had not moved; it was retargeted and rerun.
+
+**Reviews.** As each controller reported; the coordinator read each quoted verdict line in
+its report file.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #312 | task 1: `mx-precise` Medium 1, `mx-adversary` Medium 2; fix round 1, then a key gap closed by key cases; task 2: both pass | 0 defects | pass on `23c00a4`: Low 3, Info 6 |
+| #296 | scoped re-review on `d5f83c9`: pass, M1 and L1 closed | as #297 | the review that ordered version 4 of the migration |
+| #297 | as the stack's task reviews | registered, 0 defects | pass on `d2e62b0`: Low 2, Info 5 |
+| #300 | `mx-precise` pass, Low 2; `mx-invariants` pass, Low 2 | 6 rows, 0 defects | changes required, Medium 1 (pins revalidated before the write); scoped re-review pass, Info 4 |
+| #164 to #166 | `mx-precise` Medium 3 (test strength); `mx-adversary` Medium 1; fix round 1; adversary re-review pass | registered | pass at `a7227ed`: Low 6, Info 9. #166's Low batch after it: scoped `mx-feature` re-review run by the coordinator, pass, Low 1, Info 1 |
+
+- Mutation counts of record (mutmut 3.8.1, reviewers' runs). #312: `confidence.py` 499
+  mutants, 460 killed, 39 survived; the five functions task 2 changed, 174, 150 killed, 24
+  survived; of those 63, 21 are shown equivalent and 42 change only reason wording (open,
+  graded with the next checks change). #300, taken before its fix: 675, 526 killed, 148
+  survived, 1 with no test; in its own lines 388, 290, 97, 1, all graded. #297: 184 SQL
+  hand mutants, 167 killed, 16 equivalent, 1 invalid.
+- #166: the whole-branch reviewer's probe caught 28 of 40 hand mutants before the Low
+  batch and 39 of 40 on the merged head; the survivor (`IdentityError` made a `StoreError`)
+  is carried to the service step.
+- #297 and #300 were force-pushed earlier in the day (entry of #313); each merged with the
+  reviewer's line that the pushed head is the content reviewed.
+
+**Rulings.** 2B C1 to C10, R65 to R68, and R69: a confidence outcome is used only for a
+document `check_handoff` returns no refusal for (a reader error does not know the format).
+2A R31; migrations after the first take no hidden rowid; `repr(Claim)` must not print the
+writer token (in #302's Low batch). 1B R46 (unit forms, PR 6a2 merged with 6a) and R47 (a
+balance is printed only as a number of its own), both ahead of their PRs.
+
+**Machine.** At 20:07 UTC the load average was 184 on 10 cores with seven mutation runs
+alive. From then at most two mutation runs run at a time across all sessions, queued in a
+shared file; a count taken with the 1-minute load above 40 is not of record until its
+timeouts are rerun alone. 1B's PR 6b count was taken above that load and is held.
+Thirteen finished worktrees were removed; `.superpowers/` is git-ignored there, so a
+worktree's reports are copied out before it is removed.
+
+**Ledger.**
+
+- `2B-6 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2B-6 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `2B-6 task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2A-2b task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2A-2b task=2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2A-2b wbr-fix=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `S-4 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+
+Not verified: real model output against the confidence checks; SQLite builds other than
+3.53.1 (both runners); #300's mutation count after its fix (hand mutants only); a mutmut
+count for Signal's names and topics (`mutmut` was not run there); the 42 reason-wording
+survivors' equivalence.
+
 ## 2026-11-14 Roadmap back end: 2B figures and held figures, 1D HTML engine and zip guards, 1B base operands
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -921,79 +990,3 @@ killed, the one survivor in the new lines equivalent.
 - #201: root; NFS; races beyond two processes; the PR 1e caller.
 - For all three the merge result with `main` was not built before merging; nothing else on
   `main` touched their folders.
-
-## 2026-11-14 Roadmap back end: 1D text and csv readers, 2B passages and Sources checks, a redactor fix
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its source diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #161 | 1D PR 2 | `3be463e`, `3fe21ed` | `sources/pages.py` (`Page`, `SourcePages`, the one cut rule) and `sources/text.py` (`text_pages`, `csv_pages`); one reason rule for errors (799 lines) |
-| #198 | 2B PR 3 | `14927fb`, `dc3fe1f` | `checks/passages.py` (register ids in text, repeated limitations, the limitation helpers) and `checks/sources.py` (table, name, sha256, type); underscore boundaries in `prose.py` (776) |
-| #202 | 1C, owner's review-fix process | `b9a525e`, `b20bd04` | `provider/redact.py`: a UNC home path led by forward slashes is redacted; a third pattern, the union of three redacted (177) |
-
-**Reviews.** As each controller, or for #202 the PR body, reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #161 | `mx-precise` and `mx-adversary` on `9ae24ed`; scoped `mx-adversary` re-reviews: `1c5c0b7` fail, `af6fe41` fail (test only), `3df9f0e` pass | 0 defects on `b463fa5` | Pass on `b463fa5`: High 0, Medium 0, Low 2, Info 4; the same reviewer then checked the two literals of `3be463e`: pass stands |
-| #198 | `mx-precise` approve | 0 defects, 2 costs for the phase sweep | Pass on `14927fb`: High 0, Medium 0, Low 7, Info 8; 224 hand rows and 900 generated documents against independent oracles |
-| #202 | `mx-adversary`, two rounds in the owner's process; final pass | not run | not run |
-
-- **#161 took four fix rounds on its second task.** The third round's re-review passed and
-  found one more Medium, in a test only: the memory case `text-crlf-then-control` would pass a
-  reader that numbers lines by building a list of them. The fourth round is the owner's: asked
-  "Authorise one test-only literal change in #161 as a fourth round?", the owner answered
-  "Yes, one literal". The change needed two literals, the shape and the line number in that
-  case's expected message (`87382` to `65536`); the coordinator let the pair go on its own
-  responsibility and told the owner. No production line changed in rounds three and four.
-- #202's first round redacted less than #191 where a forward-slash head ran into a second
-  Windows head; the union of three patterns fixes that. A protocol-relative URL after a quote
-  is redacted as if a path (fails closed).
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0: #161 on `3be463e` (fixer's
-run); #202 on its branch (its body, macOS). #198: CI only on `14927fb`, `tests/checks` 975
-passed. Mutation (`mutmut`): #161 on `3df9f0e`, 633 mutants, 599 killed; not rerun after two
-test-only commits. Not run on #198 (hand mutants, 3 of 16 survive) or by the coordinator on
-#202.
-
-**Ledger.**
-- `1D-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1D-2 task=2 agent=mx-feature fix-rounds=4 gates-first-pass=n` (the fourth is the owner's)
-- `1D-2 task=low-batch agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
-- `2B-3 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-3 task=assembly+rulings agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-2 task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
-
-**Rulings by the coordinator.** In the plans.
-- 2B: a Sources table with no rows is refused in a module that is not blocked; a register id
-  in underscore emphasis is reported; the register-id reason points to the Basis line. These
-  land key-first in the next checks PR.
-- 2B figure reader (PR 4, not merged): the controller's rulings R37 to R53 are confirmed; they
-  enter the plan with PR 4a's record.
-- 1D: carried to PR 2b-1 with key rows first: two mutation survivors that are not equivalent
-  (`cut_stream`'s inner `>=`; `held = 1` in `csv_pages`) and an independent reference for
-  `test_cut_stream_property`, which compares `cut_stream` with itself.
-
-**Open, for the owner.**
-- 2B: the limitation key drops signs, points and currency signs, as the predecessor's does, so
-  a limitation that differs from an earlier one only by `+5%` against `-5%`, or `4.5x` against
-  `45x`, is refused as a repeat. Left, pinned as known false refusals; step 5A reads the key.
-- 2B figure reader: `USD-5 million` and `(USD−5)` are read as 5 with no sign and no currency,
-  and no finding is raised.
-- 1D: a csv of blank rows takes about 1.4 s per MiB (one measurement; about 75 s at the 50 MiB
-  cap, extrapolated) and no time bound is stated; for step 3A's plan.
-- 1D, for other layers: invisible format characters pass the text reader; the windows-1252
-  fallback gives wrong characters for other single-byte encodings; a row wider than a page is
-  cut inside a cell; a chained decode error holds the whole file in its `repr`.
-- #202, unchanged by it: `\\?\unc\` in lower case and `\\.\UNC\` are not matched; a lead after
-  `:` (`PATH=/usr/bin://srv/...`) is not redacted.
-
-**Not verified.**
-- #161: memory and time above 4 MiB; per-case peaks on Windows and Ubuntu (CI is pass or
-  fail); no real issuer file was read.
-- #198: inputs above 1,000 rows, ids or items; whether the Copilot route writes the Sources
-  shapes ruled on (no retained reply in the new format exists; no provider run); how 3A fills
-  `accepted`, `upstream` and `other_sources`.
-- #202 by this track's own reviewers; how Windows tools write `file:` URLs of UNC paths.
