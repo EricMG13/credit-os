@@ -93,6 +93,22 @@ def test_nesting() -> None:
     assert read_object('{"a": "\\"[[["}') == {"a": '"[[['}
 
 
+def test_nesting_is_counted_after_escapes_and_closes() -> None:
+    escaped_quote = '{"s": "\\"", "a": ' + "[" * 64 + "]" * 64 + "}"
+    refused_by(lambda: read_object(escaped_quote), RefusalKind.JSON, "too_deep", {})
+    bracket_after_escape = '{"a": "\\"' + "[" * 70 + '"}'
+    assert read_object(bracket_after_escape) == {"a": '"' + "[" * 70}
+    reopened = '{"a": ' + "[" * 31 + "[]," + "[" * 33 + "]" * 33 + "]" * 31 + "}"
+    refused_by(lambda: read_object(reopened), RefusalKind.JSON, "too_deep", {})
+    siblings = '{"a": [' + ",".join(["[]"] * 70) + "]}"
+    assert read_object(siblings) == {"a": [[]] * 70}
+
+
+def test_only_brackets_count_as_depth() -> None:
+    refused_by(lambda: read_object("X" * 65), RefusalKind.JSON, "invalid", {})
+    refused_by(lambda: read_object("[" * 64 + "X[" + "]" * 65), RefusalKind.JSON, "too_deep", {})
+
+
 def test_length() -> None:
     base = '{"a": 1}'
     assert read_object(base + " " * (200_000 - len(base))) == {"a": 1}
@@ -117,6 +133,11 @@ def test_repeated_key_is_echoed() -> None:
     key = "k" * 81
     text = f'{{"{key}": 1, "{key}": 0}}'
     refused_by(lambda: read_object(text), RefusalKind.JSON, "repeated", {"key": "k" * 80 + "…"})
+
+
+def test_surrogate_range_ends() -> None:
+    refused_by(lambda: read_object('{"a": "\\udfff"}'), RefusalKind.JSON, "unicode", {})
+    assert read_object('{"a": "\ue000 \ud7ff"}') == {"a": "\ue000 \ud7ff"}
 
 
 def test_order() -> None:
@@ -144,7 +165,7 @@ def test_long_token_is_echoed() -> None:
 
 @pytest.mark.parametrize("bad", [b"{}", None, 7])
 def test_read_object_type(bad: Any) -> None:
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="^text must be a str$"):
         read_object(bad)
 
 
@@ -165,6 +186,14 @@ def test_declined(row: Any) -> None:
 def test_not_declined(row: Any) -> None:
     check: Any = check_declined
     assert check(row[1]) is None
+
+
+def test_declined_reason_cut() -> None:
+    drivers = {"d": {"values": [None]}}
+    for length, expected in [(200, "y" * 200), (201, "y" * 197 + "..."), (199, "y" * 199)]:
+        with pytest.raises(ForecastDeclined) as caught:
+            check_declined({"base_drivers": drivers, "scope_limits": ["y" * length]})
+        assert caught.value.reason == expected
 
 
 def test_committed_fragment_is_declined() -> None:
@@ -208,14 +237,20 @@ def test_refused_construction() -> None:
     assert not isinstance(error, ValueError)
     assert [kind.value for kind in RefusalKind] == ["block", "json"]
     wrong: Any = "json"
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="^kind must be a RefusalKind$"):
         ForecastRefused(wrong, "s", "m")
-    bad_pairs: list[tuple[Any, Any]] = [(7, "m"), ("s", 7)]
-    for subject, text in bad_pairs:
-        with pytest.raises(TypeError):
+    bad_pairs: list[tuple[Any, Any, str]] = [(7, "m", "subject"), ("s", 7, "message")]
+    for subject, text, name in bad_pairs:
+        with pytest.raises(TypeError, match=f"^{name} must be a str$"):
             ForecastRefused(RefusalKind.BLOCK, subject, text)
-    for subject, text in [("", "m"), (" ", "m"), ("s", ""), ("s", " \n")]:
-        with pytest.raises(ValueError, match="blank"):
+    blanks = [
+        ("", "m", "subject"),
+        (" ", "m", "subject"),
+        ("s", "", "message"),
+        ("s", " \n", "message"),
+    ]
+    for subject, text, name in blanks:
+        with pytest.raises(ValueError, match=f"^{name} must not be blank$"):
             ForecastRefused(RefusalKind.BLOCK, subject, text)
 
 
