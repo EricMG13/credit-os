@@ -148,6 +148,23 @@ describe("Kit", () => {
     expect(gaps.querySelector('[aria-hidden="true"].flex-col')).not.toBeNull();
   });
 
+  it("shows the card and tile, three metric cards and a three-state timeline", () => {
+    render(<Kit />);
+    const cards = screen.getByRole("region", { name: "Card and tile" });
+    expect(within(cards).getByRole("group", { name: "Card with a title" })).toBeInTheDocument();
+    expect(within(cards).getByText("Tile content")).toBeInTheDocument();
+    const metrics = screen.getByRole("region", { name: "Metric card" });
+    expect(within(metrics).getAllByRole("article")).toHaveLength(3);
+    expect(within(metrics).getByText("n.a.")).toBeInTheDocument();
+    expect(within(metrics).getByText("from 1,150")).toBeInTheDocument();
+    expect(within(metrics).getByRole("button", { name: /^About / })).toBeInTheDocument();
+    const timeline = screen.getByRole("region", { name: "Timeline" });
+    expect(within(timeline).getAllByRole("listitem")).toHaveLength(3);
+    for (const word of ["Past", "Next", "Later"]) {
+      expect(within(timeline).getByText(word), word).toBeInTheDocument();
+    }
+  });
+
   it("shows the trend chart with a broken line and the eight-series fold", () => {
     render(<Kit />);
     const trend = screen.getByRole("region", { name: "Trend chart" });
