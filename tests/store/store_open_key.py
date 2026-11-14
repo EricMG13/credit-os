@@ -46,3 +46,31 @@ UNSEEN_DENIAL_FILE_MODE = 0o400
 UNSEEN_DENIAL_ERROR = "StoreUnusable"
 # The SQLite result code on the first write's cause: SQLITE_READONLY (8, no extended code).
 UNSEEN_DENIAL_CODE = 8
+
+# Added for PR 2b (the #256 whole-branch review's L1 to L4, ruling R30).
+
+# L1: on an existing store at the current version, a library the plan refuses refuses the reader
+# too: (attribute of `sqlite3` patched, value, words the StoreUnusable message contains). Bytes unchanged.
+READER_BAD_LIBRARIES: tuple[tuple[str, object, str], ...] = (
+    ("sqlite_version_info", (3, 36, 9), "older than 3.37.0"),
+    ("threadsafety", 1, "not built for use from several threads"),
+)
+# L3: the reader's own journal-mode read-back answered as this value (a connection factory the test
+# injects): StoreUnusable with exactly this message, and the reader's connection is closed.
+READER_JOURNAL_READ_BACK = "wal"
+READER_JOURNAL_MESSAGE = "the file is not in delete journal mode"
+# L4: an error with no SQLite code (the sqlite3 module's own errors carry no `sqlite_errorcode`)
+# raised by `PRAGMA journal_mode=DELETE` on open_store: StoreUnusable, exactly this message.
+CODELESS_JOURNAL_ERROR_TEXT = "injected, no code"
+CODELESS_JOURNAL_MESSAGE = "set the journal mode: injected, no code"
+# L4: a close whose connection raises sqlite3.DatabaseError with this code and text after closing:
+# StoreCorrupt (not StoreUnusable), exactly this message, the injected error as `__cause__`.
+CLOSE_ERROR_CODE = 11  # SQLITE_CORRUPT
+CLOSE_ERROR_TEXT = "injected close text"
+CLOSE_ERROR_CLASS = "StoreCorrupt"
+CLOSE_ERROR_MESSAGE = "close the store: injected close text"
+# L2: two threads, one store. Thread A holds a write transaction (one row in `note`, from
+# store_txn_key.M1) until thread B has started; B then writes a row (shape W) or closes the store
+# (shape C). No error in either thread, and the rows committed, in body order:
+LOCK_WRITE_ROWS: tuple[str, ...] = ("first", "second")
+LOCK_CLOSE_ROWS: tuple[str, ...] = ("kept",)
