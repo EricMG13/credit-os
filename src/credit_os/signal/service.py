@@ -34,6 +34,7 @@ logged), ``NotFound`` 404, ``Forbidden`` 403, ``ViewError`` the route's ``view_s
 
 from __future__ import annotations
 
+import dataclasses
 import ipaddress
 import json
 import logging
@@ -49,7 +50,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
 
-from credit_os.signal import feedview, groups, identity, store
+from credit_os.signal import feedview, groups, identity, store, topics
 
 __all__ = ["Handler", "make_server"]
 
@@ -63,6 +64,7 @@ SOCKET_TIMEOUT = 60
 MAX_CONNECTIONS = 64
 MAX_PER_ADDRESS = 16  # one remote address may hold this many of the MAX_CONNECTIONS
 MAX_PARAMS = 20
+MAX_AFTER_DIGITS = len(str(feedview.MAX_ID))
 _POLICY = (
     "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; "
     "img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; "
@@ -125,6 +127,81 @@ def _set_me(req: _Req) -> _Reply:
     )
 
 
+def _feed(req: _Req) -> _Reply:
+    filters: feedview.Filters = {}
+    if "kind" in req.params:
+        filters["kind"] = req.params["kind"]
+    if "q" in req.params:
+        filters["query"] = req.params["q"]
+    if "before" in req.params:
+        filters["before"] = req.params["before"]
+    if "shared" in req.params:
+        if req.params["shared"] != "1":
+            raise _refuse(400, "invalid shared; expected 1")
+        filters["shared"] = True
+    page = feedview.feed(req.db, req.person.name, req.param("view"), **filters)
+    cards = [dataclasses.asdict(card) for card in page.cards]
+    return _Reply(200, {"cards": cards, "next_before": page.next_before, "newest": page.newest})
+
+
+def _feed_new(req: _Req) -> _Reply:
+    after = req.param("after")
+    if not (after.isascii() and after.isdecimal() and len(after) <= MAX_AFTER_DIGITS):
+        raise _refuse(400, "invalid after; expected digits")
+    count = feedview.new_count(req.db, req.person.name, req.param("view"), int(after))
+    return _Reply(200, {"count": count})
+
+
+def _story(
+    req: _Req, action: Callable[[sqlite3.Connection, str, int], None], saved: bool
+) -> _Reply:
+    action(req.db, req.person.name, int(req.groups[0]))
+    return _Reply(200, {"saved": saved})
+
+
+def _topic(req: _Req, action: Callable[[sqlite3.Connection, str, int], None], on: bool) -> _Reply:
+    action(req.db, req.person.name, int(req.groups[0]))
+    return _Reply(200, {"following": on})
+
+
+def _story_card(req: _Req) -> _Reply:
+    """One card as the feed shows it to this user; threads of hidden groups are absent."""
+    card = feedview.card_for(req.db, req.person.name, int(req.groups[0]))
+    return _Reply(200, dataclasses.asdict(card))
+
+
+def _save(req: _Req) -> _Reply:
+    return _story(req, feedview.save, True)
+
+
+def _unsave(req: _Req) -> _Reply:
+    return _story(req, feedview.unsave, False)
+
+
+def _follow(req: _Req) -> _Reply:
+    return _topic(req, topics.follow, True)
+
+
+def _unfollow(req: _Req) -> _Reply:
+    return _topic(req, topics.unfollow, False)
+
+
+def _topics(req: _Req) -> _Reply:
+    rows = topics.list_topics(req.db, req.person.name)
+    return _Reply(
+        200,
+        [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "following": bool(row["following"]),
+                "stories": row["stories"],
+            }
+            for row in rows
+        ],
+    )
+
+
 @dataclass(frozen=True)
 class _Route:
     method: str
@@ -135,9 +212,18 @@ class _Route:
     store_status: int = 400  # what a plain store.StoreError from this route is answered with
 
 
+_ID = "([0-9]{1,18})"  # ASCII digits only (a str pattern's \d also matches other scripts)
 _ROUTES = (
     _Route("GET", re.compile("/api/me"), _me, open_to_all=True),
     _Route("POST", re.compile("/api/me"), _set_me, open_to_all=True),
+    _Route("GET", re.compile("/api/feed"), _feed),
+    _Route("GET", re.compile("/api/feed/new"), _feed_new),
+    _Route("GET", re.compile(f"/api/stories/{_ID}"), _story_card, view_status=404),
+    _Route("POST", re.compile(f"/api/stories/{_ID}/save"), _save, view_status=404),
+    _Route("DELETE", re.compile(f"/api/stories/{_ID}/save"), _unsave, view_status=404),
+    _Route("GET", re.compile("/api/topics"), _topics),
+    _Route("POST", re.compile(f"/api/topics/{_ID}/follow"), _follow, store_status=404),
+    _Route("DELETE", re.compile(f"/api/topics/{_ID}/follow"), _unfollow, store_status=404),
 )
 
 
