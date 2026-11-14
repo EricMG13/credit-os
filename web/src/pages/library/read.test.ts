@@ -344,6 +344,7 @@ describe("readSlice, run frame", () => {
     runOf(slice, 0, 0)["overview"] = runOf(slice, 0, 2)["overview"];
     runOf(slice, 0, 0)["changes"] = runOf(slice, 0, 2)["changes"];
     runOf(slice, 0, 0)["modules"] = runOf(slice, 0, 2)["modules"];
+    runOf(slice, 0, 0)["evidence"] = runOf(slice, 0, 2)["evidence"];
     runOf(slice, 0, 0).traces = Object.create({ x: {} }) as Run["traces"];
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -710,6 +711,90 @@ describe("readSlice, modules", () => {
   const at = (slice: ReturnType<typeof fresh>, id: string, r = 0) =>
     `issuers[0].runs[${String(r)}].modules[${String(runOf(slice, r).modules?.findIndex((m) => m["id"] === id))}]`;
 
+  const matrix = (s: ReturnType<typeof fresh>) =>
+    modOf(s, "business-profile").body.records[0] as Json;
+  const matrixRow = (s: ReturnType<typeof fresh>, i: number) =>
+    (matrix(s)["rows"] as Json[])[i] as Json;
+
+  const block = (s: ReturnType<typeof fresh>, kind: string) =>
+    modOf(s, "business-profile").body.records.find((r) => (r as Json)["kind"] === kind) as Json;
+  const item = (s: ReturnType<typeof fresh>, kind: string, i: number) =>
+    (block(s, kind)["items"] as Json[])[i] as Json;
+
+  const step = (s: ReturnType<typeof fresh>, i: number) =>
+    (block(s, "edges")["steps"] as Json[])[i] as Json;
+
+  it("reads the pathway's four steps as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const edges = body.records[3];
+    expect(edges?.kind === "edges" && edges.steps.map((x) => [x.title, x.text])).toEqual([
+      ["Ramp slips", "Deliveries fall short of plan"],
+      ["Inventory stays", "Cash tied up for longer"],
+      ["Cash flow falls", "Less debt repaid from operations"],
+      ["Leverage holds", "Refinancing on weaker terms"],
+    ]);
+  });
+
+  it("reads the watch list and the questions as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const [, watch, questions] = body.records;
+    expect(
+      watch?.kind === "watch" && watch.items.map((i) => [i.indicator, i.threshold, i.timing]),
+    ).toEqual([
+      ["Engine deliveries per month", "Below 40 for two quarters", "leading"],
+      ["Aftermarket price rise at renewal", "Below 3%", "leading"],
+      ["Alternative parts certified", "Any top-ten part", "leading"],
+      ["Aftermarket share of gross profit", "Below 55%", "lagging"],
+    ]);
+    expect(
+      questions?.kind === "questions" && questions.items.map((i) => [i.state, i.answer === null]),
+    ).toEqual([
+      ["Answered", false],
+      ["Partly answered", true],
+      ["Not answered", true],
+      ["Answered", false],
+    ]);
+  });
+
+  it("reads the matrix with a missing grade as null, not as a word", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const block = result.data.issuers[0]?.runs[0]?.modules?.[0]?.body;
+    if (block?.kind !== "delivered") throw new Error("not delivered");
+    expect(block.records[0]).toMatchObject({
+      kind: "matrix",
+      title: "Risks by probability and impact",
+      note: null,
+      columns: ["Risk", "Probability", "Impact"],
+    });
+    const rows = block.records[0]?.kind === "matrix" ? block.records[0].rows : [];
+    expect(rows.map((r) => [r.risk, r.probability, r.impact])).toEqual([
+      ["Engine programme delay", "Medium", "High"],
+      ["Loss of sole-source status", "Low", "High"],
+      ["Customer concentration", "Medium", "Medium"],
+      ["Input cost inflation", "High", "Low"],
+      ["Tariff exposure", null, "Medium"],
+    ]);
+  });
+
+  it("rejects an Overview item whose state differs from the module it opens, and only that", () => {
+    const slice = fresh();
+    const items = (runOf(slice, 0).overview["modules"] as { items: Json[] }).items;
+    const i = items.findIndex((item) => item["module"] !== null);
+    const held = modOf(slice, String((items[i] as Json)["module"]))["state"];
+    (items[i] as Json)["state"] = held === "Delivered" ? "Not run" : "Delivered";
+    expect(invalidReason(slice)).toContain(
+      `issuers[0].runs[0].overview.modules.items[${String(i)}].state`,
+    );
+    expect(readSlice(fresh()).kind).toBe("ok");
+  });
+
   it("reads thirteen modules for every finished run and a loading run's null", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -736,7 +821,8 @@ describe("readSlice, modules", () => {
       "Not assessable",
     ]);
     expect(full.find((m) => m.id === "recovery")?.body.kind).toBe("blocked");
-    expect(full[0]?.body).toMatchObject({ kind: "delivered", records: [] });
+    expect(full[0]?.body).toMatchObject({ kind: "delivered" });
+    expect(full[1]?.body).toMatchObject({ kind: "delivered", records: [] });
     expect(runs[1]?.modules).toBeNull();
     expect(runs[2]?.modules?.map((m) => m.name)).toEqual(full.map((m) => m.name));
     expect(runs[2]?.modules?.map((m) => m.state)).toEqual([
@@ -822,13 +908,157 @@ describe("readSlice, modules", () => {
     [
       "an unknown record kind",
       (s: ReturnType<typeof fresh>) =>
-        modOf(s, "business-profile").body.records.push({ kind: "heat" }),
+        (modOf(s, "business-profile").body.records[0] = { kind: "heat" }),
       "business-profile",
       "body.records[0].kind",
     ],
     [
+      "a matrix with an empty-string note",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["note"] = ""),
+      "business-profile",
+      "body.records[0].note",
+    ],
+    [
+      "a matrix with no rows",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["rows"] = []),
+      "business-profile",
+      "body.records[0].rows",
+    ],
+    [
+      "a matrix with an empty-string grade",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 0)["probability"] = ""),
+      "business-profile",
+      "body.records[0].rows[0].probability",
+    ],
+    [
+      "a matrix grade that is not text",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 3)["impact"] = 2),
+      "business-profile",
+      "body.records[0].rows[3].impact",
+    ],
+    [
+      "a matrix with a missing grade field",
+      (s: ReturnType<typeof fresh>) => delete matrixRow(s, 4)["impact"],
+      "business-profile",
+      "body.records[0].rows[4].impact",
+    ],
+    [
+      "a matrix with two columns",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["columns"] = ["Risk", "Impact"]),
+      "business-profile",
+      "body.records[0].columns",
+    ],
+    [
+      "a matrix with an empty column name",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["columns"] = ["Risk", "", "Impact"]),
+      "business-profile",
+      "body.records[0].columns[1]",
+    ],
+    [
+      "a matrix risk row with an unknown trace",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 1)["trace"] = "nothing"),
+      "business-profile",
+      "body.records[0].rows[1].trace",
+    ],
+    [
+      "a matrix with an unknown trace",
+      (s: ReturnType<typeof fresh>) => (matrix(s)["trace"] = "nothing"),
+      "business-profile",
+      "body.records[0].trace",
+    ],
+    [
+      "a matrix risk named twice",
+      (s: ReturnType<typeof fresh>) => (matrixRow(s, 1)["risk"] = "Engine programme delay"),
+      "business-profile",
+      "body.records[0].rows[1].risk",
+    ],
+    [
+      "a watch list with no items",
+      (s: ReturnType<typeof fresh>) => (block(s, "watch")["items"] = []),
+      "business-profile",
+      "body.records[1].items",
+    ],
+    [
+      "a watch timing that is not leading or lagging",
+      (s: ReturnType<typeof fresh>) => (item(s, "watch", 0)["timing"] = "Leading"),
+      "business-profile",
+      "body.records[1].items[0].timing",
+    ],
+    [
+      "a watch threshold that is blank",
+      (s: ReturnType<typeof fresh>) => (item(s, "watch", 2)["threshold"] = ""),
+      "business-profile",
+      "body.records[1].items[2].threshold",
+    ],
+    [
+      "a watch item with an unknown trace",
+      (s: ReturnType<typeof fresh>) => (item(s, "watch", 1)["trace"] = "nothing"),
+      "business-profile",
+      "body.records[1].items[1].trace",
+    ],
+    [
+      "a question with no items",
+      (s: ReturnType<typeof fresh>) => (block(s, "questions")["items"] = []),
+      "business-profile",
+      "body.records[2].items",
+    ],
+    [
+      "a question state outside the answer states",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 1)["state"] = "Open"),
+      "business-profile",
+      "body.records[2].items[1].state",
+    ],
+    [
+      "an answered question with no answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 0)["answer"] = null),
+      "business-profile",
+      "body.records[2].items[0].answer",
+    ],
+    [
+      "a not answered question that has an answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 2)["answer"] = "Some."),
+      "business-profile",
+      "body.records[2].items[2].answer",
+    ],
+    [
+      "an empty-string answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 0)["answer"] = ""),
+      "business-profile",
+      "body.records[2].items[0].answer",
+    ],
+    [
+      "a question with a trace and no answer",
+      (s: ReturnType<typeof fresh>) => (item(s, "questions", 1)["trace"] = "bp-risk-1"),
+      "business-profile",
+      "body.records[2].items[1].trace",
+    ],
+    [
+      "a pathway with no steps",
+      (s: ReturnType<typeof fresh>) => (block(s, "edges")["steps"] = []),
+      "business-profile",
+      "body.records[3].steps",
+    ],
+    [
+      "a pathway step with an empty line",
+      (s: ReturnType<typeof fresh>) => (step(s, 1)["text"] = ""),
+      "business-profile",
+      "body.records[3].steps[1].text",
+    ],
+    [
+      "a pathway step named twice",
+      (s: ReturnType<typeof fresh>) => (step(s, 2)["title"] = "Ramp slips"),
+      "business-profile",
+      "body.records[3].steps[2].title",
+    ],
+    [
+      "two blocks with one title",
+      (s: ReturnType<typeof fresh>) => (block(s, "edges")["title"] = "Indicators to watch"),
+      "business-profile",
+      "body.records[3].title",
+    ],
+    [
       "a record that is not an object",
-      (s: ReturnType<typeof fresh>) => modOf(s, "business-profile").body.records.push("heat"),
+      (s: ReturnType<typeof fresh>) => (modOf(s, "business-profile").body.records[0] = "heat"),
       "business-profile",
       "body.records[0]",
     ],
@@ -1062,10 +1292,26 @@ describe("readSlice, modules", () => {
     expect(invalidReason(loading)).toContain("issuers[0].runs[1].head.firstModule");
   });
 
+  /** A run that holds no module has no gap in one, and its tab and Overview link say so. */
+  const noGaps = (run: Json) => {
+    const evidence = run["evidence"] as { gaps: Json; tabs: Json };
+    evidence.gaps["groups"] = [];
+    evidence.tabs["gaps"] = "0";
+    const limits = (run["overview"] as { limitations: { gapsLink: Json } }).limitations;
+    limits.gapsLink["label"] = "See the 0 gaps in Evidence";
+  };
+
   it("allows no first module on a run that holds no modules", () => {
     const slice = fresh();
     const run = runOf(slice, 3);
     run.modules = [];
+    const evidence = run["evidence"] as {
+      moduleFilter: unknown[];
+      sources: { files: { readers: unknown }[] };
+    };
+    evidence.moduleFilter = [];
+    for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
+    noGaps(run);
     run.head["firstModule"] = null;
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
@@ -1073,5 +1319,568 @@ describe("readSlice, modules", () => {
     expect(readSlice(slice).kind).toBe("ok");
     run.head["firstModule"] = "business-profile";
     expect(invalidReason(slice)).toContain("issuers[0].runs[3].head.firstModule");
+  });
+});
+
+describe("readSlice, the data module's records", () => {
+  type Mod = Json & { body: Json & { records: Json[] } };
+  const mod = (slice: ReturnType<typeof fresh>): Mod => {
+    const run = (slice.issuers[0]?.["runs"] as Json[])[0] as Json;
+    const found = (run["modules"] as Mod[]).find((m) => m["id"] === "capital-structure");
+    if (found === undefined) throw new Error("no capital structure");
+    return found;
+  };
+  const records = (slice: ReturnType<typeof fresh>) => mod(slice).body.records;
+  const blockOf = (slice: ReturnType<typeof fresh>, kind: string) =>
+    records(slice).find((r) => r["kind"] === kind) as Json;
+  const where = (slice: ReturnType<typeof fresh>, kind: string) =>
+    `issuers[0].runs[0].modules[${String((slice.issuers[0]?.["runs"] as { modules: Json[] }[])[0]?.modules.findIndex((m) => m["id"] === "capital-structure"))}].body.records[${String(records(slice).findIndex((r) => r["kind"] === kind))}]`;
+
+  it("reads the headline figures and measures as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const metrics = body.records.find((r) => r.kind === "metrics");
+    const measures = body.records.find((r) => r.kind === "measures");
+    expect(
+      metrics?.kind === "metrics" && metrics.items.map((i) => [i.label, i.value, i.note]),
+    ).toEqual([
+      ["Gross debt", { kind: "value", text: "USD 2,398m", at: 2398 }, "At 30 Sep 2026"],
+      ["Net debt", { kind: "value", text: "USD 2,236m", at: 2236 }, "After USD 162m cash"],
+      ["Net leverage", { kind: "value", text: "4.6x", at: 4.6 }, "Net debt to EBITDA"],
+      [
+        "Secured leverage",
+        { kind: "value", text: "3.3x", at: 3.3 },
+        "First-lien net debt to EBITDA",
+      ],
+      [
+        "Average cost of debt",
+        { kind: "withheld", reason: null },
+        "Marked confidential in the source",
+      ],
+      ["Next maturity", { kind: "value", text: "Mar 2028", at: null }, "USD 310m unsecured notes"],
+    ]);
+    expect(
+      measures?.kind === "measures" &&
+        measures.items.map((i) => [i.label, i.earlier === null, i.delta]),
+    ).toEqual([
+      ["Net leverage", false, { text: "Lower by 0.3x on 2025", direction: "down" }],
+      ["Liquidity", false, { text: "Lower by USD 43m on June", direction: "down" }],
+      ["Interest cover", true, null],
+    ]);
+  });
+
+  const sized = (columns: number, rows: number, left: number, heavy: number) => {
+    const slice = fresh();
+    const b = blockOf(slice, "chartTable");
+    b["columns"] = Array.from({ length: columns }, (_, i) => ({
+      label: `C${String(i)}`,
+      align: i === 0 || i === left ? "left" : "right",
+    }));
+    b["rows"] = Array.from({ length: rows }, (_, r) => ({
+      cells: Array.from({ length: columns }, (_, c) => `r${String(r)}c${String(c)}`),
+      emphasis: r === heavy,
+    }));
+    return slice;
+  };
+
+  it("accepts the largest styled chart table: eight columns, the last left, twelve rows, the last heavy", () => {
+    expect(readSlice(sized(8, 12, 7, 11)).kind).toBe("ok");
+  });
+
+  it("accepts a larger table that no position styles: nine columns and thirteen rows", () => {
+    expect(readSlice(sized(9, 13, -1, -1)).kind).toBe("ok");
+  });
+
+  const broken: [string, string, (b: Json) => unknown, string][] = [
+    ["headline figures with no items", "metrics", (b: Json) => (b["items"] = []), "items"],
+    [
+      "a headline figure with an empty-string value",
+      "metrics",
+      (b: Json) =>
+        (((b["items"] as Json[])[0] as Json)["value"] = { kind: "value", text: "", at: null }),
+      "items[0].value.text",
+    ],
+    [
+      "a headline figure with an unknown trace",
+      "metrics",
+      (b: Json) => (((b["items"] as Json[])[1] as Json)["trace"] = "nothing"),
+      "items[1].trace",
+    ],
+    [
+      "a headline figure named twice",
+      "metrics",
+      (b: Json) => (((b["items"] as Json[])[1] as Json)["label"] = "Gross debt"),
+      "items[1].label",
+    ],
+    ["an empty-string navigator label", "metrics", (b: Json) => (b["nav"] = ""), "nav"],
+    ["facts with no groups", "facts", (b: Json) => (b["groups"] = []), "groups"],
+    [
+      "a fact group with no rows",
+      "facts",
+      (b: Json) => (((b["groups"] as Json[])[0] as Json)["rows"] = []),
+      "groups[0].rows",
+    ],
+    [
+      "a fact group with an empty name",
+      "facts",
+      (b: Json) => (((b["groups"] as Json[])[1] as Json)["name"] = ""),
+      "groups[1].name",
+    ],
+    [
+      "a fact with an empty-string value",
+      "facts",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[0] as Json)["rows"] as Json[])[0] as Json)["value"] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "groups[0].rows[0].value.text",
+    ],
+    [
+      "a fact with an unknown trace",
+      "facts",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[1] as Json)["rows"] as Json[])[2] as Json)["trace"] =
+          "nothing"),
+      "groups[1].rows[2].trace",
+    ],
+    [
+      "a fact named twice in a group",
+      "facts",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[0] as Json)["rows"] as Json[])[1] as Json)["label"] = "Amount"),
+      "groups[0].rows[1].label",
+    ],
+    ["status with no groups", "status", (b: Json) => (b["groups"] = []), "groups"],
+    [
+      "a status group outside the Met or not met set",
+      "status",
+      (b: Json) => (((b["groups"] as Json[])[0] as Json)["state"] = "Partly met"),
+      "groups[0].state",
+    ],
+    [
+      "a status group with no count",
+      "status",
+      (b: Json) => delete ((b["groups"] as Json[])[1] as Json)["count"],
+      "groups[1].count",
+    ],
+    [
+      "a status group with no items",
+      "status",
+      (b: Json) => (((b["groups"] as Json[])[1] as Json)["items"] = []),
+      "groups[1].items",
+    ],
+    [
+      "a status item with an empty-string note",
+      "status",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[0] as Json)["items"] as Json[])[0] as Json)["note"] = ""),
+      "groups[0].items[0].note",
+    ],
+    [
+      "a status item with an empty-string value",
+      "status",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[1] as Json)["items"] as Json[])[0] as Json)["value"] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "groups[1].items[0].value.text",
+    ],
+    [
+      "a status state given twice",
+      "status",
+      (b: Json) => (((b["groups"] as Json[])[1] as Json)["state"] = "Not met"),
+      "groups[1].state",
+    ],
+    ["a statement with no periods", "statement", (b: Json) => (b["periods"] = []), "periods"],
+    [
+      "a statement period that is blank",
+      "statement",
+      (b: Json) => ((b["periods"] as string[])[2] = ""),
+      "periods[2]",
+    ],
+    ["a statement with no rows", "statement", (b: Json) => (b["rows"] = []), "rows"],
+    ["a statement without its corner heading", "statement", (b: Json) => delete b["stub"], "stub"],
+    [
+      "a statement basis that is an empty string",
+      "statement",
+      (b: Json) => (b["basis"] = ""),
+      "basis",
+    ],
+    [
+      "a statement row with one cell too few",
+      "statement",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["cells"] = [null, null, null, null]),
+      "rows[1].cells",
+    ],
+    [
+      "a statement row with one cell too many",
+      "statement",
+      (b: Json) =>
+        (((b["rows"] as Json[])[0] as Json)["cells"] = [null, null, null, null, null, null]),
+      "rows[0].cells",
+    ],
+    [
+      "a statement cell that is an empty string",
+      "statement",
+      (b: Json) =>
+        ((((b["rows"] as Json[])[2] as Json)["cells"] as Json[])[3] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "rows[2].cells[3].text",
+    ],
+    [
+      "a statement cell of an unknown kind",
+      "statement",
+      (b: Json) =>
+        ((((b["rows"] as Json[])[2] as Json)["cells"] as Json[])[0] = { kind: "estimate" }),
+      "rows[2].cells[0].kind",
+    ],
+    [
+      "a statement row whose emphasis is not true or false",
+      "statement",
+      (b: Json) => (((b["rows"] as Json[])[0] as Json)["emphasis"] = "yes"),
+      "rows[0].emphasis",
+    ],
+    [
+      "a statement with an unknown trace",
+      "statement",
+      (b: Json) => (b["trace"] = "nothing"),
+      "trace",
+    ],
+    [
+      "a statement row named twice",
+      "statement",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["label"] = "Gross debt"),
+      "rows[1].label",
+    ],
+    ["a gap with no reason", "gap", (b: Json) => (b["reason"] = ""), "reason"],
+    ["a gap with a reason that is not text", "gap", (b: Json) => (b["reason"] = null), "reason"],
+    ["measures with no items", "measures", (b: Json) => (b["items"] = []), "items"],
+    [
+      "a measure with an empty-string earlier figure",
+      "measures",
+      (b: Json) =>
+        (((b["items"] as Json[])[0] as Json)["earlier"] = { kind: "value", text: "", at: null }),
+      "items[0].earlier.text",
+    ],
+    [
+      "a measure with an unknown direction",
+      "measures",
+      (b: Json) =>
+        ((((b["items"] as Json[])[0] as Json)["delta"] as Json)["direction"] = "sideways"),
+      "items[0].delta.direction",
+    ],
+    [
+      "a delta given beside a missing earlier period",
+      "measures",
+      (b: Json) =>
+        (((b["items"] as Json[])[2] as Json)["delta"] = { text: "Higher", direction: "up" }),
+      "items[2].delta",
+    ],
+    [
+      "a delta given beside a withheld current figure",
+      "measures",
+      (b: Json) =>
+        (((b["items"] as Json[])[0] as Json)["current"] = { kind: "withheld", reason: null }),
+      "items[0].delta",
+    ],
+    ["a chart table of an unknown chart", "chartTable", (b: Json) => (b["chart"] = "pie"), "chart"],
+    ["a chart table with no columns", "chartTable", (b: Json) => (b["columns"] = []), "columns"],
+    ["a chart table with no rows", "chartTable", (b: Json) => (b["rows"] = []), "rows"],
+    [
+      "a chart table with a left column past the ninth",
+      "chartTable",
+      (b: Json) => {
+        b["columns"] = Array.from({ length: 9 }, (_, i) => ({
+          label: `C${String(i)}`,
+          align: i === 0 || i === 8 ? "left" : "right",
+        }));
+      },
+      "columns[8].align",
+    ],
+    [
+      "a chart table with an emphasised row past the twelfth",
+      "chartTable",
+      (b: Json) => {
+        b["rows"] = Array.from({ length: 13 }, (_, i) => ({
+          ...((b["rows"] as Json[])[0] as Json),
+          emphasis: i === 12,
+        }));
+      },
+      "rows[12].emphasis",
+    ],
+    [
+      "a chart table whose first column is aligned right",
+      "chartTable",
+      (b: Json) => (((b["columns"] as Json[])[0] as Json)["align"] = "right"),
+      "columns[0].align",
+    ],
+    [
+      "a chart table footnote given twice",
+      "chartTable",
+      (b: Json) => (b["footnotes"] = ["Same.", "Same."]),
+      "footnotes[1]",
+    ],
+    [
+      "a null delta beside a withheld current figure and an earlier value",
+      "measures",
+      (b: Json) => {
+        const item = (b["items"] as Json[])[0] as Json;
+        item["current"] = { kind: "withheld", reason: null };
+        item["delta"] = null;
+      },
+      "items[0].delta",
+    ],
+    [
+      "a null delta beside a withheld earlier figure",
+      "measures",
+      (b: Json) => {
+        const item = (b["items"] as Json[])[1] as Json;
+        item["earlier"] = { kind: "withheld", reason: null };
+        item["delta"] = null;
+      },
+      "items[1].delta",
+    ],
+    [
+      "a chart table column aligned to the centre",
+      "chartTable",
+      (b: Json) => (((b["columns"] as Json[])[1] as Json)["align"] = "center"),
+      "columns[1].align",
+    ],
+    [
+      "a chart table column named twice",
+      "chartTable",
+      (b: Json) => (((b["columns"] as Json[])[2] as Json)["label"] = "Debt"),
+      "columns[2].label",
+    ],
+    [
+      "a chart table row with one cell too few",
+      "chartTable",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["cells"] = ["Senior secured notes", "x"]),
+      "rows[1].cells",
+    ],
+    [
+      "a chart table row with one cell too many",
+      "chartTable",
+      (b: Json) => (((b["rows"] as Json[])[1] as Json)["cells"] as unknown[]).push("x"),
+      "rows[1].cells",
+    ],
+    [
+      "a chart table text cell that is an empty string",
+      "chartTable",
+      (b: Json) => ((((b["rows"] as Json[])[0] as Json)["cells"] as unknown[])[1] = ""),
+      "rows[0].cells[1]",
+    ],
+    [
+      "a chart table figure whose text is an empty string",
+      "chartTable",
+      (b: Json) =>
+        ((((b["rows"] as Json[])[0] as Json)["cells"] as unknown[])[2] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "rows[0].cells[2].text",
+    ],
+    [
+      "a chart table row labelled by a missing figure",
+      "chartTable",
+      (b: Json) => ((((b["rows"] as Json[])[0] as Json)["cells"] as unknown[])[0] = null),
+      "rows[0].cells[0]",
+    ],
+    [
+      "a chart table row whose emphasis is not true or false",
+      "chartTable",
+      (b: Json) => (((b["rows"] as Json[])[0] as Json)["emphasis"] = "yes"),
+      "rows[0].emphasis",
+    ],
+    [
+      "a chart table footnote that is an empty string",
+      "chartTable",
+      (b: Json) => (b["footnotes"] = [""]),
+      "footnotes[0]",
+    ],
+    [
+      "a chart table note that is an empty string",
+      "chartTable",
+      (b: Json) => (b["note"] = ""),
+      "note",
+    ],
+    [
+      "a chart table with an unknown trace",
+      "chartTable",
+      (b: Json) => (b["trace"] = "no-such-trace"),
+      "trace",
+    ],
+    [
+      "a measure with both periods as values and no delta",
+      "measures",
+      (b: Json) => (((b["items"] as Json[])[0] as Json)["delta"] = null),
+      "items[0].delta",
+    ],
+    [
+      "a delta given beside a withheld earlier period",
+      "measures",
+      (b: Json) => {
+        const item = (b["items"] as Json[])[1] as Json;
+        item["earlier"] = { kind: "withheld", reason: null };
+      },
+      "items[1].delta",
+    ],
+    [
+      "a statement period given twice",
+      "statement",
+      (b: Json) => ((b["periods"] as string[])[3] = "2022"),
+      "periods[3]",
+    ],
+    [
+      "a measure with a missing consequence",
+      "measures",
+      (b: Json) => delete ((b["items"] as Json[])[1] as Json)["consequence"],
+      "items[1].consequence",
+    ],
+  ];
+  it.each(broken)("is invalid for %s, with its path", (_, kind, break_, path) => {
+    const slice = fresh();
+    const base = where(slice, kind);
+    break_(blockOf(slice, kind));
+    expect(invalidReason(slice)).toContain(`${base}.${path}`);
+  });
+
+  it("reads the six chart tables as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const tables = body.records.flatMap((r) => (r.kind === "chartTable" ? [r] : []));
+    expect(tables.map((t) => [t.chart, t.nav, t.title, t.note, t.footnotes.length])).toEqual([
+      [
+        "stack",
+        "Debt stack and maturities",
+        "Debt stack",
+        "USD 2,398m gross debt at 30 Sep 2026, by rank",
+        1,
+      ],
+      ["columns", "Debt stack and maturities", "Maturities by year", "USD m, calendar years", 0],
+      ["bullet", "Headroom", "Headroom against covenant and rating triggers", null, 0],
+      ["bridge", "Liquidity walk", "Liquidity walk, June to September 2026", "USD m", 0],
+      [
+        "scatter",
+        "Against peers",
+        "Leverage and margin against peers",
+        "Five listed peers, latest financial year",
+        1,
+      ],
+      ["range", "Against peers", "Interest cover against the peer range", null, 1],
+    ]);
+    expect(tables[1]?.rows.map((r) => r.cells)).toEqual([
+      ["2027", "Other debt", "40"],
+      ["2028", "Senior unsecured notes", "310"],
+      ["2029", "Nothing", "0"],
+      ["2030", "Term loan B", "1,150"],
+      ["2031", "Senior secured notes", "600"],
+      ["Leases", "Schedule not in the files", null],
+    ]);
+    expect(tables[2]?.rows[3]?.cells[2]).toEqual({ kind: "withheld", reason: null });
+    expect(tables[0]?.columns.map((c) => c.align)).toEqual(["left", "left", "right"]);
+    expect(tables[4]?.rows[5]?.cells).toEqual(["Peer E", "3.5x", null]);
+    expect(tables[3]?.rows.map((r) => r.emphasis)).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]);
+  });
+
+  it("reads the facility terms and the tests as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const facts = body.records.find((r) => r.kind === "facts");
+    const status = body.records.find((r) => r.kind === "status");
+    expect(
+      facts?.kind === "facts" &&
+        facts.groups.map((g) => [g.name, g.rows.map((r) => [r.label, r.value])]),
+    ).toEqual([
+      [
+        "Term loan B",
+        [
+          ["Amount", { kind: "value", text: "USD 1,150m", at: 1150 }],
+          ["Margin", { kind: "value", text: "Reference rate plus 3.25%", at: null }],
+          ["Maturity", { kind: "value", text: "September 2030", at: null }],
+        ],
+      ],
+      [
+        "Revolving facility",
+        [
+          ["Size", { kind: "value", text: "USD 250m", at: 250 }],
+          ["Drawn", { kind: "value", text: "USD 0m", at: 0 }],
+          ["Commitment fee", null],
+        ],
+      ],
+      ["Receivables facility", [["Availability", { kind: "withheld", reason: null }]]],
+    ]);
+    expect(
+      status?.kind === "status" &&
+        status.groups.map((g) => [g.state, g.count, g.items.map((i) => i.text)]),
+    ).toEqual([
+      ["Not met", "1", ["Compliance certificate on time"]],
+      [
+        "Met",
+        "3",
+        [
+          "First-lien net leverage",
+          "Restricted payments basket",
+          "Receivables facility availability",
+        ],
+      ],
+    ]);
+  });
+
+  it("reads the statement and the gap as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const statement = body.records.find((r) => r.kind === "statement");
+    const gap = body.records.find((r) => r.kind === "gap");
+    expect(statement).toMatchObject({
+      title: "Debt and leverage by year",
+      stub: "USD m, year to 30 Sep",
+      periods: ["2022", "2023", "2024", "2025", "2026"],
+      trace: null,
+    });
+    const ebitda = statement?.kind === "statement" ? statement.rows[3] : undefined;
+    expect(ebitda).toEqual({
+      label: "EBITDA",
+      cells: [
+        null,
+        { kind: "value", text: "356", at: 356 },
+        { kind: "value", text: "398", at: 398 },
+        { kind: "value", text: "441", at: 441 },
+        { kind: "value", text: "486", at: 486 },
+      ],
+      emphasis: false,
+    });
+    expect(gap).toMatchObject({ title: "Hedge expiries", nav: "Hedges" });
   });
 });

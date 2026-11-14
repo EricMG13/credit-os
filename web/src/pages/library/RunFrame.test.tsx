@@ -110,6 +110,27 @@ describe("RunFrame tabs", () => {
     const run = slice.issuers[0]?.runs[0] as Run;
     run.head["firstModule"] = null;
     run.modules = [];
+    const evidence = run["evidence"] as {
+      moduleFilter: unknown[];
+      sources: { files: { readers: unknown }[] };
+      trace: { rows: { id: string; module: string; moduleId: string | null }[] };
+      gaps: { groups: unknown[] };
+      tabs: Json;
+    };
+    evidence.moduleFilter = [];
+    evidence.gaps.groups = [];
+    evidence.tabs["gaps"] = "0";
+    (run.overview as { limitations: { gapsLink: Json } }).limitations.gapsLink["label"] =
+      "See the 0 gaps in Evidence";
+    for (const row of evidence.trace.rows)
+      Object.assign(row, { module: "Overview", moduleId: null });
+    // a G- row is a gap of the run, and this run holds none: those rows take a T- id instead
+    const rename = (id: string) => (id.startsWith("G-") ? `T-9${id.slice(2)}` : id);
+    for (const row of evidence.trace.rows) row.id = rename(row.id);
+    for (const trace of Object.values(run.traces)) {
+      trace["evidenceItem"] = rename(String(trace["evidenceItem"]));
+    }
+    for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     run.overview = {
       ...(run.overview as Json),
       modules: {
@@ -164,6 +185,7 @@ describe("Show sources", () => {
     (runs[0] as Run)["overview"] = runs[2]?.["overview"];
     (runs[0] as Run)["changes"] = runs[2]?.["changes"];
     (runs[0] as Run)["modules"] = runs[2]?.["modules"];
+    (runs[0] as Run)["evidence"] = runs[2]?.["evidence"];
     (runs[0] as Run).traces = {};
     expect(() => renderFrame({ library: slice })).toThrow(RangeError);
   });
@@ -301,13 +323,13 @@ describe("Trace drawer", () => {
     });
   });
 
-  it("offers Open in Evidence, which goes to the run's Evidence Trace page and closes the drawer", async () => {
+  it("offers Open in Evidence, which goes to the figure's own item on the run's Evidence Trace page and closes the drawer", async () => {
     renderFrame();
     openDrawer();
     const link = screen.getByRole("link", { name: "Open in Evidence" });
     expect(link).toHaveAttribute(
       "href",
-      "#/library/halden-aerostructures/2026-09-30/evidence/trace",
+      "#/library/halden-aerostructures/2026-09-30/evidence/trace/T-0014",
     );
     fireEvent.click(link);
     await waitFor(() => {

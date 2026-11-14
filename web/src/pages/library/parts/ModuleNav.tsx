@@ -1,5 +1,12 @@
 import { useId } from "react";
-import { AlertTriangle, Flag01, InfoCircle, List, RefreshCw01 } from "@untitledui/icons";
+import {
+  AlertTriangle,
+  Flag01,
+  InfoCircle,
+  LayersThree01,
+  List,
+  RefreshCw01,
+} from "@untitledui/icons";
 import { Button, Link } from "react-aria-components";
 import { STATUS_SETS } from "@/components/status/sets";
 import { StatusShape } from "@/components/status/shapes";
@@ -26,10 +33,12 @@ const ICON = {
   findings: List,
   contrary: AlertTriangle,
   "change-view": RefreshCw01,
+  records: LayersThree01,
   limitations: InfoCircle,
 } as const;
 
-export type NavSection = { key: keyof typeof ICON; label: string };
+/** One entry: `key` addresses its target on the page, `icon` names one of the section icons. */
+export type NavSection = { key: string; label: string; icon: keyof typeof ICON };
 export type NavModule = { id: string; name: string; state: ModuleState };
 
 /**
@@ -69,7 +78,7 @@ export function ModuleNav({
           </span>
           <ul aria-labelledby={sectionsLabel}>
             {sections.map((section) => {
-              const Icon = ICON[section.key];
+              const Icon = ICON[section.icon];
               return (
                 <li key={section.key}>
                   <Button

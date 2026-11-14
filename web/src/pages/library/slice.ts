@@ -231,10 +231,166 @@ export type Changes =
     };
 
 /**
- * One block of a module's records (tables, charts and the like). Tasks 9 to 11 add its kinds; until
- * then no kind is known, so the reader accepts only an empty list.
+ * A risk matrix: `columns` heads the Table side (the risk, then the two grades); a grade that is
+ * not recorded is `null` and draws "n.a.". `trace` is the block's own, each row has its own.
  */
-type RecordBlock = never;
+type MatrixRecord = {
+  kind: "matrix";
+  title: string;
+  note: string | null;
+  columns: readonly string[];
+  rows: readonly {
+    risk: string;
+    probability: string | null;
+    impact: string | null;
+    trace: string | null;
+  }[];
+  trace: string | null;
+};
+
+/** Indicators to watch: `timing` says whether the indicator moves before the credit does or after. */
+type WatchRecord = {
+  kind: "watch";
+  title: string;
+  items: readonly {
+    indicator: string;
+    threshold: string;
+    timing: "leading" | "lagging";
+    trace: string | null;
+  }[];
+};
+
+/** The words of the Answer state set. */
+export type AnswerState = keyof (typeof STATUS_SETS)["Answer state"];
+
+/**
+ * Questions the module set out to answer. `answer` is `null` for a question with none, which
+ * carries no trace and is never "Answered".
+ */
+type QuestionsRecord = {
+  kind: "questions";
+  title: string;
+  items: readonly {
+    question: string;
+    state: AnswerState;
+    answer: string | null;
+    trace: string | null;
+  }[];
+};
+
+/** How one thing leads to another: the steps in order, each a title and one line. */
+type EdgesRecord = {
+  kind: "edges";
+  title: string;
+  steps: readonly { title: string; text: string }[];
+};
+
+/**
+ * The data module's blocks carry `nav`: the delivered label of the navigator entry that moves to
+ * them, shared by every block that names the same one, or `null` for a block with no entry.
+ */
+type Navigable = { nav: string | null };
+
+/** Headline figures: each is a `Metric`, whose missing value is `null` and withheld one a `withheld` cell. */
+type MetricsRecord = Navigable & { kind: "metrics"; title: string; items: readonly Metric[] };
+
+/**
+ * A measure against its earlier period. `delta` is delivered with its direction, never worked out;
+ * it is `null` when either period is not a value, and the line then reads the earlier period itself.
+ */
+type MeasuresRecord = Navigable & {
+  kind: "measures";
+  title: string;
+  items: readonly {
+    label: string;
+    current: Cell;
+    earlier: Cell;
+    delta: { text: string; direction: "up" | "down" | "flat" } | null;
+    consequence: string;
+    trace: string | null;
+  }[];
+};
+
+/** The words of the Met or not met set. */
+export type TestState = keyof (typeof STATUS_SETS)["Met or not met"];
+
+/**
+ * Terms as labelled values in named groups (`name` is `null` for a group with no heading). A zero
+ * reads as zero, a missing value as `null` ("n.a.") and a withheld one as a `withheld` cell.
+ */
+type FactsRecord = Navigable & {
+  kind: "facts";
+  title: string;
+  groups: readonly {
+    name: string | null;
+    rows: readonly { label: string; value: Cell; trace: string | null }[];
+  }[];
+};
+
+/**
+ * Tests that are met or not, in the order delivered, one group for each state. `count` is the
+ * delivered text beside the state; `note` is a line under the test, or `null`.
+ */
+type StatusRecord = Navigable & {
+  kind: "status";
+  title: string;
+  groups: readonly {
+    state: TestState;
+    count: string;
+    items: readonly { text: string; note: string | null; value: Cell; trace: string | null }[];
+  }[];
+};
+
+/**
+ * A statement by period: `stub` heads the row-label column, each row has one cell for each of
+ * `periods`, and `emphasis` marks a line the module wrote as a total. `basis` is the note under it.
+ */
+type StatementRecord = Navigable & {
+  kind: "statement";
+  title: string;
+  stub: string;
+  basis: string | null;
+  periods: readonly string[];
+  rows: readonly { label: string; cells: readonly Cell[]; emphasis: boolean }[];
+  trace: string | null;
+};
+
+/** What the module could not establish, in place of a chart or table: the reason it gives. */
+type GapRecord = Navigable & { kind: "gap"; title: string; reason: string };
+
+/** The positions a chart table's styling reaches: a left column or an emphasised row lies within them. */
+export const CHART_TABLE_LIMITS = { columns: 8, rows: 12 } as const;
+
+/**
+ * A chart's data as a table, drawn as its Table side. `chart` is the kind of chart the later chart
+ * step draws from the same record. The first column labels each row, so its cell is text; every
+ * other cell is text, a `Cell` (`null` missing, zero as zero, withheld) or a gap. `emphasis` marks
+ * a row the module wrote as a total or as the issuer's own; `footnotes` are delivered sentences.
+ */
+type ChartTableRecord = Navigable & {
+  kind: "chartTable";
+  title: string;
+  chart: "stack" | "columns" | "bullet" | "bridge" | "scatter" | "range";
+  note: string | null;
+  columns: readonly { label: string; align: "left" | "right" }[];
+  rows: readonly { cells: readonly (Cell | string)[]; emphasis: boolean }[];
+  footnotes: readonly string[];
+  trace: string | null;
+};
+
+/** One block of a module's records. */
+export type RecordBlock =
+  | MatrixRecord
+  | WatchRecord
+  | QuestionsRecord
+  | EdgesRecord
+  | MetricsRecord
+  | MeasuresRecord
+  | FactsRecord
+  | StatusRecord
+  | StatementRecord
+  | ChartTableRecord
+  | GapRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {
@@ -266,6 +422,117 @@ export type Module = {
   body: DeliveredBody | BlockedBody;
 };
 
+/** The words of the File state set a source file is drawn with; "Uploading" belongs to the run start page. */
+export type FileState = Exclude<keyof (typeof STATUS_SETS)["File state"], "Uploading">;
+
+/** A module that read a file, as the module filter lists it: its id, name and delivered initials. */
+export type Reader = { id: string; name: string; initials: string };
+
+/**
+ * One source file of a run. `kind` is the type shown on its icon ("PDF"); `why` is the sentence
+ * beside the state, always present for an unreadable file. `readers.shown` are the avatars drawn;
+ * `readers.more` is the "+N" avatar, whose `ids` are the modules it stands for, so a module filter
+ * compares ids across both. Each reader is a module the filter lists. `readersLabel` and every
+ * count are delivered text.
+ */
+export type SourceFile = {
+  name: string;
+  kind: string;
+  size: string;
+  state: FileState;
+  why: string | null;
+  readersLabel: string;
+  readers: {
+    shown: readonly Reader[];
+    more: { text: string; label: string; ids: readonly string[] } | null;
+  };
+  hash: string;
+};
+
+/**
+ * A download: `href` is the file's address, or `null` when none can be offered, then `reason` is the
+ * sentence drawn beside the disabled button. Nothing is generated in the browser.
+ */
+export type Download = { label: string; href: string | null; reason: string | null };
+
+/**
+ * One traced item. `moduleId` is the module it sits in, or `null` for an item of the Overview
+ * (then `module` is "Overview"). `sources` is the delivered count, a real zero when there is none;
+ * `calc` is the derivation of a figure the module calculated; `note` says what the row cannot.
+ */
+export type TraceRow = {
+  id: string;
+  item: string;
+  module: string;
+  moduleId: string | null;
+  kind: string;
+  value: Cell;
+  sources: string;
+  calc: TreeNode | null;
+  note: string | null;
+};
+
+/**
+ * The Trace tab: its delivered title, sentence and heads, then one row for each traced item. A
+ * register with no row carries `emptyText`, the delivered sentence saying what is true of that run;
+ * one with rows carries `null`. A row id starting "G-" is the id of a gap of the run, in its module.
+ */
+export type TraceTable = {
+  title: string;
+  description: string;
+  emptyText: string | null;
+  columns: Record<"id" | "item" | "value" | "module" | "kind" | "sources", string>;
+  rows: readonly TraceRow[];
+};
+
+/** The words of the Gap severity set. */
+export type GapSeverity = keyof (typeof STATUS_SETS)["Gap severity"];
+
+/** How a gap appears on the findings pages: the kit's gap badge, withheld, blocked badge or "n.a.". */
+export type GapForm = "gap" | "withheld" | "blocked" | "missing";
+
+/**
+ * One gap. `moduleId` is the module it sits in. `where` is the findings page it shows on, the
+ * Overview or that module's own page, and the delivered label of the link to it.
+ */
+export type GapRow = {
+  id: string;
+  gap: string;
+  module: string;
+  moduleId: string;
+  reason: string;
+  shownAs: GapForm;
+  where: { page: "overview" | "module"; label: string };
+};
+
+/** The Gaps tab: its title, sentence and heads, then groups by severity as delivered; `count` is delivered text. */
+export type GapTable = {
+  title: string;
+  description: string;
+  columns: Record<"id" | "gap" | "module" | "reason" | "shownAs", string>;
+  groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
+};
+
+/**
+ * A run's Evidence pages. `moduleFilter` is the options of the module filter. `tabs` are the delivered
+ * counts of the Trace, Sources and Gaps tabs; the Trace and Gaps counts are the numbers of rows they hold. On Sources the first `visible` files are drawn and the
+ * rest wait behind `moreLabel`, which is `null` exactly when none is held back.
+ */
+export type Evidence = {
+  intro: string;
+  moduleFilter: readonly Reader[];
+  tabs: { trace: string; sources: string; gaps: string };
+  summary: {
+    delivered: { note: string | null; progress: { text: string; value: number; max: number } };
+    counts: readonly Metric[];
+    run: { code: string; hash: string };
+    take: { text: string; download: Download };
+  };
+  sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
+  trace: TraceTable;
+  gaps: GapTable;
+};
+
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
 
 /** A run still loading carries no overview, changes or modules; every other run carries all three. */
@@ -274,8 +541,15 @@ export type LoadedRun = RunBase & {
   overview: Overview;
   changes: Changes;
   modules: readonly Module[];
+  evidence: Evidence;
 };
-type LoadingRun = RunBase & { loading: true; overview: null; changes: null; modules: null };
+type LoadingRun = RunBase & {
+  loading: true;
+  overview: null;
+  changes: null;
+  modules: null;
+  evidence: null;
+};
 
 /** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
 export type Run = LoadedRun | LoadingRun;
