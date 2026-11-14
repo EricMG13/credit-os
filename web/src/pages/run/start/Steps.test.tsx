@@ -6,7 +6,7 @@ import type { LoadResult } from "../../../data";
 
 const fixture = JSON.parse(
   readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: { drafts: Record<string, unknown>[] } };
+) as { slice: { drafts: Record<string, unknown>[]; runs: unknown[]; current: string } };
 
 function show(hash: string, run: unknown) {
   window.location.hash = `#${hash}`;
@@ -70,7 +70,7 @@ describe("Purpose with nothing chosen", () => {
     const drafts = fixture.slice.drafts.map((d) =>
       d["id"] === "purpose" ? { ...d, chosen: null } : d,
     );
-    show("/run/start/purpose", { drafts });
+    show("/run/start/purpose", { ...fixture.slice, drafts });
     const radios = screen.getAllByRole("radio");
     expect(radios).toHaveLength(3);
     for (const r of radios) expect(r).not.toBeChecked();
@@ -155,7 +155,7 @@ describe("More context (frame 05)", () => {
       d["id"] === "context" ? { ...d, note: "Saved note" } : d,
     );
     cleanup();
-    show("/run/start/context", { drafts });
+    show("/run/start/context", { ...fixture.slice, drafts });
     expect(screen.getByRole("textbox", { name: LABEL })).toHaveValue("Saved note");
   });
 });

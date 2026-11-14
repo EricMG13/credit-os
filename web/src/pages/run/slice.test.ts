@@ -6,16 +6,25 @@ type Node = Record<string | number, unknown>;
 const fixture = JSON.parse(
   readFileSync(path.join(import.meta.dirname, "../../../fixtures/run.json"), "utf8"),
 ) as { slice: unknown };
-// A copy of the fixture slice with one draft's value at `at` replaced (undefined removes it).
-function edit(id: string, at: (string | number)[], value: unknown): unknown {
-  const copy = structuredClone(fixture.slice) as { drafts: Node[] };
-  let node: Node = copy.drafts.find((d) => d.id === id) ?? {};
-  for (const key of at.slice(0, -1)) node = node[key] as Node;
+// A copy of the fixture slice with one record's value at `at` replaced (undefined removes it).
+function editIn(
+  key: "drafts" | "runs",
+  id: string,
+  at: (string | number)[],
+  value: unknown,
+): unknown {
+  const copy = structuredClone(fixture.slice) as Record<"drafts" | "runs", Node[]>;
+  let node: Node = copy[key].find((d) => d.id === id) ?? {};
+  for (const k of at.slice(0, -1)) node = node[k] as Node;
   const last = at[at.length - 1] ?? "";
   if (value === undefined) Reflect.deleteProperty(node, last);
   else node[last] = value;
   return copy;
 }
+const edit = (id: string, at: (string | number)[], value: unknown) =>
+  editIn("drafts", id, at, value);
+const editRun = (id: string, at: (string | number)[], value: unknown) =>
+  editIn("runs", id, at, value);
 const reason = (source: unknown): string => {
   const r = readSlice(source);
   return r.kind === "invalid" ? r.reason : `not invalid: ${r.kind}`;
@@ -222,5 +231,376 @@ describe("unknown keys", () => {
     const r = readSlice(edit("context", ["extra"], "x"));
     expect(r.kind).toBe("ok");
     if (r.kind === "ok") expect(Object.keys(r.data.drafts[4] ?? {})).not.toContain("extra");
+  });
+});
+
+type Slice = Extract<ReturnType<typeof readSlice>, { kind: "ok" }>["data"];
+type Rec = Extract<Slice["runs"][number], { kind: "run" }>;
+function read(): Slice {
+  const r = readSlice(fixture.slice);
+  if (r.kind !== "ok") throw new Error("fixture invalid");
+  return r.data;
+}
+function run(id: string): Rec {
+  const found = read().runs.find((x) => x.id === id);
+  if (found?.kind !== "run") throw new Error(`no run ${id}`);
+  return found;
+}
+function steps(id: string) {
+  const m = run(id).modules;
+  if (m.kind !== "steps") throw new Error("not steps");
+  return m.steps;
+}
+const SPEND = (label: string, value: number) => ({ label, value, max: 20 });
+
+describe("committed fixture, run activity", () => {
+  it("holds eleven records in order and a current run", () => {
+    const data = read();
+    expect(data.runs.map((x) => x.id)).toEqual([
+      "running",
+      "queued",
+      "starting",
+      "finished",
+      "failed",
+      "capped",
+      "rejected",
+      "interrupted",
+      "many-modules",
+      "none",
+      "unreadable",
+    ]);
+    expect(data.current).toBe("running");
+  });
+
+  it("running and queued", () => {
+    const r = run("running");
+    expect(r).toMatchObject({
+      issuer: "TransDigm Group",
+      state: "Running",
+      labels: ["Full credit review", "As of Q3 FY2026"],
+      line: null,
+      alert: null,
+      open: null,
+      spend: { value: "USD 7.40", bar: SPEND("USD 7.40 of USD 20.00", 7.4) },
+      finished: { value: "5 of 13", bar: { label: "5 of 13 modules", value: 5, max: 13 } },
+      elapsed: { value: "16 min 12 s", note: "Started today at 14:38" },
+    });
+    expect(steps("running")).toHaveLength(13);
+    expect(steps("running")[4]).toEqual({
+      kind: "module",
+      name: "Liquidity",
+      state: "Finished",
+      detail: "Finished in 3 min 20 s, USD 1.62",
+    });
+    expect(steps("running")[5]).toEqual({
+      kind: "module",
+      name: "Covenants",
+      state: "Running",
+      detail: "Started at 14:54",
+    });
+    expect(steps("running")[6]).toEqual({
+      kind: "module",
+      name: "Peer comparison",
+      state: "Queued",
+      detail: null,
+    });
+    expect(r.feed).toHaveLength(7);
+    expect(r.feed[0]).toEqual({
+      who: "Covenants",
+      time: "14:54",
+      text: "Started.",
+      state: "Running",
+    });
+    expect(r.feed[6]).toEqual({
+      who: "Run",
+      time: "14:38",
+      text: "Started. 13 modules queued, cap USD 20.00.",
+      state: "Queued",
+    });
+    const q = run("queued");
+    expect(q.state).toBe("Queued");
+    expect(q.line).toBe("Waiting for the model service. Nothing has been spent.");
+    expect(q.elapsed).toEqual({ value: null, note: "Not started yet" });
+    expect(q.spend.bar.value).toBe(0);
+    expect(steps("queued").every((m) => m.kind === "module" && m.state === "Queued")).toBe(true);
+    expect(q.feed).toEqual([
+      {
+        who: "Run",
+        time: "14:37",
+        text: "Submitted and queued. 13 modules, cap USD 20.00.",
+        state: "Queued",
+      },
+    ]);
+  });
+
+  it("starting, with no finished figure", () => {
+    const r = run("starting");
+    expect(r.modules).toEqual({
+      kind: "starting",
+      label: "Starting the run. No module has reported yet.",
+    });
+    expect(r.finished).toEqual({
+      value: null,
+      bar: { label: "No module has reported yet", value: 0, max: 13 },
+    });
+    expect(r.elapsed).toEqual({ value: "0 min 08 s", note: "Started today at 14:38" });
+    expect(r.feed).toHaveLength(1);
+  });
+
+  it("finished", () => {
+    const r = run("finished");
+    expect(r.open).toEqual({ label: "Open the library", href: "#/" });
+    expect(r.spend.value).toBe("USD 16.65");
+    expect(r.finished.value).toBe("12 of 13");
+    expect(steps("finished")[9]).toEqual({
+      kind: "module",
+      name: "Recovery",
+      state: "Not assessable",
+      detail:
+        "The documents supplied do not state the security package, so recovery could not be assessed.",
+    });
+    expect(r.feed[3]).toEqual({
+      who: "Recovery",
+      time: "15:09",
+      text: "Not assessable: the security package is not stated in the documents.",
+      state: "Not assessable",
+    });
+    expect(r.feed).toHaveLength(6);
+  });
+
+  it("failed, capped, rejected and interrupted", () => {
+    const failed = run("failed");
+    expect(failed.alert).toEqual({
+      title: "The run failed",
+      text: "Financial analysis stopped after three attempts because the model service returned no usable answer. Two modules finished and are kept. Starting again goes through Start and asks before it spends.",
+      action: { label: "Review and start again", href: "#/run/start/start" },
+      alt: { label: "Open what finished", href: "#/" },
+    });
+    expect(steps("failed")[2]).toMatchObject({ state: "Not assessable" });
+    expect(steps("failed")[3]).toMatchObject({ state: "Not run", detail: "Did not run." });
+    expect(failed.feed[0]).toEqual({
+      who: "Run",
+      time: "14:48",
+      text: "Failed. USD 3.10 spent.",
+      state: "Failed",
+    });
+    const capped = run("capped");
+    expect(capped.spend.bar).toEqual(SPEND("USD 20.00 of USD 20.00", 20));
+    expect(capped.alert?.action).toEqual({ label: "Open what finished", href: "#/" });
+    expect(capped.alert?.alt).toEqual({
+      label: "Start a new run",
+      href: "#/run/start/no-documents",
+    });
+    expect(capped.feed[0]?.state).toBe("Capped");
+    const rejected = run("rejected");
+    expect(rejected.modules).toEqual({
+      kind: "none",
+      title: "No module ran",
+      text: "The run was rejected before it started, so there is nothing to show and nothing was spent.",
+    });
+    expect(rejected.alert?.alt).toBeNull();
+    expect(rejected.alert?.action).toEqual({
+      label: "Back to Documents",
+      href: "#/run/start/documents",
+    });
+    expect(rejected.elapsed).toEqual({ value: null, note: "Rejected today at 14:37" });
+    expect(rejected.spend.bar.value).toBe(0);
+    expect(rejected.feed.map((e) => e.state)).toEqual(["Rejected", "Queued"]);
+    const interrupted = run("interrupted");
+    expect(interrupted.alert?.action).toEqual({
+      label: "Review and resume",
+      href: "#/run/start/start",
+    });
+    expect(steps("interrupted")[5]).toMatchObject({ name: "Covenants", state: "Interrupted" });
+    expect(interrupted.feed[0]?.state).toBe("Interrupted");
+  });
+
+  it("many modules, with two groups", () => {
+    const r = run("many-modules");
+    expect(r.spend.value).toBe("USD 11.85");
+    expect(r.finished).toEqual({
+      value: "12 of 22",
+      bar: { label: "12 of 22 modules", value: 12, max: 22 },
+    });
+    const s = steps("many-modules");
+    expect(s).toHaveLength(6);
+    const first = s[0];
+    if (first?.kind !== "group") throw new Error("group");
+    expect(first).toMatchObject({
+      title: "12 modules finished",
+      state: "Finished",
+      showAll: "Show all 12",
+    });
+    expect(first.modules).toHaveLength(12);
+    expect(first.modules[9]).toEqual({
+      name: "Customer concentration",
+      state: "Finished",
+      detail: "Finished in 2 min 02 s, USD 0.70",
+    });
+    expect(first.modules.every((m) => m.state === "Finished")).toBe(true);
+    expect(s[1]).toMatchObject({ kind: "module", name: "Recovery", state: "Running" });
+    const last = s[5];
+    if (last?.kind !== "group") throw new Error("group");
+    expect(last).toMatchObject({ title: "6 more modules queued", showAll: "Show all 6" });
+    expect(last.modules).toHaveLength(6);
+  });
+
+  it("none and unreadable", () => {
+    expect(read().runs[9]).toEqual({ kind: "none", id: "none" });
+    expect(read().runs[10]).toEqual({
+      kind: "unreadable",
+      id: "unreadable",
+      issuer: "TransDigm Group",
+      labels: ["Full credit review", "As of Q3 FY2026"],
+      alert: {
+        title: "Run activity cannot be read",
+        text: "The run record could not be opened. This does not stop the run or change what it spends; the cap still applies.",
+        action: { label: "Try again", href: "#/run/activity/unreadable" },
+        alt: { label: "Back to the library", href: "#/" },
+      },
+    });
+  });
+
+  it("keeps null as null and zero as 0", () => {
+    expect(run("queued").elapsed.value).toBeNull();
+    expect(run("starting").finished.value).toBeNull();
+    expect(run("queued").spend.bar.value).toBe(0);
+  });
+});
+
+describe("rejects, run activity", () => {
+  it("a duplicate run id", () => {
+    expect(reason(editRun("queued", ["id"], "running"))).toBe(
+      "run.runs[1].id: expected an id no other run uses",
+    );
+  });
+  it("a current that names no run, and a null current is read", () => {
+    const source = structuredClone(fixture.slice) as { current: string | null };
+    source.current = "nowhere";
+    expect(reason(source)).toBe("run.current: expected null or the id of a run in this slice");
+    source.current = null;
+    expect(readSlice(source).kind).toBe("ok");
+  });
+  it("a started draft whose activity names no run", () => {
+    expect(reason(edit("started", ["activity"], "nowhere"))).toBe(
+      "run.drafts[6].activity: expected the id of a run in this slice",
+    );
+  });
+  it.each(["https://example.com/", "javascript:alert(1)", "run/start"])("a link to %j", (href) => {
+    expect(reason(editRun("finished", ["open", "href"], href))).toBe(
+      'run.runs[3].open.href: expected an address starting with "#/"',
+    );
+  });
+  it("an alert action with an outside address", () => {
+    expect(reason(editRun("failed", ["alert", "alt", "href"], "http://x.test/"))).toBe(
+      'run.runs[4].alert.alt.href: expected an address starting with "#/"',
+    );
+  });
+  it("an unknown run state, record kind and module word", () => {
+    expect(reason(editRun("running", ["state"], "Paused"))).toBe(
+      "run.runs[0].state: expected one of Queued, Running, Finished, Failed, Capped, Rejected, Interrupted",
+    );
+    expect(reason(editRun("running", ["kind"], "other"))).toBe(
+      "run.runs[0].kind: expected one of run, none, unreadable",
+    );
+    expect(reason(editRun("running", ["modules", "steps", 1, "state"], "Done"))).toBe(
+      "run.runs[0].modules.steps[1].state: expected one of Queued, Running, Finished, Interrupted, Not assessable, Not run",
+    );
+    expect(reason(editRun("running", ["feed", 0, "state"], "Not run"))).toBe(
+      "run.runs[0].feed[0].state: expected one of Queued, Running, Finished, Failed, Capped, Rejected, Interrupted, Not assessable",
+    );
+  });
+  it("a module word a live run cannot carry", () => {
+    expect(reason(editRun("running", ["modules", "steps", 6, "state"], "Not run"))).toBe(
+      "run.runs[0].modules.steps[6].state: expected a module word a live run can carry",
+    );
+    expect(
+      reason(editRun("many-modules", ["modules", "steps", 0, "modules", 2, "state"], "Not run")),
+    ).toBe(
+      "run.runs[8].modules.steps[0].modules[2].state: expected a module word a live run can carry",
+    );
+    expect(reason(editRun("many-modules", ["modules", "steps", 5, "state"], "Not run"))).toBe(
+      "run.runs[8].modules.steps[5].state: expected a module word a live run can carry",
+    );
+  });
+  it("a module word an ended run cannot carry", () => {
+    expect(reason(editRun("failed", ["modules", "steps", 3, "state"], "Queued"))).toBe(
+      "run.runs[4].modules.steps[3].state: expected a module word an ended run can carry",
+    );
+    expect(reason(editRun("finished", ["modules", "steps", 0, "state"], "Running"))).toBe(
+      "run.runs[3].modules.steps[0].state: expected a module word an ended run can carry",
+    );
+  });
+  it("starting outside a Running run and none outside a Rejected run", () => {
+    expect(reason(editRun("queued", ["modules"], { kind: "starting", label: "x" }))).toBe(
+      "run.runs[1].modules.kind: expected starting only in a Running run",
+    );
+    expect(reason(editRun("running", ["modules"], { kind: "none", title: "t", text: "x" }))).toBe(
+      "run.runs[0].modules.kind: expected none only in a Rejected run",
+    );
+  });
+  it("an empty group and a group inside a group", () => {
+    expect(reason(editRun("many-modules", ["modules", "steps", 0, "modules"], []))).toBe(
+      "run.runs[8].modules.steps[0].modules: expected a non-empty list",
+    );
+    const nested = {
+      kind: "group",
+      name: "Inner",
+      state: "Finished",
+      detail: null,
+      title: "t",
+      showAll: "s",
+      modules: [{ name: "Hidden", state: "Finished", detail: null }],
+    };
+    expect(reason(editRun("many-modules", ["modules", "steps", 0, "modules"], [nested]))).toBe(
+      "run.runs[8].modules.steps[0].modules[0]: expected a plain module, not a group",
+    );
+  });
+  it("an ended run with a Queued member inside a group", () => {
+    const group = {
+      kind: "group",
+      title: "t",
+      state: "Finished",
+      showAll: "s",
+      modules: [{ name: "A", state: "Queued", detail: null }],
+    };
+    expect(reason(editRun("finished", ["modules", "steps", 0], group))).toBe(
+      "run.runs[3].modules.steps[0].modules[0].state: expected a module word an ended run can carry",
+    );
+  });
+  it("the first failing path in a record wins, in document order", () => {
+    const s = structuredClone(fixture.slice) as { runs: Node[] };
+    const run = s.runs[0] as { modules: { steps: Node[] }; feed: Node[] };
+    run.modules.steps[6] = { ...run.modules.steps[6], state: "Not run" };
+    run.feed[0] = { ...run.feed[0], state: "Bogus" };
+    expect(reason(s)).toBe(
+      "run.runs[0].modules.steps[6].state: expected a module word a live run can carry",
+    );
+    const t = structuredClone(fixture.slice) as { runs: Node[] };
+    const r2 = t.runs[0] as { modules: { steps: Node[] }; feed: Node[] };
+    r2.modules.steps[6] = { ...r2.modules.steps[6], name: "CP-3 X" };
+    r2.feed[0] = { ...r2.feed[0], state: "Bogus" };
+    expect(reason(t)).toBe("run.runs[0].modules.steps[6].name: expected no module code");
+  });
+  it("a module code anywhere in a run", () => {
+    expect(reason(editRun("running", ["feed", 0, "text"], "CP-3 started."))).toBe(
+      "run.runs[0].feed[0].text: expected no module code",
+    );
+    expect(reason(editRun("unreadable", ["alert", "text"], "Stopped at CP-12"))).toBe(
+      "run.runs[10].alert.text: expected no module code",
+    );
+  });
+  it("a missing figure value and a bad bar", () => {
+    expect(reason(editRun("running", ["spend", "value"], undefined))).toBe(
+      "run.runs[0].spend.value: expected a string or null",
+    );
+    expect(reason(editRun("running", ["spend", "bar", "value"], 21))).toBe(
+      "run.runs[0].spend.bar.value: expected a number from 0 to max",
+    );
+  });
+  it("an unreadable record with no alert", () => {
+    expect(reason(editRun("unreadable", ["alert"], undefined))).toBe(
+      "run.runs[10].alert: expected an object",
+    );
   });
 });
