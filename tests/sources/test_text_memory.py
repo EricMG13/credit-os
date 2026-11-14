@@ -1,4 +1,8 @@
-"""Peak memory of the text and csv readers on bounded inputs."""
+"""Peak memory of the text and csv readers on bounded inputs.
+
+Stated bounds, peak traced memory of one call: text_pages 12 * len(raw) + 4 MiB, csv_pages
+17 * len(raw) + 64 MiB. The limits below are tighter: fitted to these shapes, to see a copy.
+"""
 
 import tracemalloc
 from collections.abc import Callable
@@ -12,8 +16,9 @@ from credit_os.sources.text import csv_pages, text_pages
 
 SIZE = 262_144
 Reader = Callable[[str, bytes], SourcePages]
-TL = 12 * 262_144 + 4 * 1_048_576
-DL = 16 * 262_144 + 2 * 1_048_576
+TL = 7 * 262_144
+CL = 5 * 262_144
+DL = 12 * 262_144
 WL = 12 * 262_144 + 32 * 1_048_576
 ASTRAL = "\U0001f600".encode()
 EURO = "\N{EURO SIGN}".encode()
@@ -52,13 +57,13 @@ CASES = [
     _case("text-crlf", TXT, _exact(b"\r\n" * ((SIZE - 1) // 2) + b"x"), TL, 22, 131_071 * 2 + 2),
     _case("text-crlf-then-control", TXT, b"a\r\n" * ((SIZE - 1) // 3) + b"\x1b", TL, 0, 0, CONTROL),
     _case("text-windows-1252", TXT, _exact(b"caf\xe9 \n" * (SIZE // 6)), TL, 22, 43_690 * 6 + 4),
-    _case("csv-blank-rows", CSV, b"x\n" + b"\n" * (SIZE - 2), TL, 22, SIZE),
-    _case("csv-short-cells", CSV, b"a\n" * (SIZE // 2), TL, 22, SIZE),
+    _case("csv-blank-rows", CSV, b"x\n" + b"\n" * (SIZE - 2), CL, 22, SIZE),
+    _case("csv-short-cells", CSV, b"a\n" * (SIZE // 2), CL, 22, SIZE),
     _case(
         "csv-crlf-blank",
         CSV,
         _exact(b"x\r\n" + b"\r\n" * ((SIZE - 3) // 2)),
-        TL,
+        CL,
         11,
         2 + 131_070 + 2,
     ),
