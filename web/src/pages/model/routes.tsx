@@ -3,6 +3,7 @@
 // to visit each in a browser, and a test fails if it cannot see one. A page reads its data with
 // `readSlice(useSource().model)`. Edit only this folder and fixtures/model.json.
 import type { Route } from "../route-table";
+import { LimitationsPage } from "./LimitationsPage";
 import { RunsIndexPage } from "./RunsIndexPage";
 
 export { readSlice } from "./slice/read";
@@ -14,5 +15,11 @@ export const routes: readonly Route[] = [
     layout: "bleed",
     title: "Financial models",
     render: () => <RunsIndexPage />,
+  },
+  {
+    path: "/model/:issuer/:run/limitations",
+    layout: "bleed",
+    title: "Limitations",
+    render: (params) => <LimitationsPage params={params} />,
   },
 ];
