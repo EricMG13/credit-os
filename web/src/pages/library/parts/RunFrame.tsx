@@ -8,7 +8,9 @@ import type { Run, RunHead } from "../slice";
 import { ButtonLink } from "./ButtonLink";
 import { LibraryPage } from "./LibraryPage";
 import { NotHeld } from "./NotHeld";
+import { RunContext } from "./RunContext";
 import { SourcesSwitch } from "./SourcesSwitch";
+import { TraceDrawer } from "./TraceDrawer";
 import { ISSUER_HEADING } from "./heading";
 import {
   LIBRARY_HOME,
@@ -178,8 +180,9 @@ function RunSkeleton() {
 }
 
 /**
- * Wraps every run page: the run header, the Show sources switch and the run tabs. `children` is
- * the page body; a run still loading draws the skeleton in its place.
+ * Wraps every run page: the run header, the Show sources switch, the run tabs, and the trace
+ * drawer that a page's trace controls open. `children` is the page body; a run still loading
+ * draws the skeleton in its place.
  */
 export function RunFrame({
   issuer: issuerId,
@@ -193,6 +196,10 @@ export function RunFrame({
   children: ReactNode;
 }) {
   const [sources, setSources] = useState(false);
+  const [drawer, setDrawer] = useState<{ key: string | null; open: boolean }>({
+    key: null,
+    open: false,
+  });
   return (
     <LibraryPage>
       {({ issuers }) => {
@@ -211,18 +218,41 @@ export function RunFrame({
             <NotHeld title="No such run" description="This issuer has no run at this address." />
           );
         }
+        const trace =
+          drawer.key !== null && Object.hasOwn(run.traces, drawer.key)
+            ? run.traces[drawer.key]
+            : undefined;
         return (
-          <div data-sources={sources ? "on" : "off"} className="flex flex-col gap-8">
-            <div className="flex flex-col gap-5">
-              <RunHeader
-                issuer={issuer.id}
-                head={run.head}
-                sources={<SourcesSwitch isSelected={sources} onChange={setSources} />}
-              />
-              <RunTabs issuer={issuer.id} run={run} tab={tab} />
+          <RunContext.Provider
+            value={{
+              traces: run.traces,
+              open: (key) => {
+                setDrawer({ key, open: true });
+              },
+            }}
+          >
+            <div data-sources={sources ? "on" : "off"} className="flex flex-col gap-8">
+              <div className="flex flex-col gap-5">
+                <RunHeader
+                  issuer={issuer.id}
+                  head={run.head}
+                  sources={<SourcesSwitch isSelected={sources} onChange={setSources} />}
+                />
+                <RunTabs issuer={issuer.id} run={run} tab={tab} />
+              </div>
+              {run.loading ? <RunSkeleton /> : children}
             </div>
-            {run.loading ? <RunSkeleton /> : children}
-          </div>
+            {trace === undefined ? null : (
+              <TraceDrawer
+                trace={trace}
+                evidenceHref={evidenceHref(issuer.id, run.id, "trace")}
+                isOpen={drawer.open}
+                onClose={() => {
+                  setDrawer({ key: drawer.key, open: false });
+                }}
+              />
+            )}
+          </RunContext.Provider>
         );
       }}
     </LibraryPage>
