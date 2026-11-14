@@ -124,13 +124,23 @@ describe("Loading indicator on the kit page", () => {
   it("adds no looping animation outside the live block", () => {
     const { container } = render(<Kit />);
     const live = screen.getByRole("group", { name: "Live run state" });
-    const loops = [...container.querySelectorAll("[class*='animate-']")].filter(
-      (el) => !live.contains(el) && !/\banimate-(in|out)\b/.test(el.getAttribute("class") ?? ""),
+    const loops = [...container.querySelectorAll("*")].filter(
+      (el) =>
+        !live.contains(el) &&
+        (el.getAttribute("class") ?? "")
+          .split(/\s+/)
+          .some((token) => /animate-(?!in\b|out\b)|status-halo|queued-shimmer/.test(token)),
     );
-    // The only other loop is the button's own loading state, from an earlier task (reported).
-    expect(loops.map((el) => el.closest("button")?.textContent)).toEqual(["Loading"]);
+    expect(loops).toEqual([]);
     expect(within(live).getByRole("status").querySelectorAll("[class*='animate-']")).toHaveLength(
       1,
     );
+  });
+
+  it("shows the loading button demo inside the live block, captioned", () => {
+    render(<Kit />);
+    const live = screen.getByRole("group", { name: "Live run state" });
+    expect(within(live).getByText("Loading button")).toBeInTheDocument();
+    expect(within(live).getByRole("button", { name: "Loading" })).toBeInTheDocument();
   });
 });

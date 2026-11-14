@@ -138,7 +138,6 @@ export function Kit() {
         </Row>
         <Row>
           <Button isDisabled>Disabled</Button>
-          <Button isLoading>Loading</Button>
           <Button iconLeading={Plus}>Leading icon</Button>
           <Button iconTrailing={Plus}>Trailing icon</Button>
         </Row>
@@ -203,6 +202,10 @@ export function Kit() {
           </Row>
           <div className="queued-shimmer w-64" />
           <LoadingIndicator label="Waiting for the first module" />
+          <div className="flex flex-col items-start gap-2">
+            <span className="text-small text-text-secondary">Loading button</span>
+            <Button isLoading>Loading</Button>
+          </div>
         </div>
       </section>
 
