@@ -3,6 +3,81 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Design track: run pages (step D2d) and the shared changes for D2b to D2e
+
+**Merged**, on the owner's instruction (merge when the review has no High or Medium finding
+and CI is green):
+
+- **D2d, run pages**: 14 stacked PRs in order, each retargeted to `main`: #55, #56, #66,
+  #67, #95, #96, #97, #98, #99, #111, #112, #113, #120, #122 (merge `e0bc511`). After the
+  last merge `web/src/pages/run` and `web/fixtures/run.json` on `main` equal the reviewed
+  head `998b88f` (`git diff --quiet origin/main 998b88f -- web/src/pages/run
+  web/fixtures/run.json`, exit 0). The stack touches nothing else (31 files, +5529/-9).
+- **Shared changes**, each on its own PR because no page group may edit a shared file:
+  #51 `react-is` 19.3.0 as a direct dependency matching React (decision 0010, merge
+  `c814861`); #52 the committed-fixtures test compares `data.js` with the fixtures
+  (`59b0570`); #60 `Route` gains `home` and `layout: "bleed"` (`2491c3b`); #62 `ChartFrame`
+  `subtitle` and `actions`, and `ChartTable` (`7ca8a23`); #73 the kit `Button` takes `href`
+  and renders a link (`ab56092`).
+
+**Delivers.** The run pages from the D1c mocks on fixture data: the five-step start flow,
+run progress with its 22 module steps, activity, the unreadable and no-run states. A page
+group can now own its bare address and draw edge to edge; a kit button can be a link.
+
+**Gates.** `npm --prefix web run gates` exit 0 at `998b88f` and at `8199e37` (#73), and on
+`e2de49f` (#60, before its fix round). #62's full local gates did not finish under load; CI
+was its gate of record. CI green on Linux and Windows for every PR at merge. One Windows
+job on #111 failed once with `EBUSY` in `web/scripts/kit-chrome.mjs` and passed on re-run
+(the read race; its fix is PR #156, not merged at this entry).
+
+**Reviews.**
+- D2d: task review per task (`mx-precise`; `mx-feature` for the last batch). Sweep discovery
+  (`mx-autonomous`, `2491c3b..068bfcb`): 17 rows; 6 defects and the Medium gap fixed in #120
+  and #122, each test first; 8 structural rows and one Low gap go to the phase sweep.
+  Whole-branch adversarial review (`mx-architect`, fresh agent, `2491c3b..998b88f`): PASS,
+  High 0, Medium 0, Low 8, Info 4.
+- #60: task review and adversarial review both Needs fixes (a declared home broke shared
+  tests; a non-literal home skipped its visit); one fix round with rulings R1 to R4; scoped
+  re-review pass. 6 Low mutant survivors ride with the next shell change.
+- #62: adversarial pass, no High or Medium at merge.
+- #73: task review Needs fixes (Medium 1), fixed in `8199e37`; adversarial review PASS,
+  High 0, Medium 0, Low 2 (dead `data-disabled:` classes; a Tab leg of the Chrome check that
+  cannot fail), Info 3.
+- #51: batched review (config and a decision record); #52: task review (`mx-precise`).
+- #52, #60, #62, #73 had no sweep discovery of their own (coordinator's ruling for small
+  shared PRs); they go to the phase sweep.
+
+**Live validation** (owner, 2026-11-14: every page build is walked in a real browser). D2d:
+22 addresses at 1440 and 1024 on `file://` in headed Chrome, and on localhost in the app's
+browser pane; flow, modal, groups, links, focus rings, motion, console and policy. #73: 22
+checks in Chrome 157.
+
+**Rulings** (coordinator, under the owner's delegation; each reversible):
+- Five positioned-row chart kinds are drawn without Recharts: a departure from decision
+  0003 ruling 2, for the owner.
+- The rail stays Model-current on `/model/…` routes; pages that draw their own header use
+  `layout: "bleed"`, restore their padding and draw the one `h1`.
+- Pieces only one group needs are built in its folder as kit candidates. The sources
+  switch, trace control, baseline tokens and `GapPanel` title (D2b and D2c each hold a
+  working copy) are consolidated at the phase sweep, not mid-build.
+- Focused invalid field: `focus` ring at 2px. Disabled input and select: 50% opacity.
+- Analyst file names are exempt from the module-code check on run pages.
+
+**Ledger** (D2d). Tasks 1 to 11, all `agent=mx-feature`: fix-rounds 0 for tasks 1, 2, 4, 8,
+9, 10; 1 for tasks 3, 5, 6, 7, 11. gates-first-pass `y` for tasks 2 to 8 and 10; `n` for
+task 1 (a shared test), task 9 (a cast in a new test) and task 11 (the browser timeout
+under load).
+
+**Open for the owner.** The toggle's source (run `npx untitledui@latest add toggle`, or
+build on React Aria); a licence notice for copied Untitled UI and HyperUI code; the faint
+selected segment and hovered tab; the Recharts departure above; pre-existing: scroll
+position and focus kept across routes, `render` called as a function, no error boundary.
+
+**Not verified.** Edge and Windows beyond CI; a screen reader; reduced motion switched on;
+pointer hover states; whether delivery (3B) or the service (5C) will send the shapes D2d's
+8 Low findings describe; the full gate on #73 merged with current `main`, locally (CI ran
+it). D2b, D2c and D2e are not merged and are not covered by this entry.
+
 ## 2026-11-14 Roadmap back end: 1C PR 2b, 1D PR 1d, and the plans for 1B, 2A and 2B
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
