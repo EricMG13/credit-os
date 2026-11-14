@@ -280,8 +280,9 @@ def scale_step(doc: Doc) -> tuple[Refusal | None, dict[str, str]]:
         text = holder[key]
         if type(text) is not str:
             continue
-        minus_zero = text.startswith("-") and Fraction(text) == 0
-        if not IN_THOUSANDS.fullmatch(text) or (minus_zero and not name.startswith("base ")):
+        shaped = IN_THOUSANDS.fullmatch(text) is not None
+        minus_zero = shaped and text.startswith("-") and Fraction(text) == 0
+        if not shaped or (minus_zero and not name.startswith("base ")):
             return ["scale", name, MESSAGES["thousands"].format(slot=name, text=echo(text))], {}
         holder[key] = plain(Fraction(text) / 1000)
         stated[name] = text
@@ -476,6 +477,31 @@ ROWS = r"""
 {"label": "negative base debt: zero repayments already exceed it", "ops": [[["base", "debt", "amount"], "-5"], [["base_drivers", "debt_repayment", "values"], ["0", "0", "0"]]]}
 {"label": "at scale 1000 the bound is tested and worded in millions", "ops": [[["scale"], 1000], "thousands", [["base_drivers", "debt_repayment", "values"], ["905000", "0", "0.1"]]]}
 {"label": "with facilities stated the driver is still bounded", "ops": [[["facilities"], ["@FIXED"]], [["base_drivers", "debt_repayment", "values"], ["906", "0", "0"]]]}
+{"label": "scale 1000: a downside case's amounts are divided too", "ops": [[["scale"], 1000], "thousands", [["downside_drivers"], {"dividends": {"@driver": ["2500", "0", "1200.5"]}, "debt_repayment": {"@driver": ["10000", "20000", "30000"]}}]]}
+{"label": "a fiscal year of one day", "ops": [[["years", 0, "start"], "2026-12-31"]]}
+{"label": "scale 2, currency in lower case letters", "ops": [[["scale"], 2], [["currency"], "eur"]]}
+{"label": "a negative repayment in a case", "ops": [[["upside_drivers"], {"debt_repayment": {"@driver": ["-5", "0", "0"]}}]], "issues": [[["upside_drivers", "debt_repayment", "values", 0], "amount"]]}
+{"label": "negative dividends in a case", "ops": [[["downside_drivers"], {"dividends": {"@driver": ["0", "0", "-1"]}}]], "issues": [[["downside_drivers", "dividends", "values", 2], "amount"]]}
+{"label": "negative base dividends", "ops": [[["base_drivers", "dividends", "values"], ["-1", "20", "25.5"]]], "issues": [[["base_drivers", "dividends", "values", 0], "amount"]]}
+{"label": "a negative base interest rate", "ops": [[["base_drivers", "interest_rate", "values"], ["-0.01", "0.0675", "0.07"]]], "issues": [[["base_drivers", "interest_rate", "values", 0], "share"]]}
+{"label": "a negative base capex share", "ops": [[["base_drivers", "capex_pct_revenue", "values"], ["0.05", "-0.05", "0.048"]]], "issues": [[["base_drivers", "capex_pct_revenue", "values", 1], "share"]]}
+{"label": "a negative base tax and working capital share", "ops": [[["base_drivers", "tax_wc_pct_revenue", "values"], ["0.03", "0.03", "-0.03"]]], "issues": [[["base_drivers", "tax_wc_pct_revenue", "values", 2], "share"]]}
+{"label": "a negative margin in a case", "ops": [[["downside_drivers"], {"ebitda_margin": {"@driver": ["-0.1", "0.2", "0.2"]}}]], "issues": [[["downside_drivers", "ebitda_margin", "values", 0], "share"]]}
+{"label": "a negative interest rate in a case", "ops": [[["upside_drivers"], {"interest_rate": {"@driver": ["0.05", "-0.05", "0.05"]}}]], "issues": [[["upside_drivers", "interest_rate", "values", 1], "share"]]}
+{"label": "a negative EBITDA decline in the shock", "ops": [[["downside_shock", "ebitda_decline"], "-0.1"]], "issues": [[["downside_shock", "ebitda_decline"], "share"]]}
+{"label": "an amount with a blank reason is one of, not blank", "ops": [[["base", "debt", "reason"], " "]], "issues": [[["base", "debt"], "one_of"]]}
+{"label": "no row and both headers: both headers is named", "ops": [[["base", "revenue", "row"], null], [["base", "revenue", "column"], "Revenue"]], "issues": [[["base", "revenue"], "both_headers"]]}
+{"label": "an empty period name", "ops": [[["base", "revenue", "period"], ""]], "issues": [[["base", "revenue", "period"], "String should have at least 1 character"]]}
+{"label": "an empty column name", "ops": [[["base", "debt", "column"], ""]], "issues": [[["base", "debt", "column"], "String should have at least 1 character"]]}
+{"label": "a driver without its limitation key", "ops": [[["base_drivers", "dividends", "limitation"]]], "issues": [[["base_drivers", "dividends", "limitation"], "missing"]]}
+{"label": "a driver without its rationale key", "ops": [[["base_drivers", "dividends", "rationale"]]], "issues": [[["base_drivers", "dividends", "rationale"], "missing"]]}
+{"label": "start and end both off the calendar: the start is named", "ops": [[["years", 0, "start"], "2026-02-30"], [["years", 0, "end"], "2026-13-01"]], "issues": [[["years", 0], "Value error, start 2026-02-30 is not a calendar date"]]}
+{"label": "a year of five digits", "ops": [[["years", 2, "year"], 10000]], "issues": [[["years", 2, "year"], "Input should be less than or equal to 9999"]]}
+{"label": "the second year not consecutive", "ops": [[["years", 1, "year"], 2028]], "issues": [[[], "consecutive"]]}
+{"label": "years that overlap by a day", "ops": [[["years", 1, "start"], "2026-12-31"]], "issues": [[[], "contiguous"]]}
+{"label": "years that overlap by months", "ops": [[["years", 1, "start"], "2026-06-01"]], "issues": [[[], "contiguous"]]}
+{"label": "a gap between years 2 and 3", "ops": [[["years", 2, "start"], "2028-01-02"]], "issues": [[[], "contiguous"]]}
+{"label": "a base operand left out and years not consecutive: base keys first", "ops": [[["base", "undrawn"]], [["years", 2, "year"], 2029]], "issues": [[[], "base_keys"]]}
 """
 
 
@@ -496,7 +522,7 @@ def render() -> str:
         bucket, entry = worked(json.loads(line))
         key[bucket].append(entry)
     labels = [row["label"] for row in key["accepted"] + key["refused"]]
-    assert len(labels) == len(set(labels)) == 94 and len(key["accepted"]) == 14
+    assert len(labels) == len(set(labels)) == 119 and len(key["accepted"]) == 16
     assert THOUSANDS[0] == [["base", "revenue", "amount"], "1840500"]
     assert THOUSANDS[-1][1] == ["45000", "45000", "60000"]
     lines = ["{"]

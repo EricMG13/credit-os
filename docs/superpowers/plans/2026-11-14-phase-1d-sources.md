@@ -154,6 +154,13 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   in a cell is one space. HTML: the predecessor's tag lists; the reader holds a stated
   peak-memory bound by a committed `tracemalloc` test, with a lower size cap for HTML if the
   bound needs one; it is its own PR 2b with an adversarial review.
+- **PR 2b-1 (#209) is merged** (HTML decoding and the line writer). PR 2b is cut 2b-1, 2b-2
+  (the HTML engine, on `html.parser` at Python 3.12.14 with tests that pin the parser
+  behaviour relied on, decision 0011) and 2b-3. Ruled for PR 3 (xlsx, standard library): a
+  page-text cap of 32 Mi characters; expat; rows and cells in ascending order, a cell with no
+  `r` read at the next position (the reviewer checks this against the format's published
+  description); a formula cell shows its cached value, a shared string included; comments
+  are not read; Strict OOXML is refused; five PRs 3a to 3e, 3d with a batched review.
 - **PR 2 (#161) is merged.** Carried to PR 2b-1, key rows first: the two mutation survivors
   that are not equivalent (`cut_stream`'s inner `>=`; `held = 1` in `csv_pages`, a row cap lower
   by one after the first row) and an independent reference for `test_cut_stream_property`. A

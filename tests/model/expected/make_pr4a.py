@@ -60,6 +60,8 @@ BLOCKS: list[list[Any]] = [
     ["fence without json", SECTION + '```\n{"a": 1}\n```\n', {"refused": ["block_fence", {}]}],
     ["no fence", SECTION + '{"a": 1}\n', {"refused": ["block_fence", {}]}],
 ]
+# A string holding an escaped backslash then an escaped quote; nesting follows it.
+ESCAPES = '{"a": "' + "\\" * 3 + '"", "b": '
 ACCEPTED = [
     "{}",
     '{"a": 1, "b": "1.50", "c": [true, false, null], "d": {"e": -15}}',
@@ -68,6 +70,7 @@ ACCEPTED = [
     '{"text": "caf\\u00e9 \\ud83d\\ude00 [[[[ {{{{ \\" ]"}',
     '{"a": {"a": {"a": 1}}, "b": [{"a": 1}, {"a": 2}]}',
     '{"amount": "1e3", "rate": "0.0425", "word": "NaN"}',
+    ESCAPES + "[" * 63 + "]" * 63 + "}",
 ]
 REFUSED: list[list[Any]] = [
     ["empty", "", "invalid", {}],
@@ -103,6 +106,15 @@ REFUSED: list[list[Any]] = [
     ["lone surrogate value", '{"a": "\\ud800"}', "unicode", {}],
     ["lone surrogate key", '{"\\udc00": 1}', "unicode", {}],
     ["lone surrogate in a list", '{"a": ["ok", "x\\ud83dy"]}', "unicode", {}],
+    ["form feed before the object", '\f{"a": 1}', "invalid", {}],
+    ["no-break space after the object", '{"a": 1}\u00a0', "invalid", {}],
+    ["line separator after the object", '{"a": 1}\u2028', "invalid", {}],
+    [
+        "an escaped backslash and quote, then 65 levels",
+        ESCAPES + "[" * 64 + "]" * 64 + "}",
+        "too_deep",
+        {},
+    ],
 ]
 DRIVERS = [
     "revenue_growth",

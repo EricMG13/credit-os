@@ -21,7 +21,8 @@
    "{\"n\": 999999999999999, \"m\": -999999999999999, \"z\": -0}",
    "{\"text\": \"caf\\u00e9 \\ud83d\\ude00 [[[[ {{{{ \\\" ]\"}",
    "{\"a\": {\"a\": {\"a\": 1}}, \"b\": [{\"a\": 1}, {\"a\": 2}]}",
-   "{\"amount\": \"1e3\", \"rate\": \"0.0425\", \"word\": \"NaN\"}"],
+   "{\"amount\": \"1e3\", \"rate\": \"0.0425\", \"word\": \"NaN\"}",
+   "{\"a\": \"\\\\\\\"\", \"b\": [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}"],
   "refused": [
    ["empty", "", "invalid", {}],
    ["truncated", "{\"a\": 1", "invalid", {}],
@@ -55,7 +56,11 @@
    ["repeated key by escape", "{\"a\": 1, \"\\u0061\": 2}", "repeated", {"key": "a"}],
    ["lone surrogate value", "{\"a\": \"\\ud800\"}", "unicode", {}],
    ["lone surrogate key", "{\"\\udc00\": 1}", "unicode", {}],
-   ["lone surrogate in a list", "{\"a\": [\"ok\", \"x\\ud83dy\"]}", "unicode", {}]]},
+   ["lone surrogate in a list", "{\"a\": [\"ok\", \"x\\ud83dy\"]}", "unicode", {}],
+   ["form feed before the object", "\f{\"a\": 1}", "invalid", {}],
+   ["no-break space after the object", "{\"a\": 1}\u00a0", "invalid", {}],
+   ["line separator after the object", "{\"a\": 1}\u2028", "invalid", {}],
+   ["an escaped backslash and quote, then 65 levels", "{\"a\": \"\\\\\\\"\", \"b\": [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}", "too_deep", {}]]},
  "declined": [
   ["every driver null", {"base_drivers": {"revenue_growth": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "ebitda_margin": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "capex_pct_revenue": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "tax_wc_pct_revenue": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "interest_rate": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "dividends": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "debt_repayment": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}}, "scope_limits": ["Blocked: no scenario was supplied.", "Second limit."]}, "Blocked: no scenario was supplied."],
   ["a long first limit is cut to 200", {"base_drivers": {"revenue_growth": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "ebitda_margin": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "capex_pct_revenue": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "tax_wc_pct_revenue": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "interest_rate": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "dividends": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}, "debt_repayment": {"values": [null, null, null], "category": "Insufficient Information", "rationale": "No driver selected.", "limitation": "No plan supplied."}}, "scope_limits": ["The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. "]}, "The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model is blocked. The forward model..."],
