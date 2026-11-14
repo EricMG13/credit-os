@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import { SECTION_HEADING, type SUBSECTION_HEADING } from "./heading";
+import { SECTION_HEADING, SUBSECTION_HEADING } from "./heading";
 
 /** A heading the navigator moves focus to: not in the tab order, with the design focus ring. */
 export const FOCUS = "rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand";
@@ -37,6 +37,23 @@ export function Section({
         </Heading>
         {note === undefined ? null : <span className="text-small text-text-tertiary">{note}</span>}
       </div>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * A block the mock draws without a visible heading (headline figures, measures): a region named by
+ * its title, which a screen reader finds as a heading the navigator can focus. Nothing shows.
+ */
+export function QuietSection({ title, children }: { title: string; children: ReactNode }) {
+  const Heading = SUBSECTION_HEADING;
+  const headingId = useId();
+  return (
+    <section aria-labelledby={headingId}>
+      <Heading id={headingId} tabIndex={-1} className="sr-only">
+        {title}
+      </Heading>
       {children}
     </section>
   );

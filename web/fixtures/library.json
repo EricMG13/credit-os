@@ -1081,7 +1081,82 @@
                   ],
                   "contrary": null,
                   "changeView": null,
-                  "records": [],
+                  "records": [
+                    {
+                      "kind": "metrics",
+                      "nav": "Headline figures",
+                      "title": "Headline figures",
+                      "items": [
+                        {
+                          "label": "Gross debt",
+                          "value": { "kind": "value", "text": "USD 2,398m", "at": 2398 },
+                          "note": "At 30 Sep 2026",
+                          "trace": "cs-gross-debt"
+                        },
+                        {
+                          "label": "Net debt",
+                          "value": { "kind": "value", "text": "USD 2,236m", "at": 2236 },
+                          "note": "After USD 162m cash",
+                          "trace": "cs-net-debt"
+                        },
+                        {
+                          "label": "Net leverage",
+                          "value": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                          "note": "Net debt to EBITDA",
+                          "trace": "cs-net-leverage"
+                        },
+                        {
+                          "label": "Secured leverage",
+                          "value": { "kind": "value", "text": "3.3x", "at": 3.3 },
+                          "note": "First-lien net debt to EBITDA",
+                          "trace": "cs-secured-leverage"
+                        },
+                        {
+                          "label": "Average cost of debt",
+                          "value": { "kind": "withheld", "reason": null },
+                          "note": "Marked confidential in the source",
+                          "trace": "cs-cost-of-debt"
+                        },
+                        {
+                          "label": "Next maturity",
+                          "value": { "kind": "value", "text": "Mar 2028", "at": null },
+                          "note": "USD 310m unsecured notes",
+                          "trace": "cs-next-maturity"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "measures",
+                      "nav": "Headline figures",
+                      "title": "Measures and their consequence",
+                      "items": [
+                        {
+                          "label": "Net leverage",
+                          "current": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                          "earlier": { "kind": "value", "text": "4.9x", "at": 4.9 },
+                          "delta": { "text": "Lower by 0.3x on 2025", "direction": "down" },
+                          "consequence": "Back inside the range both agencies set for the current rating.",
+                          "trace": "cs-net-leverage"
+                        },
+                        {
+                          "label": "Liquidity",
+                          "current": { "kind": "value", "text": "USD 412m", "at": 412 },
+                          "earlier": { "kind": "value", "text": "USD 455m", "at": 455 },
+                          "delta": { "text": "Lower by USD 43m on June", "direction": "down" },
+                          "consequence": "Covers every maturity before March 2028 more than four times.",
+                          "trace": "cs-liquidity"
+                        },
+                        {
+                          "label": "Interest cover",
+                          "current": { "kind": "value", "text": "2.4x", "at": 2.4 },
+                          "earlier": null,
+                          "delta": null,
+                          "consequence": "Thin: a one-point rise in floating rates would take it close to 2.0x.",
+                          "trace": "cs-interest-cover"
+                        }
+                      ]
+                    }
+                  ],
                   "limitations": {
                     "count": "3",
                     "gapsLink": { "label": "See this module’s gaps in Evidence" },
@@ -1912,6 +1987,126 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0063"
+              },
+              "cs-gross-debt": {
+                "title": "Sources for gross debt",
+                "heading": "Gross debt USD 2,398m",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Drawn debt at face value across all ranks at 30 September 2026, leases as reported.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Gross debt USD 2,398m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0101"
+              },
+              "cs-net-debt": {
+                "title": "Sources for net debt",
+                "heading": "Net debt USD 2,236m",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Gross debt of USD 2,398m less cash of USD 162m at 30 September 2026.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Net debt USD 2,236m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0102"
+              },
+              "cs-net-leverage": {
+                "title": "Sources for net leverage in this module",
+                "heading": "Net leverage 4.6x",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Net debt of USD 2,236m against company-adjusted EBITDA of USD 486m, down from 4.9x a year earlier.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Net leverage 4.6x",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0103"
+              },
+              "cs-secured-leverage": {
+                "title": "Sources for secured leverage",
+                "heading": "Secured leverage 3.3x",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "First-lien net debt against company-adjusted EBITDA for the year to 30 September 2026.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Secured leverage 3.3x",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0104"
+              },
+              "cs-cost-of-debt": {
+                "title": "Sources for the average cost of debt",
+                "heading": "Average cost of debt withheld",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "The only source for the average cost of debt is marked confidential and delivery does not show it.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Average cost of debt withheld",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0105"
+              },
+              "cs-next-maturity": {
+                "title": "Sources for the next maturity",
+                "heading": "Next maturity Mar 2028",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "USD 310m of unsecured notes fall due in March 2028, the first maturity above USD 50m.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Next maturity Mar 2028",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0106"
+              },
+              "cs-liquidity": {
+                "title": "Sources for liquidity in this module",
+                "heading": "Liquidity USD 412m",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Cash and the undrawn revolving facility at 30 September 2026, against USD 455m at 30 June 2026.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Liquidity USD 412m",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0107"
+              },
+              "cs-interest-cover": {
+                "title": "Sources for interest cover in this module",
+                "heading": "Interest cover 2.4x",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Company-adjusted EBITDA against cash interest for the year; no earlier period was established.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Interest cover 2.4x",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0108"
               }
             }
           },
