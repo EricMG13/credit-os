@@ -29,6 +29,8 @@ def _p(number: int, text: str) -> Page:
         ("ab\tcd", 3, ("ab\t", "cd")),
         ("ab cd", 5, ("ab cd",)),
         ("a\nb", 3, ("a\nb",)),
+        ("aaaaaab cd", 5, ("aaaaa", "ab cd")),
+        ("a\rb cd", 4, ("a\rb ", "cd")),
     ],
 )
 def test_cut_pages_rows(text: str, size: int, pages: tuple[str, ...]) -> None:
@@ -48,6 +50,16 @@ def test_cut_stream_size_below_one_raises() -> None:
         tuple(cut_stream(["x" * 5], 0))
 
 
+def _reference(text: str, size: int) -> tuple[str, ...]:
+    out: list[str] = []
+    while len(text) > size:
+        head = text[:size]
+        cut = max(head.rfind("\n"), -1) + 1 or head.rfind(" ") + 1 or size
+        out.append(text[:cut])
+        text = text[cut:]
+    return (*out, text) if text else tuple(out)
+
+
 @given(
     pieces=st.lists(
         st.text(alphabet="abc xyz\n\r\N{LATIN SMALL LETTER E WITH ACUTE}", max_size=30),
@@ -56,7 +68,8 @@ def test_cut_stream_size_below_one_raises() -> None:
     size=st.integers(min_value=1, max_value=40),
 )
 def test_cut_stream_property(pieces: list[str], size: int) -> None:
-    assert tuple(cut_stream(pieces, size)) == cut_pages("".join(pieces), size)
+    assert tuple(cut_stream(pieces, size)) == _reference("".join(pieces), size)
+    assert cut_pages("".join(pieces), size) == _reference("".join(pieces), size)
 
 
 def test_cut_stream_is_lazy() -> None:
