@@ -1,11 +1,31 @@
 import { LimitsChart } from "@/components/chart/LimitsChart";
 import { RangeStripChart } from "@/components/chart/RangeStripChart";
 import { ScatterPlot } from "@/components/chart/ScatterPlot";
-import type { HoldingsScatter, HoldingsStrips, Limits } from "../slice/types";
-import { ChartCard, chartTrace } from "./shared";
+import { GapPanel } from "@/components/gap/GapPanel";
+import {
+  isGap,
+  type HoldingsScatter,
+  type HoldingsStrips,
+  type Limits,
+  type SectionGap,
+} from "../slice/types";
+import { ChartCard, SectionHeading, chartTrace } from "./shared";
+
+/** A section the run could not fill: its title and the reason as given, and no chart. */
+function GapCard({ gap }: SectionGap) {
+  return (
+    <ChartCard>
+      <div className="flex flex-col gap-4">
+        <SectionHeading as="h3">{gap.title}</SectionHeading>
+        <GapPanel reason={gap.reason} />
+      </div>
+    </ChartCard>
+  );
+}
 
 /** Exposure against each limit: a column on its own scale with a dashed tick at the limit. */
-export function LimitsCard({ data }: { data: Limits }) {
+export function LimitsCard({ data }: { data: Limits | SectionGap }) {
+  if (isGap(data)) return <GapCard gap={data.gap} />;
   return (
     <ChartCard>
       <LimitsChart
@@ -32,7 +52,8 @@ export function LimitsCard({ data }: { data: Limits }) {
 }
 
 /** Leverage against margin: the issuer stands out among the holdings. */
-export function ScatterCard({ data }: { data: HoldingsScatter }) {
+export function ScatterCard({ data }: { data: HoldingsScatter | SectionGap }) {
+  if (isGap(data)) return <GapCard gap={data.gap} />;
   return (
     <ChartCard>
       <ScatterPlot

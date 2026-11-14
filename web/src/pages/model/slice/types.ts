@@ -1,7 +1,14 @@
 import type { STATUS_SETS } from "@/components/status/sets";
 
-/** The model group's member of the data file: one record per issuer and run. */
-export type ModelSlice = { runs: ModelRun[] };
+/** A run that failed its rules: its ids when both read as text, else null, and the first bad path. */
+export type UnreadableRun =
+  { issuer: string; run: string; reason: string } | { issuer: null; run: null; reason: string };
+
+/**
+ * The model group's member of the data file: one record per issuer and run. `unreadable` is
+ * produced by the reader; the delivered slice holds only `runs`.
+ */
+export type ModelSlice = { runs: ModelRun[]; unreadable: UnreadableRun[] };
 
 export type ModelRun = {
   issuer: string;
@@ -115,8 +122,8 @@ export type Published = { kind: "markdown" | "html"; href: string };
 /**
  * What every chart carries besides its marks: the words around it and its trace address. Every
  * address in this slice that leads into the library (a `trace`, `links`, a tab's or a
- * limitations link's `href`) starts with `#/`; `published.href` and `checkFigure.href` (files)
- * are not covered by that rule.
+ * limitations link's `href`) starts with `#/`. `published.href` is a relative path inside the
+ * library folder; `checkFigure.href` is either that or a `#/` address.
  *
  * The two sides of one chart state the same thing for one record: wherever a table cell states a
  * mark, the cell is `null` exactly where the mark is missing and holds the mark's text where it is
@@ -314,11 +321,19 @@ export type AnalysisLimitations = {
   items: { title: string; text: string; trace: string | null }[];
 };
 
+/** A section the run could not fill: the title it would have had and the reason. */
+export type SectionGap = { gap: GapItem };
+
+/** True for a section that is a gap; the reader and the page both narrow with it. */
+export function isGap(section: object): section is SectionGap {
+  return Object.hasOwn(section, "gap");
+}
+
 export type PortfolioFitPage = {
-  limits: Limits;
+  limits: Limits | SectionGap;
   ratings: Ratings;
   relativeValue: RelativeValue;
-  scatter: HoldingsScatter;
+  scatter: HoldingsScatter | SectionGap;
   strips: HoldingsStrips;
 };
 

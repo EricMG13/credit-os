@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import type { SliceResult } from "../../route-table";
+import { readSlice } from "./read";
+import type { ModelSlice } from "./types";
 
 /** A fresh copy of the model fixture's slice, read from disk. */
 export function fixtureSlice(): unknown {
@@ -23,4 +26,14 @@ export function edited(steps: readonly (string | number)[], value: unknown): unk
 export function must<T>(value: T | null | undefined): T {
   if (value === null || value === undefined) throw new Error("expected a value, found none");
   return value;
+}
+
+/**
+ * `readSlice`, with a run that could not be read reported as the invalid result it used to be: the
+ * first unreadable run's reason, unchanged. Slice-level tests call `readSlice` itself.
+ */
+export function readRuns(source: unknown): SliceResult<ModelSlice> {
+  const result = readSlice(source);
+  const first = result.kind === "ok" ? result.data.unreadable[0] : undefined;
+  return first === undefined ? result : { kind: "invalid", reason: first.reason };
 }
