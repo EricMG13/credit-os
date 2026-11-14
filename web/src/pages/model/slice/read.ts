@@ -11,19 +11,29 @@ import {
   distinctTraceNames,
   atLeastOne,
   at,
+  fail,
   object,
   oneOf,
+  orNull,
   text,
+  textOrNull,
+  yes,
   type Reader,
 } from "./reader-kit";
 import type {
+  Fact,
+  FrontPage,
   GapItem,
   LimitationsPage,
   Limitation,
+  Metric,
+  MetricValue,
   ModelRun,
   ModelSlice,
   RunHeader,
   RunLinks,
+  Part,
+  PartPage,
   RunState,
 } from "./types";
 
@@ -56,6 +66,64 @@ const limitations = object<LimitationsPage>({
   items: arrayOf(limitation),
   notEstablished: object({ count: text, items: arrayOf(gap) }),
 });
+const metricValue: Reader<MetricValue> = (value, path) =>
+  typeof value === "object" && value !== null && Object.hasOwn(value, "withheld")
+    ? object<{ withheld: true }>({ withheld: yes })(value, path)
+    : object<{ text: string | null }>({ text: textOrNull })(value, path);
+const metricFields = object<Metric>({
+  label: text,
+  definition: text,
+  value: metricValue,
+  delta: textOrNull,
+  note: textOrNull,
+  trace: addressOrNull,
+});
+/** A delta beside a missing or withheld value would be dropped by the page, so it is refused. */
+const metric: Reader<Metric> = (value, path) => {
+  const read = metricFields(value, path);
+  const noFigure = "withheld" in read.value || read.value.text === null;
+  if (noFigure && read.delta !== null) {
+    return fail(child(path, "delta"), "expected null beside a missing or withheld value");
+  }
+  return read;
+};
+const fact = object<Fact>({ label: text, value: text, trace: addressOrNull });
+const part = object<Part>({
+  title: text,
+  text: text,
+  to: orNull<PartPage>(["analysis", "statements", "portfolio-fit"]),
+  trace: addressOrNull,
+});
+const front = object<FrontPage>({
+  bottomLine: object({ lead: text, rest: text, trace: addressOrNull }),
+  headline: object({ period: text, metrics: arrayOf(metric) }),
+  covers: object({ facts: arrayOf(fact) }),
+  parts: arrayOf(part),
+});
+/** Every list the front page draws holds something, and no two of its trace controls share a name. */
+function checkFront(page: FrontPage, path: string): void {
+  atLeastOne(page.headline.metrics, child(path, "headline.metrics"), "metric");
+  atLeastOne(page.covers.facts, child(path, "covers.facts"), "fact");
+  atLeastOne(page.parts, child(path, "parts"), "part");
+  distinctTraceNames([
+    { name: "the bottom line", trace: page.bottomLine.trace, where: child(path, "bottomLine") },
+    ...page.headline.metrics.map((m, i) => ({
+      name: m.label,
+      trace: m.trace,
+      where: `${at(child(path, "headline.metrics"), i)}.label`,
+    })),
+    ...page.covers.facts.map((f, i) => ({
+      name: f.label,
+      trace: f.trace,
+      where: `${at(child(path, "covers.facts"), i)}.label`,
+    })),
+    ...page.parts.map((p, i) => ({
+      name: p.title,
+      trace: p.trace,
+      where: `${at(child(path, "parts"), i)}.title`,
+    })),
+  ]);
+}
 
 /** The limitations list holds something, and no two of its trace controls share a name. */
 function checkLimitations(page: LimitationsPage, path: string): void {
@@ -74,10 +142,12 @@ const runFields = object<ModelRun>({
   run: text,
   header,
   links,
+  front,
   limitations,
 });
 const run: Reader<ModelRun> = (value, path) => {
   const read = runFields(value, path);
+  checkFront(read.front, child(path, "front"));
   checkLimitations(read.limitations, child(path, "limitations"));
   return read;
 };
