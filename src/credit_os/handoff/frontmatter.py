@@ -3,7 +3,7 @@
 import re
 from collections.abc import Sequence
 
-from credit_os.handoff.errors import HandoffError
+from credit_os.handoff.errors import HandoffError, echo
 from credit_os.handoff.scan import Node
 
 _MARKER = re.compile(r"---[ \t]*")
@@ -39,7 +39,7 @@ def read_front_matter(lines: Sequence[str]) -> FrontMatter | None:
             return FrontMatter(line=1, end=number, entries=tuple(entries))
         entry = _entry(text, number)
         if entry.key in seen:
-            raise HandoffError(number, f"front matter key `{entry.key}` is repeated")
+            raise HandoffError(number, f"front matter key `{echo(entry.key)}` is repeated")
         seen.add(entry.key)
         entries.append(entry)
     raise HandoffError(1, "the front matter opened here is never closed by ---")
