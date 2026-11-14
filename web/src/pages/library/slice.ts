@@ -102,7 +102,10 @@ export type TreeNode = {
 
 /** What the trace drawer shows for one figure; `evidenceItem` is the item its Evidence page opens. */
 export type Trace = {
+  /** The dialog's accessible name, for example "Sources for net leverage". */
   title: string;
+  /** The drawer's visible heading, for example "Net leverage 4.6x". */
+  heading: string;
   /** The line under the title, for example "Capital structure · figure · as of 30 Sep 2026". */
   subtitle: string;
   statement: string;

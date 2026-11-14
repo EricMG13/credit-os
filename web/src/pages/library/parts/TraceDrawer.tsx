@@ -79,7 +79,7 @@ export function TraceDrawer({
       aria-label={trace.title}
     >
       <SlideoutMenu.Header>
-        <h2 className="pr-10 text-lg font-semibold text-text-primary">{trace.title}</h2>
+        <h2 className="pr-10 text-lg font-semibold text-text-primary">{trace.heading}</h2>
         <p className="text-small text-text-tertiary">{trace.subtitle}</p>
       </SlideoutMenu.Header>
       <SlideoutMenu.Content>
