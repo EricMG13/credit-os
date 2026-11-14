@@ -3,6 +3,58 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: Signal's store, the 1B model fixtures, the step 3A plan
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #288 | 1B PR 5a | `8df4fe2`, `fe44101` | the synthetic model fixtures and the test that guards their bytes (670 lines, tests only; rulings R30 to R36) |
+| #114 | Signal S-1, 1 of 3 | `8b25c1c`, `1f76a4d` | `signal/store.py`: the store, its migrations and story folding keys (779) |
+| #115 | Signal S-1, 2 of 3 | `5b1269f`, `3de6f2c` | transaction ownership, typed refusals, a newer schema refused (799) |
+| #116 | Signal S-1, 3 of 3 | `593822a`, `4d08fcf` | the ownership marker, unusable-store refusals, the review batch (358) |
+| #310 | plan | `6438f8d`, `f1ffe86` | `docs/superpowers/plans/2026-11-14-phase-3a-orchestrator.md` (386) |
+
+The three store PRs were stacked: each was retargeted to `main`, closed and reopened so its
+CI ran on the merge with `main`, and merged in order. #116's head is its reviewed head
+`cfc89b5` plus a merge of `main` that changed no line of the PR's own files.
+
+**Reviews.** As each controller reported.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #288 | batched `mx-feature` on `f4b3dfd`: pass, Low 2, Info 3 (the later commit changes only the attributes line and its expected bytes) | none (tests only) | none |
+| #114 to #116 | `mx-precise` and `mx-adversary`; adversary re-review: pass, Low 4, Info 4 | registered on `78724e4`; its batch is in #116 | Fail on `78724e4`: High 0, Medium 1 (test strength; the store code held). Scoped `mx-precise` re-review on `cfc89b5`: pass, nothing Medium or above |
+| #310 | `mx-feature` plan review: Medium 5, all applied; re-review Low 3, applied | none (plan) | none |
+
+- Signal's store took four fix dispatches; two fixed a High or Medium and count as rounds
+  (global rules section 1). 62 of 62 hand mutants caught (`mutmut` is not in the lock, so
+  this is not a mutmut count of record).
+- #288's Lows: its test checks drift, not correctness (PR 5's answer key checks every base
+  operand against its cell).
+- #310 records ruling D7 as amended: a call left by a crash makes spend unknown, and the
+  run does not resume by itself.
+
+**Ledger.**
+
+- `S-1 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
+- `1B-5a task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=n`
+
+**Open for the owner.** Signal's store: `_earliest_match` took 58 s on a hostile feed (the
+per-pass cap bounds one pass only); no cap on new stories per pass; a locked database aborts
+a whole ingest pass; `mark_read` and `save` are names the port invented. Step 3A's
+departures are listed in its plan.
+
+**Incident.** #301 (2B PR 5) was force-pushed at 19:23 UTC (`593cb7c6` to `93dfede7`, a
+rebase onto #308) against the rule that a pushed branch is not rewritten. `git range-diff`
+shows its 12 commits patch-identical; its controller reports the reviewer confirmed the new head. 2A's #297 and
+#300 were rewritten the same way earlier in the day; each controller now restacks by merge.
+
+Not verified: Signal's store on SQLite builds other than the two runners'; the HTTP status
+for `StoreUnusable` (the service is not built); #288's `.gitattributes` behaviour on a
+Windows checkout other than the CI runner's.
+
 ## 2026-11-14 Roadmap back end: Signal's feed reader complete, the store opens, decision 0012, CI paths
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
