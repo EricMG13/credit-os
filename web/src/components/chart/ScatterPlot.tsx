@@ -12,8 +12,8 @@ import {
 import { ChartFrame } from "./ChartFrame";
 import { ChartTable, type TableRowData } from "./ChartTable";
 import { Mark } from "./marks";
-import { assignSeries } from "./series";
-import { BASELINE, HEIGHT, Legend, TICK, type YTick } from "./TrendChart";
+import { assignSeries, type SeriesStyle } from "./series";
+import { BASELINE, HEIGHT, TICK, type YTick } from "./TrendChart";
 
 export interface ScatterPoint {
   name: string;
@@ -152,7 +152,7 @@ function Axes({ x, y }: Pick<ScatterPlotProps, "x" | "y">) {
         {...axis(x)}
         dataKey="x"
         axisLine={BASELINE}
-        label={{ value: x.title, position: "insideBottom", offset: -4, ...LABEL }}
+        label={{ value: x.title, position: "insideBottom", offset: 8, ...LABEL }}
         height={48}
       />
       <YAxis
@@ -163,6 +163,30 @@ function Axes({ x, y }: Pick<ScatterPlotProps, "x" | "y">) {
         label={{ value: y.title, angle: -90, position: "insideLeft", offset: 4, ...LABEL }}
       />
     </>
+  );
+}
+
+/** The keys are the marker alone, as the points draw it: the issuer's circle, then the others'. */
+function ScatterLegend({ names, styles }: { names: string[]; styles: Map<string, SeriesStyle> }) {
+  return (
+    <ul aria-label="Legend" className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+      {names.map((name, i) => {
+        const style = styles.get(name);
+        if (style === undefined) throw new Error(`no style for "${name}"`);
+        return (
+          <li key={name} className="flex items-center gap-2 text-small text-text-secondary">
+            <svg width="12" height="12" aria-hidden="true">
+              {i === 0 ? (
+                <circle cx={6} cy={6} r={6} fill={style.color} />
+              ) : (
+                <Mark marker={style.marker} color={style.color} x={6} y={6} series={name} />
+              )}
+            </svg>
+            {name}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -233,7 +257,7 @@ function Chart({
           />
         </ScatterChart>
       </ResponsiveContainer>
-      {names.length >= 2 ? <Legend names={names} styles={styles} /> : null}
+      {names.length >= 2 ? <ScatterLegend names={names} styles={styles} /> : null}
       {missing.length === 0 ? null : (
         <p className="text-xs font-medium text-text-tertiary">
           Not plotted:{" "}

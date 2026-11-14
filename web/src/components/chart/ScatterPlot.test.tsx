@@ -78,6 +78,14 @@ describe("ScatterPlot chart side", () => {
     expect(screen.getByText("TransDigm", { selector: "svg tspan, svg text" })).toBeInTheDocument();
   });
 
+  it("keeps the x-axis title inside the drawing, under the tick labels", () => {
+    const { container } = render(<ScatterPlot {...base} />);
+    const title = screen.getByText("Net leverage", { selector: "svg tspan, svg text" });
+    const label = title.closest("text");
+    const height = Number(container.querySelector("svg.recharts-surface")?.getAttribute("height"));
+    expect(Number(label?.getAttribute("y"))).toBeLessThanOrEqual(height - 4);
+  });
+
   it("lists the incomplete holdings as not plotted, with the missing measure", () => {
     render(<ScatterPlot {...base} />);
     expect(
@@ -91,6 +99,17 @@ describe("ScatterPlot chart side", () => {
     render(<ScatterPlot {...base} />);
     expect(screen.getByRole("list", { name: "Legend" })).toHaveTextContent("Other holdings");
     expect(screen.getByText(base.subtitle)).toBeInTheDocument();
+  });
+
+  it("draws each legend key as the marker alone, with no line through it, the list centred", () => {
+    render(<ScatterPlot {...base} />);
+    const legend = screen.getByRole("list", { name: "Legend" });
+    const items = within(legend).getAllByRole("listitem");
+    expect(items.map((li) => li.textContent)).toEqual(["TransDigm", "Other holdings"]);
+    expect(legend.querySelector("line")).toBeNull();
+    expect(items[0]?.querySelector("circle")).not.toBeNull();
+    expect(items[1]?.querySelector("[data-marker='square']")).not.toBeNull();
+    expect(legend).toHaveClass("justify-center");
   });
 
   it("mounts a readout on focus and ArrowRight with the point's name and exact strings", () => {
