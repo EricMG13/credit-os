@@ -72,7 +72,9 @@ def _table(
     rows += [("Fields present", present), ("Fields total", total), ("Source gate", gate)]
     rows += [("CRITICAL", crit), ("MATERIAL", material), ("MINOR", minor)]
     body = "".join(f"| {name} | {value} |\n" for name, value in rows)
-    return "### Bottom line\nStable.\n### Confidence inputs\n| Input | Value |\n| --- | --- |\n" + body
+    return (
+        "### Bottom line\nStable.\n### Confidence inputs\n| Input | Value |\n| --- | --- |\n" + body
+    )
 
 
 def _value(*args: Any) -> int | None:
@@ -138,7 +140,10 @@ def test_a_thousand_registers_and_the_inputs_table_run_in_time() -> None:
         f"### R{n} — Item\n| Item | Value |\n| --- | --- |\n| a | {n} |\n" for n in range(1000)
     )
     table = _table([8, 2, 2, 0, 0, 0, 0, 0], 19, 20, "pass", 0, 0, 1)
-    case = {"findings": table, "tail": "## Calculations\n" + registers + "## Gaps\nNone.\n## Next module\nNone.\n"}
+    case = {
+        "findings": table,
+        "tail": "## Calculations\n" + registers + "## Gaps\nNone.\n## Next module\nNone.\n",
+    }
     document = _document(case)
     context = _context(case)
     start = time.perf_counter()

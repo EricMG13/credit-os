@@ -32,15 +32,18 @@ def _level_three(document: HandoffDocument) -> list[Section]:
     return [section for section in document.sections[2].sections if section.level == 3]
 
 
-def is_blocked(document: HandoffDocument, reader: Reader) -> bool:
-    if reader.blocked:
-        return True
+def front_matter_blocked(document: HandoffDocument) -> bool:
+    """True when the front matter holds `module_status` equal to `blocked`."""
     if document.front_matter is None:
         return False
     for entry in document.front_matter.entries:
         if entry.key == "module_status":
             return entry.value.strip("\"'").casefold() == "blocked"
     return False
+
+
+def is_blocked(document: HandoffDocument, reader: Reader) -> bool:
+    return bool(reader.blocked) or front_matter_blocked(document)
 
 
 def check_format(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
