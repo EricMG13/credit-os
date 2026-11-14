@@ -179,8 +179,9 @@ def _bounded(resolve: Resolver, host: str, seconds: float) -> list[str]:
     worker = threading.Thread(target=work, daemon=True)
     try:
         worker.start()
-    except RuntimeError as error:  # the system cannot start a thread: nothing was started
+    except Exception as error:  # fail closed, whatever stopped the start: nothing was started
         _LOOKUP_SLOTS.release()
+        _log.warning("could not start a lookup thread: %r", error)
         raise FetchRefused("could not start a lookup of the feed's host") from error
     worker.join(max(seconds, 0.0))
     if worker.is_alive():

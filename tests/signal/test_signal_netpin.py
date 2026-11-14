@@ -829,6 +829,19 @@ def test_a_refused_socket_refuses_every_later_read_and_never_reports_an_end(wire
             budget.recv_into(bytearray(4), 4)
 
 
+def test_the_read_past_the_limit_is_refused_at_once_while_the_peer_stays_silent(
+    wire: Wire,
+) -> None:
+    budget = _budgeted(wire, Clock(), max_received=3)
+    buffer = bytearray(4)
+    wire.peer.sendall(b"abcd")  # exactly the limit and one byte; then the peer says nothing more
+    with pytest.raises(ReceivedTooMuch):
+        budget.recv_into(buffer, 4)
+    wire.client.settimeout(2.0)
+    with pytest.raises(ReceivedTooMuch):  # not TimeoutError from waiting on the silent peer
+        budget.recv_into(buffer, 4)
+
+
 def test_a_limit_of_zero_takes_the_first_byte_as_too_much(wire: Wire) -> None:
     budget = _budgeted(wire, Clock(), max_received=0)
     wire.peer.sendall(b"a")

@@ -221,17 +221,29 @@ def test_lookups_that_end_in_an_error_never_use_up_the_cap() -> None:
             check_address(URL, resolve=broken)
 
 
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RuntimeError("can't start new thread"),
+        MemoryError("no memory for a thread"),
+        OSError("too many threads"),
+    ],
+    ids=["RuntimeError", "MemoryError", "OSError"],
+)
 def test_a_thread_that_cannot_be_started_is_a_refusal_and_keeps_its_slot_free(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, failure: Exception
 ) -> None:
     def no_thread(self: threading.Thread) -> None:
-        raise RuntimeError("can't start new thread")
+        raise failure
 
-    monkeypatch.setattr(threading.Thread, "start", no_thread)
-    for _ in range(MAX_LOOKUPS + 2):
-        with pytest.raises(FetchRefused) as refused:
-            check_address(URL, resolve=PUBLIC)
-        assert str(refused.value) == NOT_STARTED
+    with monkeypatch.context() as patched:
+        patched.setattr(threading.Thread, "start", no_thread)
+        for _ in range(MAX_LOOKUPS + 2):
+            with pytest.raises(FetchRefused) as refused:
+                check_address(URL, resolve=PUBLIC)
+            assert str(refused.value) == NOT_STARTED
+    for _ in range(MAX_LOOKUPS + 2):  # every slot is free again
+        check_address(URL, resolve=PUBLIC)
 
 
 # F5: a 304 to a request that carried no validator is refused
