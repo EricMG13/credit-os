@@ -14,7 +14,8 @@ from credit_os.handoff.basis import read_basis
 from credit_os.handoff.blocks import ListItem, Paragraph
 from credit_os.handoff.data import read_data_sections
 from credit_os.handoff.document import HandoffDocument, Section
-from credit_os.handoff.reader import Reader
+from credit_os.handoff.errors import HandoffError
+from credit_os.handoff.reader import Reader, read_reader
 from credit_os.handoff.scan import Node
 
 
@@ -56,3 +57,22 @@ def passage_text(document: HandoffDocument, reader: Reader) -> tuple[Line, ...]:
 
 def _line(section: Section) -> int:
     return section.line
+
+
+def all_sections(document: HandoffDocument) -> list[Section]:
+    """Every section at any depth, depth first, in file order."""
+
+    def walk(sections: tuple[Section, ...]) -> Iterable[Section]:
+        for section in sections:
+            yield section
+            yield from walk(section.sections)
+
+    return list(walk(document.sections))
+
+
+def try_reader(document: HandoffDocument) -> Reader | None:
+    """The reader view, or None when `read_reader` refuses the document."""
+    try:
+        return read_reader(document)
+    except HandoffError:
+        return None
