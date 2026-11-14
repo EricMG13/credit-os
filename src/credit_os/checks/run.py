@@ -3,7 +3,7 @@
 Later pull requests add steps here; each step is one plain line of this function.
 """
 
-from credit_os.checks import passages, prose, sources, structure
+from credit_os.checks import figures, passages, prose, sources, structure
 from credit_os.checks.findings import CheckContext, Finding, ordered
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import HandoffError
@@ -64,5 +64,6 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
             *passages.check_limitation_repeat(document, context),
             *sources.check_table(document, context),
             *_sources(document, context),
+            *figures.check_form(document, context),
         )
     )

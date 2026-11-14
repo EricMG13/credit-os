@@ -1,13 +1,13 @@
-"""The figure reader.
+"""The figure reader and `figure.form`.
 
-Masks. `read_figures` masks a line with one function: every `CODE` match (a run of 16 or more hex
+Masks. `read_figures` and `figure.form` mask a line with one function: every `CODE` match (a run of 16 or more hex
 characters holding a letter A to F: decimal digits alone are a number) is
-replaced by NUL characters of the same length (columns stay true); on the passage side `DATE`
-matches, period labels (`Q3`, `3Q24`, `FY2025E`, `2025E`, `LTM`) and month
+replaced by NUL characters of the same length (columns stay true); on the passage side (always, for
+`figure.form`) `DATE` matches, period labels (`Q3`, `3Q24`, `FY2025E`, `2025E`, `LTM`) and month
 counts (`9M`, when the reader would read no currency for it) are masked the same way. A masked character stays
 known as masked and is never whitespace: no whitespace run (between a currency and its figure or its scale, before a unit or scale
 word, after `(`, before `)`, in the month-count mask's currency test) crosses it. It is never the left
-neighbour of a minus or of a leading point.
+neighbour of a minus or of a leading point, and it is the left side of a range only when it touches the dash.
 
 Letters in every word of the unit table, the currency codes and the `$` prefixes are ASCII, read
 with ASCII case rules. A figure's value is `Decimal` of its digits as written, never negative,
@@ -19,10 +19,16 @@ or glued letters, which are an ordinal or plural ending (no unit) or the unit `u
 `None` means nothing was written, `unrecognised` that something was. One function,
 `_currency_before`, gives the currency written before a position (a symbol, a `$` with its
 prefix, or a three-letter code), and `_currency_word_before` the one word that ends at a position. The reader walks back from a figure as shown over `_BEFORE_SIGNS` (a hyphen only when it is a minus) to find the currency written
-before it, and the month-count mask asks the reader's own functions whether the reader would find a currency for the month count as a figure.
-Every scan is linear in the line: a regex step is constant-width or consumes what it scans, and each
-look-behind walks back over characters that no other figure's look-behind walks over (its
-look-behind is amortised, not bounded: it can cross a long run of whitespace, once).
+before it, and the month-count mask asks the reader's own functions whether the reader would find a currency for the month count as a figure. `figure.form` judges each figure with
+the currency the reader reads for it (one source, `_figure`).
+
+`figure.form` reads passage text of a new-format document (nothing otherwise). Each `FIGURE` match
+in a masked line is judged in order: a dash before it (or before its currency), glued letters, a comma
+followed by a digit, more than two decimals, an unrecognised currency, a scale with no currency, then a figure with no unit and no currency that
+is not a whole number below 100 or a year from 1900 to 2099. Every scan is linear in the line:
+a regex step is constant-width or consumes what it scans, and each look-behind walks back over
+characters that no other figure's look-behind walks over (its look-behind is amortised, not
+bounded: it can cross a long run of whitespace, once).
 """
 
 import re
@@ -32,6 +38,9 @@ from typing import NamedTuple
 
 from pydantic import Field
 
+from credit_os.checks.findings import CheckContext, Finding, refusal
+from credit_os.checks.text import passage_text, try_reader
+from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.scan import Node
 
 CODE = re.compile(r"\bCP-[A-Z0-9]+\b|\bT\d+[A-Z]?\.\d+\b|\b(?=[0-9]*[A-Fa-f])[0-9A-Fa-f]{16,}\b")
@@ -127,10 +136,29 @@ _ISO_CODES = (
 )
 ISO_4217 = frozenset(_ISO_CODES.split())
 
+_FIGURE = re.compile(
+    r"(?<!\w)(?<!\d[,.])(?<![A-Za-z][-−])"
+    r"(?:(?P<lead>(?<![.,])\.\d+)|(?P<int>\d{1,3}(?:,\d{3})+|\d+)(?P<dec>\.\d+)?)"
+    r"(?!\d|[-−][A-Za-z])"
+)
 _NUMBER = re.compile(
     r"(?P<lead>(?<![\w.,])\.\d+)|(?P<int>\d{1,3}(?:,\d{3})+(?!\d)|\d+)(?P<dec>\.\d+)?"
 )
+_DASHES = "–—"
 _BEFORE_SIGNS = "(-−–—+"
+_COMMA = "Write the number with a decimal point, and commas only between groups of three digits."
+_DECIMALS = "Round to at most two decimals."
+_FORM = "Write the unit or scale in an accepted form (USD 250 million, 45%, 3.1x), or reword it."
+_CURRENCY = "Write the currency as its three-letter currency code before the figure (BRL 500)."
+_SCALE = "Put a currency before a scaled amount (USD 250 million), or reword a count."
+_DASH = (
+    "Write a negative figure with a minus sign (-5%), not a dash; a range needs a figure on "
+    "both sides of the dash."
+)
+_BARE = (
+    "A number with no unit does not belong in a reader sentence: reword it in words or move it "
+    "to a table, or add a unit or currency if it is an amount or ratio."
+)
 
 
 class Figure(Node):
@@ -386,3 +414,104 @@ def read_figures(text: str, *, passage: bool) -> tuple[Figure, ...]:
         figure, position = _figure(masked, found, text)
         figures.append(figure)
     return tuple(figures)
+
+
+def _plain(found: re.Match[str]) -> bool:
+    """A whole number below 100, or of four digits from 1900 to 2099, compared as a Decimal."""
+    digits = found["int"]
+    if digits is None or found["dec"] or "," in digits:
+        return False
+    value = Decimal(digits)
+    return value < 100 or (len(digits) == 4 and 1900 <= value <= 2099)
+
+
+def _comma_run(text: str, end: int) -> int | None:
+    """The end of the digits, commas and points that follow a number at `end` with `,` and a digit."""
+    if text[end : end + 1] != "," or not text[end + 1 : end + 2].isdecimal():
+        return None
+    while end < len(text) and (
+        text[end].isdecimal() or (text[end] in ",." and text[end + 1 : end + 2].isdecimal())
+    ):
+        end += 1
+    return end
+
+
+def _reason(found: re.Match[str], after: _After, currency: str | None) -> str | None:
+    """Why `found` is refused, or None when it passes; `currency` is the reader's for the figure."""
+    if after.unit == "unrecognised":
+        return _FORM
+    if len(found["lead"] or found["dec"] or "") > 3:
+        return _DECIMALS
+    if currency == "unrecognised":
+        return _CURRENCY
+    if after.unit in _SCALES:
+        return None if currency else _SCALE
+    if after.unit is not None or currency or _plain(found):
+        return None
+    return _BARE
+
+
+def _dash_before(text: str, start: int) -> int | None:
+    """The en or em dash directly before the figure at `start` or before its currency."""
+    if start > 0 and text[start - 1] in _DASHES:
+        return start - 1
+    span = _currency_span(text, start)
+    if span is not None and span[0] > 0 and text[span[0] - 1] in _DASHES:
+        return span[0] - 1
+    return None
+
+
+def _is_range(masked: _Masked, dash: int, previous_end: int) -> bool:
+    """The dash at `dash` touches a digit, `%`, a masked character or the end of the unit before it."""
+    return dash > 0 and (
+        masked.text[dash - 1].isdecimal()
+        or masked.text[dash - 1] == "%"
+        or bool(masked.hidden[dash - 1])
+        or dash == previous_end
+    )
+
+
+def _past_bracket(masked: _Masked, found: re.Match[str], after: _After) -> _After:
+    """The unit written after a closing bracket, when the figure has none before it."""
+    bracket = _bracket(masked, _prefix(masked, found.start()), after.end)
+    if bracket is None or after.unit is not None:
+        return after
+    beyond = _after(masked.text, bracket.close)
+    return after if beyond.unit is None else beyond
+
+
+def _line_findings(line: int, text: str) -> tuple[Finding, ...]:
+    masked = _mask(text, passage=True)
+    findings: list[Finding] = []
+    position = 0
+    previous_end = -1
+    while (found := _find(_FIGURE, masked, position)) is not None:
+        position = found.end()
+        after = _after(masked.text, position)
+        if after.ending:
+            continue
+        after = _past_bracket(masked, found, after)
+        start = found.start()
+        dash = _dash_before(masked.text, start)
+        if dash is not None and not _is_range(masked, dash, previous_end):
+            findings.append(refusal("figure.form", line, text[dash : after.end], _DASH, dash + 1))
+        run = _comma_run(masked.text, position)
+        end = after.end if run is None else run
+        currency = _figure(masked, found, text)[0].currency
+        reason = _reason(found, after, currency) if run is None else _COMMA
+        if reason is not None:
+            findings.append(refusal("figure.form", line, text[start:end], reason, start + 1))
+        position = max(position, end)
+        previous_end = end
+    return tuple(findings)
+
+
+def check_form(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
+    reader = try_reader(document)
+    if reader is None or reader.format != "new":
+        return ()
+    return tuple(
+        finding
+        for line in passage_text(document, reader)
+        for finding in _line_findings(line.line, line.text)
+    )
