@@ -1,13 +1,15 @@
 """A `Model` that replays replies from one JSON Lines recording, for tests and replays.
 
-A request with no recorded reply raises `RecordingMissing`; nothing is defaulted. Money is
-read as text or `Decimal`, never a float; a count not reported stays `None`."""
+A request with no recorded reply raises `RecordingMissing`; nothing
+is defaulted. A charge is read only from a decimal string, never a number; a tool argument with
+a fraction is a float, as the SDK reads it; a count not reported stays `None`."""
 
 import json
+import math
 import re
 from collections.abc import Mapping
 from dataclasses import fields
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +29,7 @@ _LINE_KEYS = ("exchange_id", "call_index", "reply")
 _REPLY_KEYS = ("kind", "turn", "error_class", "message", "usage", "billed_usd", "compactions")
 _TURN_KEYS = ("text", "tool_calls", "usage", "stop_reason", "reported_model", "request_id")
 _CALL_KEYS = ("call_id", "name", "arguments")
-_COMPACTION_KEYS = ("usage", "billed_usd")
+_COMPACTION_KEYS = ("usage", "billed_usd", "outcome", "event_id")
 
 
 class RecordingError(ValueError):
@@ -44,7 +46,8 @@ class RecordingMissing(LookupError):
 
 
 class CannedModel:
-    """Answers from a fixed table of replies; `close` does nothing and it still answers after."""
+    """Answers from a fixed table of replies. It observes no events, so it never holds a
+    compaction: `close` returns `()` and it still answers after."""
 
     def __init__(self, config_id: str, replies: Mapping[tuple[str, int], Reply]) -> None:
         self._config_id = config_id
@@ -60,8 +63,8 @@ class CannedModel:
             raise RecordingMissing(exchange_id, call_index)
         return reply
 
-    def close(self) -> None:
-        return None
+    def close(self) -> tuple[Compaction, ...]:
+        return ()
 
 
 def canned_model(config_id: str, recording: Path) -> CannedModel:
@@ -88,11 +91,11 @@ def _refuse_constant(name: str) -> object:
     raise RecordingError(f"{name} is not allowed in a JSON number")
 
 
-def _parse_float(text: str) -> Decimal:
-    try:
-        return Decimal(text)
-    except InvalidOperation:
-        raise RecordingError("a number is out of range") from None
+def _parse_float(text: str) -> float:
+    value = float(text)
+    if not math.isfinite(value):
+        raise RecordingError("a number is out of range")
+    return value
 
 
 def _parse_int(text: str) -> int:
@@ -193,7 +196,10 @@ def _turn(value: object) -> Turn:
 def _compaction(value: object) -> Compaction:
     obj = _exact(value, _COMPACTION_KEYS, "compaction")
     return Compaction(
-        Usage(**_exact(obj["usage"], _USAGE_KEYS, "usage")), _charge(obj["billed_usd"])
+        Usage(**_exact(obj["usage"], _USAGE_KEYS, "usage")),
+        _charge(obj["billed_usd"]),
+        obj["outcome"],
+        obj["event_id"],
     )
 
 

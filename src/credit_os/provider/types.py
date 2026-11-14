@@ -8,6 +8,7 @@ from typing import Any, Literal, Protocol, get_args
 Role = Literal["system", "user", "assistant", "tool"]
 StopReason = Literal["end", "tool_use", "max_tokens", "other"]
 ReplyKind = Literal["ok", "not_sent", "sent_usage", "sent_unknown"]
+CompactionOutcome = Literal["done", "failed", "unfinished"]
 
 
 class ProviderDataError(ValueError):
@@ -98,16 +99,31 @@ def _check_charge_value(value: Decimal | None) -> None:
 
 @dataclass(frozen=True)
 class Compaction:
-    """One context compaction the runtime reported during a call: its own counts and its own
-    charge (`None` when it could not be read)."""
+    """One context compaction the runtime reported: its own counts and its own charge.
+    `billed_usd` `None` is unknown, never zero, whatever the outcome. `outcome` is `done` (the
+    runtime reported success), `failed` (it reported failure) or `unfinished` (a start whose
+    complete had not arrived when the call ended or the model was closed; it knows nothing:
+    every count `None` and no charge). `event_id` is the id of the SDK event that reported it,
+    so an event delivered twice is counted once. It has no reasoning-token count."""
 
     usage: Usage
     billed_usd: Decimal | None
+    outcome: CompactionOutcome
+    event_id: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.usage, Usage):
             raise ProviderDataError("usage must be a Usage")
         _check_charge_value(self.billed_usd)
+        if not isinstance(self.outcome, str) or self.outcome not in get_args(CompactionOutcome):
+            raise ProviderDataError(f"unknown compaction outcome {self.outcome!r}")
+        if self.outcome == "unfinished" and (
+            self.billed_usd is not None
+            or any(getattr(self.usage, f.name) is not None for f in fields(self.usage))
+        ):
+            raise ProviderDataError("an unfinished compaction has no counts and no charge")
+        if not isinstance(self.event_id, str) or not self.event_id:
+            raise ProviderDataError("event_id must be a non-empty string")
 
 
 @dataclass(frozen=True)
@@ -179,6 +195,8 @@ class Reply:
             isinstance(c, Compaction) for c in self.compactions
         ):
             raise ProviderDataError("compactions must be a tuple of Compaction")
+        if len({c.event_id for c in self.compactions}) != len(self.compactions):
+            raise ProviderDataError("two compactions share an event_id")
         if self.compactions and self.kind == "not_sent":
             raise ProviderDataError("a not_sent reply has no compactions")
 
@@ -188,11 +206,15 @@ class Model(Protocol):
     failure included; it raises only when it cannot answer at all (the canned adapter, for a
     request it has no reply for). `exchange_id` is the caller's name for one exchange and
     `call_index` the position of the call within it, counted from 0; together they name one
-    call. `message` and `raw` are already redacted when a `Reply` leaves an adapter."""
+    call. `message` and `raw` are already redacted when a `Reply` leaves an adapter.
+
+    A compaction is on the reply of the call during which it was observed; one observed after
+    a call returned is on the next call's reply. `close` returns those observed and not yet
+    delivered, and an adapter never drops one."""
 
     @property
     def config_id(self) -> str: ...
 
     def complete(self, request: Request, *, exchange_id: str, call_index: int) -> Reply: ...
 
-    def close(self) -> None: ...
+    def close(self) -> tuple[Compaction, ...]: ...

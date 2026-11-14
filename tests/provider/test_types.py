@@ -30,7 +30,7 @@ USAGE_FIELDS = (
 CALL = ToolCall(call_id="c1", name="f", arguments={})
 _TURN = Turn("t", (), Usage(input_tokens=5), "end", None, None)
 _REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
-_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0214050"))
+_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0214050"), "done", "evt-1")
 
 
 def _message(**kw: Any) -> Message:
@@ -56,10 +56,14 @@ def _ok(**kw: Any) -> Reply:
 
 _sent = partial(_reply, kind="sent_usage", usage=Usage())
 
+BAD_OUTCOMES: list[Any] = [None, True, "", "ok", "Done", []]
 _M = {"role": "tool", "tool_call_id": "c"}
 _CHARGE = "billed_usd must be a Decimal"
 _FINITE = "billed_usd must be finite and not negative"
 _COMPACTIONS = "compactions must be a tuple of Compaction"
+_OUTCOME = "an unfinished compaction has no counts and no charge"
+_EVENT = "event_id must be a non-empty string"
+_UNFINISHED = {"outcome": "unfinished", "billed_usd": None, "usage": Usage()}
 # (builder, keyword arguments, fragment of the refusal message)
 REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_message, {"role": "bot"}, "unknown role 'bot'"),
@@ -103,6 +107,15 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_compaction, {"billed_usd": Decimal("NaN")}, _FINITE),
     (_compaction, {"billed_usd": Decimal(-1)}, _FINITE),
     (_compaction, {"billed_usd": Decimal("-0")}, _FINITE),
+    *((_compaction, {"outcome": v}, f"unknown compaction outcome {v!r}") for v in BAD_OUTCOMES),
+    (_compaction, {**_UNFINISHED, "usage": Usage(output_tokens=0)}, _OUTCOME),
+    (_compaction, {**_UNFINISHED, "billed_usd": Decimal(0)}, _OUTCOME),
+    *((_compaction, {"event_id": v}, _EVENT) for v in (None, "", 7)),
+    (
+        _ok,
+        {"compactions": (_COMPACTION, _compaction(billed_usd=None))},
+        "two compactions share an event_id",
+    ),
     (_ok, {"compactions": []}, _COMPACTIONS),
     (_ok, {"compactions": ({"usage": {}},)}, _COMPACTIONS),
     (_reply, {"compactions": (_COMPACTION,)}, "a not_sent reply has no compactions"),
@@ -179,9 +192,21 @@ def test_sent_unknown_reply() -> None:
 def test_reply_carries_compactions_without_taking_their_charge(
     build: Callable[..., Reply],
 ) -> None:
-    reply = build(compactions=(_COMPACTION, _compaction(billed_usd=None)))
+    reply = build(
+        compactions=(
+            _COMPACTION,
+            _compaction(billed_usd=None, outcome="failed", event_id="evt-2"),
+            _compaction(**{**_UNFINISHED, "event_id": "evt-3"}),
+        )
+    )
     assert reply.billed_usd is None
-    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0214050"), None]
+    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0214050"), None, None]
+    assert [c.outcome for c in reply.compactions] == ["done", "failed", "unfinished"]
+
+
+@pytest.mark.parametrize("charge", [Decimal("0.5"), None])
+def test_failed_compaction_with_or_without_charge(charge: Decimal | None) -> None:
+    assert _compaction(outcome="failed", billed_usd=charge).billed_usd == charge
 
 
 def test_types_are_frozen() -> None:
@@ -209,8 +234,8 @@ class _Minimal:
     def complete(self, request: Request, *, exchange_id: str, call_index: int) -> Reply:
         return _reply()
 
-    def close(self) -> None:
-        return None
+    def close(self) -> tuple[Compaction, ...]:
+        return ()
 
 
 def test_structural_model() -> None:
