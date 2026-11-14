@@ -1315,6 +1315,13 @@ describe("readSlice, modules", () => {
     limits.gapsLink["label"] = "See the 0 gaps in Evidence";
   };
 
+  /** A run that holds no module has no time for any, and its timings say so. */
+  const noTimings = (run: Json) => {
+    const timings = (run["evidence"] as { record: { timings: Json } }).record.timings;
+    timings["rows"] = [];
+    timings["emptyText"] = "No module ran, so no module has a time.";
+  };
+
   it("allows no first module on a run that holds no modules", () => {
     const slice = fresh();
     const run = runOf(slice, 3);
@@ -1326,6 +1333,7 @@ describe("readSlice, modules", () => {
     evidence.moduleFilter = [];
     for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     noGaps(run);
+    noTimings(run);
     run.head["firstModule"] = null;
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
