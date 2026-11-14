@@ -602,7 +602,7 @@ const snapshotBase = shape<SignalSnapshot>({
 });
 
 /** A thread is named by (group, id); the key is a pair so no id can run into another's. */
-const threadKey = (groupId: string, id: string) => JSON.stringify([groupId, id]);
+export const threadKey = (groupId: string, id: string) => JSON.stringify([groupId, id]);
 
 /** Each group item names exactly one thread and each thread is named by an item, with the same story, note and state. */
 function threadProblem(snap: SignalSnapshot, path: string): string | null {

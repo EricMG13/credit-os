@@ -17,6 +17,7 @@ import { MediaObject } from "./parts/MediaObject";
 import { Composer, MessageList } from "./parts/Messages";
 import type { ReactionWord } from "./parts/Messages";
 import type { SignalComment, SignalGroup, SignalScene, SignalStory, SignalThread } from "./slice";
+import { threadKey } from "./slice";
 import { useSignalViewer } from "./viewer";
 
 const TITLE_ID = "signal-thread-title";
@@ -282,7 +283,7 @@ export function ThreadPanel({
       </header>
       {thread === null ? null : (
         <Conversation
-          key={`${thread.groupId}/${thread.id}`}
+          key={threadKey(thread.groupId, thread.id)}
           thread={thread}
           story={story}
           writer={writer}

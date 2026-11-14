@@ -433,3 +433,54 @@ describe("the thread panel across groups", () => {
     expect(other?.getAttribute("aria-pressed")).toBe(before);
   });
 });
+
+describe("the thread panel across ids that run into each other", () => {
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  /** Two threads, ("leveraged-credit", "x/y") and ("leveraged-credit/x", "y"), that a "/" join would name the same. */
+  function colliding() {
+    return withMain((main) => {
+      const { snapshot } = main;
+      const first = snapshot.threads.find((t) => t.id === "corvane-thread");
+      const item = snapshot.groups[0]?.threads.find((t) => t.id === "corvane-thread");
+      const desk = snapshot.groups.find((g) => g.id === "shipping-desk");
+      if (first === undefined || item === undefined || desk === undefined) {
+        throw new Error("the fixture has the Corvane thread and the Shipping desk");
+      }
+      (snapshot.threads as unknown[]).push({ ...structuredClone(first), id: "x/y" });
+      (snapshot.groups[0]?.threads as unknown[]).push({ ...structuredClone(item), id: "x/y" });
+      (snapshot.threads as unknown[]).push({
+        ...structuredClone(first),
+        groupId: "leveraged-credit/x",
+        id: "y",
+      });
+      const other = { ...structuredClone(desk), id: "leveraged-credit/x", name: "Overflow desk" };
+      (other.threads as unknown[]).push({ ...structuredClone(item), id: "y" });
+      (snapshot.groups as unknown[]).push(other);
+      (snapshot.channels.groups as unknown[]).push({
+        id: other.id,
+        name: other.name,
+        unread: null,
+      });
+    });
+  }
+
+  it("does not carry a posted comment or a draft between threads whose ids join to the same text", async () => {
+    show(`${GROUP}/thread/${encodeURIComponent("x/y")}`, colliding());
+    type("Checked the filing.");
+    send();
+    type("A half-written reply");
+    expect(within(panel()).getByText("Checked the filing.")).toBeInTheDocument();
+
+    window.location.hash = `#/signal/main/group/${encodeURIComponent("leveraged-credit/x")}/thread/y`;
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Overflow desk", hidden: true }),
+      ).toBeInTheDocument();
+    });
+    expect(within(panel()).queryByText("Checked the filing.")).toBeNull();
+    expect(box()).toHaveValue("");
+  });
+});
