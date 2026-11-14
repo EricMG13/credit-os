@@ -29,8 +29,7 @@ def test_no_exact_value_survives_a_change(
     values: tuple[str, ...], text: str, expected: str
 ) -> None:
     out = Redactor(values).text(text)
-    if expected != text:
-        assert all(v not in out for v in values if v)
+    assert all(v not in out for v in values if v)
 
 
 @pytest.mark.parametrize(("environ", "text", "expected"), key.REDACT_ENVIRON)

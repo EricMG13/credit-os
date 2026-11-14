@@ -20,7 +20,7 @@ _SK_LEFT_BOUNDARIES = (
     r"(?<![A-Za-z0-9])",  # not the tail of a longer word
     r"(?<=%[0-9A-Fa-f]{2})",  # URL-encoded escape
     r"(?<=%25[0-9A-Fa-f]{2})",  # double-URL-encoded escape
-    r"(?<=\\[a-z])",  # backslash escape such as \n, \t, \r
+    r"(?<=\\[bfnrt])",  # single-letter escape JSON and Python repr write: \n, \t, \r
     r"(?<=\\u[0-9A-Fa-f]{4})",  # \uXXXX
     r"(?<=\\x[0-9A-Fa-f]{2})",  # \xXX
     r"(?<=\x1b\[[0-9]m)",  # ANSI colour code, 1 to 5 characters of digits and ";"
@@ -31,7 +31,11 @@ _SK_LEFT_BOUNDARIES = (
 )
 _SK_BOUNDARY = "|".join(_SK_LEFT_BOUNDARIES)
 _SK_KEY = r"sk-(?:(?:or|ant|proj)-[A-Za-z0-9_-]{6,}|[A-Za-z0-9_-]{20,})"
-_GITHUB_SHAPES = r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}"
+# On its right a GitHub token runs to the end of its word, "_" and "-" included: the letters
+# that start the next key ("ghp", "github", "sk") are also body characters, so a match that ended
+# where the body's characters end would leave a glued key's "_" or "-" and its body as text. The
+# lookahead keeps the minimum body; the rest of the word goes with the token.
+_GITHUB_SHAPES = r"(?:gh[pousr]_(?=[A-Za-z0-9]{36})|github_pat_(?=[A-Za-z0-9_]{22}))[A-Za-z0-9_-]+"
 _KEY_PATTERN = re.compile(rf"(?:{_SK_BOUNDARY})(?:{_SK_KEY})|{_GITHUB_SHAPES}")
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
 _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
