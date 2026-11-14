@@ -314,11 +314,19 @@ export type AnalysisLimitations = {
   items: { title: string; text: string; trace: string | null }[];
 };
 
+/** A section the run could not fill: the title it would have had and the reason. */
+export type SectionGap = { gap: GapItem };
+
+/** True for a section that is a gap; the reader and the page both narrow with it. */
+export function isGap(section: object): section is SectionGap {
+  return Object.hasOwn(section, "gap");
+}
+
 export type PortfolioFitPage = {
-  limits: Limits;
+  limits: Limits | SectionGap;
   ratings: Ratings;
   relativeValue: RelativeValue;
-  scatter: HoldingsScatter;
+  scatter: HoldingsScatter | SectionGap;
   strips: HoldingsStrips;
 };
 

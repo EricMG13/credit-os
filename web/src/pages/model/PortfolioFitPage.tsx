@@ -4,7 +4,7 @@ import { PORTFOLIO_FIT_LABEL } from "./parts/ModelShell";
 import { RunPage, runKey } from "./parts/RunPage";
 import { LimitsCard, ScatterCard, StripsCard } from "./sections/PortfolioCharts";
 import { SectionHeading, chartTrace, pairGrid } from "./sections/shared";
-import type { PortfolioFitPage as PortfolioFit, RatingTile } from "./slice/types";
+import { isGap, type PortfolioFitPage as PortfolioFit, type RatingTile } from "./slice/types";
 
 function entry({ label, value, caption }: RatingTile) {
   return { label, value, ...(caption === null ? {} : { caption }) };
@@ -37,11 +37,14 @@ function RelativeValue({ data }: { data: PortfolioFit["relativeValue"] }) {
 }
 
 function Body({ page }: { page: PortfolioFit }) {
-  const holdings = Math.max(page.scatter.head.length, page.strips.head.length);
+  const holdings = Math.max(
+    isGap(page.scatter) ? 0 : page.scatter.head.length,
+    page.strips.head.length,
+  );
   return (
     <div className="flex flex-col gap-10">
       <h2 className="sr-only">{PORTFOLIO_FIT_LABEL}</h2>
-      <div className={pairGrid(page.limits.head.length)}>
+      <div className={pairGrid(isGap(page.limits) ? 0 : page.limits.head.length)}>
         <LimitsCard data={page.limits} />
         <div className="flex min-w-0 flex-col gap-6">
           <Ratings data={page.ratings} />

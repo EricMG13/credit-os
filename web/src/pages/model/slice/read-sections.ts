@@ -79,7 +79,8 @@ function plainSegment(segment: string): boolean {
   try {
     const decoded = decodeURIComponent(segment);
     return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
-  } catch {
+  } catch (error) {
+    if (!(error instanceof URIError)) throw error;
     return false; // an escape that is not UTF-8 is refused like any other odd path
   }
 }
