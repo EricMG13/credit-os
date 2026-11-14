@@ -153,6 +153,7 @@ REFUSED_ARGUMENTS: tuple[tuple[str, str, dict[str, object]], ...] = (
     ("end message not text", "end", {"status": "stopped", "reason": "done", "message": 5}),
     ("reject reason starting with a digit", "reject", {"reason": "1late"}),
     ("claim run id with a space", "claim", {"run_id": "run 1"}),
+    ("end status a list", "end", {"status": ["finished"], "reason": "done"}),
 )
 # A claim for another run, or with a token of the right shape that is not the writer: StoreFenced.
 # Both on start_run of a created run: Claim(run_id, FOREIGN_TOKEN), and Claim(this run's id, a second
@@ -195,3 +196,20 @@ NOT_A_CLAIM = ("run-1", "0" * 32)
 
 # The held lock covers every write method, each on a run in a status it allows (create: a new id).
 HELD_LOCK_CALLS = ("create", "claim", "start", "reject", "end", "note")
+
+# Notes recorded as given (record_event on a running run with its valid claim): (label, kind, detail,
+# module_id, attempt). The run's last event then reads back with exactly this kind, module_id,
+# attempt and detail.
+ACCEPTED_NOTES: tuple[tuple[str, str, dict[str, object], str | None, int | None], ...] = (
+    ("module and attempt", "module_opened", {"module": "CP-1"}, "CP-1", 2),
+    ("module only", "module_closed", {}, "CP-2", None),
+    ("neither", "budget_checked", {"count": 3, "left": None}, None, None),
+)
+
+# A reject's message is stored: reject_run(claim, reason=REJECT_REASON, message=END_MESSAGE) on a
+# created run reads back status "rejected", end_reason REJECT_REASON, end_message END_MESSAGE_STORED.
+REJECT_REASON = "late"
+
+# start_run from a status it may not start from, with the run's valid claim: StoreConflict, the clock
+# never called, the full dump unchanged.
+START_REFUSED_STATUSES = ("running", "finished", "rejected")
