@@ -1,4 +1,5 @@
 import time
+from array import array
 from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
@@ -15,11 +16,8 @@ from credit_os.signal.feeds import (
     MAX_ELEMENTS,
     MAX_NAME_CHARS,
     MAX_NAMESPACE_CHARS,
-    MAX_TAG_CHARS,
     Entry,
     FeedError,
-    _drop_long_tags,
-    _folded,
     _new_parser,
     _Node,
     _TreeBuilder,
@@ -995,13 +993,13 @@ def test_atom_summary_type_decides_whether_it_is_markup(summary: str, expected: 
     assert _atom_one("<title>T</title>", summary).summary == expected
 
 
-@pytest.mark.parametrize("method", ["feed", "close"])
+@pytest.mark.parametrize("method", ["goahead", "close"])
 def test_a_failure_inside_the_html_stripper_is_a_feed_error(
     monkeypatch: pytest.MonkeyPatch, method: str
 ) -> None:
     """R20. Real standard libraries before the 2025 fixes raise AssertionError from html.parser
-    on some markup; the installed one does not, so this test makes ``HTMLParser.feed`` (or
-    ``HTMLParser.close``) raise it.
+    on some markup; the installed one does not, so this test makes ``HTMLParser.goahead`` (which
+    reading text calls) or ``HTMLParser.close`` raise it.
     """
 
     def failing(self: HTMLParser, *args: str) -> None:
@@ -1264,38 +1262,6 @@ def test_text_outside_the_fields_that_are_read_is_not_kept() -> None:
     assert (e.title, e.summary) == ("t", "d")
 
 
-def test_folding_equals_the_whole_text_folded_then_cut() -> None:
-    import random
-
-    # What each piece leaves in the text, written out here (not computed with the production
-    # helpers): format and control characters vanish, other white space becomes a space.
-    left = {
-        "a": "a",
-        "b": "b",
-        "\u0436": "\u0436",
-        " ": " ",
-        "\n": " ",
-        "\t": " ",
-        "\u200b": "",
-        "\x07": "",
-        "\u00a0": " ",
-        "\x1c": " ",
-        "word": "word",
-    }
-    rnd = random.Random(7)
-    for size in (0, 1, 7, 90, 4095, 4096, 4097, 9000, 20000):
-        chosen = [rnd.choice(list(left)) for _ in range(size)]
-        text = "".join(chosen)
-        expected = " ".join("".join(left[piece] for piece in chosen).split())
-        for limit in (1, 5, 301, 500, 100_000):
-            assert _folded(text, limit) == expected[:limit]
-
-
-def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
-    assert _folded("w" * 1_000_000, 500) == "w" * 500
-    assert _folded(" " * 10_000 + "a b", 10) == "a b"
-
-
 def test_text_is_read_after_any_amount_of_markup() -> None:
     assert _summary_of("Lead " + "<i></i>" * 100_000 + "late") == "Lead late"
     assert _summary_of("<i></i>" * 100_000 + "late") == "late"
@@ -1312,65 +1278,196 @@ def test_a_summary_after_a_leading_data_image_is_read() -> None:
     assert _summary_of(style + "<p>Rate held.</p>") == "Rate held."
 
 
-def test_a_tag_of_the_most_characters_is_kept_and_one_more_is_dropped() -> None:
-    kept = "<a" + " " * (MAX_TAG_CHARS - 3) + ">"
-    assert len(kept) == MAX_TAG_CHARS
-    assert _drop_long_tags(f"x{kept}y") == f"x{kept}y"
-    longer = "<a" + " " * (MAX_TAG_CHARS - 2) + ">"
-    assert _drop_long_tags(f"x{longer}y") == "x y"
+# --- R37/R38: dates and links are read to their limits, a memoryview must be bytes ---
+
+_DATE = "Fri, 13 Nov 2026 09:00:00 GMT"  # 29 characters
 
 
-@pytest.mark.parametrize("opening", ["<!--", "<![CDATA[", "</", "<?"])
-def test_every_kind_of_over_long_tag_is_dropped(opening: str) -> None:
-    assert _drop_long_tags(f"A{opening}{'z' * MAX_TAG_CHARS}>B") == "A B"
+def _published(date: str) -> datetime | None:
+    (e,) = parse_feed(_rss(f"<title>t</title>{_LINK}<pubDate>{date}</pubDate>"))
+    return e.published
 
 
-def test_an_over_long_tag_that_never_closes_takes_the_rest_of_the_text() -> None:
-    assert _drop_long_tags("Keep <a " + "b " * 3000 + "lost") == "Keep  "
-    assert _drop_long_tags("Keep <!--" + "x" * 5000) == "Keep  "
+def test_a_date_longer_than_the_limit_is_no_date() -> None:
+    at_limit = _DATE + " x" * 113 + "y"
+    assert len(at_limit) == 256
+    assert _published(at_limit) == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+    assert _published(at_limit + "y") is None
+    assert _published(" " * 300 + at_limit + " " * 300) == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
 
 
-def test_text_outside_tags_is_never_dropped() -> None:
-    text = "a < b and " + "<" * 10_000 + " c > d " + "<3 " * 5000 + "end"
-    assert _drop_long_tags(text) == text
-    assert _drop_long_tags("w" * 1_000_000) == "w" * 1_000_000
+def test_an_atom_date_is_read_without_its_blanks_and_none_when_too_long() -> None:
+    def updated(text: str) -> datetime | None:
+        return _atom_one("<title>T</title>", f"<updated>{text}</updated>").published
+
+    stamp = "2026-11-13T09:00:00Z"
+    assert updated(" " * 300 + stamp + " " * 300) == datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
+    assert updated(stamp + " " * 300 + "x") is None
 
 
-def test_many_angle_brackets_and_no_closing_one_are_read_in_one_pass() -> None:
-    assert _drop_long_tags("<a" * 200_000) == " "
-    assert _drop_long_tags("<a " * 200_000 + "x") == " "
-    assert _drop_long_tags("<a>" * 200_000) == "<a>" * 200_000
-    assert _drop_long_tags('<a "' * 100_000) == " "
-    assert _drop_long_tags('<a ="' * 100_000) == " "
+def test_a_link_is_read_with_blanks_at_its_ends_and_cut_by_its_limit() -> None:
+    def rss_links(link: str) -> list[str]:
+        return [e.link for e in parse_feed(_rss(f"<title>t</title><link>{link}</link>"))]
+
+    def atom_links(href: str) -> list[str]:
+        body = f'{_ATOM_HEAD.decode()}<entry><title>T</title><link href="{href}"/></entry></feed>'
+        return [e.link for e in parse_feed(body.encode())]
+
+    for links in (rss_links, atom_links):
+        assert links(" " * 5000 + "https://e.org/a" + " " * 5000) == ["https://e.org/a"]
+        assert links("https://e.org/" + "a" * 2034) == ["https://e.org/" + "a" * 2034]
+        assert links("https://e.org/" + "a" * 2035) == []
+        assert links("https://e.org/a" + " " * 5000 + "x") == []
 
 
-@pytest.mark.parametrize("quote", ['"', "'"])
-def test_a_closing_bracket_inside_a_quoted_value_does_not_hide_the_rest_of_a_tag(
-    quote: str,
-) -> None:
-    tag = f"<a x={quote}>{quote} " + "b " * 5000 + ">"
-    assert _drop_long_tags(f"before {tag}after") == "before  after"
-    assert _summary_of(f"before {tag}after") == "before after"
+def test_a_memoryview_that_is_not_contiguous_bytes_is_a_type_error() -> None:
+    """A2 (R31 point 4): a contiguous view of anything but bytes is refused, not read."""
+    padded = RSS + b" " * (-len(RSS) % 4)
+    for view in (memoryview(padded).cast("H"), memoryview(padded).cast("c")):
+        with pytest.raises(TypeError, match="contiguous bytes"):
+            parse_feed(cast(bytes, view))
 
 
-def test_a_quote_with_no_partner_opens_no_value() -> None:
-    tag = '<a x=" ' + "b " * 5000 + ">"
-    assert _drop_long_tags(f"before {tag}after") == "before  after"
-    # a quote that does not follow "=" opens nothing either
-    assert _drop_long_tags('<a "x ' + "b " * 5000 + '">after') == " after"
-
-
-def test_cutting_a_tag_out_cannot_join_the_pieces_into_markup() -> None:
-    body = "x<scr<b " + "c " * 3000 + ">ipt>y"
-    assert _drop_long_tags(body) == "x ipt>y"
-    assert _summary_of(body) == "x ipt>y"
-    assert _summary_of("<scr" + "<i " + "j " * 3000 + ">ipt>alert(1)</script>") == "ipt>alert(1)"
+def test_a_memoryview_of_four_byte_items_is_a_type_error() -> None:
+    padded = RSS + b" " * (-len(RSS) % 4)
+    with pytest.raises(TypeError, match="contiguous bytes"):
+        parse_feed(cast(bytes, memoryview(array("I", padded))))
 
 
 def test_a_body_that_is_not_contiguous_bytes_is_refused() -> None:
     with pytest.raises(TypeError, match="contiguous"):
         parse_feed(cast(bytes, memoryview(RSS + RSS)[::2]))
-    # a contiguous memoryview of any shape is read like its bytes
+    # a contiguous memoryview of bytes in any shape is read like its bytes
     padded = RSS + b" " * (-len(RSS) % 2)
     two_d = memoryview(padded).cast("B", [2, len(padded) // 2])
     assert parse_feed(cast(bytes, two_d)) == parse_feed(RSS)
+
+
+# --- R37/R38: html.parser is driven in pieces and holds at most MAX_HELD_CHARS ---
+
+
+def test_an_over_long_tag_is_one_space() -> None:
+    assert _summary_of("x<a " + "b " * 3000 + ">y") == "x y"
+    assert _summary_of('x<a title="' + "q" * 5000 + '">y') == "x y"
+    assert _summary_of("x<a>y") == "xy"
+    assert _summary_of("x</a " + "b " * 3000 + ">y") == "x y"
+
+
+def test_a_construct_open_at_the_end_drops_the_rest() -> None:
+    assert _summary_of("Keep <a " + "b " * 3000 + "lost") == "Keep"
+    assert _summary_of("Keep <!--" + "x" * 5000) == "Keep"
+
+
+def test_a_held_comment_or_cdata_section_ends_at_its_own_end() -> None:
+    assert _summary_of("<!--" + "a>b " * 1000 + "-->Visible") == "Visible"
+    # the section holds "]]>", which a CDATA block of the feed can only carry split in two
+    section = "<![CDATA[" + "q>q " * 1000 + "]]>Visible"
+    assert _summary_of(section.replace("]]>", "]]]]><![CDATA[>")) == "Visible"
+
+
+def test_a_long_tag_with_a_quoted_bracket_keeps_the_text_after_it() -> None:
+    tag = '<a title="' + "x" * 3000 + '>y" href="z">Link text</a> rest'
+    assert _summary_of(tag) == "Link text rest"
+
+
+def test_a_tag_open_past_the_held_limit_ends_at_the_next_bracket_even_in_a_quoted_value() -> None:
+    """R38, accepted: a quoted ">" ends a tag that html.parser could not finish in 4,096
+    characters; the rest of the tag then reads as text, and no tag is made of what is cut."""
+    tag = '<a title="' + "x" * 5000 + '>y" href="z">Link text</a> rest'
+    assert _summary_of(tag) == 'y" href="z">Link text rest'
+
+
+def test_cutting_a_construct_out_cannot_join_the_pieces_into_markup() -> None:
+    assert _summary_of("x<scr<b " + "c " * 3000 + ">ipt>y") == "x ipt>y"
+    assert _summary_of("<scr" + "<i " + "j " * 3000 + ">ipt>alert(1)</script>") == "ipt>alert(1)"
+
+
+def test_long_element_content_is_read_up_to_its_end_tag() -> None:
+    assert _summary_of("<textarea>" + "w " * 5000 + "</textarea>after") == "w " * 149 + "w"
+    assert _summary_of("<style>" + "p{x:y}" * 3000 + "</style><p>Visible</p>") == "Visible"
+    script = "<script>" + "var a=1;" * 2000 + "</script>Visible words here"
+    assert _summary_of(script) == "Visible words here"
+    assert _summary_of("<title>" + "y" * 2045 + "</TITLE >after") == "y" * 300
+
+
+def test_references_are_decoded_across_feed_steps() -> None:
+    assert _summary_of("&amp;" * 5000) == "&" * 300
+    assert _summary_of("w&notin; " * 3000) == "w\u2209 " * 99 + "w\u2209"
+    assert _summary_of("&#1078;" * 3000 + " end") == "\u0436" * 300
+    # text that ends at a reference html.parser waits to see whole is read in pieces too
+    assert _summary_of("&a" * 3000) == "&a" * 150
+
+
+def test_a_reference_of_more_digits_than_int_reads_does_not_escape() -> None:
+    """N1 (R38): such a reference reads as U+FFFD then its digits, as one cut at a feed boundary."""
+    assert _summary_of("&#" + "1" * 5000 + ";") == "\ufffd" + "1" * 299
+    title = _atom_one('<title type="html">&amp;#' + "1" * 5000 + ";</title>").title
+    assert title.startswith("\ufffd111")
+
+
+def test_the_stripper_stops_once_the_summary_is_full(monkeypatch: pytest.MonkeyPatch) -> None:
+    held: list[int] = []
+    goahead = HTMLParser.goahead
+
+    def counting(self: HTMLParser, end: bool) -> None:
+        held.append(len(self.rawdata))
+        goahead(self, end)
+
+    monkeypatch.setattr(HTMLParser, "goahead", counting)
+    assert _summary_of("word " * 400_000) == "word " * 59 + "word"
+    assert len(held) <= 3
+    assert max(held) <= 4096  # html.parser never reads more than a held part and one step
+
+
+def test_an_rss_description_with_blanks_at_its_ends_is_read_as_stripped() -> None:
+    assert _summary_of("</\n") == "</"
+    assert _summary_of("\n  Lead <b>x</b> \n ") == "Lead x"
+
+
+class _WholeText(HTMLParser):
+    """The oracle: html.parser reading a whole description at once, with the reader's block rule."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.out: list[str] = []
+        self.skip = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.skip = self.skip or tag == "script"
+        if tag in ("p", "br"):
+            self.out.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        self.skip = self.skip and tag != "script"
+        if tag in ("p", "br"):
+            self.out.append(" ")
+
+    def handle_data(self, data: str) -> None:
+        if not self.skip:
+            self.out.append(data)
+
+
+_FIELD_PIECES = st.sampled_from(
+    ["word", "x ", " ", "<p>", "</p>", "<b>", "</b>", "&amp;", "&lt;", "&#1078;", "&notin;"]
+    + ["&a", "<br/>", "<!-- c -->", "<script>s</script>", '<a href="q>r">', "</a>", "&", "\n"]
+    + ["<textarea>t</textarea>", "<", ">", "\u0436", "<![CDATA[ k>l ]]>"]
+)
+
+
+@settings(max_examples=150, deadline=None, derandomize=True)
+@given(st.lists(_FIELD_PIECES, min_size=300, max_size=1500).map("".join))
+def test_a_description_read_in_pieces_is_what_html_parser_reads_of_the_whole(text: str) -> None:
+    """Fields past one step (2,048 characters) with no construct held over the limit: the
+    reader gives what html.parser gives of the whole text, folded and cut by hand here."""
+    whole = _WholeText()
+    whole.feed(text)
+    whole.close()
+    folded = " ".join("".join(whole.out).split())
+    head = folded[:301]
+    if len(head) <= 300:
+        expected = head
+    elif " " not in head:
+        expected = head[:300]
+    else:
+        expected = head.rsplit(" ", 1)[0].rstrip()
+    assert _summary_of(text.replace("]]>", "]]]]><![CDATA[>")) == expected
