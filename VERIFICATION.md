@@ -3,6 +3,75 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 1C PR 2b, 1D PR 1d, and the plans for 1B, 2A and 2B
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #102 | 1C PR 2b | `49751b4`, `4994b8d` | `provider/events.py`: one call's session events to a `Reply`, and the cost reading (800 lines, at the cap) |
+| #100 | 1D PR 1d | `a9a8bba`, `b34dd6a` | `sources/walk.py`: the folder walk (800 lines, at the cap) |
+| #121 | plans | `a9edbff`, `4643521` | Plans for steps 1B, 2A and 2B; ports map rows |
+| #108 | records | `6e3d39b`, `176ce78` | The entry below this one and the 1A and 1D plan rules |
+
+**Reviews.**
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #102 | `mx-precise` approved; `mx-adversary` FAIL, Medium 1, fixed and re-reviewed PASS | 2 confirmed defects, Medium 1 and Low 1, fixed; `mx-adversary` re-review PASS, Low 1 | PASS: High 0, Medium 0, Low 4, Info 3 |
+| #100 | `mx-precise` quality PASS, Low 3 (its spec verdict failed only on the controller's 560-line estimate, ruled by the 800 cap); `mx-adversary` FAIL, High 1 (the Windows type check on a test), Low 6; fixed, re-review PASS | 0 confirmed defects, 4 measured costs | PASS on `46a502d`: High 0, Medium 0, Low 5, Info 6. One docstring and test-spelling commit followed |
+| #121 | batched `mx-feature`: PASS, Low 4, three fixed (returned as text; the verdict is the PR's comment) | skipped (docs) | skipped (docs) |
+
+- #102's two Mediums were both on money. Removing repeats by event id alone dropped a later
+  usage event and its charge and could hide another model or a session error; and repeats were
+  compared with Python `==`, so `100` and `100.0` merged and a charge was understated. A
+  redelivery is now an event whose JSON text equals an earlier one's.
+- #100's last commit corrects a sentence the coordinator had ruled into a docstring: it said
+  the pin's digest guards content, and when a pin is created no digest exists yet.
+- #121's reviewer recomputed the 1B seed row and the 2B worked confidence example with
+  fractions: both match the plans.
+
+**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #102
+on `49751b4` (1,331 passed, coverage 100%), #100 on macOS. CI green on Ubuntu, Windows and the
+review job on each merged head. Mutation (`mutmut`): #102 at `50b6363`, 1,275 mutants, 1,265
+killed, 10 equivalent; #100 at `b0bc8bc`, 377 of 392 killed, 13 equivalent, 2 closed by tests
+added after.
+
+**Ledger.**
+- `1C-2b task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
+- `1D-1d task=walk agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1D-1d task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
+
+**Plans written.** 1B (the Decimal kernel and forecast, 11 PRs), 2A (run state in SQLite, 5)
+and 2B (checks, 6, with a second part after 1B). Drafted by architect agents against the
+predecessor at `9d040f8`; the rulings are the coordinator's. Their sub-sessions are proposed
+and wait for the owner to start them: the app does not start a session from an unattended
+turn. The 1A sub-session is archived; its review reports were copied to the coordinator's
+notes folder first.
+
+**Rulings by the coordinator.** In the plans. The ones the owner may want to see:
+- 1B ports what the launcher calls, about 2,500 of 9,565 legacy lines (the plan's table); the statement frames are
+  deferred, so the Model page's statement rows beyond the sixteen measures have no Python
+  source yet. Nothing is defaulted: a missing currency is refused (the predecessor read USD).
+- 2A: a call left open by a crash stays unknown, and such a run cannot resume until the owner
+  rules; an operator settle would need a decision record.
+- 2B computes the confidence score exactly; the predecessor's float differs by one point in 59
+  of 400,000 random sets, one a band change.
+- 1C: the open Medium M2 of #36 (part of a Windows user name left by `home_paths`) is fixed in
+  PR 2c, before the session driver.
+- 1D: when a pin is created, a link swapped in between the path check and the open is hashed
+  and pinned. Accepted as a limit.
+
+**Not verified.**
+- Any live event stream: order, per-attempt against cumulative usage on a retried turn,
+  whether the runtime reuses an envelope id, that one nano-AIU is 1E-11 USD.
+- The walk on a real Windows file system outside CI; on Windows CI every row for a name
+  Windows normalises or cannot hold is skipped, so `notes.` beside `notes` is simulated only.
+- Mutation was not rerun on `49751b4` or `a9a8bba`.
+- The three plans' "live on the launcher's path" rulings rest on reading the predecessor, not
+  running it; SQLite's own documentation was not fetched for 2A.
+
 ## 2026-11-14 Roadmap back end: step 1A complete (PR 5); 1D PRs 1b and 1c
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
