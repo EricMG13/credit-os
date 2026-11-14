@@ -1,6 +1,6 @@
 // Whole-branch findings L4 and I1: the feed's kind tabs and Settings' section tabs each have a tab
 // panel the selected tab's aria-controls names, and an issue's data id is not a DOM id.
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
 import type { LoadResult } from "../../data";
@@ -82,6 +82,19 @@ describe("Settings' section tabs have a panel", () => {
     expect(screen.getAllByRole("tab")).toHaveLength(2);
     expect(selected()).toHaveTextContent("Notifications");
     expect(panelOf(selected())).toBeInTheDocument();
+  });
+
+  it("keeps the named panel after the section changes within one mount", async () => {
+    show("/signal/main/settings/topics");
+    act(() => {
+      window.location.hash = "#/signal/main/settings/notifications";
+    });
+    await waitFor(() => {
+      expect(selected()).toHaveTextContent("Notifications");
+    });
+    const tab = selected();
+    expect(document.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
+    panelOf(tab);
   });
 
   it("selects no tab and names no panel for a section that does not exist", () => {

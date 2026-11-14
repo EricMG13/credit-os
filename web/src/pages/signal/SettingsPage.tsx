@@ -143,7 +143,7 @@ export function SettingsPage({
         {open === undefined ? (
           <div className="min-w-0">{content()}</div>
         ) : (
-          <TabPanel id={open.id} className="min-w-0">
+          <TabPanel key={open.id} id={open.id} className="min-w-0">
             {content()}
           </TabPanel>
         )}
