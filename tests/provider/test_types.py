@@ -30,7 +30,11 @@ USAGE_FIELDS = (
 CALL = ToolCall(call_id="c1", name="f", arguments={})
 _TURN = Turn("t", (), Usage(input_tokens=5), "end", None, None)
 _REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
-_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0214050"))
+_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0214050"), "done", "evt-1", None)
+
+
+class _StrSub(str):
+    """A str subclass: it passes isinstance(x, str) but is not a plain string."""
 
 
 def _message(**kw: Any) -> Message:
@@ -56,10 +60,17 @@ def _ok(**kw: Any) -> Reply:
 
 _sent = partial(_reply, kind="sent_usage", usage=Usage())
 
+BAD_OUTCOMES: list[Any] = [None, True, "", "ok", "Done", []]
 _M = {"role": "tool", "tool_call_id": "c"}
 _CHARGE = "billed_usd must be a Decimal"
 _FINITE = "billed_usd must be finite and not negative"
 _COMPACTIONS = "compactions must be a tuple of Compaction"
+_UNFINISHED_MSG = "an unfinished compaction has no counts and no charge"
+_EVENT = "event_id must be a non-empty string"
+_NO_REASONING = "a compaction has no reasoning-token count"
+_SUPERSEDES = "supersedes must be a non-empty string or None"
+_SAME = "two compactions supersede the same one"
+_UNFINISHED = {"outcome": "unfinished", "billed_usd": None, "usage": Usage()}
 # (builder, keyword arguments, fragment of the refusal message)
 REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_message, {"role": "bot"}, "unknown role 'bot'"),
@@ -103,6 +114,38 @@ REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
     (_compaction, {"billed_usd": Decimal("NaN")}, _FINITE),
     (_compaction, {"billed_usd": Decimal(-1)}, _FINITE),
     (_compaction, {"billed_usd": Decimal("-0")}, _FINITE),
+    *((_compaction, {"outcome": v}, f"unknown compaction outcome {v!r}") for v in BAD_OUTCOMES),
+    (_compaction, {**_UNFINISHED, "usage": Usage(output_tokens=0)}, _UNFINISHED_MSG),
+    (_compaction, {**_UNFINISHED, "billed_usd": Decimal(0)}, _UNFINISHED_MSG),
+    *((_compaction, {"event_id": v}, _EVENT) for v in (None, "", 7)),
+    *((_compaction, {"usage": Usage(reasoning_tokens=n)}, _NO_REASONING) for n in (0, 5)),
+    (_compaction, {"event_id": _StrSub("evt-1")}, _EVENT),
+    (_compaction, {"outcome": _StrSub("done")}, "unknown compaction outcome 'done'"),
+    (
+        _ok,
+        {"compactions": (_COMPACTION, _compaction(billed_usd=None))},
+        "two compactions share an event_id",
+    ),
+    *((_compaction, {"supersedes": v}, _SUPERSEDES) for v in (7, "", True, _StrSub("e"))),
+    (
+        _compaction,
+        {**_UNFINISHED, "supersedes": "evt-0"},
+        "an unfinished compaction supersedes nothing",
+    ),
+    (_compaction, {"supersedes": "evt-1"}, "a compaction cannot supersede itself"),
+    *(
+        (
+            build,
+            {
+                "compactions": (
+                    _compaction(supersedes="evt-0"),
+                    _compaction(event_id="evt-2", supersedes="evt-0"),
+                )
+            },
+            _SAME,
+        )
+        for build in (_ok, partial(_sent, billed_usd=Decimal(1)))
+    ),
     (_ok, {"compactions": []}, _COMPACTIONS),
     (_ok, {"compactions": ({"usage": {}},)}, _COMPACTIONS),
     (_reply, {"compactions": (_COMPACTION,)}, "a not_sent reply has no compactions"),
@@ -179,9 +222,33 @@ def test_sent_unknown_reply() -> None:
 def test_reply_carries_compactions_without_taking_their_charge(
     build: Callable[..., Reply],
 ) -> None:
-    reply = build(compactions=(_COMPACTION, _compaction(billed_usd=None)))
+    reply = build(
+        compactions=(
+            _COMPACTION,
+            _compaction(billed_usd=None, outcome="failed", event_id="evt-2"),
+            _compaction(**{**_UNFINISHED, "event_id": "evt-3"}),
+        )
+    )
     assert reply.billed_usd is None
-    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0214050"), None]
+    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0214050"), None, None]
+    assert [c.outcome for c in reply.compactions] == ["done", "failed", "unfinished"]
+
+
+@pytest.mark.parametrize("charge", [Decimal("0.5"), None])
+def test_failed_compaction_with_or_without_charge(charge: Decimal | None) -> None:
+    assert _compaction(outcome="failed", billed_usd=charge).billed_usd == charge
+
+
+@pytest.mark.parametrize("outcome", ["done", "failed"])
+def test_supersedes_accepted(outcome: str) -> None:
+    assert _compaction(outcome=outcome, supersedes="evt-0").supersedes == "evt-0"
+
+
+@pytest.mark.parametrize("first", ["evt-0", None])
+def test_distinct_or_absent_supersedes_accepted(first: str | None) -> None:
+    second = "evt-9" if first else None
+    pair = (_compaction(supersedes=first), _compaction(event_id="evt-2", supersedes=second))
+    assert [c.supersedes for c in _ok(compactions=pair).compactions] == [first, second]
 
 
 def test_types_are_frozen() -> None:
@@ -209,8 +276,8 @@ class _Minimal:
     def complete(self, request: Request, *, exchange_id: str, call_index: int) -> Reply:
         return _reply()
 
-    def close(self) -> None:
-        return None
+    def close(self) -> tuple[Compaction, ...]:
+        return ()
 
 
 def test_structural_model() -> None:

@@ -40,52 +40,91 @@ VALID_NAMES = [
     "..hidden",
     "a..b.txt",
     "~$memo.docx",
+    "a\u3000b.txt",
+    "a\u00a0b.txt",
+    "clock.txt",
+    "myclock$.txt",
+    "CLOCK$x.txt",
+    "a" * 251 + ".txt",
+    "\u00e9" * 125 + ".txt",
+    "/".join(["a" * 204] * 5),
+    "CLOCK$\u00a0.txt",
+    "CLOCK$X.txt",
 ]
 INVALID_NAMES = [
-    "Q3-report\u202efdp.txt",
-    "a\u0085b.txt",
-    "a\u2028b.txt",
-    "a\u2029b.txt",
-    "a\u200bb.txt",
-    "a\u009bb.txt",
-    "R\udce9sum\udce9.txt",
-    "NUL.txt",
-    "con.pdf",
-    "COM1.html",
-    "LPT1.csv",
-    "aux.md",
-    "notes/PRN.txt",
-    "CONIN$.txt",
-    "nul",
-    "a<b.txt",
-    "a>b.txt",
-    'a"b.txt',
-    "a|b.txt",
-    "a?b.txt",
-    "a*b.txt",
-    "",
-    ".",
-    "..",
-    "/etc/passwd",
-    "../outside.txt",
-    "a/../b.txt",
-    "a/./b.txt",
-    "a//b.txt",
-    "a/",
-    "C:\\x.txt",
-    "C:x.txt",
-    "C:/x.txt",
-    "\\\\server\\share\\x.txt",
-    "a\\b.txt",
-    "a\x00b.txt",
-    "a\nb.txt",
-    "a\x1fb.txt",
-    "a\x7fb.txt",
-    "file.txt:stream",
-    "a.txt.",
-    "a.txt ",
-    "dir./a.txt",
-    "dir /a.txt",
+    ("Q3-report\u202efdp.txt", "forbidden character U+202E"),
+    ("a\u0085b.txt", "forbidden character U+0085"),
+    ("a\u2028b.txt", "forbidden character U+2028"),
+    ("a\u2029b.txt", "forbidden character U+2029"),
+    ("a\u200bb.txt", "forbidden character U+200B"),
+    ("a\u009bb.txt", "forbidden character U+009B"),
+    ("R\udce9sum\udce9.txt", "forbidden character U+DCE9"),
+    ("NUL.txt", "reserved device name"),
+    ("con.pdf", "reserved device name"),
+    ("COM1.html", "reserved device name"),
+    ("LPT1.csv", "reserved device name"),
+    ("aux.md", "reserved device name"),
+    ("notes/PRN.txt", "reserved device name"),
+    ("CONIN$.txt", "reserved device name"),
+    ("nul", "reserved device name"),
+    ("a<b.txt", "forbidden character U+003C"),
+    ("a>b.txt", "forbidden character U+003E"),
+    ('a"b.txt', "forbidden character U+0022"),
+    ("a|b.txt", "forbidden character U+007C"),
+    ("a?b.txt", "forbidden character U+003F"),
+    ("a*b.txt", "forbidden character U+002A"),
+    ("", "empty or dot segment"),
+    (".", "empty or dot segment"),
+    ("..", "empty or dot segment"),
+    ("/etc/passwd", "empty or dot segment"),
+    ("../outside.txt", "empty or dot segment"),
+    ("a/../b.txt", "empty or dot segment"),
+    ("a/./b.txt", "empty or dot segment"),
+    ("a//b.txt", "empty or dot segment"),
+    ("a/", "empty or dot segment"),
+    ("C:\\x.txt", "forbidden character U+003A"),
+    ("C:x.txt", "forbidden character U+003A"),
+    ("C:/x.txt", "forbidden character U+003A"),
+    ("file.txt:stream", "forbidden character U+003A"),
+    ("\\\\server\\share\\x.txt", "forbidden character U+005C"),
+    ("a\\b.txt", "forbidden character U+005C"),
+    ("a\x00b.txt", "forbidden character U+0000"),
+    ("a\nb.txt", "forbidden character U+000A"),
+    ("a\x1fb.txt", "forbidden character U+001F"),
+    ("a\x7fb.txt", "forbidden character U+007F"),
+    ("a.txt.", "segment starts or ends with a space or ends with a dot"),
+    ("a.txt ", "segment starts or ends with a space or ends with a dot"),
+    ("dir./a.txt", "segment starts or ends with a space or ends with a dot"),
+    ("dir /a.txt", "segment starts or ends with a space or ends with a dot"),
+    ("\ue000.txt", "forbidden character U+E000"),
+    ("a\U000f0000.txt", "forbidden character U+F0000"),
+    ("\ufdd0.txt", "forbidden character U+FDD0"),
+    ("a\ufffe.txt", "forbidden character U+FFFE"),
+    # unassigned in Unicode 15.0; depends on the interpreter's Unicode table
+    ("a\u0378.txt", "forbidden character U+0378"),
+    ("a.txt\u3000", "segment starts or ends with a space or ends with a dot"),
+    ("\u00a0a.txt", "segment starts or ends with a space or ends with a dot"),
+    (" a.txt", "segment starts or ends with a space or ends with a dot"),
+    ("dir\u2003/a.txt", "segment starts or ends with a space or ends with a dot"),
+    ("a/ b.txt", "segment starts or ends with a space or ends with a dot"),
+    ("CLOCK$", "reserved device name"),
+    ("clock$.txt", "reserved device name"),
+    ("notes/Clock$.csv", "reserved device name"),
+    ("CLOCK$ .tar.txt", "reserved device name"),
+    ("a" * 252 + ".txt", "segment longer than 255 bytes"),
+    ("\u00e9" * 126 + ".txt", "segment longer than 255 bytes"),
+    ("/".join(["a" * 204] * 4 + ["a" * 205]), "longer than 1,024 bytes"),
+    ("a" * 1100, "longer than 1,024 bytes"),
+    ("a\x00b.txt ", "forbidden character U+0000"),
+    ("a\x00" + "b" * 2000, "forbidden character U+0000"),
+    ("NUL.txt.", "segment starts or ends with a space or ends with a dot"),
+    ("../" + "a" * 300, "empty or dot segment"),
+    ("ok.txt/" + "a" * 300, "segment longer than 255 bytes"),
+    ("/".join(["\u00e9" * 127] * 5), "longer than 1,024 bytes"),
+    ("con/a.txt", "reserved device name"),
+    ("CLOCK$/a.txt", "reserved device name"),
+    ("NUL." + "a" * 300, "reserved device name"),
+    ("a" * 300 + ".", "segment starts or ends with a space or ends with a dot"),
 ]
 
 
@@ -94,11 +133,12 @@ def test_validate_name_accepts(name: str) -> None:
     assert validate_name(name) == name
 
 
-@pytest.mark.parametrize("name", INVALID_NAMES)
-def test_validate_name_refuses(name: str) -> None:
+@pytest.mark.parametrize(("name", "reason"), INVALID_NAMES)
+def test_validate_name_refuses(name: str, reason: str) -> None:
     with pytest.raises(SourceRefused) as caught:
         validate_name(name)
-    assert str(caught.value) == f"{name!r}: not a valid source name"
+    shown = name if len(name) <= 120 else name[:120] + "\u2026"
+    assert str(caught.value) == f"{shown!r}: {reason}"
 
 
 def test_error_hierarchy() -> None:
@@ -120,7 +160,12 @@ def _is_reserved(segment: str) -> bool:
 
 
 _SEGMENT = st.text(alphabet=_ALPHABET, min_size=1, max_size=8).filter(
-    lambda s: s not in (".", "..") and not s.endswith((".", " ")) and not _is_reserved(s)
+    lambda s: (
+        s not in (".", "..")
+        and not s.endswith((".", " "))
+        and not s.startswith(" ")
+        and not _is_reserved(s)
+    )
 )
 _NAMES = st.lists(_SEGMENT, min_size=1, max_size=4).map("/".join)
 
@@ -139,11 +184,17 @@ def test_property_dotdot_segment_refused(name: str, data: st.DataObject) -> None
         validate_name(bad)
 
 
-@given(_NAMES, st.sampled_from(["\\", ":", "\x00", "\x1f", "\x7f"]), st.data())
+@given(_NAMES, st.sampled_from(["\\", ":", "\x00", "\x1f", "\x7f", "\ue000", "\ufdd0"]), st.data())
 def test_property_bad_character_refused(name: str, char: str, data: st.DataObject) -> None:
     at = data.draw(st.integers(min_value=0, max_value=len(name)))
     with pytest.raises(SourceRefused):
         validate_name(name[:at] + char + name[at:])
+
+
+@given(_NAMES, st.integers(min_value=256, max_value=400))
+def test_property_long_segment_refused(name: str, n: int) -> None:
+    with pytest.raises(SourceRefused):
+        validate_name(f"{name}/{'a' * n}")
 
 
 KIND_TABLE = [
@@ -302,3 +353,71 @@ def test_pin_rejects(fields: dict[str, object]) -> None:
 def test_check_kind_refuses_a_value_that_is_no_kind() -> None:
     with pytest.raises(ValueError):
         check_kind("x.bin", cast("SourceKind", "pptx"), b"hello")
+
+
+CUT = "a" * 120 + "\u2026"
+
+
+@pytest.mark.parametrize(
+    ("name", "message"),
+    [
+        ("a" * 2000, "'" + CUT + "': longer than 1,024 bytes"),
+        ("a" * 130 + "\x00", "'" + CUT + "': forbidden character U+0000"),
+        (
+            "a" * 120 + ".",
+            "'" + CUT + "': segment starts or ends with a space or ends with a dot",
+        ),
+        (
+            "a" * 119 + ".",
+            "'" + "a" * 119 + ".': segment starts or ends with a space or ends with a dot",
+        ),
+        (
+            "é" * 100 + ".",
+            "'" + "é" * 100 + ".': segment starts or ends with a space or ends with a dot",
+        ),
+    ],
+)
+def test_validate_name_shows_at_most_120_characters(name: str, message: str) -> None:
+    with pytest.raises(SourceRefused) as caught:
+        validate_name(name)
+    assert str(caught.value) == message
+
+
+@pytest.mark.parametrize(
+    ("name", "kind", "raw", "message"),
+    [
+        ("a" * 130 + ".pdf", SourceKind.PDF, b"hello", CUT + ": does not start with %PDF-"),
+        (
+            "a" * 130 + ".docx",
+            SourceKind.DOCX,
+            b"hello",
+            CUT + ": does not start with a zip signature",
+        ),
+        ("a" * 130 + ".txt", SourceKind.TEXT, b"%PDF-1.4\n", CUT + ": starts with a PDF signature"),
+        (
+            "a" * 130 + ".csv",
+            SourceKind.CSV,
+            b"PK\x03\x04rest",
+            CUT + ": starts with a zip signature",
+        ),
+    ],
+)
+def test_check_kind_shows_at_most_120_characters(
+    name: str, kind: SourceKind, raw: bytes, message: str
+) -> None:
+    with pytest.raises(SourceUnreadable) as caught:
+        check_kind(name, kind, raw)
+    assert str(caught.value) == message
+
+
+def test_pin_kind_mismatch_shows_at_most_120_characters() -> None:
+    with pytest.raises(ValidationError) as caught:
+        SourcePin.model_validate(
+            {
+                "name": "a" * 130 + ".txt",
+                "sha256": README_SHA,
+                "size_bytes": 16,
+                "kind": SourceKind.PDF,
+            }
+        )
+    assert "'" + CUT + "': kind 'pdf' does not match the name" in str(caught.value)

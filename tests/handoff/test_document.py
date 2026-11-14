@@ -122,8 +122,24 @@ def _oneline(text: str, old: str, new: str) -> str:
 
 
 MISSING_FINDINGS = "level-2 heading `Findings` is missing"
+LONG = "A" * 81
 REFUSED: list[tuple[bytes, int, str]] = [
     (b"", 1, "level-2 heading `Request` is missing"),
+    (
+        f"## {LONG}\n".encode(),
+        1,
+        "level-2 heading `" + "A" * 80 + "\u2026` found where `Request` is required",
+    ),
+    (
+        f"## {'B' * 80}\n".encode(),
+        1,
+        "level-2 heading `" + "B" * 80 + "` found where `Request` is required",
+    ),
+    (
+        (OK + f"## {LONG} tail\n").encode(),
+        14,
+        "level-2 heading `" + "A" * 80 + "\u2026` is not allowed after `Next module`",
+    ),
     (b"## Request\n## Sources\n", 2, "level-2 heading `Findings` is missing"),
     (
         _oneline(OK, "## Gaps\n", "").encode(),
