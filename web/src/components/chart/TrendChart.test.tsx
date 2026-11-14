@@ -149,7 +149,8 @@ describe("TrendChart table side", () => {
     const grid = screen.getByRole("table");
     const rows = within(grid).getAllByRole("row");
     const head = within(rows[0] as HTMLElement).getAllByRole("columnheader");
-    expect(head.map((h) => h.textContent)).toEqual(PERIODS);
+    // The shared table heads its row-label column with the chart's title, then the periods.
+    expect(head.map((h) => h.textContent)).toEqual(["Leverage", ...PERIODS]);
     const gross = within(rows[2] as HTMLElement);
     expect(gross.getAllByRole("cell").map((c) => c.textContent)).toEqual([
       "5.0",
@@ -161,6 +162,15 @@ describe("TrendChart table side", () => {
     ]);
     expect(gross.getByRole("rowheader")).toHaveTextContent("Gross debt");
     expect(screen.queryByText("0")).toBeNull();
+  });
+
+  it("is the shared table: a sticky row-label column in a relative scroll wrapper", () => {
+    renderTwo();
+    fireEvent.click(screen.getByRole("radio", { name: "Table" }));
+    const grid = screen.getByRole("table");
+    expect(within(grid).getAllByRole("rowheader")[0]).toHaveClass("sticky", "left-0");
+    expect(grid.parentElement).toHaveClass("relative", "overflow-x-auto");
+    expect(within(grid).getByText("Leverage", { selector: "caption" })).toBeInTheDocument();
   });
 
   it("returns to the chart", () => {
