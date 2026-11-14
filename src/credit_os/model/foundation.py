@@ -1,7 +1,7 @@
 """Check each base operand's named cell, its unit and the currency against the foundation.
 
 The operand's amount must be the one number at the cell it names, under the sign rule, and the
-named row must not print the other unit than the block's. The foundation must name the block's
+named row must not print a unit other than the block's. The foundation must name the block's
 currency. Every rule is a plain function; numbers are read and compared exactly, never under the
 ambient decimal context (`Decimal(text)`, `copy_negate`, `copy_abs` and `==` do not round).
 """
@@ -25,9 +25,42 @@ _BRACKETED = re.compile(r"\(" + _DIGITS + r"\)")
 _MAGNITUDES = ("interest", "taxes", "capex")
 _SHOWN = 5
 
-_SIGN = r"(?:US\$|USD|EUR|GBP|[$€£])"
-_THOUSANDS = re.compile(rf"\bthousands?\b|[$'’]000s?\b|{_SIGN}\s?k\b", re.IGNORECASE)
-_MILLIONS = re.compile(rf"\b(?:millions?|billions?)\b|{_SIGN}\s?(?:m|mm|mn|bn)\b", re.IGNORECASE)
+_NOT_AFTER = r"(?![A-Za-z])"
+_CODE = r"(?<![A-Za-z])(?:US\$|USD|EUR|GBP|[$€£])"
+_AFTER = r"(?:US\$|[$€£])"
+_ZEROS = r"000s?"
+_WORDS = {
+    "thousands": ("thousands?",),
+    "millions": ("millions?", "mln"),
+    "billions": ("billions?", "bln", "bn"),
+}
+_MARKS = {
+    "thousands": ("k",),
+    "millions": ("mln", "mm", "mn", "m"),
+    "billions": ("bln", "bn"),
+}
+_EXTRA_THOUSANDS = (
+    rf"{_CODE}['’]?{_ZEROS}(?![A-Za-z0-9])",
+    rf"(?<![0-9])['’]{_ZEROS}(?![A-Za-z0-9])",
+    r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
+)
+
+
+def _unit_pattern(unit: str) -> re.Pattern[str]:
+    words = "|".join(_WORDS[unit])
+    marks = "|".join(_MARKS[unit])
+    forms = [
+        rf"(?<![A-Za-z])(?:{words}){_NOT_AFTER}",
+        rf"{_CODE}\s?(?:{marks}){_NOT_AFTER}",
+        rf"(?<![A-Za-z])(?:{marks})\s?{_AFTER}",
+    ]
+    if unit == "thousands":
+        forms.extend(_EXTRA_THOUSANDS)
+    return re.compile("|".join(forms), re.IGNORECASE)
+
+
+_UNITS = {unit: _unit_pattern(unit) for unit in _WORDS}
+_SCALE_SUFFIX = "|".join([*_MARKS["millions"], *_MARKS["billions"], *_MARKS["thousands"], _ZEROS])
 _SIGNS = {"USD": r"(?i:(?<![A-Za-z])US\$)", "EUR": "€", "GBP": "£"}
 
 _LOCATED = "base {key} states no amount, so it names no row, period or column"
@@ -119,14 +152,18 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 
 
 def units_named(text: str) -> frozenset[str]:
-    """The units, `thousands` and `millions`, the text names; it may name both or neither."""
-    named = {"thousands": _THOUSANDS, "millions": _MILLIONS}
-    return frozenset(name for name, pattern in named.items() if pattern.search(text))
+    """The units (`thousands`, `millions`, `billions`) the text names; any number of them.
+
+    A unit is named by its word standing alone, by a currency code or sign and then its mark, or
+    by its mark and then a sign; thousands also by `000` and `000s` forms. Letters around a
+    mark hide it, emphasis marks and digits do not. Billions is never a block's unit.
+    """
+    return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
 
 def names_currency(text: str, currency: str) -> bool:
     """Whether the text names the code, alone or with a scale suffix, or the code's own sign."""
-    forms = [rf"(?<![A-Za-z]){currency}(?i:mm|mn|bn|m|k|000s?)?(?![A-Za-z0-9])"]
+    forms = [rf"(?<![A-Za-z]){currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
     if currency in _SIGNS:
         forms.append(_SIGNS[currency])
     return re.search("|".join(forms), text) is not None
@@ -205,10 +242,9 @@ def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, s
 
 
 def _group_issues(group: list[tuple[str, str]], unit: str) -> list[tuple[str, str]]:
-    other = "thousands" if unit == "millions" else "millions"
     if any(unit in units_named(cell) for _, cell in group):
         return []
-    return [(what, cell) for what, cell in group if other in units_named(cell)]
+    return [(what, cell) for what, cell in group if units_named(cell)]
 
 
 def _table_issues(table: Table, named: tuple[str, str, str], unit: str) -> list[tuple[str, str]]:
@@ -268,7 +304,7 @@ def check_base(
 ) -> None:
     """Refuse the first base operand whose amount is not the foundation's cell it names.
 
-    A named row printed in the other unit than the block's is refused as well.
+    A named row printed in a unit other than the block's is refused as well.
     """
     tables = foundation_tables(foundation)
     for key in OPERANDS:
