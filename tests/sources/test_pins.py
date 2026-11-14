@@ -48,6 +48,8 @@ VALID_NAMES = [
     "a" * 251 + ".txt",
     "\u00e9" * 125 + ".txt",
     "/".join(["a" * 204] * 5),
+    "CLOCK$\u00a0.txt",
+    "CLOCK$X.txt",
 ]
 INVALID_NAMES = [
     ("Q3-report\u202efdp.txt", "forbidden character U+202E"),
@@ -118,6 +120,11 @@ INVALID_NAMES = [
     ("NUL.txt.", "segment starts or ends with a space or ends with a dot"),
     ("../" + "a" * 300, "empty or dot segment"),
     ("ok.txt/" + "a" * 300, "segment longer than 255 bytes"),
+    ("/".join(["\u00e9" * 127] * 5), "longer than 1,024 bytes"),
+    ("con/a.txt", "reserved device name"),
+    ("CLOCK$/a.txt", "reserved device name"),
+    ("NUL." + "a" * 300, "reserved device name"),
+    ("a" * 300 + ".", "segment starts or ends with a space or ends with a dot"),
 ]
 
 
