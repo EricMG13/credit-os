@@ -41,7 +41,7 @@ const measure = object<Measure>({
   text,
   trace: addressOrNull,
 });
-const passage = object<Passage>({ title: text, text, trace: addressOrNull });
+export const passage = object<Passage>({ title: text, text, trace: addressOrNull });
 const headroomRow = object<HeadroomRow>({
   label: text,
   sub: text,

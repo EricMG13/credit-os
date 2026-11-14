@@ -578,7 +578,13 @@ describe("readSlice: an address into the library starts with #/", () => {
     [["links", "evidence"], `${P}.links.evidence`, "//example.invalid/x"],
     [["links", "library"], `${P}.links.library`, "library/transdigm"],
     [["links", "evidenceGaps"], `${P}.links.evidenceGaps`, "/#/x"],
+    [["forecast", "tabs", 0, "href"], `${P}.forecast.tabs[0].href`, "https://example.invalid/x"],
     [["analysis", "limitations", "href"], `${P}.analysis.limitations.href`, "javascript:alert(1)"],
+    [
+      ["forecast", "limitations", "href"],
+      `${P}.forecast.limitations.href`,
+      "https://example.invalid",
+    ],
     [["cases", 0, "trace"], `${P}.cases[0].trace`, "http://example.invalid/x"],
     [["analysis", "headroom", "trace"], `${P}.analysis.headroom.trace`, "evidence"],
     [
