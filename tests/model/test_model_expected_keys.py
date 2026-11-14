@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 EXPECTED = Path(__file__).with_name("expected")
-SCRIPTS = ("make_pr2", "make_pr3", "make_pr4a", "make_pr4b")  # pr2, pr3, pr4a, pr4b keys
+SCRIPTS = ("make_pr2", "make_pr3", "make_pr4a", "make_pr4b", "make_pr5")  # pr2 to pr5 keys
 
 
 def load_script(name: str) -> ModuleType:

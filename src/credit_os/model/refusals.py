@@ -9,6 +9,7 @@ class RefusalKind(StrEnum):
     SCHEMA = "schema"
     SCALE = "scale"
     REPAYMENT = "repayment"
+    CELL = "cell"
 
 
 class ForecastRefused(Exception):
