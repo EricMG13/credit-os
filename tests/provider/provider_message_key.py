@@ -16,7 +16,9 @@ The contract (0012, with the controller's readings marked):
   that changes length). Each separator is any run of up to 16 of `/`, `\\`, `%2F`, `%5C`, the
   percent of the last two also encoded up to twice (reading: a separator is a character too).
   Case applies before the encoding, and a character's case forms are every character
-  `re.IGNORECASE` holds the same letter, final sigma included (owner, 2026-11-14; PR 2h-2).
+  `re.IGNORECASE` holds the same letter, final sigma included (owner, 2026-11-14; PR 2h-2). A
+  case form is also matched in its NFC and NFD (`İ` in NFD is `I` and U+0307): ruled by the
+  back-end coordinator under the owner's instruction of 2026-11-14 22:20 UTC.
 - Not guaranteed, and pinned here as the net alone gives it: another user's home; 8.3 short names;
   a case map that changes length; a bare user name; a value split across strings; octal, HTML or
   base64; the text of an ok reply.
@@ -193,6 +195,13 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), ("D:\\Profiles\\Kai",), "x D%3A%5CProfiles%5C%E2%84%AAai y", "x <home> y"),
     ((), ("D:\\Profiles\\Ilse",), "x " + _JP + "\\u0130lse y", "x <home> y"),
     ((), ("D:\\Profiles\\Gro\u00df",), "x D%3A%5CProfiles%5CGRO%E1%BA%9E y", "x <home> y"),
+    # --- PR 2h-2, task review M1 (coordinator: inside): a case form in NFD or NFC
+    ((), ("D:\\Profiles\\Ilse",), "x D:\\Profiles\\I\u0307lse y", "x <home> y"),
+    ((), ("D:\\Profiles\\Ilse",), "x " + _JP + "I\\u0307lse y", "x <home> y"),
+    ((), ("D:\\Profiles\\Ilse",), "x D%3A%5CProfiles%5CI%CC%87lse y", "x <home> y"),
+    ((), ("D:\\Profiles\\Ilse",), "x Profiles\\I\u0307lse y", "x <home> y"),
+    ((), ("D:\\Profiles\\eli",), "x Profiles\\elI\u0307 y", "x <home> y"),
+    ((), ("D:\\Profiles\\\u03b1\u03b9cd",), "x D:\\Profiles\\\u1fb3cd y", "x <home> y"),
     # --- not guaranteed: pinned as the net alone gives it
     (
         (),
