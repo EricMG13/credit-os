@@ -9,6 +9,7 @@ import { readSlice } from "./slice";
 type Scene = {
   snapshot: {
     channels: { topics: { id: string }[] };
+    settings: { topics: { id: string }[] };
     feed: { topics: Record<string, unknown> };
   };
 };
@@ -19,6 +20,8 @@ function renamed(id: string, keepOrder = false): unknown {
   for (const { snapshot } of copy.scenes) {
     const topic = snapshot.channels.topics.find((t) => t.id === "shipping");
     if (topic !== undefined) topic.id = id;
+    const listed = snapshot.settings.topics.find((t) => t.id === "shipping");
+    if (listed !== undefined) listed.id = id;
     const orders = Object.entries(snapshot.feed.topics);
     // Object.fromEntries defines "__proto__" as an own key, as JSON.parse does.
     snapshot.feed.topics = Object.fromEntries(
