@@ -358,7 +358,27 @@ type StatementRecord = Navigable & {
 /** What the module could not establish, in place of a chart or table: the reason it gives. */
 type GapRecord = Navigable & { kind: "gap"; title: string; reason: string };
 
-/** One block of a module's records. Task 11 adds the chart kinds. */
+/** What the kit's table can draw of a chart table: the columns and rows the page has classes for. */
+export const CHART_TABLE_LIMITS = { columns: 8, rows: 12 } as const;
+
+/**
+ * A chart's data as a table, drawn as its Table side. `chart` is the kind of chart the later chart
+ * step draws from the same record. The first column labels each row, so its cell is text; every
+ * other cell is text, a `Cell` (`null` missing, zero as zero, withheld) or a gap. `emphasis` marks
+ * a row the module wrote as a total or as the issuer's own; `footnotes` are delivered sentences.
+ */
+type ChartTableRecord = Navigable & {
+  kind: "chartTable";
+  title: string;
+  chart: "stack" | "columns" | "bullet" | "bridge" | "scatter" | "range";
+  note: string | null;
+  columns: readonly { label: string; align: "left" | "right" }[];
+  rows: readonly { cells: readonly (Cell | string)[]; emphasis: boolean }[];
+  footnotes: readonly string[];
+  trace: string | null;
+};
+
+/** One block of a module's records. */
 export type RecordBlock =
   | MatrixRecord
   | WatchRecord
@@ -369,6 +389,7 @@ export type RecordBlock =
   | FactsRecord
   | StatusRecord
   | StatementRecord
+  | ChartTableRecord
   | GapRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
