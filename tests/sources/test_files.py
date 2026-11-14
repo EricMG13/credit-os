@@ -136,7 +136,7 @@ def test_source_path_nested(folder: Path) -> None:
 def test_source_path_bad_name(folder: Path) -> None:
     with pytest.raises(SourceRefused) as caught:
         source_path(folder, "../outside.txt")
-    assert str(caught.value) == "'../outside.txt': not a valid source name"
+    assert str(caught.value) == "'../outside.txt': empty or dot segment"
 
 
 def test_source_path_missing_folder(tmp_path: Path) -> None:
