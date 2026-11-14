@@ -1,5 +1,14 @@
 """Typed errors of the sources layer; each message names the file and the reason."""
 
+_SHOWN_NAME_CHARACTERS = 120
+
+
+def shown_name(name: str) -> str:
+    """Return the name for a message: its first 120 characters, then an ellipsis when cut."""
+    if len(name) <= _SHOWN_NAME_CHARACTERS:
+        return name
+    return name[:_SHOWN_NAME_CHARACTERS] + "\u2026"
+
 
 class SourceError(Exception):
     """Base of every sources error."""
