@@ -4,17 +4,18 @@ A plain module, imported by its bare name as `tests/provider` does; a conftest c
 """
 
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from credit_os.checks.findings import CheckContext
+from credit_os.checks.findings import CheckContext, Finding
 from credit_os.handoff.document import HandoffDocument, parse
 from credit_os.sources.pins import SourceKind, SourcePin, kind_of
 
 HANDOFFS = Path(__file__).resolve().parents[1] / "fixtures" / "handoffs"
 _DIGEST = re.compile(r"\{d:(.)(!?)\}")
 _FIELDS = tuple(CheckContext.model_fields)
+_HELD_CHECKS = frozenset(("figure.not-held", "figure.mismatch"))
 
 
 def expand_digests(text: str) -> str:
@@ -64,3 +65,13 @@ def build_context(
     if "accepted" in fields:
         fields["accepted"] = _documents(fields["accepted"], _fixture_bytes)
     return CheckContext(**fields)
+
+
+def without_held(findings: Iterable[Finding]) -> list[Finding]:
+    """`findings` without `figure.not-held` and `figure.mismatch` (ruling R63).
+
+    The old keys' cases hold no held text, so those two checks would report every passage figure; the
+    held checks are keyed by `held.json` and by `fixtures.json` over whole documents. Every other
+    check stays compared whole and in order.
+    """
+    return [finding for finding in findings if finding.check not in _HELD_CHECKS]
