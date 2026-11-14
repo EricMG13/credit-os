@@ -39,7 +39,7 @@ function invalidReason(source: unknown): string {
 }
 
 describe("readSlice, evidence", () => {
-  it("reads the full run's evidence as the mock words it", () => {
+  it("reads the full run's evidence: the mock's text, with the file note the fixture words (a departure)", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const evidence = result.data.issuers[0]?.runs[0]?.evidence;
@@ -53,7 +53,7 @@ describe("readSlice, evidence", () => {
       [
         "Source files",
         { kind: "value", text: "9", at: null },
-        expect.stringContaining("1 read in part"),
+        "7 read in full, 1 read in part, 1 unreadable",
       ],
       [
         "Calculations",
@@ -179,6 +179,11 @@ describe("readSlice, evidence", () => {
     [
       "a hidden-files label when no file is hidden",
       (e) => (e.sources["visible"] = 9),
+      "sources.moreLabel",
+    ],
+    [
+      "a hidden-files label that names the wrong number of hidden files",
+      (e) => (e.sources["moreLabel"] = "Show the other 3 files"),
       "sources.moreLabel",
     ],
     [
