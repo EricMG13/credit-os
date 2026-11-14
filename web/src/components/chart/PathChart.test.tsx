@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { PathChart, ReadoutRow, cellText } from "./PathChart";
+import { PERIOD_INSET, PathChart, ReadoutRow, axisHeight, cellText } from "./PathChart";
 
 const PERIODS = ["FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"];
 const BASE = [2646, 3395, 4173, 4560, 4690, 5080, 5460];
@@ -381,5 +381,25 @@ describe("ReadoutRow", () => {
       </ul>,
     );
     expect(container.querySelector("li")?.textContent).toBe("Base case 2.6x");
+  });
+});
+
+describe("PathChart x-axis", () => {
+  it("names every period under its point", () => {
+    const { container } = renderEbitda();
+    const ticks = [...container.querySelectorAll(".recharts-wrapper [data-tick]")];
+    expect(ticks.map((t) => t.getAttribute("data-tick"))).toEqual(PERIODS);
+  });
+});
+
+describe("PathChart room", () => {
+  it("insets the first and last period from the plot's edges by a label's half width", () => {
+    expect(PERIOD_INSET).toEqual({ left: 24, right: 16 });
+  });
+
+  it("reserves one tick line for single-word periods and one more per extra word", () => {
+    expect(axisHeight(PERIODS)).toBe(32);
+    expect(axisHeight(["FY22", "Last actual"])).toBe(46);
+    expect(axisHeight(["A b c", "D"])).toBe(60);
   });
 });

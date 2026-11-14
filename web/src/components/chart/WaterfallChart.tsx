@@ -14,7 +14,8 @@ import {
 import { ChartFrame } from "./ChartFrame";
 import { ChartTable, type TableRowData } from "./ChartTable";
 import { topRounded } from "./ColumnsChart";
-import { BASELINE, HEIGHT, TICK, YAxisLabels, type YTick } from "./TrendChart";
+import { useWrappedAxis, WrappedTick } from "./PathChart";
+import { BASELINE, HEIGHT, YAxisLabels, type YTick } from "./TrendChart";
 
 type Kind = "total" | "up" | "down";
 type PresentStep = { label: string; kind: Kind; from: number; to: number; text: string };
@@ -210,9 +211,13 @@ function Chart({
     label: s.label,
     [RANGE]: s.kind === "missing" ? null : [s.from, s.to],
   }));
+  const axis = useWrappedAxis(
+    steps.map((s) => s.label),
+    yTicks,
+  );
   return (
     <div className="flex flex-col gap-3 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-focus">
-      <ResponsiveContainer width="100%" height={HEIGHT}>
+      <ResponsiveContainer width="100%" height={HEIGHT} onResize={axis.onResize}>
         <BarChart
           title={title}
           data={data}
@@ -220,7 +225,15 @@ function Chart({
           barCategoryGap="20%"
         >
           <CartesianGrid vertical={false} stroke="var(--color-border-hairline)" />
-          <XAxis dataKey="label" tickLine={false} axisLine={BASELINE} tick={TICK} tickMargin={8} />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={BASELINE}
+            tick={WrappedTick}
+            interval={0}
+            height={axis.height}
+            tickMargin={8}
+          />
           <YAxisLabels yTicks={yTicks} />
           <Tooltip
             isAnimationActive={false}
