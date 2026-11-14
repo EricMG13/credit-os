@@ -109,6 +109,57 @@ describe("the settings of a snapshot", () => {
       "Shipping team",
       `${S}.groups[1].name: expected the name the channel list gives this group`,
     ],
+    [
+      "a member record with no name",
+      [...P, "groups", 0, "members", 0, "name"],
+      undefined,
+      `${S}.groups[0].members[0].name: expected a string`,
+    ],
+    [
+      "a member line that is not a string",
+      [...P, "groups", 0, "memberSummary"],
+      6,
+      `${S}.groups[0].memberSummary: expected a string`,
+    ],
+    [
+      "a rule hint that is not a string or null",
+      [...P, "rules", 0, "hint"],
+      false,
+      `${S}.rules[0].hint: expected a string or null`,
+    ],
+    [
+      "a member line that differs from the group page's",
+      [...P, "groups", 1, "memberSummary"],
+      "4 members",
+      `${S}.groups[1].memberSummary: expected the member line the group page gives this group`,
+    ],
+    [
+      "members that differ from the group page's",
+      [...P, "groups", 1, "members", 2, "name"],
+      "Ines K",
+      `${S}.groups[1].members: expected the member names, in order, the group page gives this group`,
+    ],
+    [
+      "a +N that differs from the group page's",
+      [...P, "groups", 0, "moreMembers"],
+      "+3",
+      `${S}.groups[0].moreMembers: expected the "+N" the group page gives this group`,
+    ],
+    [
+      "a member listed twice in a Settings group",
+      [...P, "groups", 2, "members"],
+      [
+        { initials: "M", name: "Mara L" },
+        { initials: "M", name: "Mara L" },
+      ],
+      `${S}.groups[2].members[1].name: expected a name the group does not repeat`,
+    ],
+    [
+      "a member listed twice on a group page",
+      ["snapshot", "groups", 1, "members", 1, "name"],
+      "Mara L",
+      "scenes[0].snapshot.groups[1].members[1].name: expected a name the group does not repeat",
+    ],
   ])("refuses %s", (_what, path, value, reason) => {
     expect(readSlice(change(MAIN, path, value as Json | undefined))).toEqual(invalid(reason));
   });

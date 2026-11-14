@@ -149,7 +149,41 @@ describe("Groups (frame 1)", () => {
       expect((button as HTMLButtonElement).disabled).toBe(true);
       expect(button.getAttribute("aria-describedby")).toBe(reason.id);
     }
-    expect(page().getAllByRole("button", { name: /Edit members/ })).toHaveLength(3);
+    expect(
+      page()
+        .getAllByRole("button", { name: /Edit members/ })
+        .map((b) => [b.textContent, b.getAttribute("aria-label")]),
+    ).toEqual([
+      ["Edit members", "Edit members: Leveraged credit"],
+      ["Edit members", "Edit members: Shipping desk"],
+      ["Edit members", "Edit members: Committee prep"],
+    ]);
+    expect(page().getByRole("button", { name: "Edit members: Shipping desk" })).toBeDisabled();
+  });
+});
+
+describe("empty lists", () => {
+  it("draws no empty list beside the no-rules line", () => {
+    const slice = structuredClone(fixture.slice);
+    const main = slice.scenes[0];
+    if (main === undefined) throw new Error("the fixture has scenes");
+    main.snapshot.settings.rules = [];
+    show("/signal/main/settings/thread-rules", slice);
+    expect(page().getByText("No thread rules yet.")).toBeTruthy();
+    expect(page().queryAllByRole("list")).toHaveLength(0);
+  });
+
+  it("draws no empty list beside the no-groups line", () => {
+    const slice = structuredClone(fixture.slice);
+    const bare = slice.scenes.find((s) => s.id === "loading");
+    if (bare === undefined) throw new Error("the fixture has the loading scene");
+    bare.snapshot.settings.groups = [];
+    bare.snapshot.channels.groups = [];
+    bare.snapshot.groups = [];
+    bare.snapshot.threads = [];
+    show("/signal/loading/settings/groups", slice);
+    expect(page().getByText("No groups yet.")).toBeTruthy();
+    expect(page().queryAllByRole("list")).toHaveLength(0);
   });
 });
 
