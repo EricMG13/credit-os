@@ -107,3 +107,8 @@ CORRUPT_PINS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("bad long name", "x" * 1020 + ".exe", "pdf", ("name",)),
 )
 CORRUPT_PIN_POSITION = 0
+
+# A pin of PINS[0]'s name, hash and kind whose size_bytes is one past SQLite's largest integer
+# (2**63 - 1): a valid SourcePin, refused by create_run before BEGIN (StoreRefused, the clock never
+# called, nothing written).
+OVERSIZE_PIN_SIZE_BYTES = 2**63
