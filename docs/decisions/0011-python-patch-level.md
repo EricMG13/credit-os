@@ -13,7 +13,8 @@ later".
 `html.parser` in the standard library changed during 3.12: 3.12.14 carries the 2025 parser
 changes (`locatetagend`, `commentabruptclose`, `RCDATA_CONTENT_ELEMENTS`, a different
 `check_for_whole_start_tag`), 3.12.10 does not. Two readers go through it: Signal's feed text
-reader (`signal/feeds.py`) and the HTML source reader (`sources/html.py`, step 1D PR 2b).
+reader (`signal/feeds.py`, in pull requests not yet merged when this was written) and the HTML
+source reader (`sources/html.py`; its parser part is step 1D PR 2b-2, not yet written).
 
 CI named only `3.12`. Its Ubuntu runner ran 3.12.14 and its Windows runner 3.12.10. On
 3.12.10 a version of the feed reader that passed on 3.12.14 refused ordinary markup
