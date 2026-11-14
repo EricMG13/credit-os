@@ -32,6 +32,7 @@ H2 = "D:\\Profiles\\M\u00e9lanie"  # outside Users: only the known path finds it
 _MUL = "C:\\Users\\M\u00fcller"
 _RT = "/opt/acme/bin/copilot"
 _ELISE = "D:\\Profiles\\\u00c9lise"
+_PJ, _PF, _JO = "D:\\Profiles\\%5cjane", "D:\\Profiles\\%2Fjane", "/srv/people/%252Fjo"
 
 # (exact values, known paths, text, expected message)
 MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
@@ -125,6 +126,22 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), ("D:\\Profiles\\F\u00e9\u0329mi",), "D:\\Profiles\\Fe\u0329\u0301mi\\x", "<home>\\x"),
     ((), (H2,), "D:" + B * 2 + "Profiles" + B * 2 + "M\\u00c3\\u00a9lanie", "<home>"),
     ((), ("D:/Profiles/Jane/ /",), "D:\\Profiles\\Jane\\x", "<home>\\x"),
+    # --- audit N1 and N3, sweep D1: a name led by a separator token, then percent-encoded
+    (
+        (),
+        ("D:\\Profiles\\Irm\u00e3",),
+        "D:" + B * 2 + "Profiles" + B * 2 + "Irm\\xc3\\xa3",
+        "<home>",
+    ),
+    ((), ("D:\\Profiles\\X5",), "D:" + B * 2 + "Profiles" + B * 2 + "\\x585", "<home>"),
+    ((), (_PJ,), "x D%3A%5CProfiles%5C%255cjane y", "x <home> y"),
+    ((), (_PJ,), "x Profiles%5C%255cjane y", "x <home> y"),
+    ((), (_PF,), "x D:\\Profiles\\%2Fjane y", "x <home> y"),
+    ((), (_PF,), "x D%253A%255CProfiles%255C%25252Fjane y", "x <home> y"),
+    ((), (_PF,), "x Profiles%255C%25252Fjane y", "x <home> y"),
+    ((), (_JO,), "x people/%252Fjo y", "x <home> y"),
+    ((), (_JO,), "x %2Fsrv%2Fpeople%2F%25252Fjo y", "x <home> y"),
+    ((), (_JO,), "x people%2F%25252Fjo y", "x <home> y"),
     # --- not guaranteed: pinned as the net alone gives it
     ((), (H2,), "C:\\Users\\bob\\x", "<home>\\x"),
     ((), (H2,), "D:\\Profiles\\bob\\x", "D:\\Profiles\\bob\\x"),
