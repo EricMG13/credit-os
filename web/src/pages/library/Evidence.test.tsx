@@ -16,6 +16,7 @@ const fixture = JSON.parse(
 
 const SUMMARY = "/library/:issuer/:run/evidence/summary";
 const INDEX = "/library/:issuer/:run/evidence";
+const SOURCES = "/library/:issuer/:run/evidence/sources";
 const BASE = "#/library/halden-aerostructures/2026-09-30/evidence";
 const RUN_CODE = "HAE-20260930-FR-0003";
 const HASH = "9f2c41d07ab35e88c1e4f6a2b9d03c57e1a84f60b7d2c9153ea06f48d1b7c2a0";
@@ -43,15 +44,18 @@ afterEach(() => {
 });
 
 describe("the Evidence routes", () => {
-  it.each([SUMMARY, INDEX])("%s is titled Evidence and the fixture visits every state", (route) => {
-    expect(routes.find((r) => r.path === route)?.title).toBe("Evidence");
-    const runs = fixture.params[route]?.map((p) => p["run"]);
-    expect(runs).toEqual(
-      route === SUMMARY
-        ? ["2026-09-30", "2026-06-30", "2026-03-31", "2025-09-30"]
-        : ["2026-09-30", "2026-06-30"],
-    );
-  });
+  it.each([SUMMARY, INDEX, SOURCES])(
+    "%s is titled Evidence and the fixture visits every state",
+    (route) => {
+      expect(routes.find((r) => r.path === route)?.title).toBe("Evidence");
+      const runs = fixture.params[route]?.map((p) => p["run"]);
+      expect(runs).toEqual(
+        route !== INDEX
+          ? ["2026-09-30", "2026-06-30", "2026-03-31", "2025-09-30"]
+          : ["2026-09-30", "2026-06-30"],
+      );
+    },
+  );
 
   it("draws the Summary tab at the index address, and at /summary", () => {
     const index = renderEvidence("2026-09-30", INDEX).container.textContent;
@@ -264,5 +268,169 @@ describe("Evidence, copying", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy run code" }));
     const toast = await screen.findByRole("status");
     expect(toast.className).not.toMatch(/transition|animate|duration/);
+  });
+});
+
+const rows = () => within(screen.getByRole("list")).getAllByRole("listitem");
+const names = () => rows().map((r) => r.querySelector("p")?.textContent);
+const FIVE = [
+  "annual-report-2026.pdf",
+  "lender-presentation-nov-2026.pdf",
+  "credit-agreement-2023.pdf",
+  "q4-2026-kpi-pack.xlsx",
+  "rating-report-oct-2026.pdf",
+];
+const OTHERS = [
+  "sustainability-report-2026.pdf",
+  "bond-prospectus-2028-notes.pdf",
+  "peer-benchmark-extract.xlsx",
+  "interim-results-q3-2026.pdf",
+];
+
+/** Chooses a module in the filter through the hidden native select React Aria keeps beside it. */
+function pick(name: string) {
+  const trigger = screen.getByRole("button", { name: /^Module:/ });
+  const select = trigger.closest("div")?.querySelector("select");
+  if (!select) throw new Error("no module select");
+  fireEvent.change(select, { target: { value: name === "All" ? "all" : `option:${name}` } });
+}
+
+describe("Evidence, Sources", () => {
+  it("draws the Sources tab as current, with the module filter at 'Module: All' and no dead field", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    expect(tabs().getByRole("link", { name: /^Sources/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /^Module: All/ })).toBeVisible();
+    expect(screen.queryByText("Jump to an item")).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("draws the first five files in the mock's order, then the delivered label for the rest", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    expect(names()).toEqual(FIVE);
+    expect(screen.getByRole("button", { name: "Show the other 4 files" })).toBeVisible();
+  });
+
+  it("draws a file's type, size, state, readers and hash as the mock does", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    const first = rows()[0] as HTMLElement;
+    expect(within(first).getByText("PDF")).toBeVisible();
+    expect(within(first).getByText("8.4 MB · 214 pages")).toBeVisible();
+    expect(within(first).getByText("Read in full")).toBeVisible();
+    expect(within(first).getByText("Read by 11 modules")).toBeVisible();
+    expect(
+      within(first).getByText("3a7f0c92e15d8b46f0a1c7e39d524b8806fe1d2c4a95b7e3018f6d2ac59e4b71"),
+    ).toBeVisible();
+    expect(within(first).getByText("SHA-256")).toBeVisible();
+  });
+
+  it("draws the readers as initials with +N, named by the module names", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    const group = within(rows()[0] as HTMLElement).getByRole("img");
+    expect(group).toHaveAccessibleName(
+      "Business profile, Financial performance, Capital structure, Cash flow and liquidity, 7 more modules",
+    );
+    expect(group.textContent).toBe("BPFPCSCL+7");
+    expect(within(rows()[2] as HTMLElement).getByRole("img").textContent).toBe("CSCD");
+  });
+
+  it("draws the three states by word and shape, and the reason beside Read in part and Unreadable", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    const [, , part, , unreadable] = rows() as [
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+    ];
+    expect(within(part).getByText("Read in part")).toBeVisible();
+    expect(
+      within(part).getByText(
+        "Schedules 4 to 9 are scanned images with no text layer and were not read.",
+      ),
+    ).toBeVisible();
+    expect(within(unreadable).getByText("Unreadable")).toBeVisible();
+    expect(
+      within(unreadable).getByText(
+        "The file is password-protected. Nothing in this run rests on it.",
+      ),
+    ).toBeVisible();
+    expect(within(unreadable).getByText("Read by 0 modules")).toBeVisible();
+    expect(within(unreadable).queryByRole("img")).toBeNull();
+  });
+
+  it("wraps a long name and hash and cuts nothing", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    const first = rows()[0] as HTMLElement;
+    expect(within(first).getByText("annual-report-2026.pdf")).toHaveClass("break-words");
+    expect(first.innerHTML).not.toMatch(/truncate|text-ellipsis|overflow-hidden text-ellipsis/);
+  });
+
+  it("reveals the other four files in memory and takes the button away", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    fireEvent.click(screen.getByRole("button", { name: "Show the other 4 files" }));
+    expect(names()).toEqual([...FIVE, ...OTHERS]);
+    expect(screen.queryByRole("button", { name: /Show the other/ })).toBeNull();
+    expect(rows()[5]).toHaveFocus();
+  });
+
+  it("draws every file of a run with nothing held back, and no button", () => {
+    renderEvidence("2026-03-31", SOURCES);
+    expect(names()).toEqual([
+      "annual-report-2025.pdf",
+      "credit-agreement-2023.pdf",
+      "rating-report-feb-2026.pdf",
+    ]);
+    expect(screen.queryByRole("button", { name: /Show the other/ })).toBeNull();
+    cleanup();
+    renderEvidence("2025-09-30", SOURCES);
+    expect(rows()).toHaveLength(2);
+  });
+
+  it("narrows the rows to the files a module read, comparing ids, and holds none back", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    pick("Capital structure");
+    expect(names()).toEqual([
+      "annual-report-2026.pdf",
+      "lender-presentation-nov-2026.pdf",
+      "credit-agreement-2023.pdf",
+      "bond-prospectus-2028-notes.pdf",
+      "interim-results-q3-2026.pdf",
+    ]);
+    expect(screen.queryByRole("button", { name: /Show the other/ })).toBeNull();
+    pick("Forecast");
+    expect(names()).toEqual(["annual-report-2026.pdf", "interim-results-q3-2026.pdf"]);
+    pick("All");
+    expect(names()).toEqual(FIVE);
+    expect(screen.getByRole("button", { name: "Show the other 4 files" })).toBeVisible();
+  });
+
+  it("draws an empty state when the module read no file, and a control that clears the filter", () => {
+    renderEvidence("2026-09-30", SOURCES);
+    pick("Recovery");
+    expect(
+      screen.getByRole("heading", { level: 3, name: "No file was read by Recovery" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("list")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show all files" }));
+    expect(names()).toEqual(FIVE);
+  });
+
+  it("copies a file's hash and names the file in the toast", async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    stubClipboard(writeText);
+    renderEvidence("2026-09-30", SOURCES);
+    fireEvent.click(screen.getByRole("button", { name: "Copy hash of annual-report-2026.pdf" }));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "CopiedThe hash of annual-report-2026.pdf is on your clipboard.",
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      "3a7f0c92e15d8b46f0a1c7e39d524b8806fe1d2c4a95b7e3018f6d2ac59e4b71",
+    );
+  });
+
+  it("draws the loading run as the skeleton only", () => {
+    const { container } = renderEvidence("2026-06-30", SOURCES);
+    expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
+    expect(screen.queryByRole("list")).toBeNull();
   });
 });
