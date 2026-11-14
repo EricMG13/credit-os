@@ -13,8 +13,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
-from credit_os.model.facilities import Facility, schedule
-from credit_os.model.value import amount_text
+from credit_os.model.facilities import Facility, _plain, schedule
+from credit_os.model.value import Missing, MissingCode, Value, amount_text
 
 KEY = json.loads((Path(__file__).parent / "expected" / "pr3.json").read_text("utf-8"))
 SCHEDULES = KEY["schedules"]
@@ -109,13 +109,30 @@ def test_record_is_frozen() -> None:
 
 def test_schedule_input_types() -> None:
     facility = Facility.model_validate(terms())
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"^facilities must be a list or a tuple of Facility$"):
         schedule(cast(Any, (f for f in [facility])))
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"^every facility must be a Facility$"):
         schedule(cast(Any, [terms()]))
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"^facilities must be a list or a tuple of Facility$"):
         schedule(cast(Any, facility))
     assert len(schedule((facility,)).rows) == 1
+
+
+def test_unvalidated_floating_facility_is_refused() -> None:
+    for reference, spread in ((None, "1"), (["0.01", "0.01", "0.01"], None)):
+        bad = Facility.model_construct(
+            **terms(fixed_rate_pct=None, reference_rate=reference, spread_pct=spread)
+        )
+        with pytest.raises(
+            ValueError, match=r"^a floating facility needs a reference rate and a spread$"
+        ):
+            schedule([bad])
+
+
+def test_missing_figure_is_refused() -> None:
+    missing = Value(missing=Missing(MissingCode.NOT_SOURCED, "no source"))
+    with pytest.raises(ValueError, match=r"^a facility figure is missing$"):
+        _plain(missing)
 
 
 @pytest.fixture
