@@ -191,7 +191,45 @@ ROWS = [
 ]
 
 
-@pytest.mark.parametrize(("data", "expected", "reason", "cause"), ROWS)
+U = b"u" * 1_048_000
+CHARACTERS = "XML names longer than 1,048,576 characters in all"
+H3_NAMES = [
+    e for _ in range(2) for i in range(2048) for e in (_start(f"u}}n{i}"), ("end", f"u}}n{i}"))
+]
+HIDDEN = [
+    _case("h1", b'<r xmlns:p="' + U + b'"><p:a/><p:b/></r>', None, CHARACTERS),
+    _case(
+        "h2",
+        b'<r xmlns:p="u" xmlns:q="u">'
+        + b"".join(b"<p:n%d/>" % i for i in range(2048))
+        + b"".join(b"<q:n%d/>" % i for i in range(2048))
+        + b"</r>",
+        None,
+        NAMES,
+    ),
+    _case(
+        "h3",
+        b'<r xmlns:p="u">' + b"".join(b"<p:n%d/>" % i for i in range(2048)) * 2 + b"</r>",
+        [_start("r")] + H3_NAMES + [("end", "r")],
+    ),
+    _case("h4", b"<r><" + b"n" * 600_000 + b"/><" + b"m" * 600_000 + b"/></r>", None, CHARACTERS),
+    _case("h5", b'<a xmlns="x}y"/>', None, MALFORMED, expat.ExpatError),
+    _case(
+        "h6",
+        b'<a xmlns="u" xmlns:p="v" xmlns:q="v" p:k="1" k="2"><p:b q:j="3"/><q:b/></a>',
+        [
+            ("start", "u}a", {"v}k": "1", "k": "2"}),
+            ("start", "v}b", {"v}j": "3"}),
+            ("end", "v}b"),
+            ("start", "v}b", {}),
+            ("end", "v}b"),
+            ("end", "u}a"),
+        ],
+    ),
+]
+
+
+@pytest.mark.parametrize(("data", "expected", "reason", "cause"), ROWS + HIDDEN)
 def test_xml_rows(
     data: bytes, expected: list[Any] | None, reason: str, cause: type[BaseException] | None
 ) -> None:
@@ -199,6 +237,67 @@ def test_xml_rows(
         _expect_events(data, expected)
     else:
         _expect_refusal(data, reason, cause)
+
+
+@pytest.mark.parametrize(
+    "data", [b"<a><!-- <!dOcTyPe --></a>", b"<a><![CDATA[<!ENTITY]]></a>"], ids=["t1", "t2"]
+)
+def test_declaration_across_pieces_of_16_bytes(
+    data: bytes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(ooxml, "CHUNK_BYTES", 16)
+    _expect_refusal(data, DECLARATION, None)
+
+
+class _Calls:
+    def __init__(self) -> None:
+        self.texts: list[str] = []
+
+    def start(self, name: str, attributes: dict[str, str]) -> None:
+        pass
+
+    def end(self, name: str) -> None:
+        pass
+
+    def text(self, data: str) -> None:
+        self.texts.append(data)
+
+
+def _raw(data: bytes) -> bytes:
+    return zipped({PART: data}, zipfile.ZIP_DEFLATED)
+
+
+def test_a_run_of_text_with_a_reference_is_one_call() -> None:
+    target = _Calls()
+    Package("b.xlsx", _raw(b"<a>one &amp; two\nthree</a>")).parse(PART, target)
+    assert target.texts == ["one & two\nthree"]
+
+
+@pytest.mark.parametrize("chunk", [1, 40])
+def test_an_unfinished_tag_of_exactly_the_limit_at_the_end_is_not_well_formed(
+    chunk: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(ooxml, "MAX_TOKEN_BYTES", 40)
+    monkeypatch.setattr(ooxml, "CHUNK_BYTES", chunk)
+    unfinished = b'<e k="' + b"v" * 34
+    assert len(unfinished) == 40
+    with pytest.raises(SourceUnreadable) as caught:
+        Package("b.xlsx", _raw(b"<r>" + unfinished)).parse(PART, _Calls())
+    assert str(caught.value) == "b.xlsx: 'xl/a.xml': not well-formed XML"
+    assert type(caught.value.__cause__) is expat.ExpatError
+
+
+def test_an_end_below_the_root_restores_the_depth_by_one() -> None:
+    data = b"<r><a><x/>" + b"<b>" * 255 + b"</b>" * 255 + b"</a></r>"
+    with pytest.raises(SourceUnreadable) as caught:
+        Package("b.xlsx", _raw(data)).parse(PART, _Calls())
+    assert str(caught.value) == "b.xlsx: 'xl/a.xml': XML nested deeper than 256 elements"
+    assert caught.value.__cause__ is None
+
+
+def test_the_limits() -> None:
+    assert ooxml.CHUNK_BYTES <= ooxml.MAX_TOKEN_BYTES
+    assert ooxml.MAX_NAME_CHARACTERS == 1_048_576
 
 
 @pytest.mark.parametrize("data", [XM2, XM3], ids=["xm2", "xm3"])
@@ -270,7 +369,14 @@ def test_pin11_reparse_deferral_is_on_by_default() -> None:
     assert parser.GetReparseDeferralEnabled() is True, sys.version
 
 
-def _peak(data: bytes) -> int:
+def test_pin12_a_namespace_name_holding_the_separator_is_refused() -> None:
+    parser = expat.ParserCreate(None, "}")
+    with pytest.raises(expat.ExpatError) as caught:
+        parser.Parse('<a xmlns="x}y"/>', True)
+    assert caught.value is not None, sys.version
+
+
+def _peak(data: bytes, reason: str) -> int:
     """Peak traced memory of one parse, after one warm-up call; the recorder is counted."""
     raw = zipped({PART: data}, zipfile.ZIP_DEFLATED)
     for _ in range(2):
@@ -280,26 +386,28 @@ def _peak(data: bytes) -> int:
         try:
             try:
                 package.parse(PART, target)
-            except SourceUnreadable:
-                pass
+                outcome = ""
+            except SourceUnreadable as error:
+                outcome = str(error).removeprefix(PREFIX)
             peak = tracemalloc.get_traced_memory()[1]
         finally:
             tracemalloc.stop()
+        assert outcome == reason, f"outcome {outcome!r} != {reason!r} on {sys.version}"
     return peak
 
 
 MEMORY = {
-    "xm20": (XM20, 6),
-    "xm21": (XM21, 6),
-    "xm26": (XM26, 7),
-    "xm31": (XM31, 4),
-    "xm32": (XM32, 4),
+    "xm20": (XM20, 6, ""),
+    "xm21": (XM21, 6, LONG),
+    "xm26": (XM26, 7, ""),
+    "xm31": (XM31, 4, NAMES),
+    "xm32": (XM32, 4, NAMES),
 }
 
 
-@pytest.mark.parametrize(("data", "ceiling"), list(MEMORY.values()), ids=list(MEMORY))
-def test_memory_rows(data: bytes, ceiling: int) -> None:
-    peak = _peak(data)
+@pytest.mark.parametrize(("data", "ceiling", "reason"), list(MEMORY.values()), ids=list(MEMORY))
+def test_memory_rows(data: bytes, ceiling: int, reason: str) -> None:
+    peak = _peak(data, reason)
     sys.stdout.write(f"peak {peak / MIB:.2f} MiB of {ceiling} MiB\n")
     assert peak <= ceiling * MIB, f"peak {peak / MIB:.2f} MiB over {ceiling} MiB on {sys.version}"
 
