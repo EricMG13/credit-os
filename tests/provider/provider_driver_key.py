@@ -19,8 +19,10 @@ A case is (want, given); a field left out of `given` takes its default in DEFAUL
           steps for the case's own call (next_event is not one); bounds is step -> the timeout_s
           it was given; system is the text open_session got; absent texts are nowhere in raw or
           message, whatever their case, and raw is then a JSON list as long as the script.
-A case that opens a session gives it SESSION_ARGS; a sent case sends PROMPT. raw is always
-written with the parser's separators.
+A case that opens a session gives it MODEL, the case's effort, its exchange id as session_id,
+and `system`; a sent case sends PROMPT. raw is always written with the parser's separators and,
+where no `absent` is listed, is the JSON of exactly the envelopes the call read. No step is
+ever given a negative timeout_s. `config_id` is the one the driver was made with.
 """
 
 from typing import Any
@@ -28,13 +30,14 @@ from typing import Any
 MODEL = "gpt-6-sol"
 T0 = 1000.0
 PARSER = object()
-_TOKEN = "gh" + "p_" + "B" * 36
+_TOKEN = "tok." + "B7" * 9  # no key shape: only the exact value finds it
 ENVIRON = {"COPILOT_GITHUB_TOKEN": _TOKEN, "COPILOT_CLI_PATH": "/opt/copilot/bin/copilot"}
 MODELS = [{"id": MODEL, "supportedReasoningEfforts": ["low", "medium"]}]
 SYSTEM = ("system", "You are careful.")
 USER = ("user", "Say done.")
+_BRIEF = (SYSTEM, ("system", "Be brief."), USER)
+_OTHER = {"messages": _BRIEF, "effort": "low", "exchange_id": "B_2-x"}
 PROMPT = "Say done."
-SESSION_ARGS = {"model": MODEL, "effort": "medium", "session_id": "ex-1"}
 _FAKE: dict[str, Any] = {"script": [], "queued": [], "models": MODELS, "fail": {}, "takes": {}}
 _DRIVER: dict[str, Any] = {"environ": ENVIRON, "home": "/home/jane", "idle": 10.0, "overall": 100.0}
 _REQUEST: dict[str, Any] = {"messages": (SYSTEM, USER), "tools": (), "effort": "medium"}
@@ -59,6 +62,7 @@ _NANO = {"copilotUsage": {"totalNanoAiu": 12300000}}
 _STOP = {"model": MODEL, "finishReason": "stop", "apiCallId": "api-1"}
 _USAGE = event(1, "assistant.usage", reasoningTokens=2, **_STOP, **_NANO, **_COUNTS)
 _CHARGE_ONLY = event(1, "assistant.usage", **_STOP, **_NANO)
+_COUNTS_ONLY = event(1, "assistant.usage", reasoningTokens=2, **_STOP, **_COUNTS)
 _CHARGE = "0.00012300000"
 _DONE = said(2, "done")
 _IDLE = event(90, "session.idle")
@@ -67,7 +71,9 @@ _TURN = ("done", (), "end", "api-1")
 _OPEN = ("open_client", "start", "list_models", "open_session")
 _SENT = (*_OPEN, "send")
 _RELEASE = ("queued", "disconnect", "stop")
+_ENDED = (*_SENT, *_RELEASE)
 _ABORTED = (*_SENT, "abort", *_RELEASE)
+_Y = "y" * 900
 _BOOM = ("RuntimeError", "boom")
 _IDLE_OUT = "no session event within the idle timeout"
 _OVERALL_OUT = "the call passed its overall timeout"
@@ -83,12 +89,12 @@ def _ok(**more: Any) -> dict[str, Any]:
 
 
 def _figures(error_class: str, message: Any = PARSER, **more: Any) -> dict[str, Any]:
-    more = {"usage": _FULL, "charge": _CHARGE, "calls": (*_SENT, *_RELEASE), **more}
+    more = {"usage": _FULL, "charge": _CHARGE, "calls": _ENDED, **more}
     return _want("sent_usage", error_class, message, **more)
 
 
 def _unknown(error_class: str, message: Any = PARSER, **more: Any) -> dict[str, Any]:
-    return _want("sent_unknown", error_class, message, **{"calls": (*_SENT, *_RELEASE), **more})
+    return _want("sent_unknown", error_class, message, **{"calls": _ENDED, **more})
 
 
 def _late(error_class: str, seconds: float, **more: Any) -> dict[str, Any]:
@@ -107,6 +113,7 @@ def _seen(*cwds: str, **more: Any) -> dict[str, Any]:
 
 _NO_KEY = _unsent("KeyMissing", "COPILOT_GITHUB_TOKEN is not set")
 _BAD_ID = _unsent("InvalidExchangeId", "an exchange id is 1 to 128 of A-Z a-z 0-9 _ -")
+_BAD_IDS = ("a b", "", "x" * 129, "../x")
 _HISTORY = "a first call is system messages, then exactly one user message"
 _BAD_INDEX = _unsent("UnsupportedCall", "a call index other than 0 is not supported yet")
 _TO_LIST = ("open_client", "start", "list_models", "stop")
@@ -130,24 +137,16 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     "a text turn": (_ok(system="You are careful."), {"script": _TURN_SCRIPT}),
     "system texts are joined by a blank line": (
         _ok(system="You are careful.\n\nBe brief."),
-        {"script": _TURN_SCRIPT, "messages": (SYSTEM, ("system", "Be brief."), USER)},
-    ),
-    "time passes inside the idle bound": (
-        _ok(finished=T0 + 16.5),
-        {"script": [("tick", 4), _USAGE, ("tick", 3), _DONE, ("tick", 9.5), _IDLE]},
+        {"script": _TURN_SCRIPT, **_OTHER},
     ),
     "the steps before the first event share the overall bound": (
         _ok(finished=T0 + 37, bounds=_SHARED),
         {"script": _TURN_SCRIPT, "takes": {"start": 30, "list_models": 5, "send": 2}},
     ),
     # --- the session reports the end itself: the parser's reply, and the session is released
-    "a session error": (
+    "a session error keeps its class, a sub-agent's event or not": (
         _figures("SessionError", bounds={"queued": 5.0, "disconnect": 5.0, "stop": 30.0}),
-        {"script": [_USAGE, _ERROR]},
-    ),
-    "an aborted idle": (
-        _figures("Aborted"),
-        {"script": [_USAGE, _DONE, event(90, "session.idle", aborted=True)]},
+        {"script": [_USAGE, said(2, "x", agentId="a1"), _ERROR]},
     ),
     "an envelope that is not an object ends the call at once": (
         _unknown("UnparsableReply"),
@@ -171,29 +170,23 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     ),
     # --- timeouts: abort, then release
     "nothing arrives: idle timeout": (_late("IdleTimeout", 10, bounds={"abort": 5.0}), {}),
-    "figures seen before an idle timeout are kept": (
-        _figures("IdleTimeout", _IDLE_OUT, finished=T0 + 12, calls=_ABORTED),
-        {"script": [("tick", 2), _USAGE, ("tick", 50), _IDLE]},
+    "counts alone seen before an idle timeout are kept": (
+        _figures("IdleTimeout", _IDLE_OUT, charge=None, finished=T0 + 12, calls=_ABORTED),
+        {"script": [("tick", 2), _COUNTS_ONLY, ("tick", 50), _IDLE]},
     ),
     "a charge alone seen before a timeout is kept": (
         _figures("IdleTimeout", _IDLE_OUT, usage=(None,) * 5, finished=T0 + 10, calls=_ABORTED),
         {"script": [_CHARGE_ONLY]},
     ),
-    "events keep arriving: overall timeout": (
-        _late("OverallTimeout", 25),
-        {"overall": 25.0, "script": _CHATTER},
+    "events keep arriving": (_late("OverallTimeout", 25), {"overall": 25.0, "script": _CHATTER}),
+    "with the bound used up a step gets 0, and waiting events are not read": (
+        _late("OverallTimeout", 30, bounds={"list_models": 0.0, "open_session": 0.0, "send": 0.0}),
+        {"overall": 25.0, "takes": {"start": 30}, "script": _TURN_SCRIPT},
     ),
-    "events already waiting do not outlive the overall bound": (
-        _late("OverallTimeout", 30),
-        {"overall": 25.0, "takes": {"send": 30}, "script": _TURN_SCRIPT},
-    ),
-    "idle equal to overall is the overall timeout": (
-        _late("OverallTimeout", 1800),
-        {"idle": 1800.0, "overall": 1800.0},
-    ),
-    "a failed abort does not change the reply or stop the release": (
+    "idle equal to overall": (_late("OverallTimeout", 1800), {"idle": 1800.0, "overall": 1800.0}),
+    "next_event timing out is no event; a failed abort changes nothing": (
         _late("IdleTimeout", 10),
-        {"fail": {"abort": _BOOM}},
+        {"fail": {"abort": _BOOM, "next_event": "timeout"}},
     ),
     # --- sending
     "send raises: it may have been sent": (
@@ -201,8 +194,8 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"fail": {"send": _BOOM}},
     ),
     "a failure text after sending is redacted, then cut": (
-        _unknown("AdapterError", ("send failed: RuntimeError: [redacted] " + "y" * 900)[:500]),
-        {"fail": {"send": ("RuntimeError", _TOKEN + " " + "y" * 900)}},
+        _unknown("AdapterError", f"send failed: RuntimeError: [redacted] {_Y}"[:500]),
+        {"fail": {"send": ("RuntimeError", f"{_TOKEN} {_Y}")}},
     ),
     "send uses up the overall bound": (_late("OverallTimeout", 100), {"fail": {"send": "timeout"}}),
     # --- release
@@ -211,17 +204,12 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"script": [_USAGE, _ERROR], "fail": {"disconnect": _BOOM}},
     ),
     "a failed stop is followed by force_stop": (
-        _figures(
-            "SessionError", calls=(*_SENT, *_RELEASE, "force_stop"), bounds={"force_stop": 5.0}
-        ),
+        _figures("SessionError", calls=(*_ENDED, "force_stop"), bounds={"force_stop": 5.0}),
         {"script": [_USAGE, _ERROR], "fail": {"stop": "timeout"}},
     ),
     # --- refused before anything is opened: no client is made
     "the model is closed": (_unsent("AdapterClosed", "the model is closed"), {"before": "close"}),
-    **{
-        f"exchange id {i[:9]!r}": (_BAD_ID, {"exchange_id": i})
-        for i in ("a b", "", "x" * 129, "../x")
-    },
+    **{f"exchange id {i[:9]!r}": (_BAD_ID, {"exchange_id": i}) for i in _BAD_IDS},
     "tool specifications wait for PR 3b": (
         _unsent("UnsupportedCall", "tool specifications are not supported yet"),
         {"tools": (("read", "Read a file.", {"type": "object"}),)},
@@ -237,19 +225,22 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         _unsent("ExchangeExists", "the exchange is already open or was released"),
         {"script": _TURN_SCRIPT, "before": "same"},
     ),
-    "a blank token": (_NO_KEY, {"environ": {**ENVIRON, "COPILOT_GITHUB_TOKEN": "  "}}),
+    **{
+        f"token {n}": (_NO_KEY, {"environ": {"COPILOT_CLI_PATH": "/opt/c/copilot", **e}})
+        for n, e in enumerate([{}, {"GH_TOKEN": _TOKEN}, {"COPILOT_GITHUB_TOKEN": "  "}])
+    },
     "no runtime path": (
         _unsent("RuntimeMissing", "COPILOT_CLI_PATH is not set"),
-        {"environ": {"COPILOT_GITHUB_TOKEN": _TOKEN}},
+        {"environ": {"COPILOT_GITHUB_TOKEN": _TOKEN}, "home": ""},
     ),
     # --- refused after the client was made: it is stopped
-    "the client cannot be made": (
-        _unsent("PreSendFailure", "open_client failed: RuntimeError: boom", "open_client"),
-        {"fail": {"open_client": _BOOM}},
+    "the client cannot be made; a long text is cut to 500 characters": (
+        _unsent("PreSendFailure", f"open_client failed: RuntimeError: {_Y}"[:500], "open_client"),
+        {"fail": {"open_client": ("RuntimeError", _Y)}},
     ),
-    "start raises": (
-        _unsent("PreSendFailure", "start failed: RuntimeError: boom", *_START_STOP),
-        {"fail": {"start": _BOOM}},
+    "list_models raises": (
+        _unsent("PreSendFailure", "list_models failed: RuntimeError: boom", *_TO_LIST),
+        {"fail": {"list_models": _BOOM}},
     ),
     "start times out, and so does stop": (
         _unsent("PreSendFailure", "start timed out", *_START_STOP, "force_stop"),
@@ -259,7 +250,7 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         _NO_MODEL,
         {"models": [{"id": "gpt-other", "supportedReasoningEfforts": ["medium"]}]},
     ),
-    "the model list is not a list of objects": (_NO_MODEL, {"models": {"id": MODEL}}),
+    "the model list is not a list": (_NO_MODEL, {"models": None}),
     "the effort is not offered": (
         _unsent("EffortUnavailable", f"effort high {_NO_EFFORT}", *_TO_LIST),
         {"effort": "high"},
@@ -285,24 +276,22 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         _ok(absent=_JANE),
         {"home": _WIN, **_seen("d:\\profiles\\jane roe\\proj", "D:/PROFILES/JANE ROE/proj")},
     ),
+    "a configured Windows path after a POSIX home in one message": (
+        _figures("SessionError", "x: cannot read <home>:[redacted]\\proj", absent=_JANE),
+        {"home": _WIN, "script": [_USAGE, _error("cannot read /home/build or " + _WIN + "\\proj")]},
+    ),
     "the runtime path in a session error": (
         _figures("SessionError", absent=("acme-runtime",)),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error(_RUNTIME + " died")]},
     ),
-    # The parser cuts a message at 500 characters before the driver sees it, so a path can be cut
-    # in half there. A message that arrives 500 long loses, after redaction, as many characters
-    # from its end as the longest path form has (here 31): 500 - 31 = 469 are left.
+    # A parser message 500 long loses, after redaction, the longest path form's length: 500 - 31.
     "a path cut in half by the parser's 500-character cut": (
         _figures("SessionError", ("x: " + "y" * 482)[:469], absent=("acme", "/srv/tools")),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error("y" * 482 + _RUNTIME + " died")]},
     ),
 }
 
-# The post-pass over raw: bytes it cannot decode as JSON give the fixed placeholder.
-RAW_PLACEHOLDER = b'"[redacted]"'
+RAW_PLACEHOLDER = b'"[redacted]"'  # what scrub_raw gives for bytes it cannot decode as JSON
 UNREADABLE_RAW: tuple[bytes, ...] = (b"\xff\xfe", b"{not json", b"")
-
-# A release step that fails is logged once, naming the step and the exception class only.
-RELEASE_LOG_CASE = "a failed disconnect still stops the client"
-RELEASE_LOG_HAS = ("disconnect", "RuntimeError")
-RELEASE_LOG_LACKS = ("boom",)
+# A failed release step is logged once: (case, words the log has, a word it lacks).
+RELEASE_LOG = ("a failed disconnect still stops the client", "disconnect RuntimeError", "boom")
