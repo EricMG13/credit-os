@@ -6,32 +6,41 @@ socket. This module adds the address rules for feeds (below), conditional reques
 feed ``Accept`` value.
 
 Rules:
-- https only; the host must be a plain DNS name (no IP literal, userinfo, percent escape or
-  non-ASCII) and the port is not 0. The host is resolved once per hop; every address it
-  resolves to must be public (``netpin.is_public``: an answer that is not exact text is not).
+- An address is printable ASCII without white space, at most 2048 characters (checked before it
+  is parsed); one that is not is refused with a fixed reason that carries none of its text. https
+  only; the host must be a plain DNS name (no IP literal, userinfo, percent escape or non-ASCII)
+  and the port 443, on the first hop as on every redirect hop. The host is resolved once per hop,
+  in a daemon thread that is waited for no longer than the time left on the deadline
+  (LOOKUP_SECONDS in ``check_address``); every address it resolves to must be public
+  (``netpin.is_public``: an answer that is not exact text is not).
 - The connection goes to the first checked address, with the certificate verified for the host
   name. Nothing looks the name up again, so a host that changes its answer after the check
   cannot change where the request goes.
 - Redirects (301, 302, 303, 307, 308) are followed by this module's own loop, at most
-  MAX_REDIRECTS in all, never through a proxy. A target must be https, a plain host name and
-  the default port; each hop is resolved, checked and pinned like the first. A redirect
-  response's body is not read, and the conditional headers go to the first address only.
+  MAX_REDIRECTS in all, never through a proxy. Each target is held to the address rules above and
+  is resolved, checked and pinned like the first. A redirect response's body is not read, and
+  the conditional headers go to the first address only.
 - The response is closed as well as the connection on every path, a refusal mid-body included.
 - 10 seconds per socket operation (TIMEOUT_SECONDS); one TOTAL_SECONDS deadline for the whole
   fetch, every hop, headers and body included, spent once the clock reaches it; a 2 MB body cap;
-  a body shorter than its
-  declared Content-Length, and any Content-Encoding other than identity, are refused.
+  a body shorter than its declared Content-Length, any Content-Encoding other than identity and
+  any Transfer-Encoding other than chunked are refused.
+- A failure to connect or to complete the TLS handshake gives the caller one fixed reason; its
+  detail goes to the log at warning level.
 
-Known ceiling: the one system DNS lookup per hop cannot be interrupted by the standard library.
-A lookup that hangs ends only at the resolver's own timeout, after which the deadline is checked
-and no connection is opened once it has passed.
+Known ceiling: the system DNS lookup cannot be interrupted by the standard library. A lookup that
+overruns its time is abandoned, not stopped: its daemon thread ends when the resolver gives up,
+and its late answer is discarded.
 """
 
 import http.client
+import logging
 import re
 import socket
+import threading
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlsplit
 
@@ -42,6 +51,7 @@ TIMEOUT_SECONDS = 10
 TOTAL_SECONDS = 10
 MAX_BYTES = 2 * 1024 * 1024
 MAX_REDIRECTS = 3
+LOOKUP_SECONDS = 5.0
 USER_AGENT = "Mozilla/5.0 (compatible; signal-feed/1.0)"
 ACCEPT = (
     "application/atom+xml, application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5"
@@ -51,11 +61,15 @@ _CHUNK_BYTES = 64 * 1024
 _ERROR_TEXT_LIMIT = 200
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 
+_log = logging.getLogger(__name__)
+_CONNECT_REASON = "could not connect to the feed's server"
+
 Resolver = Callable[[str], Iterable[str]]
 Connector = Callable[[ConnectionTarget], ConnectionLike]
 Clock = Callable[[], float]
 
 _LABEL = r"(?:[a-z0-9]|[a-z0-9][a-z0-9-]{0,61}[a-z0-9])"
+_ADDRESS = re.compile(r"[\x21-\x7e]{1,2048}")
 _NETLOC = re.compile(rf"({_LABEL}(?:\.{_LABEL})+)(?::[0-9]{{1,5}})?")
 _DIGITS = re.compile(r"[0-9]{1,18}")
 _VALIDATOR = re.compile(r"[\x20-\x7e]{1,256}")
@@ -80,7 +94,6 @@ class Fetched:
 @dataclass(frozen=True)
 class _Place:
     host: str
-    port: int
     path: str
 
 
@@ -105,6 +118,10 @@ class _Budget:
         if self.clock() >= self.deadline:
             raise FetchRefused(f"feed took longer than {TOTAL_SECONDS} seconds")
 
+    def lookup(self, host: str) -> Iterable[str]:
+        """The resolver's answer, waited for no longer than the time left on the deadline."""
+        return _bounded(self.resolve, host, self.deadline - self.clock())
+
 
 def _short(error: object) -> str:
     return " ".join(str(error).split())[:_ERROR_TEXT_LIMIT]
@@ -112,6 +129,46 @@ def _short(error: object) -> str:
 
 def _resolve(host: str) -> Iterable[str]:
     return [str(info[4][0]) for info in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)]
+
+
+class _Outcome:
+    """What a lookup thread ended with: its answer, or the exception that ended it.
+
+    As a context manager it holds any exception raised inside it instead of letting it end the
+    thread; ``_bounded`` raises it in the caller, so nothing is hidden.
+    """
+
+    def __init__(self) -> None:
+        self.answer: list[str] = []
+        self.error: BaseException | None = None
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, kind: object, error: BaseException | None, trace: object) -> bool:
+        self.error = error
+        return error is not None
+
+
+def _bounded(resolve: Resolver, host: str, seconds: float) -> list[str]:
+    """``resolve(host)`` in a daemon thread, waited for ``seconds``; refused if it overruns.
+
+    An exception in the thread is raised here. A late answer lands in a record nothing reads.
+    """
+    outcome = _Outcome()
+
+    def work() -> None:
+        with outcome:
+            outcome.answer = list(resolve(host))
+
+    worker = threading.Thread(target=work, daemon=True)
+    worker.start()
+    worker.join(max(seconds, 0.0))
+    if worker.is_alive():
+        raise FetchRefused("looking up the feed's host took too long")
+    if outcome.error is not None:
+        raise outcome.error
+    return outcome.answer
 
 
 def _plain_host(netloc: str) -> str:
@@ -131,26 +188,23 @@ def _plain_host(netloc: str) -> str:
     return host
 
 
-def _locate(url: str, *, redirect: bool) -> _Place:
-    """The host, port and request path of an acceptable https address."""
+def _locate(url: str) -> _Place:
+    """The host and request path of an acceptable https address on port 443."""
+    if _ADDRESS.fullmatch(url) is None:  # before urlsplit, which drops some characters unseen
+        raise FetchRefused("feed address is not valid")
     try:
         parts = urlsplit(url)
         port = parts.port
     except ValueError as error:
-        raise FetchRefused(f"feed address is not valid: {_short(error)}") from error
+        raise FetchRefused("feed address is not valid") from error
     if parts.scheme != "https":
         raise FetchRefused("only https addresses are fetched")
     if not parts.netloc:
         raise FetchRefused("address has no host")
     host = _plain_host(parts.netloc)
-    if port == 0:
-        raise FetchRefused("feed address port must not be 0")
-    if redirect and port not in (None, _DEFAULT_PORT):
-        raise FetchRefused("a redirect must use the default port")
-    path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
-    if not path.isascii():
-        raise FetchRefused("feed address path must be ASCII")
-    return _Place(host, port or _DEFAULT_PORT, path)
+    if port not in (None, _DEFAULT_PORT):
+        raise FetchRefused(f"feed address must use port {_DEFAULT_PORT}")
+    return _Place(host, (parts.path or "/") + (f"?{parts.query}" if parts.query else ""))
 
 
 def _checked(host: str, resolve: Resolver) -> list[str]:
@@ -169,8 +223,8 @@ def _checked(host: str, resolve: Resolver) -> list[str]:
 
 def check_address(url: str, resolve: Resolver | None = None) -> None:
     """Raise FetchRefused unless url is https, a plain host name, resolving only to public IPs."""
-    # The resolver is looked up now, so tests can replace it.
-    _checked(_locate(url, redirect=False).host, _resolve if resolve is None else resolve)
+    resolver = _resolve if resolve is None else resolve  # looked up now, so tests can replace it
+    _checked(_locate(url).host, lambda host: _bounded(resolver, host, LOOKUP_SECONDS))
 
 
 def _declared_length(response: ResponseLike) -> int | None:
@@ -192,6 +246,27 @@ def _declared_length(response: ResponseLike) -> int | None:
     return None
 
 
+@contextmanager
+def _http_call() -> Iterator[None]:
+    """A call into ``http.client`` or the connection: its ``ValueError`` is a refusal."""
+    try:
+        yield
+    except FetchRefused:
+        raise
+    except ValueError as error:
+        raise FetchRefused(f"fetch failed: {_short(error) or type(error).__name__}") from error
+
+
+@contextmanager
+def _connecting(host: str) -> Iterator[None]:
+    """Opening the connection, TLS included: a failure gives one reason; the detail is logged."""
+    try:
+        yield
+    except OSError as error:
+        _log.warning("could not connect to %s: %s: %s", host, type(error).__name__, _short(error))
+        raise FetchRefused(_CONNECT_REASON) from error
+
+
 def _read_body(response: ResponseLike, budget: _Budget) -> bytes:
     declared = _declared_length(response)
     if declared is not None and declared > MAX_BYTES:
@@ -199,7 +274,8 @@ def _read_body(response: ResponseLike, budget: _Budget) -> bytes:
     chunks: list[bytes] = []
     got = 0
     while got <= MAX_BYTES:
-        chunk = response.read(min(_CHUNK_BYTES, MAX_BYTES + 1 - got))
+        with _http_call():
+            chunk = response.read(min(_CHUNK_BYTES, MAX_BYTES + 1 - got))
         budget.check()
         if not chunk:
             break
@@ -229,6 +305,15 @@ def _validator(response: ResponseLike, name: str) -> str | None:
     return value if value is not None and _VALIDATOR.fullmatch(value) else None
 
 
+def _refuse_encodings(response: ResponseLike) -> None:
+    encoding = (response.getheader("Content-Encoding") or "").strip().lower()
+    if encoding not in ("", "identity"):
+        raise FetchRefused("feed uses a content encoding")
+    transfer = response.getheader("Transfer-Encoding")
+    if transfer is not None and transfer.strip().lower() != "chunked":
+        raise FetchRefused("feed uses a transfer encoding")
+
+
 def _answer(
     response: ResponseLike,
     etag: str | None,
@@ -248,9 +333,7 @@ def _answer(
         )
     if response.status != 200:
         raise FetchRefused(f"server answered HTTP {response.status}")
-    encoding = (response.getheader("Content-Encoding") or "").strip().lower()
-    if encoding not in ("", "identity"):
-        raise FetchRefused("feed uses a content encoding")
+    _refuse_encodings(response)
     body = _read_body(response, budget)
     if redirected:  # validators belong to the first address only
         return Fetched(body, None, None)
@@ -285,8 +368,7 @@ def fetch(
         raise
     except http.client.HTTPException as error:  # its text can carry what the server sent
         raise FetchRefused(f"fetch failed: {type(error).__name__}") from error
-    # ValueError: http.client refusing a header value or a request line it cannot encode.
-    except (OSError, ValueError) as error:
+    except OSError as error:
         raise FetchRefused(f"fetch failed: {_short(error) or type(error).__name__}") from error
 
 
@@ -307,12 +389,12 @@ def _follow(url: str, etag: str | None, modified: str | None, budget: _Budget) -
     current = url
     hops = 0
     while True:
-        place = _locate(current, redirect=hops > 0)
-        budget.check()
-        address = _checked(place.host, budget.resolve)[0]
+        place = _locate(current)
+        budget.check()  # no lookup once the time is spent, whatever closing the last hop took
+        address = _checked(place.host, budget.lookup)[0]
         budget.check()  # the lookup may have ended after the deadline
         headers = {
-            "Host": place.host if place.port == _DEFAULT_PORT else f"{place.host}:{place.port}",
+            "Host": place.host,
             "User-Agent": USER_AGENT,
             "Accept": ACCEPT,
             "Accept-Encoding": "identity",
@@ -324,13 +406,16 @@ def _follow(url: str, etag: str | None, modified: str | None, budget: _Budget) -
             if modified:
                 headers["If-Modified-Since"] = modified
         target = ConnectionTarget(
-            place.host, address, place.port, TIMEOUT_SECONDS, budget.deadline, budget.clock
+            place.host, address, _DEFAULT_PORT, TIMEOUT_SECONDS, budget.deadline, budget.clock
         )
-        connection = budget.connect(target)
+        with _connecting(place.host):
+            connection = budget.connect(target)
         response: ResponseLike | None = None
         try:
-            connection.request("GET", place.path, headers=headers)
-            response = connection.getresponse()
+            with _http_call(), _connecting(place.host):
+                connection.request("GET", place.path, headers=headers)
+            with _http_call():
+                response = connection.getresponse()
             budget.check()
             if response.status not in _REDIRECT_STATUSES:
                 return _answer(response, etag, modified, budget, redirected=hops > 0)
