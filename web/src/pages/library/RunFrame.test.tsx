@@ -114,8 +114,14 @@ describe("RunFrame tabs", () => {
       moduleFilter: unknown[];
       sources: { files: { readers: unknown }[] };
       trace: { rows: { module: string; moduleId: string | null }[] };
+      gaps: { groups: unknown[] };
+      tabs: Json;
     };
     evidence.moduleFilter = [];
+    evidence.gaps.groups = [];
+    evidence.tabs["gaps"] = "0";
+    (run.overview as { limitations: { gapsLink: Json } }).limitations.gapsLink["label"] =
+      "See the 0 gaps in Evidence";
     for (const row of evidence.trace.rows)
       Object.assign(row, { module: "Overview", moduleId: null });
     for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
@@ -173,6 +179,7 @@ describe("Show sources", () => {
     (runs[0] as Run)["overview"] = runs[2]?.["overview"];
     (runs[0] as Run)["changes"] = runs[2]?.["changes"];
     (runs[0] as Run)["modules"] = runs[2]?.["modules"];
+    (runs[0] as Run)["evidence"] = runs[2]?.["evidence"];
     (runs[0] as Run).traces = {};
     expect(() => renderFrame({ library: slice })).toThrow(RangeError);
   });
