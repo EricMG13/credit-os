@@ -8,7 +8,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from credit_os.provider import canned, redact
+from credit_os.provider import canned, events, redact
 from credit_os.provider.redact import Redactor, home_paths
 
 
@@ -47,14 +47,14 @@ def test_empty_redactors_leave_text_unchanged() -> None:
     assert Redactor.from_environ({}).text("x") == "x"
 
 
-@pytest.mark.parametrize("file", [redact.__file__, canned.__file__])
+@pytest.mark.parametrize("file", [redact.__file__, canned.__file__, events.__file__])
 def test_module_does_not_import_os(file: str | None) -> None:
     tree = ast.parse(Path(str(file)).read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            assert all(alias.name.split(".")[0] != "os" for alias in node.names)
+            assert all(alias.name.split(".")[0] not in ("os", "copilot") for alias in node.names)
         if isinstance(node, ast.ImportFrom):
-            assert (node.module or "").split(".")[0] != "os"
+            assert (node.module or "").split(".")[0] not in ("os", "copilot")
 
 
 _VALUES = st.text(min_size=4).filter(lambda v: "[" not in v and "]" not in v and v not in key.MARK)

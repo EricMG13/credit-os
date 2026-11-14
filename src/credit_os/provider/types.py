@@ -149,7 +149,10 @@ class Reply:
     unknown. `started_at` and `finished_at` are epoch seconds, `None` when the call never
     started or the reply was read from a recording (no times). `billed_usd` is the call's own
     charge only: a compaction's charge is never added to it and nothing in this layer sums
-    them (a total with any `None` is unknown; step 3A decides)."""
+    them (a total with any `None` is unknown; step 3A decides). When a call made several model
+    requests (a retried turn), `usage` and `billed_usd` are the sums over its usage events; if
+    the runtime reports such events cumulatively rather than per attempt the sum overstates
+    the call's cost and never understates it (not verified against a live run)."""
 
     kind: ReplyKind
     turn: Turn | None
