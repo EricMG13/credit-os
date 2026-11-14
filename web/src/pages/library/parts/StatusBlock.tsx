@@ -4,7 +4,7 @@ import type { RecordBlock } from "../slice";
 import { InlineCell } from "./InlineCell";
 import { Section } from "./Section";
 import { SUBSECTION_HEADING } from "./heading";
-import { TraceControl } from "./TraceControl";
+import { TRACE_HOST, TraceControl } from "./TraceControl";
 
 type Group = Extract<RecordBlock, { kind: "status" }>["groups"][number];
 
@@ -27,7 +27,7 @@ function TestGroup({ group }: { group: Group }) {
         {group.items.map((item) => (
           <li
             key={item.text}
-            className="group/trace relative flex flex-wrap items-center gap-2 rounded-lg border border-border-hairline bg-surface-card p-2 text-sm font-medium text-text-primary shadow-xs"
+            className={`${TRACE_HOST} flex flex-wrap items-center gap-2 rounded-lg border border-border-hairline bg-surface-card p-2 text-sm font-medium text-text-primary shadow-xs`}
           >
             {item.text}
             <div className="ml-auto flex items-center gap-2 font-normal text-text-secondary tabular-nums">
