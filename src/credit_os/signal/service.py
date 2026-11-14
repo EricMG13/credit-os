@@ -46,16 +46,19 @@ import threading
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
 
-from credit_os.signal import feedview, groups, identity, store, topics
+from credit_os.signal import feedview, groups, identity, ingest, store, topics
 
-__all__ = ["Handler", "make_server"]
+__all__ = ["DEFAULT_HOST", "DEFAULT_PORT", "Handler", "Loop", "make_server", "serve"]
 
 log = logging.getLogger(__name__)
 
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 8766
 MAX_JSON = 64 * 1024
 # Seconds one socket read may wait. It is per read, so a client trickling bytes would never hit it;
 # the absolute limit is the connection deadline, 2 * SOCKET_TIMEOUT from accept (Handler.setup).
@@ -89,6 +92,69 @@ def _refuse(status: int, text: str) -> _Reply:
     return _Reply(status, {"error": text})
 
 
+def _no_check_at(db: sqlite3.Connection, source_id: int, now: datetime) -> bool:
+    """True when ``source_id`` has no check recorded at this pass's time: its last result, not ok,
+    then came from the lookup cap (no row is written for it), whatever the reason's text says."""
+    row = store.last_check(db, source_id)
+    return row is None or row["at"] != store.utc_text(now)
+
+
+class Loop:
+    """The background ingest loop: one pass per tick over the approved sources that are due.
+
+    ``fetch_fn`` is for tests only (a recorded feed standing in for ``fetch.fetch``); ``serve``
+    builds ``Loop(root)``, so production always fetches for real."""
+
+    def __init__(self, root: Path, fetch_fn: ingest.FetchFn | None = None) -> None:
+        self.root = root
+        self.fetch_fn = fetch_fn
+        self.last_error: str | None = None
+        self._running = threading.Lock()  # held for the length of one pass
+
+    def run_once(self, now: datetime) -> None:
+        """One pass on this thread's own connection and no transaction, one at a time in this
+        process: while a pass runs, this call logs and returns. Two processes on one root are not
+        prevented and a pass has no time budget (it can hold the write lock for a long while).
+
+        A pass that returns clears ``last_error``. One that stops at the lookup cap is incomplete,
+        not failing: a warning, the sources left stay due, ``last_error`` stays ``None``."""
+        if not self._running.acquire(blocking=False):
+            log.info("an ingest pass is already running; this tick is skipped")
+            return
+        try:
+            db = store.open_db(self.root)
+            try:
+                results = ingest.run_due(db, now, self.fetch_fn)
+                capped = (
+                    bool(results) and not results[-1][1] and _no_check_at(db, results[-1][0], now)
+                )
+            finally:
+                db.close()
+        except Exception as error:
+            # The one documented fail-open of the loop, at the thread's top level only: whatever a
+            # pass raises (StoreUnusable, a locked database, a bad `now`, a bug) must not end the
+            # service. The traceback goes to the log, /api/status shows the type name only, never
+            # the cause, nothing is recorded in the store, and the next tick tries again.
+            # KeyboardInterrupt and SystemExit (BaseException) are not caught.
+            log.exception("ingest pass failed")
+            self.last_error = f"the last ingest pass failed ({type(error).__name__}); see the log"
+        else:
+            self.last_error = None
+            checked = results[:-1] if capped else results
+            failed = sum(not ok for _, ok, _ in checked)
+            log.info("ingest pass: %d checked, %d failed", len(checked), failed)
+            if capped:
+                log.warning("ingest pass stopped at the lookup cap; later sources stay due")
+        finally:
+            self._running.release()
+
+    def run_until(self, stop: threading.Event, tick: float) -> None:
+        while True:
+            self.run_once(datetime.now(UTC))
+            if stop.wait(tick):
+                return
+
+
 @dataclass
 class _Req:
     """What a route handler may use: its own connection, who asked, and the request's parts."""
@@ -98,6 +164,7 @@ class _Req:
     groups: tuple[str, ...]
     params: dict[str, str]
     body: Callable[[], dict[str, Any]]
+    loop: Loop | None
 
     @property
     def person(self) -> identity.User:
@@ -202,6 +269,22 @@ def _topics(req: _Req) -> _Reply:
     )
 
 
+def _status(req: _Req) -> _Reply:
+    """What is known without a name: when a pass last returned (not that every source was visited:
+    a pass can stop early), how many sources are approved and failing, the loop's last error."""
+    now = datetime.now(UTC)
+    approved = store.sources(req.db, "approved")
+    failing = sum(ingest.health(req.db, row["id"], now).state == "failing" for row in approved)
+    return _Reply(
+        200,
+        {
+            "last_pass_at": store.get_meta(req.db, "last_pass_at"),
+            "sources": {"approved": len(approved), "failing": failing},
+            "loop_error": req.loop.last_error if req.loop is not None else None,
+        },
+    )
+
+
 @dataclass(frozen=True)
 class _Route:
     method: str
@@ -216,6 +299,7 @@ _ID = "([0-9]{1,18})"  # ASCII digits only (a str pattern's \d also matches othe
 _ROUTES = (
     _Route("GET", re.compile("/api/me"), _me, open_to_all=True),
     _Route("POST", re.compile("/api/me"), _set_me, open_to_all=True),
+    _Route("GET", re.compile("/api/status"), _status, open_to_all=True),
     _Route("GET", re.compile("/api/feed"), _feed),
     _Route("GET", re.compile("/api/feed/new"), _feed_new),
     _Route("GET", re.compile(f"/api/stories/{_ID}"), _story_card, view_status=404),
@@ -234,6 +318,7 @@ class _Server(ThreadingHTTPServer):
     root: Path
     allowed_hosts: frozenset[str]
     advertised_port: int = 0
+    loop: Loop | None = None
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.active_connections = 0
@@ -500,7 +585,9 @@ class Handler(BaseHTTPRequestHandler):
             user = identity.current_user(db, self._cookie())
             if user is None and not route.open_to_all:
                 raise _refuse(401, _NEEDS_NAME)
-            return route.handler(_Req(db, user, captured, params, self._json_body))
+            return route.handler(
+                _Req(db, user, captured, params, self._json_body, self._service.loop)
+            )
         finally:
             db.close()
 
@@ -529,7 +616,9 @@ def _hosts(host: str, port: int) -> frozenset[str]:
     return frozenset(allowed)
 
 
-def make_server(root: Path, host: str, port: int) -> ThreadingHTTPServer:
+def make_server(
+    root: Path, host: str, port: int, *, loop: Loop | None = None
+) -> ThreadingHTTPServer:
     """A server bound to ``host:port`` (port 0 picks one); not yet serving.
 
     Raises ValueError for a wildcard host, before binding or creating any file."""
@@ -538,4 +627,41 @@ def make_server(root: Path, host: str, port: int) -> ThreadingHTTPServer:
     server = _Server((host, port), Handler)
     port = server.server_address[1]
     server.root, server.allowed_hosts, server.advertised_port = root, _hosts(host, port), port
+    server.loop = loop
     return server
+
+
+def serve(root: Path, host: str, port: int, *, tick: float = 60.0) -> int:
+    """Run the service and its ingest loop until interrupted; 2 when it cannot start."""
+    if not 0 <= port <= 65535:
+        print("--port must be from 0 to 65535", file=sys.stderr)
+        return 2
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    loop = Loop(root)
+    try:
+        server = make_server(root, host, port, loop=loop)
+    except ValueError as error:  # a wildcard address
+        print(error, file=sys.stderr)
+        return 2
+    except (OSError, OverflowError) as error:  # the address cannot be bound
+        print(f"cannot listen on {host}:{port}: {error}", file=sys.stderr)
+        return 2
+    try:
+        store.open_db(root).close()  # a store that cannot be opened fails here, not per request
+    except (OSError, sqlite3.Error, store.StoreError) as error:
+        server.server_close()
+        print(f"cannot open the store under {root}: {error}", file=sys.stderr)
+        return 2
+    stop = threading.Event()
+    worker = threading.Thread(target=loop.run_until, args=(stop, tick), daemon=True)
+    worker.start()
+    print(f"serving http://{host}:{server.server_address[1]}/", file=sys.stderr)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        stop.set()
+        server.server_close()
+        worker.join(timeout=5)
+    return 0
