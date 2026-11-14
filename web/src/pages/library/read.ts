@@ -12,6 +12,9 @@ import type {
   AnswerState,
   DateState,
   DeliveredBody,
+  Download,
+  Evidence,
+  FileState,
   DatedItem,
   Finding,
   HomeCard,
@@ -32,9 +35,11 @@ import type {
   Overview,
   Point,
   RecordBlock,
+  Reader,
   Run,
   RunHead,
   RunState,
+  SourceFile,
   Trace,
   TestState,
   TreeNode,
@@ -1287,6 +1292,178 @@ function firstHeld(first: string | null, modules: readonly Module[] | null, path
   }
 }
 
+const FILE_STATES = ["Read in full", "Read in part", "Unreadable"] as const satisfies FileState[];
+
+/** The modules the filter lists, by id: what a reader names must be one of them. */
+type Held = ReadonlyMap<string, Reader>;
+
+function heldModule(held: Held, id: string, path: string): Reader {
+  const found = held.get(id);
+  if (found === undefined) throw new SliceError(path, "a module the module filter lists");
+  return found;
+}
+
+function readReader(value: unknown, path: string, held: Held): Reader {
+  if (typeof value !== "string") throw new SliceError(path, "a module id");
+  return heldModule(held, value, path);
+}
+
+/** The "+N" avatar: its text counts its ids, so a reader of the page never sees a count that disagrees. */
+function readMore(r: Rec, path: string, held: Held): SourceFile["readers"]["more"] {
+  if (own(r, "more") === null) return null;
+  const m = rec(own(r, "more"), path);
+  const ids = some(
+    list(m, "ids", path, (item, p) => {
+      if (typeof item !== "string") throw new SliceError(p, "a string");
+      return heldModule(held, item, p).id;
+    }),
+    child(path, "ids"),
+  );
+  if (str(m, "text", path) !== `+${String(ids.length)}`) {
+    throw new SliceError(child(path, "text"), `+${String(ids.length)}, one for each id`);
+  }
+  return { text: named(m, "text", path), label: named(m, "label", path), ids };
+}
+
+function readReaders(f: Rec, path: string, held: Held): SourceFile["readers"] {
+  const readersPath = child(path, "readers");
+  const r = rec(own(f, "readers"), readersPath);
+  const shownPath = child(readersPath, "shown");
+  const shown = list(r, "shown", readersPath, (item, p) => readReader(item, p, held));
+  const more = readMore(r, child(readersPath, "more"), held);
+  const everyone = [...shown.map((reader) => reader.id), ...(more?.ids ?? [])];
+  everyone.forEach((id, index) => {
+    if (everyone.indexOf(id) === index) return;
+    const inMore = index - shown.length;
+    const at =
+      inMore < 0 ? nth(shownPath, index) : nth(child(child(readersPath, "more"), "ids"), inMore);
+    throw new SliceError(at, "a module that reads this file once");
+  });
+  return { shown, more };
+}
+
+function readFile(value: unknown, path: string, held: Held): SourceFile {
+  const f = rec(value, path);
+  const state = oneOf(f, "state", path, FILE_STATES);
+  const why = gradeOrNull(f, "why", path);
+  if (state === "Unreadable" && why === null) {
+    throw new SliceError(child(path, "why"), "the reason an unreadable file gives");
+  }
+  return {
+    name: named(f, "name", path),
+    kind: named(f, "kind", path),
+    size: named(f, "size", path),
+    state,
+    why,
+    readersLabel: named(f, "readersLabel", path),
+    readers: readReaders(f, path, held),
+    hash: named(f, "hash", path),
+  };
+}
+
+function readDownload(value: unknown, path: string): Download {
+  const d = rec(value, path);
+  const href = gradeOrNull(d, "href", path);
+  const reason = gradeOrNull(d, "reason", path);
+  if (href === null && reason === null) {
+    throw new SliceError(child(path, "reason"), "the reason no download is offered");
+  }
+  if (href !== null && reason !== null) {
+    throw new SliceError(child(path, "reason"), "null beside a download that is offered");
+  }
+  return { label: named(d, "label", path), href, reason };
+}
+
+function readSummary(value: unknown, path: string, traces: Traces): Evidence["summary"] {
+  const s = rec(value, path);
+  const deliveredPath = child(path, "delivered");
+  const delivered = rec(own(s, "delivered"), deliveredPath);
+  const runPath = child(path, "run");
+  const run = rec(own(s, "run"), runPath);
+  const takePath = child(path, "take");
+  const take = rec(own(s, "take"), takePath);
+  const countsPath = child(path, "counts");
+  return {
+    delivered: {
+      note: gradeOrNull(delivered, "note", deliveredPath),
+      progress: readProgress(own(delivered, "progress"), child(deliveredPath, "progress")),
+    },
+    counts: some(
+      unique(
+        list(s, "counts", path, (item, p) => readMetric(item, p, traces)),
+        countsPath,
+        (count) => count.label,
+        "label",
+      ),
+      countsPath,
+    ),
+    run: { code: named(run, "code", runPath), hash: named(run, "hash", runPath) },
+    take: {
+      text: named(take, "text", takePath),
+      download: readDownload(own(take, "download"), child(takePath, "download")),
+    },
+  };
+}
+
+function readSources(value: unknown, path: string, held: Held): Evidence["sources"] {
+  const s = rec(value, path);
+  const filesPath = child(path, "files");
+  const files = some(
+    list(s, "files", path, (item, p) => readFile(item, p, held)),
+    filesPath,
+  );
+  for (const field of ["name", "hash"] as const) {
+    unique(files, filesPath, (file) => file[field], field);
+  }
+  const visible = num(s, "visible", path);
+  if (!Number.isInteger(visible) || visible < 1 || visible > files.length) {
+    throw new SliceError(child(path, "visible"), "a whole number from 1 to the number of files");
+  }
+  const moreLabel = gradeOrNull(s, "moreLabel", path);
+  if (visible < files.length !== (moreLabel !== null)) {
+    throw new SliceError(child(path, "moreLabel"), "text exactly when a file is held back");
+  }
+  return { files, visible, moreLabel };
+}
+
+/** The filter's options: each is a module the run holds, with its own name, and delivered initials. */
+function readFilter(e: Rec, path: string, modules: readonly Module[]): Reader[] {
+  const filterPath = child(path, "moduleFilter");
+  return unique(
+    list(e, "moduleFilter", path, (item, p) => {
+      const o = rec(item, p);
+      const id = str(o, "id", p);
+      const name = str(o, "name", p);
+      const module = modules.find((m) => m.id === id);
+      if (module === undefined) throw new SliceError(child(p, "id"), "a module this run holds");
+      if (module.name !== name) throw new SliceError(child(p, "name"), "the name of that module");
+      return { id, name, initials: named(o, "initials", p) };
+    }),
+    filterPath,
+    (option) => option.id,
+    "id",
+  );
+}
+
+function readEvidence(value: unknown, path: string, traces: Traces, modules: Module[]): Evidence {
+  const e = rec(value, path);
+  const moduleFilter = readFilter(e, path, modules);
+  const held: Held = new Map(moduleFilter.map((option) => [option.id, option]));
+  const tabsPath = child(path, "tabs");
+  const tabs = rec(own(e, "tabs"), tabsPath);
+  return {
+    intro: named(e, "intro", path),
+    moduleFilter,
+    tabs: {
+      trace: named(tabs, "trace", tabsPath),
+      sources: named(tabs, "sources", tabsPath),
+      gaps: named(tabs, "gaps", tabsPath),
+    },
+    summary: readSummary(own(e, "summary"), child(path, "summary"), traces),
+    sources: readSources(own(e, "sources"), child(path, "sources"), held),
+  };
+}
+
 function readRun(value: unknown, path: string): Run {
   const r = rec(value, path);
   const tracesPath = child(path, "traces");
@@ -1303,12 +1480,14 @@ function readRun(value: unknown, path: string): Run {
   const overviewPath = child(path, "overview");
   const changesPath = child(path, "changes");
   const modulesPath = child(path, "modules");
+  const evidencePath = child(path, "evidence");
   if (loading) {
     firstHeld(base.head.firstModule, null, path);
     if (own(r, "overview") !== null) throw new SliceError(overviewPath, "null for a loading run");
     if (own(r, "changes") !== null) throw new SliceError(changesPath, "null for a loading run");
     if (own(r, "modules") !== null) throw new SliceError(modulesPath, "null for a loading run");
-    return { ...base, loading, overview: null, changes: null, modules: null };
+    if (own(r, "evidence") !== null) throw new SliceError(evidencePath, "null for a loading run");
+    return { ...base, loading, overview: null, changes: null, modules: null, evidence: null };
   }
   const overview = readOverview(own(r, "overview"), overviewPath, base.traces);
   const changes = readChanges(own(r, "changes"), changesPath, base.traces);
@@ -1324,7 +1503,8 @@ function readRun(value: unknown, path: string): Run {
     opensHeld(changes.modules.items, held, changeItems);
     namesHeld(changes.modules.items, modules, changeItems);
   }
-  return { ...base, loading, overview, changes, modules };
+  const evidence = readEvidence(own(r, "evidence"), evidencePath, base.traces, modules);
+  return { ...base, loading, overview, changes, modules, evidence };
 }
 
 function readRuns(i: Rec, path: string): Run[] {

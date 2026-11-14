@@ -1477,10 +1477,20 @@ describe("Module, the index route", () => {
 
   it("says the run has no modules when it holds none", () => {
     const slice = structuredClone(fixture.slice) as {
-      issuers: { runs: { modules: unknown[]; head: Json; overview: Json; changes: Json }[] }[];
+      issuers: {
+        runs: {
+          modules: unknown[];
+          head: Json;
+          overview: Json;
+          changes: Json;
+          evidence: { moduleFilter: unknown[]; sources: { files: { readers: unknown }[] } };
+        }[];
+      }[];
     };
-    const run = slice.issuers[0]?.runs[3] as { modules: unknown[]; head: Json; overview: Json };
+    const run = slice.issuers[0]?.runs[3] as (typeof slice.issuers)[0]["runs"][0];
     run.modules = [];
+    run.evidence.moduleFilter = [];
+    for (const file of run.evidence.sources.files) file.readers = { shown: [], more: null };
     run.head["firstModule"] = null;
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
