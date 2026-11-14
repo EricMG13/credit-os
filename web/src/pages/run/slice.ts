@@ -1,11 +1,12 @@
 // The run pages' slice: the types delivery (3B) and the service (5C) write to, and the reader
 // that validates a whole slice by hand. The first failure wins and names its path.
 import type { SliceResult } from "../route-table";
-import { Invalid, fail, list, obj } from "./slice-read";
+import { type ActivityRecord, activity } from "./slice-activity";
+import { Invalid, fail, list, obj, strOrNull } from "./slice-read";
 import { type StartDraft, draft } from "./slice-start";
 
 export type { Readiness, Row, StartDraft } from "./slice-start";
-export type RunSlice = { drafts: StartDraft[] };
+export type RunSlice = { drafts: StartDraft[]; runs: ActivityRecord[]; current: string | null };
 
 function unique(ids: string[], path: string, what: string): Set<string> {
   const seen = new Set<string>();
@@ -35,7 +36,20 @@ function slice(source: unknown): RunSlice {
     names("next", d.next, true);
     if (d.step === "start") names("confirm.started", d.confirm.started, false);
   });
-  return { drafts };
+  const runs = list(root, "runs", "run", activity);
+  const runIds = unique(
+    runs.map((r) => r.id),
+    "run.runs",
+    "run",
+  );
+  const current = strOrNull(root, "current", "run");
+  if (current !== null && !runIds.has(current))
+    fail("run.current", "null or the id of a run in this slice");
+  drafts.forEach((d, i) => {
+    if (d.step === "started" && !runIds.has(d.activity))
+      fail(`run.drafts[${String(i)}].activity`, "the id of a run in this slice");
+  });
+  return { drafts, runs, current };
 }
 
 export function readSlice(source: unknown): SliceResult<RunSlice> {
