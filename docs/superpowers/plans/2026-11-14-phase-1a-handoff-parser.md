@@ -160,7 +160,8 @@ Document (PR 3, #47):
 Reader and Basis rules (PR 4, #53):
 1. Every `HandoffError` message that echoes text from the file shows at most 80 characters of
    it, then `…`. The bound counts code points and removes no control character.
-2. The reader is a view, `read_reader(document)`; `HandoffDocument` gains no field. Passages
+2. The reader is a view, `read_reader(document)`; `HandoffDocument` gains no field for it
+   (PR 5 adds `comments`). Passages
    exist only in the new format (the first level-3 section under `Findings` is `Bottom line`);
    a repeated passage heading is refused at the second.
 3. A `Reader summary` section that does not hold its two tables in the expected shape is
@@ -174,13 +175,31 @@ Reader and Basis rules (PR 4, #53):
    up to four letters or digits.
 6. Nothing inside an unclosed fence is classified.
 
-Ruled for PR 5 (not yet in `main`):
-- Known source names come back, from the document's own Sources table and nowhere else.
-  `read_basis` takes an optional sequence of known names; an item is a source when it is
-  exactly a known name or a known name followed by the page grammar, compared exactly, the
-  longest name first. Real replies cite a source named `context`, which PR 4 reads as text.
-  A name holding `; ` stays split.
-- A second `Reader summary` section is refused in `read_reader`, at the second heading.
+Data views (PR 5, #78), in `handoff/data.py` unless named:
+1. Known source names come from the document's own Sources table (`source_names`: column 0
+   of the one table directly under `## Sources`) and nowhere else. `read_basis` takes them as
+   an optional sequence. A calculation id and `name (CP-X)` are read first, so a Sources row
+   naming a module is not a source file; then an item is a source when it is exactly a known
+   name or a known name followed by the page grammar, compared exactly, the longest name
+   first. A name holding `; ` stays split.
+2. A second `Reader summary` section is refused in `read_reader`, at the second heading.
+3. The parser marks no cell as a gap; the caller applies `read_value`. A paragraph that is
+   only a Basis line reads as an empty gap. An empty passage is a section with no blocks, not
+   an absent one.
+4. A register is a heading `id — title` or a `table-id` comment tag. A heading id is dotted
+   (`T4.12`), capitals then digits (`T1`, `P3`; `T2R` is not one), or a lower-case slug with
+   an underscore. A tag names the next table of its own section, prose or a code block
+   between allowed; a heading, a later tag or the section's end before a table gives `None`.
+   A repeated id is not refused here (step 2B).
+5. Typed sections (chart data, events, map, forecast inputs, confidence inputs) are found by
+   title prefix at any depth, case-sensitive; one that cannot be read gives `None`, never a
+   refusal.
+6. `Reader.blocked` is a bool in the new format (the Bottom line opens with a paragraph
+   `Not assessable:`) and `None` in the earlier format. Front matter is not read by it.
+
+Step 1A is complete with PR 5. Unbuilt by ruling: a view of the earlier format's Sources
+tables; a reader for citations inside table cells (for delivery's trace control, phase 4);
+checking Sources-table names against pinned sources (step 2B).
 
 Not read in this step: the earlier format's bracket citations at the end of a paragraph (33
 of 704 real earlier-format paragraphs, in 3 of 52 retained replies). Delivery draws no
@@ -196,8 +215,8 @@ of different widths, is refused; the predecessor accepted the first and turned r
 | 1 | Fixtures and `SHA256SUMS`; lines, headings, fences, comments; error type |
 | 2 | Blocks: tables, paragraphs, list items, code blocks |
 | 3 | Front matter, section tree, skeleton check, `HandoffDocument` and `parse`; golden tests on all 27 fixture files |
-| 4 | Format detection, reader passages, Basis lines, earlier-format reader summary |
-| 5 | Gaps, confidence inputs, typed data sections, register tags, blocked flag |
+| 4 (#53) | Format detection, reader passages, Basis lines, earlier-format reader summary |
+| 5 (#78) | Gaps, confidence inputs, typed data sections, register tags, blocked flag, known source names; one synthetic new-format fixture |
 
 A PR that would pass 800 lines is split, not trimmed of tests.
 
