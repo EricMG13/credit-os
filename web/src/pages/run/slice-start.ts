@@ -7,6 +7,7 @@ import {
   id,
   idOrNull,
   list,
+  nonEmpty,
   obj,
   oneOf,
   orNull,
@@ -14,7 +15,6 @@ import {
   strOrNull,
   strings,
   text,
-  nonEmpty,
 } from "./slice-read";
 
 export type Row = { label: string; value: string | null }; // null draws "n.a."
@@ -53,7 +53,7 @@ export type StartDraft = DraftBase &
 
 const row = (v: unknown, path: string): Row => {
   const o = obj(v, path);
-  return { label: str(o, "label", path), value: strOrNull(o, "value", path) };
+  return { label: text(o, "label", path), value: strOrNull(o, "value", path) };
 };
 const items = (v: unknown, path: string): Items => {
   const o = obj(v, path);
@@ -83,7 +83,7 @@ const purpose = (v: unknown, path: string): Purpose => {
   const o = obj(v, path);
   return {
     id: str(o, "id", path),
-    title: str(o, "title", path),
+    title: text(o, "title", path),
     description: str(o, "description", path),
     modules: str(o, "modules", path),
   };
@@ -100,7 +100,7 @@ const readiness = (v: unknown, path: string): Readiness => {
 function confirm(v: unknown, path: string): Confirm {
   const o = obj(v, path);
   return {
-    title: str(o, "title", path),
+    title: text(o, "title", path),
     text: str(o, "text", path),
     action: str(o, "action", path),
     started: id(o, "started", path),
@@ -113,7 +113,7 @@ export function draft(v: unknown, path: string): StartDraft {
   const base: DraftBase = {
     id: id(o, "id", path),
     issuer: text(o, "issuer", path),
-    position: str(o, "position", path),
+    position: text(o, "position", path),
     previous: idOrNull(o, "previous", path),
     next: idOrNull(o, "next", path),
     nextLabel: text(o, "nextLabel", path),
@@ -143,7 +143,7 @@ export function draft(v: unknown, path: string): StartDraft {
     case "confirm": {
       const group = (g: unknown, p: string) => {
         const go = obj(g, p);
-        return { name: str(go, "name", p), rows: list(go, "rows", p, row) };
+        return { name: text(go, "name", p), rows: list(go, "rows", p, row) };
       };
       const groups = nonEmpty(list(o, "groups", path, group), `${path}.groups`);
       const names = new Set<string>();
@@ -174,7 +174,7 @@ export function draft(v: unknown, path: string): StartDraft {
       return {
         ...base,
         step: "started",
-        title: str(o, "title", path),
+        title: text(o, "title", path),
         text: str(o, "text", path),
         cap: bar(o.cap, `${path}.cap`),
         activity: id(o, "activity", path),

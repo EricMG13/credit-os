@@ -82,7 +82,7 @@ const link = (v: unknown, path: string): Link => {
 const alert = (v: unknown, path: string): RunAlert => {
   const o = obj(v, path);
   return {
-    title: str(o, "title", path),
+    title: text(o, "title", path),
     text: str(o, "text", path),
     action: link(o.action, `${path}.action`),
     alt: orNull(o, "alt", path, link),
@@ -120,7 +120,7 @@ const moduleOf =
   (v: unknown, path: string): Module => {
     const o = obj(v, path);
     return {
-      name: str(o, "name", path),
+      name: text(o, "name", path),
       state: wordFor(state)(o, path),
       detail: strOrNull(o, "detail", path),
     };
@@ -140,7 +140,7 @@ const stepOf =
     nonEmpty(members, `${path}.modules`);
     return {
       kind: "group",
-      title: str(o, "title", path),
+      title: text(o, "title", path),
       state: wordFor(state)(o, path),
       showAll: text(o, "showAll", path),
       modules: members,
@@ -155,10 +155,10 @@ function modules(o: Obj, state: RunState, path: string): RunRecord["modules"] {
       return { kind: "steps", steps: nonEmpty(list(m, "steps", at, stepOf(state)), `${at}.steps`) };
     case "starting":
       if (state !== "Running") fail(`${at}.kind`, "starting only in a Running run");
-      return { kind: "starting", label: str(m, "label", at) };
+      return { kind: "starting", label: text(m, "label", at) };
     case "none":
       if (state !== "Rejected") fail(`${at}.kind`, "none only in a Rejected run");
-      return { kind: "none", title: str(m, "title", at), text: str(m, "text", at) };
+      return { kind: "none", title: text(m, "title", at), text: str(m, "text", at) };
   }
 }
 
@@ -178,7 +178,7 @@ export function activity(v: unknown, path: string): ActivityRecord {
       return {
         kind: "unreadable",
         id,
-        issuer: str(o, "issuer", path),
+        issuer: text(o, "issuer", path),
         labels: strings(o, "labels", path),
         alert: alert(o.alert, `${path}.alert`),
       };
@@ -188,7 +188,7 @@ export function activity(v: unknown, path: string): ActivityRecord {
       return {
         kind: "run",
         id,
-        issuer: str(o, "issuer", path),
+        issuer: text(o, "issuer", path),
         state,
         labels: strings(o, "labels", path),
         line: strOrNull(o, "line", path),

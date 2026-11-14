@@ -721,6 +721,28 @@ describe("rejects, run activity", () => {
         `run.runs[4].alert.action.label: ${want}`,
       );
     });
+    it("a title, name, label or position the page draws is not empty or blank", () => {
+      const want = "expected a non-empty string";
+      for (const blank of ["", "  "]) {
+        expect(reason(editRun("running", ["issuer"], blank))).toBe(`run.runs[0].issuer: ${want}`);
+        expect(reason(editRun("unreadable", ["issuer"], blank))).toBe(
+          `run.runs[10].issuer: ${want}`,
+        );
+      }
+      expect(reason(editRun("many-modules", ["modules", "steps", 0, "title"], ""))).toBe(
+        `run.runs[8].modules.steps[0].title: ${want}`,
+      );
+      expect(reason(edit("purpose", ["purposes", 0, "title"], ""))).toBe(
+        `run.drafts[2].purposes[0].title: ${want}`,
+      );
+      expect(reason(edit("confirm", ["groups", 0, "rows", 0, "label"], ""))).toBe(
+        `run.drafts[3].groups[0].rows[0].label: ${want}`,
+      );
+      expect(reason(edit("purpose", ["position"], ""))).toBe(`run.drafts[2].position: ${want}`);
+      expect(reason(editRun("failed", ["alert", "title"], ""))).toBe(
+        `run.runs[4].alert.title: ${want}`,
+      );
+    });
     it("a list the step draws for the reader to act on is not empty", () => {
       const want = "expected a non-empty list";
       const noChoice = edit("purpose", ["purposes"], []) as { drafts: Node[] };
