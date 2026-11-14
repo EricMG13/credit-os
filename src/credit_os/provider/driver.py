@@ -38,7 +38,7 @@ _NO_KEY = "COPILOT_GITHUB_TOKEN is not set"
 _NO_RUNTIME = "COPILOT_CLI_PATH is not set"
 _Problem = tuple[str, str, bool]  # (error class, message, whether to abort before release)
 _UNREAD = object()  # what a release read gives when queued() failed
-_SPEND_FIELDS = ("copilotUsage", *(wire for wire, _ in _COUNTS))
+_SPEND_FIELDS = ("copilotUsage", "compactionTokensUsed", *(wire for wire, _ in _COUNTS))
 
 
 def _unread(name: str) -> Compaction:
@@ -61,7 +61,6 @@ class _Kept:
     client: ClientLike
     session: SessionLike
     pending: list[str | None] = field(default_factory=list)
-    unread: bool = False
 
 
 class _Refused(Exception):
@@ -180,7 +179,7 @@ class CopilotDriver:
             left = self._release(k.client, k.session, timed_out=False)
             found, failed = self._read([], left, k, closing=True)
             out += found
-            unread = unread or failed or k.unread
+            unread = unread or failed
         self._closed = True
         return tuple(out + [_unread("close")] * unread)
 
@@ -249,13 +248,13 @@ class CopilotDriver:
         finished = self._clock()
         reply = self._reply(events, problem)
         kept = _Kept(client, session)
+        left: object = []
         if reply.kind == "ok":
             self._kept.append(kept)
-            found, kept.unread = self._read(events, [], kept)
         else:
             left = self._release(client, session, timed_out=bool(problem and problem[2]))
-            found, failed = self._read(events, left, kept)
-            found += [_unread("release")] * failed
+        found, failed = self._read(events, left, kept)
+        found += [_unread("release")] * failed
         reply = replace(reply, compactions=tuple(found))
         message = reply.message and self._text(reply.message, problem is None)[:500]
         raw = None if reply.raw is None else scrub_raw(reply.raw, self._text)
@@ -315,12 +314,17 @@ class CopilotDriver:
         spend is dropped and its type logged, never its content."""
         events = None if left is _UNREAD else _valid(left)
         if events is None:
+            if left is not _UNREAD:  # a failed step already logged its own line
+                _log.warning("the queued read is not a list of events")
             return [], True
         others = [e for e in events if e["type"] not in _COMPACTION_TYPES]
+        spend = [self._text(e["type"]) for e in others if _spends(e)]
         for e in others:
             if not _spends(e):
                 _log.warning("a leftover event was dropped: %s", self._text(e["type"]))
-        return events, any(_spends(e) for e in others)
+        if spend:
+            _log.warning("the queued read holds spend, event types: %s", ", ".join(spend))
+        return events, bool(spend)
 
     def _read(
         self, base: list[Any], left: object, kept: _Kept, *, closing: bool = False
@@ -328,7 +332,9 @@ class CopilotDriver:
         """The compactions of the call's events then the leftovers, as delivered, and whether
         the read failed."""
         fresh, failed = self._leftovers(left)
-        listed = _valid(base + fresh) or []
+        own = _valid(base)  # the call's own events: unreadable ones cost nothing but the entry
+        failed = failed or own is None
+        listed = _valid((own or []) + fresh) or []
         kinds = [e["type"] for e in listed]
         alone = kinds.count("session.compaction_complete") == 1 and len(kept.pending) == 1
         link = (
@@ -347,7 +353,8 @@ class CopilotDriver:
         return out, failed
 
     def _shaped(self, c: Compaction, link: str | None, pending: list[str | None]) -> Compaction:
-        """`c` as delivered: withheld when its id would need redacting, linked to the one
+        """`c` as delivered: withheld when its id would need redacting or starts `driver:` (a
+        fixed id of this driver's), linked to the one
         unfinished compaction its session delivered when `link` names it."""
         if c.event_id.startswith("driver:") or self._text(c.event_id) != c.event_id:
             self._withheld += 1
