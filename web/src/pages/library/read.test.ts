@@ -1180,9 +1180,22 @@ describe("readSlice, modules", () => {
     // "Business, industry." is one module or two, and the title says which.
     const overlapped = (nameFirst: string, nameSecond: string, title: string, lead: string) => {
       const slice = fresh();
-      modOf(slice, "business-profile", 2)["name"] = nameFirst;
-      modOf(slice, "industry-and-competition", 2)["name"] = nameSecond;
-      modOf(slice, "peer-comparison", 2)["name"] = "industry";
+      // The Evidence module filter and the gap rows carry each module's name, so a rename renames
+      // them there too.
+      const evidence = runOf(slice, 2).evidence as { moduleFilter: Json[]; gaps: Json };
+      const rows = (evidence.gaps["groups"] as { rows: Json[] }[]).flatMap((g) => g.rows);
+      for (const [id, name] of [
+        ["business-profile", nameFirst],
+        ["industry-and-competition", nameSecond],
+        ["peer-comparison", "industry"],
+      ] as const) {
+        const held = modOf(slice, id, 2);
+        const entry = evidence.moduleFilter.find((f) => f["id"] === id);
+        if (entry === undefined) throw new Error(`no filter entry ${id}`);
+        for (const row of rows) if (row["module"] === held["name"]) row["module"] = name;
+        held["name"] = name;
+        entry["name"] = name;
+      }
       const item = (runOf(slice, 2).overview["modules"] as { items: Json[] }).items[0] as Json;
       item["title"] = title;
       item["lead"] = lead;
