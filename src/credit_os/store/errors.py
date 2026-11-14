@@ -15,8 +15,9 @@ class StoreError(Exception):
     (`location.prepare` and `location.locate` put `safe_text(str(error))` of an `OSError` into a
     `StoreUnusable`), and so the user's home folder name. Text a caller hands the store to keep
     (a source error's text, its absolute path and notes) is stored whole. A caller that shows,
-    logs or stores a store error's message passes it through `credit_os.provider.redact.home_paths`
-    first, or shows only the error's class name."""
+    logs or stores a store error passes its message, and the text of its chained `__cause__`,
+    which can carry the same path, through `credit_os.provider.redact.home_paths` first, or shows
+    only the error's class name; a logged traceback is redacted the same way or not written."""
 
 
 class StoreRefused(StoreError, ValueError):
