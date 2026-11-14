@@ -51,10 +51,10 @@ const control = () => screen.getByRole("button", { name: "Show sources for this 
 const openDrawer = () => fireEvent.click(control());
 
 describe("RunFrame header", () => {
-  it("draws the Library link, the h2 name, the three badges and both actions as in the mock", () => {
+  it("draws the Library link, the h1 name, the three badges and both actions as in the mock", () => {
     renderFrame();
     expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("href", "#/library/home");
-    expect(screen.getByRole("heading", { level: 2, name: "Halden Aerostructures" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Halden Aerostructures" })).toBeVisible();
     expect(screen.getByText("As of 30 Sep 2026")).toBeVisible();
     expect(screen.getByText("Full review")).toBeVisible();
     expect(screen.getByText("Finished")).toBeVisible();
@@ -335,7 +335,7 @@ describe("RunFrame states", () => {
     const { container } = renderFrame({ run: "2026-06-30" });
     expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
     expect(screen.queryByText("Page body")).toBeNull();
-    expect(screen.getByRole("heading", { level: 2, name: "Halden Aerostructures" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Halden Aerostructures" })).toBeVisible();
     expect(screen.getByRole("navigation", { name: "Run pages" })).toBeVisible();
   });
 
@@ -344,6 +344,7 @@ describe("RunFrame states", () => {
     ["run", { run: "1999-01-01" }, "No such run"],
   ])("says which %s is missing, with a way back to the library", (_, opts, title) => {
     renderFrame(opts);
+    expect(screen.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: title })).toBeVisible();
     expect(screen.getByRole("link", { name: "Back to the library" })).toHaveAttribute(
       "href",
