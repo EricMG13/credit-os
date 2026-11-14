@@ -35,7 +35,7 @@ merges. A row not yet ported sits at the baseline pin with nothing pending.
 | `src/deploy_workflow/changes.py`, `changes_check.py` | `orchestrator/`, `checks/`, `delivery/` | 5A | `8e3954a` | none |
 | `src/deploy_workflow/run_start`, `inbox`, `docs/templates/context-form.html` | `web/`, `orchestrator/` | 5C | `8e3954a` | none |
 | Method texts the live launcher sends, as named by `cpos_launch.METHODS`: `docs/reuse/selected-methods` (skills, `CANON_SHARED.md`, `manifest.json`), `prompts/CP-1.md`, `src/deploy_vii/methods/cp8.md`, `cpl10.md`; `src/deploy_vii/methodology.json` | `methods/` | 6 | `8e3954a` | none |
-| `src/deploy_workflow/signal` (merged into legacy `main` by #101, #102, #106, #109, #115) | none yet: Signal's back end gets its own plan after phase 4 (roadmap); its screens are in the design track | after 4 | `8e3954a` | none |
+| `src/deploy_workflow/signal` (slices 1 and 2 merged into legacy `main` by #101, #102, #106, #109, #115; slice 3, groups and threads, on the unmerged local legacy branch `claude/signal-3d-proof` at `87161c3`, never pushed) and the part of `src/deploy_workflow/research/webfetch.py` its `fetch.py` imports (address checks, connection types) | `signal/` (back end); `web/src/pages/signal/` (D2e: behaviour to match, not code to copy) | Signal (S-1 to S-11, decision 0009) | `8e3954a` | slices 1 and 2: `8e3954a..ce18c8c`; slice 3: `ce18c8c..87161c3` (local branch); both owned by the Signal port, S-1 to S-11 |
 | `docs/rulings` | `docs/decisions/` (carried as records when they still bind) | all | `8e3954a` | none |
 
 The same paths, one per line, are in `docs/legacy/paths.txt` for the commands below. Keep the

@@ -59,17 +59,22 @@ written in the step's plan. A phase starts when the steps it depends on are merg
 **May run as parallel sub-sessions** (disjoint files, neither needs the other's result):
 0A with 0B; 1A with 1C with 1D; 2A with 2B; 3A with 3B. Everything else is sequential.
 
-Signal's back end is not in this roadmap. It is unmerged in the predecessor and gets its own
-plan once phase 4 is done. Its screens, and the design of every page in phases 4 and 5, belong
-to the [design track](2026-11-13-design-track.md) (decision 0003): those page steps build to
-its mocks and component kit.
+Signal's back end is ported now, on its own track beside the numbered phases (owner,
+2026-11-14, decision 0009; this replaces the earlier line that it would wait for phase 4). It
+touches only `src/credit_os/signal/` and its tests, depends on no phase and no phase depends
+on it. Its pull requests are S-0 (the decision record and the layer list) and then S-1 to
+S-11 as split in decision 0009, each within the line cap and under the rules below. Its
+screens, and the design of every page in phases 4 and 5, belong to the
+[design track](2026-11-13-design-track.md) (decision 0003): those page steps build to its
+mocks and component kit.
 
 **Pages are built once (coordinator, 2026-11-14, decision 0006).** Design steps D2b to D2e
 build every page from fixture data, each with a typed slice reader. Steps 4A, 4B to 4D, 5B
 and 5C therefore build no page: they make step 3B's delivery write what the slice readers
 accept, prove it on a real delivered folder, and change a reader only where delivery cannot
 supply a field (recorded as a departure). Step 3B's plan takes the slice types as its
-contract. Signal's pages (D2e) stay on fixture data until Signal's back end has its own plan.
+contract. Signal's pages (D2e) stay on fixture data until the Signal routes they read are merged
+(decision 0009); the predecessor's page is behaviour to match, not code to copy.
 
 ## Rules for every step
 

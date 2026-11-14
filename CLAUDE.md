@@ -45,6 +45,8 @@ src/credit_os/   one package, layered; a layer imports only layers listed before
   checks/        prose, figure and confidence checks on a handoff document
   orchestrator/  module order, retries, resume, CP-8 comparison
   delivery/      library data written from handoff documents
+  signal/        Signal's back end: store, feeds, threads and its local service; stands
+                 apart: it imports no layer above and none imports it (decision 0009)
 web/             React front end; draws what delivery wrote
 methods/         module method texts
 docs/decisions/  one record per dependency or design decision
@@ -55,7 +57,9 @@ docs/superpowers/plans/  the roadmap and one plan per phase
 
 - The handoff Markdown is parsed in `handoff/` and nowhere else.
 - Python does all arithmetic. The front end draws the values it is given and computes none.
-- The library must open from disk (`file://`) with no network and no server.
+- The library must open from disk (`file://`) with no network and no server. Signal is the
+  one served page: a local service on the standard library's `http.server`, outside this
+  rule and its gate (decisions 0003 and 0009). A typed name there is not authentication.
 - Delivery adds no analysis: it selects and orders module-written passages, every number
   and qualification exact. Missing content stays an explicit gap.
 - Expected values in tests are independent of the production calculation. Keep missing

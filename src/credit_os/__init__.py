@@ -11,4 +11,7 @@ LAYERS: tuple[str, ...] = (
     "checks",
     "orchestrator",
     "delivery",
+    "signal",
 )
+# An isolated package imports no other layer and no other layer imports it (decision 0009).
+ISOLATED: frozenset[str] = frozenset({"signal"})

@@ -55,21 +55,33 @@ def _static_targets(node: ast.Import | ast.ImportFrom, pkg_parts: list[str]) -> 
     return [module, *(f"{module}.{alias.name}" for alias in node.names)] if module else []
 
 
-def _later_layers(
-    targets: list[str], package: str, layers: tuple[str, ...], layer: str
+def _offending_layers(
+    targets: list[str],
+    package: str,
+    layers: tuple[str, ...],
+    layer: str,
+    isolated: frozenset[str],
 ) -> list[str]:
-    later: set[str] = set()
+    offending: set[str] = set()
     for target in targets:
         parts = target.split(".")
         if len(parts) < 2 or parts[0] != package or parts[1] not in layers:
             continue
-        if layers.index(parts[1]) > layers.index(layer):
-            later.add(parts[1])
-    return sorted(later)
+        other = parts[1]
+        if other == layer:
+            continue
+        if layer in isolated or other in isolated or layers.index(other) > layers.index(layer):
+            offending.add(other)
+    return sorted(offending)
 
 
 def _file_violations(
-    path: Path, label: str, pkg_parts: list[str], layers: tuple[str, ...], layer: str
+    path: Path,
+    label: str,
+    pkg_parts: list[str],
+    layers: tuple[str, ...],
+    layer: str,
+    isolated: frozenset[str],
 ) -> list[str]:
     out: list[str] = []
     package = pkg_parts[0]
@@ -91,12 +103,14 @@ def _file_violations(
             continue
         out.extend(
             f"{path}:{node.lineno} {label} imports {name}"
-            for name in _later_layers(targets, package, layers, layer)
+            for name in _offending_layers(targets, package, layers, layer, isolated)
         )
     return out
 
 
-def violations(root: Path, layers: tuple[str, ...]) -> list[str]:
+def violations(
+    root: Path, layers: tuple[str, ...], isolated: frozenset[str] = frozenset()
+) -> list[str]:
     out: list[str] = []
     package = root.name
     for entry in sorted(root.iterdir()):
@@ -109,7 +123,9 @@ def violations(root: Path, layers: tuple[str, ...]) -> list[str]:
         rel = path.relative_to(root)
         if len(rel.parts) < 2:
             if rel.name == "__init__.py":
-                out.extend(_file_violations(path, "package root", [package], ("", *layers), ""))
+                out.extend(
+                    _file_violations(path, "package root", [package], ("", *layers), "", isolated)
+                )
             else:
                 out.append(
                     f"{path}: module {rel.name} sits in the package root, outside every layer"
@@ -119,7 +135,7 @@ def violations(root: Path, layers: tuple[str, ...]) -> list[str]:
         if layer not in layers:
             continue
         pkg_parts = [package, *rel.parts[:-1]]
-        out.extend(_file_violations(path, layer, pkg_parts, layers, layer))
+        out.extend(_file_violations(path, layer, pkg_parts, layers, layer, isolated))
     return out
 
 
@@ -161,7 +177,7 @@ def test_unlisted_subpackage(tmp_path: Path) -> None:
 
 
 def test_repo_has_no_violations() -> None:
-    assert violations(Path("src/credit_os"), credit_os.LAYERS) == []
+    assert violations(Path("src/credit_os"), credit_os.LAYERS, credit_os.ISOLATED) == []
 
 
 def test_relative_bare_package_import_of_later_layer(tmp_path: Path) -> None:
@@ -279,6 +295,80 @@ def test_files_in_an_unlisted_sub_package_only_report_the_sub_package(tmp_path: 
     found = violations(root, credit_os.LAYERS)
     assert len(found) == 1
     assert "sub-package extras" in found[0]
+
+
+def _isolated(root: Path) -> list[str]:
+    return violations(root, credit_os.LAYERS, credit_os.ISOLATED)
+
+
+def test_isolated_package_importing_a_layer_absolute(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"signal/a.py": "from credit_os.sources import x\n"})
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "signal" in found[0] and "sources" in found[0]
+
+
+def test_isolated_package_importing_a_layer_relative(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"signal/a.py": "from ..handoff import x\n"})
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "signal" in found[0] and "handoff" in found[0]
+
+
+def test_isolated_package_importing_a_layer_bare(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"signal/a.py": "from credit_os import delivery\n"})
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "signal" in found[0] and "delivery" in found[0]
+
+
+def test_layer_importing_the_isolated_package_bare(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"delivery/a.py": "from credit_os import signal\n"})
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "delivery" in found[0] and "signal" in found[0]
+
+
+def test_layer_importing_the_isolated_package_static(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"sources/a.py": "import credit_os.signal.store\n"})
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "sources" in found[0] and "signal" in found[0]
+
+
+def test_layer_importing_the_isolated_package_dynamic(tmp_path: Path) -> None:
+    root = _tree(
+        tmp_path,
+        {"orchestrator/a.py": "import importlib\nimportlib.import_module('credit_os.signal')\n"},
+    )
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "orchestrator" in found[0] and "signal" in found[0]
+
+
+def test_isolated_package_importing_itself_allowed(tmp_path: Path) -> None:
+    root = _tree(
+        tmp_path,
+        {
+            "signal/a.py": (
+                "from . import b\nfrom credit_os.signal import store\nimport credit_os.signal.fold\n"
+            ),
+            "signal/b.py": "x = 1\n",
+        },
+    )
+    assert _isolated(root) == []
+
+
+def test_package_root_importing_the_isolated_package(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"__init__.py": "from credit_os import signal\n"})
+    found = _isolated(root)
+    assert len(found) == 1
+    assert "signal" in found[0]
+
+
+def test_empty_isolated_set_changes_nothing_for_ordinary_layers(tmp_path: Path) -> None:
+    root = _tree(tmp_path, {"delivery/a.py": "from credit_os import sources\n"})
+    assert violations(root, credit_os.LAYERS, frozenset()) == []
 
 
 def test_byte_order_mark_file_is_read(tmp_path: Path) -> None:
