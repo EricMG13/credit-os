@@ -26,22 +26,35 @@ describe("App", () => {
     expect(screen.getByRole("navigation", { name: "Areas" })).toBeInTheDocument();
   });
 
-  it("falls back to the library for an unknown hash", () => {
+  it("says Page not found for an unknown hash, inside the shell", () => {
     window.location.hash = "#/nowhere";
+    render(<App result={{ kind: "missing" }} />);
+    expect(screen.getByText("Page not found")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Areas" })).toBeInTheDocument();
+    expect(screen.queryByText("Library data is missing")).toBeNull();
+  });
+
+  it.each(["/", ""])("shows the library at hash %j", (hash) => {
+    window.location.hash = `#${hash}`;
     render(<App result={{ kind: "missing" }} />);
     expect(screen.getByRole("heading", { level: 1, name: "Library" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Library data is missing")).toBeInTheDocument();
   });
 
-  it.each(["constructor", "__proto__", "toString", "hasOwnProperty"])(
-    "falls back to the library for #%s",
-    (name) => {
-      window.location.hash = `#${name}`;
-      render(<App result={{ kind: "missing" }} />);
-      expect(screen.getByText("Library data is missing")).toBeInTheDocument();
-    },
-  );
+  it.each([
+    "constructor",
+    "__proto__",
+    "toString",
+    "hasOwnProperty",
+    "/constructor",
+    "/__proto__",
+    "/toString",
+  ])("says Page not found for #%s instead of crashing", (name) => {
+    window.location.hash = `#${name}`;
+    render(<App result={{ kind: "ok", data: { schema: "credit-os-data/1", issuers: [] } }} />);
+    expect(screen.getByText("Page not found")).toBeInTheDocument();
+  });
 
   it("says so when there are no runs", () => {
     render(<App result={{ kind: "ok", data: { schema: "credit-os-data/1", issuers: [] } }} />);
