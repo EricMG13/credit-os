@@ -22,7 +22,10 @@ permissions:
 
 jobs:
   gates:
-    timeout-minutes: 20
+    # Measured on main at 4a0cbdbb, Windows: gates 10 min, each open-from-disk check about 6 min,
+    # so the job needs about 23 min plus set-up; at 20 it was cancelled, not failed. Linux takes
+    # about 8 min. The limit stays as the guard against a hung browser.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
