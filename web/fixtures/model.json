@@ -1815,6 +1815,7 @@
     ]
   },
   "params": {
+    "/model/:issuer/:run/portfolio-fit": [{ "issuer": "transdigm", "run": "2025-06-30" }],
     "/model/:issuer/:run/limitations": [{ "issuer": "transdigm", "run": "2025-06-30" }],
     "/model/:issuer/:run/front": [{ "issuer": "transdigm", "run": "2025-06-30" }],
     "/model/:issuer/:run/analysis": [{ "issuer": "transdigm", "run": "2025-06-30" }],
