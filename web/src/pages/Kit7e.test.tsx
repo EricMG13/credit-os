@@ -44,7 +44,9 @@ describe("Drawer on the kit page", () => {
     fireEvent.click(within(region).getByRole("button", { name: "Open drawer" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("banner")).toHaveTextContent("Source detail");
-    expect(within(dialog).getByRole("main")).toHaveClass("overflow-y-auto");
+    expect(within(dialog).getByText(/The body scrolls/).parentElement).toHaveClass(
+      "overflow-y-auto",
+    );
     expect(within(dialog).getByRole("contentinfo")).toBeInTheDocument();
     expect(document.querySelector("style")).toBeNull();
   });

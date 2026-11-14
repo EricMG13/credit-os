@@ -12,7 +12,6 @@ import {
   Cell as AriaCell,
   Collection as AriaCollection,
   Column as AriaColumn,
-  Group as AriaGroup,
   Row as AriaRow,
   Table as AriaTable,
   TableBody as AriaTableBody,
@@ -113,7 +112,7 @@ const TableHead = ({ className, label, numeric, children, ...props }: TableHeadP
       }
     >
       {(state) => (
-        <AriaGroup className={cx("flex items-center gap-1", numeric && "justify-end")}>
+        <div className={cx("flex items-center gap-1", numeric && "justify-end")}>
           <div className="flex items-center gap-1">
             {label && (
               <span className="text-xs font-semibold whitespace-nowrap text-quaternary">
@@ -134,7 +133,7 @@ const TableHead = ({ className, label, numeric, children, ...props }: TableHeadP
             ) : (
               <ChevronSelectorVertical size={12} strokeWidth={3} className="text-fg-quaternary" />
             ))}
-        </AriaGroup>
+        </div>
       )}
     </AriaColumn>
   );

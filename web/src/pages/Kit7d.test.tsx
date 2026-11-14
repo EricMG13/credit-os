@@ -67,7 +67,12 @@ describe("Table on the kit page", () => {
     expect(asc).not.toEqual(before);
     fireEvent.click(head);
     expect(head).toHaveAttribute("aria-sort", "descending");
-    expect(bodyNames(md)).toEqual([...asc].reverse());
+    expect(bodyNames(md)).toEqual([
+      "Peer comparison",
+      "Capital structure",
+      "Liquidity",
+      "Covenants",
+    ]);
   });
 
   it("draws the sortable head's focus ring with a token that resolves", () => {

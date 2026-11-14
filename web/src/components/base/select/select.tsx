@@ -65,7 +65,7 @@ const SelectValue = ({
         "relative flex w-full cursor-pointer items-center rounded-lg bg-primary shadow-xs ring-1 ring-primary outline-hidden transition duration-100 ease-linear ring-inset",
         isInvalid && "ring-error_subtle",
         (isFocused || isOpen) && !isInvalid && "ring-2 ring-brand",
-        (isFocused || isOpen) && isInvalid && "ring-2 ring-error",
+        (isFocused || isOpen) && isInvalid && "ring-2 ring-brand",
         isDisabled && "cursor-not-allowed opacity-50",
       )}
     >
