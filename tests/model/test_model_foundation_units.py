@@ -11,6 +11,7 @@ from credit_os.handoff.document import parse
 from credit_os.handoff.errors import HandoffError
 from credit_os.model.foundation import (
     check_foundation,
+    foundation_tables,
     foundation_text,
     names_currency,
     units_named,
@@ -124,6 +125,25 @@ def test_the_foundation_text_holds_labels_columns_cells_and_list_items_in_order(
         "gap",
         "next",
     )
+
+
+def test_foundation_tables_hold_a_section_table_before_its_subsection_table() -> None:
+    own = "### Net debt data\n\n| Own | V |\n| --- | --- |\n| own-first | 1 |\n\n"
+    sub = "#### Detail\n\n| Sub | V |\n| --- | --- |\n| sub-second | 2 |\n"
+    text = _edited("foundation.md", [["### Net debt data\n", own + sub]])
+    tables = foundation_tables(parse(text.encode("utf-8")))
+    assert [table.rows[0].cells[0] for table in tables] == [
+        "Revenue",
+        "Net Cash from Operating Activities",
+        "Total Assets",
+        "Term loan B",
+        "own-first",
+        "sub-second",
+        "FY2024",
+        "FY2024",
+        "FY2023",
+        "Undrawn facilities at FY2023 not supplied",
+    ]
 
 
 def test_the_new_refusal_kinds_follow_cell() -> None:
