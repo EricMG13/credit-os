@@ -4,6 +4,7 @@ import type { LoadResult } from "@/data";
 import { fixtureSlice, must } from "./slice/test-fixture";
 
 const ADDRESS = "#/library/transdigm/2025-06-30/evidence";
+const BASE = "#/model/transdigm/2025-06-30";
 const METRICS = [
   ["Revenue", "$8,580m", "↗ 8.1% on FY24", "Net sales, latest twelve months"],
   [
@@ -22,6 +23,16 @@ const METRICS = [
     "EBITDA as defined less cash interest, cash tax, working capital and capital expenditure",
   ],
 ] as const;
+const FACTS = [
+  ["Currency and units", "US dollars, millions"],
+  ["Fiscal year end", "30 September"],
+  ["Historic periods", "FY22 to FY24, as reported"],
+  ["Latest twelve months", "To 30 June 2025"],
+  ["Forecast periods", "FY25 to FY27"],
+  ["Cases", "Base and downside"],
+  ["Earnings measure", "EBITDA as the company defines it"],
+] as const;
+
 function renderFrom(slice: unknown, issuer = "transdigm", run = "2025-06-30") {
   window.location.hash = `#/model/${issuer}/${run}/front`;
   const result: LoadResult = {
@@ -100,6 +111,15 @@ describe("Front page", () => {
     expect(within(t).getAllByRole("link")).toHaveLength(1);
   });
 
+  it("draws the withheld tile with its reason and no delta", () => {
+    renderFront();
+    const t = tile("Revolver drawn");
+    expect(within(t).getByText("Withheld")).toBeInTheDocument();
+    expect(within(t).getByText("Shown to the deal team only.")).toBeInTheDocument();
+    expect(within(t).queryByText("n.a.")).toBeNull();
+    expect(t.textContent).not.toContain("↗");
+  });
+
   it("gives each tile a definition tooltip that is the definition", async () => {
     renderFront();
     const trigger = within(tile("Net leverage")).getByRole("button", {
@@ -112,5 +132,112 @@ describe("Front page", () => {
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
       "Net debt divided by EBITDA as defined",
     );
+  });
+
+  it("lists the seven facts in a details list, one trace control each", () => {
+    renderFront();
+    const section = must(
+      screen.getByRole("heading", { level: 2, name: "What the model covers" }).parentElement,
+    );
+    const terms = within(section)
+      .getAllByRole("term")
+      .map((t) => t.textContent);
+    expect(terms).toEqual(FACTS.map(([k]) => k));
+    for (const [k, v] of FACTS) {
+      const row = must(within(section).getByText(k).closest("div"));
+      expect(within(row).getByText(v)).toBeInTheDocument();
+      expect(within(row).getByRole("link", { name: `Show the sources for ${k}` })).toHaveAttribute(
+        "href",
+        ADDRESS,
+      );
+    }
+  });
+
+  it("links three parts to their pages, each with a trace control", () => {
+    renderFront();
+    const parts = must(
+      screen.getByRole("heading", { level: 2, name: "Parts of the model" }).parentElement,
+    );
+    for (const [name, text, to] of [
+      ["Analysis", "Deleveraging depends on keeping the cash, not on repaying debt.", "analysis"],
+      [
+        "Model",
+        "Statements for FY22 to FY27, two cases, bridges and the debt stack.",
+        "statements",
+      ],
+      [
+        "Portfolio fit",
+        "Within every limit that could be tested, with 0.9 points of room under the single-issuer limit.",
+        "portfolio-fit",
+      ],
+    ] as const) {
+      const link = within(parts).getByRole("link", { name: new RegExp(`^${name}`) });
+      expect(link).toHaveAttribute("href", `${BASE}/${to}`);
+      expect(link).toHaveTextContent(text);
+    }
+    for (const name of ["Analysis", "Model", "Portfolio fit", "Relative value"]) {
+      expect(screen.getByRole("link", { name: `Show the sources for ${name}` })).toHaveAttribute(
+        "href",
+        ADDRESS,
+      );
+    }
+  });
+
+  it("keeps Relative value in place as a non-link with the Not assessable badge", () => {
+    renderFront();
+    const title = screen.getByText("Relative value");
+    const item = must(title.closest<HTMLElement>("div[data-item]"));
+    expect(item.tagName).toBe("DIV");
+    expect(item.closest("a")).toBeNull();
+    expect(within(item).getByText("Not assessable")).toBeInTheDocument();
+    expect(
+      within(item).getByText(
+        "The pricing comparison failed in this run, so the model's spread view is missing.",
+      ),
+    ).toBeInTheDocument();
+    const names = Array.from(document.querySelectorAll("[data-item] b")).map((b) => b.textContent);
+    expect(names).toEqual(["Analysis", "Model", "Portfolio fit", "Relative value"]);
+  });
+
+  it("puts the trace addresses only in href, never in text, title or aria-label", () => {
+    const { container } = renderFront();
+    expect(container.textContent).not.toContain("library/transdigm");
+    for (const el of Array.from(container.querySelectorAll("[title], [aria-label]"))) {
+      expect(`${el.getAttribute("title") ?? ""}${el.getAttribute("aria-label") ?? ""}`).not.toMatch(
+        /#\/library|evidence/i,
+      );
+    }
+  });
+
+  it("draws metrics, facts and parts that share a label or title without a duplicate key warning", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const slice = fixtureSlice() as {
+      runs: {
+        front: {
+          headline: { metrics: { label: string; trace: string | null }[] };
+          covers: { facts: { label: string; trace: string | null }[] };
+          parts: { title: string; trace: string | null }[];
+        };
+      }[];
+    };
+    const front = must(slice.runs[0]).front;
+    // The reader refuses a repeated name only where both draw a trace control; these draw none.
+    must(front.headline.metrics[1]).label = "Revenue";
+    must(front.headline.metrics[1]).trace = null;
+    must(front.covers.facts[1]).label = "Currency and units";
+    must(front.covers.facts[1]).trace = null;
+    must(front.parts[1]).title = "Analysis";
+    must(front.parts[1]).trace = null;
+    renderFrom(slice);
+    expect(screen.getAllByText("Revenue", { selector: "p" })).toHaveLength(2);
+    expect(screen.getAllByText("Currency and units")).toHaveLength(2);
+    expect(screen.getAllByText("Analysis", { selector: "[data-item] b" })).toHaveLength(2);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("draws the not found state for an issuer or run the slice does not hold", () => {
+    renderFront("nobody", "2025-06-30");
+    expect(screen.getByText("Not found for this run")).toBeInTheDocument();
   });
 });

@@ -82,6 +82,27 @@ export function orNull<T extends string>(words: readonly T[]): Reader<T | null> 
   };
 }
 
+/** A reader for an object whose `kind` key names which of `shapes` it must match. */
+export function tagged<T extends { kind: string }>(shapes: {
+  [K in T["kind"]]: Reader<Extract<T, { kind: K }>>;
+}): Reader<T> {
+  const kinds = Object.keys(shapes) as T["kind"][];
+  return (value, path) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return fail(path, "expected an object");
+    }
+    if (!Object.hasOwn(value, "kind")) return fail(child(path, "kind"), "missing");
+    const kind = oneOf(kinds)((value as { kind: unknown }).kind, child(path, "kind"));
+    return (shapes[kind] as Reader<T>)(value, path);
+  };
+}
+
+/** The one word a tagged shape's `kind` key must hold; `tagged` has already matched it. */
+export const is =
+  <T extends string>(word: T): Reader<T> =>
+  (value, path) =>
+    value === word ? word : fail(path, `expected ${word}`);
+
 export const at = (path: string, index: number): string => `${path}[${String(index)}]`;
 
 /** Refuses the first item whose `field` an earlier item already has. */

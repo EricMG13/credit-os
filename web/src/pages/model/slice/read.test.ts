@@ -127,6 +127,142 @@ describe("readSlice", () => {
   });
 });
 
+const STM = [...RUN, "statements"] as const;
+const ROW = [...STM, "statements", 0, "rows", 0] as const;
+const ROW_PATH = "runs[0].statements.statements[0].rows[0]";
+const PAIR = { kind: "missing", reason: null } as const;
+
+describe("readSlice: cases and statements", () => {
+  it("reads a column delivered empty with a reason and rows without a cell for it", () => {
+    const source = fixtureSlice() as { runs: { statements: Record<string, unknown> }[] };
+    const statements = source.runs[0]?.statements;
+    if (statements === undefined) throw new Error("no run");
+    statements["columns"] = [
+      { kind: "actual", period: "FY24", note: "Actual" },
+      { kind: "empty", period: "Pro forma", note: null, reason: "none placed" },
+      { kind: "forecast", period: "FY25E", notes: [{ text: "Base" }, { text: "Downside" }] },
+    ];
+    statements["statements"] = [
+      {
+        name: "Income statement",
+        rows: [
+          {
+            label: "Revenue",
+            kind: "plain",
+            gap: false,
+            trace: null,
+            cells: [{ kind: "figure", text: "1", pos: 1 }, [PAIR, PAIR]],
+          },
+        ],
+      },
+    ];
+    const result = readSlice(source);
+    if (result.kind !== "ok") throw new Error(JSON.stringify(result));
+    expect(result.data.runs[0]?.statements.columns[1]).toEqual({
+      kind: "empty",
+      period: "Pro forma",
+      note: null,
+      reason: "none placed",
+    });
+  });
+
+  it.each([
+    [
+      "a case with a numeric name",
+      edited([...RUN, "cases", 0, "name"], 3),
+      "runs[0].cases[0].name: expected a string",
+    ],
+    [
+      "a case missing its leaves-out text",
+      edited([...RUN, "cases", 1, "leavesOut"], undefined),
+      "runs[0].cases[1].leavesOut: missing",
+    ],
+    [
+      "a case note that is a number",
+      edited([...RUN, "cases", 0, "note"], 1),
+      "runs[0].cases[0].note: expected a string or null",
+    ],
+    ["no case at all", edited([...RUN, "cases"], []), "runs[0].cases: expected at least one case"],
+    [
+      "no statement at all",
+      edited([...STM, "statements"], []),
+      "runs[0].statements.statements: expected at least one statement",
+    ],
+    [
+      "a column of an unknown kind",
+      edited([...STM, "columns", 0, "kind"], "quarter"),
+      "runs[0].statements.columns[0].kind: expected one of actual, forecast, empty",
+    ],
+    [
+      "a column with no kind",
+      edited([...STM, "columns", 2, "kind"], undefined),
+      "runs[0].statements.columns[2].kind: missing",
+    ],
+    [
+      "an actual column whose note is null",
+      edited([...STM, "columns", 0, "note"], null),
+      "runs[0].statements.columns[0].note: expected a string",
+    ],
+    [
+      "a forecast note that is a number",
+      edited([...STM, "columns", 4, "notes", 1, "text"], 2),
+      "runs[0].statements.columns[4].notes[1].text: expected a string",
+    ],
+    [
+      "a forecast column with a note missing for one case",
+      edited([...STM, "columns", 5, "notes"], [{ text: "Base" }]),
+      "runs[0].statements.columns[5].notes: expected 2 notes, one per case",
+    ],
+    [
+      "a row of an unknown kind",
+      edited([...ROW, "kind"], "ratio"),
+      `${ROW_PATH}.kind: expected one of plain, subtotal, total`,
+    ],
+    [
+      "a row gap that is a number",
+      edited([...ROW, "gap"], 1),
+      `${ROW_PATH}.gap: expected true or false`,
+    ],
+    [
+      "a row trace that is a number",
+      edited([...ROW, "trace"], 1),
+      `${ROW_PATH}.trace: expected a string or null`,
+    ],
+    [
+      "a cell of an unknown kind",
+      edited([...ROW, "cells", 0, "kind"], "zero"),
+      `${ROW_PATH}.cells[0].kind: expected one of figure, missing, withheld`,
+    ],
+    [
+      "a figure whose text is null",
+      edited([...ROW, "cells", 1, "text"], null),
+      `${ROW_PATH}.cells[1].text: expected a string`,
+    ],
+    [
+      "a figure whose position is above 1",
+      edited([...ROW, "cells", 1, "pos"], 1.2),
+      `${ROW_PATH}.cells[1].pos: expected a number from -1 to 1`,
+    ],
+    [
+      "a figure whose position is text",
+      edited([...ROW, "cells", 1, "pos"], "0.5"),
+      `${ROW_PATH}.cells[1].pos: expected a number from -1 to 1`,
+    ],
+    [
+      "a forecast column with one case's cell missing",
+      edited([...ROW, "cells", 6], [PAIR]),
+      `${ROW_PATH}.cells[6]: expected a list of 2 cells, one per case`,
+    ],
+    [
+      "a row with a cell too few",
+      edited([...ROW, "cells"], [PAIR]),
+      `${ROW_PATH}.cells: expected 7 entries, one per column that is not empty`,
+    ],
+  ])("is invalid and names the failing path: %s", (_, source, reason) => {
+    expect(readSlice(source)).toEqual({ kind: "invalid", reason });
+  });
+});
+
 const TRACE_REPEAT = "expected a name no other trace control on the page has";
 
 describe("readSlice: no two trace controls on a page share a name (front, limitations, statements)", () => {
@@ -166,6 +302,16 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
       edited([...RUN, "limitations", "items", 1, "title"], "EBITDA is the company’s own measure"),
       "runs[0].limitations.items[1].title",
     ],
+    [
+      "a statement row labelled as an earlier row of its statement",
+      edited([...STM, "statements", 0, "rows", 1, "label"], "Revenue"),
+      "runs[0].statements.statements[0].rows[1].label",
+    ],
+    [
+      "a statement row labelled as a case",
+      edited([...ROW, "label"], "Base case"),
+      `${ROW_PATH}.label`,
+    ],
   ])("refuses %s, naming the second one", (_, source, where) => {
     expect(readSlice(source)).toEqual({ kind: "invalid", reason: `${where}: ${TRACE_REPEAT}` });
   });
@@ -204,6 +350,11 @@ describe("readSlice: lists the pages draw hold something", () => {
       edited([...RUN, "limitations", "items"], []),
       "runs[0].limitations.items: expected at least one limitation",
     ],
+    [
+      "no column",
+      edited([...STM, "columns"], []),
+      "runs[0].statements.columns: expected at least one column",
+    ],
   ])("refuses %s", (_, source, reason) => {
     expect(readSlice(source)).toEqual({ kind: "invalid", reason });
   });
@@ -217,6 +368,7 @@ describe("readSlice: lists the pages draw hold something", () => {
 describe("readSlice: a string the page draws is never empty", () => {
   const P = "runs[0]";
   const NON_EMPTY = "expected a non-empty string";
+  const NON_EMPTY_OR_NULL = "expected a non-empty string or null";
   it.each([
     [["issuer"], `${P}.issuer`],
     [["run"], `${P}.run`],
@@ -250,12 +402,42 @@ describe("readSlice: a string the page draws is never empty", () => {
     [["front", "covers", "facts", 0, "value"], `${P}.front.covers.facts[0].value`],
     [["front", "parts", 0, "title"], `${P}.front.parts[0].title`],
     [["front", "parts", 0, "text"], `${P}.front.parts[0].text`],
+    [["cases", 0, "name"], `${P}.cases[0].name`],
+    [["cases", 0, "tag"], `${P}.cases[0].tag`],
+    [["cases", 0, "assumption"], `${P}.cases[0].assumption`],
+    [["cases", 0, "leavesOut"], `${P}.cases[0].leavesOut`],
+    [["statements", "intro"], `${P}.statements.intro`],
+    [["statements", "columns", 0, "period"], `${P}.statements.columns[0].period`],
+    [["statements", "columns", 0, "note"], `${P}.statements.columns[0].note`],
+    [["statements", "columns", 4, "notes", 0, "text"], `${P}.statements.columns[4].notes[0].text`],
+    [["statements", "statements", 0, "name"], `${P}.statements.statements[0].name`],
+    [
+      ["statements", "statements", 0, "rows", 0, "label"],
+      `${P}.statements.statements[0].rows[0].label`,
+    ],
+    [
+      ["statements", "statements", 0, "rows", 0, "cells", 0, "text"],
+      `${P}.statements.statements[0].rows[0].cells[0].text`,
+    ],
   ] as [(string | number)[], string][])("refuses an empty string at %j", (steps, where) => {
     expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
       kind: "invalid",
       reason: `${where}: ${NON_EMPTY}`,
     });
   });
+
+  it.each([
+    [["front", "headline", "metrics", 0, "note"], `${P}.front.headline.metrics[0].note`],
+    [["cases", 0, "note"], `${P}.cases[0].note`],
+  ] as [(string | number)[], string][])(
+    "refuses an empty string, not null, at %j",
+    (steps, where) => {
+      expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
+        kind: "invalid",
+        reason: `${where}: ${NON_EMPTY_OR_NULL}`,
+      });
+    },
+  );
 });
 
 describe("readSlice: a string of spaces is as empty as no string", () => {
@@ -266,6 +448,16 @@ describe("readSlice: a string of spaces is as empty as no string", () => {
       ["front", "headline", "metrics", 0, "label"],
       `${P}.front.headline.metrics[0].label`,
       "expected a non-empty string",
+    ],
+    [
+      ["statements", "statements", 0, "name"],
+      `${P}.statements.statements[0].name`,
+      "expected a non-empty string",
+    ],
+    [
+      ["front", "headline", "metrics", 0, "note"],
+      `${P}.front.headline.metrics[0].note`,
+      "expected a non-empty string or null",
     ],
   ] as [(string | number)[], string, string][])('refuses " " at %j', (steps, where, what) => {
     expect(readSlice(edited([...RUN, ...steps], " \t "))).toEqual({
@@ -284,6 +476,12 @@ describe("readSlice: an address into the library starts with #/", () => {
     [["links", "evidence"], `${P}.links.evidence`, "//example.invalid/x"],
     [["links", "library"], `${P}.links.library`, "library/transdigm"],
     [["links", "evidenceGaps"], `${P}.links.evidenceGaps`, "/#/x"],
+    [["cases", 0, "trace"], `${P}.cases[0].trace`, "http://example.invalid/x"],
+    [
+      ["statements", "statements", 0, "rows", 0, "trace"],
+      `${P}.statements.statements[0].rows[0].trace`,
+      "https://example.invalid/x",
+    ],
     [
       ["limitations", "items", 0, "trace"],
       `${P}.limitations.items[0].trace`,
