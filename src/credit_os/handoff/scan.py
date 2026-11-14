@@ -2,11 +2,15 @@
 
 A heading is tested on the line as written; its title is read from the shown text.
 A fence opener is tested before comments. A closer is the same character, at least as
-long, with nothing but spaces or tabs after it. A `## ` line inside a fence ends it
-unclosed and is read again as a normal line. `<!--` inside an inline code span is
-literal, and spans are never searched for inside a comment. A line that began inside a
-comment is never a heading or a fence line. `shown` is the line with comments removed,
-and `""` when only whitespace is left after a removal.
+long, with nothing but spaces or tabs after it. A line that began inside a comment is
+never a heading or a fence line. `shown` is the line with comments removed, and `""`
+when only whitespace is left after a removal.
+Inline code spans: backticks form maximal runs. A run of n backticks opens a span only
+when a later run of exactly n follows in the same text, and the nearest one closes it;
+a run with no such closer is ordinary text. `<!--` inside a span is literal, and text
+inside a comment is never searched for runs.
+Known limit: a fenced block that itself contains a line starting `## ` is read as
+unclosed at that line, and that line is then a level-2 heading.
 """
 
 import re
