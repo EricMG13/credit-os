@@ -386,3 +386,16 @@ describe("Changes, another run", () => {
     expect(within(presentation()).getByRole("radio", { name: "Cards" })).toBeChecked();
   });
 });
+
+describe("Changes, audit material", () => {
+  it("holds no id, file name, hash or run code at rest, in either compared run", () => {
+    for (const run of ["2026-09-30", "2026-03-31"]) {
+      const { container, unmount } = renderChanges(run);
+      const all = [container.innerHTML, container.textContent].join(" ");
+      expect(all, run).not.toMatch(
+        /T-\d{4}|C-\d{4}|G-\d{2}|CP-\d|\.(pdf|xlsx|md|zip)\b|\b[0-9a-f]{16,}\b|sha-?256|run code/i,
+      );
+      unmount();
+    }
+  });
+});
