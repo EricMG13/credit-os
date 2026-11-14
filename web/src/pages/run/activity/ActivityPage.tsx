@@ -1,4 +1,4 @@
-import { Button } from "@/components/base/buttons/button";
+import { Button, styles } from "@/components/base/buttons/button";
 import { Badge } from "@/components/base/badges/badges";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
@@ -6,16 +6,18 @@ import { Alert } from "@/components/alert/Alert";
 import { Card } from "@/components/card/Card";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { PageHeader } from "@/shell/PageHeader";
+import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
+import { TextLink } from "../TextLink";
 import { readSlice } from "../slice";
 import type { RunRecord } from "../slice-activity";
 import { Feed } from "./Feed";
+import { RunAlert } from "./RunAlert";
 import { ModuleSteps } from "./ModuleSteps";
 import { Summary } from "./Summary";
 
 const STOP_REASON =
   "Not available here: this page shows a saved example and is not connected to the run service.";
-const LINK = "text-sm text-text-link underline";
 
 // The page draws its own padding (the shell gives a bleed page none) and its own h1.
 function Frame({ children }: { children: React.ReactNode }) {
@@ -74,9 +76,7 @@ function Run({ run }: { run: RunRecord }) {
   return (
     <Frame>
       <nav aria-label="Breadcrumb" className="text-sm text-text-tertiary">
-        <a href="#/run" className="text-text-link underline">
-          Runs
-        </a>
+        <TextLink href="#/run">Runs</TextLink>
         {` / ${run.issuer}`}
       </nav>
       <PageHeader
@@ -90,7 +90,16 @@ function Run({ run }: { run: RunRecord }) {
           </>
         }
         actions={
-          live ? (
+          run.open !== null ? (
+            <a
+              href={run.open.href}
+              className={cx(styles.common.root, styles.sizes.lg.root, styles.colors.primary.root)}
+            >
+              <span data-text className="px-0.5">
+                {run.open.label}
+              </span>
+            </a>
+          ) : live ? (
             <div className="flex max-w-xs flex-col items-start gap-2">
               <Button color="secondary" isDisabled aria-describedby="stop-reason">
                 Stop run
@@ -105,6 +114,7 @@ function Run({ run }: { run: RunRecord }) {
       {run.line === null ? null : (
         <p className="max-w-2xl text-body text-text-secondary">{run.line}</p>
       )}
+      {run.alert === null ? null : <RunAlert state={run.state} alert={run.alert} />}
       <Summary run={run} />
       <div className="grid items-start gap-6 min-[1101px]:grid-cols-[minmax(0,1fr)_400px]">
         <Modules run={run} live={live} />
@@ -129,9 +139,7 @@ export function ActivityPage({ run: id }: { run: string }) {
   if (record === undefined) {
     return (
       <Empty title="No run has this address">
-        <a href="#/run" className={LINK}>
-          Go to Run
-        </a>
+        <TextLink href="#/run">Go to Run</TextLink>
       </Empty>
     );
   }

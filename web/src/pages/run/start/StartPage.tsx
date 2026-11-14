@@ -3,6 +3,7 @@ import { Button, styles } from "@/components/base/buttons/button";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
+import { TextLink } from "../TextLink";
 import { readSlice, type StartDraft } from "../slice";
 import { Confirm } from "./Confirm";
 import { Context } from "./Context";
@@ -102,9 +103,7 @@ export function StartPage({ draft: id }: { draft: string }) {
   return (
     <div className="flex flex-col gap-4">
       <nav aria-label="Breadcrumb" className="text-sm text-text-tertiary">
-        <a href="#/" className="text-text-link underline">
-          Library
-        </a>
+        <TextLink href="#/">Library</TextLink>
         {` / ${draft.issuer} / New run`}
       </nav>
       <p className="text-body text-text-secondary">
