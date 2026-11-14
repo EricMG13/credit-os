@@ -223,6 +223,54 @@ def test_a_resume_clears_the_end(tmp_path: Path, store: Store, ticker: Ticker) -
     assert _query(tmp_path, "SELECT started_at FROM runs") == [(key.SCRIPT_ROW_TIMES[2],)]
 
 
+@pytest.mark.parametrize(
+    ("kind", "detail", "module_id", "attempt"),
+    [row[1:] for row in key.ACCEPTED_NOTES],
+    ids=[r[0] for r in key.ACCEPTED_NOTES],
+)
+def test_a_note_is_stored_as_given(
+    store: Store, kind: str, detail: Any, module_id: str | None, attempt: int | None
+) -> None:
+    claim = store.create_run(**_create())
+    store.start_run(claim)
+    store.record_event(claim, kind=kind, detail=detail, module_id=module_id, attempt=attempt)
+    last = store.events(RUN_ID)[-1]
+    assert (last.kind, last.module_id, last.attempt, dict(last.detail)) == (
+        kind,
+        module_id,
+        attempt,
+        detail,
+    )
+
+
+def test_a_reject_stores_its_message(store: Store) -> None:
+    store.reject_run(
+        store.create_run(**_create()), reason=key.REJECT_REASON, message=key.END_MESSAGE
+    )
+    run = store.run(RUN_ID)
+    assert (run.status, run.end_reason, run.end_message) == (
+        "rejected",
+        key.REJECT_REASON,
+        key.END_MESSAGE_STORED,
+    )
+
+
+@pytest.mark.parametrize("status", key.START_REFUSED_STATUSES)
+def test_a_start_from_a_status_that_may_not_start_is_refused(
+    tmp_path: Path, store: Store, ticker: Ticker, status: str
+) -> None:
+    claim = store.create_run(**_create())
+    if status == "rejected":
+        store.reject_run(claim, reason="x")
+    else:
+        store.start_run(claim)
+    if status == "finished":
+        store.end_run(claim, status="finished", reason="done")
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _outcome(partial(store.start_run, claim)) == "StoreConflict"
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
 @pytest.mark.parametrize("call", key.HELD_LOCK_CALLS)
 def test_a_held_lock_is_busy_and_writes_nothing(tmp_path: Path, ticker: Ticker, call: str) -> None:
     path = tmp_path / location.STATE_FILE_NAME

@@ -191,7 +191,7 @@ def check_end(
     claim: object, status: object, reason: object, message: object, allowed: frozenset[str]
 ) -> tuple[Claim, str | None]:
     """Check a `reject_run` or `end_run` call: the status is in `allowed`, the reason a name."""
-    if status not in allowed:
+    if type(status) is not str or status not in allowed:
         raise StoreRefused("status is not one this call may set")
     check_name("reason", reason)
     return check_claim(claim), check_message(message)
