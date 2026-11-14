@@ -777,7 +777,7 @@
                     "label": "Bottom line",
                     "lead": "A sole-source aftermarket franchise carries a thinner, more cyclical original-equipment business.",
                     "rest": "The aftermarket earns most of the profit and is hard to displace. The risk is concentration: one engine programme and three customers decide whether growth arrives on time.",
-                    "trace": null
+                    "trace": "bp-bottom-line"
                   },
                   "findings": [
                     {
@@ -790,7 +790,7 @@
                       "number": "02",
                       "lead": "Original equipment is thin and fixed-price",
                       "body": "New-build contracts run five to seven years at fixed prices. Margin here is below every listed peer.",
-                      "trace": null
+                      "trace": "bp-finding-2"
                     },
                     {
                       "number": "03",
@@ -802,18 +802,18 @@
                       "number": "04",
                       "lead": "Purchases have added breadth, not scale",
                       "body": "Four small purchases since 2023 added product lines. None changed the competitive position.",
-                      "trace": null
+                      "trace": "bp-finding-4"
                     }
                   ],
                   "contrary": {
                     "title": "Two airlines have begun certifying alternative parts",
                     "text": "If approved, alternatives would cover about a tenth of aftermarket revenue. Management says none has passed certification; the module could not confirm this from the files provided.",
-                    "trace": null
+                    "trace": "bp-contrary"
                   },
                   "changeView": {
                     "title": "Loss of sole-source status on a top-ten part",
                     "text": "One certified alternative on a top-ten part, or a third slip in the engine programme’s ramp, would move this module’s view from stable to weakening.",
-                    "trace": null
+                    "trace": "bp-trigger"
                   },
                   "records": [],
                   "limitations": {
@@ -822,11 +822,11 @@
                     "items": [
                       {
                         "text": "Customer names and contract terms come from management presentations, not from contracts. Where a presentation and the annual report disagree the module used the annual report.",
-                        "trace": null
+                        "trace": "bp-limit-1"
                       },
                       {
                         "text": "The share of revenue under cost pass-through clauses is not established for this run. The annual report describes pass-through as applying to “most long-term agreements” without a figure, the lender presentation gives a figure for the aftermarket only, and the two segment definitions differ, so the module did not combine them. The finding on input cost inflation therefore rests on the margin record of the last four years and not on contract terms, and it would not hold if the contract mix has changed since the 2024 renewals, which the files do not show.",
-                        "trace": null
+                        "trace": "bp-limit-2"
                       }
                     ]
                   }
@@ -1517,6 +1517,111 @@
                 "excerpt": null,
                 "qualification": "The share is a management disclosure.",
                 "evidenceItem": "T-0006"
+              },
+              "bp-bottom-line": {
+                "title": "Sources for the business profile bottom line",
+                "heading": "Aftermarket 61% of gross profit",
+                "subtitle": "Business profile · bottom line · as of 30 Sep 2026",
+                "statement": "A sole-source aftermarket franchise carries a thinner, more cyclical original-equipment business.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Aftermarket 61% of gross profit",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0047"
+              },
+              "bp-finding-2": {
+                "title": "Sources for original equipment pricing",
+                "heading": "Fixed price, five to seven years",
+                "subtitle": "Business profile · finding · as of 30 Sep 2026",
+                "statement": "New-build contracts run five to seven years at fixed prices.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Fixed price, five to seven years",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0048"
+              },
+              "bp-finding-4": {
+                "title": "Sources for the purchases",
+                "heading": "Four purchases since 2023",
+                "subtitle": "Business profile · finding · as of 30 Sep 2026",
+                "statement": "Four small purchases since 2023 added product lines.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Four purchases since 2023",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0049"
+              },
+              "bp-contrary": {
+                "title": "Sources for the alternative parts",
+                "heading": "Two airlines certifying",
+                "subtitle": "Business profile · contrary evidence · as of 30 Sep 2026",
+                "statement": "Two airlines have begun certifying alternative parts; none has passed certification.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Two airlines certifying",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": "The module could not confirm management’s statement from the files provided.",
+                "evidenceItem": "T-0050"
+              },
+              "bp-trigger": {
+                "title": "Sources for the trigger",
+                "heading": "One certified alternative",
+                "subtitle": "Business profile · view · as of 30 Sep 2026",
+                "statement": "One certified alternative on a top-ten part, or a third slip in the engine programme’s ramp, would move the view from stable to weakening.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "One certified alternative",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0051"
+              },
+              "bp-limit-1": {
+                "title": "Sources for the customer terms limitation",
+                "heading": "Terms from presentations",
+                "subtitle": "Business profile · limitation · as of 30 Sep 2026",
+                "statement": "Customer names and contract terms come from management presentations, not from contracts.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Terms from presentations",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-04"
+              },
+              "bp-limit-2": {
+                "title": "Sources for the pass-through limitation",
+                "heading": "Pass-through not established",
+                "subtitle": "Business profile · limitation · as of 30 Sep 2026",
+                "statement": "The share of revenue under cost pass-through clauses is not established for this run.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Pass-through not established",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "G-05"
               }
             }
           },

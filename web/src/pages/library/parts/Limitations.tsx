@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp } from "@untitledui/icons";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Disclosure, DisclosurePanel, Link } from "react-aria-components";
 import { cx } from "@/utils/cx";
 import type { Limitations as LimitationsData } from "../slice";
@@ -14,22 +14,22 @@ import { TRACE_HOST, TraceControl } from "./TraceControl";
 function Limitation({ text, trace }: LimitationsData["items"][number]) {
   const [open, setOpen] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const clamped = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = clamped.current;
+    if (el === null || open) return;
+    const watch = new ResizeObserver(() => {
+      setOverflows(el.scrollHeight > el.clientHeight);
+    });
+    watch.observe(el);
+    return () => {
+      watch.disconnect();
+    };
+  }, [open]);
   return (
     <li className={`${TRACE_HOST} flex max-w-[86ch] items-start gap-3`}>
       <span className="flex flex-1 flex-col items-start gap-1">
-        <span
-          ref={(el) => {
-            if (el === null) return;
-            const watch = new ResizeObserver(() => {
-              if (!open) setOverflows(el.scrollHeight > el.clientHeight);
-            });
-            watch.observe(el);
-            return () => {
-              watch.disconnect();
-            };
-          }}
-          className={cx(!open && "line-clamp-3 print:line-clamp-none")}
-        >
+        <span ref={clamped} className={cx(!open && "line-clamp-3 print:line-clamp-none")}>
           {text}
         </span>
         {overflows ? (
@@ -73,7 +73,10 @@ export function Limitations({
         {({ isExpanded }) => (
           <>
             <div className="flex items-center justify-between gap-3">
-              <Heading className="flex items-center gap-2 text-body font-semibold">
+              <Heading
+                tabIndex={-1}
+                className="flex items-center gap-2 rounded-ds-xs text-body font-semibold outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
+              >
                 Limitations
                 <span className="rounded-ds-full border border-border-hairline bg-surface-subtle px-2 py-0.5 text-xs font-medium text-text-secondary tabular-nums">
                   {limitations.count}
