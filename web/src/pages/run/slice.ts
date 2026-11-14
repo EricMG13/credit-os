@@ -3,7 +3,7 @@
 import type { SliceResult } from "../route-table";
 
 type Bar = { label: string; value: number; max: number }; // numbers place the fill only
-type Row = { label: string; value: string | null }; // null draws "n.a."
+export type Row = { label: string; value: string | null }; // null draws "n.a."
 const FILE_STATES = ["Uploading", "Read in full", "Read in part", "Unreadable"] as const;
 type StartFile = {
   name: string;
