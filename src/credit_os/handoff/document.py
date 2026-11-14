@@ -5,17 +5,15 @@ level-1 title come first. Sections nest by heading level and own the blocks unde
 """
 
 import hashlib
-import re
 from bisect import bisect_right
 
 from credit_os.handoff.blocks import Block, read_blocks
-from credit_os.handoff.errors import HandoffError
+from credit_os.handoff.errors import HandoffError, echo
 from credit_os.handoff.frontmatter import FrontMatter, read_front_matter
-from credit_os.handoff.lines import split_lines
+from credit_os.handoff.lines import count_terminators, split_lines
 from credit_os.handoff.scan import Heading, Node, scan
 
 _REQUIRED = ("Request", "Sources", "Findings", "Calculations", "Gaps", "Next module")
-_TERMINATOR = re.compile(rb"\r\n|\n|\r")
 
 
 class Section(Node):
@@ -39,7 +37,7 @@ def _decode(data: bytes) -> str:
     try:
         return data.decode("utf-8")
     except UnicodeDecodeError as bad:
-        line = 1 + len(_TERMINATOR.findall(data[: bad.start]))
+        line = 1 + count_terminators(data[: bad.start].decode("utf-8"))
         raise HandoffError(line, "the file is not valid UTF-8") from bad
 
 
@@ -49,12 +47,12 @@ def _check_skeleton(headings: tuple[Heading, ...], line_count: int) -> Heading:
         if index >= len(_REQUIRED):
             raise HandoffError(
                 heading.line,
-                f"level-2 heading `{heading.title}` is not allowed after `Next module`",
+                f"level-2 heading `{echo(heading.title)}` is not allowed after `Next module`",
             )
         if heading.title != _REQUIRED[index]:
             raise HandoffError(
                 heading.line,
-                f"level-2 heading `{heading.title}` found where `{_REQUIRED[index]}` is required",
+                f"level-2 heading `{echo(heading.title)}` found where `{_REQUIRED[index]}` is required",
             )
     if len(level_two) < len(_REQUIRED):
         raise HandoffError(
