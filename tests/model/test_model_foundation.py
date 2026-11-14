@@ -93,3 +93,54 @@ def test_a_stated_map_missing_a_key_at_scale_1000_is_a_key_error() -> None:
     del stated["base revenue"]
     with pytest.raises(KeyError):
         check_base(inputs, stated, _foundation(row))
+
+
+def _base(fixture: dict[str, Any], **changes: Any) -> Any:
+    """The accepted foundation row's inputs with the revenue operand's fields replaced."""
+    inputs, stated = parse_inputs(_block(fixture))
+    operand = inputs.base["revenue"].model_copy(update=changes)
+    return inputs.model_copy(update={"base": {**inputs.base, "revenue": operand}}), stated
+
+
+def _refusal(fixture: dict[str, Any], **changes: Any) -> list[str]:
+    inputs, stated = _base(fixture, **changes)
+    with pytest.raises(ForecastRefused) as caught:
+        check_base(inputs, stated, _foundation(fixture))
+    error = caught.value
+    return [error.kind.value, error.subject, error.message]
+
+
+_NAMED = (
+    "base revenue must name the `row` label and either the `period` header "
+    "or the `column` header it was read from"
+)
+
+
+@pytest.mark.parametrize("changes", [{"row": None}, {"period": None, "column": None}])
+def test_a_missing_name_is_refused_as_unnamed(changes: dict[str, Any]) -> None:
+    assert _refusal({}, **changes) == ["cell", "base revenue", _NAMED]
+
+
+def test_a_missing_row_with_a_blank_header_is_unnamed() -> None:
+    assert _refusal({}, row=None, period=" ") == ["cell", "base revenue", _NAMED]
+
+
+def test_only_emphasis_marks_are_stripped_from_a_label() -> None:
+    assert _refusal({}, row="XRevenueX")[2].startswith("base revenue: no table cell of CP-1 is at")
+
+
+def test_a_bracketed_cell_with_a_thousands_comma_is_a_negative_number() -> None:
+    row = {"edits": [["| Revenue | 1,318 | 1,456 |", "| Revenue | 1,318 | (1,456) |"]]}
+    inputs, stated = _base(row, amount="-1456")
+    check_base(inputs, stated, _foundation(row))
+
+
+def test_exactly_five_cells_have_no_more_clause() -> None:
+    extra = "".join(f"| Revenue | 1,40{n} |\n" for n in range(4))
+    calc = "Net debt is Total Debt less Cash & Equivalents.\n"
+    table = "| Line item | FY2024 |\n| --- | --- |\n"
+    row = {"edits": [[calc, f"{calc}\n{table}{extra}"]]}
+    message = _refusal(row)[2]
+    assert "(5 cells: " in message
+    assert message.endswith("'])")
+    assert " more" not in message
