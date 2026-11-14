@@ -19,7 +19,7 @@ export function appliedLabel(labels: readonly string[], count: number): string {
 
 const optionId = (option: string) => `option:${option}`;
 
-function FilterSelect({
+export function FilterSelect({
   name,
   options,
   value,
