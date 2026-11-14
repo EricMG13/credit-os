@@ -46,7 +46,7 @@ MIGRATION_1: Migration = (
         "CHECK ((status IN ('rejected', 'finished', 'stopped', 'failed')) = (ended_at IS NOT "
         "NULL)), CHECK ((ended_at IS NULL) = (end_reason IS NULL)), CHECK (end_message IS "
         "NULL OR end_reason IS NOT NULL), CHECK ((status IN ('created', 'rejected')) = "
-        "(started_at IS NULL))) STRICT"
+        "(started_at IS NULL))) STRICT, WITHOUT ROWID"
     ),
     (
         "CREATE TRIGGER runs_created_only BEFORE INSERT ON runs WHEN NEW.status <> 'created' "
@@ -89,7 +89,7 @@ MIGRATION_1: Migration = (
         "1), sha256 TEXT NOT NULL CHECK (length(sha256) = 64 AND length(CAST(sha256 AS "
         "BLOB)) = 64 AND sha256 NOT GLOB '*[^0-9a-f]*'), size_bytes INTEGER NOT NULL CHECK "
         "(size_bytes >= 0), kind TEXT NOT NULL CHECK (length(kind) >= 1), PRIMARY KEY "
-        "(run_id, position), UNIQUE (run_id, name)) STRICT"
+        "(run_id, position), UNIQUE (run_id, name)) STRICT, WITHOUT ROWID"
     ),
     (
         "CREATE TRIGGER run_sources_needs_run BEFORE INSERT ON run_sources WHEN NOT EXISTS "
@@ -109,6 +109,11 @@ MIGRATION_1: Migration = (
     (
         "CREATE TRIGGER run_sources_no_delete BEFORE DELETE ON run_sources BEGIN SELECT "
         "RAISE(ABORT, 'run_sources: a pin is never deleted'); END"
+    ),
+    (
+        "CREATE TRIGGER run_sources_created_only BEFORE INSERT ON run_sources WHEN (SELECT "
+        "status FROM runs WHERE run_id = NEW.run_id) <> 'created' BEGIN SELECT RAISE(ABORT, "
+        "'run_sources: a pin is added only while its run is created'); END"
     ),
     (
         "CREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT CHECK (seq >= 1), run_id TEXT NOT NULL "
