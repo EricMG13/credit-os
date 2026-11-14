@@ -1253,6 +1253,88 @@ describe("readSlice, the data module's records", () => {
       "items[1].label",
     ],
     ["an empty-string navigator label", "metrics", (b: Json) => (b["nav"] = ""), "nav"],
+    ["facts with no groups", "facts", (b: Json) => (b["groups"] = []), "groups"],
+    [
+      "a fact group with no rows",
+      "facts",
+      (b: Json) => (((b["groups"] as Json[])[0] as Json)["rows"] = []),
+      "groups[0].rows",
+    ],
+    [
+      "a fact group with an empty name",
+      "facts",
+      (b: Json) => (((b["groups"] as Json[])[1] as Json)["name"] = ""),
+      "groups[1].name",
+    ],
+    [
+      "a fact with an empty-string value",
+      "facts",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[0] as Json)["rows"] as Json[])[0] as Json)["value"] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "groups[0].rows[0].value.text",
+    ],
+    [
+      "a fact with an unknown trace",
+      "facts",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[1] as Json)["rows"] as Json[])[2] as Json)["trace"] =
+          "nothing"),
+      "groups[1].rows[2].trace",
+    ],
+    [
+      "a fact named twice in a group",
+      "facts",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[0] as Json)["rows"] as Json[])[1] as Json)["label"] = "Amount"),
+      "groups[0].rows[1].label",
+    ],
+    ["status with no groups", "status", (b: Json) => (b["groups"] = []), "groups"],
+    [
+      "a status group outside the Met or not met set",
+      "status",
+      (b: Json) => (((b["groups"] as Json[])[0] as Json)["state"] = "Partly met"),
+      "groups[0].state",
+    ],
+    [
+      "a status group with no count",
+      "status",
+      (b: Json) => delete ((b["groups"] as Json[])[1] as Json)["count"],
+      "groups[1].count",
+    ],
+    [
+      "a status group with no items",
+      "status",
+      (b: Json) => (((b["groups"] as Json[])[1] as Json)["items"] = []),
+      "groups[1].items",
+    ],
+    [
+      "a status item with an empty-string note",
+      "status",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[0] as Json)["items"] as Json[])[0] as Json)["note"] = ""),
+      "groups[0].items[0].note",
+    ],
+    [
+      "a status item with an empty-string value",
+      "status",
+      (b: Json) =>
+        (((((b["groups"] as Json[])[1] as Json)["items"] as Json[])[0] as Json)["value"] = {
+          kind: "value",
+          text: "",
+          at: null,
+        }),
+      "groups[1].items[0].value.text",
+    ],
+    [
+      "a status state given twice",
+      "status",
+      (b: Json) => (((b["groups"] as Json[])[1] as Json)["state"] = "Not met"),
+      "groups[1].state",
+    ],
     ["measures with no items", "measures", (b: Json) => (b["items"] = []), "items"],
     [
       "a measure with an empty-string earlier figure",
@@ -1294,6 +1376,54 @@ describe("readSlice, the data module's records", () => {
     const base = where(slice, kind);
     break_(blockOf(slice, kind));
     expect(invalidReason(slice)).toContain(`${base}.${path}`);
+  });
+
+  it("reads the facility terms and the tests as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const facts = body.records.find((r) => r.kind === "facts");
+    const status = body.records.find((r) => r.kind === "status");
+    expect(
+      facts?.kind === "facts" &&
+        facts.groups.map((g) => [g.name, g.rows.map((r) => [r.label, r.value])]),
+    ).toEqual([
+      [
+        "Term loan B",
+        [
+          ["Amount", { kind: "value", text: "USD 1,150m", at: 1150 }],
+          ["Margin", { kind: "value", text: "Reference rate plus 3.25%", at: null }],
+          ["Maturity", { kind: "value", text: "September 2030", at: null }],
+        ],
+      ],
+      [
+        "Revolving facility",
+        [
+          ["Size", { kind: "value", text: "USD 250m", at: 250 }],
+          ["Drawn", { kind: "value", text: "USD 0m", at: 0 }],
+          ["Commitment fee", null],
+        ],
+      ],
+      ["Receivables facility", [["Availability", { kind: "withheld", reason: null }]]],
+    ]);
+    expect(
+      status?.kind === "status" &&
+        status.groups.map((g) => [g.state, g.count, g.items.map((i) => i.text)]),
+    ).toEqual([
+      ["Not met", "1", ["Compliance certificate on time"]],
+      [
+        "Met",
+        "3",
+        [
+          "First-lien net leverage",
+          "Restricted payments basket",
+          "Receivables facility availability",
+        ],
+      ],
+    ]);
   });
 
   it("accepts a measure with both periods as values and no delta, and counts the items read", () => {
