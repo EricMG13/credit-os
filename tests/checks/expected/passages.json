@@ -78,6 +78,13 @@
     {"name": "limitations: an item that is only a Basis line is skipped", "kind": "prose", "findings": "{lead}- First point.\n\nBasis: a.pdf\n\nBasis: a.pdf\n", "expect": []},
     {"name": "limitations: three alike", "kind": "prose", "findings": "{lead}- Same.\n- Same.\n- Same.\n", "expect": [["prose.limitation-repeat", "refusal", 15, "Same."], ["prose.limitation-repeat", "refusal", 16, "Same."]]},
     {"name": "limitations: letters outside ASCII are kept", "kind": "prose", "findings": "{lead}- Résumé thin.\n- Resume thin.\n", "expect": []},
-    {"name": "limitations: an item under a subsection", "kind": "prose", "findings": "{lead}- Top.\n#### More\n- Top.\n", "expect": [["prose.limitation-repeat", "refusal", 16, "Top."]]}
+    {"name": "limitations: an item under a subsection", "kind": "prose", "findings": "{lead}- Top.\n#### More\n- Top.\n", "expect": [["prose.limitation-repeat", "refusal", 16, "Top."]]},
+    {"name": "name: still judged when a passage heading is repeated", "sources": "| Source | Use |\n| --- | --- |\n| other.pdf | u |\n", "findings": "### Bottom line\nThe view holds.\n### Key findings\n- k\n### Key findings\n- k\n", "expect": [["sources.name", "refusal", 5, "other.pdf"], ["structure.reader", "refusal", 11, "Key findings"]]},
+    {"name": "name: not judged in the earlier format", "sources": "| Source | Use |\n| --- | --- |\n| other.pdf | u |\n", "findings": "### Overview\nText.\n", "expect": [["structure.format", "refusal", 7, "Overview"]]},
+    {"name": "name: another source differing by case", "sources": "| Source | Use |\n| --- | --- |\n| SRC | u |\n", "expect": [["sources.name", "refusal", 5, "SRC"]]},
+    {"name": "type: of two columns with the header, the first is read", "sources": "| Source | Source type | Source type |\n| --- | --- | --- |\n| src | Other | Blog |\n", "expect": []},
+    {"name": "type: of two columns with the header, the second is not read", "sources": "| Source | Source type | Source type |\n| --- | --- | --- |\n| src | Blog | Other |\n", "expect": [["sources.type", "refusal", 5, "Blog"]]},
+    {"name": "sha256: of two columns with the header, the first is read", "pins": [["a.pdf", "{d:1}"]], "sources": "| Source | sha256 | sha256 |\n| --- | --- | --- |\n| a.pdf | {d:1} | {d:2} |\n", "expect": []},
+    {"name": "register id: an id held twice is one refusal for one mention", "findings": "### Bottom line\nLeverage per C-1 is high.\n", "tail": "## Calculations\n| ID | Value |\n| --- | --- |\n| C-1 | high |\n| C-1 | again |\n\nMore.\n\n| ID | Value |\n| --- | --- |\n| C-1 | third |\n## Gaps\nNone.\n## Next module\nNone.\n", "expect": [["prose.register-id", "refusal", 8, "C-1"]]}
   ]
 }
