@@ -67,8 +67,10 @@ repository, in the session notes folder `d2b-records/`; the D2b worktree was arc
   `2f032bd` to `b32a784`. Tasks 8 and 12 were re-cut to at most 800 lines per commit with a tree identical to the
   gated one (diff checked empty).
 - CI: every PR head had `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
-  passing before its merge, with one exception: #168 was merged while a rerun of one of its
-  two Windows jobs was still queued. That job (run 43622974167) had failed once on
+  passing before its merge, with one exception: #168 was merged with one of its
+  two Windows jobs failed: the rerun of that job (run 43622974167, attempt 2) ended
+  cancelled and never produced a result, so on #168's commit that job has one failure and no
+  pass. The failure was
   `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on focus, and
   draws it n.a., never 0" (`Test timed out in 5000ms`, 5,130 ms), a model-pages test outside
   this stack (see "Model pages test timeout (#295)" below); the duplicate Windows job on the
@@ -222,15 +224,19 @@ folder: nothing lost.
 **Not verified.** That any reviewer read `3ca2f8c7` (RR-01 and RR-02 were checked against the
 reviewer's probe only); that the re-review was by a fresh agent (it was the agent that wrote
 the review); a live walk on `3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home
-list and the drawer only); the `web` and `python` push runs on `main` `4a0cbdbb` (queued when
-this entry was written, about 88 runs queued on superseded `main` commits by the
-coordinator's reading); per-commit gating of the seven fix-round commits (the re-review
+list and the drawer only); the Windows web gates on the merged tree (`main` `4a0cbdbb`: `python` push run
+43624986619 passed; `web` push run 43624986501 had `gates (ubuntu-latest)` passed and
+`gates (windows-latest)` cancelled before it finished, requeued by the coordinator at 18:50
+UTC with no result when this was written; the "about 88 runs queued on superseded `main`
+commits" remark, the coordinator's reading at about 18:08 UTC, is the state before the lead
+coordinator cancelled 79 queued push runs on 41 superseded `main` commits at about 18:27 UTC
+on the owner's instruction, keeping the tip's two runs); per-commit gating of the seven fix-round commits (the re-review
 lists it); the print preview of collapsed limitations (task 7 walk: "Not walked"); open
 Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex` on
 issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer
 across runs, was fixed in the fix round); any CI run of a PR
 head merged with `main` after `718a13b4` (the stack was forwarded once; `git merge-tree` with
-`9f900d53` was clean); the rerun of #168's second Windows job (queued at its merge); the full
+`9f900d53` was clean); a passing run of #168's failed Windows job (its rerun was cancelled); the full
 gates at `3ca2f8c7` by the controller (the fixer ran them); the whole-branch review did not
 rerun the gates (taken from the ledger), read the tests in full (about 13k lines, sampled),
 compare each page with its mock frame again, run WBR-12's deep tree, or probe WBR-05 for
