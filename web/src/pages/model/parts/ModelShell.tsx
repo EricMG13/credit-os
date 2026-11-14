@@ -21,7 +21,9 @@ const TABS = [
 
 type ModelPage = (typeof TABS)[number][0];
 
-export type ShellPage = ModelPage;
+/** The Forecast form draws the run's library tabs and the way back into the model. */
+const FORECAST = "forecast";
+export type ShellPage = ModelPage | typeof FORECAST;
 
 const COUNT =
   "rounded-full border border-border-hairline bg-surface-subtle px-2 text-caption text-text-secondary";
@@ -56,7 +58,7 @@ export function ModelShell({
               </li>
               <li aria-hidden="true">/</li>
               <li aria-current="page" className="text-text-primary">
-                Financial model
+                {current === FORECAST ? "Forecast" : "Financial model"}
               </li>
             </ol>
           </nav>
@@ -74,39 +76,62 @@ export function ModelShell({
             </>
           }
           actions={
-            <Button href={links.report} size="md" color="secondary">
-              Back to the report
+            <Button
+              href={current === FORECAST ? `${base}/front` : links.report}
+              size="md"
+              color="secondary"
+            >
+              {current === FORECAST ? "Open the financial model" : "Back to the report"}
             </Button>
           }
         />
         <nav aria-label="Pages" className="flex flex-wrap gap-4 border-b border-border-hairline">
-          <>
-            {TABS.map(([key, label]) => (
+          {current === FORECAST ? (
+            run.forecast.tabs.map((tab) => (
               <a
-                key={key}
-                href={`${base}/${key}`}
-                aria-current={key === current ? "page" : undefined}
+                key={tab.label}
+                href={tab.href}
+                aria-current={tab.current ? "page" : undefined}
                 className={cx(
                   TAB,
-                  key === current
+                  tab.current
                     ? "border-action text-action"
                     : "border-transparent text-text-tertiary",
                 )}
               >
-                {label}
-                {key === "limitations" ? (
-                  <span className={COUNT}>{run.limitations.count}</span>
-                ) : null}
+                {tab.label}
+                {tab.count === null ? null : <span className={COUNT}>{tab.count}</span>}
               </a>
-            ))}
-            <a
-              href={links.evidence}
-              className={cx(TAB, "ml-auto border-transparent text-text-tertiary")}
-            >
-              Evidence
-              <ArrowUpRight className="size-4" aria-hidden="true" />
-            </a>
-          </>
+            ))
+          ) : (
+            <>
+              {TABS.map(([key, label]) => (
+                <a
+                  key={key}
+                  href={`${base}/${key}`}
+                  aria-current={key === current ? "page" : undefined}
+                  className={cx(
+                    TAB,
+                    key === current
+                      ? "border-action text-action"
+                      : "border-transparent text-text-tertiary",
+                  )}
+                >
+                  {label}
+                  {key === "limitations" ? (
+                    <span className={COUNT}>{run.limitations.count}</span>
+                  ) : null}
+                </a>
+              ))}
+              <a
+                href={links.evidence}
+                className={cx(TAB, "ml-auto border-transparent text-text-tertiary")}
+              >
+                Evidence
+                <ArrowUpRight className="size-4" aria-hidden="true" />
+              </a>
+            </>
+          )}
         </nav>
         {children}
       </div>
