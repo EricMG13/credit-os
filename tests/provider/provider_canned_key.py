@@ -60,6 +60,12 @@ _UNFINISHED = {
     "outcome": "unfinished",
     "event_id": "evt-synthetic-3",
 }
+_COMPACTION_4 = {
+    "usage": _COMPACTION_USAGE_1,
+    "billed_usd": Decimal("0.0214050"),
+    "outcome": "done",
+    "event_id": "evt-synthetic-4",
+}
 _COMPACTIONS = (
     {
         "usage": _COMPACTION_USAGE_1,
@@ -137,7 +143,7 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
         "usage": _USAGE_3,
         "billed_usd": Decimal("0.1305870"),
         **_NOT_TIMED,
-        "compactions": _COMPACTIONS[:1],
+        "compactions": (_COMPACTION_4,),
     },
     ("cp2-synthetic", 2): {
         "kind": "sent_unknown",
@@ -287,6 +293,9 @@ CANNED_BAD_LINES: tuple[dict[str, Any] | str, ...] = (
         _line({**_OK, "compactions": [{**_COMPACTION, "outcome": bad}]})
         for bad in (None, True, "", "ok", "Done")
     ),
+    # a compaction has no reasoning-token count: None, never a number
+    _line({**_OK, "compactions": [{**_COMPACTION, "usage": {**_USAGE_3, "reasoning_tokens": 0}}]}),
+    _line({**_OK, "compactions": [{**_COMPACTION, "usage": {**_USAGE_3, "reasoning_tokens": 5}}]}),
     # an unfinished compaction knows nothing: a count or a charge on one is refused
     _line({**_OK, "compactions": [{**_COMPACTION_3, "usage": dict(_USAGE_3)}]}),
     _line({**_OK, "compactions": [{**_COMPACTION_3, "billed_usd": "0"}]}),
