@@ -10,8 +10,11 @@ lines; trim the oldest entries (git history keeps them).
 #146, #154, #155, #172, #173, #174, #175, #188, #189, #190, #192, #193, #195, #203, #204,
 #205, #206, #238, #239, #240, #241, #242, #251, #252, #253. `main` after the last merge:
 `dca4981c`. `git diff --quiet origin/main cc1f8cb3 -- web/src/pages/signal
-web/fixtures/signal.json` exit 0: Signal's pages and fixture on `main` equal the reviewed
-head `cc1f8cb3`.
+web/fixtures/signal.json` exit 0: Signal's pages and fixture on `main` equal the final head
+`cc1f8cb3`. Review coverage: the whole-branch review covers `eb8a83ae..419c360a`; the scoped
+re-review covers `419c360a..42ee09f8`; `cc1f8cb3` (task 18d, 17 lines, the re-review's one
+Low) was gated and checked by the controller against the reviewer's probes (t18-2, t18-2b,
+wb-4 exit 0) and had no review round of its own, as the owner's rule for Low findings allows.
 
 **Order of merging.** #64 to #242 were merged at about 15:20 UTC, before the fix wave's CI
 finished, so for about 15 minutes `main` (`be376a0d`) held the two Medium findings of the
@@ -24,7 +27,9 @@ whole-branch review. #251 to #253 were merged at about 15:32 UTC once their chec
   (#238): its five named commits applied, its three defects confirmed by failing tests first;
   its branch's later commits were weighed in the sweep and not applied. #167 was closed as
   superseded by the lead coordinator on the owner's instruction (a comment on the PR lists
-  where each commit landed).
+  where each commit landed): b6c8ab1e, 364d326b, 1e7e9483, 31977282 and df133331 landed as
+  task 15 (#238); 06213690 in #240; 8769cf4f and fb818546 were ruled as sweep row S12, with
+  repeated statuses re-announced in #242; 16351f09 and 3dea9e97 are formatting and one test.
 
 **Delivers.** The Signal pages from the D1 mocks on fixture data: the feed (For you, Latest,
 Saved; kind tabs, search, new-stories pill, older stories), the four story kinds, the name
@@ -47,10 +52,13 @@ coordinator's session notes folder `d2e-records/`).
 - `npm --prefix web run gates`: exit 0 at `419c360a` (task 17 tip) and at `cc1f8cb3` (task
   18d), and on `42ee09f8` merged with `main` `970bc152` (merge-tree clean; D2c's chart and
   model pages included). Exit 0 on the task 18 commits `7c220f83`, `c27ade8f` and `42ee09f8`
-  per the implementer. Earlier tasks: gates exit 0 per the implementer or controller, except
-  that task 10a's chained run timed out twice in the file check (that step alone exited 0
-  later) and tasks 13a and 13b never passed the open-from-disk step locally (headless Chrome
-  hung under load; 13c and 13d did); CI decided those heads.
+  per the implementer. Explicit gate results are recorded for task 2 (controller gates on
+  `4c2501b` exit 0; implementer on both commits), task 10 (the chained run of 10a timed out
+  twice in the file check; that step alone exited 0 later), task 13 (13a and 13b never passed
+  the open-from-disk step locally, headless Chrome hung under load; 13c and 13d did), task 17
+  (tip gates exit 0) and task 18. For tasks 1, 3 to 9, 11, 12, 14 and 16 only the ledger's
+  gates-first-pass `y` is recorded; no gate result is recorded for task 15's commits. CI
+  decided the heads without a local result.
 - CI: every PR head green on `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
   before its merge. On #94, #143, #144, #146, #154, #188, #193 five older duplicate runs show
   as cancelled (cancelled by the coordinator earlier); each head also has five passing checks.
@@ -63,9 +71,9 @@ coordinator's session notes folder `d2e-records/`).
 **Reviews.**
 - Task review per task, `mx-precise` (18 tasks; task 15 also reviewed #167's commits).
 - Sweep discovery, `/sweep refactoring discover changed-update` (`mx-autonomous`): 22 rows;
-  S1 to S8 fixed in task 17 (#241, #242), each test first; S10 reopened by the whole-branch
-  review and fixed in the task 18 wave (#251 to #253); S19 to S22 (structure, duplication) go
-  to the phase sweep; S12 and S17 are kit decisions; S18 holds owner questions.
+  S1 to S8 fixed in task 17 (#241, #242); S9 not a defect (ruled); S10 reopened by the whole-branch
+  review and fixed in the task 18 wave (#251 to #253); S11 deferred (back-end contract note); S13 reconciled; S14 and S15 fixed at base; S16
+  platform-only; S19 to S22 (structure, duplication) go to the phase sweep; S12 and S17 are kit decisions; S18 holds owner questions.
 - Whole-branch adversarial review (`mx-architect`, fresh agent, `eb8a83ae..419c360a`): FAIL,
   High 0, Medium 2 (a topic or group count badge beside a page that lists nothing; a pressed
   Save forgotten when a filter hides the card), Low 6, Info 4. One fix wave (task 18, #251 to
@@ -76,8 +84,8 @@ coordinator's session notes folder `d2e-records/`).
 **Live validation** (the D2e controller, 2026-11-14). `file://` in headed Chrome over its
 debugging protocol: 51 addresses at 1440 and 1024 (one `h1`, one `main`, no horizontal
 scroll, no "Not built yet", `undefined` or `NaN`, console clean); per-task interaction walks
-t1 to t15 replayed on the finished stack (all pass; t2's step names an old button label, Save
-verified by pointer and keyboard); the task 18 walk (tab panels, Save across search, kind
+t1 to t15 replayed on the finished stack (both at `419c360a`; all pass; t2's step names an old button label, Save
+verified by pointer and keyboard); the task 18 walk, on the fix wave (tab panels, Save across search, kind
 tabs, group page and scenes; filled topic pages; no overflow at 1024). Localhost in the app's
 browser pane (owner-watchable): feed, thread by address, digest, Sources and AI settings,
 reader Settings, name dialog, topic, unreachable feed, Share dialog error and focus return.
@@ -93,6 +101,21 @@ The content-policy and no-network checks count on `file://` only.
   its last-check line under the source.
 - The Saved badge is null while the feed loads (departure from the mock's loading frame).
 - Topic counts keep the mock's values; empty topic views are filled from the scene's stories.
+- A group's unread badge is null in the 9 scenes where the group holds no thread (the mock's
+  nav shows 3).
+- Reaction labels are Agree, Disagree and Seen (decision 0006 ruling 19) over the mock's
+  "Important" and the back end's keys.
+- A reply quotes its parent's whole text (no excerpt field).
+- Comment counts and reaction counts are not recomputed after an in-memory action.
+- Settings freshness: `freshness.failing` is non-null exactly when a source is Failing, and
+  main's line reads "Sources checked 6 min ago · 1 source failing".
+- The nothing-material sample moved to 13 Nov for date order.
+- S11: `top` is required on Latest and Saved views and never drawn (a back-end contract note).
+- `moreMembers` on one list only is accepted (Info, parked).
+- The whole-branch review was dispatched while the tip's Windows web gates sat in a 75-run
+  queue (the change is front-end, not sensitive code); Windows was to be read on every head
+  before the report.
+- The full ledger is kept in the notes folder `d2e-records/`.
 
 **Ledger** (D2e). All `agent=mx-feature`. fix-rounds 0 for tasks 3, 6, 9, 14, 16, 17, 18;
 1 for tasks 1, 4, 5, 7, 8, 11, 12, 13, 15; 2 for tasks 2 and 10. gates-first-pass `y` for
@@ -118,7 +141,10 @@ machine restarts.
 **Not verified.** Edge and Windows beyond CI; a screen reader (I3: a status sentence written
 as a modal closes may not be spoken while the overlay exits); Chrome and Edge accessibility
 trees for the tab panels, and whether the Share modal's inert outside holds in real browsers
-(every reviewer probe ran in jsdom only); reduced motion switched on; pixel comparison with
+(every reviewer probe ran in jsdom only); that any reviewer read `cc1f8cb3`; that the
+re-reviewer ran the new `id-rules.test.ts` and `tab-panels.test.tsx` (it read them, it did
+not run them); the layout at 1440 and 1024 after the Tabs change (the re-reviewer relied on
+the implementer's screenshots); a live walk on `cc1f8cb3` or on merged `main`; reduced motion switched on; pixel comparison with
 the mock frames; whether the Signal service will send the shapes the reader now requires; the
 Python gates on the stack (it touches no Python; CI runs them); the push runs of the `web`
 and `python` workflows on `main` `dca4981c` (queued when this entry was written), and any CI
