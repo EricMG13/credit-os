@@ -112,7 +112,8 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   raised untyped. A link swapped in between the check and the open is not closed by this; the
   pin's size and hash guard the content.
 - **Ruled for PR 1c, not yet in `main`.** `COM0` and `LPT0` are refused as reserved device
-  names (Microsoft lists them; CPython 3.12's table does not).
+  names (CPython 3.12's table omits them; that Microsoft's naming page lists them is from memory,
+  not fetched).
 - **For the first layer that loads pin records (store).** pydantic's `errors()` and `json()`
   carry the whole refused name; that layer bounds it before it prints one.
 - **Kind.** The pin checks the first bytes only. Each reader proves the structure of its kind

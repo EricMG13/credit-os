@@ -163,8 +163,8 @@ Reader and Basis rules (PR 4, #53):
 2. The reader is a view, `read_reader(document)`; `HandoffDocument` gains no field. Passages
    exist only in the new format (the first level-3 section under `Findings` is `Bottom line`);
    a repeated passage heading is refused at the second.
-3. A `Reader summary` section that does not hold exactly its two tables is never read as
-   absent: `summary` is `None` and `summary_section` carries the raw section, so the summary
+3. A `Reader summary` section that does not hold its two tables in the expected shape is
+   never read as absent: `summary` is `None` and `summary_section` carries the raw section, so the summary
    being unreadable is an explicit gap. In the new format both are `None`.
 4. `read_basis(block)` reads a block's last line; the block keeps all its lines. Items are
    split on `; `. A page span is a pair of integers of one to nine digits beside the item's
