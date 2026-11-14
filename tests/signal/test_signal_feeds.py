@@ -10,14 +10,14 @@ from credit_os.signal.feeds import (
     MAX_ATTRIBUTES,
     MAX_BYTES,
     MAX_ELEMENTS,
-    MAX_HTML_CHARS,
     MAX_NAME_CHARS,
     MAX_NAMESPACE_CHARS,
+    MAX_TAG_CHARS,
     Entry,
     FeedError,
+    _drop_long_tags,
     _folded,
     _new_parser,
-    _plain,
     _TreeBuilder,
     parse_feed,
 )
@@ -1141,12 +1141,28 @@ def test_text_outside_the_fields_that_are_read_is_not_kept() -> None:
 def test_folding_equals_the_whole_text_folded_then_cut() -> None:
     import random
 
+    # What each piece leaves in the text, written out here (not computed with the production
+    # helpers): format and control characters vanish, other white space becomes a space.
+    left = {
+        "a": "a",
+        "b": "b",
+        "\u0436": "\u0436",
+        " ": " ",
+        "\n": " ",
+        "\t": " ",
+        "\u200b": "",
+        "\x07": "",
+        "\u00a0": " ",
+        "\x1c": " ",
+        "word": "word",
+    }
     rnd = random.Random(7)
-    pieces = ["a", "b", "\u0436", " ", "\n", "\t", "\u200b", "\x07", "\u00a0", "\x1c", "word"]
     for size in (0, 1, 7, 90, 4095, 4096, 4097, 9000, 20000):
-        text = "".join(rnd.choice(pieces) for _ in range(size))
+        chosen = [rnd.choice(list(left)) for _ in range(size)]
+        text = "".join(chosen)
+        expected = " ".join("".join(left[piece] for piece in chosen).split())
         for limit in (1, 5, 301, 500, 100_000):
-            assert _folded(text, limit) == " ".join(_plain(text).split())[:limit]
+            assert _folded(text, limit) == expected[:limit]
 
 
 def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
@@ -1154,9 +1170,81 @@ def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
     assert _folded(" " * 10_000 + "a b", 10) == "a b"
 
 
-def test_a_description_is_read_for_its_first_html_window_only() -> None:
-    text = "Lead " + "<i></i>" * 100_000  # 700,000 characters, the text first
-    assert _summary_of(text + "late") == "Lead"
-    # the stated cost: more than MAX_HTML_CHARS of markup before any text hides the text
-    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 + 1) + "late") == ""
-    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 - 10) + "late") == "late"
+def test_text_is_read_after_any_amount_of_markup() -> None:
+    assert _summary_of("Lead " + "<i></i>" * 100_000 + "late") == "Lead late"
+    assert _summary_of("<i></i>" * 100_000 + "late") == "late"
+    assert _summary_of("<pre>" + "word " * 40_000 + "</pre>").startswith("word word word")
+    assert _summary_of("<p>" + "word " * 40_000 + "</p>").startswith("word word word")
+
+
+def test_a_summary_after_a_leading_data_image_is_read() -> None:
+    image = '<img src="data:image/png;base64,' + "iVBORw0K" * 20_000 + '"/>'
+    assert (
+        _summary_of(image + "<p>The committee held the rate.</p>") == "The committee held the rate."
+    )
+    style = "<style>" + "p{margin:0}" * 20_000 + "</style>"
+    assert _summary_of(style + "<p>Rate held.</p>") == "Rate held."
+
+
+def test_a_tag_of_the_most_characters_is_kept_and_one_more_is_dropped() -> None:
+    kept = "<a" + " " * (MAX_TAG_CHARS - 3) + ">"
+    assert len(kept) == MAX_TAG_CHARS
+    assert _drop_long_tags(f"x{kept}y") == f"x{kept}y"
+    longer = "<a" + " " * (MAX_TAG_CHARS - 2) + ">"
+    assert _drop_long_tags(f"x{longer}y") == "x y"
+
+
+@pytest.mark.parametrize("opening", ["<!--", "<![CDATA[", "</", "<?"])
+def test_every_kind_of_over_long_tag_is_dropped(opening: str) -> None:
+    assert _drop_long_tags(f"A{opening}{'z' * MAX_TAG_CHARS}>B") == "A B"
+
+
+def test_an_over_long_tag_that_never_closes_takes_the_rest_of_the_text() -> None:
+    assert _drop_long_tags("Keep <a " + "b " * 3000 + "lost") == "Keep  "
+    assert _drop_long_tags("Keep <!--" + "x" * 5000) == "Keep  "
+
+
+def test_text_outside_tags_is_never_dropped() -> None:
+    text = "a < b and " + "<" * 10_000 + " c > d " + "<3 " * 5000 + "end"
+    assert _drop_long_tags(text) == text
+    assert _drop_long_tags("w" * 1_000_000) == "w" * 1_000_000
+
+
+def test_many_angle_brackets_and_no_closing_one_are_read_in_one_pass() -> None:
+    assert _drop_long_tags("<a" * 200_000) == " "
+    assert _drop_long_tags("<a " * 200_000 + "x") == " "
+    assert _drop_long_tags("<a>" * 200_000) == "<a>" * 200_000
+    assert _drop_long_tags('<a "' * 100_000) == " "
+    assert _drop_long_tags('<a ="' * 100_000) == " "
+
+
+@pytest.mark.parametrize("quote", ['"', "'"])
+def test_a_closing_bracket_inside_a_quoted_value_does_not_hide_the_rest_of_a_tag(
+    quote: str,
+) -> None:
+    tag = f"<a x={quote}>{quote} " + "b " * 5000 + ">"
+    assert _drop_long_tags(f"before {tag}after") == "before  after"
+    assert _summary_of(f"before {tag}after") == "before after"
+
+
+def test_a_quote_with_no_partner_opens_no_value() -> None:
+    tag = '<a x=" ' + "b " * 5000 + ">"
+    assert _drop_long_tags(f"before {tag}after") == "before  after"
+    # a quote that does not follow "=" opens nothing either
+    assert _drop_long_tags('<a "x ' + "b " * 5000 + '">after') == " after"
+
+
+def test_cutting_a_tag_out_cannot_join_the_pieces_into_markup() -> None:
+    body = "x<scr<b " + "c " * 3000 + ">ipt>y"
+    assert _drop_long_tags(body) == "x ipt>y"
+    assert _summary_of(body) == "x ipt>y"
+    assert _summary_of("<scr" + "<i " + "j " * 3000 + ">ipt>alert(1)</script>") == "ipt>alert(1)"
+
+
+def test_a_body_that_is_not_contiguous_bytes_is_refused() -> None:
+    with pytest.raises(TypeError, match="contiguous"):
+        parse_feed(cast(bytes, memoryview(RSS + RSS)[::2]))
+    # a contiguous memoryview of any shape is read like its bytes
+    padded = RSS + b" " * (-len(RSS) % 2)
+    two_d = memoryview(padded).cast("B", [2, len(padded) // 2])
+    assert parse_feed(cast(bytes, two_d)) == parse_feed(RSS)

@@ -100,6 +100,15 @@ CASES: dict[str, Callable[[int], bytes]] = {
     "html one tag with a million attributes": lambda s: _fill(_C0 + b"<a ", b"b ", b">" + _C1, s),
     "html unclosed tag with attributes": lambda s: _fill(_C0 + b"<a ", b"b=c ", _C1, s),
     "html unclosed comment": lambda s: _fill(_C0 + b"<!--", b"x", _C1, s),
+    "html quoted > then a million attributes": lambda s: _fill(
+        _C0 + b'<a x=">" ', b"b ", b">" + _C1, s
+    ),
+    "html single-quoted > then a million attributes": lambda s: _fill(
+        _C0 + b"<a x='>' ", b"b ", b">" + _C1, s
+    ),
+    "html unmatched quote then a million attributes": lambda s: _fill(
+        _C0 + b'<a x=" ', b"b ", b">" + _C1, s
+    ),
     "html angle brackets": lambda s: _fill(_C0, b"<", _C1, s),
     "html block tags": lambda s: _fill(_C0, b"<p>", _C1, s),
     "atom html title, one tag with a million attributes": lambda s: _fill(

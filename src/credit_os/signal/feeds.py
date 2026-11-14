@@ -38,8 +38,9 @@ MAX_NAME_CHARS = 1024 * 1024
 # R31. Longest namespace URI declared. The parser resolves prefixes itself and never joins a
 # URI to a name, so a URI costs only its own characters; real namespace URIs are under 100.
 MAX_NAMESPACE_CHARS = 2048
-# R24. Characters of one field handed to the HTML stripper (see _strip_markup).
-MAX_HTML_CHARS = 128 * 1024
+# R31. Longest tag, in characters, handed to the HTML stripper; a longer one is dropped (see
+# _drop_long_tags). html.parser keeps about 280 bytes for each attribute of a tag.
+MAX_TAG_CHARS = 4096
 TITLE_LIMIT = 500
 LINK_LIMIT = 2048
 ERROR_TEXT_LIMIT = 120
@@ -385,26 +386,87 @@ class _TextOnly(HTMLParser):
             self.parts.append(data)
 
 
-def _html_window(raw: str) -> str:
-    """The first MAX_HTML_CHARS characters of ``raw``, ending before a tag they would cut short.
+_TAG_START = frozenset(string.ascii_letters + "/!?")
+_WHITE = frozenset(string.whitespace)
 
-    R24. What html.parser reads is bounded because its memory is not: one start tag with a
-    million attributes costs about 280 bytes an attribute, and only a prefix of the markup can
-    reach the summary (cut to SUMMARY_LIMIT) or the title (cut to TITLE_LIMIT). The prefix
-    changes the result only when the first MAX_HTML_CHARS characters of one field hold fewer
-    than SUMMARY_LIMIT characters of text, all markup, white space or hidden script and style.
+
+class _TagScanner:
+    """Finds where the tag that opens at a ``<`` ends, in one pass over the text.
+
+    The scanner's idea of a tag is only for its size: html.parser remains the reader of what
+    is kept. A tag runs to the first ``>`` that is not inside a quoted attribute value (a quote
+    opens a value when ``=`` comes before it; a quote with no partner opens nothing). If it
+    stopped at any ``>``, a ``>`` inside a value would hide the rest of a tag with a million
+    attributes from the size check while html.parser still read it whole.
+    Each character is looked at a bounded number of times: the position of the next ``>``,
+    ``"`` and ``'`` is kept and searched again only once the scan has passed it.
     """
-    if len(raw) <= MAX_HTML_CHARS:
+
+    def __init__(self, raw: str) -> None:
+        self.raw = raw
+        self.size = len(raw)
+        self._next = {">": -1, '"': -1, "'": -1}
+
+    def _find(self, char: str, pos: int) -> int:
+        if self._next[char] < pos:
+            found = self.raw.find(char, pos)
+            self._next[char] = self.size if found < 0 else found
+        return self._next[char]
+
+    def _opens_value(self, quote: int) -> bool:
+        back = quote - 1
+        while back >= 0 and self.raw[back] in _WHITE:
+            back -= 1
+        return back >= 0 and self.raw[back] == "="
+
+    def end(self, start: int) -> int:
+        """The index after the tag opened at ``start``; the text size if the tag never closes."""
+        pos = start + 1
+        while True:
+            close = self._find(">", pos)
+            if close >= self.size:
+                return self.size
+            quote = min(self._find('"', pos), self._find("'", pos))
+            if quote > close:
+                return close + 1
+            partner = self._find(self.raw[quote], quote + 1) if self._opens_value(quote) else None
+            pos = quote + 1 if partner is None or partner >= self.size else partner + 1
+
+
+def _drop_long_tags(raw: str) -> str:
+    """``raw`` with each tag of more than MAX_TAG_CHARS characters replaced by one space.
+
+    R31. What html.parser reads is bounded by removing what costs memory: one start tag with a
+    million attributes is about 280 bytes an attribute, and only the text outside tags can
+    reach the summary or the title. A tag is a ``<`` followed by an ASCII letter, ``/``, ``!``
+    or ``?`` and what follows it up to the closing ``>``; one that never closes takes the rest
+    of the text. Comments and CDATA sections are cut the same way. Text outside tags is never
+    dropped, and one space cannot join two pieces into markup. The scanner's idea of a tag is
+    only for size (see _TagScanner); the result still goes to html.parser.
+    """
+    scanner = _TagScanner(raw)
+    kept: list[str] = []
+    copied = 0
+    at = raw.find("<")
+    while at >= 0:
+        resume = at + 1
+        if resume < scanner.size and raw[resume] in _TAG_START:
+            resume = scanner.end(at)
+            if resume - at > MAX_TAG_CHARS:
+                kept += (raw[copied:at], " ")
+                copied = resume
+        at = raw.find("<", resume)
+    if not copied:
         return raw
-    cut = raw.rfind("<", 0, MAX_HTML_CHARS)
-    return raw[: cut if cut >= 0 else MAX_HTML_CHARS]
+    kept.append(raw[copied:])
+    return "".join(kept)
 
 
 def _strip_markup(raw: str) -> str:
     """The text of an HTML fragment, markup removed and character references decoded."""
     parser = _TextOnly()
     try:
-        parser.feed(_html_window(raw))
+        parser.feed(_drop_long_tags(raw))
         parser.close()
     except AssertionError as exc:
         # Standard libraries before the 2025 html.parser fixes assert on some markup (R20).
@@ -566,12 +628,14 @@ def _entries(root: _Node) -> list[Entry]:
 def parse_feed(body: bytes) -> list[Entry]:
     """Return the readable entries of an RSS 2.0 or Atom feed, in feed order.
 
-    R26: anything but bytes, bytearray or memoryview (the predecessor's byte search accepted
-    these; the annotation stays ``bytes``, as its was) is a TypeError, before the size check: a str is measured in characters, not
-    in the bytes expat would encode it to.
+    R26: anything but bytes, bytearray or a contiguous memoryview (the predecessor's byte search
+    accepted these; the annotation stays ``bytes``, as its was) is a TypeError, before the size
+    check: a str is measured in characters, not in the bytes expat would encode it to.
     """
     if not isinstance(body, bytes | bytearray | memoryview):
         raise TypeError("feed body must be bytes")
+    if isinstance(body, memoryview) and not body.contiguous:
+        raise TypeError("feed body must be contiguous bytes")
     if memoryview(body).nbytes > MAX_BYTES:
         raise FeedError("feed is larger than 2 MiB")
     try:
