@@ -52,9 +52,10 @@ describe("Documents, no documents (frame 01)", () => {
     expect(screen.getByRole("button", { name: "Choose files" })).toHaveAccessibleDescription(
       REASON,
     );
-    expect(screen.getByRole("group", { name: "Upload documents" })).toHaveAccessibleDescription(
-      REASON,
-    );
+    const upload = screen.getByRole("button", { name: /Click to upload/ });
+    expect(upload).toBeDisabled();
+    expect(upload).toHaveAccessibleDescription(REASON);
+    expect(document.querySelector("input[type='file']")).toBeNull();
     expect(screen.queryByRole("list", { name: "Documents added" })).toBeNull();
   });
 });
@@ -132,10 +133,18 @@ describe("Documents, with files (frame 02)", () => {
     expect(screen.getAllByText(REASON)).toHaveLength(1);
   });
 
-  it("marks only the unreadable row as the error row and starts no animation", () => {
+  it("marks only the unreadable row as the error row and pulses nothing while uploading", () => {
     expect(rows().filter((li) => li.hasAttribute("data-error"))).toEqual([rows()[4]]);
-    const page = screen.getByRole("list", { name: "Documents added" });
-    expect(page.querySelector(".status-halo, [class*='animate-']")).toBeNull();
+    expect(within(rows()[2] as HTMLElement).getByText("Uploading")).toBeVisible();
+    expect(document.querySelector(".status-halo")).toBeNull();
+  });
+
+  it("gives the file kind a readable band and a spoken kind once per row", () => {
+    const first = rows()[0] as HTMLElement;
+    const band = within(first).getByText("PDF");
+    expect(band).toHaveClass("bg-primary-solid", "text-white");
+    expect(band.closest("[aria-hidden='true']")).not.toBeNull();
+    expect(within(first).getByText("PDF file:")).toHaveClass("sr-only");
   });
 });
 
@@ -149,7 +158,10 @@ describe("Documents, long name", () => {
     if (first === undefined) throw new Error("fixture has no first file");
     first.name = name;
     show("/run/start/documents", source);
-    expect(screen.getByText(name)).toBeVisible();
+    const nameEl = screen.getByText(name);
+    expect(nameEl).toBeVisible();
+    expect(nameEl).toHaveClass("wrap-anywhere");
+    expect(nameEl.className).not.toMatch(/truncate|line-clamp/);
     expect(screen.getByRole("button", { name: `Remove ${name}` })).toBeInTheDocument();
   });
 });

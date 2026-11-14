@@ -1,7 +1,8 @@
 import { useId } from "react";
-import { Trash01 } from "@untitledui/icons";
+import { Trash01, UploadCloud02 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { FileUpload } from "@/components/application/file-upload/file-upload-base";
+import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { Button } from "@/components/base/buttons/button";
 import { ButtonUtility } from "@/components/base/buttons/button-utility";
 import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
@@ -28,14 +29,17 @@ function FileRow({ file, reasonId }: { file: Files[number]; reasonId: string }) 
     >
       <div aria-hidden="true" className="relative size-10 shrink-0">
         <div className="absolute top-0 left-[7px] h-[38px] w-[27px] rounded-tl rounded-tr-[10px] rounded-b border-[1.5px] border-container bg-primary" />
-        <div className="absolute top-[18px] left-px h-4 min-w-[26px] rounded-[2px] bg-secondary px-[3px] text-center text-[9px] leading-4 font-bold tracking-[.02em] text-white">
+        <div className="absolute top-[18px] left-px h-4 min-w-[26px] rounded-[2px] bg-primary-solid px-[3px] text-center text-[9px] leading-4 font-bold tracking-[.02em] text-white">
           {file.kind}
         </div>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium wrap-anywhere text-secondary">{file.name}</p>
+            <p className="text-sm font-medium wrap-anywhere text-secondary">
+              <span className="sr-only">{`${file.kind} file: `}</span>
+              {file.name}
+            </p>
             <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-tertiary">
               <span className="tabular-nums">{file.size}</span>
               <hr className="h-3 w-px rounded-full border-none bg-border-primary" />
@@ -79,6 +83,25 @@ function FileRow({ file, reasonId }: { file: Files[number]; reasonId: string }) 
   );
 }
 
+// Kit candidate: FileUpload.DropZone forwards aria-describedby to its button and input.
+// Drawn here because uploading is never available on this page: one disabled button, no file input.
+function DropZone({ reasonId }: { reasonId: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl bg-secondary px-6 py-4 text-tertiary ring-1 ring-secondary ring-inset">
+      <FeaturedIcon icon={UploadCloud02} color="gray" size="md" className="opacity-50" />
+      <div className="flex flex-col gap-1 text-center">
+        <div className="flex flex-wrap justify-center gap-1 text-center">
+          <Button color="link-color" size="md" isDisabled aria-describedby={reasonId}>
+            Click to upload
+          </Button>
+          <span className="text-sm">or drag and drop</span>
+        </div>
+        <p className="text-xs">PDF, DOCX, HTML or XLSX, up to 50 MB each</p>
+      </div>
+    </div>
+  );
+}
+
 /** The Documents step: the drop zone (present, disabled), then the empty state or one row per file. */
 export function Documents({ files }: { files: Files }) {
   const reasonId = useId();
@@ -92,9 +115,7 @@ export function Documents({ files }: { files: Files }) {
         </p>
       </div>
       <FileUpload.Root>
-        <div role="group" aria-label="Upload documents" aria-describedby={reasonId}>
-          <FileUpload.DropZone hint="PDF, DOCX, HTML or XLSX, up to 50 MB each" isDisabled />
-        </div>
+        <DropZone reasonId={reasonId} />
         <p id={reasonId} className="text-sm text-text-secondary">
           {REASON}
         </p>
