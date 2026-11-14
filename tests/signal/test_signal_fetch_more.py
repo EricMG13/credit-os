@@ -1,6 +1,6 @@
 """Fetch rules for Signal, the rest: addresses, redirects, validators, status, body and failures.
 
-Run on the helpers and the network guard of ``test_signal_fetch``; nothing touches a network.
+Run on the helpers and the network guard of ``signal_fetch_support``; nothing touches a network.
 """
 
 import http.client
@@ -11,7 +11,7 @@ from collections.abc import Callable, Iterable
 from typing import Any
 
 import pytest
-from test_signal_fetch import (
+from signal_fetch_support import (
     PUBLIC,
     PUBLIC_IP,
     URL,
@@ -19,6 +19,7 @@ from test_signal_fetch import (
     Counting,
     Reply,
     Wire,
+    assert_the_guard_is_active,
     no_outside_network,
     ok,
     redirect,
@@ -37,8 +38,12 @@ from credit_os.signal.fetch import (
 )
 from credit_os.signal.netpin import ConnectionTarget
 
-# The autouse guard is a fixture of the other module; naming it here applies it to these tests.
+# The guard is an autouse fixture; naming it here applies it to every test in this file.
 _guard = no_outside_network
+
+
+def test_the_guard_is_active_in_this_file() -> None:
+    assert_the_guard_is_active()
 
 
 @pytest.mark.parametrize(
