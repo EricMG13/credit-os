@@ -21,7 +21,6 @@ _STOPS: dict[str, StopReason] = {
     **dict.fromkeys(("tool_calls", "tool_use"), "tool_use"),
     **dict.fromkeys(("length", "max_tokens"), "max_tokens"),
 }
-_KINDS = ("assistant.message", "session.error", "session.idle", "model.call_failure")
 _ROUTES = {"isByok": "ByokRouted", "isAuto": "AutoRouted"}
 _MAX_NANO = 10**39  # a charge has at most 39 digits
 _MAX_FLOAT_NANO = 2**53  # a float holds every whole number up to here
@@ -141,21 +140,34 @@ def _early_problem(
     events: list[Any], usage_data: list[dict[str, Any]], model: str, redactor: Redactor
 ) -> _Problem | None:
     """Rules 4 to 9: the first that applies."""
-    data = {kind: _of_type(events, kind) for kind in _KINDS}
-    if any(not isinstance(d.get("content"), str) for d in data["assistant.message"]):
+    errors = _of_type(events, "session.error")
+    if any(not isinstance(d.get("content"), str) for d in _of_type(events, "assistant.message")):
         return "UnparsableReply", "an assistant.message content is not a string"
-    if data["session.error"]:
-        err = data["session.error"][0]
-        parts = [p for p in (err.get("errorType"), err.get("message")) if isinstance(p, str) and p]
+    if errors:
+        parts = [
+            p
+            for p in (errors[0].get("errorType"), errors[0].get("message"))
+            if p and isinstance(p, str)
+        ]
         return "SessionError", redactor.text(home_paths(": ".join(parts)))[:500]
-    if any(d.get("aborted") is True for d in data["session.idle"]):
+    if any(d.get("aborted") is True for d in _of_type(events, "session.idle")):
         return "Aborted", "the session went idle after an abort"
+    return _usage_problem(usage_data, model) or _route_problem(
+        _of_type(events, "model.call_failure")
+    )
+
+
+def _usage_problem(usage_data: list[dict[str, Any]], model: str) -> _Problem | None:
     if not usage_data:
         return "UnparsableReply", "no assistant.usage event"
     if any(d.get("model") != model for d in usage_data):
         return "ModelMismatch", "the reply was refused: ModelMismatch"
+    return None
+
+
+def _route_problem(failures: list[dict[str, Any]]) -> _Problem | None:
     for flag, name in _ROUTES.items():
-        if any(d.get(flag) is True for d in data["model.call_failure"]):
+        if any(d.get(flag) is True for d in failures):
             return name, f"the reply was refused: {name}"
     return None
 
