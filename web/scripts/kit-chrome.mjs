@@ -116,16 +116,33 @@ async function linkButton(send) {
     (n) => !n.ignored && n.role?.value === "link" && n.name?.value === "Library unavailable",
   );
   const target = `[...document.querySelectorAll("section[aria-labelledby=kit-link-button] a")][0]`;
-  await evaluate(
+  const reached = await evaluate(
     send,
-    `(() => { const all = [...document.querySelectorAll("a[href],button,input,select,textarea,[tabindex]")].filter((e) => e.tabIndex >= 0 && !e.disabled && e.getBoundingClientRect().width > 1); all[all.indexOf(${target}) - 1].focus(); })()`,
+    `(() => { const t = ${target}; if (!t) return "no link in the kit link-button section"; const all = [...document.querySelectorAll("a[href],button,input,select,textarea,[tabindex]")].filter((e) => e.tabIndex >= 0 && !e.disabled && e.getBoundingClientRect().width > 1); const before = all[all.indexOf(t) - 1]; if (!before) return "no focusable element before the link"; before.focus(); return "ok"; })()`,
   );
   await press(send, "Tab", "Tab", 9);
   const ring = await evaluate(
     send,
     `(() => { const f = ${target}; if (document.activeElement !== f) return null; const c = getComputedStyle(f); return { colour: c.outlineColor, width: c.outlineWidth, style: c.outlineStyle }; })()`,
   );
-  return { found: Boolean(link), disabledFound: Boolean(disabled), ring };
+  // Tab from the enabled link must pass over the disabled one: it has no tab stop.
+  const disabledSel = `document.querySelector("section[aria-labelledby=kit-link-button] [aria-disabled=true]")`;
+  await press(send, "Tab", "Tab", 9);
+  const tabStop = await evaluate(
+    send,
+    `(() => { const d = ${disabledSel}; return d ? { reached: document.activeElement === d, tabIndex: d.tabIndex } : null; })()`,
+  );
+  const announcedDisabled = Boolean(
+    disabled?.properties?.some((p) => p.name === "disabled" && p.value?.value === true),
+  );
+  return {
+    found: Boolean(link),
+    disabledFound: Boolean(disabled),
+    ring,
+    reached,
+    announcedDisabled,
+    tabStop,
+  };
 }
 
 /** Prints PASS or FAIL lines for the kit page opened from file:// and returns true when all pass. */
@@ -167,11 +184,16 @@ export async function checkKitInChrome({ browser, folder }) {
     const linkOk =
       link.found &&
       link.disabledFound &&
+      link.reached === "ok" &&
+      link.announcedDisabled &&
+      link.tabStop !== null &&
+      !link.tabStop.reached &&
+      link.tabStop.tabIndex < 0 &&
       link.ring?.colour === want &&
       link.ring?.width === "2px" &&
       link.ring?.style === "solid";
     console.log(
-      `${linkOk ? "PASS" : "FAIL"} kit page: the link button has role link and its label as name (disabled one too) and a keyboard-focused one draws a 2px ${want} outline${linkOk ? "" : ` (found: ${JSON.stringify(link)})`}`,
+      `${linkOk ? "PASS" : "FAIL"} kit page: the link button has role link and its label as name (disabled one too, announced disabled and skipped by Tab) and a keyboard-focused one draws a 2px ${want} outline${linkOk ? "" : ` (found: ${JSON.stringify(link)})`}`,
     );
     close();
     return names.length === 0 && ok && linkOk;

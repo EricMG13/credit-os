@@ -14,7 +14,7 @@ export const styles = sortCx({
     root: [
       "group relative inline-flex h-max cursor-pointer items-center justify-center whitespace-nowrap outline-brand transition duration-100 ease-linear before:absolute focus-visible:outline-2 focus-visible:outline-offset-2",
       // Disabled styles
-      "disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed data-disabled:opacity-50",
+      "disabled:cursor-not-allowed disabled:opacity-50",
       // Same as `icon` but for SSR icons that cannot be passed to the client as functions.
       "*:data-icon:pointer-events-none *:data-icon:size-5 *:data-icon:shrink-0 *:data-icon:transition-inherit-all",
     ].join(" "),
@@ -196,6 +196,8 @@ export const Button = ({
     styles.sizes[size].root,
     styles.colors[color].root,
     isLinkType && styles.sizes[size].linkRoot,
+    // A disabled link is a span with data-disabled, not a disabled button.
+    props.href !== undefined && "data-disabled:cursor-not-allowed data-disabled:opacity-50",
     loading && "pointer-events-none",
     // If in `loading` state, hide everything except the loading icon. Opacity, not visibility:
     // hidden text names nothing in Chrome, and the label is the button's name.
