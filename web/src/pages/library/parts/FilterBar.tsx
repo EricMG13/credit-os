@@ -1,11 +1,21 @@
 import { SearchLg } from "@untitledui/icons";
 import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
+import type { ReactNode } from "react";
 import type { LibraryHome } from "../slice";
 
 export const ALL = "all";
 export type Filters = { search: string; sector: string; pathway: string; state: string };
 export const NO_FILTERS: Filters = { search: "", sector: ALL, pathway: ALL, state: ALL };
+
+/** The slice's own words for `count` filters applied; a count with no label is a malformed slice. */
+export function appliedLabel(labels: readonly string[], count: number): string {
+  const label = labels[count];
+  if (label === undefined) {
+    throw new RangeError(`no applied-filter label for ${String(count)} filters`);
+  }
+  return label;
+}
 
 const optionId = (option: string) => `option:${option}`;
 
@@ -23,16 +33,21 @@ function FilterSelect({
   return (
     <Select
       aria-label={name}
-      className="w-60"
+      popoverClassName="w-auto min-w-(--trigger-width)"
       value={value === ALL ? ALL : optionId(value)}
       onChange={(key) => {
         const id = String(key);
         onChange(id === ALL ? ALL : id.slice("option:".length));
       }}
     >
-      <Select.Item id={ALL} label={`${name}: All`} />
+      <Select.Item id={ALL} label="All" value={{ id: ALL, label: `${name}: All` }} />
       {options.map((option) => (
-        <Select.Item key={option} id={optionId(option)} label={`${name}: ${option}`} />
+        <Select.Item
+          key={option}
+          id={optionId(option)}
+          label={option}
+          value={{ id: optionId(option), label: `${name}: ${option}` }}
+        />
       ))}
     </Select>
   );
@@ -43,16 +58,19 @@ export function FilterBar({
   filters,
   values,
   onChange,
-  appliedLabel,
+  appliedLabel: applied,
+  children,
 }: {
   filters: LibraryHome["filters"];
   values: Filters;
   onChange: (next: Filters) => void;
   appliedLabel: string;
+  /** Controls drawn at the right end, after the applied label. */
+  children?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="w-72">
+      <div className="w-[280px] max-w-full">
         <Input
           icon={SearchLg}
           placeholder="Search issuers"
@@ -86,7 +104,10 @@ export function FilterBar({
           onChange({ ...values, state });
         }}
       />
-      <span className="ml-auto text-small text-text-tertiary">{appliedLabel}</span>
+      <div className="ml-auto flex items-center gap-4">
+        <span className="text-small text-text-tertiary">{applied}</span>
+        {children}
+      </div>
     </div>
   );
 }

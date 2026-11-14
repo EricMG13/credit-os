@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BookOpen01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Button } from "@/components/base/buttons/button";
-import { ALL, FilterBar, NO_FILTERS, type Filters } from "./parts/FilterBar";
+import { ALL, FilterBar, NO_FILTERS, appliedLabel, type Filters } from "./parts/FilterBar";
 import { IssuerCard, LoadingCard } from "./parts/IssuerCard";
 import { ButtonLink } from "./parts/ButtonLink";
 import { LibraryPage } from "./parts/LibraryPage";
@@ -57,7 +57,7 @@ function Cards({ home }: { home: LibraryHome }) {
         filters={home.filters}
         values={filters}
         onChange={setFilters}
-        appliedLabel={home.filters.appliedLabels[applied(filters)] ?? ""}
+        appliedLabel={appliedLabel(home.filters.appliedLabels, applied(filters))}
       />
       {shown.length === 0 ? (
         <EmptyState>
