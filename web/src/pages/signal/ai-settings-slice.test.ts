@@ -43,6 +43,13 @@ describe("Topics, the digest form and AI and cost in the slice", () => {
 
   it.each<[string, number, (string | number)[], Json | undefined, string]>([
     [
+      "a settings topic listed twice",
+      MAIN,
+      [...P, "topics", 1, "id"],
+      "shipping",
+      `${M}.topics[1].id: expected an id the list does not repeat`,
+    ],
+    [
       "a topic with no kinds list",
       MAIN,
       [...P, "topics", 0, "kinds"],
@@ -197,6 +204,18 @@ describe("Topics, the digest form and AI and cost in the slice", () => {
     expect(readSlice(off)).toEqual(
       invalid(
         "scenes[2].snapshot.channels.digests[0].paused: expected true, as settings.ai.state off says",
+      ),
+    );
+  });
+
+  it("refuses AI off while a story carries a signal strength and no AI line", () => {
+    const stale = change(MAIN, ["snapshot", "feed", "stories", 0, "strength"], {
+      marks: 2,
+      word: "Moderate",
+    });
+    expect(readSlice(stale)).toEqual(
+      invalid(
+        "scenes[0].snapshot.feed.stories[0].ai: expected null (and strength null), as settings.ai.state off says",
       ),
     );
   });

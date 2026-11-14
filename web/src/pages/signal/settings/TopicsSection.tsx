@@ -64,7 +64,7 @@ export function TopicsSection({
         </p>
       ) : null}
       {topics.length === 0 ? (
-        <p className="text-sm text-text-tertiary">No topics yet.</p>
+        <p className="text-sm text-text-tertiary">No topics yet</p>
       ) : (
         <ul>
           {topics.map((topic) => (
