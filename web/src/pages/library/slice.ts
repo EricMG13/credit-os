@@ -513,6 +513,20 @@ export type GapTable = {
   groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
 };
 
+/** The groups of the jump menu, in the order it draws them. */
+export const JUMP_GROUPS = ["Figures", "Calculations", "Gaps"] as const;
+
+/**
+ * One item of the jump menu. `target` is the Evidence tab it opens and the row it names: a row id of
+ * the Trace tab, or of the Gaps tab.
+ */
+export type JumpItem = {
+  group: (typeof JUMP_GROUPS)[number];
+  label: string;
+  detail: string;
+  target: { tab: "trace" | "gaps"; item: string };
+};
+
 /**
  * A run's Evidence pages. `moduleFilter` is the options of the module filter. `tabs` are the delivered
  * counts of the Trace, Sources and Gaps tabs; the Trace and Gaps counts are the numbers of rows they hold. On Sources the first `visible` files are drawn and the
@@ -531,6 +545,7 @@ export type Evidence = {
   sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
   trace: TraceTable;
   gaps: GapTable;
+  jump: readonly JumpItem[];
 };
 
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };

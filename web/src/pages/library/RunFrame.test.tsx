@@ -115,10 +115,12 @@ describe("RunFrame tabs", () => {
       sources: { files: { readers: unknown }[] };
       trace: { rows: { id: string; module: string; moduleId: string | null }[] };
       gaps: { groups: unknown[] };
+      jump: unknown[];
       tabs: Json;
     };
     evidence.moduleFilter = [];
     evidence.gaps.groups = [];
+    evidence.jump = [];
     evidence.tabs["gaps"] = "0";
     (run.overview as { limitations: { gapsLink: Json } }).limitations.gapsLink["label"] =
       "See the 0 gaps in Evidence";

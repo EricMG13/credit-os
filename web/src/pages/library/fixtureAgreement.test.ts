@@ -75,7 +75,7 @@ function titled(node: unknown, found: { title: string; trace: string }[] = []) {
 
 /**
  * The form of a delivered Cell: missing, withheld, gap or value. The text of a value is not
- * compared: the Trace register shows the mock's own figure text ("2,105"), the page adds its unit.
+ * compared: the Trace register adds the unit ("USD 2,105m"), the page shows the mock's own figure text ("2,105").
  */
 function form(cell: unknown): string {
   return cell === null ? "missing" : String((cell as { kind?: string }).kind);
@@ -155,6 +155,11 @@ describe("the fixture's runs agree with themselves", () => {
       ["net-leverage", "T-0014", "Net leverage 4.6x"],
       ["interest-cover", "T-0015", "Interest cover 2.4x"],
       [
+        "bp-finding-1",
+        "T-0032",
+        "Parts and repair bring 44% of revenue and about three fifths of gross profit.",
+      ],
+      [
         "bp-finding-3",
         "T-0031",
         "Three customers bring 58% of revenue and one engine programme 34%.",
@@ -211,7 +216,7 @@ describe("the fixture's runs agree with themselves", () => {
       expect(run.evidence.tabs.trace, run.id).toBe(rows);
       expect(count(run, "Calculations").value.text, run.id).toBe(rows);
     }
-    expect(fullRun().evidence.trace.rows).toHaveLength(58);
+    expect(fullRun().evidence.trace.rows).toHaveLength(59);
     expect(count(fullRun(), "Calculations").note).toBe("Each one traceable to its inputs");
     for (const run of loaded.filter((r) => r.evidence.trace.rows.length === 0)) {
       expect(count(run, "Calculations").note, run.id).toBe("Not traced item by item in this run");

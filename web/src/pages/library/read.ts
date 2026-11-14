@@ -26,6 +26,7 @@ import type {
   HistoryEntry,
   Issuer,
   IssuerCard,
+  JumpItem,
   LibraryHome,
   LibrarySlice,
   Limitations,
@@ -50,7 +51,7 @@ import type {
   TraceTable,
   TreeNode,
 } from "./slice";
-import { APPLIED_LABELS, CHART_TABLE_LIMITS } from "./slice";
+import { APPLIED_LABELS, CHART_TABLE_LIMITS, JUMP_GROUPS } from "./slice";
 
 type Rec = Record<string, unknown>;
 
@@ -1665,6 +1666,30 @@ function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
   };
 }
 
+/** Each item of the jump menu opens a row the run's Trace tab or Gaps tab holds. */
+function readJump(e: Rec, path: string, trace: TraceTable, gaps: GapTable): JumpItem[] {
+  const rows = {
+    trace: new Set(trace.rows.map((row) => row.id)),
+    gaps: new Set(gaps.groups.flatMap((g) => g.rows.map((row) => row.id))),
+  };
+  return list(e, "jump", path, (value, p) => {
+    const j = rec(value, p);
+    const targetPath = child(p, "target");
+    const target = rec(own(j, "target"), targetPath);
+    const tab = oneOf(target, "tab", targetPath, ["trace", "gaps"]);
+    const item = str(target, "item", targetPath);
+    if (!rows[tab].has(item)) {
+      throw new SliceError(child(targetPath, "item"), `a row id of evidence.${tab}`);
+    }
+    return {
+      group: oneOf(j, "group", p, JUMP_GROUPS),
+      label: named(j, "label", p),
+      detail: named(j, "detail", p),
+      target: { tab, item },
+    };
+  });
+}
+
 function readEvidence(value: unknown, path: string, traces: Traces, modules: Module[]): Evidence {
   const e = rec(value, path);
   const moduleFilter = readFilter(e, path, modules);
@@ -1693,6 +1718,7 @@ function readEvidence(value: unknown, path: string, traces: Traces, modules: Mod
     sources: readSources(own(e, "sources"), child(path, "sources"), held),
     trace,
     gaps,
+    jump: readJump(e, path, trace, gaps),
   };
 }
 

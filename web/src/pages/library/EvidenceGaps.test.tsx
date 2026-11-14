@@ -96,7 +96,10 @@ describe("Evidence, Gaps", () => {
     const rowHeads = within(table()).getAllByRole("rowheader");
     const groups = rowHeads.filter((h) => h.getAttribute("scope") === "rowgroup");
     expect(groups.map((h) => h.textContent)).toEqual(["High2", "Medium3", "Low2"]);
-    expect(rowHeads.filter((h) => h.getAttribute("scope") === "row")).toHaveLength(7);
+    const idCells = rowHeads.filter((h) => h.getAttribute("scope") === "row");
+    expect(idCells).toHaveLength(7);
+    // An id never breaks inside itself ("G-/01").
+    for (const cell of idCells) expect(cell).toHaveClass("whitespace-nowrap");
     expect(head("Gap")).toHaveAttribute("aria-sort", "none");
     expect(head("Module")).toHaveAttribute("aria-sort", "none");
     expect(head("What is missing")).not.toHaveAttribute("aria-sort");
@@ -248,10 +251,13 @@ describe("Evidence, Gaps", () => {
 
   it("says a run with no gap has none, with no table", () => {
     const slice = structuredClone(fixture.slice) as {
-      issuers: { runs: { evidence: { gaps: Json; tabs: Json }; overview: Json }[] }[];
+      issuers: {
+        runs: { evidence: { gaps: Json; tabs: Json; jump: unknown[] }; overview: Json }[];
+      }[];
     };
     const run = slice.issuers[0]?.runs[3] as (typeof slice.issuers)[0]["runs"][0];
     run.evidence.gaps["groups"] = [];
+    run.evidence.jump = [];
     run.evidence.tabs["gaps"] = "0";
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";

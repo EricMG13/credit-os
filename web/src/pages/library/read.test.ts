@@ -1307,8 +1307,9 @@ describe("readSlice, modules", () => {
 
   /** A run that holds no module has no gap in one, and its tab and Overview link say so. */
   const noGaps = (run: Json) => {
-    const evidence = run["evidence"] as { gaps: Json; tabs: Json };
+    const evidence = run["evidence"] as { gaps: Json; tabs: Json; jump: unknown[] };
     evidence.gaps["groups"] = [];
+    evidence.jump = [];
     evidence.tabs["gaps"] = "0";
     const limits = (run["overview"] as { limitations: { gapsLink: Json } }).limitations;
     limits.gapsLink["label"] = "See the 0 gaps in Evidence";
