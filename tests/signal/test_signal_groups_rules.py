@@ -402,6 +402,55 @@ def test_the_manager_check_excludes_exactly_the_leaver(db: sqlite3.Connection) -
     add_member(db, Act(AK, T0), gid, "_k")
     leave(db, "_k", gid)  # ak, whose name _k would match as a pattern, is still the manager
     assert members(db, "ak", gid) == ["ak"]
+    # a leaver whose name is a GLOB wildcard ("a*" matches "ak") is excluded by equality, not by
+    # pattern: "ak" must still count as the group's manager
+    add_user(db, "a*", "reader")
+    second = create_group(db, Act(AK, T0), "Wildcard leaver", "invited", [])
+    add_member(db, Act(AK, T0), second, "a*")
+    leave(db, "a*", second)
+    assert members(db, "ak", second) == ["ak"]
+
+
+def test_members_reads_the_check_and_the_list_in_one_snapshot(
+    db: sqlite3.Connection, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    add_user(db, "nb", "reader")
+    gid = create_group(db, Act(AK, T0), "Inner", "invited", [])
+    add_member(db, Act(AK, T0), gid, "ml")
+    real = groups.require_visible
+    other = open_db(tmp_path)  # the second connection: a writer that commits between the reads
+
+    fired: list[bool] = []
+
+    def hooked(handle: sqlite3.Connection, user_name: str, group_id: int) -> sqlite3.Row:
+        row = real(handle, user_name, group_id)
+        if handle is not db or fired:
+            return row
+        fired.append(True)
+        remove_member(other, AK, group_id, "ml")
+        add_member(other, Act(AK, T0), group_id, "nb")
+        return row
+
+    monkeypatch.setattr(groups, "require_visible", hooked)
+    try:
+        got = members(db, "ml", gid)
+    finally:
+        monkeypatch.undo()
+        other.close()
+    assert got == ["ak", "ml"]  # the state in which ml could see the group, never ["ak", "nb"]
+    assert members(db, "ak", gid) == ["ak", "nb"]
+
+
+def test_members_inside_a_transaction_is_refused_and_leaves_it_usable(
+    db: sqlite3.Connection,
+) -> None:
+    gid = create_group(db, Act(AK, T0), "Inner", "invited", [])
+    with write_transaction(db):
+        with pytest.raises(StoreUnusable):
+            members(db, "ak", gid)
+        assert db.in_transaction
+        add_member(db, Act(AK, T0), gid, "ml")
+    assert members(db, "ak", gid) == ["ak", "ml"]
 
 
 def _all_members(db: sqlite3.Connection) -> list[tuple[Any, ...]]:
