@@ -3,7 +3,7 @@
 Date: 2026-11-14. Coordinator: the back-end coordinator session; drafted by an architect agent
 from the pre-flight inventory and the coordinator's rulings (`3a-orchestrator/` in the shared
 notes folder), under decision 0006. This file is the plan and the sub-session's brief. Written
-against `origin/main` `9fb60b7f` and legacy `legacy/main` `9d040f8` (`git show
+against `origin/main` `fe44101c` and legacy `legacy/main` `9d040f8` (`git show
 legacy/main:<path>`; never check it out, never change it).
 
 **Goal:** `src/credit_os/orchestrator/` runs one issuer's modules in dependency order through a
@@ -29,7 +29,8 @@ adapter, opens a socket or reads a provider key. A `live` marker stays outside t
 `test_orchestrator_<topic>.py`: `tests/` has no packages, so a base name must be unique). By
 named PR only, and only once the owning step's session has finished or the coordinator has
 ordered it: `src/credit_os/store/**` and `tests/store/**` (PR 3); `src/credit_os/checks/**` and
-`tests/checks/**` (PRs 10a to 10d). Nothing else: step 3B runs beside this one. Not
+`tests/checks/**` (PRs 10a to 10d); `src/credit_os/provider/canned.py` and its tests (PR 6a,
+ruling C5, after 1C's PR 3-2 merges). Nothing else: step 3B runs beside this one. Not
 `pyproject.toml` (standard library and pydantic only; no new dependency), `VERIFICATION.md`, a
 decision record, `docs/legacy/ports.md` or this plan; those are the coordinator's (PR 0).
 
@@ -40,7 +41,7 @@ imports `types` and `redact` only; a test reads the syntax tree and fails on any
 
 ## Pre-flight (coordinator)
 
-Read on `origin/main` at `9fb60b7f`. Since the inventory (`d32b08ad`) one interface moved: 2A
+Read on `origin/main` at `fe44101c`. Since the inventory (`d32b08ad`) one interface moved: 2A
 PR 1e merged (`store/db.py`).
 
 - **`provider`**: `types.Model` (`config_id`, `complete(request, *, exchange_id, call_index)`,
@@ -106,7 +107,7 @@ this repository's layers. The price page for PR 2b is fetched by the coordinator
 | `score_governance`, `business_context.py` | Left behind | D23 |
 | `web_*`, lookup, `strip_citation_markers`, `flag_search_queries` | Left behind | Decision 0008; hosted search |
 | `model/record.py` | Left behind | The 2A tables replace `calls.jsonl`; recordings here are synthetic |
-| `model/budget.py` | Changed | No marker files: state is the store's charge lines; an open call counts its hold (D7); no `retry_of` |
+| `model/budget.py` | Changed | No marker files: state is the store's charge lines; an open call makes the total unknown (D7); no `retry_of` |
 | `model/pricing.py`, Copilot rows | Changed | One row for `gpt-6-sol` from published pricing (D8); other providers left behind |
 | `owners/cpos.py` `run_handoffs`, `HandoffPlan`, `request_fingerprint` | Changed | Sequential over the store; the run's request bytes and their hash replace the manifest |
 | `cpos.py` `run_comparison`; `navigation`, `verify_navigation`; `replay_handoffs` | Not here | 5A; 3B or left behind; a replay is a run on a `CannedModel` |
@@ -122,8 +123,8 @@ not offered: CP-L10, `short_snapshot`, CP-MEMO, CP-OS, and CP-8 until 5A (D2); C
 lookup (0008); calculate refuses exponent forms and anything outside the kernel grammar (D11);
 page numbers differ and a read is up to about 96,000 characters (D17); the retry reason is the
 first 20 refusals as data plus a count (D5); no `score_governance` (D23); one configuration, no
-high effort (D25); a call left open counts its hold and the run may resume, where the
-predecessor waited for an operator (D7); a started module is rerun on resume, where the
+high effort (D25); a call left open makes spend unknown and the run waits for the owner,
+as the predecessor did (D7, G7); a started module is rerun on resume, where the
 predecessor refused it (G4); text and csv over 16 MiB, a run over 200 files or 400 MiB, and a
 source past 120 s are refused (D13, D14, D16); sources are paged once per run, not per module
 (D15); an earlier-format document gets one refusal (D19); a source message shows the name, no
@@ -146,7 +147,7 @@ paragraph. Each is at least one test, named after it. None is reopened here.
 | D6 | Unknown spend makes the run's total unknown, never zero, and the run stops: a `None` charge on a sent request, or a compaction that is unfinished, failed or has no charge. The rule reads a compaction's state and charge, never its id, so the driver's own ids (`driver:close-unread` and the like, 1C) need no list here. A superseded compaction is dropped |
 | D7 | A call a crash left open makes the run's spend unknown (D6): one hold is not shown to bound what the call cost, since a call may make several requests and a compaction's charge is outside `billed_usd`. The run does not resume by itself; it stays stopped until the owner settles the call. This is the predecessor's behaviour, so it needs no decision record. Decision 0006 ruling 6 (resume) holds for a run that stopped cleanly |
 | D8 | The price row comes from the provider's published pricing, into a decision record, when PR 2b (this plan's cut of PR 2) is briefed; never from the predecessor. The hold is a store column by migration. No price shown for `gpt-6-sol`: PR 2b stops and the owner is asked |
-| D9 | `StoreUnusable` always ends the run: never retried, never swallowed, never followed by an end write. Every store call sits outside any catch-all. The one catch-all in 3A is D22's |
+| D9 | `StoreUnusable` always ends the run: never retried, never swallowed, never followed by an end write. Every store call sits outside any catch-all. An exception out of `complete` is not caught into a value either: the run ends as G3 says. The one catch-all in 3A is D22's |
 | D10 | Handoff text echoed back is cut by `handoff.errors.echo`. Tool error text is capped at 300 characters. A shown surface carries a failure class and a fixed sentence only (decision 0012 item 7) |
 | D11 | Calculate takes 1 to 128 operands, each read by `parse_operand`; an exponent form is a tool error |
 | D12 | A source message shows `shown_name` only; no absolute path is stored or shown. Notes are kept |
@@ -175,7 +176,8 @@ paragraph. Each is at least one test, named after it. None is reopened here.
   run with no charge line totals `0`, a value. A `not_sent` call spent nothing.
 - The budget sums exactly, in its own decimal context with `Inexact` trapped and room for the
   store's 64-digit money text. It does not go through `model.Value` (38 digits; a charge has 39).
-- The cap check is `spent + open holds + next hold <= cap`, before every call. Equal passes.
+- The cap check is `spent + next hold <= cap`, before every call. Equal passes. A call left open
+  makes spend unknown first (D7), so no open hold is ever summed.
 - The module order is the plan's and nothing else's: the same selection gives the same order.
 - No path is built from model text. A tool names a source by a pin's exact name; a file is
   reached only through `sources`, by pin. `orchestrator/` deletes no file.
@@ -197,8 +199,8 @@ Stated for the coordinator; each is ruled in "Rulings on C1 to C8 and G1 to G8" 
 | C4 | D20 to D22: new checks in `checks/` | `CHECKS` is closed at 32 and pinned by a test; `CheckContext` has no as-of date, issuer name, earlier drafts or hash-required field; `sources.check_sha256` checks a hash only where one is written (2B D10) | 10a to 10c |
 | C5 | D26: `CannedModel` only | `CannedModel.close()` always returns `()`, so D6's close-time rows cannot be reached through it; `complete` ignores the request, so a recording cannot show what 3A sent. Both need a test-side wrapper that is a `Model` but not a `CannedModel` | 6a |
 | C6 | D4: an attempt is one write | `Model.complete` names a call by exchange id and call index; 2A's plan numbers calls from 0 inside each attempt. One conversation spans up to three attempts, so the two indexes differ or the conversation restarts | 6a |
-| C7 | D7: "without spending past the cap" | `Reply`'s docstring: a call may make several model requests, and a compaction's charge is never in `billed_usd`. One hold is not shown to bound what an open call cost | 8 |
-| C8 | D6 names `driver:release-unread` | The id is nowhere on main. `driver:close-unread` is in the 1C plan only; the driver is not merged | 2a |
+| C7 | D7 as first worded: "without spending past the cap" | `Reply`'s docstring: a call may make several model requests, and a compaction's charge is never in `billed_usd`. One hold is not shown to bound what an open call cost | 8 |
+| C8 | D6 as first worded named `driver:release-unread` | The id is nowhere on main. `driver:close-unread` is in the 1C plan only; the driver is not merged | 2a |
 
 ## Points the rulings leave open
 
@@ -220,7 +222,7 @@ the PR named is briefed. Each is ruled in the next section.
 
 | # | Ruling |
 | :--- | :--- |
-| C1 | What 3A stores or shows of a `SourceError` is built from its fields (its class, `shown_name`, its reason), never from its message. A note is kept only after `Redactor.message` with the source folder among the known paths (decision 0012). The `StoreError` docstring's "stored whole" line changes with PR 7a |
+| C1 | What 3A stores or shows of a `SourceError` is built from its fields (its class, `shown_name`, its reason), never from its message. A note is kept only after `Redactor.message` with the source folder among the known paths (decision 0012). The `StoreError` docstring's "stored whole" line changes in 1C PR 2h, as decision 0012 item 8 orders, not in a 3A PR |
 | C2 | D14 is measured, not pre-empted: a source whose read took over 120 s on the injected clock is refused after it returns, and shown as a gap. D13's 16 MiB caps bound the read meanwhile (csv about 22 s). A reader that takes a clock and stops itself is a 1D change, listed for a later step |
 | C3 | 3A counts files and bytes from a directory listing, without reading a file, before it calls `pin_folder`, and refuses there. In 1D the declared charset name is matched against a literal table of accepted names and aliases before `codecs.lookup`; a name outside the table is refused and never reaches the cache. That goes to 1D as a Low |
 | C4 | The new checks are added by 3A's session after 2B PR 6 merges: `CHECKS` grows by the named ids and its pinned test changes with the key; `CheckContext` gains the as-of date, the issuer name and the hash-required flag, each with a default that leaves 2B's keys unchanged; a required hash that is missing is its own check id |
@@ -230,11 +232,11 @@ the PR named is briefed. Each is ruled in the next section.
 | C8 | Settled by D6 as amended above: the rule reads state and charge, not ids |
 | G1 | The run goes on after a module ends unaccepted. A module whose required producer has no accepted handoff is not run and is shown as a gap with that reason; with only an optional producer missing it runs restricted |
 | G2 | 32 turns per module and 2 nudges, the values the predecessor ran with |
-| G3 | End reasons and status: completed is `completed`; the cap is `stopped` (capped); unknown spend is `stopped` (spend unknown); a charge above its hold is `stopped` (hold exceeded); a provider failure that is not retried is `failed`; `StoreUnusable` writes nothing (D9). The set is closed and keyed in PR 3 |
+| G3 | End reasons and status: completed is `completed`; the cap is `stopped` (capped); unknown spend is `stopped` (spend unknown); a charge above its hold is `stopped` (hold exceeded); a provider failure that is not retried is `failed`; an exception out of `complete` is `failed` (provider raised) and leaves its call open, so spend is unknown (D7); a stop asked for by the operator (decision 0006 ruling 5) is `stopped` (operator), taken between calls, never inside one; `StoreUnusable` writes nothing (D9). The set is closed and keyed in PR 3 |
 | G4 | An attempt a stop left open is failed as interrupted; the module is rerun as a new conversation; attempts already used count toward the 3 |
 | G5 | A known charge above its hold stops the run: the hold arithmetic is then wrong for every later call. The charge is recorded exactly |
 | G6 | CP-MODEL is in no pathway here. The forecast is Python's (step 1B) and is run by a later step, not as a module conversation |
-| G7 | A run whose total is unknown does not resume by itself (D7) |
+| G7 | A run whose total is unknown does not resume by itself (D7). PR 8 delivers both halves: the resume is refused with the reason and the call it names, and a settle action records the charge the owner states for that call (from the provider's own billing), after which the total is known and the resume is judged as any other. The settle write is a store call from 2A PR 5; a charge the owner states is recorded as stated by the owner, distinct from one the provider reported |
 | G8 | One event per tool call: its name, the sizes of its argument and result, and the result's SHA-256; never the text |
 
 ## Sensitive code
@@ -244,7 +246,7 @@ the PR named is briefed. Each is ruled in the next section.
 | Money | Hold, totals, the unknown rule, the cap check, the launch refusal, the price row, the hold column, a crash-left call | 2a, 2b, 3, 6a, 8, 9b | `mx-adversary` |
 | Ordering | Store writes round each call, attempts and verdicts, the one writer and its fencing token, `StoreUnusable`, resume | 3, 6a, 6b, 7c, 8 | `mx-invariants` |
 | Security | Tool inputs, text bounds, source names and paths, launch caps, text put into instructions | 4a, 4b, 5, 7a, 7b, 11 | `mx-adversary` |
-| Figures | Amounts in the context; `lost_values`; table checks that read amounts | 9a, 10b, 10c | `mx-adversary` |
+| Figures | Amounts in the context; `lost_values`; table checks that read amounts; the forecast check | 9a, 10b, 10c, 10d | `mx-adversary` |
 
 A task in two areas gets both reviewers. **Mutation testing** is the reviewer's, on the changed
 files of every sensitive task: `mutmut` through `uvx`, not added to `pyproject.toml`. A count is
@@ -261,7 +263,7 @@ running the production code or the predecessor. Each key says how its values wer
 | PR | Key | How its values are produced |
 | :--- | :--- | :--- |
 | 1 | `tests/orchestrator/expected/plans.json`, `catalogue.json` | By hand from the predecessor's `methodology.json` and presets at `9d040f8`: the order and each module's producers for the seven pathways and chosen subsets; rows for an alias, an unknown module, a module not offered, CP-5's fan-in, and a cycle in a table the test supplies |
-| 2a | `orchestrator_budget_key.py` | Invented rates and charges, as decimal strings worked with `fractions.Fraction` and checked with `bc`. Rows: no line (`0`); a `0` charge; `None` on `not_sent` (nothing spent); `None` on `ok`, `sent_usage`, `sent_unknown` (unknown); a failed and an unfinished compaction; a superseded one with and without its successor; the driver ids; an open call with a hold and with none; cap equal and one unit of 1E-11 over; a 39-digit charge |
+| 2a | `orchestrator_budget_key.py` | Invented rates and charges, as decimal strings worked with `fractions.Fraction` and checked with `bc`. Rows: no line (`0`); a `0` charge; `None` on `not_sent` (nothing spent); `None` on `ok`, `sent_usage`, `sent_unknown` (unknown); a failed and an unfinished compaction; a superseded one with and without its successor; a compaction carrying a driver id (the rule ignores ids and reads state and charge); an open call (spend unknown); cap equal and one unit of 1E-11 over; a 39-digit charge |
 | 2b | One row in the same key | The `gpt-6-sol` figures copied from the decision record; the hold recomputed with `bc` |
 | 3 | `tests/store/store_schema_key.py` (2A's key 1) | The new column, the allowed end reasons, and the migration text's SHA-256 by `shasum` |
 | 4a | `orchestrator_tools_key.py` | Literal results over `SourcePages` built from literals: list, read (8 pages, a page out of range, an `empty` and an `unreadable` page shown as such), search (20 hits, no match stated, not empty), an unknown tool, `bad_arguments`, a 5,000-character name, `../x` as a source name, a bool for a page number |
@@ -270,7 +272,7 @@ running the production code or the predecessor. Each key says how its values wer
 | 6a, 6b | `tests/orchestrator/recordings/*.jsonl`, `orchestrator_loop_key.py` | Recordings written by hand. The expected store rows and events as literals, in order, for: accepted at the first write; refused then accepted; three refusals; the turn bound; nudges; `not_sent`; `sent_unknown`; `ok` with no charge; the cap reached mid-module; a compaction on a reply; `StoreUnusable` at each write point |
 | 7a | `orchestrator_ingest_key.py` | Pins with invented sizes: 200 and 201 files; 400 MiB and one byte more; text at 16 MiB and one byte more; a 50 MiB PDF. `SourceError`s whose message and note hold an absolute path, with the exact shown text |
 | 7b, 7c | The same key; `orchestrator_run_key.py` | A folder built in `tmp_path` from literal bytes and a fake clock (120 s passes, more is refused). A literal for a scripted three-module run: events, module outcomes, statuses, the end reason, a blocked and a restricted dependant |
-| 8 | `orchestrator_resume_key.py` | A case table by hand: each last-attempt state to kept, judged, rerun or refused; an open call and the cap (next hold fits exactly, and does not); a changed source; a changed request; a fenced writer |
+| 8 | `orchestrator_resume_key.py` | A case table by hand: each last-attempt state to kept, judged, rerun or refused; a crash-left call (refused, spend unknown) and the same call after it is settled; a changed source; a changed request; a fenced writer |
 | 9a to 9c | `orchestrator_context_key.py` | Synthetic `context.json` cases adapted from the predecessor's tests: an amount of `"0"`, an absent one and an empty one kept apart; each refusal's text. Request bytes with their SHA-256 by `shasum`; a cap below, equal to and above the first hold |
 | 10a to 10d | `tests/checks/expected/*.json` (2B's keys, extended) | The predecessor's test cases set in synthetic handoffs; the expected check and quoted text from its test unless a decision changes it; `fixtures.json` re-read by hand |
 | 11 | `orchestrator_instructions_key.py` | The literal instruction bytes for a synthetic method and two synthetic upstream handoffs, with their SHA-256 by `shasum` |
@@ -295,12 +297,12 @@ back to the same data.
 | 4a | Tool dispatch and bounds; `list_sources`, `read_pages` (8 pages), `search_source` (20 hits), over `SourcePages` given in | Merged code | `test_orchestrator_tools.py` | Now |
 | 4b | `calculate` | Merged code | `test_orchestrator_calculate.py` | Now |
 | 5 | `write_handoff`, `edit_handoff`, the 3-write bound, `CheckContext` built without the module's own document, the retry reason | Merged code. Its rows hold no figure in a passage and no earlier-format document, so 2B PRs 4a to 6 add no finding to them | `test_orchestrator_write.py` | Now |
-| 6a | One call: the cap check, the call opened with its hold before the send, the reply and compactions closed in, the stop on a reply that is not ok or has no charge | 2A PRs 2a to 3c (pending); 3A 2a, 3. C5, C6 | `test_orchestrator_call.py` | Waits |
+| 6a | `CannedModel` records each request and returns recorded compactions from `close()` (C5). One call: the cap check, the call opened with its hold before the send, the reply and compactions closed in, the stop on a reply that is not ok or has no charge | 2A PRs 2a to 3c, 1C PR 3-2 (pending); 3A 2a, 3. C5, C6 | `test_orchestrator_call.py` | Waits |
 | 6b | The module loop: turns, tools, nudges, one attempt per write, verdicts, the module's outcome | 6a, 4a, 4b, 5. G2, G8 | `test_orchestrator_loop.py` | Waits |
-| 7a | Launch caps over a `PinnedFolder`; the shown and stored form of a `SourceError` | Merged code. C1, C3 | `test_orchestrator_ingest.py` | Now |
+| 7a | Launch caps over a `PinnedFolder`; the shown and stored form of a `SourceError` | 1C PR 2h (`Redactor.message`, pending). C1, C3 | `test_orchestrator_ingest.py` | Waits |
 | 7b | Ingest: one source paged at a time, every kind, the deadline, refusals as explicit gaps | 1D PR 5 and the readers before it (pending). C2 | `test_orchestrator_ingest.py` | Waits |
-| 7c | The run: create and claim, the sequential plan, events, blocked and restricted modules, end reasons, `Model.close()` | 6b, 7b, 11; 2A PRs 2a to 3c (pending). G1, G3 | `test_orchestrator_run.py` | Waits |
-| 8 | Resume from the resume read: kept, judged, rerun, refused; the original cap; a crash-left call | 7c; 2A PR 4a, 2B PR 6 (pending). C7, G4, G7 | `test_orchestrator_resume.py` | Waits |
+| 7c | The run: create and claim, the sequential plan, events, blocked and restricted modules, end reasons, `Model.close()` | 6b, 7b, 9b, 11 (PR 11 is numbered later but comes first); 2A PRs 2a to 3c (pending). G1, G3 | `test_orchestrator_run.py` | Waits |
+| 8 | Resume from the resume read: kept, judged, rerun, refused; the original cap; a crash-left call refused with its reason; the settle action (G7) | 7c; 2A PR 4a and 5 (the settle write), 2B PR 6 (pending). C7, G4, G7 | `test_orchestrator_resume.py` | Waits |
 | 9a | Context schema: `context/1` to a typed context, amounts, refusals | Merged code | `test_orchestrator_context.py` | Now |
 | 9b | Launch admission: the request bytes, modules not offered refused, the cap against the first hold | 1, 2a, 9a (2b for the real row) | `test_orchestrator_prepare.py` | After 1, 2a, 9a |
 | 9c | Readiness, the minimum | 9a, 7b | `test_orchestrator_readiness.py` | Waits |
@@ -310,7 +312,7 @@ back to the same data.
 | 10d | `checks/`: the forecast check | 1B PR 7 (pending) | `tests/checks/` | Waits |
 | 11 | Instruction assembly: system rules, the method text given as bytes, producers' handoffs inlined, tool specs, the first request | 1, 4a, 5 | `test_orchestrator_instructions.py` | After 1, 4a, 5 |
 
-Can start now: 0, 1, 2a, 4a, 4b, 5, 7a, 9a. Then 9b and 11 on 3A's own PRs. Everything else waits
+Can start now: 0, 1, 2a, 4a, 4b, 5, 9a. Then 9b and 11 on 3A's own PRs. Everything else waits
 on a named pending PR. The roadmap says a phase starts when its dependencies are merged; starting
 these early is the coordinator's call and is recorded in `VERIFICATION.md` by the coordinator.
 
@@ -354,6 +356,9 @@ coordinator reads the diff and merges. The sub-session does not merge or edit sh
 ## Open items for the owner
 
 - D3: decision 0006 ruling 9 allowed several modules at once; 3A builds one at a time.
+- Scope: the roadmap's row for 3A names `orchestrator/` only. By named PR this plan also changes
+  `store/` (PR 3), `checks/` (PRs 10a to 10d) and `provider/canned.py` (PR 6a).
+- A stop asked for by the operator takes effect between calls, never inside one (G3).
 - D23: `score_governance` was offered to every module in the predecessor; it is not ported.
 - D25: the predecessor used high effort for some modules; here one configuration serves all.
 - D8, if it arises: no published price can be shown for `gpt-6-sol`.
