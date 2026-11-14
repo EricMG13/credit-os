@@ -344,3 +344,14 @@ def test_without_held_drops_exactly_the_two_held_checks_and_keeps_the_rest_in_or
         ("prose.provider-marker", 3),
         ("figure.form", 5),
     ]
+
+
+def test_a_comment_above_a_table_gives_its_spelling_before_the_tables() -> None:
+    document = _pair(
+        "### Bottom line\nMargin fell 5%.\n",
+        _calculations("<!-- was (5.0%) -->\n| Item | Value |\n| --- | --- |\n| Margin | (5%) |\n"),
+    )
+    found = held.check_mismatch(document, _context({}))
+    assert [f.reason for f in found] == [
+        "Keep the sign, unit and currency as the handoff writes it: (5.0%), (5%)."
+    ]
