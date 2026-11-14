@@ -182,11 +182,13 @@ describe("Overview, states", () => {
 
   it("draws a long point in full, and a missing figure in a point as n.a.", () => {
     renderOverview("2026-03-31");
-    const long = screen.getByText(/^The financial performance, cash flow and recovery modules/);
+    const long = screen.getByText(
+      /^The financial performance, cash flow, recovery and forecast modules/,
+    );
     expect(long.textContent).toMatch(/that did run\.$/);
     expect(long).not.toHaveClass("truncate");
     expect(within(long.closest("li") as HTMLElement).getByText("n.a.")).toBeVisible();
-    expect(within(long.closest("li") as HTMLElement).getByText("Not assessable")).toBeVisible();
+    expect(within(long.closest("li") as HTMLElement).getByText("Not run")).toBeVisible();
   });
 
   it("says which part is missing for a run or an issuer the slice does not hold", () => {
@@ -252,7 +254,7 @@ describe("Overview, fix round 1", () => {
     cleanup();
     renderOverview("2026-03-31");
     const point = screen
-      .getByText(/^The financial performance, cash flow and recovery modules/)
+      .getByText(/^The financial performance, cash flow, recovery and forecast modules/)
       .closest("li") as HTMLElement;
     cases.push([within(point).getByText("n.a."), point, "text-[40px]/11"]);
     for (const [na, host, size] of cases) {
@@ -389,7 +391,11 @@ describe("Overview, modules and limitations", () => {
       `${BASE}2026-09-30/modules/capital-structure`,
     );
     expect(screen.getAllByRole("link", { name: /^Recovery/ })).toHaveLength(1);
-    expect(items()[0]?.closest("ul")).toHaveClass("md:columns-2");
+    const lists = within(screen.getByRole("region", { name: "Modules" })).getAllByRole("list");
+    expect(lists).toHaveLength(2);
+    expect(lists[0]?.parentElement).toHaveClass("grid-cols-1", "md:grid-cols-2");
+    expect(lists.map((list) => list.children.length)).toEqual([7, 6]);
+    for (const list of lists) expect(list.lastElementChild).toHaveClass("last:[&>*]:border-b-0");
   });
 
   it("collapses a repeated state into one plain item with its names and a chevron", () => {
@@ -399,18 +405,63 @@ describe("Overview, modules and limitations", () => {
       false,
       false,
       false,
+      false,
+      false,
+      false,
     ]);
     expect(items()[0]?.textContent).toBe(
-      "6 modules deliveredBusiness profile, Industry and competition, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance.Delivered",
+      "7 modules deliveredBusiness profile, Industry and competition, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance, Credit snapshot.Delivered",
     );
-    expect(items()[0]?.querySelector("svg[aria-hidden='true'].size-4")).not.toBeNull();
-    expect(screen.getByText("8 of 13 delivered")).toBeVisible();
-    expect(within(items()[3] as HTMLElement).getByText("Not assessable")).toBeVisible();
+    const chevrons = (item: HTMLElement | undefined) =>
+      item?.querySelectorAll("svg[aria-hidden='true'].text-text-tertiary").length;
+    expect(items().map(chevrons)).toEqual([1, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it("draws the capped run's modules as its own story: nine delivered, four not run", () => {
+    renderOverview("2026-03-31");
+    expect(screen.getByText("9 of 13 delivered")).toBeVisible();
+    expect(items()).toHaveLength(7);
+    expect(items()[0]).toHaveTextContent("7 modules delivered");
+    for (const title of [
+      "Financial performance",
+      "Cash flow and liquidity",
+      "Recovery",
+      "Forecast",
+    ]) {
+      const item = items().find((el) => el.textContent.startsWith(title)) as HTMLElement;
+      expect(within(item).getByText("Not run")).toBeVisible();
+      expect(within(item).queryByText("Not assessable")).toBeNull();
+    }
+    expect(screen.queryByText(/security package documents|documents were not/)).toBeNull();
+    expect(screen.queryByText("Not assessable")).toBeNull();
+  });
+
+  it("agrees across the capped run's fixture: counts equal names, the text names the not-run modules", () => {
+    const run = (
+      fixture.slice as {
+        issuers: { id: string; runs: { id: string; overview: Json }[] }[];
+      }
+    ).issuers
+      .find((i) => i.id === "halden-aerostructures")
+      ?.runs.find((r) => r.id === "2026-03-31")?.overview as {
+      modules: { summary: string; items: { title: string; lead: string; state: string }[] };
+    };
+    const [collapsed, ...rest] = run.modules.items;
+    const named = (collapsed?.lead ?? "").replace(/\.$/, "").split(/, (?=[A-Z])/).length;
+    expect(collapsed?.title).toBe(`${String(named)} modules delivered`);
+    const delivered = rest.filter((m) => m.state.startsWith("Delivered")).length;
+    expect(run.modules.summary).toBe(`${String(named + delivered)} of 13 delivered`);
+    expect(run.modules.items.filter((m) => m.state === "Not run").map((m) => m.title)).toEqual([
+      "Financial performance",
+      "Cash flow and liquidity",
+      "Recovery",
+      "Forecast",
+    ]);
   });
 
   it("draws the limitations open: h2 with count, gaps link, one trace control each, long text in full", () => {
     renderOverview("2026-09-30");
-    const region = screen.getByRole("region", { name: /^Limitations/ });
+    const region = screen.getByRole("region", { name: "Limitations" });
     expect(within(region).getByRole("heading", { level: 2 }).textContent).toBe("Limitations4");
     expect(
       within(region).getByRole("link", { name: "See the 7 gaps in Evidence" }),
@@ -429,7 +480,7 @@ describe("Overview, modules and limitations", () => {
 
   it("collapses and expands the limitations from one button and prints them open", () => {
     renderOverview("2026-09-30");
-    const region = screen.getByRole("region", { name: /^Limitations/ });
+    const region = screen.getByRole("region", { name: "Limitations" });
     fireEvent.click(within(region).getByRole("button", { name: "Collapse limitations" }));
     expect(within(region).queryByRole("listitem")).toBeNull();
     expect(within(region).getByRole("button", { name: "Expand limitations" })).toBeVisible();
@@ -440,7 +491,7 @@ describe("Overview, modules and limitations", () => {
 
   it("draws the capped run's limitations with no trace control and its long sentence in full", () => {
     renderOverview("2026-03-31");
-    const region = screen.getByRole("region", { name: /^Limitations/ });
+    const region = screen.getByRole("region", { name: "Limitations" });
     expect(within(region).queryByRole("button", { name: /^Show sources/ })).toBeNull();
     expect(
       within(region).getByText(/the nine modules delivered do not stand in for them\.$/),
