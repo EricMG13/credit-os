@@ -303,7 +303,25 @@ describe("Module, a module that could not be delivered", () => {
     ).toBeVisible();
     expect(screen.getAllByText("Not run").length).toBeGreaterThan(0);
     expect(screen.queryByText("Not assessable")).toBeNull();
-    expect(within(nav()).getAllByRole("link")).toHaveLength(7);
+    const links = within(nav()).getAllByRole("link");
+    expect(links.map((l) => l.textContent)).toEqual([
+      "Business profile, Delivered",
+      "Industry and competition, Delivered",
+      "Financial performance, Not run",
+      "Cash flow and liquidity, Not run",
+      "Capital structure, Delivered with gaps",
+      "Covenants and documentation, Delivered",
+      "Management and governance, Delivered",
+      "Peer comparison, Delivered with gaps",
+      "Recovery, Not run",
+      "Rating outlook, Delivered",
+      "Environmental, social and governance, Delivered",
+      "Forecast, Not run",
+      "Credit snapshot, Delivered",
+    ]);
+    expect(links.filter((l) => l.hasAttribute("aria-current")).map((l) => l.textContent)).toEqual([
+      "Forecast, Not run",
+    ]);
   });
 });
 
@@ -375,13 +393,21 @@ describe("Module, the index route", () => {
   const index = (run: string, library: unknown = fixture.slice) =>
     renderRoute(INDEX, { issuer: "halden-aerostructures", run }, library);
 
-  it("draws the run's first module", () => {
+  it("draws the run's first module, the first of its list", () => {
     index("2026-09-30");
-    expect(screen.getByRole("heading", { level: 2, name: "Capital structure" })).toBeVisible();
-    expect(within(nav()).getByRole("link", { name: /^Capital structure/ })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(screen.getByRole("heading", { level: 2, name: "Business profile" })).toBeVisible();
+    const links = within(nav()).getAllByRole("link");
+    expect(links[0]).toHaveAttribute("aria-current", "page");
+    expect(links.filter((l) => l.hasAttribute("aria-current"))).toHaveLength(1);
+  });
+
+  it("opens the first module on the capped and the first run too", () => {
+    for (const run of ["2026-03-31", "2025-09-30"]) {
+      index(run);
+      expect(screen.getByRole("heading", { level: 2, name: "Business profile" })).toBeVisible();
+      expect(within(nav()).getAllByRole("link")).toHaveLength(13);
+      cleanup();
+    }
   });
 
   it("draws a loading run as the skeleton", () => {

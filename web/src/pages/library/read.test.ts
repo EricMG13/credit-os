@@ -710,7 +710,7 @@ describe("readSlice, modules", () => {
   const at = (slice: ReturnType<typeof fresh>, id: string, r = 0) =>
     `issuers[0].runs[${String(r)}].modules[${String(runOf(slice, r).modules?.findIndex((m) => m["id"] === id))}]`;
 
-  it("reads the full run's thirteen modules, the capped run's seven and a loading run's null", () => {
+  it("reads thirteen modules for every finished run and a loading run's null", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const runs = result.data.issuers[0]?.runs ?? [];
@@ -738,8 +738,33 @@ describe("readSlice, modules", () => {
     expect(full.find((m) => m.id === "recovery")?.body.kind).toBe("blocked");
     expect(full[0]?.body).toMatchObject({ kind: "delivered", records: [] });
     expect(runs[1]?.modules).toBeNull();
-    expect(runs[2]?.modules?.map((m) => m.state)).toContain("Not run");
-    expect(runs[3]?.modules?.map((m) => m.id)).toEqual(["capital-structure", "recovery"]);
+    expect(runs[2]?.modules?.map((m) => m.name)).toEqual(full.map((m) => m.name));
+    expect(runs[2]?.modules?.map((m) => m.state)).toEqual([
+      "Delivered",
+      "Delivered",
+      "Not run",
+      "Not run",
+      "Delivered with gaps",
+      "Delivered",
+      "Delivered",
+      "Delivered with gaps",
+      "Not run",
+      "Delivered",
+      "Delivered",
+      "Not run",
+      "Delivered",
+    ]);
+    expect(runs[3]?.modules?.map((m) => m.name)).toEqual(full.map((m) => m.name));
+    expect(runs[3]?.modules?.map((m) => m.state).filter((s) => s !== "Delivered")).toEqual([
+      "Delivered with gaps",
+      "Delivered with gaps",
+    ]);
+    expect(runs.map((r) => r.head.firstModule)).toEqual([
+      "business-profile",
+      null,
+      "business-profile",
+      "business-profile",
+    ]);
   });
 
   it.each([
@@ -864,7 +889,11 @@ describe("readSlice, modules", () => {
       "nowhere";
     expect(invalidReason(changes)).toContain("issuers[0].runs[0].changes.modules.items[0].module");
     const capped = fresh();
-    (runOf(capped, 3).modules as Mod[]).pop();
+    const held = runOf(capped, 3).modules as Mod[];
+    held.splice(
+      held.findIndex((m) => m["id"] === "recovery"),
+      1,
+    );
     expect(invalidReason(capped)).toContain("issuers[0].runs[3].overview.modules.items[2].module");
   });
 
