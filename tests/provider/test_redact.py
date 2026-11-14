@@ -469,7 +469,8 @@ def test_nested_home_rows(text: str, expected: str) -> None:
         # the reach ends at the first whitespace: a folder past a space is not looked for
         ("D:\\my data\\Users\\bob", "D:\\my data\\Users\\bob"),
         ("D:\\a then foo/Users/bob", "D:\\a then foo/Users/bob"),
-        ("D:\\a\tUsers\\bob", "D:\\a\tUsers\\bob"),
+        ("D:\\a\tfoo/Users/bobq", "D:\\a\tfoo/Users/bobq"),
+        ("D:\\a\u00a0foo/Users/bobq", "D:\\a\u00a0foo/Users/bobq"),
         (
             "Saved to D:\\reports. See docs/home/bobq for details",
             "Saved to D:\\reports. See docs/home/bobq for details",
