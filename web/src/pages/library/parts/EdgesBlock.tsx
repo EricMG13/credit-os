@@ -19,11 +19,11 @@ export function EdgesBlock({ block }: { block: Extract<RecordBlock, { kind: "edg
           >
             <span
               aria-hidden="true"
-              className="flex size-7 flex-none items-center justify-center rounded-ds-full border-[1.5px] border-current text-xs font-medium after:content-[counter(step)]"
+              className="flex size-7 flex-none items-center justify-center rounded-ds-full border-[1.5px] border-current text-caption after:content-[counter(step)]"
             />
             <p>
               <strong className="block font-medium text-text-primary">{step.title}</strong>
-              <small className="mt-1 block text-xs/4.5">{step.text}</small>
+              <small className="mt-1 block text-caption">{step.text}</small>
             </p>
           </li>
         ))}
