@@ -1,4 +1,4 @@
-"""Answer key for 1B PR 6a (units named, the currency named), by the controller.
+"""Answer key for 1B PR 6a (units named, the currency named) and PR 6a2 (R46), by the controller.
 
 Every figure, name and text is invented. Rows hold inputs only, as in `make_pr5.py`, whose
 oracle this script loads for the foundation's tables, the cells, the numbers and the cell check;
@@ -9,7 +9,10 @@ or blank) and whether it names the block's currency, and each outcome. `words` a
 hold text forms with their expected reading written by hand from the predecessor's cases (text
 forms, not figures); `render()` asserts this script's patterns give them. A foundation whose
 level-2 headings are not the handoff's six, in order, is the parser's own refusal, worded as
-`handoff/document.py` words it. Run this file to write `pr6a.json` next to it.
+`handoff/document.py` words it. R46 (PR 6a2): thousands, millions and billions; billions is
+never a block's unit, so a row naming it, and not the block's unit, is refused under either
+scale. Each of the twelve forms the 6a review found is a row under both blocks. R48: no letter
+before a letter code; a bare sign takes none. Run this file to write `pr6a.json` next to it.
 """
 
 import importlib.util
@@ -24,9 +27,34 @@ assert SPEC is not None and SPEC.loader is not None
 PR5: Any = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PR5)
 
-CURRENCY = r"(?:US\$|USD|EUR|GBP|[$€£])"
-THOUSANDS = re.compile(rf"\bthousands?\b|[$'’]000s?\b|{CURRENCY}\s?k\b", re.IGNORECASE)
-MILLIONS = re.compile(rf"\b(?:millions?|billions?)\b|{CURRENCY}\s?(?:m|mm|mn|bn)\b", re.IGNORECASE)
+# R46: three units, letter boundaries by an explicit class, case folded as the code already folds
+# it (no re.ASCII: that would also narrow \s), and one set of scale marks shared with the currency
+# form. R48: no letter before a letter code; a bare sign takes none (`C$m`, `HK$m`, `A$000`).
+CURRENCY = r"(?:(?<![A-Za-z])(?:US\$|USD|EUR|GBP)|[$€£])"
+SIGN = r"(?:US\$|[$€£])"
+UNITS = ["billions", "millions", "thousands"]
+WORDS_OF = {"thousands": "thousands?", "millions": "millions?|mln", "billions": "billions?|bln|bn"}
+MARKS = {"thousands": "k", "millions": "mln|mm|mn|m", "billions": "bln|bn"}
+ZEROS = "000s?"
+SUFFIX = "|".join([ZEROS, *MARKS.values()])
+
+
+def unit_pattern(unit: str) -> "re.Pattern[str]":
+    forms = [
+        rf"(?<![A-Za-z])(?:{WORDS_OF[unit]})(?![A-Za-z])",
+        rf"{CURRENCY}\s?(?:{MARKS[unit]})(?![A-Za-z])",
+        rf"(?<![A-Za-z])(?:{MARKS[unit]})\s?{SIGN}",
+    ]
+    if unit == "thousands":
+        forms += [
+            rf"{CURRENCY}['’]?{ZEROS}(?![A-Za-z0-9])",
+            rf"(?<![0-9])['’]{ZEROS}(?![A-Za-z0-9])",
+            r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
+        ]
+    return re.compile("|".join(forms), re.IGNORECASE)
+
+
+PATTERNS = {unit: unit_pattern(unit) for unit in UNITS}
 SIGNS = {"USD": r"(?i:(?<![A-Za-z])US\$)", "EUR": "€", "GBP": "£"}
 MESSAGES = {
     "unit": "base {key}: row `{row}` states its {what} as `{cell}`, not the block's unit ({unit}); "
@@ -47,6 +75,10 @@ def skeleton(text: str) -> str | None:
         if title != required:
             found = PR5.echo(title)
             return f"line {index}: level-2 heading `{found}` found where `{required}` is required"
+    if len(twos) > len(REQUIRED):
+        index, title = twos[len(REQUIRED)]
+        found = PR5.echo(title)
+        return f"line {index}: level-2 heading `{found}` is not allowed after `Next module`"
     if len(twos) < len(REQUIRED):
         count = len(lines) - (1 if text.endswith("\n") else 0)
         return f"line {count}: level-2 heading `{REQUIRED[len(twos)]}` is missing"
@@ -54,18 +86,17 @@ def skeleton(text: str) -> str | None:
 
 
 def units_named(text: str) -> list[str]:
-    pairs = (("millions", MILLIONS), ("thousands", THOUSANDS))
-    return sorted(name for name, pattern in pairs if pattern.search(text))
+    return [unit for unit in UNITS if PATTERNS[unit].search(text)]
 
 
 def names_currency(text: str, currency: str) -> bool:
-    forms = [rf"(?<![A-Za-z]){currency}(?i:mm|mn|bn|m|k|000s?)?(?![A-Za-z0-9])"]
+    forms = [rf"(?<![A-Za-z]){currency}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
     forms += [SIGNS[currency]] if currency in SIGNS else []
     return re.search("|".join(forms), text) is not None
 
 
 def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: str) -> str | None:
-    block, other = ("thousands", "millions") if scale == 1000 else ("millions", "thousands")
+    block = "thousands" if scale == 1000 else "millions"
     kind = "period" if operand["period"] is not None else "column"
     header = operand[kind]
     issues: list[tuple[str, str]] = []
@@ -75,7 +106,7 @@ def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: 
                 group = [(f"{kind} header", head[c]), ("first header cell", head[0])]
                 group += [(PR5.plain(head[i]), cell) for i, cell in enumerate(line) if i != c]
                 if not any(block in units_named(cell) for _, cell in group):
-                    issues += [(what, cell) for what, cell in group if other in units_named(cell)]
+                    issues += [(w, cell) for w, cell in group if set(units_named(cell)) - {block}]
     if not issues:
         return None
     what, cell = min(issues)
@@ -197,9 +228,9 @@ WORDS: list[Any] = [
     ["USD mm", ["millions"]],
     ["US$mn", ["millions"]],
     ["€mn", ["millions"]],
-    ["GBP bn", ["millions"]],
+    ["GBP bn", ["billions"]],
     ["stated in millions", ["millions"]],
-    ["USD million/billion", ["millions"]],
+    ["USD million/billion", ["billions", "millions"]],
     ["US$ thousands; USD 37.6 million", ["millions", "thousands"]],
     ["", []],
     ["p.4", []],
@@ -208,6 +239,103 @@ WORDS: list[Any] = [
     ["US$ and a mid-year note", []],
     ["Mmm", []],
     ["m", []],
+    # R46: the twelve forms, then one text per part of each pattern, then texts that name no unit.
+    ["GBP000", ["thousands"]],
+    ["£000", ["thousands"]],
+    ["€000", ["thousands"]],
+    ["USD000", ["thousands"]],
+    ["k€", ["thousands"]],
+    ["_USD thousands_", ["thousands"]],
+    ["in 000s", ["thousands"]],
+    ["M€", ["millions"]],
+    ["USD mln", ["millions"]],
+    ["USD bn", ["billions"]],
+    ["USD billions", ["billions"]],
+    ["€bn", ["billions"]],
+    ["£'000", ["thousands"]],
+    ["GBP'000", ["thousands"]],
+    ["’000", ["thousands"]],
+    ["'000", ["thousands"]],
+    ["EUR k", ["thousands"]],
+    ["GBP k", ["thousands"]],
+    ["£k", ["thousands"]],
+    ["k$", ["thousands"]],
+    ["k US$", ["thousands"]],
+    ["EURm", ["millions"]],
+    ["£m", ["millions"]],
+    ["m£", ["millions"]],
+    ["mn$", ["millions"]],
+    ["mm €", ["millions"]],
+    ["in mln", ["millions"]],
+    ["IN MILLIONS", ["millions"]],
+    ["USD bln", ["billions"]],
+    ["in bn", ["billions"]],
+    ["in bln", ["billions"]],
+    ["a billion", ["billions"]],
+    ["bn£", ["billions"]],
+    ["multimillion", []],
+    ["multibillion", []],
+    ["millionaire", []],
+    ["thousandth", []],
+    ["AUSD k", []],
+    ["USDkm", []],
+    ["10 km", []],
+    ["commitments", []],
+    ["summary", []],
+    ["park€", []],
+    ["2000s", []],
+    ["1,000s", []],
+    ["USD 1,000", []],
+    ["$0001", []],
+    # R48: a letter before a bare sign does not hide the unit.
+    ["C$m", ["millions"]],
+    ["A$k", ["thousands"]],
+    ["HK$m", ["millions"]],
+    ["A$000", ["thousands"]],
+    ["R$ mn", ["millions"]],
+    ["AUS$m", ["millions"]],
+    # The 6a2 reviews: a code glued to a billions mark, an apostrophe form after letters, and the
+    # boundaries each surviving mutant moved.
+    ["USDbn", ["billions"]],
+    ["EURbln", ["billions"]],
+    ["GBPbn", ["billions"]],
+    ["USDbln", ["billions"]],
+    ["RMB'000", ["thousands"]],
+    ["Rs'000", ["thousands"]],
+    ["RMB’000", ["thousands"]],
+    ["1USD k", ["thousands"]],
+    ["1€m", ["millions"]],
+    ["bnUS$", ["billions"]],
+    ["kEUR", []],
+    ["kUSD", []],
+    ["mm", []],
+    ["$b", []],
+    ["USD b", []],
+    ["GBP000x", []],
+    ["'0001", []],
+    ["'000x", []],
+    ["1.000s", []],
+    ["x000s", []],
+    ["a000s", []],
+    ["000s1", []],
+    ["1'000", []],
+    ["CAD m", []],
+    ["Xthousands", []],
+    ["‘000", []],
+    ["5million", ["millions"]],
+    ["€m1,234", ["millions"]],
+    ["USD\u00a0k", ["thousands"]],
+    ["€\u00a0m", ["millions"]],
+    ["GBP\u00a0bn", ["billions"]],
+    ["k\u00a0€", ["thousands"]],
+    ["m\u00a0$", ["millions"]],
+    ["bn\u00a0£", ["billions"]],
+    ["USD  k", []],
+    ["EUR  m", []],
+    ["£  bn", ["billions"]],
+    ["k  €", []],
+    ["mn  $", []],
+    ["bln  £", ["billions"]],
 ]
 CURRENCIES: list[Any] = [
     ["Statements (EURm)", "EUR", True],
@@ -236,13 +364,89 @@ CURRENCIES: list[Any] = [
     ["revenue 120m£", "GBP", True],
     ["AUS$ 5m", "USD", False],
     ["USD1", "USD", False],
+    # R46: the currency form reads the units' marks.
+    ["USDk", "USD", True],
+    ["USD000", "USD", True],
+    ["EUR000s", "EUR", True],
+    ["USDm", "USD", True],
+    ["USDmm", "USD", True],
+    ["USDmn", "USD", True],
+    ["USDmln", "USD", True],
+    ["USDbn", "USD", True],
+    ["GBPbln", "GBP", True],
+    ["AUSD", "USD", False],
+    ["USDkm", "USD", False],
+    ["1USD", "USD", True],
+    ["_USD_", "USD", True],
+    ["aUSD", "USD", False],
+    ["USDmillions", "USD", False],
 ]
+# R46 rows: each form in the unit table of a `Revenue check` row, under the block whose unit it
+# names (accepted) and under the other block (refused); billions is refused under both.
+FORMS = [
+    ["GBP000", "thousands"],
+    ["£000", "thousands"],
+    ["€000", "thousands"],
+    ["USD000", "thousands"],
+    ["k€", "thousands"],
+    ["_USD thousands_", "thousands"],
+    ["in 000s", "thousands"],
+    ["M€", "millions"],
+    ["USD mln", "millions"],
+    ["USD bn", "billions"],
+    ["USD billions", "billions"],
+    ["€bn", "billions"],
+]
+NOT_UNITS = [("10 km", 1), ("commitments", 1000), ("1,000 shares", 1), ("multimillion", 1000)]
+CALC_TEXT = json.loads(f'"{CALC}"')
+
+
+def unit_row(label: str, cell: str, scale: int, unit: str = "Unit") -> Doc:
+    foundation, amount = (
+        ("foundation-thousands.md", "1,456,000") if scale == 1000 else ("foundation.md", "1,456")
+    )
+    table = f"| Line item | FY2024 | {unit} |\n| --- | --- | --- |\n| Revenue check | {amount} | {cell} |\n"
+    edits = [[CALC_TEXT, f"{CALC_TEXT}\n{table}"]]
+    return {
+        "label": label,
+        "foundation": foundation,
+        "edits": edits,
+        "ops": [[["base", "revenue", "row"], "Revenue check"]],
+    }
+
+
+def r46_rows() -> list[Doc]:
+    rows = []
+    for form, unit in FORMS:
+        for scale, block in ((1, "millions"), (1000, "thousands")):
+            reading = "the block's unit" if unit == block else f"{unit}, not the block's {block}"
+            rows.append(unit_row(f"`{form}` under a {block} block is {reading}", form, scale))
+    for text, scale in NOT_UNITS:
+        rows.append(unit_row(f"`{text}` at scale {scale} names no unit", text, scale))
+    seventh = [["\n## Next module\n", "\n## Next module\n\n## Appendix\n"]]
+    rows.append({"label": "a seventh top-level section after Next module", "edits": seventh})
+    rows.append(
+        unit_row("a long column header is cut at 80 in the unit message", "USD thousands", 1, LONG)
+    )
+    rows.append(unit_row("a starred unit cell is shown plain", "**USD thousands**", 1))
+    rows.append(unit_row("a long unit cell is cut at 80", f"USD thousands, {LONG}", 1))
+    rows.append(unit_row("a starred column header is shown plain", "USD thousands", 1, "**Unit**"))
+    two = "| Line item | FY2024 | Unit |\n| --- | --- | --- |\n"
+    two += "| Revenue check | 1,456 | USD k |\n| Revenue check | 1,456 | _USD bn_ |\n"
+    rows.append(
+        {
+            "label": "the first unit issue is chosen by the cell as printed",
+            "edits": [[CALC_TEXT, f"{CALC_TEXT}\n{two}"]],
+            "ops": [[["base", "revenue", "row"], "Revenue check"]],
+        }
+    )
+    return rows
 
 
 def render() -> str:
     assert all(units_named(text) == named for text, named in WORDS)
     assert all(names_currency(text, code) is named for text, code, named in CURRENCIES)
-    rows = [json.loads(line) for line in ROWS.strip().splitlines()]
+    rows = [json.loads(line) for line in ROWS.strip().splitlines()] + r46_rows()
     for row in json.loads(PR5.render())[
         "rows"
     ]:  # PR 5's rows: the unit and currency steps add nothing
@@ -256,7 +460,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 43 and len(accepted) == 12
+    assert len(labels) == len(set(labels)) == 77 and len(accepted) == 25
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
