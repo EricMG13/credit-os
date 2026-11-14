@@ -1,0 +1,656 @@
+import type { STATUS_SETS } from "@/components/status/sets";
+
+/** A figure the page draws as written. `null` is missing and draws "n.a."; `at` is for position or sort only. */
+export type Cell =
+  | null
+  | { kind: "value"; text: string; at: number | null }
+  | { kind: "withheld"; reason: string | null }
+  | { kind: "gap"; reason: string };
+
+/** The words of the Run states set: the state of an issuer's latest run. */
+export type RunState = keyof (typeof STATUS_SETS)["Run states"];
+
+/** The three measures the list draws, in column order. */
+export const MEASURES = ["leverage", "netLeverage", "interestCoverage"] as const;
+export type MeasureKey = (typeof MEASURES)[number];
+
+/**
+ * One measure of a run: `null` is not recorded. `at` only sorts and screens; `text` is drawn as
+ * delivered. `description` is the delivered EBITDA label with its period, or "Period not recorded".
+ */
+export type Measure = null | {
+  text: string;
+  at: number;
+  basis: "reported" | "adjusted";
+  description: string;
+};
+
+/** A delivered range: `min` is included and `max` excluded; `null` is open on that side. */
+type Band = { label: string; min: number | null; max: number | null };
+
+export type MeasureSpec = { name: string; countLine: string; bands: readonly Band[] };
+
+export type IssuerCard = {
+  kind: "issuer";
+  /** The issuer's slug, a key into `LibrarySlice.issuers`. */
+  issuer: string;
+  name: string;
+  sector: string;
+  state: RunState;
+  lead: string;
+  note: string | null;
+  asOf: string;
+  pathway: string;
+  /** `text` is what is shown; `value` and `max` only position the bar. */
+  progress: { text: string; value: number; max: number };
+  /** The run the card opens on, or `null` when the issuer has no finished run. */
+  href: string | null;
+  measures: Record<MeasureKey, Measure>;
+};
+
+export type HomeCard = IssuerCard | { kind: "loading" };
+
+/** The controls that narrow a list: the search, three selects and three range bands. */
+const FILTER_CONTROLS = 7;
+/** One applied-filter label for each count from none to every control. */
+export const APPLIED_LABELS = FILTER_CONTROLS + 1;
+
+export type LibraryHome = {
+  subtitle: string;
+  filters: {
+    sector: readonly string[];
+    pathway: readonly string[];
+    state: readonly string[];
+    /** One label per number of filters applied, from none to the search, all three selects and all three bands. */
+    appliedLabels: readonly string[];
+  };
+  cards: readonly HomeCard[];
+  list: { measures: Record<MeasureKey, MeasureSpec> };
+};
+
+/** One run in an issuer's history. `report` and `changes` are absent for a run with nothing to read. */
+export type HistoryEntry = {
+  asOf: string;
+  ran: string;
+  state: RunState;
+  pathway: string;
+  text: string;
+  /** The run id its Overview opens on, or `null`. */
+  report: string | null;
+  /** The delivered "What changed since …" label and the run whose Changes page it opens. */
+  changes: { label: string; run: string } | null;
+};
+
+/**
+ * Newest first, as delivered. `latest` is the run "Open latest report" opens; when it is `null`
+ * nothing can be read and `empty` carries the sentence the page shows in place of the feed.
+ */
+export type History = {
+  subtitle: string;
+  latest: string | null;
+  empty: string | null;
+  entries: readonly HistoryEntry[];
+};
+
+/** One row of a derivation: `value` is the figure as delivered, `null` when it is not recorded. */
+export type TreeNode = {
+  label: string;
+  value: string | null;
+  note: string | null;
+  children: readonly TreeNode[];
+};
+
+/** What the trace drawer shows for one figure; `evidenceItem` is the item its Evidence page opens. */
+export type Trace = {
+  /** The dialog's accessible name, for example "Sources for net leverage". */
+  title: string;
+  /** The drawer's visible heading, for example "Net leverage 4.6x". */
+  heading: string;
+  /** The line under the title, for example "Capital structure · figure · as of 30 Sep 2026". */
+  subtitle: string;
+  statement: string;
+  derivation: TreeNode;
+  /** The quoted passage and where it was read; `null` when the trace has none. */
+  excerpt: { quote: string; source: string } | null;
+  /** The qualification sentence; `null` when the figure carries none. */
+  qualification: string | null;
+  evidenceItem: string;
+};
+
+/** What the frame of a run page draws above its body. */
+export type RunHead = {
+  issuerName: string;
+  asOf: string;
+  pathway: string;
+  state: RunState;
+  tabs: { modulesCount: string };
+  /** The module the Modules tab opens on, or `null` when the run has none. */
+  firstModule: string | null;
+  /** Where the Forecast tab goes, or `null` while the forecast is not built. */
+  forecastHref: string | null;
+};
+
+/** The bottom line of a run or module: `trace` is a key of the run's traces, or `null`. */
+export type BottomLineText = { label: string; lead: string; rest: string; trace: string | null };
+
+/** One headline figure: `value` is `null` when the figure is missing. */
+export type Metric = { label: string; value: Cell; note: string; trace: string | null };
+
+/** One point of For and against; `qualifier` is the label drawn as a badge. */
+export type Point = { figure: Cell; text: string; qualifier: string; trace: string | null };
+
+/** One key finding: `number` is delivered text such as "01". */
+export type Finding = { number: string; lead: string; body: string; trace: string | null };
+
+/** What would change the view: the title and the passage under it. */
+export type ChangeView = { title: string; text: string; trace: string | null };
+
+/** The words of the Dated records set. */
+export type DateState = keyof (typeof STATUS_SETS)["Dated records"];
+
+/** One issuer date to watch: `date` is delivered text, never parsed. */
+export type DatedItem = { date: string; state: DateState; title: string; text: string };
+
+/** The words of the Module state set. */
+export type ModuleState = keyof (typeof STATUS_SETS)["Module state"];
+
+/**
+ * One module item. `module` is the module's id, or `null` for an item that stands for several
+ * (a repeated state collapsed into one), which opens nothing.
+ */
+export type ModuleItem = { title: string; lead: string; state: ModuleState; module: string | null };
+
+/** What the run could not establish; `count` and the link's label are delivered text. */
+export type Limitations = {
+  count: string;
+  gapsLink: { label: string };
+  items: readonly { text: string; trace: string | null }[];
+};
+
+/** The Overview page of a run: bottom line, figures, for and against, findings and dates. */
+export type Overview = {
+  bottomLine: BottomLineText;
+  /** The accessible name of the headline figures. */
+  metricsLabel: string;
+  metrics: readonly Metric[];
+  sides: {
+    heading: string;
+    note: string;
+    columns: readonly { name: string; items: readonly Point[] }[];
+  };
+  findings: readonly Finding[];
+  changeView: ChangeView;
+  dates: readonly DatedItem[];
+  /** `summary` is delivered text such as "12 of 13 delivered". */
+  modules: { summary: string; items: readonly ModuleItem[] };
+  limitations: Limitations;
+};
+
+/** The words of the Change state set. */
+export type ChangeState = keyof (typeof STATUS_SETS)["Change state"];
+
+/** One module's change state; `module` is its id, or `null` for an item that stands for several. */
+export type ChangeModuleItem = {
+  title: string;
+  lead: string;
+  state: ChangeState;
+  module: string | null;
+};
+
+/**
+ * One change between two runs. `direction` is delivered, never worked out from the figures; a
+ * figure that is not a value (missing, withheld or a gap) has direction "none" and no `change` text.
+ * "flat" is a change that is neither up nor down; "none" draws no mark. `kind` and `change` are
+ * delivered words such as "Value" and "Lower by 0.3x".
+ */
+export type Change = {
+  measure: string;
+  kind: string;
+  current: Cell;
+  from: Cell;
+  direction: "up" | "down" | "flat" | "none";
+  change: string | null;
+  cause: string;
+  effect: string;
+  trace: string | null;
+};
+
+/** The Changes page of a run: the first run on an issuer has nothing to compare with. */
+export type Changes =
+  | { kind: "none"; title: string; text: string }
+  | {
+      kind: "compared";
+      heading: string;
+      subtitle: string;
+      earlierLabel: string;
+      currentLabel: string;
+      /** The basis note under the table, for example "All six changes, in the order the module wrote them". */
+      tableNote: string;
+      changes: readonly Change[];
+      modules: { summary: string; items: readonly ChangeModuleItem[] };
+    };
+
+/**
+ * A risk matrix: `columns` heads the Table side (the risk, then the two grades); a grade that is
+ * not recorded is `null` and draws "n.a.". `trace` is the block's own, each row has its own.
+ */
+type MatrixRecord = {
+  kind: "matrix";
+  title: string;
+  note: string | null;
+  columns: readonly string[];
+  rows: readonly {
+    risk: string;
+    probability: string | null;
+    impact: string | null;
+    trace: string | null;
+  }[];
+  trace: string | null;
+};
+
+/** Indicators to watch: `timing` says whether the indicator moves before the credit does or after. */
+type WatchRecord = {
+  kind: "watch";
+  title: string;
+  items: readonly {
+    indicator: string;
+    threshold: string;
+    timing: "leading" | "lagging";
+    trace: string | null;
+  }[];
+};
+
+/** The words of the Answer state set. */
+export type AnswerState = keyof (typeof STATUS_SETS)["Answer state"];
+
+/**
+ * Questions the module set out to answer. `answer` is `null` for a question with none, which
+ * carries no trace and is never "Answered".
+ */
+type QuestionsRecord = {
+  kind: "questions";
+  title: string;
+  items: readonly {
+    question: string;
+    state: AnswerState;
+    answer: string | null;
+    trace: string | null;
+  }[];
+};
+
+/** How one thing leads to another: the steps in order, each a title and one line. */
+type EdgesRecord = {
+  kind: "edges";
+  title: string;
+  steps: readonly { title: string; text: string }[];
+};
+
+/**
+ * The data module's blocks carry `nav`: the delivered label of the navigator entry that moves to
+ * them, shared by every block that names the same one, or `null` for a block with no entry.
+ */
+type Navigable = { nav: string | null };
+
+/** Headline figures: each is a `Metric`, whose missing value is `null` and withheld one a `withheld` cell. */
+type MetricsRecord = Navigable & { kind: "metrics"; title: string; items: readonly Metric[] };
+
+/**
+ * A measure against its earlier period. `delta` is delivered with its direction, never worked out.
+ * The reader accepts two forms only: both periods values with a `delta`, or the earlier period
+ * missing (`null`) beside any current figure with `delta` `null`, which the line words "Earlier
+ * period n.a.". The other 11 of the 16 (current, earlier) pairs (a current figure missing,
+ * withheld or a gap beside an earlier value; an earlier period withheld or a gap) are refused
+ * with their path, so delivery cannot yet send the shape of a capped run; step 3B must either
+ * widen the reader or keep delivery to these two forms.
+ */
+type MeasuresRecord = Navigable & {
+  kind: "measures";
+  title: string;
+  items: readonly {
+    label: string;
+    current: Cell;
+    earlier: Cell;
+    delta: { text: string; direction: "up" | "down" | "flat" } | null;
+    consequence: string;
+    trace: string | null;
+  }[];
+};
+
+/** The words of the Met or not met set. */
+export type TestState = keyof (typeof STATUS_SETS)["Met or not met"];
+
+/**
+ * Terms as labelled values in named groups (`name` is `null` for a group with no heading). A zero
+ * reads as zero, a missing value as `null` ("n.a.") and a withheld one as a `withheld` cell.
+ */
+type FactsRecord = Navigable & {
+  kind: "facts";
+  title: string;
+  groups: readonly {
+    name: string | null;
+    rows: readonly { label: string; value: Cell; trace: string | null }[];
+  }[];
+};
+
+/**
+ * Tests that are met or not, in the order delivered, one group for each state. `count` is the
+ * delivered text beside the state; `note` is a line under the test, or `null`.
+ */
+type StatusRecord = Navigable & {
+  kind: "status";
+  title: string;
+  groups: readonly {
+    state: TestState;
+    count: string;
+    items: readonly { text: string; note: string | null; value: Cell; trace: string | null }[];
+  }[];
+};
+
+/**
+ * A statement by period: `stub` heads the row-label column, each row has one cell for each of
+ * `periods`, and `emphasis` marks a line the module wrote as a total. `basis` is the note under it.
+ */
+type StatementRecord = Navigable & {
+  kind: "statement";
+  title: string;
+  stub: string;
+  basis: string | null;
+  periods: readonly string[];
+  rows: readonly { label: string; cells: readonly Cell[]; emphasis: boolean }[];
+  trace: string | null;
+};
+
+/** What the module could not establish, in place of a chart or table: the reason it gives. */
+type GapRecord = Navigable & { kind: "gap"; title: string; reason: string };
+
+/** The positions a chart table's styling reaches: a left column or an emphasised row lies within them. */
+export const CHART_TABLE_LIMITS = { columns: 8, rows: 12 } as const;
+
+/**
+ * A chart's data as a table, drawn as its Table side. `chart` is the kind of chart the later chart
+ * step draws from the same record. The first column labels each row, so its cell is text; every
+ * other cell is text, a `Cell` (`null` missing, zero as zero, withheld) or a gap. `emphasis` marks
+ * a row the module wrote as a total or as the issuer's own; `footnotes` are delivered sentences.
+ */
+type ChartTableRecord = Navigable & {
+  kind: "chartTable";
+  title: string;
+  chart: "stack" | "columns" | "bullet" | "bridge" | "scatter" | "range";
+  note: string | null;
+  columns: readonly { label: string; align: "left" | "right" }[];
+  rows: readonly { cells: readonly (Cell | string)[]; emphasis: boolean }[];
+  footnotes: readonly string[];
+  trace: string | null;
+};
+
+/** One block of a module's records. */
+export type RecordBlock =
+  | MatrixRecord
+  | WatchRecord
+  | QuestionsRecord
+  | EdgesRecord
+  | MetricsRecord
+  | MeasuresRecord
+  | FactsRecord
+  | StatusRecord
+  | StatementRecord
+  | ChartTableRecord
+  | GapRecord;
+
+/** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
+export type DeliveredBody = {
+  kind: "delivered";
+  bottomLine: BottomLineText;
+  findings: readonly Finding[];
+  contrary: ChangeView | null;
+  changeView: ChangeView | null;
+  records: readonly RecordBlock[];
+  limitations: Limitations;
+};
+
+/** A module that could not be delivered: why, the sentence under it and the link's label. */
+export type BlockedBody = {
+  kind: "blocked";
+  reason: string;
+  note: string;
+  gapsLink: { label: string };
+};
+
+/**
+ * One module of a run. A delivered body carries "Delivered" or "Delivered with gaps"; a blocked
+ * one carries "Not assessable" or "Not run".
+ */
+export type Module = {
+  id: string;
+  name: string;
+  state: ModuleState;
+  body: DeliveredBody | BlockedBody;
+};
+
+/** The words of the File state set a source file is drawn with; "Uploading" belongs to the run start page. */
+export type FileState = Exclude<keyof (typeof STATUS_SETS)["File state"], "Uploading">;
+
+/** A module that read a file, as the module filter lists it: its id, name and delivered initials. */
+export type Reader = { id: string; name: string; initials: string };
+
+/**
+ * One source file of a run. `kind` is the type shown on its icon ("PDF"); `why` is the sentence
+ * beside the state, always present for an unreadable file. `readers.shown` are the avatars drawn;
+ * `readers.more` is the "+N" avatar, whose `ids` are the modules it stands for, so a module filter
+ * compares ids across both. Each reader is a module the filter lists. `readersLabel` and every
+ * count are delivered text.
+ */
+export type SourceFile = {
+  name: string;
+  kind: string;
+  size: string;
+  state: FileState;
+  why: string | null;
+  readersLabel: string;
+  readers: {
+    shown: readonly Reader[];
+    more: { text: string; label: string; ids: readonly string[] } | null;
+  };
+  hash: string;
+};
+
+/**
+ * A download: `href` is the file's address, or `null` when none can be offered, then `reason` is the
+ * sentence drawn beside the disabled button. Nothing is generated in the browser.
+ */
+export type Download = { label: string; href: string | null; reason: string | null };
+
+/**
+ * One traced item. `moduleId` is the module it sits in, or `null` for an item of the Overview
+ * (then `module` is "Overview"). `sources` is the delivered count, a real zero when there is none;
+ * `calc` is the derivation of a figure the module calculated; `note` says what the row cannot.
+ * `value` is required of delivery and read, but no page draws it: it is kept as the contract the
+ * fixture-agreement test compares against the figure each trace opens from (step 3B must still send it).
+ */
+export type TraceRow = {
+  id: string;
+  item: string;
+  module: string;
+  moduleId: string | null;
+  kind: string;
+  value: Cell;
+  sources: string;
+  calc: TreeNode | null;
+  note: string | null;
+};
+
+/**
+ * The Trace tab: its delivered title, sentence and heads, then one row for each traced item. A
+ * register with no row carries `emptyText`, the delivered sentence saying what is true of that run;
+ * one with rows carries `null`. A row id starting "G-" is the id of a gap of the run, in its module.
+ */
+export type TraceTable = {
+  title: string;
+  description: string;
+  emptyText: string | null;
+  /** The `value` head is required and read but, like `TraceRow.value`, not drawn. */
+  columns: Record<"id" | "item" | "value" | "module" | "kind" | "sources", string>;
+  rows: readonly TraceRow[];
+};
+
+/** The words of the Gap severity set. */
+export type GapSeverity = keyof (typeof STATUS_SETS)["Gap severity"];
+
+/** How a gap appears on the findings pages: the kit's gap badge, withheld, blocked badge or "n.a.". */
+export type GapForm = "gap" | "withheld" | "blocked" | "missing";
+
+/**
+ * One gap. `moduleId` is the module it sits in. `where` is the findings page it shows on, the
+ * Overview or that module's own page, and the delivered label of the link to it.
+ */
+export type GapRow = {
+  id: string;
+  gap: string;
+  module: string;
+  moduleId: string;
+  reason: string;
+  shownAs: GapForm;
+  where: { page: "overview" | "module"; label: string };
+};
+
+/** The Gaps tab: its title, sentence and heads, then groups by severity as delivered; `count` is delivered text. */
+export type GapTable = {
+  title: string;
+  description: string;
+  columns: Record<"id" | "gap" | "module" | "reason" | "shownAs", string>;
+  groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
+};
+
+/** Five column heads, as the reader guarantees them. */
+export type FiveHeads = readonly [string, string, string, string, string];
+
+/** One module's span in the run, in minutes from its start; a module that never ran has none. */
+export type TimingRow = {
+  module: string;
+  state: ModuleState;
+  started: Cell;
+  accepted: Cell;
+  took: Cell;
+};
+
+/** A row of the model-calls table: the module's name, then the text of each column after it, `null` where missing. */
+export type CallRow = { label: string; cells: readonly (string | null)[] };
+
+/**
+ * One register a module wrote: its file and delivered row count. `href` is where it opens, or `null`
+ * when none can be offered, then `reason` is the sentence drawn beside the disabled button.
+ */
+export type RecordRegister = {
+  name: string;
+  writtenBy: string;
+  rows: string;
+  file: string;
+  href: string | null;
+  reason: string | null;
+};
+
+/**
+ * The Record tab. `timings` is the module timings table (the mock's gantt Chart side is not drawn);
+ * `hashes` are values to copy; `spend` is delivered text and the bar's position; `calls` is the model
+ * calls table with its total row as delivered; `registers` are the files the modules wrote.
+ */
+export type RunRecord = {
+  timings: {
+    title: string;
+    note: string;
+    /** The heads: Module, State, Started, Accepted, Took. */
+    columns: FiveHeads;
+    rows: readonly TimingRow[];
+    /** The delivered sentence of a run that holds no module, so has no time; `null` when rows exist. */
+    emptyText: string | null;
+  };
+  hashes: {
+    title: string;
+    items: readonly {
+      label: string;
+      kind: string;
+      value: string;
+      copyLabel: string;
+      what: string;
+    }[];
+  };
+  spend: { title: string; progress: { text: string; value: number; max: number }; note: string };
+  calls: {
+    title: string;
+    count: string;
+    note: string;
+    columns: readonly string[];
+    rows: readonly CallRow[];
+    total: CallRow;
+  };
+  registers: {
+    title: string;
+    count: string;
+    note: string;
+    /** The heads: Register, Written by, Rows, File, Open. */
+    columns: FiveHeads;
+    downloadAll: Download;
+    rows: readonly RecordRegister[];
+  };
+};
+
+/** The groups of the jump menu, in the order it draws them. */
+export const JUMP_GROUPS = ["Figures", "Calculations", "Gaps"] as const;
+
+/**
+ * One item of the jump menu. `target` is the Evidence tab it opens and the row it names: a row id of
+ * the Trace tab, or of the Gaps tab.
+ */
+export type JumpItem = {
+  group: (typeof JUMP_GROUPS)[number];
+  label: string;
+  detail: string;
+  target: { tab: "trace" | "gaps"; item: string };
+};
+
+/**
+ * A run's Evidence pages. `moduleFilter` is the options of the module filter. `tabs` are the delivered
+ * counts of the Trace, Sources and Gaps tabs; the Trace and Gaps counts are the numbers of rows they hold. On Sources the first `visible` files are drawn and the
+ * rest wait behind `moreLabel`, which is `null` exactly when none is held back.
+ */
+export type Evidence = {
+  intro: string;
+  moduleFilter: readonly Reader[];
+  tabs: { trace: string; sources: string; gaps: string };
+  summary: {
+    delivered: { note: string | null; progress: { text: string; value: number; max: number } };
+    counts: readonly Metric[];
+    run: { code: string; hash: string };
+    take: { text: string; download: Download };
+  };
+  sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
+  trace: TraceTable;
+  gaps: GapTable;
+  record: RunRecord;
+  jump: readonly JumpItem[];
+};
+
+type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
+
+/** A run still loading carries no overview, changes or modules; every other run carries all three. */
+export type LoadedRun = RunBase & {
+  loading: false;
+  overview: Overview;
+  changes: Changes;
+  modules: readonly Module[];
+  evidence: Evidence;
+};
+type LoadingRun = RunBase & {
+  loading: true;
+  overview: null;
+  changes: null;
+  modules: null;
+  evidence: null;
+};
+
+/** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
+export type Run = LoadedRun | LoadingRun;
+
+export type Issuer = { id: string; name: string; history: History; runs: readonly Run[] };
+
+export type LibrarySlice = { home: LibraryHome; issuers: readonly Issuer[] };

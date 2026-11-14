@@ -1,0 +1,408 @@
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+
+  /* Surface */
+  --color-surface-canvas: #f6f5ff;
+  --color-surface-card: #ffffff;
+  --color-surface-subtle: #f4f4f5;
+  --color-surface-selected: #e5e8ff;
+  --color-surface-inverse: #000533;
+
+  /* Text */
+  --color-text-primary: #000533;
+  --color-text-secondary: #474a4f;
+  --color-text-tertiary: #63676e;
+  --color-text-disabled: #a4a9b1;
+  --color-text-on-action: #ffffff;
+  --color-text-link: #001aff;
+
+  /* Action, hover and focus */
+  --color-action: #001aff;
+  --color-action-hover: #0015cc;
+  --color-action-pressed: #001099;
+  --color-action-subtle: #e5e8ff;
+  --color-action-subtle-hover: #ccd1ff;
+  --color-action-disabled: #e8e9eb;
+  --color-focus: #001aff;
+  --color-focus-inverse: #4ad4ff;
+
+  /* Border */
+  --color-border-subtle: #e3e1ff;
+  --color-border-hairline: #e8e9eb;
+  --color-border-control: #7f848d;
+  --color-border-container: #d1d4d8;
+  --color-connector: #bbbec4;
+  --color-border-gap: #827bcc;
+  --color-border-strong: #000533;
+
+  /* Status */
+  --color-success-text: #0c6639;
+  --color-success-fill: #e8fff4;
+  --color-success-edge: #a5ffd2;
+  --color-success-mark: #0f8048;
+  --color-warning-text: #664f00;
+  --color-warning-fill: #fff9e5;
+  --color-warning-edge: #ffe899;
+  --color-warning-mark: #997700;
+  --color-error-text: #8e413e;
+  --color-error-fill: #fdf0f0;
+  --color-error-edge: #f7c5c2;
+  --color-error-mark: #a54c48;
+  --color-info-text: #1e5566;
+  --color-info-fill: #edfbff;
+  --color-info-edge: #b7eeff;
+  --color-info-mark: #2c7f99;
+
+  /* Gap */
+  --color-gap-text: #514d80;
+
+  /* Chart palette: six series in a fixed order, then Other */
+  --color-chart-1: #001aff;
+  --color-chart-2: #827bcc;
+  --color-chart-3: #994a34;
+  --color-chart-4: #b28b00;
+  --color-chart-5: #0f8048;
+  --color-chart-6: #8c9900;
+  --color-chart-other: #7f848d;
+
+  /* Ultramarine: 50 = L9, 100 = L8, 200 = L7, 300 = L5, 400 = L3, 500 = L1, 600 = base,
+     700 = D2, 800 = D4, 900 = D6, 950 = D8 */
+  --color-brand-50: #e5e8ff;
+  --color-brand-100: #ccd1ff;
+  --color-brand-200: #b2baff;
+  --color-brand-300: #808cff;
+  --color-brand-400: #4d5fff;
+  --color-brand-500: #1a31ff;
+  --color-brand-600: #001aff;
+  --color-brand-700: #0015cc;
+  --color-brand-800: #001099;
+  --color-brand-900: #000a66;
+  --color-brand-950: #000533;
+
+  /* Fonts */
+  --font-display: "Schibsted Grotesk", system-ui, sans-serif;
+  --font-body: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* Radius, for pieces written here (the source scale rounded-* is unchanged) */
+  --radius-ds-xs: 6px;
+  --radius-ds-sm: 12px;
+  --radius-ds-md: 20px;
+  --radius-ds-lg: 28px;
+  --radius-ds-full: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(0, 5, 51, 0.06);
+  --shadow-2: 0 6px 16px rgba(0, 5, 51, 0.08), 0 1px 2px rgba(0, 5, 51, 0.04);
+
+  /* Type scale */
+  --text-display: 48px;
+  --text-display--line-height: 52px;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 36px;
+  --text-h1--line-height: 42px;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: 28px;
+  --text-h2--line-height: 34px;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h3: 22px;
+  --text-h3--line-height: 30px;
+  --text-h3--font-weight: 600;
+  --text-h3--letter-spacing: -0.01em;
+  --text-h4: 18px;
+  --text-h4--line-height: 26px;
+  --text-h4--font-weight: 600;
+  --text-h4--letter-spacing: 0em;
+  --text-lead: 20px;
+  --text-lead--line-height: 32px;
+  --text-lead--font-weight: 400;
+  --text-lead--letter-spacing: 0em;
+  --text-body: 16px;
+  --text-body--line-height: 26px;
+  --text-body--font-weight: 400;
+  --text-body--letter-spacing: 0em;
+  --text-small: 14px;
+  --text-small--line-height: 22px;
+  --text-small--font-weight: 400;
+  --text-small--letter-spacing: 0em;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-caption--font-weight: 500;
+  --text-caption--letter-spacing: 0em;
+  --text-metric: 40px;
+  --text-metric--line-height: 44px;
+  --text-metric--font-weight: 600;
+  --text-metric--letter-spacing: -0.02em;
+  --text-mono: 13px;
+  --text-mono--line-height: 20px;
+  --text-mono--font-weight: 400;
+  --text-mono--letter-spacing: 0em;
+
+  /* Source semantic tokens: the names the copied Untitled UI classes use, each mapped to a
+     design-system token (or a brand-tokens.md step where no role fits) */
+  --color-bg-primary: var(--color-surface-card);
+  --color-bg-primary_hover: var(--color-surface-subtle);
+  --color-bg-primary-solid: var(--color-surface-inverse);
+  --color-bg-brand-solid: var(--color-action);
+  --color-bg-brand-solid_hover: var(--color-action-hover);
+  --color-bg-error-solid: var(--color-error-text);
+  --color-bg-error-solid_hover: #763734;
+  --color-text-secondary_hover: var(--color-text-primary);
+  --color-text-tertiary_hover: var(--color-text-secondary);
+  --color-tooltip-supporting-text: #d1d4d8;
+  --color-fg-quaternary: var(--color-text-tertiary);
+  --color-fg-quaternary_hover: var(--color-text-secondary);
+  --color-border-primary: var(--color-border-control);
+  --color-border-brand: var(--color-focus);
+
+  --background-color-primary: var(--color-bg-primary);
+  --background-color-primary_hover: var(--color-bg-primary_hover);
+  --background-color-primary-solid: var(--color-bg-primary-solid);
+  --background-color-brand-solid: var(--color-bg-brand-solid);
+  --background-color-brand-solid_hover: var(--color-bg-brand-solid_hover);
+  --background-color-error-solid: var(--color-bg-error-solid);
+  --background-color-error-solid_hover: var(--color-bg-error-solid_hover);
+  --text-color-primary: var(--color-text-primary);
+  --text-color-secondary: var(--color-text-secondary);
+  --text-color-secondary_hover: var(--color-text-secondary_hover);
+  --text-color-tertiary: var(--color-text-tertiary);
+  --text-color-tertiary_hover: var(--color-text-tertiary_hover);
+  --text-color-tooltip-supporting-text: var(--color-tooltip-supporting-text);
+  --text-color-fg-quaternary: var(--color-fg-quaternary);
+  --text-color-fg-quaternary_hover: var(--color-fg-quaternary_hover);
+  --ring-color-primary: var(--color-border-primary);
+  --outline-color-brand: var(--color-border-brand);
+  --outline-color-error: var(--color-focus);
+
+  /* Featured icon (light theme) and empty state: tinted circle and its icon colour, by status family */
+  --background-color-tertiary: var(--color-surface-subtle);
+  --background-color-brand-secondary: var(--color-action-subtle);
+  --background-color-error-secondary: var(--color-error-fill);
+  --background-color-warning-secondary: var(--color-warning-fill);
+  --background-color-success-secondary: var(--color-success-fill);
+  --text-color-featured-icon-light-fg-brand: var(--color-action);
+  --text-color-featured-icon-light-fg-gray: var(--color-text-tertiary);
+  --text-color-featured-icon-light-fg-error: var(--color-error-mark);
+  --text-color-featured-icon-light-fg-warning: var(--color-warning-mark);
+  --text-color-featured-icon-light-fg-success: var(--color-success-mark);
+
+  /* Badge (pill-color): the source's utility families, by status family */
+  --background-color-utility-neutral-50: var(--color-surface-subtle);
+  --ring-color-utility-neutral-200: var(--color-border-container);
+  --text-color-utility-neutral-700: var(--color-text-secondary);
+  --text-color-utility-neutral-500: var(--color-text-tertiary);
+  --background-color-utility-brand-50: var(--color-action-subtle);
+  --ring-color-utility-brand-200: var(--color-action-subtle-hover);
+  --text-color-utility-brand-700: var(--color-action);
+  --text-color-utility-brand-500: var(--color-action);
+  --background-color-utility-red-50: var(--color-error-fill);
+  --ring-color-utility-red-200: var(--color-error-edge);
+  --text-color-utility-red-700: var(--color-error-text);
+  --text-color-utility-red-500: var(--color-error-mark);
+  --background-color-utility-yellow-50: var(--color-warning-fill);
+  --ring-color-utility-yellow-200: var(--color-warning-edge);
+  --text-color-utility-yellow-700: var(--color-warning-text);
+  --text-color-utility-yellow-500: var(--color-warning-mark);
+  --background-color-utility-green-50: var(--color-success-fill);
+  --ring-color-utility-green-200: var(--color-success-edge);
+  --text-color-utility-green-700: var(--color-success-text);
+  --text-color-utility-green-500: var(--color-success-mark);
+  --background-color-utility-sky-50: var(--color-info-fill);
+  --ring-color-utility-sky-200: var(--color-info-edge);
+  --text-color-utility-sky-700: var(--color-info-text);
+  --text-color-utility-sky-500: var(--color-info-mark);
+
+  /* Tabs: unselected text, the selected and hovered text and line, the track line, the focus ring */
+  --text-color-quaternary: var(--color-text-tertiary);
+  --text-color-brand-secondary: var(--color-text-link);
+  --border-color-fg-brand-primary_alt: var(--color-action);
+  --background-color-border-secondary: var(--color-border-hairline);
+  --outline-color-focus-ring: var(--color-focus);
+
+  /* Sidebar rail: the subtle surface (table head and row hover), the card's inset ring, the page header's rule */
+  --background-color-secondary: var(--color-surface-subtle);
+  --ring-color-secondary: var(--color-border-subtle);
+  --border-color-secondary: var(--color-border-hairline);
+
+  /* Input and select: focus ring (the focus token), invalid ring at rest only (error mark: an edge on white needs 3:1; focused, the field draws the focus token), the placeholder, the error text and the icon colours, the popover's ring */
+  --ring-color-brand: var(--color-focus);
+  --ring-color-focus-ring: var(--color-focus);
+  --ring-color-error: var(--color-error-mark);
+  --ring-color-error_subtle: var(--color-error-mark);
+  --ring-color-secondary_alt: var(--color-border-container);
+  --text-color-placeholder: var(--color-text-tertiary);
+  --text-color-error-primary: var(--color-error-text);
+  --text-color-brand-tertiary: var(--color-action);
+  --text-color-fg-brand-primary: var(--color-action);
+
+  /* File upload: the drop zone's link button and the retry link, the row's icon box and divider */
+  --text-color-brand-secondary_hover: var(--color-action-hover);
+  --text-color-fg-brand-secondary_alt: var(--color-action);
+  --text-color-fg-brand-secondary_hover: var(--color-action-hover);
+  --text-decoration-color-fg-brand-secondary_alt: var(--color-action);
+  --text-color-error-primary_hover: var(--color-bg-error-solid_hover);
+  --text-color-fg-error-secondary: var(--color-error-mark);
+  --text-color-fg-error-primary: var(--color-error-text);
+  --border-color-container: var(--color-border-container);
+  --background-color-border-primary: var(--color-border-primary);
+
+  /* Drawer and modal: the scrim is Navy (it takes the source's alpha at the use site); the footer's top rule is the hairline */
+  --background-color-overlay: var(--color-surface-inverse);
+
+  /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
+  --text-xs: calc(var(--spacing) * 3);
+  --text-xs--line-height: calc(var(--spacing) * 4.5);
+  --text-sm: calc(var(--spacing) * 3.5);
+  --text-sm--line-height: calc(var(--spacing) * 5);
+  --text-md: calc(var(--spacing) * 4);
+  --text-md--line-height: calc(var(--spacing) * 6);
+  --text-xl: calc(var(--spacing) * 5);
+  --text-xl--line-height: calc(var(--spacing) * 7.5);
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --shadow-sm: 0px 1px 3px rgb(0 5 51 / 0.1), 0px 1px 2px -1px rgb(0 5 51 / 0.1);
+  --shadow-xs: 0px 1px 2px rgb(0 5 51 / 0.05);
+  --shadow-lg:
+    0px 12px 16px -4px rgb(0 5 51 / 0.08), 0px 4px 6px -2px rgb(0 5 51 / 0.03),
+    0px 2px 2px -1px rgb(0 5 51 / 0.04);
+  --shadow-xl:
+    0px 20px 24px -4px rgb(0 5 51 / 0.08), 0px 8px 8px -4px rgb(0 5 51 / 0.03),
+    0px 3px 3px -1.5px rgb(0 5 51 / 0.04);
+  --shadow-skeuomorphic:
+    0px 0px 0px 1px rgb(0 5 51 / 0.18) inset, 0px -2px 0px 0px rgb(0 5 51 / 0.05) inset;
+  --shadow-xs-skeuomorphic: var(--shadow-skeuomorphic), var(--shadow-xs);
+}
+
+@utility transition-inherit-all {
+  transition-property: inherit;
+  transition-duration: inherit;
+  transition-timing-function: inherit;
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/SchibstedGrotesk-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/SchibstedGrotesk-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Geist-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Geist-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Geist-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/GeistMono-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/GeistMono-Medium.woff2") format("woff2");
+}
+
+html,
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-surface-canvas);
+  color: var(--color-text-primary);
+}
+
+/* Live run state: the only loops. Each lives inside no-preference, and the global reduce rule in
+   index.css stops them as well. */
+.queued-shimmer {
+  min-height: 1.5rem;
+  border-radius: var(--radius-ds-xs);
+  background-color: var(--color-surface-subtle);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes status-halo {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-action) 45%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-action) 0%, transparent);
+    }
+  }
+
+  @keyframes queued-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  .status-halo {
+    animation: status-halo 1.6s ease-in-out infinite;
+  }
+
+  .queued-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-surface-subtle) 25%,
+      var(--color-surface-selected) 50%,
+      var(--color-surface-subtle) 75%
+    );
+    background-size: 200% 100%;
+    animation: queued-shimmer 1.8s linear infinite;
+  }
+}
+
+/* Gap states: static fills, no motion. */
+.gap-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-card) 0 8px,
+    var(--color-surface-canvas) 8px 16px
+  );
+}
+
+.withheld-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-subtle) 0 6px,
+    var(--color-border-container) 6px 12px
+  );
+}
