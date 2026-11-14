@@ -104,7 +104,7 @@ def test_validator_order() -> None:
 def test_record_is_frozen() -> None:
     facility = Facility.model_validate(terms())
     with pytest.raises(ValidationError):
-        setattr(facility, "name", "other")
+        facility.name = "other"
 
 
 def test_schedule_input_types() -> None:
