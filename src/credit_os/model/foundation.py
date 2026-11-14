@@ -26,12 +26,13 @@ _MAGNITUDES = ("interest", "taxes", "capex")
 _SHOWN = 5
 
 _NOT_AFTER = r"(?![A-Za-z])"
-_CODE = r"(?:(?<![A-Za-z])(?:US\$|USD|EUR|GBP)|[$€£])"
+_LETTERS = r"(?:USD|EUR|GBP)"
+_CODE = rf"(?:(?<![A-Za-z])(?:US\$|{_LETTERS})|[$€£])"
 _AFTER = r"(?:US\$|[$€£])"
 _ZEROS = r"000s?"
 _WORDS = {
     "thousands": ("thousands?",),
-    "millions": ("millions?", "mln"),
+    "millions": ("millions?", "mln", "mm"),
     "billions": ("billions?", "bln", "bn"),
 }
 _MARKS = {
@@ -39,8 +40,12 @@ _MARKS = {
     "millions": ("mln", "mm", "mn", "m"),
     "billions": ("bln", "bn"),
 }
+_CAPITAL_T = "(?-i:T)"
+_BEFORE = {**_MARKS, "thousands": (*_MARKS["thousands"], _CAPITAL_T)}
+_GLUED = {"thousands": _BEFORE["thousands"], "millions": ("m",)}
 _EXTRA_THOUSANDS = (
-    rf"{_CODE}['’]?{_ZEROS}(?![A-Za-z0-9])",
+    rf"{_CODE}(?:['’]|\s)?{_ZEROS}(?![A-Za-z0-9])",
+    r"(?<![A-Za-z0-9])\(000\)(?![A-Za-z0-9])",
     rf"(?<![0-9])['’]{_ZEROS}(?![A-Za-z0-9])",
     r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
 )
@@ -49,11 +54,16 @@ _EXTRA_THOUSANDS = (
 def _unit_pattern(unit: str) -> re.Pattern[str]:
     words = "|".join(_WORDS[unit])
     marks = "|".join(_MARKS[unit])
+    before = "|".join(_BEFORE[unit])
     forms = [
         rf"(?<![A-Za-z])(?:{words}){_NOT_AFTER}",
         rf"{_CODE}\s?(?:{marks}){_NOT_AFTER}",
-        rf"(?<![A-Za-z])(?:{marks})\s?{_AFTER}",
+        rf"(?<![A-Za-z])(?:{before})\s?{_AFTER}",
+        rf"(?<![A-Za-z0-9])(?:{before})\s{_LETTERS}{_NOT_AFTER}",
     ]
+    if unit in _GLUED:
+        glued = "|".join(_GLUED[unit])
+        forms.append(rf"(?<![A-Za-z])(?:{glued}){_LETTERS}{_NOT_AFTER}")
     if unit == "thousands":
         forms.extend(_EXTRA_THOUSANDS)
     return re.compile("|".join(forms), re.IGNORECASE)
@@ -154,16 +164,20 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 def units_named(text: str) -> frozenset[str]:
     """The units (`thousands`, `millions`, `billions`) the text names; any number of them.
 
-    A unit is named by its word standing alone, by a currency code or sign and then its mark, or
-    by its mark and then a sign; thousands also by `000` and `000s` forms. Letters around a
-    mark hide it, emphasis marks and digits do not. Billions is never a block's unit.
+    A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
+    its mark, by its mark and then a sign, or by its mark before a letter code, glued (`kEUR`,
+    `TEUR`, `MUSD`) or after one whitespace (`m EUR`). Capital `T` is a thousands mark where `k`
+    is, before a code or sign. Thousands also by `000` and `000s` after a code or sign and at
+    most one whitespace, `(000)` standing alone, and the apostrophe forms. Letters around a mark
+    hide it, emphasis marks and digits do not. Billions is never a block's unit.
     """
     return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
 
 def names_currency(text: str, currency: str) -> bool:
-    """Whether the text names the code, alone or with a scale suffix, or the code's own sign."""
-    forms = [rf"(?<![A-Za-z]){currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
+    """Whether the text names the code, alone, after a glued mark or with a scale suffix, or its sign."""
+    glued = "|".join(dict.fromkeys(mark for marks in _GLUED.values() for mark in marks))
+    forms = [rf"(?<![A-Za-z])(?i:{glued})?{currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
     if currency in _SIGNS:
         forms.append(_SIGNS[currency])
     return re.search("|".join(forms), text) is not None
