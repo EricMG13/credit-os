@@ -189,6 +189,8 @@ def test_csv_row_cap_counts_one_row_at_a_time() -> None:
 
 def test_csv_row_cap_counts_lines_and_line_ends() -> None:
     cell = b'"' + (b"x" * 99 + b"\n") * 1_000 + b'y"'
+    with pytest.raises(SourceUnreadable, match="t.csv: a row is longer than 1,048,576 characters"):
+        csv_pages("t.csv", b",".join([cell] * 10) + b"," + b"x" * 60_000)
     with pytest.raises(SourceUnreadable) as caught:
         csv_pages("t.csv", b",".join([cell] * 11) + b"\n")
     assert str(caught.value) == "t.csv: a row is longer than 1,048,576 characters"
@@ -202,7 +204,7 @@ def test_csv_row_cap_counts_lines_and_line_ends() -> None:
 
 @pytest.mark.parametrize(
     ("raw", "line"),
-    [(b"a\x1b\r\nb\r", 1), (b"a\r\x1b", 2), (b"a\r\x1b\n", 2)],
+    [(b"a\x1b\r\nb\r", 1), (b"a\r\x1b", 2), (b"a\r\x1b\n", 2), (b"\n\x1b", 2), (b"\r\n\x1b", 2)],
 )
 def test_control_line_after_a_carriage_return(raw: bytes, line: int) -> None:
     with pytest.raises(SourceUnreadable) as caught:
