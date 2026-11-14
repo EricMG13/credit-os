@@ -152,20 +152,16 @@ def _early_problem(
         return "SessionError", redactor.text(home_paths(": ".join(parts)))[:500]
     if any(d.get("aborted") is True for d in _of_type(events, "session.idle")):
         return "Aborted", "the session went idle after an abort"
-    return _usage_problem(usage_data, model) or _route_problem(
-        _of_type(events, "model.call_failure")
-    )
+    return _usage_problem(usage_data, model, _of_type(events, "model.call_failure"))
 
 
-def _usage_problem(usage_data: list[dict[str, Any]], model: str) -> _Problem | None:
+def _usage_problem(
+    usage_data: list[dict[str, Any]], model: str, failures: list[dict[str, Any]]
+) -> _Problem | None:
     if not usage_data:
         return "UnparsableReply", "no assistant.usage event"
     if any(d.get("model") != model for d in usage_data):
         return "ModelMismatch", "the reply was refused: ModelMismatch"
-    return None
-
-
-def _route_problem(failures: list[dict[str, Any]]) -> _Problem | None:
     for flag, name in _ROUTES.items():
         if any(d.get(flag) is True for d in failures):
             return name, f"the reply was refused: {name}"
@@ -182,11 +178,8 @@ def _stop_reason(last_usage: dict[str, Any]) -> StopReason:
 
 
 def _request_id(last_usage: dict[str, Any]) -> str | None:
-    for name in ("apiCallId", "providerCallId"):
-        value = last_usage.get(name)
-        if isinstance(value, str) and value:
-            return value
-    return None
+    ids = [last_usage.get("apiCallId"), last_usage.get("providerCallId")]
+    return next((i for i in ids if isinstance(i, str) and i), None)
 
 
 def _non_empty(value: object) -> bool:
