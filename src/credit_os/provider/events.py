@@ -80,15 +80,12 @@ def _serialise(events: object) -> bytes | None:
 def _as_events(events: object) -> list[Any] | None:
     if not isinstance(events, list):
         return None
-    ok = all(
-        type(e) is dict and _exact(e.get("id"), str) and _exact(e.get("type"), str) for e in events
-    )
-    ok = ok and all(e["id"] and _exact(e.get("data"), dict) for e in events)
+    ok = all(type(e) is dict and e.get("id") and _exact(e) for e in events)
     return [e for i, e in enumerate(events) if e not in events[:i]] if ok else None
 
 
-def _exact(value: object, kind: type) -> bool:
-    return type(value) is kind
+def _exact(e: dict[str, Any]) -> bool:
+    return [type(e.get(k)) for k in ("id", "type", "data")] == [str, str, dict]
 
 
 def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> Reply:
