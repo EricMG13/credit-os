@@ -41,6 +41,7 @@ class Reader(Node):
     contrary: Section | None
     limitations: Section | None
     summary: ReaderSummary | None
+    summary_section: Section | None
 
 
 def _passages(level_three: list[Section]) -> dict[str, Section]:
@@ -54,8 +55,7 @@ def _passages(level_three: list[Section]) -> dict[str, Section]:
     return found
 
 
-def _summary(level_three: list[Section]) -> ReaderSummary | None:
-    section = next((s for s in level_three if s.title == "Reader summary"), None)
+def _summary(section: Section | None) -> ReaderSummary | None:
     if section is None:
         return None
     tables = [block for block in section.blocks if isinstance(block, Table)]
@@ -95,12 +95,15 @@ def read_reader(document: HandoffDocument) -> Reader:
             contrary=found.get(_CONTRARY),
             limitations=found.get(_LIMITATIONS),
             summary=None,
+            summary_section=None,
         )
+    section = next((s for s in level_three if s.title == "Reader summary"), None)
     return Reader(
         format="earlier",
         bottom_line=None,
         key_findings=None,
         contrary=None,
         limitations=None,
-        summary=_summary(level_three),
+        summary=_summary(section),
+        summary_section=section,
     )
