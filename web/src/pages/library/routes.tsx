@@ -4,6 +4,7 @@
 // `readSlice(useSource().library)`. Edit only this folder and fixtures/library.json.
 import type { Route } from "../route-table";
 import { Changes } from "./Changes";
+import { Evidence } from "./Evidence";
 import { History } from "./History";
 import { Home } from "./Home";
 import { ModulePage } from "./Module";
@@ -53,5 +54,17 @@ export const routes: readonly Route[] = [
     render: (params) => (
       <ModulePage issuer={params["issuer"]} run={params["run"]} module={params["module"]} />
     ),
+  },
+  {
+    path: "/library/:issuer/:run/evidence",
+    layout: "bleed",
+    title: PAGE_NAME.evidence,
+    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} />,
+  },
+  {
+    path: "/library/:issuer/:run/evidence/summary",
+    layout: "bleed",
+    title: PAGE_NAME.evidence,
+    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} />,
   },
 ];

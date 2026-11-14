@@ -27,22 +27,30 @@ import {
 export type RunTab = "overview" | "changes" | "modules" | "forecast" | "evidence";
 
 const TAB =
-  "inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-1.5 pb-2.5 text-md font-semibold whitespace-nowrap";
+  "inline-flex items-center gap-1.5 border-b-2 border-transparent whitespace-nowrap font-semibold";
+const TAB_SIZE = {
+  md: "h-9 px-1.5 pb-2.5 text-md",
+  sm: "h-8 px-1 pb-2.5 text-sm",
+} as const;
 
 /** One tab: a link between routes, or plain disabled text when the run has nowhere to send it. */
-function RunTabLink({
+export function RunTabLink({
   href,
   current,
   label,
   count,
   hint,
+  small = false,
 }: {
   href: string | null;
   current: boolean;
   label: string;
   count?: string;
   hint?: string;
+  /** The smaller tab of a page's own section tabs (the mock's `u-tab-sm`). */
+  small?: boolean;
 }) {
+  const size = TAB_SIZE[small ? "sm" : "md"];
   const badge =
     count === undefined ? null : (
       <Badge size="sm" color={current ? "brand" : "gray"}>
@@ -51,7 +59,7 @@ function RunTabLink({
     );
   if (href === null) {
     return (
-      <span aria-disabled="true" className={cx(TAB, "cursor-not-allowed text-text-disabled")}>
+      <span aria-disabled="true" className={cx(TAB, size, "cursor-not-allowed text-text-disabled")}>
         {label}
         {badge}
         {hint === undefined ? null : <span className="text-xs font-normal">{hint}</span>}
@@ -64,6 +72,7 @@ function RunTabLink({
       aria-current={current ? "page" : undefined}
       className={cx(
         TAB,
+        size,
         TEXT_LINK,
         "text-text-tertiary hover:border-action hover:text-action",
         current && "border-action text-action",
