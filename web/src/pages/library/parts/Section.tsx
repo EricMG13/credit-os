@@ -57,7 +57,7 @@ export function QuietSection({ title, children }: { title: string; children: Rea
   return (
     <section
       aria-labelledby={headingId}
-      className="rounded-ds-xs has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand"
+      className="rounded-ds-xs has-[>[tabindex='-1']:focus-visible]:ring-2 has-[>[tabindex='-1']:focus-visible]:ring-brand"
     >
       <Heading id={headingId} tabIndex={-1} className="sr-only outline-hidden">
         {title}
