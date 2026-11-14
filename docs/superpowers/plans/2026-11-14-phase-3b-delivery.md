@@ -480,7 +480,7 @@ yes by the roadmap coordinator, not yet built):
   `ForecastResult`, `History`, attempts, calls, the receipt and the admitted list are inferred
   from the plans on main. Which 3A PR records a source's read state and a module's not-run reason
   is inferred from its PR table.
-- No public search was run. An empty search would not prove nothing exists.
+- The public search read descriptions only. A thin search does not prove nothing better exists.
 - That an ASCII-only file equals the fixture writer's output after `JSON.parse` for every input;
   that Chrome and Edge load a 16 MiB `data.js` from `file://` in acceptable time.
 - That `os.replace` over an open `data.js` behaves as S9 assumes on the work PC, and what an

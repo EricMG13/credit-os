@@ -25,8 +25,9 @@ append-only table (2A migration 3), never by rewriting the call; ruled under the
 instruction of 2026-11-14 about 22:20 UTC, before 2A PR 5's brief.
 
 **3A plan corrections.** The rulings made after the 3A plan merged (the store's `finished` and
-`interrupted`, a refused launch is not a run, exact `str` names, the call hold, the refused
-`close_call`, decision 0014, the confidence rule) are now in the plan.
+`interrupted`, a refused launch is not a run, exact `str` names, the confidence rule; and, ruled
+but not yet built, the call hold, the refused `close_call` and decision 0014) are now in the plan.
+The 2A plan gains an amendment for the call columns, the run gate and the settlement table.
 
 **Rulings.** 1C #338: a known path's case form written in NFD is inside decision 0012's guarantee
 and is fixed there, test first, one counted round. Machine load reached 77 on 10 cores at 23:36

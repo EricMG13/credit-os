@@ -5,8 +5,11 @@ Date: 2026-11-14. Decided by: coordinator, under decision 0006 and the owner's i
 
 ## Why
 
-The store writes a call row at `open_call` with its hold and closes it at `close_call` with what
-the provider billed (2A plan, PR 3). A process that dies between the two leaves the call open.
+None of this is built yet. As planned and ruled for 2A PR 3 (the 2A plan's "Amendment,
+2026-11-14 (calls and settlement)"), the store will write a call row at `open_call` with its hold
+(3A plan, D8) and close it at `close_call` with what the provider billed. A process that dies
+between the two leaves the call open. The 2A plan's D6 said a settle then needs a decision record;
+this is that record.
 The 3A plan's D7 says what that means: one hold is not shown to bound what the call cost (a call
 may make several model requests, and a compaction's charge is outside `billed_usd`), so the run's
 spend is unknown, the run does not resume by itself, and it stays stopped until the owner settles
@@ -27,7 +30,7 @@ with an owner-typed amount in `billed_usd`; add columns to `calls`; or a separat
    names how much of it is owner-stated. Delivery shows that part as stated by the owner, not as
    billed (3B draws only what the store gives it).
 4. **Outside the run gate.** Attempts, calls and compactions are written only while a run is
-   `running` (2A rulings U9). A settlement is written on a stopped run, so its table is outside
+   `running` (the same 2A amendment). A settlement is written on a stopped run, so its table is outside
    that gate; the migration 2 docstring says so.
 5. **Who may write one.** Only an explicit operator action, with the amount typed by the owner
    from the provider's own billing page. No code infers an amount, and none sums an open hold as
@@ -39,6 +42,7 @@ A forward-only migration that adds columns or a second table; no stored row is l
 
 ## Not verified
 
-Nothing is built yet: this record precedes 2A PR 5's brief. Whether the provider's billing page
+Nothing is built yet: `open_call`, `close_call`, the hold and the settlement table are plans; this
+record precedes 2A PR 5's brief. Whether the provider's billing page
 shows a per-call amount for a call that never returned is not known; if it does not, the owner
 states the run's worst case and the note says so.
