@@ -340,6 +340,37 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "paused": "No new digest is written while AI is off or at its cap. Earlier digests stay readable.",
+              "issues": [
+                {
+                  "id": "week-13-nov",
+                  "title": "Leveraged credit: the week to 13 November",
+                  "date": "Fri 13 Nov",
+                  "ai": true,
+                  "summary": "5 points from 41 stories",
+                  "nothing": null,
+                  "points": [
+                    {
+                      "number": "1",
+                      "lead": "Packaging issuers are cutting capacity, not prices",
+                      "body": null,
+                      "stories": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "paused": "No new digest is written while AI is off or at its cap. Earlier digests stay readable.",
+              "issues": []
+            }
+          ],
           "threads": [
             {
               "id": "corvane-thread",
@@ -681,6 +712,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [
             {
               "id": "corvane-thread",
@@ -975,13 +1010,15 @@
                 "summary": "5 points from 41 stories",
                 "nothing": null,
                 "points": [
-                  "Packaging issuers are cutting capacity, not prices",
-                  "Two telecoms disposals are now in in-depth review",
-                  "Shipping downgrades cluster around 2027 maturities"
+                  { "number": "1", "lead": "Packaging issuers are cutting capacity, not prices" },
+                  { "number": "2", "lead": "Two telecoms disposals are now in in-depth review" },
+                  { "number": "3", "lead": "Shipping downgrades cluster around 2027 maturities" }
                 ],
                 "ai": true,
                 "unread": true,
                 "id": "weekly-brief",
+                "digestId": "weekly-brief",
+                "issueId": "week-13-nov",
                 "digestName": "Weekly brief",
                 "monogram": "WB",
                 "title": "Leveraged credit: the week to 13 November",
@@ -991,12 +1028,17 @@
                 "summary": "2 points from 7 stories",
                 "nothing": null,
                 "points": [
-                  "Halvorsen Marine cut one notch to B+ on refinancing risk",
-                  "Oakhaven Lines affirmed at BB, outlook to positive"
+                  {
+                    "number": "1",
+                    "lead": "Halvorsen Marine cut one notch to B+ on refinancing risk"
+                  },
+                  { "number": "2", "lead": "Oakhaven Lines affirmed at BB, outlook to positive" }
                 ],
                 "ai": true,
                 "unread": false,
                 "id": "daily-ratings-12-nov",
+                "digestId": "daily-ratings",
+                "issueId": "12-nov",
                 "digestName": "Daily ratings",
                 "monogram": "DR",
                 "title": "Rating actions: 12 November",
@@ -1009,6 +1051,8 @@
                 "ai": false,
                 "unread": false,
                 "id": "daily-ratings-11-nov",
+                "digestId": "daily-ratings",
+                "issueId": "11-nov",
                 "digestName": "Daily ratings",
                 "monogram": "DR",
                 "title": "Rating actions: 11 November",
@@ -1017,6 +1061,187 @@
             ],
             "sources": { "approved": true }
           },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "paused": null,
+              "issues": [
+                {
+                  "id": "week-13-nov",
+                  "title": "Leveraged credit: the week to 13 November",
+                  "date": "Fri 13 Nov 2026",
+                  "ai": true,
+                  "summary": "Covers 9 to 13 Nov 2026. Written by a model from 41 stories in Leveraged credit, Shipping and Packaging.",
+                  "nothing": null,
+                  "points": [
+                    {
+                      "number": "1",
+                      "lead": "Packaging issuers are cutting capacity, not prices",
+                      "body": "Three issuers announced plant closures this week. Each kept guidance and booked a one-off charge, which puts the cost in the same quarter as their covenant step-downs.",
+                      "stories": [
+                        {
+                          "headline": "Corvane Packaging to close two plants as volumes fall",
+                          "url": "https://example.com/harbour-wire/corvane-plants",
+                          "source": "Harbour Wire",
+                          "time": "13 Nov"
+                        },
+                        {
+                          "headline": "Delmere Board mothballs its northern mill",
+                          "url": "https://example.com/credit-ledger/delmere-mill",
+                          "source": "Credit Ledger Daily",
+                          "time": "11 Nov"
+                        },
+                        {
+                          "headline": "Packaging volumes fall for a third quarter",
+                          "url": "https://example.com/meridian/packaging-volumes",
+                          "source": "The Meridian Post",
+                          "time": "10 Nov"
+                        }
+                      ]
+                    },
+                    {
+                      "number": "2",
+                      "lead": "Two telecoms disposals are now in in-depth review",
+                      "body": "Both sellers planned to repay 2027 debt from the proceeds. A review of this kind usually adds months, so the repayment dates are less certain than a week ago.",
+                      "stories": [
+                        {
+                          "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                          "url": "https://example.com/gazette/tessaly-review",
+                          "source": "Regulatory Gazette",
+                          "time": "13 Nov"
+                        },
+                        {
+                          "headline": "Authority extends its review of the Norvik fibre sale",
+                          "url": "https://example.com/gazette/norvik-review",
+                          "source": "Regulatory Gazette",
+                          "time": "10 Nov"
+                        }
+                      ]
+                    },
+                    {
+                      "number": "3",
+                      "lead": "Shipping downgrades cluster around 2027 maturities",
+                      "body": "One downgrade and one outlook change, both citing refinancing due in 2027 against weaker charter rates.",
+                      "stories": [
+                        {
+                          "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                          "url": "https://example.com/northgate/halvorsen-b-plus",
+                          "source": "Northgate Ratings",
+                          "time": "12 Nov"
+                        },
+                        {
+                          "headline": "Halvorsen Marine hires advisers on its 2027 notes",
+                          "url": "https://example.com/meridian/halvorsen-advisers",
+                          "source": "The Meridian Post",
+                          "time": "13 Nov"
+                        }
+                      ]
+                    },
+                    {
+                      "number": "4",
+                      "lead": "Loan extensions are clearing at a higher margin",
+                      "body": "Brightwell Foods extended by three years for 50 basis points more. It is the fourth extension this quarter priced that way.",
+                      "stories": [
+                        {
+                          "headline": "Brightwell Foods extends its term loan by three years",
+                          "url": "https://example.com/credit-ledger/brightwell-extension",
+                          "source": "Credit Ledger Daily",
+                          "time": "12 Nov"
+                        }
+                      ]
+                    },
+                    {
+                      "number": "5",
+                      "lead": "A port operator is preparing a first bond",
+                      "body": "Pellant Terminals has mandated banks while its terminal joint venture is under initial review. The two timetables now depend on each other.",
+                      "stories": [
+                        {
+                          "headline": "Pellant Terminals plans first bond issue",
+                          "url": "https://example.com/credit-ledger/pellant-bond",
+                          "source": "Credit Ledger Daily",
+                          "time": "12 Nov"
+                        },
+                        {
+                          "headline": "Notice of initial review: Oakhaven Lines and Pellant Terminals",
+                          "url": null,
+                          "source": "Regulatory Gazette",
+                          "time": "13 Nov"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "week-6-nov",
+                  "title": "Leveraged credit: the week to 6 November",
+                  "date": "Fri 6 Nov",
+                  "ai": true,
+                  "summary": "5 points from 36 stories",
+                  "nothing": null,
+                  "points": [
+                    {
+                      "number": "1",
+                      "lead": "Term loan margins widened for single-B issuers",
+                      "body": "Two refinancings priced wider than the same issuers' last deals.",
+                      "stories": [
+                        {
+                          "headline": "Lenmark Foods reprices its term loan wider",
+                          "url": "https://example.com/credit-ledger/lenmark-reprice",
+                          "source": "Credit Ledger Daily",
+                          "time": "4 Nov"
+                        }
+                      ]
+                    },
+                    {
+                      "number": "2",
+                      "lead": "Container lines are holding contract rates",
+                      "body": "Rates agreed for the first half were flat on the year.",
+                      "stories": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "paused": null,
+              "issues": [
+                {
+                  "id": "12-nov",
+                  "title": "Rating actions: 12 November",
+                  "date": "Thu 12 Nov",
+                  "ai": true,
+                  "summary": "2 points from 7 stories",
+                  "nothing": null,
+                  "points": [
+                    {
+                      "number": "1",
+                      "lead": "Halvorsen Marine cut one notch to B+ on refinancing risk",
+                      "body": "The agency cited 2027 maturities against weaker charter rates.",
+                      "stories": []
+                    },
+                    {
+                      "number": "2",
+                      "lead": "Oakhaven Lines affirmed at BB, outlook to positive",
+                      "body": "The outlook change follows lower leverage after the asset sale.",
+                      "stories": []
+                    }
+                  ]
+                },
+                {
+                  "id": "11-nov",
+                  "title": "Rating actions: 11 November",
+                  "date": "Wed 11 Nov",
+                  "ai": false,
+                  "summary": null,
+                  "nothing": "Nothing material to report: no rating action reached this digest's sources on 11 November.",
+                  "points": []
+                }
+              ]
+            }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1104,6 +1329,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1162,6 +1391,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1220,6 +1453,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1273,6 +1510,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1382,6 +1623,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1440,6 +1685,10 @@
             "digests": [],
             "sources": { "approved": false }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1532,6 +1781,10 @@
             "digests": [],
             "sources": { "approved": true }
           },
+          "digests": [
+            { "id": "weekly-brief", "name": "Weekly brief", "paused": "AI is off.", "issues": [] },
+            { "id": "daily-ratings", "name": "Daily ratings", "paused": "AI is off.", "issues": [] }
+          ],
           "threads": [],
           "groups": [
             {
@@ -1591,7 +1844,12 @@
       { "scene": "main", "group": "leveraged-credit", "thread": "brightwell-thread" },
       { "scene": "reader", "group": "leveraged-credit", "thread": "corvane-thread" }
     ],
-    "/signal/:scene/digest/:digest": [{ "scene": "main", "digest": "weekly-brief" }],
+    "/signal/:scene/digest/:digest": [
+      { "scene": "main", "digest": "weekly-brief" },
+      { "scene": "main", "digest": "daily-ratings" },
+      { "scene": "ai-on", "digest": "weekly-brief" },
+      { "scene": "ai-on", "digest": "daily-ratings" }
+    ],
     "/signal/:scene/settings/:section": [{ "scene": "main", "section": "topics" }]
   }
 }

@@ -220,6 +220,9 @@ describe("the feed list and the story card", () => {
       const card = story(CORVANE);
       expect(card.queryByRole("link", { name: CORVANE })).not.toBeInTheDocument();
       expect(card.queryByText("Open source")).not.toBeInTheDocument();
+      for (const link of card.queryAllByRole("link")) {
+        expect(link.getAttribute("href")).toMatch(/^#\/signal\//);
+      }
     },
   );
 

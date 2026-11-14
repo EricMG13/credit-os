@@ -1,7 +1,18 @@
 // After the shadcnblocks List Panel, Stacked variant, with a number in the item's media slot (mock
 // departure 8: the Numbered variant is behind the source's paid tier, so the marker is drawn here).
-// The number is the item's place in the list, as an ordered list shows it.
-export function NumberedPanel({ items }: { items: string[] }) {
+// The number is the delivered one. A point may carry a body and `children` (the digest page puts the
+// stories behind the point there); `leadAs` sets the lead's tag where the page's headings need it.
+import type { ReactNode } from "react";
+
+type Item = { number: string; lead: string; body?: string | null; children?: ReactNode };
+
+export function NumberedPanel({
+  items,
+  leadAs: Lead = "span",
+}: {
+  items: Item[];
+  leadAs?: "span" | "h3" | "h4";
+}) {
   return (
     <ol className="overflow-hidden rounded-md border border-border-hairline bg-surface-card">
       {items.map((item, index) => (
@@ -13,9 +24,15 @@ export function NumberedPanel({ items }: { items: string[] }) {
             aria-hidden="true"
             className="grid size-8 shrink-0 place-items-center rounded-xs border border-border-hairline bg-surface-subtle text-sm font-semibold text-text-primary tabular-nums"
           >
-            {String(index + 1)}
+            {item.number}
           </span>
-          <span className="text-sm font-medium text-text-primary">{item}</span>
+          <div className="min-w-0 flex-1">
+            <Lead className="text-sm font-medium text-text-primary">{item.lead}</Lead>
+            {item.body === undefined || item.body === null ? null : (
+              <p className="mt-1 max-w-[72ch] text-sm text-text-secondary">{item.body}</p>
+            )}
+            {item.children}
+          </div>
         </li>
       ))}
     </ol>

@@ -55,15 +55,41 @@ export type SignalStory = {
 /** A digest card in the feed; with `nothing` set it is the one-sentence card and holds no points. */
 export type SignalDigestCard = {
   id: string;
+  /** The digest this card is an issue of (the reader checks) and the issue: the card links to the digest's page. */
+  digestId: string;
+  issueId: string;
   digestName: string;
   monogram: string;
   title: string;
   date: string | null;
   unread: boolean;
   ai: boolean;
-  points: string[];
+  /** The delivered number and bold lead of each point. */
+  points: { number: string; lead: string }[];
   summary: string | null;
   nothing: string | null;
+};
+/** One issue of a digest; with `nothing` set it holds no points and no model wrote it. */
+type SignalDigestIssue = {
+  id: string;
+  title: string;
+  date: string | null;
+  ai: boolean;
+  summary: string | null;
+  nothing: string | null;
+  points: {
+    number: string;
+    lead: string;
+    body: string | null;
+    stories: { headline: string; url: string | null; source: string; time: string | null }[];
+  }[];
+};
+/** A digest and its issues, newest first. `paused` is the delivered sentence when no new issue is written. */
+type SignalDigest = {
+  id: string;
+  name: string;
+  paused: string | null;
+  issues: SignalDigestIssue[];
 };
 /**
  * Entry ids (story or digest card) in each order the service supplies; the page orders by them and
@@ -159,6 +185,7 @@ type SignalSnapshot = {
   feed: SignalFeed;
   groups: SignalGroup[];
   threads: SignalThread[];
+  digests: SignalDigest[];
 };
 export type SignalScene = { id: string; snapshot: SignalSnapshot };
 export type SignalSlice = { scenes: [SignalScene, ...SignalScene[]] };
@@ -285,26 +312,57 @@ const story = shape<SignalStory>({
 });
 const digestBase = shape<SignalDigestCard>({
   id: str,
+  digestId: str,
+  issueId: str,
   digestName: str,
   monogram: str,
   title: str,
   date: strOrNull,
   unread: bool,
   ai: bool,
-  points: list(str),
+  points: list(shape({ number: str, lead: str })),
   summary: strOrNull,
   nothing: strOrNull,
 });
-/** A nothing-to-report card needs no model and no list: it holds no points and is not marked AI. */
-const digestCard: Reader<SignalDigestCard> = (v, path) => {
-  const got = digestBase(v, path);
-  if (!got.ok || got.value.nothing === null) return got;
-  if (got.value.points.length > 0) {
-    return bad(`${path}.points`, "no points on a nothing-to-report card");
-  }
-  if (got.value.ai) return bad(`${path}.ai`, "false on a nothing-to-report card");
-  return got;
-};
+/** A nothing-to-report entry needs no model and no list: it holds no points and is not marked AI. */
+function noModel<T extends { ai: boolean; points: unknown[]; nothing: string | null }>(
+  base: Reader<T>,
+  what: string,
+): Reader<T> {
+  return (v, path) => {
+    const got = base(v, path);
+    if (!got.ok || got.value.nothing === null) return got;
+    if (got.value.points.length > 0) return bad(`${path}.points`, `no points on a ${what}`);
+    if (got.value.ai) return bad(`${path}.ai`, `false on a ${what}`);
+    return got;
+  };
+}
+const digestCard = noModel(digestBase, "nothing-to-report card");
+const digestIssue = noModel(
+  shape<SignalDigestIssue>({
+    id: str,
+    title: str,
+    date: strOrNull,
+    ai: bool,
+    summary: strOrNull,
+    nothing: strOrNull,
+    points: list(
+      shape({
+        number: str,
+        lead: str,
+        body: strOrNull,
+        stories: list(shape({ headline: str, url: strOrNull, source: str, time: strOrNull })),
+      }),
+    ),
+  }),
+  "nothing-to-report issue",
+);
+const digestRecord = shape<SignalDigest>({
+  id: str,
+  name: str,
+  paused: strOrNull,
+  issues: list(digestIssue),
+});
 const feedView = shape<SignalFeedView>({
   top: list(str),
   latest: list(str),
@@ -599,6 +657,7 @@ const snapshotBase = shape<SignalSnapshot>({
   feed,
   groups: list(group),
   threads: list(threadRecord),
+  digests: list(digestRecord),
 });
 
 /** A thread is named by (group, id); the key is a pair so no id can run into another's. */
@@ -693,6 +752,56 @@ function channelGroupProblem(snap: SignalSnapshot, path: string): string | null 
     : `${path}.groups[${String(named)}].name: expected the name the channel list gives this group`;
 }
 
+/** The index of the first id that an earlier one in the list repeats, or -1. */
+function repeatAt(ids: string[]): number {
+  const seen = new Set<string>();
+  return ids.findIndex((id) => (seen.has(id) ? true : (seen.add(id), false)));
+}
+
+/** Digests and issues have unique ids; the channel list and the digests name the same ones, in both directions; each feed card names an issue of its digest. */
+function digestProblem(snap: SignalSnapshot, path: string): string | null {
+  const { digests, channels: lists } = snap;
+  const at = (i: number) => `${path}.digests[${String(i)}]`;
+  const twice = repeatAt(digests.map((d) => d.id));
+  if (twice !== -1) return `${at(twice)}.id: expected an id no other digest uses`;
+  for (const [i, one] of digests.entries()) {
+    const again = repeatAt(one.issues.map((issue) => issue.id));
+    if (again !== -1) {
+      return `${at(i)}.issues[${String(again)}].id: expected an id the digest does not already use`;
+    }
+  }
+  const channel = lists.digests.findIndex((c) => !digests.some((d) => d.id === c.id));
+  if (channel !== -1) {
+    return `${path}.channels.digests[${String(channel)}].id: expected the id of a digest in the snapshot's digests`;
+  }
+  for (const [i, one] of digests.entries()) {
+    const listed = lists.digests.find((c) => c.id === one.id);
+    if (listed === undefined) {
+      return `${at(i)}.id: expected the id of a digest in the channel list`;
+    }
+    if (listed.name !== one.name) {
+      return `${at(i)}.name: expected the name the channel list gives this digest`;
+    }
+    if (listed.paused && one.paused === null) {
+      return `${at(i)}.paused: expected the delivered sentence, as the channel list marks the digest paused`;
+    }
+    if (!listed.paused && one.paused !== null) {
+      return `${at(i)}.paused: expected null, as the channel list marks the digest not paused`;
+    }
+  }
+  for (const [i, card] of snap.feed.digests.entries()) {
+    const where = `${path}.feed.digests[${String(i)}]`;
+    const named = digests.find((d) => d.id === card.digestId);
+    if (named === undefined) {
+      return `${where}.digestId: expected the id of a digest in the snapshot's digests`;
+    }
+    if (!named.issues.some((issue) => issue.id === card.issueId)) {
+      return `${where}.issueId: expected the id of an issue of the digest the card names`;
+    }
+  }
+  return null;
+}
+
 /** Each channel topic has exactly one order in the feed: a missing order is not an empty topic. */
 const snapshot: Reader<SignalSnapshot> = (v, path) => {
   const got = snapshotBase(v, path);
@@ -702,7 +811,8 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
     groupProblem(got.value.groups, stories, path) ??
     channelGroupProblem(got.value, path) ??
     threadProblem(got.value, path) ??
-    threadRefProblem(got.value, path);
+    threadRefProblem(got.value, path) ??
+    digestProblem(got.value, path);
   if (problem !== null) return { ok: false, reason: problem };
   const { channels: lists, feed: items } = got.value;
   const where = `${path}.feed.topics`;

@@ -379,13 +379,13 @@ describe("readSlice", () => {
     [
       "a digest card whose points hold a number",
       ["snapshot", "feed", "digests", 0, "points"],
-      ["One", 2],
-      "scenes[2].snapshot.feed.digests[0].points[1]: expected a string",
+      [{ number: "1", lead: "One" }, 2],
+      "scenes[2].snapshot.feed.digests[0].points[1]: expected an object",
     ],
     [
       "a nothing-to-report digest card that still has points",
       ["snapshot", "feed", "digests", 2, "points"],
-      ["One"],
+      [{ number: "1", lead: "One" }],
       "scenes[2].snapshot.feed.digests[2].points: expected no points on a nothing-to-report card",
     ],
     [

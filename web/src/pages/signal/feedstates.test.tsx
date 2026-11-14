@@ -292,6 +292,8 @@ describe("a loading feed has no list controls", () => {
     href: "#/x",
     digest: {
       id,
+      digestId: "weekly-brief",
+      issueId: id,
       digestName: "Weekly brief",
       monogram: "WB",
       title: id,

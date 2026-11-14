@@ -45,7 +45,11 @@ function ordered(scene: SignalScene, ids: string[]): FeedEntry[] {
     ...stories.map((story): [string, FeedEntry] => [story.id, { kind: "story", story }]),
     ...digests.map((digest): [string, FeedEntry] => [
       digest.id,
-      { kind: "digest", digest, href: sceneHref(scene, `digest/${encodeURIComponent(digest.id)}`) },
+      {
+        kind: "digest",
+        digest,
+        href: sceneHref(scene, `digest/${encodeURIComponent(digest.digestId)}`),
+      },
     ]),
   ]);
   return ids.map((id) => {
