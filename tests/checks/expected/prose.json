@@ -139,7 +139,7 @@
     {"name": "first sentence ends after a closing square bracket", "findings": "### Bottom line\n{words:46}.] More follows.\n", "expect": [["prose.bottom-line-length", "refusal", 8, "{words:16} …"], ["prose.bracket", "refusal", 8, "{words:4}.] More follows."]], "reason_has": {"0": ["46 words"]}},
     {"name": "not a module code: a letter after it", "findings": "### Bottom line\nLiquidity from CP-2Dx is strong.\n", "expect": []},
     {"name": "not page locators: no space after page, no full stop after p or pp", "findings": "### Bottom line\nThe view holds on page4 and p 12 and pp 3 here.\n", "expect": []},
-    {"name": "hash: a hex run touching another letter on either side passes", "findings": "### Bottom line\nThe tags x0123456789abcdef and 0123456789abcdefx pass.\n", "expect": []},
+    {"name": "hash: a hex run touching another letter on either side passes the hash check; figure.form refuses the number with glued letters", "findings": "### Bottom line\nThe tags x0123456789abcdef and 0123456789abcdefx pass.\n", "expect": [["figure.form", "refusal", 8, "0123456789abcdefx"]]},
     {"name": "bracket: a lenticular pair holding 80 characters is one finding", "findings": "### Bottom line\nThe view 【{z:80}】 holds.\n", "expect": [["prose.bracket", "refusal", 8, "【{z:79}…"]]},
     {"name": "bracket: a lenticular pair holding 81 characters is one finding per bracket", "findings": "### Bottom line\nThe view 【{z:81}】 holds.\n", "expect": [["prose.bracket", "refusal", 8, "The view 【{z:20}"], ["prose.bracket", "refusal", 8, "{z:20}】 holds."]]},
     {"name": "an underscore is no word character: a module code inside underscores", "findings": "### Bottom line\nThe data from _CP-2D_ is used.\n", "expect": [["prose.module-code", "refusal", 8, "CP-2D"]]},
