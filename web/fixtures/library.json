@@ -5881,7 +5881,14 @@
                 "trace": null
               },
               "metricsLabel": "Headline figures",
-              "metrics": [],
+              "metrics": [
+                {
+                  "label": "Net leverage",
+                  "value": { "kind": "value", "text": "5.1x", "at": 5.1 },
+                  "note": "Net debt to EBITDA",
+                  "trace": null
+                }
+              ],
               "sides": null,
               "findings": [
                 {

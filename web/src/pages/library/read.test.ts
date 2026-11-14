@@ -315,6 +315,24 @@ describe("readSlice, a run not yet compared", () => {
     expect(invalidReason(slice)).toContain("issuers[6].runs[0].changes.text");
   });
 
+  it.each([
+    ["none", "title", ""],
+    ["none", "text", "  "],
+    ["pending", "title", ""],
+    ["pending", "text", " \t"],
+  ])("refuses a %s run whose %s is blank, at the field", (kind, field, blank) => {
+    const slice = fresh();
+    const changes = brevane(slice).runs[0]?.changes as Record<string, unknown>;
+    changes["kind"] = kind;
+    changes[field] = blank;
+    expect(invalidReason(slice)).toContain(`issuers[6].runs[0].changes.${field}`);
+  });
+
+  it("gives the Brevane Overview a headline figure", () => {
+    const run = brevane(fresh()).runs[0] as unknown as { overview: { metrics: unknown[] } };
+    expect(run.overview.metrics.length).toBeGreaterThan(0);
+  });
+
   it("refuses a history entry whose changes link names the pending run, at the entry's changes", () => {
     const slice = fresh();
     const entry = brevane(slice).history.entries[0];

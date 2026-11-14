@@ -686,7 +686,7 @@ function readChanges(value: unknown, path: string, traces: Traces): Changes {
   const c = rec(value, path);
   const kind = oneOf(c, "kind", path, ["none", "pending", "compared"]);
   if (kind === "none" || kind === "pending") {
-    return { kind, title: str(c, "title", path), text: str(c, "text", path) };
+    return { kind, title: filled(c, "title", path), text: filled(c, "text", path) };
   }
   const changesPath = child(path, "changes");
   const changes = unique(
@@ -737,6 +737,13 @@ function gradeOrNull(o: Rec, key: string, path: string): string | null {
 function named(o: Rec, key: string, path: string): string {
   const value = str(o, key, path);
   if (value === "") throw new SliceError(child(path, key), "a non-empty string");
+  return value;
+}
+
+/** A `named` string that is not only whitespace either. */
+function filled(o: Rec, key: string, path: string): string {
+  const value = named(o, key, path);
+  if (value.trim() === "") throw new SliceError(child(path, key), "a non-empty string");
   return value;
 }
 

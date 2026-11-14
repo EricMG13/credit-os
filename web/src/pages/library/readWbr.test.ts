@@ -99,6 +99,9 @@ describe("WBR-04 a delivered address stays inside the library folder", () => {
     ["a space before a rooted path", " /etc/x"],
     ["an encoded slash", "downloads%2f..%2fx.zip"],
     ["a malformed escape", "downloads/%zz/x.zip"],
+    ["an encoded backslash", "downloads/%5c..%5cx.zip"],
+    ["a scheme with a colon", "mailto:x"],
+    ["an encoded single dot", "downloads/%2e/x.zip"],
   ])("refuses %s as a download", (_, href) => {
     const slice = fresh();
     run(slice).evidence.summary.take.download["href"] = href;
