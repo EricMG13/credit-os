@@ -715,27 +715,49 @@ function opensHeld(
 }
 
 /**
+ * The most work one collapsed item's lead may cost to split: one unit for each held name tried at
+ * each place a name can start, and one for each count carried back from the tail. A run holds at
+ * most a few dozen modules and a name is a few words, so a real lead (a few dozen names) costs
+ * about 40 names x 100 places = 4,000 units. 100,000 is some twenty times that, and bounds the work
+ * on a lead that is not one.
+ */
+export const MAX_SPLIT_WORK = 100_000;
+
+/**
  * The counts of modules a collapsed item's lead can list: every way to split it into names the run
  * holds, each followed by ", " or the closing full stop. Names hold commas themselves, and one name
- * can open another, so every split is tried. Empty when the lead is not such a list.
+ * can open another, so every split is tried. Empty when the lead is not such a list, and null when
+ * splitting it would cost more than `MAX_SPLIT_WORK`. Iterative: a long lead must not overflow the
+ * call stack.
  */
-function namesListed(lead: string, names: readonly string[]): Set<number> {
-  const memo = new Map<string, Set<number>>();
-  const counts = (rest: string): Set<number> => {
-    if (rest === "") return new Set([0]);
-    const known = memo.get(rest);
-    if (known !== undefined) return known;
+function namesListed(lead: string, names: readonly string[]): Set<number> | null {
+  if (!lead.endsWith(".")) return new Set();
+  const body = lead.slice(0, -1);
+  const end = body.length;
+  // A name starts at the front or after any ", ".
+  const starts = new Set([0]);
+  for (let at = body.indexOf(", "); at !== -1; at = body.indexOf(", ", at + 1)) starts.add(at + 2);
+  // Counts reachable from each place, filled from the end of the lead back to the front.
+  const reach = new Map<number, Set<number>>([[end, new Set([0])]]);
+  let work = 0;
+  for (const from of [...starts].sort((x, y) => y - x)) {
+    if (from === end) continue;
     const found = new Set<number>();
+    work += names.length;
+    if (work > MAX_SPLIT_WORK) return null;
     for (const name of names) {
-      const tail =
-        rest === name ? "" : rest.startsWith(`${name}, `) ? rest.slice(name.length + 2) : null;
-      if (tail === null) continue;
-      for (const n of counts(tail)) found.add(n + 1);
+      if (!body.startsWith(name, from)) continue;
+      const after = from + name.length;
+      const next = after === end ? after : body.startsWith(", ", after) ? after + 2 : -1;
+      const tail = reach.get(next);
+      if (tail === undefined) continue;
+      work += tail.size;
+      if (work > MAX_SPLIT_WORK) return null;
+      for (const n of tail) found.add(n + 1);
     }
-    memo.set(rest, found);
-    return found;
-  };
-  return lead.endsWith(".") ? counts(lead.slice(0, -1)) : new Set();
+    reach.set(from, found);
+  }
+  return reach.get(0) ?? new Set();
 }
 
 /** A collapsed item's title opens with the count of the modules it stands for. */
@@ -755,6 +777,9 @@ function namesHeld(
     const counted = item.module === null ? COLLAPSED_TITLE.exec(item.title) : null;
     if (counted === null) continue;
     const listed = namesListed(item.lead, names);
+    if (listed === null) {
+      throw new SliceError(child(nth(path, index), "lead"), "a lead short enough to check");
+    }
     if (listed.size === 0) {
       throw new SliceError(child(nth(path, index), "lead"), "the names of modules this run holds");
     }

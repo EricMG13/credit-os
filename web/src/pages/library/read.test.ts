@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { cell, readSlice, traceKey } from "./read";
+import { MAX_SPLIT_WORK, cell, readSlice, traceKey } from "./read";
 
 type Json = Record<string, unknown>;
 
@@ -1007,6 +1007,35 @@ describe("readSlice, modules", () => {
         "Business, trade.",
       );
       expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
+    });
+  });
+
+  describe("a collapsed item whose lead lists very many names", () => {
+    const listing = (n: number, title = `${String(n)} modules delivered`) => {
+      const slice = fresh();
+      modOf(slice, "business-profile", 2)["name"] = "A";
+      const run = runOf(slice, 2);
+      const item = (run.overview["modules"] as { items: Json[] }).items[0] as Json;
+      item["title"] = title;
+      item["lead"] = `${"A, ".repeat(n - 1)}A.`;
+      return { slice, held: run.modules?.length ?? 0 };
+    };
+
+    it("answers invalid, not a thrown stack overflow, for a lead of 50,000 names", () => {
+      const { slice } = listing(50_000);
+      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
+    });
+
+    it("refuses a lead one name over the work limit, on its lead", () => {
+      const { held } = listing(1);
+      const { slice } = listing(Math.floor(MAX_SPLIT_WORK / (held + 1)) + 1);
+      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
+    });
+
+    it("accepts a lead at the work limit whose count matches", () => {
+      const { held } = listing(1);
+      const { slice } = listing(Math.floor(MAX_SPLIT_WORK / (held + 1)));
+      expect(readSlice(slice).kind).toBe("ok");
     });
   });
 

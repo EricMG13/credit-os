@@ -123,6 +123,13 @@ function BlockedModule({
   );
 }
 
+/**
+ * The key that remounts the module view (and so resets its selection) for another issuer, run or
+ * module. Route params are decoded, so an id can hold a "/": the triple is encoded, not joined.
+ */
+export const moduleViewKey = (issuer: string, run: string, module: string): string =>
+  JSON.stringify([issuer, run, module]);
+
 function ModuleView({
   module,
   run,
@@ -206,7 +213,7 @@ export function ModulePage({
         }
         return (
           <ModuleView
-            key={`${issuerId}/${loaded.id}/${found.id}`}
+            key={moduleViewKey(issuerId, loaded.id, found.id)}
             module={found}
             run={loaded}
             issuer={issuerId}

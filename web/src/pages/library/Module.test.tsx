@@ -3,6 +3,7 @@ import path from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
+import { moduleViewKey } from "./Module";
 import { routes } from "./routes";
 
 type Json = Record<string, unknown>;
@@ -528,5 +529,15 @@ describe("Module, the index route", () => {
     expect(screen.getByRole("heading", { level: 2, name: "No modules in this run" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Back to the library" })).toBeVisible();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+});
+
+describe("the module page's remount key", () => {
+  // Route params are decoded, so an id holds a "/" when its link carried "%2F" (links.ts encodes
+  // each segment): these addresses are different pages that a "/" join would key alike.
+  it("differs for triples that a slash join would run together", () => {
+    expect(moduleViewKey("a/b", "c", "d")).not.toBe(moduleViewKey("a", "b/c", "d"));
+    expect(moduleViewKey("a", "b/c", "d")).not.toBe(moduleViewKey("a", "b", "c/d"));
+    expect(moduleViewKey("a", "b", "c")).toBe(moduleViewKey("a", "b", "c"));
   });
 });
