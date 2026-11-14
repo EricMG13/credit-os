@@ -172,7 +172,8 @@ function ModuleView({
 }
 
 /**
- * The Module page of a run: the module `module` names. A module the run lacks says so.
+ * The Module page of a run: the module `module` names, or the run's first module when the address
+ * names none (the Modules tab's index form). A module the run lacks, or a run with none, says so.
  */
 export function ModulePage({
   issuer,
@@ -186,7 +187,13 @@ export function ModulePage({
   return (
     <RunFrame issuer={issuer} run={run} tab="modules">
       {(loaded, issuerId) => {
-        const found = loaded.modules.find((item) => item.id === module);
+        const wanted = module ?? loaded.head.firstModule;
+        if (wanted === null) {
+          return (
+            <Absent title="No modules in this run" description="This run has no module to read." />
+          );
+        }
+        const found = loaded.modules.find((item) => item.id === wanted);
         if (found === undefined) {
           return (
             <Absent title="No such module" description="This run has no module at this address." />
