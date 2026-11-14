@@ -13,6 +13,7 @@ from signal_fetch_support import (
     PUBLIC,
     PUBLIC_IP,
     URL,
+    Clock,
     Reply,
     Wire,
     fetch_from_peer,
@@ -26,7 +27,8 @@ from signal_fetch_support import (
 )
 
 from credit_os.signal import fetch as fetch_module
-from credit_os.signal.fetch import MAX_LOOKUPS, FetchRefused, check_address
+from credit_os.signal.fetch import MAX_LOOKUPS, FetchRefused, Wiring, check_address, fetch
+from credit_os.signal.netpin import ConnectionTarget
 
 _guard = no_outside_network
 
@@ -226,3 +228,86 @@ def test_a_304_to_a_request_that_carried_no_validator_is_refused(
 def test_a_304_to_a_request_with_only_one_validator_is_accepted() -> None:
     assert run(Wire(Reply(304)), modified="Fri").modified == "Fri"
     assert run(Wire(Reply(304)), etag='"abc"').etag == '"abc"'
+
+
+# F6: values and limits the tests used to read back from production are pinned by literals
+def test_the_first_request_sends_exactly_these_headers() -> None:
+    wire = Wire(ok())
+    run(wire)
+    assert wire.requests == [
+        (
+            "/x",
+            {
+                "Host": "feeds.example.org",
+                "User-Agent": "Mozilla/5.0 (compatible; signal-feed/1.0)",
+                "Accept": (
+                    "application/atom+xml, application/rss+xml, application/xml;q=0.9, "
+                    "text/xml;q=0.8, */*;q=0.5"
+                ),
+                "Accept-Encoding": "identity",
+                "Connection": "close",
+            },
+        )
+    ]
+
+
+def test_the_per_operation_timeout_is_ten_seconds_on_every_hop() -> None:
+    wire = Wire(redirect("https://other.example.org/y"), ok())
+    run(wire)
+    assert [t.timeout for t in wire.targets] == [10, 10]
+
+
+def test_a_logged_connect_detail_is_one_line_of_at_most_200_characters(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def connect(target: ConnectionTarget) -> Wire:
+        raise OSError("first\n" + "x" * 5000)
+
+    with caplog.at_level(logging.WARNING, logger=LOGGER), pytest.raises(FetchRefused):
+        fetch(URL, None, None, resolve=PUBLIC, wiring=Wiring(connect))
+    [record] = caplog.records
+    assert record.getMessage() == (
+        "could not connect to feeds.example.org: OSError: first " + "x" * 194
+    )
+
+
+class _JoinSpy:
+    """Records the timeout of every join of a daemon thread, and joins as usual."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self.timeouts: list[float | None] = []
+        real = threading.Thread.join
+
+        def join(thread: threading.Thread, timeout: float | None = None) -> None:
+            if thread.daemon:
+                self.timeouts.append(timeout)
+            real(thread, timeout)
+
+        monkeypatch.setattr(threading.Thread, "join", join)
+
+
+def test_a_lookup_is_waited_for_once_for_the_time_left_and_no_longer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(fetch_module, "TOTAL_SECONDS", 0.25)
+    spy = _JoinSpy(monkeypatch)
+    held = Held()
+    try:
+        with pytest.raises(FetchRefused, match="took too long"):
+            run(Wire(ok()), resolve=held, clock=Clock())
+    finally:
+        held.release.set()
+    assert spy.timeouts == [0.25]
+
+
+def test_check_address_waits_for_a_lookup_once_for_its_constant_and_no_longer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(fetch_module, "LOOKUP_SECONDS", 0.25)
+    spy = _JoinSpy(monkeypatch)
+    held = Held()
+    try:
+        _a_lookup_that_overruns(held)
+    finally:
+        held.release.set()
+    assert spy.timeouts == [0.25]

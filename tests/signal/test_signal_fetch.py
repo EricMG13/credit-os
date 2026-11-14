@@ -1,8 +1,8 @@
 """Fetch rules for Signal, on injected resolver, connector and clock: nothing touches a network.
 
 Every test runs under the guard of ``signal_fetch_support`` that fails any name lookup and any
-connection to an address outside loopback. Two tests dial 127.0.0.1, a fake peer in this process,
-through the real pinned connection.
+connection to an address outside loopback. Three tests in this file dial 127.0.0.1, a fake peer in
+this process, through the real pinned connection; the other fetch test files have their own.
 """
 
 import socket
