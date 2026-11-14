@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from credit_os.signal.identity import require_name
+from credit_os.signal.identity import cleaned, require_name
 from credit_os.signal.store import (
     KINDS,
     StoreError,
@@ -19,7 +19,11 @@ from credit_os.signal.store import (
 )
 
 MAX_KEYWORD = 60
+MAX_KEYWORDS = 60
 MAX_TOPIC_NAME = 200
+MAX_TOPICS = 200
+_MAX_KIND = max(len(kind) for kind in KINDS)
+_MAX_KINDS = 60
 
 
 def fts_phrase(text: str) -> str:
@@ -44,28 +48,43 @@ def _id(number: object, what: str) -> int:
     return number
 
 
-def _texts(values: object, what: str) -> list[str]:
-    """A list or tuple of strings; a bare string is not a list of one."""
+def _clean_text(value: object, what: str, limit: int) -> str:
+    """`value` itself when it is clean text: what `identity.cleaned` returns unchanged.
+
+    Refused, not repaired: the text a user typed is the text stored and shown. The length is
+    checked first, so the cleaning never runs on a long input."""
+    text = _text(value, what, limit)
+    if not cleaned(text):
+        raise StoreError(f"{what} must not be empty")
+    if cleaned(text) != text:
+        raise StoreError(
+            f"{what} must be clean text: no control or invisible characters, one space between"
+            " words, none at the ends, composed form"
+        )
+    return text
+
+
+def _listed(values: object, what: str, limit: int) -> Sequence[object]:
+    """A list or tuple of at most `limit` items; a bare string is not a list of one."""
     if not isinstance(values, (list, tuple)):
         raise StoreError(f"{what} must be a list of text")
-    return [_text(value, what, 2**31) for value in values]
+    if len(values) > limit:
+        raise StoreError(f"at most {limit} {what} are allowed")
+    return values
 
 
-def _clean_keywords(keywords: Sequence[str]) -> list[str]:
-    cleaned = [keyword.strip() for keyword in _texts(keywords, "keywords")]
-    if not cleaned:
+def _clean_keywords(keywords: object) -> list[str]:
+    listed = _listed(keywords, "keywords", MAX_KEYWORDS)
+    if not listed:
         raise StoreError("a topic needs at least one keyword")
-    for keyword in cleaned:
-        if not 1 <= len(keyword) <= MAX_KEYWORD:
-            raise StoreError(f"a keyword must be 1 to {MAX_KEYWORD} characters, got {keyword!r}")
-    return cleaned
+    return [_clean_text(keyword, "keyword", MAX_KEYWORD) for keyword in listed]
 
 
-def _clean_kinds(kinds: Sequence[str]) -> list[str]:
-    texts = _texts(kinds, "kinds")
+def _clean_kinds(kinds: object) -> list[str]:
+    texts = [_text(kind, "kind", _MAX_KIND) for kind in _listed(kinds, "kinds", _MAX_KINDS)]
     for kind in texts:
         if kind not in KINDS:
-            raise StoreError(f"invalid kind {kind!r}; expected one of {', '.join(KINDS)}")
+            raise StoreError(f"invalid kind; expected one of {', '.join(KINDS)}")
     return texts
 
 
@@ -136,12 +155,13 @@ def add_topic(
     created_by: str,
 ) -> int:
     """Create a topic and match every existing story against it before returning."""
-    if not _text(name, "name", MAX_TOPIC_NAME).strip():
-        raise StoreError("name must not be empty")
+    _clean_text(name, "name", MAX_TOPIC_NAME)
     require_name(created_by)
     cleaned = _clean_keywords(keywords)
     allowed = _clean_kinds(kinds)
     with write_transaction(db):
+        if db.execute("SELECT count(*) FROM topics").fetchone()[0] >= MAX_TOPICS:
+            raise StoreError(f"at most {MAX_TOPICS} topics are allowed")
         try:
             cur = db.execute(
                 "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
@@ -149,7 +169,7 @@ def add_topic(
                 (name, json.dumps(cleaned), json.dumps(allowed), created_by, utc_text(_now())),
             )
         except sqlite3.IntegrityError as exc:
-            raise StoreError(f"topic {name!r} already exists") from exc
+            raise StoreError("a topic with that name already exists") from exc
         topic_id = new_row_id(cur)
         _link_existing(db, topic_id, cleaned, allowed)
     return topic_id

@@ -108,23 +108,37 @@ def test_keywords_with_query_syntax_are_plain_text(
 
 
 @settings(deadline=None)
-@given(st.text(min_size=1, max_size=60).filter(lambda s: bool(s.strip())))
-def test_any_keyword_is_accepted_without_error(keyword: str) -> None:
-    try:
-        with fresh_db() as db:
-            add_topic(db, "T", [keyword], [], "ak")
-    except StoreError:
-        # Only a keyword SQLite cannot encode (a lone surrogate) may be refused, and only so.
-        assert any("\ud800" <= ch <= "\udfff" for ch in keyword)
+@given(
+    st.text(alphabet=st.characters(min_codepoint=33, max_codepoint=126), min_size=1, max_size=60)
+)
+def test_any_visible_ascii_keyword_is_accepted_as_plain_text(keyword: str) -> None:
+    with fresh_db() as db:
+        add_topic(db, "T", [keyword], [], "ak")
+        assert rows(db, "SELECT keywords FROM topics") == [(json.dumps([keyword]),)]
 
 
-def test_nul_in_a_keyword_is_plain_text_and_does_not_poison_matching(
+@settings(deadline=None)
+@given(st.text(alphabet=st.characters(min_codepoint=0xD800, max_codepoint=0xDFFF), min_size=1))
+def test_a_keyword_holding_a_lone_surrogate_is_refused(keyword: str) -> None:
+    with fresh_db() as db, pytest.raises(StoreError):
+        add_topic(db, "T", ["a" + keyword], [], "ak")
+
+
+def test_nul_in_a_keyword_is_refused_and_the_phrase_builder_still_neutralises_it() -> None:
+    with fresh_db() as db, pytest.raises(StoreError):
+        add_topic(db, "Nul", ["a\x00b"], [], "ak")
+    assert topics.fts_phrase("a\x00b") == '"a b"'
+
+
+def test_a_quote_in_a_keyword_is_doubled_so_the_phrase_matches_the_words(
     db_two_sources: sqlite3.Connection,
 ) -> None:
-    add_topic(db_two_sources, "Nul", ["a\x00b"], [], "ak")
-    add_story(db_two_sources, 1, Entry("Authority review", "https://a.org/1", T0, ""), T0)
-    assert match_story(db_two_sources, 1) == []
-    add_topic(db_two_sources, "Nul again", ["a\x00b"], [], "ak")
+    add_story(db_two_sources, 1, Entry("They say hello today", "https://a.org/1", T0, ""), T0)
+    assert topics.fts_phrase('say "hello"') == '"say ""hello"""'
+    tid = add_topic(db_two_sources, "Quoted", ['say "hello"'], [], "ak")
+    assert rows(db_two_sources, "SELECT story_id FROM topic_stories WHERE topic_id=?", tid) == [
+        (1,)
+    ]
 
 
 def test_follow_is_personal_and_idempotent(db_two_sources: sqlite3.Connection) -> None:
@@ -292,6 +306,7 @@ BAD_CALLS: list[Callable[[Any], object]] = [
     lambda db: follow(db, "u" * 61, 1),
     lambda db: add_topic(db, untyped(5), ["k"], [], "ak"),
     lambda db: add_topic(db, "T", "keyword", [], "ak"),
+    lambda db: add_topic(db, "T", ["k"], ["x" * 100], "ak"),
     lambda db: add_topic(db, "T", [untyped(5)], [], "ak"),
     lambda db: add_topic(db, "T", ["k"], untyped("news"), "ak"),
     lambda db: add_topic(db, "T", ["k"], [], untyped(None)),
@@ -337,3 +352,103 @@ def test_a_topic_name_at_the_limit_is_accepted_and_a_duplicate_is_refused(
 def test_a_blank_topic_name_is_refused(db_two_sources: sqlite3.Connection) -> None:
     with pytest.raises(StoreError, match="must not be empty"):
         add_topic(db_two_sources, "   ", ["k"], [], "ak")
+
+
+# R33: topic text is clean text (A5), capped (A7), and errors do not echo input (A3).
+
+UNCLEAN_TEXT = [
+    "Competition\u200b",
+    " Competition",
+    "Competition ",
+    "Compe\u00adtition",
+    "\x1b[2J\x1b[31mCompetition",
+    "Line one\r\nLine two",
+    "\u202eecnaniF",
+    "Nul\x00name",
+    "a  b",
+    "e\u0301",
+    "\u3164",
+    "\ufe0f",
+    "a" + "\u0316" * 9,
+]
+
+
+@pytest.mark.parametrize("text", UNCLEAN_TEXT)
+def test_a_topic_name_that_is_not_clean_text_is_refused(
+    db_two_sources: sqlite3.Connection, text: str
+) -> None:
+    with pytest.raises(StoreError):
+        add_topic(db_two_sources, text, ["k"], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+
+
+@pytest.mark.parametrize("text", UNCLEAN_TEXT)
+def test_a_keyword_that_is_not_clean_text_is_refused(
+    db_two_sources: sqlite3.Connection, text: str
+) -> None:
+    with pytest.raises(StoreError):
+        add_topic(db_two_sources, "T", ["fine", text], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+
+
+@pytest.mark.parametrize("text", ["Competition", "M&A review", "\u65e5\u672c", "\u00e9ve", "a-b"])
+def test_clean_text_is_stored_exactly_as_given(
+    db_two_sources: sqlite3.Connection, text: str
+) -> None:
+    add_topic(db_two_sources, text, [text], [], "ak")
+    assert rows(db_two_sources, "SELECT name, keywords FROM topics") == [(text, json.dumps([text]))]
+
+
+def test_the_keyword_limit_is_sixty_characters(db_two_sources: sqlite3.Connection) -> None:
+    add_topic(db_two_sources, "At the limit", ["k" * 60], [], "ak")
+    with pytest.raises(StoreError):
+        add_topic(db_two_sources, "Over", ["k" * 61], [], "ak")
+
+
+def test_a_topic_holds_at_most_sixty_keywords(db_two_sources: sqlite3.Connection) -> None:
+    add_topic(db_two_sources, "Sixty", [f"word{i}" for i in range(60)], [], "ak")
+    with pytest.raises(StoreError, match="at most 60 keywords"):
+        add_topic(db_two_sources, "Sixty one", [f"word{i}" for i in range(61)], [], "ak")
+    with pytest.raises(StoreError, match="at most 60 keywords"):
+        add_topic(db_two_sources, "Huge", [f"w{i}" for i in range(100_000)], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(1,)]
+
+
+def test_there_are_at_most_two_hundred_topics(db_two_sources: sqlite3.Connection) -> None:
+    for number in range(200):
+        add_topic(db_two_sources, f"Topic {number}", ["k"], [], "ak")
+    with pytest.raises(StoreError, match="at most 200 topics"):
+        add_topic(db_two_sources, "One too many", ["k"], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(200,)]
+
+
+HOSTILE = "\x1b[2J\r\nX-Injected: 1\u202e\x00"
+BIG = 1_000_000
+
+ECHO_CALLS: list[Callable[[Any], object]] = [
+    lambda db: add_topic(db, "T1", ["k" * BIG], [], "ak"),
+    lambda db: add_topic(db, "T2", [HOSTILE * 50_000], [], "ak"),
+    lambda db: add_topic(db, "T3", ["k"], ["x" * BIG], "ak"),
+    lambda db: add_topic(db, "T4", ["k"], [HOSTILE], "ak"),
+    lambda db: add_topic(db, "T5", ["k"], ["blog"], "ak"),
+    lambda db: add_topic(db, "n" * BIG, ["k"], [], "ak"),
+    lambda db: add_topic(db, HOSTILE, ["k"], [], "ak"),
+    lambda db: add_topic(db, "T6", [HOSTILE], [], "ak"),
+    lambda db: add_topic(db, "Base", ["k"], [], "ak"),
+    lambda db: follow(db, "u" * BIG, 1),
+    lambda db: list_topics(db, HOSTILE * 1000),
+    lambda db: unfollow(db, "ak", 2**62),
+    lambda db: match_story(db, 2**80),
+]
+
+
+@pytest.mark.parametrize("call", ECHO_CALLS)
+def test_an_error_text_does_not_grow_with_the_input(
+    db_two_sources: sqlite3.Connection, call: Callable[[Any], object]
+) -> None:
+    add_topic(db_two_sources, "Base", ["review"], [], "ak")
+    with pytest.raises(StoreError) as caught:
+        call(db_two_sources)
+    text = str(caught.value)
+    assert len(text) < 200
+    assert "k" * 20 not in text and "X-Injected" not in text and "\x1b" not in text
