@@ -556,3 +556,12 @@ def test_a_long_list_of_kinds_is_accepted_and_filters_like_the_short_one(
     assert rows(db_two_sources, "SELECT story_id FROM topic_stories WHERE topic_id=?", tid) == [
         (1,)
     ]
+
+
+def test_the_duplicate_name_error_does_not_repeat_a_long_name(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_topic(db_two_sources, "n" * 200, ["k"], [], "ak")
+    with pytest.raises(StoreError) as caught:
+        add_topic(db_two_sources, "n" * 200, ["j"], [], "ak")
+    assert str(caught.value) == "a topic with that name already exists"

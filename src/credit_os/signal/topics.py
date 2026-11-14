@@ -13,7 +13,6 @@ from credit_os.signal.store import (
     StoreError,
     new_row_id,
     require_id,
-    require_text,
     utc_text,
     write_transaction,
 )
@@ -31,10 +30,12 @@ def fts_phrase(text: str) -> str:
 
 
 def _text(value: object, what: str, limit: int) -> str:
-    """A string SQLite can encode and no longer than `limit`; anything else is a StoreError."""
+    """A string no longer than `limit`; anything else is a StoreError.
+
+    A lone surrogate, which SQLite cannot encode, never gets past the callers: clean text and
+    names drop it, and a kind with one is not a kind."""
     if not isinstance(value, str):
         raise StoreError(f"{what} must be text")
-    require_text(value)
     if len(value) > limit:
         raise StoreError(f"{what} must be at most {limit} characters")
     return value

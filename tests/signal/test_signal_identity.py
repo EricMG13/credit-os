@@ -166,6 +166,13 @@ def test_characters_next_to_the_ignorable_ranges_are_kept(kept: str) -> None:
     assert clean_name("A" + kept + "B") == "A" + kept + "B"
 
 
+@pytest.mark.parametrize("fmt", ["\u0600", "\u0605", "\u06dd", "\u070f", "\ufff9", "\ufffb"])
+def test_format_characters_outside_the_ignorable_ranges_are_dropped(fmt: str) -> None:
+    assert clean_name("A" + fmt + "B") == "AB"
+    with pytest.raises(IdentityError):
+        clean_name(fmt * 3)
+
+
 def test_a_name_of_blanks_cannot_become_a_user(db: sqlite3.Connection) -> None:
     assert current_user(db, "signal_name=%E3%85%A4%E2%A0%80") is None
     assert current_user(db, "signal_name=%EF%B8%80%E1%85%9F") is None
