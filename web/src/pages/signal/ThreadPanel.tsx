@@ -4,17 +4,17 @@
 // route and moves focus to that thread's "Open thread" link. Everything here is in memory: posting
 // adds the comment to this page's list and a reaction toggle flips its pressed state; no count is
 // recomputed (the delivered string stays) and nothing is written.
-import { useEffect, useRef, useState } from "react";
-import { LinkExternal01 } from "@untitledui/icons";
+import { useRef, useState } from "react";
 import { SlideoutMenu } from "@/components/application/slideout-menus/slideout-menu";
 import { Badge } from "@/components/base/badges/badges";
-import { Button } from "@/components/base/buttons/button";
 import { CloseButton } from "@/components/base/buttons/close-button";
 import { cx } from "@/utils/cx";
 import { sceneHref } from "./SignalFrame";
 import { isWebLink } from "./StoryCard";
 import { ArchivedBadge } from "./parts/ArchivedBadge";
 import { MediaObject } from "./parts/MediaObject";
+import { useOnGone, focusAgainIfLost } from "./parts/focus";
+import { OpenSourceButton } from "./parts/OpenSourceButton";
 import { Composer, MessageList } from "./parts/Messages";
 import type { ReactionWord } from "./parts/Messages";
 import type { SignalComment, SignalGroup, SignalScene, SignalStory, SignalThread } from "./slice";
@@ -23,41 +23,11 @@ import { useSignalViewer } from "./viewer";
 const TITLE_ID = "signal-thread-title";
 const FOCUS = "outline-focus-ring focus-visible:outline-2";
 
-/** Runs once when the panel's content goes (after any exit animation), so focus never falls to the page. */
-function useOnGone(then: () => void) {
-  const latest = useRef(then);
-  useEffect(() => {
-    latest.current = then;
-  });
-  useEffect(
-    () => () => {
-      latest.current();
-    },
-    [],
-  );
-}
-
 /** The thread's own "Open thread" link in the group view; the page container when there is none. */
 function openLinkTarget(threadId: string | null): HTMLElement | null {
   const links = document.querySelectorAll<HTMLElement>("a[data-thread-link]");
   const own = [...links].find((a) => a.dataset["threadLink"] === threadId);
   return own ?? document.getElementById("signal-content");
-}
-
-/**
- * Focus goes to the link at once and again two frames later if it has fallen to the page. When the
- * address was loaded directly the dialog library has no opener to restore and, in a browser, its own
- * frame-late restore leaves focus on the body; a click-opened panel is restored to its link by it.
- */
-function focusOpenLink(threadId: string | null) {
-  openLinkTarget(threadId)?.focus();
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if (document.activeElement === null || document.activeElement === document.body) {
-        openLinkTarget(threadId)?.focus();
-      }
-    });
-  });
 }
 
 function Quoted({ story }: { story: SignalStory }) {
@@ -85,18 +55,7 @@ function Quoted({ story }: { story: SignalStory }) {
           )}
         </h3>
         {link === null ? null : (
-          <Button
-            size="sm"
-            color="link-color"
-            iconTrailing={LinkExternal01}
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open source: ${story.headline} (opens in a new tab)`}
-            className="mt-2"
-          >
-            Open source
-          </Button>
+          <OpenSourceButton url={link} headline={story.headline} className="mt-2" />
         )}
       </MediaObject>
     </article>
@@ -252,7 +211,7 @@ export function ThreadPanel({
   writer: boolean;
 }) {
   useOnGone(() => {
-    focusOpenLink(thread === null ? null : thread.id);
+    focusAgainIfLost(() => openLinkTarget(thread === null ? null : thread.id));
   });
   const close = () => {
     window.location.hash = sceneHref(scene, `group/${encodeURIComponent(group.id)}`);
