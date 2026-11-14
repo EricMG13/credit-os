@@ -23,7 +23,7 @@ others are in the run and model mock projects.
 | Id | Name | Page | Shows | State(s) |
 | :--- | :--- | :--- | :--- | :--- |
 | L1, L2 | Home card, stopped at its cap; Home card, latest run failed, spend not known | Library home, Cards | Stopped, Spending cap, reason in the note; Failed with two labels; the card keeps the last finished run | Stopped: spending cap; Failed: spend not known |
-| L3 | Home list, State column | Library home, List | Six rows, Sector and As of columns; State filter | Every end; two badges in one cell |
+| L3 | Home list, State column | Library home, List | Six rows, Sector and As of columns; State filter | Finished, Stopped (Spending cap; By the analyst), Failed (Model service; with Spend not known), Running; two badges in one cell |
 | L4 | Report history, every end once | Report history | Nine entries, badges and fixed sentences | Every end, Rejected, Interrupted |
 | L5 | Run frame head, a stopped run | Any run page | Two badges; a new reason line under the header | Stopped: spending cap |
 | L6 | Overview modules list, run S1 | Overview | Thirteen modules: scale and band word, "Not scored", or nothing; two columns and one | Bands; Reduced inputs; Not assessable |
