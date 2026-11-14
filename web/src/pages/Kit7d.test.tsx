@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
 import { Kit } from "./Kit";
 
 const designSystem = readFileSync(
@@ -86,8 +87,13 @@ describe("Table on the kit page", () => {
     render(<Kit />);
     const md = screen.getByRole("grid", { name: "Modules, md rows" });
     expect(within(md).getByRole("row", { name: /Liquidity/ }).className).toContain(
-      "hover:bg-primary_hover",
+      "hover:bg-secondary",
     );
+    const css = readFileSync(
+      path.resolve(import.meta.dirname, "..", "styles", "theme.css"),
+      "utf8",
+    );
+    expect(css).toContain("--background-color-secondary: var(--color-surface-subtle)");
   });
 });
 
@@ -109,6 +115,26 @@ describe("Progress bar on the kit page", () => {
     expect(fill).toHaveClass("bg-action", "duration-200");
     expect(fill.className).toContain("ease-[cubic-bezier(.2,0,0,1)]");
     expect(fill.style.transform).toBe("translateX(-62.5%)");
+  });
+});
+
+describe("ProgressBar guards", () => {
+  it.each([
+    ["not finite", Number.NaN],
+    ["infinite", Number.POSITIVE_INFINITY],
+    ["negative", -1],
+    ["above max", 9],
+  ])("throws a RangeError for a value that is %s", (_name, value) => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() => render(<ProgressBar value={value} max={8} label="x" />)).toThrow(RangeError);
+    spy.mockRestore();
+  });
+
+  it("accepts the bounds 0 and max", () => {
+    render(<ProgressBar value={0} max={8} label="none" />);
+    render(<ProgressBar value={8} max={8} label="all" />);
+    expect(screen.getByRole("progressbar", { name: "none" })).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByRole("progressbar", { name: "all" })).toHaveAttribute("aria-valuenow", "8");
   });
 });
 

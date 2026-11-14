@@ -15,7 +15,10 @@ export interface ProgressBarProps {
 export const ProgressBar = ({ value, max, label, className }: ProgressBarProps) => {
   const labelId = useId();
   if (!(max > 0)) throw new RangeError("ProgressBar needs a max greater than 0");
-  const percentage = Math.min(100, Math.max(0, (value * 100) / max));
+  if (!Number.isFinite(value) || value < 0 || value > max) {
+    throw new RangeError("ProgressBar needs a value from 0 to max");
+  }
+  const percentage = (value * 100) / max;
 
   return (
     <div className="flex items-center gap-3">

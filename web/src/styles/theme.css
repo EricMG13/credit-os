@@ -225,8 +225,8 @@
   --background-color-border-secondary: var(--color-border-hairline);
   --outline-color-focus-ring: var(--color-focus);
 
-  /* Sidebar rail: selected item, the card's inset ring, the page header's rule */
-  --background-color-secondary: var(--color-surface-selected);
+  /* Sidebar rail: the subtle surface (table head and row hover), the card's inset ring, the page header's rule */
+  --background-color-secondary: var(--color-surface-subtle);
   --ring-color-secondary: var(--color-border-subtle);
   --border-color-secondary: var(--color-border-hairline);
 
