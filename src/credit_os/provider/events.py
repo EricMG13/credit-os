@@ -23,7 +23,6 @@ _STOPS: dict[str, StopReason] = {
 }
 _ROUTES = {"isByok": "ByokRouted", "isAuto": "AutoRouted"}
 _MAX_NANO = 10**39  # a charge has at most 39 digits
-_MAX_FLOAT_NANO = 2**53  # a float holds every whole number up to here
 _Figures = tuple[Usage, Decimal | None]
 _Problem = tuple[str, str]  # (error class, message)
 
@@ -109,12 +108,11 @@ def _is_count(value: object) -> bool:
 
 
 def _total(values: list[Any]) -> int | None:
-    """The sum, or `None` when there is no value or any is missing: never a smaller number."""
+    # a partly known total is never returned as a smaller number
     return None if not values or any(v is None for v in values) else sum(values)
 
 
 def _figures(usage_data: list[dict[str, Any]]) -> _Figures | None:
-    """The call's counts and charge; `None` when a usage count is unreadable."""
     if not all(_is_count(d.get(wire)) for d in usage_data for wire, _ in _COUNTS):
         return None
     counts = {field: _total([d.get(wire) for d in usage_data]) for wire, field in _COUNTS}
@@ -123,10 +121,11 @@ def _figures(usage_data: list[dict[str, Any]]) -> _Figures | None:
 
 
 def _nano(data: dict[str, Any]) -> int | None:
-    """`copilotUsage.totalNanoAiu` as a whole count, or `None` when it cannot be read exactly."""
     block = data.get("copilotUsage")
     value = block.get("totalNanoAiu") if isinstance(block, dict) else None
-    if isinstance(value, float) and value.is_integer() and 0 <= value <= _MAX_FLOAT_NANO:
+    if (
+        isinstance(value, float) and value.is_integer() and 0 <= value <= 2**53
+    ):  # a float holds every whole number up to 2**53
         value = int(value)
     return value if type(value) is int and 0 <= value < _MAX_NANO else None
 
