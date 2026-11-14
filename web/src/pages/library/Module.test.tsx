@@ -1483,7 +1483,12 @@ describe("Module, the index route", () => {
           head: Json;
           overview: Json;
           changes: Json;
-          evidence: { moduleFilter: unknown[]; sources: { files: { readers: unknown }[] } };
+          evidence: {
+            moduleFilter: unknown[];
+            sources: { files: { readers: unknown }[] };
+            gaps: { groups: unknown[] };
+            tabs: Json;
+          };
         }[];
       }[];
     };
@@ -1491,6 +1496,10 @@ describe("Module, the index route", () => {
     run.modules = [];
     run.evidence.moduleFilter = [];
     for (const file of run.evidence.sources.files) file.readers = { shown: [], more: null };
+    run.evidence.gaps.groups = [];
+    run.evidence.tabs["gaps"] = "0";
+    (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
+      "See the 0 gaps in Evidence";
     run.head["firstModule"] = null;
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },

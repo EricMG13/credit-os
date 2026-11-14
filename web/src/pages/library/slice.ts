@@ -480,9 +480,37 @@ export type TraceTable = {
   rows: readonly TraceRow[];
 };
 
+/** The words of the Gap severity set. */
+export type GapSeverity = keyof (typeof STATUS_SETS)["Gap severity"];
+
+/** How a gap appears on the findings pages: the kit's gap badge, withheld, blocked badge or "n.a.". */
+export type GapForm = "gap" | "withheld" | "blocked" | "missing";
+
+/**
+ * One gap. `moduleId` is the module it sits in. `where` is the findings page it shows on, the
+ * Overview or that module's own page, and the delivered label of the link to it.
+ */
+export type GapRow = {
+  id: string;
+  gap: string;
+  module: string;
+  moduleId: string;
+  reason: string;
+  shownAs: GapForm;
+  where: { page: "overview" | "module"; label: string };
+};
+
+/** The Gaps tab: its title, sentence and heads, then groups by severity as delivered; `count` is delivered text. */
+export type GapTable = {
+  title: string;
+  description: string;
+  columns: Record<"id" | "gap" | "module" | "reason" | "shownAs", string>;
+  groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
+};
+
 /**
  * A run's Evidence pages. `moduleFilter` is the options of the module filter. `tabs` are the delivered
- * counts of the Trace, Sources and Gaps tabs; the Trace count is the number of rows it holds. On Sources the first `visible` files are drawn and the
+ * counts of the Trace, Sources and Gaps tabs; the Trace and Gaps counts are the numbers of rows they hold. On Sources the first `visible` files are drawn and the
  * rest wait behind `moreLabel`, which is `null` exactly when none is held back.
  */
 export type Evidence = {
@@ -497,6 +525,7 @@ export type Evidence = {
   };
   sources: { files: readonly SourceFile[]; visible: number; moreLabel: string | null };
   trace: TraceTable;
+  gaps: GapTable;
 };
 
 type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
