@@ -144,6 +144,16 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
   U+3164, U+FFA0 (with the Windows-reserved punctuation, a closed list); the walk's property
   test and three bad-name rows that run on Windows. A close that fails after another error is
   a note on that error; a close that fails alone is `SourceUnreadable`.
+- **Ruled for PR 2 (#161).** Every reader returns `SourcePages(pages, encoding)` of
+  `Page(number, text, state)`, numbered from 1; readers are pure functions of bytes and
+  `read_pages(folder, pin)` arrives with PR 5. Pages are consecutive slices that rejoin to the
+  text exactly (text and csv 12,000 characters, HTML 3,000), ending at a line end where one
+  is in reach; the predecessor's header line and `textwrap` are dropped, so page numbers
+  differ from its. Text: UTF-8, else windows-1252 strictly; a control character other than
+  tab, LF, CR and form feed is refused by name. csv: comma, strict, no sniffing; a line break
+  in a cell is one space. HTML: the predecessor's tag lists; the reader holds a stated
+  peak-memory bound by a committed `tracemalloc` test, with a lower size cap for HTML if the
+  bound needs one; it is its own PR 2b with an adversarial review.
 - **Ruled for PR 2's first task.** An `OSError` without `strerror` gives `cannot read` with
   the error's class name, not `(None)`, failing test first; the comment in `source_path`
   says, as the walk's docstring does, that no digest exists when a pin is created.
@@ -180,7 +190,8 @@ the lock (step 0C part 1). Not `VERIFICATION.md`, not `docs/legacy/ports.md`.
 | 1c (#82) | `read_capped` refuses a final link on Windows; `COM0` and `LPT0` |
 | 1d (#100) | Folder walk (`pin_folder`, `PinnedFolder`, `Skipped`) |
 | 1e (#135) | The two untyped errors, the wider name refusals, the walk's property test |
-| 2 | Text, csv and HTML readers |
+| 2 (#161) | Text and csv readers; `Page` and `SourcePages` |
+| 2b | HTML reader, with its peak-memory bound |
 | 3 | Zip and XML guards; xlsx reader |
 | 4 | docx reader |
 | 5 | PDF reader |

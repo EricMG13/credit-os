@@ -3,6 +3,98 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: first PRs of 1B, 2A and 2B; 1C PR 2c; a Signal fix
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #147 | 1C PR 2c | `d861baa`, `1c811da` | `provider/`: an exact redaction value is also matched as JSON writes it; compactions read from events (327 lines) |
+| #163 | 1B PR 1 | `f6328c5`, `791c05d` | `model/value.py`: `Value`, `Missing`, the two contexts, operand text, amount text (620) |
+| #162 | 2A PR 1a | `a0494c2`, `f46eca6` | `store/errors.py`: the typed errors and the SQLite error mapping (268) |
+| #157 | 2B PR 1a | `30b2c25`, `a63898d` | `checks/`: `Finding`, `CheckContext`, the text views (529) |
+| #170 | 2B PR 1b | `f52241f`, `77d000a` | `checks/`: the seven structure checks and `check_handoff` (624) |
+| #160 | Signal S-2b | `bd608b0`, `bdc441e` | `signal/fetch.py`: a lookup thread that cannot be built frees its slot (26) |
+
+**Reviews.** Verdicts and counts are as each controller reported; the coordinator read the
+diffs and the checks.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #147 | both tasks approved for what merged; every finding was in the home-directory part, since removed | 0 defects at `313faa0`, 4 costs; not rerun after the removal | PASS on `d861baa`: High 0, Medium 0, Low 3, Info 5 |
+| #163 | `mx-precise` pass; `mx-adversary` Medium 2, fixed, re-review pass | 0 open, 1 deferred | Changes required on `d0214a8`: Medium 1; fixed in the key only; `mx-precise` re-review pass on `f6328c5` |
+| #162 | `mx-precise` Medium 1 and `mx-adversary` Medium 1 (before the split), fixed, re-review PASS | 0 defects, 0 costs | PASS on `a0494c2`: High 0, Medium 0, Low 1, Info 3 |
+| #157 | `mx-precise` approved | 1 Low defect, fixed test first | Medium 1, Low 4 on `457915d`; fixed test first; re-review pass on `30b2c25` |
+| #170 | `mx-precise` Medium 1, fixed, re-review approved | 2 defects fixed test first, 1 cost deferred | Medium 1, Low 5 on `661a5bf`; fixed test first; `mx-precise` re-review pass on `f52241f` |
+| #160 | `mx-adversary` PASS, no finding in the diff | not run (a 26-line review fix) | not run |
+
+- #163's Medium: the key's operands were carried from a predecessor test table and could be
+  traced to a run of a public case. The plan's ruling 9 forbids that; its answer key 4 had
+  called those tables synthetic, which was the coordinator's error. The key now holds invented
+  figures. The earlier commits, with the carried figures, are in the merged history.
+- #163's task Mediums: the two number contexts inherited Python's default context, and the
+  test could not see it. Each context is now built with every setting stated.
+- #170's Medium: two `table-id` tags on one line were read as one register, so a repeated id
+  there was accepted. #157's: the context's default mappings could still be changed.
+- #162's Mediums: `StoreRefused` was not pinned as a `StoreError`; a very large integer in a
+  detail left the codecs as a bare `ValueError` (the codecs land in PR 1b).
+
+**The home-directory redactor (1C).** Its fix failed review three times, the limit (global
+rules 1). The third round followed the coordinator's rule that the redactor fails closed and
+still lost a second home path on a line that mixes a POSIX home with a backslash-led one, a
+case `main` handles. The rewrite was taken out of #147, so `home_paths` on `main` is unchanged
+and the open Medium M2 of #36 stays open. The owner authorised one more round (asked
+"Authorise one more scoped fix round for the 1C home-directory redactor?", answered "Yes, one
+round"): the reviewer's one-line change, key rows first, an adversarial check of that change
+only, as its own PR (#171, a draft at this entry). Nothing further is authorised.
+
+**Gates and CI.** As each controller reported. `uv run --locked python tools/gates.py` exit
+0: #147 on `d861baa` (1,857 passed); #163 on `d0214a8` (the last commit changed the JSON key
+only); #162 on `a0494c2`; #157 on `30b2c25`; #170 and #160 on their heads. CI on #162 printed
+SQLite 3.53.1 on Ubuntu and 3.49.1 on Windows, both above the plan's 3.37 floor. Mutation
+(`mutmut`): #147, 1,438 mutants, 1,428 killed, 10 equivalent; #163 at `d8f925e`, 204, 153
+killed, 51 judged equivalent (45 change message text only); #162 at `959ab82`, 192, 183
+killed, 9 equivalent. Not run on #157, #170 (not sensitive code) or #160.
+
+**Ledger.**
+- `1C-2c task=1 agent=mx-feature fix-rounds=3 gates-first-pass=y` (all three on the part removed)
+- `1C-2c task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `1C-2c task=remove-home agent=mx-scaffold fix-rounds=0 gates-first-pass=n`
+- `1B-1 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2A-1a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `2B-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2B-1 task=2 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2B-1a task=sweep-defect agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2B-1a task=review-fix agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2B-1b task=assembly agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2B-1b task=sweep-defects agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2B-1b task=whole-branch-fix agent=mx-feature fix-rounds=1 gates-first-pass=y`
+
+**Rulings by the coordinator.** In the plans. The ones the owner may want to see:
+- 1C driver: closing a session that does not answer in 5 seconds, or whose queued events
+  cannot be read, returns one compaction marked failed with no charge known; the predecessor
+  returned nothing. A leftover event that carries usage is reported the same way. Events from
+  a sub-agent keep their figures and make the reply not ok; the predecessor dropped them.
+- 1D readers: pages are consecutive slices that rejoin to the text exactly, so page numbers
+  differ from the predecessor's for the same file. A csv with semicolons is read as one cell
+  per row. The HTML reader must hold a stated peak-memory bound, by a committed test.
+- 1B: every key and fixture figure is invented by the controller.
+- 2A: the plan's PR 1 is three PRs. 2B: PR 1 was two; PR 4 will be two.
+
+**Not verified.**
+- Any live event stream (1C); whether the runtime also reports usage for a compaction request,
+  which would count it twice.
+- 2A: `store_error` and `safe_text` have no caller until PR 1c, so "a SQLite error never
+  leaves the store" is untested until then; the work PC's SQLite version.
+- 2B: nothing was checked against a retained reply in the new format (none exists); no
+  property test for the structure checks.
+- 1B: builds without the C decimal module beyond one reviewer run; mutation was not repeated
+  after the last test and key commits.
+- #160: a real failure to create a thread (simulated only). Three leftovers in the same
+  function are unchanged: a slot leaks if the outcome record cannot be built or on an
+  interrupt, and a start that fails after the thread began would release twice.
+
 ## 2026-11-14 Roadmap back end: 1D PR 1e, Signal's fetch, and CI runs per pull request
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -802,151 +894,3 @@ still says in two places that the 6.21.2 pin stands.
 - Eleven packages already in the lock, and three new transitive ones, are under 30 days old.
 - `npm ci` reports 10 moderate advisories in `web/`'s development packages; the web audit gate
   covers runtime packages only. Passed to the design-track coordinator.
-
-## 2026-11-13 Design track: mocks (steps D1a to D1d) and design system 0.7
-
-**Scope.** Mocks drawn in Claude Design and one record per screen group under
-`docs/design/mocks/`. Nothing is built in React. Every mock was rendered at 1440px in one
-browser only; no narrow width, Edge, keyboard or screen-reader check.
-
-**Merged.** #8 run (`e6f8b1e`, merged by the owner's instruction in that session), #12 design
-system 0.7 with the new status sets, #9 Model and Forecast, #10 Signal, #11 library, #13 run
-revised to 0.7. CI green on both runners for each.
-
-**Rulings.** The owner's review 2 rulings are in decision 0003. Six product questions are
-listed there as open.
-
-**Review.** Batched docs review of the four records, `mx-feature`: library not a pass
-(5 Medium: an unapproved look source, a shape with two meanings, and three places where the
-library and Model mocks disagreed); run, Model and Signal passed. After the rulings, #12, #9
-and #11 were reviewed again: pass, no High or Medium. The status shapes in #11 and #13 were
-checked by the coordinator by reading the records against the design system's tables.
-
-**Ledger.**
-- `D1a agent=sub-session fix-rounds=2 gates-first-pass=n/a`
-- `D1b agent=sub-session fix-rounds=1 gates-first-pass=n/a`
-- `D1c agent=sub-session fix-rounds=1 gates-first-pass=n/a`
-- `D1d agent=sub-session fix-rounds=0 gates-first-pass=n/a`
-
-**Not verified.**
-- The mocks themselves were not opened by a reviewer; reviews read the records.
-- Source sizes were read from class names and pages, not compared side by side.
-- The library mock's Shadcnblocks rows copy shadcn/ui and Kibo UI base components, accepted
-  for the mocks only (review 2, ruling 3).
-- Whether Recharts can draw the chart forms the mocks show.
-
-## 2026-11-13 Design track: design system and component map (steps D0 and D0b)
-
-**Scope.** Documents and a Claude Design project only. No component was installed, built or
-opened from disk; no mock of a screen exists yet.
-
-**Merged.** `main` at `40509b5`: #4 component map and Signal's screens (`e052a32`), #5 design
-system (`40509b5`). CI green on `ubuntu-latest` and `windows-latest` for both.
-
-**Rulings.** The owner's ten rulings at review 1 are in decision 0003; the brand guide is a
-reference, only its colour values and the logo are fixed.
-
-**Review.** Batched docs review, `mx-feature`: 6 Medium (the two documents disagreed on
-sources, motion and gap states; Signal states and five chart kinds unmapped; components shared
-across kinds), fixed in one round each and re-reviewed as resolved. Probes, exit 0 at the
-merged tips: every colour is a brand hex; all contrast ratios and gray values recompute;
-every screen, state, record shape and chart kind is mapped; no name, credential or served URL.
-
-**Follow-up, same day.** `main` at `4fea09f`: #6 design system 0.6 (`e5ac316`) and #7
-component map fixes (`4fea09f`), CI green on both runners. The owner's source-look rule (a
-component from an approved source copies that page's look) is in decision 0003. An audit of
-the merged map by the D0 session found 10 Medium defects, fixed in #7. The docs review of #6
-found 3 Medium (source look contradicted in the file, a malformed table, states sharing a
-shape); the re-review left 1 Medium in each PR (leftover "layout reference" wording; Running
-drawn like Finished), fixed and checked by the coordinator by reading the changed lines.
-
-**Ledger.**
-- `D0 agent=sub-session fix-rounds=3 gates-first-pass=n/a`
-- `D0b agent=sub-session fix-rounds=3 gates-first-pass=n/a`
-
-**Parked Low findings.** The design system defines no shapes for a module's state on the
-Overview tiles; it links the Claude Design project by id; the Claude Design page still shows
-the earlier hand-styled samples, not the source look.
-
-**Not verified.**
-- Whether Recharts, Untitled UI React or any adopted component passes the content security
-  policy; licences and paid tiers were not read from licence texts.
-- The review probes were session scratch files and are not in the repository.
-- Colour-blind separation was simulated, not tested with readers.
-- The D0 session's statement that standalone Claude Design stops working by 2026-12-14.
-
-## 2026-11-13 Phase 0: skeletons and gates (steps 0A and 0B)
-
-**Scope.** Scaffolding only: an empty layered Python package and a React page that draws a
-stub data file. No analytical code, no model run, nothing ported from the predecessor yet.
-
-**Merged.** `main` at `892a600`.
-
-| PR | Step | Merge commit |
-| :--- | :--- | :--- |
-| #1 | 0A Python skeleton, layering test, gate command, CI | `dde07f0` |
-| #3 | 0B part 1: React skeleton, gates, open-from-disk build, policy, rebuilt npm lock | `08f35d0` |
-| #2 | 0B part 2: populated-page check, violation canary, hardening | `892a600` |
-
-**Gates on merged `main`, run by the coordinator on macOS.**
-
-| Command | Exit | Result |
-| :--- | :--- | :--- |
-| `uv run --locked python tools/gates.py` | 0 | ruff, format, mypy, pytest (71 passed, 100% coverage of an empty package), lock, complexity, bandit, pip-audit, suppressions 0 of 0 |
-| `npm --prefix web run gates` | 0 | eslint, prettier, tsc, vitest, audit, knip, jscpd, build, Node tests, and six open-from-disk checks in Chrome |
-
-**CI.** Each PR's last run was green on `ubuntu-latest` and `windows-latest` (#2: runs
-43500470018 and 43500469936). The open-from-disk check ran in Chrome on both runners, logs
-read, not skipped; the violation canary was detected on both.
-
-**Reviews.**
-
-| Level | Reviewer | 0A | 0B |
-| :--- | :--- | :--- | :--- |
-| Task | `mx-feature` (0A), `mx-precise` (0B) | 2 Medium, fixed | 1 High, 2 Medium, fixed |
-| Task, code (added after the plan review) | `mx-precise` | 5 Medium, fixed | n/a |
-| Plan review | `mx-architect`, adversarial | see below | 1 Medium (policy directives), fixed |
-| Pre-merge sweep discovery and whole-branch adversarial | `mx-architect` | 0 High, 1 Medium, fixed | 0 High, 2 Medium, fixed |
-
-Every fix was re-reviewed as resolved. No High or Medium finding is open.
-
-**Adversarial review of the plans.** Verdict BLOCK: 2 High, 17 Medium. Both High findings were
-confirmed against the predecessor and corrected in the roadmap and port map (`ca7bec9`): the
-method texts the live launcher sends, and the forecast arithmetic in `owners/cp2g.py`, had both
-been listed as left behind. The owner's answers to the resulting questions are decision 0002.
-
-**Findings worth remembering.**
-- Vite's default build does not open from `file://` (Chrome blocks the module script); the
-  build emits one classic script.
-- A plain `uv run` re-locks before the gates start; the gate command needs `--locked`.
-- A root-only lock-file exclusion counts a nested `web/package-lock.json` against the line cap.
-
-**Ledger.**
-- `0A agent=mx-scaffold fix-rounds=2 (+1 whole-branch wave) gates-first-pass=y`
-- `0B agent=mx-feature fix-rounds=2 (+1 whole-branch wave) gates-first-pass=y`
-
-**Rulings by the coordinator.**
-- The whole-branch review's fix wave ran on a fresh Sonnet agent and was not counted against
-  the two per-task rounds, because its findings were new and came with concrete fixes and
-  probes. Not confirmed by the owner.
-- A local plain `uv run` can still pass after a silent re-lock; accepted as Low because CI
-  launches with `--locked`.
-- Step 0B was split into two stacked PRs to stay within the 800-line cap.
-
-**Parked Low findings**, for step 0C or the next phase sweep: `from importlib import
-import_module as im` and a relative `__import__` with `level` are not caught by the layering
-check; the gate runner's tool lookup ignores `UV_PROJECT_ENVIRONMENT`; `violations` (17) and
-`count_suppressions` (16) exceed complexity 15 outside the complexity gate's `src` scope; gate
-arguments (coverage floor, complexity limit) are not pinned by tests; no bandit scan floor; the
-hang-timeout browser test is skipped on Windows; the Python duplication gate lives in the web
-script and does not run on a Python-only PR.
-
-**Not verified.**
-- Edge: the browser check has run only in Chrome.
-- The work PC: nothing has run there; package availability rests on the owner's statement.
-- Pre-commit hooks were never executed.
-- Whether any approved React component library works under the content security policy.
-- The age of locked npm versions is not checked at gate time; it was checked once, by script.
-- The plan review's full report was not saved to the repository; its findings are summarised
-  here and applied in `ca7bec9`.
-- `main` has no branch protection, so the checks are advisory.
