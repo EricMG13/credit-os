@@ -464,13 +464,16 @@ describe("Overview, modules and limitations", () => {
     expect(collapsed?.title).toBe(`${String(named)} modules delivered`);
     const delivered = rest.filter((m) => m.state.startsWith("Delivered")).length;
     expect(run.modules.summary).toBe(`${String(named + delivered)} of 13 delivered`);
-    expect(capped.head.tabs.modulesCount).toBe(String(named + delivered));
-    expect(run.modules.items.filter((m) => m.state === "Not run").map((m) => m.title)).toEqual([
+    const notRun = run.modules.items.filter((m) => m.state === "Not run").map((m) => m.title);
+    expect(notRun).toEqual([
       "Financial performance",
       "Cash flow and liquidity",
       "Recovery",
       "Forecast",
     ]);
+    // Sweep ruling SW-01: the Modules tab counts the modules the run lists (as the mock's "Modules 13"
+    // beside "12 of 13 delivered"), here the delivered ones and the four not run.
+    expect(capped.head.tabs.modulesCount).toBe(String(named + delivered + notRun.length));
   });
 
   it("draws the limitations open: h2 with count, gaps link, one trace control each, long text in full", () => {

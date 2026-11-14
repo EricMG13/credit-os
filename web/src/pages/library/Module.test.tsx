@@ -1587,6 +1587,7 @@ describe("Module, the index route", () => {
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";
     run.head["firstModule"] = null;
+    (run.head["tabs"] as Json)["modulesCount"] = "0";
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
     ];
