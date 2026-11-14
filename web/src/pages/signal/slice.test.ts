@@ -36,6 +36,15 @@ describe("readSlice", () => {
     }
   });
 
+  it("holds no AI digest card in the scene where AI is off (ruling 21), and one where it is on", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error("the fixture reads");
+    const cards = (id: string) =>
+      result.data.scenes.find((s) => s.id === id)?.snapshot.feed.digests ?? [];
+    expect(cards("main").some((c) => c.ai)).toBe(false);
+    expect(cards("ai-on").some((c) => c.ai)).toBe(true);
+  });
+
   it.each([
     ["a scene with no id", ["id"], undefined, "scenes[2].id: expected a string"],
     [
@@ -84,7 +93,7 @@ describe("readSlice", () => {
       "a view naming a story the feed does not hold",
       ["snapshot", "feed", "views", "latest", "top"],
       ["corvane", "ghost"],
-      "scenes[2].snapshot.feed.views.latest.top[1]: expected the id of a story in the feed",
+      "scenes[2].snapshot.feed.views.latest.top[1]: expected the id of a story or digest in the feed",
     ],
     [
       "a channel topic with no order in the feed",
@@ -102,7 +111,7 @@ describe("readSlice", () => {
       "a topic order naming a story the feed does not hold",
       ["snapshot", "feed", "topics"],
       { shipping: { top: [], latest: ["ghost"] } },
-      "scenes[2].snapshot.feed.topics.shipping.latest[0]: expected the id of a story in the feed",
+      "scenes[2].snapshot.feed.topics.shipping.latest[0]: expected the id of a story or digest in the feed",
     ],
     [
       "signal strength marks of 4",
@@ -157,6 +166,78 @@ describe("readSlice", () => {
       ["snapshot", "feed", "stories", 0, "saved"],
       "yes",
       "scenes[2].snapshot.feed.stories[0].saved: expected true or false",
+    ],
+    [
+      "a stage position that is a string",
+      ["snapshot", "feed", "stories", 2, "stage", "position"],
+      "0.75",
+      "scenes[2].snapshot.feed.stories[2].stage.position: expected a number from 0 to 1",
+    ],
+    [
+      "a stage position above 1",
+      ["snapshot", "feed", "stories", 2, "stage", "position"],
+      1.5,
+      "scenes[2].snapshot.feed.stories[2].stage.position: expected a number from 0 to 1",
+    ],
+    [
+      "a stage with no delivered label",
+      ["snapshot", "feed", "stories", 2, "stage", "label"],
+      undefined,
+      "scenes[2].snapshot.feed.stories[2].stage.label: expected a string",
+    ],
+    [
+      "a stage name whose current flag is a string",
+      ["snapshot", "feed", "stories", 2, "stage", "stages", 1, "current"],
+      "yes",
+      "scenes[2].snapshot.feed.stories[2].stage.stages[1].current: expected true or false",
+    ],
+    [
+      "a rating move missing its to",
+      ["snapshot", "feed", "stories", 3, "ratingMoves", 0, "to"],
+      undefined,
+      "scenes[2].snapshot.feed.stories[3].ratingMoves[0].to: expected a string",
+    ],
+    [
+      "rating moves that are not a list",
+      ["snapshot", "feed", "stories", 3, "ratingMoves"],
+      "BB- to B+",
+      "scenes[2].snapshot.feed.stories[3].ratingMoves: expected a list",
+    ],
+    [
+      "a digest card whose unread is a string",
+      ["snapshot", "feed", "digests", 0, "unread"],
+      "yes",
+      "scenes[2].snapshot.feed.digests[0].unread: expected true or false",
+    ],
+    [
+      "a digest card whose points hold a number",
+      ["snapshot", "feed", "digests", 0, "points"],
+      ["One", 2],
+      "scenes[2].snapshot.feed.digests[0].points[1]: expected a string",
+    ],
+    [
+      "a nothing-to-report digest card that still has points",
+      ["snapshot", "feed", "digests", 2, "points"],
+      ["One"],
+      "scenes[2].snapshot.feed.digests[2].points: expected no points on a nothing-to-report card",
+    ],
+    [
+      "a nothing-to-report digest card marked AI",
+      ["snapshot", "feed", "digests", 2, "ai"],
+      true,
+      "scenes[2].snapshot.feed.digests[2].ai: expected false on a nothing-to-report card",
+    ],
+    [
+      "a digest card whose id a story already uses",
+      ["snapshot", "feed", "digests", 1, "id"],
+      "corvane",
+      "scenes[2].snapshot.feed.digests[1].id: expected an id no story or digest already uses",
+    ],
+    [
+      "a view naming neither a story nor a digest",
+      ["snapshot", "feed", "views", "for-you", "top"],
+      ["digest-ghost"],
+      "scenes[2].snapshot.feed.views.for-you.top[0]: expected the id of a story or digest in the feed",
     ],
     [
       "tags that are not a list",

@@ -38,13 +38,36 @@ export type SignalStory = {
   strength: { marks: 1 | 2 | 3; word: string } | null;
   saved: boolean;
   commentCount: string | null;
+  /** A regulatory case's stage; `label` ("Stage 3 of 4") is delivered, `position` (0 to 1) only places the bar. */
+  stage: {
+    current: string;
+    label: string;
+    position: number;
+    stages: { name: string; current: boolean }[];
+  } | null;
+  /** Rating moves as delivered (from, to and the word); an affirmed rating keeps from equal to to. */
+  ratingMoves: { from: string; to: string; word: string }[];
 };
-/** Entry ids in each order the service supplies; the page orders by them and ranks nothing. */
+/** A digest card in the feed; with `nothing` set it is the one-sentence card and holds no points. */
+type SignalDigestCard = {
+  id: string;
+  digestName: string;
+  monogram: string;
+  title: string;
+  date: string | null;
+  unread: boolean;
+  ai: boolean;
+  points: string[];
+  summary: string | null;
+  nothing: string | null;
+};
+/** Entry ids (story or digest card) in each order the service supplies; the page orders by them and ranks nothing. */
 type SignalFeedView = { top: string[]; latest: string[] };
 type SignalFeed = {
   status: "loading" | "ready";
   error: null | "unreachable" | "request" | "unreadable";
   stories: SignalStory[];
+  digests: SignalDigestCard[];
   views: { "for-you": SignalFeedView; latest: SignalFeedView; saved: SignalFeedView };
   topics: Record<string, SignalFeedView>;
 };
@@ -128,6 +151,11 @@ function record<T>(each: Reader<T>): Reader<Record<string, T>> {
   };
 }
 
+const unit: Reader<number> = (v, path) =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1
+    ? good(v)
+    : bad(path, "a number from 0 to 1");
+
 const marks: Reader<1 | 2 | 3> = (v, path) =>
   v === 1 || v === 2 || v === 3 ? good(v) : bad(path, "1, 2 or 3");
 
@@ -147,7 +175,38 @@ const story = shape<SignalStory>({
   strength: orNull(shape({ marks, word: str })),
   saved: bool,
   commentCount: strOrNull,
+  stage: orNull(
+    shape({
+      current: str,
+      label: str,
+      position: unit,
+      stages: list(shape({ name: str, current: bool })),
+    }),
+  ),
+  ratingMoves: list(shape({ from: str, to: str, word: str })),
 });
+const digestBase = shape<SignalDigestCard>({
+  id: str,
+  digestName: str,
+  monogram: str,
+  title: str,
+  date: strOrNull,
+  unread: bool,
+  ai: bool,
+  points: list(str),
+  summary: strOrNull,
+  nothing: strOrNull,
+});
+/** A nothing-to-report card needs no model and no list: it holds no points and is not marked AI. */
+const digestCard: Reader<SignalDigestCard> = (v, path) => {
+  const got = digestBase(v, path);
+  if (!got.ok || got.value.nothing === null) return got;
+  if (got.value.points.length > 0) {
+    return bad(`${path}.points`, "no points on a nothing-to-report card");
+  }
+  if (got.value.ai) return bad(`${path}.ai`, "false on a nothing-to-report card");
+  return got;
+};
 const feedView = shape<SignalFeedView>({ top: list(str), latest: list(str) });
 
 const viewer = shape<SignalViewer>({
@@ -162,7 +221,7 @@ const channels = shape<SignalChannels>({
   digests: list(shape<SignalDigestChannel>({ id: str, name: str, unread: bool, paused: bool })),
   savedCount: strOrNull,
 });
-/** Every id a view or topic names must be a story the feed holds. */
+/** Every id a view or topic names must be a story or digest card the feed holds, and no id repeats. */
 const feedBase = shape<SignalFeed>({
   status: oneOf(["loading", "ready"], '"loading" or "ready"'),
   error: oneOf(
@@ -170,6 +229,7 @@ const feedBase = shape<SignalFeed>({
     'null, "unreachable", "request" or "unreadable"',
   ),
   stories: list(story),
+  digests: list(digestCard),
   views: shape({ "for-you": feedView, latest: feedView, saved: feedView }),
   topics: record(feedView),
 });
@@ -177,6 +237,12 @@ const feed: Reader<SignalFeed> = (v, path) => {
   const got = feedBase(v, path);
   if (!got.ok) return got;
   const known = new Set(got.value.stories.map((s) => s.id));
+  for (const [index, card] of got.value.digests.entries()) {
+    if (known.has(card.id)) {
+      return bad(`${path}.digests[${String(index)}].id`, "an id no story or digest already uses");
+    }
+    known.add(card.id);
+  }
   const views: [string, SignalFeedView][] = [
     ...Object.entries(got.value.views).map(([k, w]): [string, SignalFeedView] => [`views.${k}`, w]),
     ...Object.entries(got.value.topics).map(([k, w]): [string, SignalFeedView] => [
@@ -188,7 +254,10 @@ const feed: Reader<SignalFeed> = (v, path) => {
     for (const order of ["top", "latest"] as const) {
       const at = view[order].findIndex((id) => !known.has(id));
       if (at !== -1) {
-        return bad(`${path}.${where}.${order}[${String(at)}]`, "the id of a story in the feed");
+        return bad(
+          `${path}.${where}.${order}[${String(at)}]`,
+          "the id of a story or digest in the feed",
+        );
       }
     }
   }
