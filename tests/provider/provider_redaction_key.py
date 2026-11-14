@@ -191,6 +191,26 @@ HOME_PATHS: tuple[tuple[str, str], ...] = (
     # not so on a POSIX path, nor before a closing bracket or a sentence's full stop
     ("/home/jane and more", "<home> and more"),
     ("(see C:\\Users\\jane) at C:\\Users\\jane.", "(see <home>) at <home>."),
+    # the sentence's full stop may stand before the line's end; it is kept
+    ("cwd: C:\\Users\\Jane Doe.", "cwd: <home>."),
+    ("cwd: C:\\Users\\Jane Doe.\r\nnext", "cwd: <home>.\r\nnext"),
+    # a Windows name of several words also ends before "," ";" ":" ")" or ">"
+    ("C:\\Users\\Jane Doe, retry (see C:\\Users\\Jane Doe)", "<home>, retry (see <home>)"),
+    ("<C:\\Users\\Jane Doe> C:\\Users\\Jane Doe; x", "<<home>> <home>; x"),
+    # "'", "(" and ")" are inside a Windows name when a name character or a slash follows them
+    ("C:\\Users\\O'Brien", "<home>"),
+    ("open 'C:\\Users\\O'Brien'", "open '<home>'"),
+    ("cp 'C:\\Users\\jane' 'bin/x'", "cp '<home>' 'bin/x'"),
+    ("echo (C:\\Users\\jane) (a/b)", "echo (<home>) (a/b)"),
+    ("C:\\Users\\John(Work)x\\AppData", "<home>\\AppData"),
+    # words of a name may be separated by more than one space
+    ("C:\\Users\\Mary  Ann\\x", "<home>\\x"),
+    # rule 1 on a POSIX path, and /mnt/<drive> as a Windows form
+    ("/Users/Jane Doe/x", "<home>/x"),
+    ("/mnt/c/Users/Jane Doe", "<home>"),
+    # a long-path UNC prefix, and a path straight after a written-out "\n"
+    ("\\\\?\\UNC\\srv\\share\\Users\\jane\\x", "<home>\\x"),
+    ("msg\\n/home/jane/x", "msg\\n<home>/x"),
     (
         "/homework/x /rootfs/y /home https://example.com/Users/jane/p",
         "/homework/x /rootfs/y /home https://example.com/Users/jane/p",
