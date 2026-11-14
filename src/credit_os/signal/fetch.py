@@ -24,7 +24,9 @@ Rules:
 - 10 seconds per socket operation (TIMEOUT_SECONDS); one TOTAL_SECONDS deadline for the whole
   fetch, every hop, headers and body included, spent once the clock reaches it; a 2 MB body cap;
   a body shorter than its declared Content-Length, any Content-Encoding other than identity and
-  any Transfer-Encoding other than chunked are refused.
+  any Transfer-Encoding other than chunked are refused. Each connection may receive at most
+  MAX_WIRE_BYTES (4 times the cap: headers and chunk framing), counted after TLS decryption;
+  more is refused, which is what bounds a chunk size that ``http.client`` reads as "to the end".
 - A failure to connect or to complete the TLS handshake gives the caller one fixed reason; its
   detail goes to the log at warning level.
 
@@ -50,6 +52,7 @@ from credit_os.signal.netpin import ConnectionLike, ConnectionTarget, ResponseLi
 TIMEOUT_SECONDS = 10
 TOTAL_SECONDS = 10
 MAX_BYTES = 2 * 1024 * 1024
+MAX_WIRE_BYTES = 4 * MAX_BYTES  # received per connection: headers and chunk framing, any feed
 MAX_REDIRECTS = 3
 LOOKUP_SECONDS = 5.0
 USER_AGENT = "Mozilla/5.0 (compatible; signal-feed/1.0)"
@@ -63,6 +66,7 @@ _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 
 _log = logging.getLogger(__name__)
 _CONNECT_REASON = "could not connect to the feed's server"
+_WIRE_REASON = f"feed answer is larger than {MAX_WIRE_BYTES // 2**20} MB on the wire"
 
 Resolver = Callable[[str], Iterable[str]]
 Connector = Callable[[ConnectionTarget], ConnectionLike]
@@ -368,6 +372,8 @@ def fetch(
         return _follow(url, etag, modified, budget)
     except FetchRefused:
         raise
+    except netpin.ReceivedTooMuch as error:  # before OSError: a fixed reason, no byte counts
+        raise FetchRefused(_WIRE_REASON) from error
     except http.client.HTTPException as error:  # its text can carry what the server sent
         raise FetchRefused(f"fetch failed: {type(error).__name__}") from error
     except OSError as error:
@@ -408,7 +414,13 @@ def _follow(url: str, etag: str | None, modified: str | None, budget: _Budget) -
             if modified:
                 headers["If-Modified-Since"] = modified
         target = ConnectionTarget(
-            place.host, address, _DEFAULT_PORT, TIMEOUT_SECONDS, budget.deadline, budget.clock
+            place.host,
+            address,
+            _DEFAULT_PORT,
+            TIMEOUT_SECONDS,
+            budget.deadline,
+            budget.clock,
+            MAX_WIRE_BYTES,
         )
         with _connecting(place.host):
             connection = budget.connect(target)
