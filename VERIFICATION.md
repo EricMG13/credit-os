@@ -3,6 +3,81 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: phase 1 so far (1A PR 1, 1C PR 1) and Signal S-0
+
+Written by the back-end coordinator that replaced the first one after the credit outage of
+02:07 UTC. What the first coordinator did is taken from its transcript and the pull requests.
+
+**Merged.**
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #35 | 1A PR 1 | `37846d6`, `d0ca6f3` | Line splitter, one scan pass (headings, fences, comments), `HandoffError`, 27 fixtures with checksums |
+| #36 | 1C PR 1 | `3b8931c`, `337e993` | Frozen provider types, `Model` protocol, redaction |
+| #44 | Signal S-0 | `81b6954`, `1f303ae` | Decision 0009; `signal` in `LAYERS` and `ISOLATED`; layering test checks isolation both ways |
+
+Each was merged under the owner's delegation (decision 0006; restated to this coordinator on
+2026-11-14 as "merge PR when ready"), with CI green on `ubuntu-latest` and `windows-latest`
+and the review job, at the head named. #36 and #44: source diff read by this coordinator. #35:
+read by the first coordinator.
+
+**Reviews.**
+
+| PR | Task reviews | Sensitive-code review | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- | :--- |
+| #35 | `mx-precise`: task 1 clean; task 2 one Medium (test gap), fixed, re-review clean | n/a | no new defect | PASS: High 0, Medium 0, Low 2, Info 3 |
+| #36 | `mx-precise`: both approved | `mx-adversary`: a Medium in each of three rounds, none open (last: `fix-3-rereview.md`, closed) | one Medium fixed, one legacy Low parked | PASS on `8d5274d`: High 0, Medium 0, Low 5 (all fixed), Info 3 |
+| #44 | batched `mx-feature` (docs and config): PASS, Low 6 (5 applied), Info 1 | n/a | skipped (docs and config, global rules section 7) | skipped, same rule |
+
+#36's third fix round followed the escalation route: an `mx-autonomous` root-cause plan, a
+fresh `mx-feature`, then a scoped `mx-adversary` re-review. Root cause: a match ended where its
+body's characters ended, so a key written directly after another kept its body; two earlier
+rounds had worked only on the left edge. The re-review's own probes: 0 leaks in 2,116,188
+glued chains and 1,122,384 left-context cases, text and bytes agreeing; the pre-fix pattern
+fails the same probe with 757,429 leaks. The whole-branch review was not rerun on the round-3
+head; the round changed 65 lines and was re-reviewed for the finding it fixed.
+
+**Gates.** `uv run --locked python tools/gates.py` exit 0: #44 by this coordinator (225
+passed); #36 by its controller on `3b8931c` (319 passed, coverage 100%, suppressions 0); #35 by
+its controller on `37846d6`. Mutation on #36 (`mutmut`, fixer's run): 224 mutants, 216 killed,
+8 equivalent survivors.
+
+**Ledger.**
+- `1A-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1A-1 task=2 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `1A-1 task=3(low batch) agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1C-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y` (as its first controller left
+  it; an earlier message from that controller said `n`)
+- `1C-1 task=2 agent=mx-feature fix-rounds=3 gates-first-pass=n` (round 3: `mx-autonomous`
+  plan, fresh `mx-feature`)
+- `S-0 agent=mx-scaffold fix-rounds=0 gates-first-pass=n` (two briefing errors by the
+  coordinator: one wrong expected row, one pinned tuple outside the implementer's files)
+
+**Rulings by the coordinators.**
+- 1A: a `## ` line inside an open fence ends the fence (known limit, in the scan docstring).
+  Inline code spans pair runs of equal length; an unmatched run is text. This replaced a
+  backtracking pattern that took 5.5 s on a line of 8,000 backticks, and changes no line of the
+  27 fixtures (controller's comparison, not rerun by a coordinator).
+- 1C: the plan's first PR is split (types and redaction, then the canned adapter). GitHub
+  token shapes are redacted with no left boundary and to the end of their word. A compaction's
+  charge is never folded into a reply's `billed_usd`. A `totalNanoAiu` that arrives as a float
+  is converted only when finite and whole. The end of a call stays `session.idle` or
+  `session.error`. All five are in the 1C plan.
+- Signal: decision 0009.
+
+**Parked Low findings**, for the end-of-step batch of 1C: home-path redaction leaks a name and
+over-redacts (legacy behaviour; a requirement of the Copilot adapter PR); `Decimal("-0")`
+accepted as a charge; a `ghp_` run cut to 30 to 35 characters is not redacted.
+
+**Not verified.**
+- Real GitHub token formats: the shapes come from the ruling, not from GitHub's documentation.
+- The module-level redaction pattern has no mutation coverage; it rests on key rows and probes.
+- The order in which SDK 1.0.8 sends `assistant.turn_end`, usage and `session.idle`, and the
+  values `finishReason` takes: source reading only, until the owner's first paid run.
+- The reviewer probe `wb_reply_usage_untyped.py` now stops in its own setup; its four cases
+  were run by hand by the 1C controller and each is refused.
+- `main` has no branch protection, so the checks are advisory.
+
 ## 2026-11-14 Roadmap back end: step 0C part 1 (Python lock, build backend, duplication gate)
 
 **Scope.** Configuration and one gate. `pypdf` and `github-copilot-sdk` are in the lock and
