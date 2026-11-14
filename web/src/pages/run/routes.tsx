@@ -15,6 +15,13 @@ export const routes: readonly Route[] = [
     render: (params) => <StartPage draft={params["draft"] ?? ""} />,
   },
   {
+    path: "/run/activity",
+    title: "Run activity",
+    layout: "bleed",
+    home: "/run/activity",
+    render: () => <ActivityPage run={null} />,
+  },
+  {
     path: "/run/activity/:run",
     title: "Run activity",
     layout: "bleed",
