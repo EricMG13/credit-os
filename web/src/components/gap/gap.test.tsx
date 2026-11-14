@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { Blocked } from "./Blocked";
-import { GapBadge, GapPanel } from "./GapPanel";
+import { GapBadge } from "@/components/status/StatusBadge";
+import { GapPanel } from "./GapPanel";
 import { Missing } from "./Missing";
 import { Skeleton } from "./Skeleton";
 import { Withheld } from "./Withheld";
@@ -55,16 +56,23 @@ describe("GapBadge", () => {
     const { container } = render(<GapBadge />);
     expect(screen.getByText(WORDS.get("Gap") ?? "")).toBeInTheDocument();
     expect(container.querySelector('[data-shape="dashed ring"]')).not.toBeNull();
-    expect((container.firstElementChild as HTMLElement).className).toContain("border-dashed");
+    const cls = (container.firstElementChild as HTMLElement).className;
+    expect(cls).toContain("border-dashed");
+    expect(cls).toContain("text-caption");
+    expect(cls).not.toContain("text-sm");
   });
 });
 
 describe("Missing", () => {
-  it("shows n.a. with an accessible label and never 0", () => {
+  it("shows n.a. visibly, announces not available, and never 0", () => {
     const { container } = render(<Missing />);
-    const el = screen.getByLabelText("not available");
-    expect(el).toHaveTextContent(WORDS.get("Missing figure") ?? "");
-    expect(el.className).toContain("text-text-tertiary");
+    const visible = container.querySelector('[aria-hidden="true"]');
+    expect(visible).toHaveTextContent(/^n\.a\.$/);
+    expect(visible?.textContent).toBe(WORDS.get("Missing figure"));
+    const hidden = container.querySelector(".sr-only");
+    expect(hidden).toHaveTextContent("not available");
+    expect(container.firstElementChild?.getAttribute("aria-label")).toBeNull();
+    expect((container.firstElementChild as HTMLElement).className).toContain("text-text-tertiary");
     expect(container.textContent).not.toContain("0");
   });
 });
@@ -103,5 +111,20 @@ describe("Skeleton", () => {
     }
     expect(root.children[0]?.className).toContain("rounded-ds-xs");
     expect(root.children[0]?.className).toContain("bg-surface-subtle");
+  });
+
+  it("makes the last block the short one when there is more than one line", () => {
+    const { container } = render(<Skeleton lines={3} />);
+    const kids = [...(container.firstElementChild?.children ?? [])];
+    expect(kids.map((k) => k.className.includes("w-2/3"))).toEqual([false, false, true]);
+    const one = render(<Skeleton lines={1} />).container.firstElementChild;
+    expect(one?.children[0]?.className).not.toContain("w-2/3");
+  });
+
+  it("throws a RangeError unless lines is a non-negative integer", () => {
+    for (const n of [-1, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => render(<Skeleton lines={n} />), String(n)).toThrow(RangeError);
+    }
+    expect(() => render(<Skeleton lines={0} />)).not.toThrow();
   });
 });

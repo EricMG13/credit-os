@@ -25,7 +25,7 @@ const MARK: Partial<Record<Tone, string>> = {
 interface StatusBadgeProps<S extends SetName> {
   set: S;
   state: keyof (typeof STATUS_SETS)[S] & string;
-  /** Live run state: the half-filled action shape pulses a halo. */
+  /** Live run state: only the Run states set's Running badge pulses a halo. */
   live?: boolean;
 }
 
@@ -38,22 +38,29 @@ export function StatusBadge<S extends SetName>({ set, state, live = false }: Sta
     : undefined;
   const found = states !== undefined && Object.hasOwn(states, state) ? states[state] : undefined;
   if (found === undefined) throw new Error(`unknown status state "${state}" in set "${set}"`);
-  return <ToneBadge shape={found.shape} tone={found.tone} word={found.word} live={live} />;
+  return (
+    <ToneBadge
+      shape={found.shape}
+      tone={found.tone}
+      word={found.word}
+      live={live && set === "Run states" && state === "Running"}
+    />
+  );
 }
 
 interface ToneBadgeProps extends State {
+  /** Draw the pulsing halo; the caller has already decided this is the live Running badge. */
   live?: boolean;
 }
 
-/** One badge from a shape, tone and word: the form every status and the gap badge share. */
-export function ToneBadge({ shape, tone, word, live = false }: ToneBadgeProps) {
-  const halo = live && shape === "half-filled circle" && tone === "action";
+/** One badge from a shape, tone and word. Private: callers go through the checked sets. */
+function ToneBadge({ shape, tone, word, live = false }: ToneBadgeProps) {
   return (
     <Badge
       color={BADGE_COLOUR[tone]}
       className="gap-1.5 pl-2"
       icon={
-        <span className={cx("inline-flex rounded-ds-full", MARK[tone], halo && "status-halo")}>
+        <span className={cx("inline-flex rounded-ds-full", MARK[tone], live && "status-halo")}>
           <StatusShape shape={shape} />
         </span>
       }
@@ -61,4 +68,9 @@ export function ToneBadge({ shape, tone, word, live = false }: ToneBadgeProps) {
       {word}
     </Badge>
   );
+}
+
+/** The inline form of a gap, for a table cell or a chart. */
+export function GapBadge() {
+  return <ToneBadge shape="dashed ring" tone="gap" word="Not established for this run" />;
 }

@@ -6,13 +6,13 @@ import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/but
 import { Button, styles } from "@/components/base/buttons/button";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
 import { Blocked } from "@/components/gap/Blocked";
-import { GapBadge, GapPanel } from "@/components/gap/GapPanel";
+import { GapPanel } from "@/components/gap/GapPanel";
 import { Missing } from "@/components/gap/Missing";
 import { Skeleton } from "@/components/gap/Skeleton";
 import { Withheld } from "@/components/gap/Withheld";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
-import { StatusBadge } from "@/components/status/StatusBadge";
+import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
 
 function label(slug: string): string {
   const words = slug.replace("-", " ");
