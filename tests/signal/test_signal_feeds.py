@@ -12,6 +12,7 @@ from credit_os.signal.feeds import (
     MAX_ELEMENTS,
     MAX_HTML_CHARS,
     MAX_NAME_CHARS,
+    MAX_NAMESPACE_CHARS,
     Entry,
     FeedError,
     _folded,
@@ -258,6 +259,99 @@ def test_atom_with_a_prefix_instead_of_a_default_namespace() -> None:
     (e,) = parse_feed(body)
     assert (e.title, e.link, e.summary) == ("Prefixed", "https://e.org/p", "S")
     assert e.published == datetime(2026, 11, 12, 17, 30, tzinfo=UTC)
+
+
+_ATOM_URI = "http://www.w3.org/2005/Atom"
+_ENTRY = '<link href="https://e.org/{n}"/>'
+
+
+def _atom(inner: str, attrs: str = "") -> bytes:
+    return f'<feed xmlns="{_ATOM_URI}"{attrs}>{inner}</feed>'.encode()
+
+
+def test_a_prefix_rebound_inside_an_element_applies_from_that_element() -> None:
+    body = _atom(
+        '<entry xmlns:a="urn:other"><a:title>no</a:title><title>First</title>'
+        + _ENTRY.format(n="1")
+        + "</entry><entry><a:title>Second</a:title><a:link href='https://e.org/2'/></entry>",
+        f' xmlns:a="{_ATOM_URI}"',
+    )
+    assert [(e.title, e.link) for e in parse_feed(body)] == [
+        ("First", "https://e.org/1"),
+        ("Second", "https://e.org/2"),
+    ]
+
+
+def test_an_empty_default_namespace_undeclares_the_default() -> None:
+    inner = "<title>T</title>" + _ENTRY.format(n="1")
+    assert parse_feed(_atom(f'<entry xmlns="">{inner}</entry>')) == []
+    assert len(parse_feed(_atom(f"<entry>{inner}</entry>"))) == 1
+
+
+def test_an_attribute_without_a_prefix_is_in_no_namespace() -> None:
+    # The default namespace does not reach attributes, so rel and href are read as written.
+    body = _atom(
+        "<entry><title>T</title>"
+        '<link rel="enclosure" href="https://e.org/no"/><link href="https://e.org/yes"/></entry>'
+    )
+    assert [e.link for e in parse_feed(body)] == ["https://e.org/yes"]
+
+
+def test_namespace_declarations_are_not_attributes() -> None:
+    declarations = "".join(f' xmlns:p{n}="urn:{n}"' for n in range(MAX_ATTRIBUTES + 40))
+    plain = "".join(f' a{n}=""' for n in range(MAX_ATTRIBUTES))
+    body = _atom("<entry><title>T</title>" + _ENTRY.format(n="1") + "</entry>", declarations)
+    assert len(parse_feed(body)) == 1
+    body = _atom(f"<x{declarations}{plain}/>")
+    assert parse_feed(body) == []
+    with pytest.raises(FeedError, match=f"more than {MAX_ATTRIBUTES} attributes"):
+        parse_feed(_atom(f'<x{declarations}{plain} one-more=""/>'))
+
+
+@pytest.mark.parametrize(
+    "inner",
+    [
+        "<q:x/>",  # unbound element prefix
+        '<x q:a=""/>',  # unbound attribute prefix
+        '<x xmlns:p="u"/><p:y/>',  # a prefix is unbound once its element closes
+        '<x xmlns:p="u" xmlns:q="u" p:a="" q:a=""/>',  # one expanded name twice
+        '<x xmlns:p=""/>',  # a prefix cannot be bound to nothing
+        '<x xmlns:xml="urn:other"/>',
+        '<x xmlns:xmlns="urn:x"/>',
+        '<x xmlns:p="http://www.w3.org/XML/1998/namespace"/>',
+        '<x xmlns="http://www.w3.org/2000/xmlns/"/>',
+        "<:x/>",
+        "<x:/>",
+        '<x xmlns:x="u"><x:y:z/></x>',
+        '<x xmlns:x="u"><x:1/></x>',
+        '<x :a=""/>',
+    ],
+)
+def test_a_name_expat_would_refuse_in_namespace_mode_is_refused(inner: str) -> None:
+    with pytest.raises(FeedError, match="not valid XML"):
+        parse_feed(_atom(inner))
+
+
+def test_the_xml_prefix_is_always_bound() -> None:
+    body = _atom(
+        '<entry xml:lang="en"><xml:note/><title xml:space="preserve">T</title>'
+        + _ENTRY.format(n="1")
+        + '</entry><x xmlns:xml="http://www.w3.org/XML/1998/namespace"/>',
+        ' xml:base="http://e.org/"',
+    )
+    assert [e.title for e in parse_feed(body)] == ["T"]
+
+
+def test_a_namespace_uri_is_refused_beyond_the_limit() -> None:
+    at_limit = "u:" + "x" * (MAX_NAMESPACE_CHARS - 2)
+
+    def rss(attr: str, uri: str) -> bytes:
+        return f'<rss version="2.0" {attr}="{uri}"><channel/></rss>'.encode()
+
+    assert parse_feed(rss("xmlns:p", at_limit)) == []
+    for attr in ("xmlns:p", "xmlns"):
+        with pytest.raises(FeedError, match=f"more than {MAX_NAMESPACE_CHARS} characters"):
+            parse_feed(rss(attr, at_limit + "x"))
 
 
 @pytest.mark.parametrize(
@@ -1009,16 +1103,24 @@ def test_an_element_with_the_most_attributes_is_read_and_one_more_is_refused() -
         parse_feed(feed(MAX_ATTRIBUTES + 1))
 
 
-def test_element_names_are_refused_once_their_total_length_passes_the_bound() -> None:
-    uri = "u:" + "x" * 8000
+def test_element_and_attribute_names_are_refused_once_their_total_length_passes_the_bound() -> None:
+    name = "n" * 100
+    attrs = "".join(f' {name[:-4]}{k:04}=""' for k in range(200))  # 200 names of 100 characters
 
-    def feed(count: int) -> bytes:
-        return f'<rss version="2.0"><d xmlns="{uri}">{"<a/>" * count}</d></rss>'.encode()
+    def elements(count: int) -> bytes:
+        return f'<rss version="2.0"><d>{f"<{name}/>" * count}</d></rss>'.encode()
 
-    fits = MAX_NAME_CHARS // (len(uri) + 2) - 4
-    assert parse_feed(feed(fits)) == []
+    def with_attributes(count: int) -> bytes:
+        return f'<rss version="2.0"><d>{f"<a{attrs}/>" * count}</d></rss>'.encode()
+
+    fits = MAX_NAME_CHARS // len(name) - 4
+    assert parse_feed(elements(fits)) == []
     with pytest.raises(FeedError, match="element names are too long"):
-        parse_feed(feed(fits + 8))
+        parse_feed(elements(fits + 8))
+    fits = (MAX_NAME_CHARS - 20) // (1 + 200 * len(name))  # 52 elements of 20,001 characters
+    assert parse_feed(with_attributes(fits)) == []
+    with pytest.raises(FeedError, match="element names are too long"):
+        parse_feed(with_attributes(fits + 1))
 
 
 def test_elements_inside_a_field_are_counted() -> None:

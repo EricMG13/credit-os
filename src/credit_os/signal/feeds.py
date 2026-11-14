@@ -28,11 +28,16 @@ MAX_DEPTH = 64
 MAX_ELEMENTS = 200_000
 # R24. Atom and RSS elements carry at most a handful of attributes and HTML elements about ten.
 MAX_ATTRIBUTES = 256
-# R24. Total characters of element names: pyexpat builds each name in full (a 16 KiB namespace
-# URI on each of 16,000 elements is 268 MB of copying), so the time of a feed whose names are
-# long grows with the product of their length and number. A feed of 1,000 entries of 100
-# namespaced XHTML elements has about 4 million; 16 Mi leaves four times that.
-MAX_NAME_CHARS = 16 * 1024 * 1024
+# R31. Total characters of element and attribute names as the feed spells them (prefix and colon
+# included, one count per occurrence). pyexpat keeps every distinct name for the whole parse, and
+# a Python string holds at most 4 bytes a character, so this bounds the name table to about
+# 4 MiB of text. Names are the body's own characters, so the total cannot exceed the body; this
+# is the share of a feed that names may take. A feed of 1,000 entries of 100 XHTML elements
+# has about 0.2 million; a name-only flood has all of it.
+MAX_NAME_CHARS = 1024 * 1024
+# R31. Longest namespace URI declared. The parser resolves prefixes itself and never joins a
+# URI to a name, so a URI costs only its own characters; real namespace URIs are under 100.
+MAX_NAMESPACE_CHARS = 2048
 # R24. Characters of one field handed to the HTML stripper (see _strip_markup).
 MAX_HTML_CHARS = 128 * 1024
 TITLE_LIMIT = 500
@@ -43,6 +48,10 @@ _HEX_NUMBER = re.compile(r"0x[0-9a-f]*", re.ASCII | re.IGNORECASE)
 
 
 _DTD_MESSAGE = "feed declares a DTD or entities"
+_NOT_XML = "feed is not valid XML"
+_NOT_NAME_START = frozenset("-.0123456789\u00b7\u203f\u2040")
+_XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace"
+_XMLNS_NAMESPACE = "http://www.w3.org/2000/xmlns/"
 
 
 class FeedError(ValueError):
@@ -96,32 +105,96 @@ class _Field:
         return self.kind == "xhtml"
 
 
-# R24: the tree keeps only what parse_feed reads. Names are expat's, "uri}local" for a name in a
-# namespace, so a name is compared as expat spells it and never rebuilt (a body-filling
-# namespace URI is then never copied per element).
-_ATOM = "http://www.w3.org/2005/Atom}"
-_ROOTS = {"rss": "rss", f"{_ATOM}feed": "feed"}
+# R24: the tree keeps only what parse_feed reads. R31: an element is named by its namespace URI
+# and local name, as a pair that is looked up and never joined into one string; "" is no
+# namespace.
+_ATOM = "http://www.w3.org/2005/Atom"
+_ROOTS = {("", "rss"): "rss", (_ATOM, "feed"): "feed"}
 _CHILD = {
-    "rss": ("channel", "channel"),
-    "channel": ("item", "item"),
-    "feed": (f"{_ATOM}entry", "entry"),
+    "rss": (("", "channel"), "channel"),
+    "channel": (("", "item"), "item"),
+    "feed": ((_ATOM, "entry"), "entry"),
 }
 _FIELD_KEYS = {
-    "item": {key: key for key in ("title", "link", "pubDate", "description")},
-    "entry": {f"{_ATOM}{key}": key for key in ("published", "updated", "title", "summary", "link")},
+    "item": {("", key): key for key in ("title", "link", "pubDate", "description")},
+    "entry": {(_ATOM, key): key for key in ("published", "updated", "title", "summary", "link")},
 }
 _NO_FIELD = ("", "")
 _SLICE = 4096
 _TEXT_CONSTRUCTS = ("title", "summary")
 
 
-def _xhtml_tag(name: str) -> str | None:
+def _xhtml_tag(local: str) -> str | None:
     """The tag written for an element inside Atom xhtml, or None: the element's text only."""
-    local = name[name.rfind("}") + 1 :]
     if len(local) > _LONGEST_TAG or not local.isascii():
         return None
     local = local.lower()
     return local if local in _XHTML_TAGS else None
+
+
+class _Scope:
+    """The namespace prefixes bound at the current element (XML Namespaces 1.0).
+
+    ``""`` is the default namespace, which applies to elements and not to attributes. Each
+    prefix keeps a stack of its URIs, so entering and leaving an element costs only the
+    declarations it makes. ``xml`` is always bound.
+    """
+
+    def __init__(self) -> None:
+        self._bound: dict[str, list[str]] = {}
+
+    def declare(self, prefix: str, uri: str) -> bool:
+        """Bind ``prefix``; False if the declaration is ``xmlns:xml``, which binds nothing new."""
+        if len(uri) > MAX_NAMESPACE_CHARS:
+            message = f"feed has a namespace URI of more than {MAX_NAMESPACE_CHARS} characters"
+            raise FeedError(message)
+        if prefix == "xml":
+            if uri != _XML_NAMESPACE:
+                raise FeedError(_NOT_XML)
+            return False
+        # Reserved names, and a prefix bound to no URI, are errors in XML Namespaces 1.0.
+        if prefix == "xmlns" or uri in (_XML_NAMESPACE, _XMLNS_NAMESPACE) or (prefix and not uri):
+            raise FeedError(_NOT_XML)
+        self._bound.setdefault(prefix, []).append(uri)
+        return True
+
+    def leave(self, prefix: str) -> None:
+        uris = self._bound[prefix]
+        uris.pop()
+        if not uris:
+            del self._bound[prefix]
+
+    def uri(self, prefix: str) -> str:
+        """The URI bound to ``prefix`` here; an unbound prefix is an error, an unbound default is
+        no namespace."""
+        if prefix == "xml":
+            return _XML_NAMESPACE
+        uris = self._bound.get(prefix)
+        if uris:
+            return uris[-1]
+        if prefix:
+            raise FeedError(_NOT_XML)
+        return ""
+
+
+def _split(name: str) -> tuple[str, str]:
+    """(prefix, local part) of a name; no colon is no prefix.
+
+    A name with a colon first or last, with two, or whose local part starts with a character
+    that is a name character but not a name-start character, is not a qualified name (XML
+    Namespaces 1.0): expat in namespace mode refused it.
+    """
+    prefix, colon, local = name.partition(":")
+    if not colon:
+        return "", name
+    if not prefix or not local or ":" in local or _name_continues_only(local[0]):
+        raise FeedError(_NOT_XML)
+    return prefix, local
+
+
+def _name_continues_only(char: str) -> bool:
+    """A character XML allows inside a name but not at its start."""
+    return char in _NOT_NAME_START or "\u0300" <= char <= "\u036f"
 
 
 class _TreeBuilder:
@@ -129,7 +202,8 @@ class _TreeBuilder:
 
     ``document`` is a nameless parent of the root element. Every element is counted and its
     depth checked; only those parse_feed reads become nodes. Elements inside a field add their
-    text to the field (R24: no node per element).
+    text to the field (R24: no node per element). Namespaces are resolved here (R31): expat is
+    not told to expand names, so it builds no name longer than the one in the feed.
     """
 
     def __init__(self) -> None:
@@ -137,6 +211,9 @@ class _TreeBuilder:
         # One entry per open element: its node or field, the closing tag to write for an xhtml
         # element, or None for an element that is not kept.
         self._open: list[_Node | _Field | str | None] = []
+        # Parallel to _open: the prefixes the element declared, to unbind when it closes.
+        self._declared: list[tuple[str, ...]] = []
+        self._scope = _Scope()
         self._field: _Field | None = None
         self._elements = 0
         self._name_chars = 0
@@ -147,26 +224,58 @@ class _TreeBuilder:
         self._elements += 1
         if self._elements > MAX_ELEMENTS:
             raise FeedError(f"feed has more than {MAX_ELEMENTS} elements")
-        self._name_chars += len(name)
+        self._name_chars += len(name) + sum(map(len, attrs))
         if self._name_chars > MAX_NAME_CHARS:
             raise FeedError("feed element names are too long")
-        if len(attrs) > MAX_ATTRIBUTES:
-            raise FeedError(f"feed has an element with more than {MAX_ATTRIBUTES} attributes")
-        self._open.append(self._enter(name, attrs))
+        self._declared.append(self._bind(attrs) if attrs else ())
+        prefix, local = _split(name)
+        self._open.append(self._enter(self._scope.uri(prefix), local, attrs))
 
-    def _enter(self, name: str, attrs: dict[str, str]) -> _Node | _Field | str | None:
+    def _bind(self, attrs: dict[str, str]) -> tuple[str, ...]:
+        """Bind the element's namespace declarations, then check its other attributes.
+
+        The declarations are not attributes (they are not counted against MAX_ATTRIBUTES), and
+        an attribute with a prefix must have a bound one and, with its URI, be unique on the
+        element. An attribute with no prefix is in no namespace, whatever the default is.
+        """
+        declared: list[str] = []
+        prefixed: list[tuple[str, str]] = []
+        count = 0
+        for key, value in attrs.items():
+            prefix, local = _split(key)
+            if key == "xmlns" or prefix == "xmlns":
+                count += 1
+                bound = local if prefix else ""
+                if self._scope.declare(bound, value):
+                    declared.append(bound)
+            elif prefix:
+                prefixed.append((prefix, local))
+        if len(attrs) - count > MAX_ATTRIBUTES:
+            raise FeedError(f"feed has an element with more than {MAX_ATTRIBUTES} attributes")
+        self._check_prefixed(prefixed)
+        return tuple(declared)
+
+    def _check_prefixed(self, names: list[tuple[str, str]]) -> None:
+        seen = set()
+        for prefix, local in names:
+            expanded = (self._scope.uri(prefix), local)
+            if expanded in seen:
+                raise FeedError(_NOT_XML)
+            seen.add(expanded)
+
+    def _enter(self, uri: str, local: str, attrs: dict[str, str]) -> _Node | _Field | str | None:
         if self._field is not None:
-            return self._enter_field_content(self._field, name)
+            return self._enter_field_content(self._field, local)
         parent = self._open[-1] if self._open else self.document
         if not isinstance(parent, _Node):
             return None
         if parent.kind == "document":
-            return self._attach(parent, _Node(_ROOTS.get(name, "other")))
+            return self._attach(parent, _Node(_ROOTS.get((uri, local), "other")))
         keys = _FIELD_KEYS.get(parent.kind)
         if keys is not None:
-            return self._enter_field(parent, keys.get(name), attrs)
+            return self._enter_field(parent, keys.get((uri, local)), attrs)
         wanted = _CHILD.get(parent.kind)
-        if wanted is not None and wanted[0] == name:
+        if wanted is not None and wanted[0] == (uri, local):
             return self._attach(parent, _Node(wanted[1]))
         return None
 
@@ -190,16 +299,18 @@ class _TreeBuilder:
         return self._field
 
     @staticmethod
-    def _enter_field_content(current: _Field, name: str) -> str | None:
+    def _enter_field_content(current: _Field, local: str) -> str | None:
         if not current.markup:
             return None
-        tag = _xhtml_tag(name)
+        tag = _xhtml_tag(local)
         if tag is None:
             return None
         current.parts.append(_OPEN_TAG[tag])
         return _CLOSE_TAG[tag]
 
     def end(self, name: str) -> None:
+        for prefix in self._declared.pop():
+            self._scope.leave(prefix)
         top = self._open.pop()
         if isinstance(top, str) and self._field is not None:
             self._field.parts.append(top)
@@ -221,7 +332,7 @@ class _TreeBuilder:
 
 
 def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
-    parser = expat.ParserCreate(None, "}")
+    parser = expat.ParserCreate()
     parser.buffer_text = True
     parser.StartElementHandler = builder.start
     parser.EndElementHandler = builder.end
