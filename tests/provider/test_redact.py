@@ -365,3 +365,126 @@ def test_home_path_plain_is_mains_pattern() -> None:
         r"|root(?![^\s\\/:*?\"'<>|(),;]))"
     )
     assert redact._HOME_PATH_PLAIN.pattern == base
+
+
+# A Users, home or var/home folder inside a path is a home too (owner ruling, 2026-11-14): under a
+# drive, a UNC share (either slash, short or long-path), /mnt/<drive>/, or the rest of a path whose
+# start already matched as a home. The span is the separator before the folder, the folder, its
+# separators and the user name. Expected values by hand.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # (a) under a drive, either slash
+        ("D:\\data\\Users\\bob smith\\x", "D:\\data<home>\\x"),
+        ("D:/data/Users/bob smith/x", "D:/data<home>/x"),
+        # (b) under a UNC share: backslash, forward slash, long-path
+        ("\\\\srv\\share\\data\\Users\\bob smith\\x", "\\\\srv\\share\\data<home>\\x"),
+        (
+            "\\\\?\\UNC\\srv\\share\\data\\Users\\bob smith\\x",
+            "\\\\?\\UNC\\srv\\share\\data<home>\\x",
+        ),
+        ("//srv/share/data/Users/bob smith/x", "//srv/share/data<home>/x"),
+        ("//?/UNC/srv/share/data/Users/bob smith/x", "//?/UNC/srv/share/data<home>/x"),
+        # (c) under /mnt/<drive>/
+        ("/mnt/c/data/Users/bob smith/x", "/mnt/c/data<home>/x"),
+        # (d) the rest of a path whose start already matched as a home
+        ("C:\\Users\\mary\\backup\\Users\\bob smith\\x", "<home>\\backup<home>\\x"),
+        ("C:/Users/mary/backup/Users/bob smith/x", "<home>/backup<home>/x"),
+        ("/home/jane/backup/home/bob/x", "<home>/backup<home>/x"),
+        ("//srv/share/Users/mary/backup/Users/bob smith/x", "<home>/backup<home>/x"),
+        # several nested homes on one path
+        ("D:\\data\\Users\\bob\\more\\home\\al smith\\y", "D:\\data<home>\\more<home>\\y"),
+        ("/home/jane/backup/home/bob/x/home/al/y", "<home>/backup<home>/x<home>/y"),
+        # var/home, mixed case
+        ("D:\\data\\var\\home\\bob\\x", "D:\\data<home>\\x"),
+        ("/home/jane/backup/var/home/bob/x", "<home>/backup<home>/x"),
+        ("D:/data/USERS/bob smith", "D:/data<home>"),
+        ("D:\\data\\hOmE\\bob", "D:\\data<home>"),
+        # a Windows name with spaces runs to the line's end; reserved characters end it
+        ("D:\\data\\Users\\bob smith and more", "D:\\data<home>"),
+        ("D:\\a\\Users\\b: next", "D:\\a<home>: next"),
+        # a written-out escaped apostrophe stays in a Windows name
+        ("D:\\data\\Users\\Pat O\\'Hara Jones\\x", "D:\\data<home>\\x"),
+        # repr-escaped separators
+        ("D:\\\\data\\\\Users\\\\bob smith\\\\x", "D:\\\\data<home>\\\\x"),
+        ("D:\\a\nD:\\b\\Users\\bob", "D:\\a\nD:\\b<home>"),
+        ("D:\\a\\n\\Users\\bob", "D:\\a\\n<home>"),
+        # a name runs through spaces as before, but the reach ended at its first space: a folder
+        # after that space is not looked for. A drive later on the line has its own reach.
+        ("D:\\a\\Users\\bob C:\\b\\home\\carol", "D:\\a<home>:\\b<home>"),
+        ("D:\\data\\Users\\bob smith\\home\\al\\x", "D:\\data<home>\\home\\al\\x"),
+        ("/home/jane/a/home/bob smith/home/al", "<home>/a<home>/home/al"),
+        # a drive with doubled slashes is still a drive path
+        ("C://srv/share/Users/bob", "C://srv/share<home>"),
+        # a POSIX name ends at "/", a backslash in it takes the rest of the line
+        ("/home/jane/backup/home/bob smith/x", "<home>/backup<home>/x"),
+        ("/home/jane/backup/home/b\\ob/x", "<home>/backup<home>"),
+        # /root is a home, so the rest of its path is searched; a root folder inside has no form
+        ("/root/backup/home/bob/x", "<home>/backup<home>/x"),
+        # a straight drive or share folder is the old rule's, unchanged
+        ("D:\\Users\\bob\\x", "<home>\\x"),
+        # the user name of one nested home can be the folder of the next: both go, and the two
+        # overlapping spans (the first's folder and name, the second's folder and name) render as
+        # one "<home>"
+        ("D:\\data\\home\\users\\jdoeq\\x", "D:\\data<home>\\x"),
+        ("D:/data/home/users/jdoeq/x", "D:/data<home>/x"),
+        ("\\\\srv\\share\\data\\home\\users\\jdoeq\\x", "\\\\srv\\share\\data<home>\\x"),
+        ("//srv/share/data/home/users/jdoeq/x", "//srv/share/data<home>/x"),
+        ("/mnt/c/data/home/users/jdoeq/x", "/mnt/c/data<home>/x"),
+        ("D:\\data\\Users\\home\\bobq", "D:\\data<home>"),
+        ("C:\\Users\\home\\Users\\bobq\\x", "<home>\\x"),
+        ("/home/jane/backup/home/users/jdoeq/x", "<home>/backup<home>/x"),
+        # rule (c) with backslashes
+        ("/mnt/c\\data\\Users\\bob", "/mnt/c\\data<home>"),
+        # a folder word as the user name at the top level under each of (a) to (d)
+        ("D:\\Users\\home\\x", "<home>"),
+        ("\\\\srv\\share\\Users\\users\\x", "<home>"),
+        ("/mnt/c/Users/home/x", "<home>"),
+        ("C:\\Users\\mary\\backup\\Users\\home\\x", "<home>\\backup<home>"),
+        ("/home/jane/backup/home/Users/x", "<home>/backup<home>"),
+    ],
+)
+def test_nested_home_rows(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# Not changed: URLs with a scheme, bare relative paths, POSIX absolute paths that are not under a
+# matched home, whole-segment near-misses, root. Outputs recorded from the base before the change.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("https://example.com/a/Users/jane/p", "https://example.com/a/Users/jane/p"),
+        ("path=a/Users/bob/x", "path=a/Users/bob/x"),
+        ("docs/home/bob", "docs/home/bob"),
+        ("foo\\Users\\bob\\x", "foo\\Users\\bob\\x"),
+        ("/srv/data/home/bob", "/srv/data/home/bob"),
+        ("/a//b/Users/c", "/a//b/Users/c"),
+        ("file:///home/jane/x.txt", "file://<home>/x.txt"),
+        ("D:\\data\\myUsers\\x", "D:\\data\\myUsers\\x"),
+        ("D:\\data\\homework\\x", "D:\\data\\homework\\x"),
+        ("D:\\data\\Users2\\x", "D:\\data\\Users2\\x"),
+        ("D:\\data\\root\\x", "D:\\data\\root\\x"),
+        ("/home/jane/backup/homework/x", "<home>/backup/homework/x"),
+        ("D:\\data\\Users\\", "D:\\data\\Users\\"),
+        # the reach ends at the first whitespace: a folder past a space is not looked for
+        ("D:\\my data\\Users\\bob", "D:\\my data\\Users\\bob"),
+        ("D:\\a then foo/Users/bob", "D:\\a then foo/Users/bob"),
+        ("D:\\a\tfoo/Users/bobq", "D:\\a\tfoo/Users/bobq"),
+        ("D:\\a\u00a0foo/Users/bobq", "D:\\a\u00a0foo/Users/bobq"),
+        (
+            "Saved to D:\\reports. See docs/home/bobq for details",
+            "Saved to D:\\reports. See docs/home/bobq for details",
+        ),
+        (
+            "Wrote C:\\tmp\\out.txt; then read ../home/bobq/notes",
+            "Wrote C:\\tmp\\out.txt; then read ../home/bobq/notes",
+        ),
+        ("['D:\\\\x', 'b/home/cq']", "['D:\\\\x', 'b/home/cq']"),
+        # the POSIX rest of a home reaches to the first whitespace too
+        ("/home/jane/x and docs/home/bobq", "<home>/x and docs/home/bobq"),
+        # a character Windows reserves ends the reach: this relative path is not under the drive
+        ('D:\\a" then foo/Users/bob', 'D:\\a" then foo/Users/bob'),
+    ],
+)
+def test_nested_home_leaves_other_shapes_unchanged(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
