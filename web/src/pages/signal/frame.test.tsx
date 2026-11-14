@@ -146,7 +146,8 @@ describe("the Signal frame", () => {
     snapshot.channels.groups = [];
     snapshot.groups = [];
     snapshot.threads = [];
-    for (const one of snapshot.feed.stories) Object.assign(one, { threadRef: null });
+    for (const one of snapshot.feed.stories)
+      Object.assign(one, { threadRef: null, commentCount: null });
     show("/signal/main/feed/for-you", { ...ok, data: { ...ok.data, signal: copy } });
     expect(within(channels()).getByText("No groups yet")).toBeInTheDocument();
     expect(within(channels()).queryByRole("link", { name: /Leveraged credit/ })).toBeNull();

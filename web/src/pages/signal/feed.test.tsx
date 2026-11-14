@@ -130,12 +130,12 @@ describe("the feed list and the story card", () => {
     show("/signal/main/feed/for-you");
     const card = story(CORVANE);
     // Corvane has a thread, so its Comment is a link to it
-    const comment = card.getByRole("link", { name: `Comment 3: ${CORVANE}` });
-    expect(within(comment).getByText("3")).toBeInTheDocument();
+    const comment = card.getByRole("link", { name: `Comment 4: ${CORVANE}` });
+    expect(within(comment).getByText("4")).toBeInTheDocument();
     // label and count badge share one nowrap box, so the badge cannot drop under the word
     const label = within(comment).getByText("Comment");
     expect(label.className).toContain("whitespace-nowrap");
-    expect(label).toContainElement(within(comment).getByText("3"));
+    expect(label).toContainElement(within(comment).getByText("4"));
     expect(card.getByRole("button", { name: `Share to group: ${CORVANE}` })).toBeInTheDocument();
     expect(card.getByRole("button", { name: `Save: ${CORVANE}` })).toBeInTheDocument();
     const none = story(BRIGHTWELL).getByRole("button", { name: `Comment: ${BRIGHTWELL}` });
