@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { declaredPaths, fillParams, pathsIn } from "../../scripts/route-paths.mjs";
 import { SLICE_KEYS } from "../data";
@@ -74,13 +73,10 @@ describe("fillParams", () => {
 });
 
 describe("the real page groups", () => {
-  it.each(SLICE_KEYS)("%s: routes.tsx states the path rule in its convention comment", (group) => {
-    const text = readFileSync(path.join(import.meta.dirname, group, "routes.tsx"), "utf8");
-    expect(text).toContain(`every path starts with /${group}/`);
-  });
-
   it.each(SLICE_KEYS)("%s: the script sees exactly the routes the module declares", (group) => {
     const dir = path.join(import.meta.dirname, group);
+    const wrong = declaredPaths(dir).filter((p) => !p.startsWith(`/${group}/`));
+    expect(wrong, `every path in ${group}/routes.tsx must start with /${group}/`).toEqual([]);
     const declared = routeTable.routes.filter((r) => r.path.split("/")[1] === group);
     expect(declaredPaths(dir)).toEqual(declared.map((r) => r.path));
   });
