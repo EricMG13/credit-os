@@ -178,7 +178,7 @@
   --text-color-fg-quaternary_hover: var(--color-fg-quaternary_hover);
   --ring-color-primary: var(--color-border-primary);
   --outline-color-brand: var(--color-border-brand);
-  --outline-color-error: var(--color-border-error);
+  --outline-color-error: var(--color-focus);
 
   /* Featured icon (light theme) and empty state: tinted circle and its icon colour, by status family */
   --background-color-tertiary: var(--color-surface-subtle);

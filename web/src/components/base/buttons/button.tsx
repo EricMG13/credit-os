@@ -20,15 +20,19 @@ export const styles = sortCx({
   sizes: {
     sm: {
       root: "gap-1 rounded-lg px-3 py-2 text-sm font-semibold before:rounded-[7px] data-icon-only:p-2",
+      linkRoot: "gap-1 *:data-text:underline-offset-3",
     },
     md: {
       root: "gap-1 rounded-lg px-3.5 py-2.5 text-sm font-semibold before:rounded-[7px] data-icon-only:p-2.5",
+      linkRoot: "gap-1 *:data-text:underline-offset-4",
     },
     lg: {
       root: "gap-1.5 rounded-lg px-4 py-2.5 text-md font-semibold before:rounded-[7px] data-icon-only:p-3",
+      linkRoot: "gap-1.5 *:data-text:underline-offset-4",
     },
     xl: {
       root: "gap-1.5 rounded-lg px-4.5 py-3 text-md font-semibold before:rounded-[7px] data-icon-only:p-3.5",
+      linkRoot: "gap-1.5 *:data-text:underline-offset-4",
     },
   },
 
@@ -114,6 +118,7 @@ export const Button = ({
   ...props
 }: ButtonProps) => {
   const isIcon = (IconLeading || IconTrailing) && !children;
+  const isLinkType = color === "link-color" || color === "link-destructive";
 
   const commonChildren = (
     <>
@@ -158,7 +163,7 @@ export const Button = ({
       )}
 
       {children && (
-        <span data-text className="px-0.5 transition-inherit-all">
+        <span data-text className={cx("transition-inherit-all", !isLinkType && "px-0.5")}>
           {children}
         </span>
       )}
@@ -182,6 +187,7 @@ export const Button = ({
         styles.common.root,
         styles.sizes[size].root,
         styles.colors[color].root,
+        isLinkType && styles.sizes[size].linkRoot,
         loading && "pointer-events-none",
         // If in `loading` state, hide everything except the loading icon.
         loading && "[&>*:not([data-icon=loading])]:invisible",

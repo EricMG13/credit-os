@@ -164,7 +164,7 @@ export const FileUploadDropZone = ({
       <FeaturedIcon
         icon={UploadCloud02}
         color="gray"
-        size="lg"
+        size="md"
         className={cx(isDisabled && "opacity-50")}
       />
 
@@ -175,6 +175,7 @@ export const FileUploadDropZone = ({
             id={id}
             type="file"
             className="peer sr-only"
+            tabIndex={-1}
             disabled={isDisabled}
             accept={accept}
             multiple={allowsMultiple}
