@@ -200,8 +200,21 @@ HOME_PATHS: tuple[tuple[str, str], ...] = (
     # "'", "(" and ")" are inside a Windows name when a name character or a slash follows them
     ("C:\\Users\\O'Brien", "<home>"),
     ("open 'C:\\Users\\O'Brien'", "open '<home>'"),
-    ("cp 'C:\\Users\\jane' 'bin/x'", "cp '<home>' 'bin/x'"),
-    ("echo (C:\\Users\\jane) (a/b)", "echo (<home>) (a/b)"),
+    # the longest candidate is the name: where a slash follows later, a closing quote or bracket
+    # is taken for part of a name that runs to it (prose is lost; no part of a name is kept)
+    ("cp 'C:\\Users\\jane' 'bin/x'", "cp '<home>/x'"),
+    ("echo (C:\\Users\\jane) (a/b)", "echo (<home>/b)"),
+    ("C:\\Users\\Jane (Work) Doe\\x and C:\\Users\\D' Arcy\\x", "<home>\\x and <home>\\x"),
+    ("cwd: C:\\Users\\Jane (Work) Doe.", "cwd: <home>."),
+    ('C:\\Users\\Jane Doe\'s "x"', '<home>\'s "x"'),
+    ("cwd: C:\\Users\\Mary  Ann", "cwd: <home>"),
+    ("C:\\Users\\Mary  Ann, x", "<home>, x"),
+    # a folder named n, r or t is not a written-out escape
+    (
+        "C:\\data\\n\\Users\\jane\\x D:\\t\\home\\bob",
+        "C:\\data\\n\\Users\\jane\\x D:\\t\\home\\bob",
+    ),
+    ("msg\\nC:\\Users\\jane\\x", "msg\\n<home>\\x"),
     ("C:\\Users\\John(Work)x\\AppData", "<home>\\AppData"),
     # words of a name may be separated by more than one space
     ("C:\\Users\\Mary  Ann\\x", "<home>\\x"),
