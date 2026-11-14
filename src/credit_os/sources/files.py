@@ -67,7 +67,11 @@ def source_path(folder: Path, name: str) -> Path:
     walked = root
     for segment in name.split("/"):
         walked = walked / segment
-        if walked.is_symlink() or walked.is_junction():
+        try:
+            linked = walked.is_symlink() or walked.is_junction()
+        except OSError as error:
+            raise SourceRefused(f"{shown_name(name)}: cannot be resolved") from error
+        if linked:
             raise SourceRefused(f"{shown_name(name)}: is or passes through a symbolic link")
     try:
         candidate = (root / name).resolve()

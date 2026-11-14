@@ -400,6 +400,54 @@ def test_source_path_unsearchable_parent(tmp_path: Path) -> None:
     assert str(from_pin.value) == f"{folder}: not a folder"
 
 
+def test_source_path_unsearchable_directory_below_folder(folder: Path) -> None:
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
+    locked = folder / "locked"
+    locked.mkdir()
+    (locked / "readme.txt").write_bytes(b"Synthetic note.\n")
+    locked.chmod(0o600)
+    try:
+        try:
+            os.stat(locked / "readme.txt")
+        except PermissionError:
+            pass
+        else:
+            pytest.skip("chmod does not deny search here")
+        pin = SourcePin(
+            name="locked/readme.txt",
+            sha256="4157540c50a21d8eccdd85cc071e37f2b23dd35525473b1b671044125dd44f42",
+            size_bytes=16,
+            kind=SourceKind.TEXT,
+        )
+        with pytest.raises(SourceRefused) as from_path:
+            source_path(folder, "locked/readme.txt")
+        with pytest.raises(SourceRefused) as from_pin:
+            read_pinned(folder, pin)
+    finally:
+        locked.chmod(0o700)
+    assert str(from_path.value) == "locked/readme.txt: cannot be resolved"
+    assert str(from_pin.value) == "locked/readme.txt: cannot be resolved"
+
+
+@pytest.mark.parametrize(
+    ("method", "code"), [("is_symlink", errno.ENAMETOOLONG), ("is_junction", errno.EACCES)]
+)
+def test_source_path_link_check_oserror_is_typed(
+    folder: Path, monkeypatch: pytest.MonkeyPatch, method: str, code: int
+) -> None:
+    failure = OSError(code, "synthetic")
+
+    def fail(self: Path) -> bool:
+        raise failure
+
+    monkeypatch.setattr(Path, method, fail)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, "readme.txt")
+    assert str(caught.value) == "readme.txt: cannot be resolved"
+    assert caught.value.__cause__ is failure
+
+
 def test_source_path_name_too_long(tmp_path: Path) -> None:
     folder = tmp_path / ("x" * 300)
     with pytest.raises(SourceRefused) as caught:
