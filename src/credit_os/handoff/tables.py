@@ -45,6 +45,8 @@ def read_table(
     lines: Sequence[tuple[int, str]], label: str | None = None, label_line: int | None = None
 ) -> Table:
     """Read a table; the caller passes only lines for which `is_table_row` is true."""
+    if (label is None) != (label_line is None):
+        raise ValueError("label and label_line are given together or not at all")
     first, header_text = lines[0]
     header = _cells(first, header_text)
     if len(lines) < 2:

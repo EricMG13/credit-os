@@ -1,0 +1,435 @@
+"""R24: the peak memory of parse_feed on hostile bodies, measured with tracemalloc.
+
+Every case builds a body of at most MAX_BYTES, parses it and asserts two things: the peak stays
+under CEILING, and the outcome is the one the case names. A case either reads its feed (a list)
+or is refused with the message of the constant that refuses it (``REFUSED``); a body that fails
+for another reason, malformed XML for one, measures nothing and fails the test. The shapes are
+the worst bodies found by review: a node per element, a name per element or attribute (pyexpat
+keeps every distinct name for the whole parse, and a namespace URI in each name if it expands
+them), one html.parser tag with a million attributes, one string object per character. The last
+test reads a large genuine feed whole.
+"""
+
+import gc
+import itertools
+import string
+import tracemalloc
+from collections.abc import Callable, Iterator
+
+import pytest
+
+from credit_os.signal.feeds import (
+    MAX_ATTRIBUTES,
+    MAX_BYTES,
+    MAX_ELEMENTS,
+    MAX_NAMESPACE_CHARS,
+    FeedError,
+    parse_feed,
+)
+
+MiB = 1024 * 1024
+CEILING = 64 * MiB
+# R37. A field's text is never held whole: one at 4 bytes a character is 8 MiB, so this allows
+# pyexpat's own attribute value (the Atom href case) and nothing more. Every TEXT_CASES row is
+# measured against it at full size.
+TEXT_CEILING = 16 * MiB
+# A case that runs its whole text through html.parser is slow under tracemalloc, so it runs at
+# 1/REDUCED of MAX_BYTES against 1/REDUCED of CEILING; its cost is linear in the body, and
+# before the fix the shapes cost 280 MiB or more at full size (probe r24_memory.py runs them whole).
+REDUCED = 16
+
+_HEAD = b'<rss version="2.0"><channel><item><title>t</title><link>https://e.org/a</link>'
+_TAIL = b"</item></channel></rss>"
+_D0, _D1 = _HEAD + b"<description>", b"</description>" + _TAIL
+_C0, _C1 = _HEAD + b"<description><![CDATA[", b"]]></description>" + _TAIL
+_ATOM0 = b'<feed xmlns="http://www.w3.org/2005/Atom"><entry><link href="https://e.org/a"/>'
+_ATOM1 = b"</entry></feed>"
+_LETTER = "ж".encode()  # a 2-byte letter: one new str object per character
+_AST = "\U0001f600".encode()  # one astral character widens a Python str to 4 bytes a character
+_RSS0 = b'<rss version="2.0"><channel><item>'
+_ATOM_T = _ATOM0.replace(b'<link href="https://e.org/a"/>', b"<title>T</title>")
+_ATOM_L = b'<link href="https://e.org/a"/>'
+
+
+def _fill(pre: bytes, unit: bytes, post: bytes, size: int) -> bytes:
+    return pre + unit * ((size - len(pre) - len(post)) // len(unit)) + post
+
+
+def _uri_fills_body(size: int) -> bytes:
+    pre, mid, post = _D0 + b'<d xmlns="u:', b'">', b"</d>" + _D1
+    body = b"<a/>" * 100
+    return pre + b"x" * (size - len(pre) - len(mid) - len(post) - len(body)) + mid + body + post
+
+
+def _uri_and_count_grow(size: int) -> bytes:
+    n = size // 128
+    return _D0 + b'<d xmlns="u:' + b"x" * (n - 2) + b'">' + b"<a/>" * n + b"</d>" + _D1
+
+
+def _items(unit: bytes) -> Callable[[int], bytes]:
+    return lambda s: _fill(b'<rss version="2.0"><channel>', unit, b"</channel></rss>", s)
+
+
+_URI256 = b"u:" + b"x" * 254
+
+
+def _numbered(pre: bytes, unit: Callable[[int], bytes], post: bytes, size: int) -> bytes:
+    """``pre``, ``unit(0)``, ``unit(1)`` ... as many as fit in ``size`` bytes, then ``post``."""
+    parts, room, n = [pre], size - len(pre) - len(post), 0
+    while len(piece := unit(n)) <= room:
+        parts.append(piece)
+        room -= len(piece)
+        n += 1
+    return b"".join([*parts, post])
+
+
+def _attribute_elements(
+    uri: bytes, per_element: int, count: int | None = None, size: int = MAX_BYTES
+) -> bytes:
+    """Elements of ``per_element`` attributes, all names different, in namespace ``uri``.
+
+    ``count`` elements, or as many as fit in ``size`` bytes.
+    """
+
+    def element(n: int) -> bytes:
+        names = (b' p:a%d=""' % (n * per_element + k) for k in range(per_element))
+        return b"<x" + b"".join(names) + b"/>"
+
+    pre, post = _D0 + b'<d xmlns:p="' + uri + b'">', b"</d>" + _D1
+    if count is None:
+        return _numbered(pre, element, post, size)
+    return pre + b"".join(map(element, range(count))) + post
+
+
+def _namespace(chars: int, unit: str = "u") -> bytes:
+    return ("u:" + unit * (chars - 2)).encode()
+
+
+def _distinct_elements(uri: bytes, count: int) -> bytes:
+    pre, post = _D0 + b'<d xmlns:p="' + uri + b'">', b"</d>" + _D1
+    return pre + b"".join(b"<p:e%d/>" % n for n in range(count)) + post
+
+
+# R45. One element whose attribute or declaration names all differ and are at most 3 UTF-8 bytes
+# a character (the CJK ideographs and Hangul syllables are 3 bytes and not cached as str).
+_WIDE3 = [chr(c) for c in itertools.chain(range(0x4E00, 0x9FA6), range(0xAC00, 0xD7A4))]
+_REST = string.ascii_letters + string.digits
+_BINDINGS = b"".join(b' xmlns:%s="%s"' % (p.encode(), p.encode()) for p in string.ascii_letters)
+
+
+def _wide_names() -> Iterator[str]:
+    yield from _WIDE3
+    yield from (a + b for b in _REST for a in _WIDE3)
+
+
+def _one_element(pre: bytes, names: Iterator[str], value: str, prefixed: bool) -> bytes:
+    """``<e name="value" ...>`` for as many names as fit in MAX_BYTES, in a feed that reads."""
+    head = _D0 + (b"<d" + _BINDINGS + b"><e" if prefixed else b"<e")
+    tail = b"/>" + (b"</d>" if prefixed else b"") + _D1
+    out, used = [head], len(head) + len(tail)
+    for name in names:
+        unit = b" " + pre + name.encode() + b'="' + value.encode() + b'"'
+        if used + len(unit) > MAX_BYTES:
+            break
+        out.append(unit)
+        used += len(unit)
+    return b"".join([*out, tail])
+
+
+def _prefixed_names() -> Iterator[str]:
+    return (f"{p}:{c}" for p in string.ascii_letters for c in _WIDE3)
+
+
+def _declarations() -> bytes:
+    prefixes = _wide_names()
+    head, tail = _D0 + b"<d", b"/>" + _D1
+    out, used = [head], len(head) + len(tail)
+    for prefix in prefixes:
+        unit = b" xmlns:" + prefix.encode() + b'="' + "ж".encode() + b'"'
+        if used + len(unit) > MAX_BYTES:
+            break
+        out.append(unit)
+        used += len(unit)
+    return b"".join([*out, tail])
+
+
+CASES: dict[str, Callable[[int], bytes]] = {
+    "html one tag with a million attributes": lambda s: _fill(_C0 + b"<a ", b"b ", b">" + _C1, s),
+    "html unclosed tag with attributes": lambda s: _fill(_C0 + b"<a ", b"b=c ", _C1, s),
+    "html unclosed comment": lambda s: _fill(_C0 + b"<!--", b"x", _C1, s),
+    "html quoted > then a million attributes": lambda s: _fill(
+        _C0 + b'<a x=">" ', b"b ", b">" + _C1, s
+    ),
+    "html single-quoted > then a million attributes": lambda s: _fill(
+        _C0 + b"<a x='>' ", b"b ", b">" + _C1, s
+    ),
+    "html unmatched quote then a million attributes": lambda s: _fill(
+        _C0 + b'<a x=" ', b"b ", b">" + _C1, s
+    ),
+    "html blank before an unmatched quote, then a million attributes": lambda s: _fill(
+        _C0 + b'<a x= " ', b"b ", b">" + _C1, s
+    ),
+    # the name `="` makes the first quote part of the name, so a scan that pairs quotes by their
+    # order thinks the value is `'"='` and ends the tag at the `>` that is inside the real one
+    "html name that starts with = and a quote, then a quoted >": lambda s: _fill(
+        _C0 + b"<a ='\"='>' ", b"b ", b">" + _C1, s
+    ),
+    "html end tag with a million attributes": lambda s: _fill(_C0 + b"</a ", b"b ", b">" + _C1, s),
+    "html end tag, quoted > then a million attributes": lambda s: _fill(
+        _C0 + b'</a x=">" ', b"b ", b">" + _C1, s
+    ),
+    "html attributes, then an unmatched quote at the end": lambda s: _fill(
+        _C0 + b"<a ", b"b ", b'x=">' + _C1, s
+    ),
+    "html angle brackets": lambda s: _fill(_C0, b"<", _C1, s),
+    "html block tags": lambda s: _fill(_C0, b"<p>", _C1, s),
+    "atom html title, one tag with a million attributes": lambda s: _fill(
+        _ATOM0 + b'<title type="html"><![CDATA[<a ', b"b ", b">T]]></title>" + _ATOM1, s
+    ),
+    "atom html summary, one tag with a million attributes": lambda s: _fill(
+        _ATOM0 + b'<title>T</title><summary type="html"><![CDATA[<a ',
+        b"b ",
+        b">T]]></summary>" + _ATOM1,
+        s,
+    ),
+    "atom xhtml summary of small elements": lambda s: _fill(
+        _ATOM0
+        + b'<title>T</title><summary type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">',
+        b"<a/>",
+        b"</div></summary>" + _ATOM1,
+        s,
+    ),
+    "small elements": lambda s: _fill(_D0, b"<a/>", _D1, s),
+    "small elements in the Atom namespace": lambda s: _fill(
+        _ATOM0 + b"<title>T</title><summary>", b"<a/>", b"</summary>" + _ATOM1, s
+    ),
+    "small elements in a 256-character namespace": lambda s: _fill(
+        _D0 + b'<d xmlns="' + _URI256 + b'">', b"<a/>", b"</d>" + _D1, s
+    ),
+    "100 elements in a namespace that fills the body": _uri_fills_body,
+    "namespace URI and element count both grow": _uri_and_count_grow,
+    "namespaced attribute on every element": lambda s: _fill(
+        _D0 + b'<d xmlns:p="u:x">', b'<a p:b=""/>', b"</d>" + _D1, s
+    ),
+    "empty items": _items(b"<item/>"),
+    "items with an empty title": _items(b"<item><title/></item>"),
+    "readable items": _items(b"<item><title>t</title><link>https://e.org/a</link></item>"),
+    "distinct element names": lambda s: _numbered(_D0, lambda n: b"<n%d/>" % n, _D1, s),
+    "one element with the most attributes": lambda s: _numbered(
+        _D0 + b"<e", lambda n: b' a%d=""' % n, b"/>" + _D1, s
+    ),
+    "namespace declarations on one element, all prefixes different": lambda s: _numbered(
+        _D0 + b"<d", lambda n: b' xmlns:p%d="u"' % n, b"/>" + _D1, s
+    ),
+    "256 distinct attributes on each element, 1 KiB namespace, half the body": lambda s: (
+        _attribute_elements(_namespace(1024), 256, size=s // 2)
+    ),
+    "256 distinct attributes on each element, namespace at the limit, half the body": lambda s: (
+        _attribute_elements(_namespace(MAX_NAMESPACE_CHARS), 256, size=s // 2)
+    ),
+    "256 distinct attributes on each element, 1 KiB namespace, whole body": lambda s: (
+        _attribute_elements(_namespace(1024), 256, size=s)
+    ),
+    "namespace of 64 Ki characters, 6 elements of 256 distinct attributes": lambda s: (
+        _attribute_elements(_namespace(65536), 256, 6)
+    ),
+    "namespace of 1 Mi characters, one element of 48 attributes": lambda s: _attribute_elements(
+        _namespace(1048576), 48, 1
+    ),
+    "namespace of 16 Ki astral characters, 1000 distinct elements": lambda s: _distinct_elements(
+        _namespace(16384, "\U0001f600"), 1000
+    ),
+    "namespace of 64 Ki astral characters, 266 elements": lambda s: _distinct_elements(
+        _namespace(65536, "\U0001f600"), 266
+    ),
+    "R45 one element of distinct unprefixed names of 3 bytes, wide first": lambda s: _one_element(
+        b"", _wide_names(), "ж", False
+    ),
+    "R45 one element of prefixed attributes a:wide": lambda s: _one_element(
+        b"", _prefixed_names(), "ж", True
+    ),
+    "R45 one element of xml:wide attributes": lambda s: _one_element(
+        b"xml:", _wide_names(), "", False
+    ),
+    "R45 one element of wide namespace declarations": lambda s: _declarations(),
+    "title of 2-byte letters": lambda s: _fill(
+        b'<rss version="2.0"><channel><item><link>https://e.org/a</link><title>',
+        _LETTER,
+        b"</title>" + _TAIL,
+        s,
+    ),
+    "description of 2-byte letters": lambda s: _fill(_D0, _LETTER, _D1, s),
+    "text split by comments": lambda s: _fill(_D0, _LETTER + b"<!---->", _D1, s),
+}
+
+
+# R37: one row per stage that held a copy of a whole field. Each is read at full size and must
+# stay under TEXT_CEILING as well as CEILING.
+TEXT_CASES: dict[str, Callable[[int], bytes]] = {
+    "description: entity flood": lambda s: _fill(_C0, b"&a", _C1, s),
+    "description: entity flood, one astral character": lambda s: _fill(_C0 + _AST, b"&a", _C1, s),
+    "description: blank, astral, entity flood": lambda s: _fill(_C0 + b" " + _AST, b"&a", _C1, s),
+    "description: entity flood, astral and blank last": lambda s: _fill(
+        _C0, b"&a", _AST + b" " + _C1, s
+    ),
+    "description: textarea held open, entity flood, astral": lambda s: _fill(
+        _C0 + b" " + _AST + b"<textarea>", b"&a", b" " + _C1, s
+    ),
+    "description: script held open, astral text": lambda s: _fill(
+        _C0 + b" <script>", _AST, b" " + _C1, s
+    ),
+    "description: a quoted value held open, astral": lambda s: _fill(
+        _C0 + b'<img src="' + _AST, b"x", _C1, s
+    ),
+    "description: inline tags and 2-byte letters, blank and astral": lambda s: _fill(
+        _C0 + b" " + _AST, b"<b>" + _LETTER, b" " + _C1, s
+    ),
+    "description: block tags and 2-byte letters, blank and astral": lambda s: _fill(
+        _C0 + b" " + _AST, b"<p>" + _LETTER, b" " + _C1, s
+    ),
+    "description: a reference that widens the text": lambda s: _fill(
+        _C0 + b" &Afr;", b"&a", b" " + _C1, s
+    ),
+    "atom html summary: blank, astral, entity flood": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b'<summary type="html"><![CDATA[ ' + _AST,
+        b"&a",
+        b" ]]></summary>" + _ATOM1,
+        s,
+    ),
+    "atom html title: block tags and 2-byte letters, astral": lambda s: _fill(
+        _ATOM0 + b'<title type="html"><![CDATA[ ' + _AST,
+        b"<p>" + _LETTER,
+        b" ]]></title>" + _ATOM1,
+        s,
+    ),
+    "title: words, blank and astral first": lambda s: _fill(
+        _RSS0 + b"<link>https://e.org/a</link><title> " + _AST, b"w ", b" </title>" + _TAIL, s
+    ),
+    "link: astral then letters, blanks": lambda s: _fill(
+        _RSS0 + b"<title>t</title><link> https://e.org/" + _AST, b"a", b" </link>" + _TAIL, s
+    ),
+    "atom href of 2 MiB, astral": lambda s: _fill(
+        _ATOM_T + b'<link href=" https://e.org/' + _AST, b"a", b' "/>' + _ATOM1, s
+    ),
+    "pubDate: two-digit words, blank and astral": lambda s: _fill(
+        _HEAD + b"<pubDate> " + _AST, b"12 ", b" </pubDate>" + _TAIL, s
+    ),
+    "atom updated: two-digit words, astral": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b"<updated>" + _AST, b"12 ", b"</updated>" + _ATOM1, s
+    ),
+    "atom text summary: words, astral": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b"<summary>" + _AST, b"w ", b"</summary>" + _ATOM1, s
+    ),
+    "description: plain 2 MiB text, astral": lambda s: _fill(_D0 + _AST, b"a", _D1, s),
+}
+# A feed with no readable entry is read to the end all the same.
+_NO_ENTRY = frozenset({"link: astral then letters, blanks", "atom href of 2 MiB, astral"})
+# Rows that run a whole field through html.parser, which is slow under tracemalloc.
+REDUCED_ROWS = frozenset(name for name in CASES if name.startswith(("html ", "atom html ")))
+CASES.update(TEXT_CASES)
+
+_TOO_MANY_ELEMENTS = f"feed has more than {MAX_ELEMENTS} elements"
+_TOO_MANY_ATTRIBUTES = f"feed has an element with more than {MAX_ATTRIBUTES} attributes"
+_TOO_MANY_DECLARATIONS = (
+    f"feed has an element with more than {MAX_ATTRIBUTES} namespace declarations"
+)
+_LONG_NAMES = "feed element names are too long"  # MAX_NAME_CHARS
+_LONG_NAMESPACE = f"feed has a namespace URI of more than {MAX_NAMESPACE_CHARS} characters"
+# The cases that are refused, with the message of the constant that refuses them.
+REFUSED = {
+    "R45 one element of prefixed attributes a:wide": _TOO_MANY_ATTRIBUTES,
+    "R45 one element of xml:wide attributes": _TOO_MANY_ATTRIBUTES,
+    "R45 one element of wide namespace declarations": _TOO_MANY_DECLARATIONS,
+    "R45 one element of distinct unprefixed names of 3 bytes, wide first": _TOO_MANY_ATTRIBUTES,
+    "atom xhtml summary of small elements": _TOO_MANY_ELEMENTS,
+    "small elements": _TOO_MANY_ELEMENTS,
+    "small elements in the Atom namespace": _TOO_MANY_ELEMENTS,
+    "small elements in a 256-character namespace": _TOO_MANY_ELEMENTS,
+    "100 elements in a namespace that fills the body": _LONG_NAMESPACE,
+    "namespace URI and element count both grow": _LONG_NAMESPACE,
+    "empty items": _TOO_MANY_ELEMENTS,
+    "distinct element names": _LONG_NAMES,
+    "one element with the most attributes": _LONG_NAMES,
+    "namespace declarations on one element, all prefixes different": _LONG_NAMES,
+    "256 distinct attributes on each element, 1 KiB namespace, whole body": _LONG_NAMES,
+    "namespace of 64 Ki characters, 6 elements of 256 distinct attributes": _LONG_NAMESPACE,
+    "namespace of 1 Mi characters, one element of 48 attributes": _LONG_NAMESPACE,
+    "namespace of 16 Ki astral characters, 1000 distinct elements": _LONG_NAMESPACE,
+    "namespace of 64 Ki astral characters, 266 elements": _LONG_NAMESPACE,
+}
+
+
+def _peak(body: bytes) -> tuple[int, object]:
+    gc.collect()
+    tracemalloc.start()
+    try:
+        try:
+            result: object = parse_feed(body)
+        except FeedError as exc:
+            result = exc
+        return tracemalloc.get_traced_memory()[1], result
+    finally:
+        tracemalloc.stop()
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_the_peak_memory_of_a_hostile_body_stays_under_the_ceiling(name: str) -> None:
+    scale = REDUCED if name in REDUCED_ROWS else 1
+    body = CASES[name](MAX_BYTES // scale)
+    assert len(body) <= MAX_BYTES // scale
+    peak, result = _peak(body)
+    if name in REFUSED:
+        assert isinstance(result, FeedError)
+        assert str(result) == REFUSED[name]
+    else:
+        assert isinstance(result, list), result
+    assert peak < CEILING // scale, f"{name}: {peak / MiB:.1f} MiB"
+
+
+@pytest.mark.parametrize("name", list(TEXT_CASES))
+def test_a_text_field_is_never_held_whole(name: str) -> None:
+    body = TEXT_CASES[name](MAX_BYTES)
+    assert len(body) <= MAX_BYTES
+    peak, result = _peak(body)
+    assert isinstance(result, list), result
+    if name in _NO_ENTRY:
+        assert result == []
+    assert peak < TEXT_CEILING, f"{name}: {peak / MiB:.1f} MiB"
+
+
+def test_a_genuine_feed_of_1000_xhtml_entries_of_100_elements_is_read_whole() -> None:
+    content = "".join(f"<p>w{i}</p>" for i in range(100))
+    entry = (
+        '<entry><title>Entry {n}</title><link href="https://e.org/{n}"/>'
+        '<summary type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">{c}</div></summary>'
+        "</entry>"
+    )
+    body = (
+        '<feed xmlns="http://www.w3.org/2005/Atom">'
+        + "".join(entry.format(n=n, c=content) for n in range(1000))
+        + "</feed>"
+    ).encode()
+    assert len(body) <= MAX_BYTES
+    peak, result = _peak(body)
+    assert isinstance(result, list)
+    assert [e.title for e in result] == [f"Entry {n}" for n in range(1000)]
+    assert all(e.summary.startswith("w0 w1 w2") for e in result)
+    assert peak < CEILING
+
+
+def _element_with(attributes: int, declarations: int) -> bytes:
+    names = b"".join(b' a%d=""' % n for n in range(attributes))
+    bound = b"".join(b' xmlns:p%d="u:%d"' % (n, n) for n in range(declarations))
+    return _D0 + b"<d" + names + bound + b"/>" + _D1
+
+
+def test_257_namespace_declarations_on_one_element_are_refused() -> None:
+    _, result = _peak(_element_with(0, MAX_ATTRIBUTES + 1))
+    assert isinstance(result, FeedError)
+    assert str(result) == _TOO_MANY_DECLARATIONS
+
+
+@pytest.mark.parametrize("attributes", [0, MAX_ATTRIBUTES])
+def test_256_namespace_declarations_on_one_element_are_read(attributes: int) -> None:
+    _, result = _peak(_element_with(attributes, MAX_ATTRIBUTES))
+    assert isinstance(result, list), result
