@@ -97,7 +97,13 @@ def test_every_finding_has_a_reason(index: int) -> None:
 
 def test_known_false_refusals_stay_in_the_key() -> None:
     known = [case["name"] for case in CASES if "known_false_refusal" in case]
-    assert known == ["refused: a word that is also a currency code before a hyphen and a digit"]
+    assert known == [
+        "refused: a word that is also a currency code before a hyphen and a digit",
+        (
+            "known false refusal: a date mask takes `March 1` and leaves 5% of a written 1.5% "
+            "(#250 review I-1)"
+        ),
+    ]
 
 
 _EARLIER = _pair("### Other\nDebt was USD 1,250 million.\n", _calculations("None.\n"))

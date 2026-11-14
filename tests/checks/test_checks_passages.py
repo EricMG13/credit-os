@@ -13,6 +13,7 @@ from credit_os.handoff.document import HandoffDocument, parse
 from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.reader import read_reader
 
+_COLUMN_CHECKS = ("prose.register-id", "figure.not-held", "figure.mismatch")
 KEY: dict[str, Any] = json.loads(
     (Path(__file__).resolve().parent / "expected" / "passages.json").read_text("utf-8")
 )
@@ -86,10 +87,10 @@ def test_case(name: str) -> None:
 @pytest.mark.parametrize("name", list(CASES))
 def test_finding_shape(name: str) -> None:
     document, context, _ = _build(CASES[name])
-    for finding in without_held(check_handoff(document, context)):
+    for finding in check_handoff(document, context):
         assert finding.reason.strip() != ""
         assert "\n" not in finding.reason
-        assert finding.column == 1 or finding.check == "prose.register-id"
+        assert finding.column == 1 or finding.check in _COLUMN_CHECKS
 
 
 @pytest.mark.parametrize("name", list(CASES))
