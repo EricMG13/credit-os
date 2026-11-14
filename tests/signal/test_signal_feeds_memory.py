@@ -27,6 +27,10 @@ from credit_os.signal.feeds import (
 
 MiB = 1024 * 1024
 CEILING = 64 * MiB
+# A case that runs its whole text through html.parser is slow under tracemalloc, so it runs at
+# 1/REDUCED of MAX_BYTES against 1/REDUCED of CEILING; its cost is linear in the body, and
+# before the fix the shapes cost 280 MiB or more at full size (probe r24_memory.py runs them whole).
+REDUCED = 16
 
 _HEAD = b'<rss version="2.0"><channel><item><title>t</title><link>https://e.org/a</link>'
 _TAIL = b"</item></channel></rss>"
@@ -108,6 +112,21 @@ CASES: dict[str, Callable[[int], bytes]] = {
     ),
     "html unmatched quote then a million attributes": lambda s: _fill(
         _C0 + b'<a x=" ', b"b ", b">" + _C1, s
+    ),
+    "html blank before an unmatched quote, then a million attributes": lambda s: _fill(
+        _C0 + b'<a x= " ', b"b ", b">" + _C1, s
+    ),
+    # the name `="` makes the first quote part of the name, so a scan that pairs quotes by their
+    # order thinks the value is `'"='` and ends the tag at the `>` that is inside the real one
+    "html name that starts with = and a quote, then a quoted >": lambda s: _fill(
+        _C0 + b"<a ='\"='>' ", b"b ", b">" + _C1, s
+    ),
+    "html end tag with a million attributes": lambda s: _fill(_C0 + b"</a ", b"b ", b">" + _C1, s),
+    "html end tag, quoted > then a million attributes": lambda s: _fill(
+        _C0 + b'</a x=">" ', b"b ", b">" + _C1, s
+    ),
+    "html attributes, then an unmatched quote at the end": lambda s: _fill(
+        _C0 + b"<a ", b"b ", b'x=">' + _C1, s
     ),
     "html angle brackets": lambda s: _fill(_C0, b"<", _C1, s),
     "html block tags": lambda s: _fill(_C0, b"<p>", _C1, s),
@@ -220,15 +239,16 @@ def _peak(body: bytes) -> tuple[int, object]:
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_the_peak_memory_of_a_hostile_body_stays_under_the_ceiling(name: str) -> None:
-    body = CASES[name](MAX_BYTES)
-    assert len(body) <= MAX_BYTES
+    scale = REDUCED if name.startswith(("html ", "atom html ")) else 1
+    body = CASES[name](MAX_BYTES // scale)
+    assert len(body) <= MAX_BYTES // scale
     peak, result = _peak(body)
     if name in REFUSED:
         assert isinstance(result, FeedError)
         assert str(result) == REFUSED[name]
     else:
         assert isinstance(result, list), result
-    assert peak < CEILING, f"{name}: {peak / MiB:.1f} MiB"
+    assert peak < CEILING // scale, f"{name}: {peak / MiB:.1f} MiB"
 
 
 def test_a_genuine_feed_of_1000_xhtml_entries_of_100_elements_is_read_whole() -> None:

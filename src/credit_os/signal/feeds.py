@@ -386,51 +386,66 @@ class _TextOnly(HTMLParser):
             self.parts.append(data)
 
 
-_TAG_START = frozenset(string.ascii_letters + "/!?")
-_WHITE = frozenset(string.whitespace)
+_ASCII_LETTERS = frozenset(string.ascii_letters)
+_TAG_OPEN = re.compile(r"<[a-zA-Z/!?]")
+_NAME_END = "\t\n\r\f />"
+_TAG_NAME = re.compile(r"[a-zA-Z][^\t\n\r\f />]*")
+_BLANKS_SLASHES = re.compile(r"[\t\n\r\f /]*")
+_BLANKS = re.compile(r"[\t\n\r\f ]*")
+_ATTRIBUTE_NAME = re.compile(r"[^\t\n\r\f />][^\t\n\r\f /=>]*")
+_BARE_VALUE = re.compile(r"[^>\t\n\r\f ]*")
+_BEFORE_ATTRIBUTE = frozenset("'\"\t\n\r\f /")
 
 
 class _TagScanner:
-    """Finds where the tag that opens at a ``<`` ends, in one pass over the text.
+    """Finds where html.parser's idea of a tag that opens at a ``<`` ends.
 
-    The scanner's idea of a tag is only for its size: html.parser remains the reader of what
-    is kept. A tag runs to the first ``>`` that is not inside a quoted attribute value (a quote
-    opens a value when ``=`` comes before it; a quote with no partner opens nothing). If it
-    stopped at any ``>``, a ``>`` inside a value would hide the rest of a tag with a million
-    attributes from the size check while html.parser still read it whole.
-    Each character is looked at a bounded number of times: the position of the next ``>``,
-    ``"`` and ``'`` is kept and searched again only once the scan has passed it.
+    R31. This is html.parser's own grammar for a tag (``locatetagend``, CPython 3.12.14) walked
+    by hand, because its regular expression holds memory for every attribute it passes: a tag
+    runs through quoted values (a quote opens a value only after ``=``, and a name may start
+    with ``=`` or a quote), so a ``>`` inside a value does not end it. A scan that stopped at
+    the first ``>`` would hide a tag of a million attributes from the size check while
+    html.parser read it whole. Every piece is a character-class match that cannot backtrack,
+    and the closing quote of a value is looked for with ``str.find``; a quote with no partner
+    in the text opens nothing (one ``rfind`` answers it, so no search is repeated).
+    The scanner is for size only: html.parser remains the reader of what is kept, and a test
+    holds this walk at or beyond the end html.parser itself finds.
     """
 
     def __init__(self, raw: str) -> None:
         self.raw = raw
         self.size = len(raw)
-        self._next = {">": -1, '"': -1, "'": -1}
+        self._last = {'"': raw.rfind('"'), "'": raw.rfind("'")}
 
-    def _find(self, char: str, pos: int) -> int:
-        if self._next[char] < pos:
-            found = self.raw.find(char, pos)
-            self._next[char] = self.size if found < 0 else found
-        return self._next[char]
+    def end(self, name_start: int) -> int:
+        """The index after the tag whose name begins at ``name_start``, and its ``>`` if any."""
+        raw, size = self.raw, self.size
+        pos = _run(_BLANKS_SLASHES, raw, _run(_TAG_NAME, raw, name_start))
+        while pos < size and raw[pos] not in _NAME_END and raw[pos - 1] in _BEFORE_ATTRIBUTE:
+            pos = self._value(_run(_ATTRIBUTE_NAME, raw, pos))
+            pos = _run(_BLANKS_SLASHES, raw, pos)
+        return pos + 1 if pos < size and raw[pos] == ">" else pos
 
-    def _opens_value(self, quote: int) -> bool:
-        back = quote - 1
-        while back >= 0 and self.raw[back] in _WHITE:
-            back -= 1
-        return back >= 0 and self.raw[back] == "="
+    def _value(self, name_end: int) -> int:
+        """The index after an attribute's value, or ``name_end`` if it has none."""
+        raw = self.raw
+        sign = _run(_BLANKS, raw, name_end)
+        if sign >= self.size or raw[sign] != "=":
+            return name_end
+        start = _run(_BLANKS, raw, sign + 1)
+        if start < self.size and raw[start] in "'\"":
+            if self._last[raw[start]] <= start:
+                # No partner. The pattern backs off the blanks after "=" to read an empty bare
+                # value there; with no blank, the value and its "=" are not matched at all.
+                return sign + 1 if start > sign + 1 else name_end
+            return raw.find(raw[start], start + 1) + 1
+        return _run(_BARE_VALUE, raw, start)
 
-    def end(self, start: int) -> int:
-        """The index after the tag opened at ``start``; the text size if the tag never closes."""
-        pos = start + 1
-        while True:
-            close = self._find(">", pos)
-            if close >= self.size:
-                return self.size
-            quote = min(self._find('"', pos), self._find("'", pos))
-            if quote > close:
-                return close + 1
-            partner = self._find(self.raw[quote], quote + 1) if self._opens_value(quote) else None
-            pos = quote + 1 if partner is None or partner >= self.size else partner + 1
+
+def _run(pattern: re.Pattern[str], raw: str, pos: int) -> int:
+    """The index after the match of ``pattern`` at ``pos``; ``pos`` if there is none."""
+    found = pattern.match(raw, pos)
+    return found.end() if found else pos
 
 
 def _drop_long_tags(raw: str) -> str:
@@ -439,27 +454,42 @@ def _drop_long_tags(raw: str) -> str:
     R31. What html.parser reads is bounded by removing what costs memory: one start tag with a
     million attributes is about 280 bytes an attribute, and only the text outside tags can
     reach the summary or the title. A tag is a ``<`` followed by an ASCII letter, ``/``, ``!``
-    or ``?`` and what follows it up to the closing ``>``; one that never closes takes the rest
-    of the text. Comments and CDATA sections are cut the same way. Text outside tags is never
+    or ``?`` and what follows it up to the closing ``>`` (see _TagScanner for start and end
+    tags; the others end at the first ``>``); one that never closes takes what the scan
+    walked. Comments and CDATA sections are cut the same way. Text outside tags is never
     dropped, and one space cannot join two pieces into markup. The scanner's idea of a tag is
-    only for size (see _TagScanner); the result still goes to html.parser.
+    only for size; the result still goes to html.parser, the reader of what is kept.
     """
     scanner = _TagScanner(raw)
     kept: list[str] = []
     copied = 0
-    at = raw.find("<")
-    while at >= 0:
-        resume = at + 1
-        if resume < scanner.size and raw[resume] in _TAG_START:
-            resume = scanner.end(at)
-            if resume - at > MAX_TAG_CHARS:
-                kept += (raw[copied:at], " ")
-                copied = resume
-        at = raw.find("<", resume)
+    found = _TAG_OPEN.search(raw)
+    while found:
+        at = found.start()
+        end = _tag_end(scanner, at)
+        resume = at + 1 if end is None else end
+        if end is not None and end - at > MAX_TAG_CHARS:
+            kept += (raw[copied:at], " ")
+            copied = end
+        found = _TAG_OPEN.search(raw, resume)
     if not copied:
         return raw
     kept.append(raw[copied:])
     return "".join(kept)
+
+
+def _tag_end(scanner: _TagScanner, at: int) -> int | None:
+    """The index after the tag that opens at ``at``; None if it is not a tag."""
+    raw, size = scanner.raw, scanner.size
+    after = raw[at + 1 : at + 3]
+    if after[:1] in _ASCII_LETTERS:
+        return scanner.end(at + 1)
+    if after[:1] == "/" and after[1:] in _ASCII_LETTERS:
+        return scanner.end(at + 2)
+    if after[:1] in ("/", "!", "?"):
+        close = raw.find(">", at + 2)
+        return size if close < 0 else close + 1
+    return None
 
 
 def _strip_markup(raw: str) -> str:

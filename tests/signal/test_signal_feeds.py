@@ -22,6 +22,8 @@ from credit_os.signal.feeds import (
     _folded,
     _new_parser,
     _Node,
+    _tag_end,
+    _TagScanner,
     _TreeBuilder,
     parse_feed,
 )
@@ -1344,6 +1346,45 @@ def test_many_angle_brackets_and_no_closing_one_are_read_in_one_pass() -> None:
     assert _drop_long_tags('<a ="' * 100_000) == " "
 
 
+class _TagSpans(HTMLParser):
+    """html.parser, recording the extent of each start and end tag it reads."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.spans: list[tuple[int, int]] = []
+
+    def parse_starttag(self, i: int) -> int:
+        end = super().parse_starttag(i)
+        if end > 0:
+            self.spans.append((i, end))
+        return end
+
+    def parse_endtag(self, i: int) -> int:
+        end = super().parse_endtag(i)
+        if end > 0:
+            self.spans.append((i, end))
+        return end
+
+
+_TAG_PIECES = st.sampled_from(
+    ["<a ", "</a ", "<", "</", "a", "b", "=", '"', "'", ">", " ", "/", "\n", "\t", "\x0b", "\xa0"]
+    + ['="', "='", "==", "x", "!", "-", "\x0c", "\r", "\x1c"]
+)
+
+
+@settings(max_examples=3000, deadline=None)
+@given(st.lists(_TAG_PIECES, min_size=1, max_size=20).map("".join))
+def test_the_tag_scan_never_ends_a_tag_before_html_parser_does(text: str) -> None:
+    parser = _TagSpans()
+    parser.feed(text)
+    parser.close()
+    scanner = _TagScanner(text)
+    for start, end in parser.spans:
+        scanned = _tag_end(scanner, start)
+        assert scanned is not None
+        assert scanned >= end, (text, start, end, scanned)
+
+
 @pytest.mark.parametrize("quote", ['"', "'"])
 def test_a_closing_bracket_inside_a_quoted_value_does_not_hide_the_rest_of_a_tag(
     quote: str,
@@ -1354,10 +1395,21 @@ def test_a_closing_bracket_inside_a_quoted_value_does_not_hide_the_rest_of_a_tag
 
 
 def test_a_quote_with_no_partner_opens_no_value() -> None:
-    tag = '<a x=" ' + "b " * 5000 + ">"
-    assert _drop_long_tags(f"before {tag}after") == "before  after"
-    # a quote that does not follow "=" opens nothing either
+    # html.parser matches no tag here (the value is unclosed), so it keeps the text as it is
+    unmatched = '<a x=" ' + "b " * 5000 + ">"
+    assert _drop_long_tags(f"before {unmatched}after") == f"before {unmatched}after"
+    # with a blank after "=" it reads an empty value, then the rest as attributes: one tag
+    blank = '<a x= " ' + "b " * 5000 + ">"
+    assert _drop_long_tags(f"before {blank}after") == "before  after"
+    # a quote that does not follow "=" is part of an attribute name
     assert _drop_long_tags('<a "x ' + "b " * 5000 + '">after') == " after"
+    # html.parser's walk of an unmatched quote ends before it: that much is the tag
+    assert _drop_long_tags('<a b="c"' + "d " * 5000 + "e='f>g") == " ='f>g"
+
+
+def test_an_end_tag_with_attributes_is_dropped_like_a_start_tag() -> None:
+    assert _drop_long_tags("x</a " + "b " * 5000 + ">y") == "x y"
+    assert _drop_long_tags('x</a q=">" ' + "b " * 5000 + ">y") == "x y"
 
 
 def test_cutting_a_tag_out_cannot_join_the_pieces_into_markup() -> None:
