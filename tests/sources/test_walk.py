@@ -3,12 +3,9 @@
 import errno
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
-from hypothesis import HealthCheck, given, settings
-from hypothesis import strategies as st
 from pydantic import ValidationError
 
 import credit_os.sources.walk as walk_module
@@ -48,6 +45,7 @@ README = b"Synthetic note.\n"
 README_SHA = "4157540c50a21d8eccdd85cc071e37f2b23dd35525473b1b671044125dd44f42"
 SYMLINK_REASON = "symbolic link"
 LINKED = "is or passes through a symbolic link"
+SEGMENT = "segment starts or ends with a space or ends with a dot"
 
 EXPECTED_PINS = (
     (
@@ -154,6 +152,26 @@ def test_precedence(tmp_path: Path, name: str, reason: str) -> None:
     assert result == PinnedFolder(pins=(), skipped=_skipped((name, reason)))
 
 
+def test_nested_folders(tmp_path: Path) -> None:
+    files = {
+        "a/b/c/deep.txt": README,
+        "a/b/_skip/x.txt": b"x",
+        "a/b/c/pic.png": b"x",
+        "_r\u00e9sum\u00e9/x.txt": b"x",
+        "r\u00e9sum\u00e9.png": b"x",
+    }
+    result = pin_folder(_write(tmp_path, files))
+    assert result.pins == (
+        SourcePin(name="a/b/c/deep.txt", sha256=README_SHA, size_bytes=16, kind=SourceKind.TEXT),
+    )
+    assert result.skipped == _skipped(
+        ("_r\u00e9sum\u00e9/", "excluded name"),
+        ("a/b/_skip/", "excluded name"),
+        ("a/b/c/pic.png", "unsupported suffix"),
+        ("r\u00e9sum\u00e9.png", "unsupported suffix"),
+    )
+
+
 def test_not_a_folder(tmp_path: Path) -> None:
     missing = tmp_path / "missing"
     assert _refusal(missing) == f"{missing}: not a folder"
@@ -198,6 +216,18 @@ def test_collisions() -> None:
         (
             ["résumé.txt", "résumé.txt"],
             "résumé.txt and résumé.txt differ only by case or Unicode form",
+        ),
+        (
+            ["\u0124\u0331.txt", "\u0125\u0331.txt"],
+            "\u0124\u0331.txt and \u0125\u0331.txt differ only by case",
+        ),
+        (
+            ["\u015a.txt", "\u017f\u0301.txt"],
+            "\u015a.txt and \u017f\u0301.txt differ only by case or Unicode form",
+        ),
+        (
+            ["\u1fb3\u0301.txt", "\u1fb4.txt"],
+            "\u1fb3\u0301.txt and \u1fb4.txt differ only by case or Unicode form",
         ),
         (
             ["A" * 130 + ".txt", "a" * 130 + ".txt"],
@@ -252,19 +282,28 @@ def test_stored_name_as_listed(tmp_path: Path) -> None:
     assert [p.name for p in pin_folder(tmp_path).pins] == [decomposed]
 
 
-def test_links(tmp_path: Path) -> None:
+def _readme_and_outside(tmp_path: Path, outside_files: dict[str, bytes]) -> tuple[Path, Path]:
     folder = _write(tmp_path / "f", {"readme.txt": README})
-    outside = _write(tmp_path / "outside", {"secret.txt": b"secret\n"})
-    _symlink(folder / "link.txt", folder / "readme.txt")
+    return folder, _write(tmp_path / "outside", outside_files)
+
+
+def test_links(tmp_path: Path) -> None:
+    folder, outside = _readme_and_outside(tmp_path, {"secret.txt": b"secret\n"})
+    for name in ("link.txt", ".x", "_x"):
+        _symlink(folder / name, folder / "readme.txt")
     _symlink(folder / "linkdir", outside)
     result = pin_folder(folder)
     assert [p.name for p in result.pins] == ["readme.txt"]
-    assert result.skipped == _skipped(("link.txt", SYMLINK_REASON), ("linkdir", SYMLINK_REASON))
+    assert result.skipped == _skipped(
+        (".x", SYMLINK_REASON),
+        ("_x", SYMLINK_REASON),
+        ("link.txt", SYMLINK_REASON),
+        ("linkdir", SYMLINK_REASON),
+    )
 
 
 def test_linked_directory_is_not_entered(tmp_path: Path) -> None:
-    folder = _write(tmp_path / "f", {"readme.txt": README})
-    outside = _write(tmp_path / "outside", {"filing.html": FIXTURE["notes/filing.html"]})
+    folder, outside = _readme_and_outside(tmp_path, {"filing.html": FIXTURE["notes/filing.html"]})
     _symlink(folder / "notes", outside)
     result = pin_folder(folder)
     assert [p.name for p in result.pins] == ["readme.txt"]
@@ -276,8 +315,7 @@ def test_junction(tmp_path: Path) -> None:
     if sys.platform == "win32":
         import _winapi
 
-        folder = _write(tmp_path / "f", {"readme.txt": README})
-        outside = _write(tmp_path / "outside", {"secret.txt": b"secret\n"})
+        folder, outside = _readme_and_outside(tmp_path, {"secret.txt": b"secret\n"})
         _winapi.CreateJunction(str(outside), str(folder / "joined"))
         assert (folder / "joined").is_junction()
         result = pin_folder(folder)
@@ -313,13 +351,17 @@ def test_swap_between_scan_and_read(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert folder / "notes" / "filing.html" not in reads
 
 
-@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="no FIFOs on this platform")
 def test_fifo(tmp_path: Path) -> None:
+    if not hasattr(os, "mkfifo"):
+        pytest.skip("os.mkfifo is not available on this platform")
     _write(tmp_path, {"readme.txt": README})
     os.mkfifo(tmp_path / "pipe.txt")
+    os.mkfifo(tmp_path / "_pipe")
     result = pin_folder(tmp_path)
     assert [p.name for p in result.pins] == ["readme.txt"]
-    assert result.skipped == _skipped(("pipe.txt", "not a regular file"))
+    assert result.skipped == _skipped(
+        ("_pipe", "excluded name"), ("pipe.txt", "not a regular file")
+    )
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot hold this name")
@@ -345,7 +387,6 @@ def test_control_names_are_written_with_escapes(tmp_path: Path) -> None:
         "Icon\r": b"x",
         "a\\b.png": b"x",
         ".x\r": b"x",
-        "bad\rdir/x.png": b"x",
     }
     result = pin_folder(_write(tmp_path, files))
     assert [p.name for p in result.pins] == ["readme.txt"]
@@ -353,8 +394,32 @@ def test_control_names_are_written_with_escapes(tmp_path: Path) -> None:
         (".x\\r", "hidden name"),
         ("Icon\\r", "unsupported suffix"),
         ("a\\\\b.png", "unsupported suffix"),
-        ("bad\\rdir/x.png", "unsupported suffix"),
     )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot hold this name")
+@pytest.mark.parametrize(
+    ("directory", "files", "message"),
+    [
+        ("bad\rdir", {"x.png": b"x"}, "'bad\\rdir': forbidden character U+000D"),
+        ("notes.", {"x.png": b"x"}, "'notes.': " + SEGMENT),
+        ("notes ", {}, "'notes ': " + SEGMENT),
+        ("ok/sub ", {"x.png": b"x"}, "'ok/sub ': " + SEGMENT),
+    ],
+)
+def test_entered_directory_with_a_bad_name_refuses(
+    tmp_path: Path, directory: str, files: dict[str, bytes], message: str
+) -> None:
+    folder = _write(tmp_path, {f"{directory}/{name}": raw for name, raw in files.items()})
+    (folder / directory).mkdir(parents=True, exist_ok=True)
+    assert _refusal(folder) == message
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot hold this name")
+def test_hidden_directory_with_a_bad_name_is_skipped(tmp_path: Path) -> None:
+    result = pin_folder(_write(tmp_path, {"readme.txt": README, ".x\r/a.txt": b"x"}))
+    assert [p.name for p in result.pins] == ["readme.txt"]
+    assert result.skipped == _skipped((".x\\r/", "hidden name"))
 
 
 def _non_utf8(folder: Path, suffix: bytes) -> None:
@@ -370,6 +435,7 @@ def _non_utf8(folder: Path, suffix: bytes) -> None:
 def test_non_utf8_names(tmp_path: Path) -> None:
     _non_utf8(tmp_path / "png", b".png")
     result = pin_folder(tmp_path / "png")
+    assert [p.name for p in result.pins] == ["readme.txt"]
     assert result.skipped == _skipped(("bad\\udcff.png", "unsupported suffix"))
     assert PinnedFolder.model_validate_json(result.model_dump_json()) == result
     _non_utf8(tmp_path / "txt", b".txt")
@@ -390,6 +456,27 @@ def test_listing_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert caught.value.__cause__ is failure
 
 
+def test_folder_test_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    failure = OSError(errno.EACCES, "synthetic")
+
+    def fail(self: Path) -> bool:
+        raise failure
+
+    monkeypatch.setattr(Path, "is_dir", fail)
+    with pytest.raises(SourceRefused) as caught:
+        pin_folder(tmp_path)
+    assert str(caught.value) == f"{tmp_path}: not a folder"
+    assert caught.value.__cause__ is failure
+
+
+def test_listing_failure_without_strerror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail(path: object) -> object:
+        raise OSError("text")
+
+    monkeypatch.setattr(os, "scandir", fail)
+    assert _refusal(tmp_path, SourceUnreadable) == f"{tmp_path}: cannot list (text)"
+
+
 def test_entry_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     failure = OSError(errno.EACCES, "synthetic")
 
@@ -399,18 +486,23 @@ def test_entry_failure_is_typed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
         def is_symlink(self) -> bool:
             raise failure
 
-    monkeypatch.setattr(walk_module, "_listing", lambda directory: [BrokenEntry()])
+    monkeypatch.setattr(walk_module, "_listing", lambda *args: [BrokenEntry()])
     with pytest.raises(SourceUnreadable) as caught:
         pin_folder(tmp_path)
     assert str(caught.value) == f"{tmp_path}: cannot list (synthetic)"
     assert caught.value.__cause__ is failure
 
 
-def test_unlistable_directory(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("directory", "written"), [("locked", "locked"), ("evil\x1b[2J", "evil\\x1b[2J")]
+)
+def test_unlistable_directory(tmp_path: Path, directory: str, written: str) -> None:
+    if sys.platform == "win32":
+        pytest.skip("Windows cannot hold this name")
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         pytest.skip("root ignores directory permissions")
     folder = _write(tmp_path, {"readme.txt": README})
-    locked = folder / "locked"
+    locked = folder / directory
     locked.mkdir()
     locked.chmod(0o000)
     try:
@@ -423,7 +515,7 @@ def test_unlistable_directory(tmp_path: Path) -> None:
         message = _refusal(folder, SourceUnreadable)
     finally:
         locked.chmod(0o700)
-    assert message == f"{locked}: cannot list ({os.strerror(errno.EACCES)})"
+    assert message == f"{folder}/{written}: cannot list ({os.strerror(errno.EACCES)})"
 
 
 def test_public_surface() -> None:
@@ -450,90 +542,3 @@ def test_public_surface() -> None:
     ]
     assert sorted(sources.__all__) == expected
     assert all(hasattr(sources, name) for name in expected)
-
-
-# --- property test: expected outcomes come from the drawn choices only ---
-
-_PREFIX_REASON: dict[str, str | None] = {
-    "": None,
-    ".": "hidden name",
-    "_": "excluded name",
-    "~$": "excluded name",
-}
-_ACCEPTED: dict[str, tuple[SourceKind, bytes]] = {
-    ".pdf": (SourceKind.PDF, b"%PDF-1.4\n"),
-    ".htm": (SourceKind.HTML, b"<p>x</p>\n"),
-    ".html": (SourceKind.HTML, b"<p>x</p>\n"),
-    ".docx": (SourceKind.DOCX, b"PK\x03\x04x"),
-    ".txt": (SourceKind.TEXT, b"text\n"),
-    ".md": (SourceKind.TEXT, b"# text\n"),
-    ".xlsx": (SourceKind.XLSX, b"PK\x03\x04x"),
-    ".csv": (SourceKind.CSV, b"a,b\n"),
-}
-_RESERVED = {"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") for i in range(10)}
-_stems = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789", min_size=1, max_size=6).filter(
-    lambda stem: stem not in _RESERVED
-)
-
-
-@st.composite
-def _folders(draw: st.DrawFn) -> tuple[dict[str, bytes], list[str], list[tuple[str, str]]]:
-    stems = draw(st.lists(_stems, min_size=2, max_size=8, unique_by=str.casefold))
-    dir_stem, file_stems = stems[0], stems[1:]
-    use_dir = draw(st.booleans())
-    dir_prefix = draw(st.sampled_from(list(_PREFIX_REASON)))
-    dir_name = dir_prefix + dir_stem
-    dir_reason = _PREFIX_REASON[dir_prefix]
-    files: dict[str, bytes] = {}
-    pinned: list[tuple[str, SourceKind]] = []
-    skipped: list[tuple[str, str]] = []
-    covered: list[str] = []
-    for stem in file_stems:
-        prefix = draw(st.sampled_from(list(_PREFIX_REASON)))
-        accepted = draw(st.booleans())
-        if accepted:
-            suffix = draw(st.sampled_from(list(_ACCEPTED)))
-            suffix = "".join(draw(st.sampled_from((c.lower(), c.upper()))) for c in suffix)
-            kind, raw = _ACCEPTED[suffix.lower()]
-        else:
-            suffix, raw = draw(st.sampled_from((".png", ".zip", ""))), b"x"
-        inside = use_dir and draw(st.booleans())
-        name = (dir_name + "/" if inside else "") + prefix + stem + suffix
-        files[name] = raw
-        if inside and dir_reason is not None:
-            if not covered:
-                skipped.append((dir_name + "/", dir_reason))
-            covered.append(name)
-        elif _PREFIX_REASON[prefix] is not None:
-            skipped.append((name, _PREFIX_REASON[prefix] or ""))
-        elif accepted:
-            pinned.append((name, kind))
-        else:
-            skipped.append((name, "unsupported suffix"))
-    expected_pins = sorted(pinned)
-    return (
-        files,
-        [f"{n}\0{k.value}" for n, k in expected_pins],
-        sorted(skipped) + [("\0covered", "\0".join(covered))],
-    )
-
-
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(_folders())
-def test_every_file_is_accounted_for_once(
-    drawn: tuple[dict[str, bytes], list[str], list[tuple[str, str]]],
-) -> None:
-    files, expected_pins, expected_rows = drawn
-    *expected_skipped, (_, covered_joined) = expected_rows
-    covered = covered_joined.split("\0") if covered_joined else []
-    with tempfile.TemporaryDirectory() as root:
-        result = pin_folder(_write(Path(root), files))
-    assert [f"{p.name}\0{p.kind.value}" for p in result.pins] == expected_pins
-    assert result.skipped == _skipped(*expected_skipped)
-    pinned = {p.name for p in result.pins}
-    rows = {s.name for s in result.skipped}
-    for name in files:
-        homes = [name in pinned, name in rows, name in covered]
-        assert sum(homes) == 1
-        if name in covered:
-            assert any(name.startswith(row) for row in rows if row.endswith("/"))

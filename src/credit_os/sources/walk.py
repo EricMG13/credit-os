@@ -26,13 +26,14 @@ class Skipped(BaseModel):
 
 
 def refuse_case_collisions(names: Iterable[str]) -> None:
-    """Refuse two names that match after Unicode (NFC) normalisation and case folding.
+    """Refuse two names that match under Unicode canonical caseless matching.
 
+    The key is ``NFD(casefold(NFD(name)))``, so it refuses more than case folding alone does.
     The first name, in plain string order, that matches an earlier one decides the message.
     """
     first_seen: dict[str, str] = {}
     for name in sorted(names):
-        key = unicodedata.normalize("NFC", name).casefold()
+        key = unicodedata.normalize("NFD", unicodedata.normalize("NFD", name).casefold())
         if key not in first_seen:
             first_seen[key] = name
             continue
@@ -71,16 +72,22 @@ def _written(name: str) -> str:
         return name.encode("unicode_escape").decode("ascii")
 
 
-def _listing(directory: Path) -> list[os.DirEntry[str]]:
+def _cannot_list(folder: Path, prefix: str, error: OSError) -> SourceUnreadable:
+    """The typed error for a directory that cannot be listed, its name below the folder written
+    as a skipped row is (the folder part stays whole)."""
+    shown = folder / _written(prefix[:-1]) if prefix else folder
+    return SourceUnreadable(f"{shown}: cannot list ({error.strerror or error})")
+
+
+def _listing(folder: Path, directory: Path, prefix: str) -> list[os.DirEntry[str]]:
     try:
         with os.scandir(directory) as entries:
             return list(entries)
     except OSError as error:
-        reason = error.strerror or str(error)
-        raise SourceUnreadable(f"{directory}: cannot list ({reason})") from error
+        raise _cannot_list(folder, prefix, error) from error
 
 
-def _classify(directory: Path, entry: os.DirEntry[str], name: str) -> tuple[str, str | None]:
+def _classify(folder: Path, prefix: str, entry: os.DirEntry[str]) -> tuple[str, str | None]:
     """Return (action, reason) for one entry: skip, skip_dir, enter, or file."""
     try:
         if entry.is_symlink() or entry.is_junction():
@@ -88,8 +95,7 @@ def _classify(directory: Path, entry: os.DirEntry[str], name: str) -> tuple[str,
         is_dir = entry.is_dir(follow_symlinks=False)
         is_file = entry.is_file(follow_symlinks=False)
     except OSError as error:
-        reason = error.strerror or str(error)
-        raise SourceUnreadable(f"{directory}: cannot list ({reason})") from error
+        raise _cannot_list(folder, prefix, error) from error
     base = entry.name
     skip_reason = None
     if base.startswith("."):
@@ -125,7 +131,7 @@ def _visit(
     skipped: list[Skipped],
 ) -> None:
     name = prefix + entry.name
-    action, reason = _classify(directory, entry, name)
+    action, reason = _classify(folder, prefix, entry)
     if action == "enter":
         pending.append((directory / entry.name, name + "/"))
     elif action == "file" and (kind := kind_of(name)) is not None:
@@ -142,16 +148,29 @@ def pin_folder(folder: Path) -> PinnedFolder:
     suffixes and non-regular files are skipped and listed; a skipped directory is listed once
     with a trailing ``/`` and not entered. A name that fails ``validate_name`` is written in
     ``Skipped`` with ASCII backslash escapes, so every row is printable. A file that would be
-    pinned and has a bad name, a wrong signature or a read error stops the walk.
+    pinned and has a bad name, a wrong signature or a read error stops the walk, and so does a
+    directory the walk would enter whose own name fails ``validate_name`` (checked once it is
+    listed, before any entry in it is visited).
+
+    A directory swapped for a link between its classification and its listing can put names from
+    outside the folder into the skipped list. No bytes are read through it, because
+    ``source_path`` refuses anything below a link, and the pin's digest guards content.
     """
-    if not folder.is_dir():
+    try:
+        is_folder = folder.is_dir()
+    except OSError as error:
+        raise SourceRefused(f"{folder}: not a folder") from error
+    if not is_folder:
         raise SourceRefused(f"{folder}: not a folder")
     pins: list[SourcePin] = []
     skipped: list[Skipped] = []
     pending: list[tuple[Path, str]] = [(folder, "")]
     while pending:
         directory, prefix = pending.pop()
-        for entry in _listing(directory):
+        listing = _listing(folder, directory, prefix)
+        if prefix:
+            validate_name(prefix[:-1])
+        for entry in listing:
             _visit(folder, directory, prefix, entry, pending, pins, skipped)
     refuse_case_collisions(pin.name for pin in pins)
     return PinnedFolder(
