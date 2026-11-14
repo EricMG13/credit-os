@@ -48,7 +48,11 @@ function ShareForm({ headline, groups, onShare, onCancel, onGone }: Props) {
     if (group === null) {
       setError(true);
       // The kit's Select takes no focus ref for its trigger, so it is found inside the field's root.
-      select.current?.querySelector("button")?.focus();
+      const trigger = select.current?.querySelector("button");
+      if (trigger === null || trigger === undefined) {
+        throw new Error("the Group select has no trigger button to focus");
+      }
+      trigger.focus();
     } else onShare();
   };
   return (

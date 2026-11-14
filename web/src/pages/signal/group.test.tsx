@@ -1,5 +1,5 @@
 // The group view (mock frames "Group view, writer" and "Group view, reader"; behaviour list 2.4, 2.5).
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
 import type { LoadResult } from "../../data";
@@ -296,5 +296,44 @@ describe("the group view", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1, name: "Leveraged credit" })).toBeNull();
+  });
+});
+
+describe("the group view across groups that reuse a thread id", () => {
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  function twinnedStories(): unknown {
+    const copy = structuredClone(fixture.slice) as unknown as {
+      scenes: {
+        snapshot: {
+          threads: { id: string; groupId: string; storyId: string | null }[];
+          groups: { id: string; threads: { id: string; storyId: string | null }[] }[];
+        };
+      }[];
+    };
+    const snap = copy.scenes[0]?.snapshot;
+    if (snap === undefined) throw new Error("the fixture has a first scene");
+    const thread = snap.threads.find((t) => t.id === "corvane-thread");
+    const item = snap.groups[0]?.threads.find((t) => t.id === "corvane-thread");
+    const other = snap.groups.find((g) => g.id === "shipping-desk");
+    if (thread === undefined || item === undefined || other === undefined)
+      throw new Error("the fixture has both groups and the thread");
+    snap.threads.push({ ...structuredClone(thread), groupId: "shipping-desk", storyId: "tessaly" });
+    other.threads.push({ ...structuredClone(item), storyId: "tessaly" });
+    return copy;
+  }
+
+  it("shows the second group's story with its own saved state", async () => {
+    show(LEV, twinnedStories());
+    fireEvent.click(screen.getByRole("button", { name: `Save: ${CORVANE}` }));
+    expect(screen.getByRole("button", { name: `Saved: ${CORVANE}` })).toBeInTheDocument();
+    window.location.hash = "#/signal/main/group/shipping-desk";
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 1, name: "Shipping desk" })).toBeInTheDocument();
+    });
+    const tessaly = "Competition authority opens in-depth review of Tessaly Telecom's tower sale";
+    expect(screen.getByRole("button", { name: `Save: ${tessaly}` })).toBeInTheDocument();
   });
 });
