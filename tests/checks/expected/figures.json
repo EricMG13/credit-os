@@ -134,6 +134,7 @@
     {"text": "In Q3$5m it fell.", "sides": ["passage"], "figures": [["5", false, false, "m", "USD", "5m", 7]]},
     {"text": "Debt was USD - 9M.", "sides": ["passage"], "figures": []},
     {"text": "Debt was USD - 9M.", "sides": ["held"], "figures": [["9", false, false, "m", null, "9M", 16]]},
-    {"text": "Debt was USD ( -9M).", "sides": ["passage", "held"], "figures": [["9", true, false, "m", "USD", "( -9M)", 14]]}
+    {"text": "Debt was USD ( -9M).", "sides": ["passage", "held"], "figures": [["9", true, false, "m", "USD", "( -9M)", 14]]},
+    {"text": "Debt was (USD 9M).", "sides": ["passage", "held"], "figures": [["9", true, true, "m", "USD", "(USD 9M)", 10]]}
   ]
 }
