@@ -350,3 +350,10 @@ def test_ratio_non_positive_denominator_is_missing(n: Decimal, d: Decimal) -> No
     result = ratio(val(n), val(-abs(d)), non_positive="np")
     assert result.amount is None
     assert result.missing == Missing(MissingCode.ZERO_OR_NEGATIVE_DENOMINATOR, "np")
+
+
+def test_half_unit_ignores_a_tight_ambient_range() -> None:
+    tight = Context(prec=1, Emin=-3, Emax=3, traps=[], flags=[])
+    with decimal.localcontext(tight):
+        got = half_unit([Decimal("0.00000")])
+    assert got.as_tuple() == Decimal("0.000005").as_tuple()
