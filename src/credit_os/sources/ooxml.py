@@ -1,17 +1,29 @@
-"""The zip half of the OOXML guards: a checked package and the bytes of its parts, in pieces.
+"""The OOXML guards: a checked zip package, the bytes of its parts in pieces, and XML parts read
+through a bounded parser.
 
-Every failure of the standard library on a bad zip becomes a `SourceUnreadable` that names the
-file, and the part where one is meant, and chains its cause. Limits are module constants read at
-call time; a test lowers one with `monkeypatch`.
+Zip half: every failure of the standard library on a bad zip becomes a `SourceUnreadable` that
+names the file, and the part where one is meant, and chains its cause.
+
+XML half (`Package.parse`): a part is never held whole. Each piece is checked on its bytes (a NUL
+byte, a DOCTYPE or ENTITY declaration, an unfinished markup token over `MAX_TOKEN_BYTES`) and
+decoded as UTF-8 before the parser is given it; expat's own DOCTYPE handler is a second guard
+behind the byte search, and the depth and the count of different names are measured as elements
+arrive. Expat's reparse deferral is left on. Only `xml.parsers.expat` is used.
+
+Limits are module constants read at call time; a test lowers one with `monkeypatch`.
 """
 
+import codecs
 import io
+import re
 import struct
 import unicodedata
 import warnings
 import zipfile
 import zlib
 from collections.abc import Iterator
+from typing import Protocol
+from xml.parsers import expat
 
 from credit_os.sources.errors import SourceUnreadable, shown_name
 
@@ -24,6 +36,12 @@ MAX_MEMBERS = 16_384
 MAX_DIRECTORY_BYTES = 4_194_304
 # The most of a part held at once.
 CHUNK_BYTES = 65_536
+# expat keeps one unfinished markup token whole; a tag of this size costs it 24 times that.
+MAX_TOKEN_BYTES = 1_048_576
+# expat keeps about 140 bytes per open element.
+MAX_DEPTH = 256
+# expat keeps every different element, attribute and prefix name for the life of a part.
+MAX_NAMES = 4_096
 
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _LOCAL_SIGNATURE = b"PK\x03\x04"
@@ -37,6 +55,18 @@ _RECORD64_SIZE = 56
 _MAX_COMMENT = 65_535
 _STORED = 0
 _DEFLATED = 8
+_DECLARATION = re.compile(rb"<!(?:DOCTYPE|ENTITY)", re.IGNORECASE)
+_DECLARATION_TAIL = 8
+# One whole markup token: a comment, a processing instruction or XML declaration, a CDATA
+# section, any other tag (quoted values may hold ">"), or a reference. Possessive: no backtracking.
+_TOKEN_TEXT = (
+    rb"<!--.*?-->|<\?.*?\?>|<!\[CDATA\[.*?\]\]>"
+    rb"""|<(?!!--|\?|!\[CDATA\[)(?:[^<>"']++|"[^"]*+"|'[^']*+')*+>"""
+    rb"|&[^;<&]*+;"
+)
+_TOKEN = re.compile(_TOKEN_TEXT, re.DOTALL)
+_WHOLE = re.compile(rb"(?:[^<&]++|" + _TOKEN_TEXT + rb")*+", re.DOTALL)
+_DECLARED = "a DOCTYPE or ENTITY declaration"
 
 
 def _end_record(raw: bytes) -> tuple[int, int, int] | None:
@@ -72,6 +102,19 @@ def _end_record(raw: bytes) -> tuple[int, int, int] | None:
         return stated
     _, _, _, _, _, _, _, total64, size64, offset64 = struct.unpack_from("<4sQ2H2L4Q", raw, at)
     return (offset64, size64, total64)
+
+
+class Target(Protocol):
+    """What reads a part: called for each element start, end and piece of text."""
+
+    def start(self, name: str, attributes: dict[str, str]) -> None:
+        """An element opened; its name is `uri}local` where it has a namespace."""
+
+    def end(self, name: str) -> None:
+        """An element closed."""
+
+    def text(self, data: str) -> None:
+        """A piece of text; consecutive calls belong to one run, so a target joins them."""
 
 
 class Package:
@@ -183,3 +226,96 @@ class Package:
                 if self._expanded > MAX_EXPANDED_BYTES:
                     raise self.refuse(f"expands to more than {MAX_EXPANDED_BYTES:,} bytes")
                 yield chunk
+
+    def parse(self, part: str, target: Target) -> None:
+        """Read one XML part into the target, refusing what the guards refuse."""
+        shape = _Shape(self, part, target)
+        parser = expat.ParserCreate(None, "}")
+        parser.buffer_text = True
+        parser.StartElementHandler = shape.start
+        parser.EndElementHandler = shape.end
+        parser.CharacterDataHandler = target.text
+        parser.StartNamespaceDeclHandler = shape.prefix
+        parser.StartDoctypeDeclHandler = shape.doctype
+        decoder = codecs.getincrementaldecoder("utf-8-sig")()
+        held = b""
+        tail = b""
+        try:
+            for piece in self.pieces(part):
+                self._check_bytes(part, tail + piece)
+                tail = (tail + piece)[-_DECLARATION_TAIL:]
+                held = self._unfinished(part, held + piece if held else piece, bool(held))
+                parser.Parse(self._decoded(part, decoder, piece, False), False)
+            parser.Parse(self._decoded(part, decoder, b"", True), True)
+        except expat.ExpatError as error:
+            raise self.refuse("not well-formed XML", part) from error
+
+    def _check_bytes(self, part: str, seen: bytes) -> None:
+        """Refuse a NUL byte or a declaration in the bytes of a piece, with the tail before it."""
+        if b"\x00" in seen:
+            raise self.refuse("a NUL byte (XML parts are read as UTF-8 only)", part)
+        if _DECLARATION.search(seen):
+            raise self.refuse(_DECLARED, part)
+
+    def _decoded(
+        self, part: str, decoder: codecs.IncrementalDecoder, piece: bytes, last: bool
+    ) -> str:
+        try:
+            return decoder.decode(piece, last)
+        except UnicodeDecodeError as error:
+            raise self.refuse("not valid UTF-8", part) from error
+
+    def _unfinished(self, part: str, data: bytes, continued: bool) -> bytes:
+        """Return the unfinished markup token at the end of data, refusing one that is too long."""
+        at = 0
+        if continued:
+            token = _TOKEN.match(data)
+            if token is None or token.end() > MAX_TOKEN_BYTES:
+                if len(data) > MAX_TOKEN_BYTES:
+                    limit = f"{MAX_TOKEN_BYTES:,}"
+                    raise self.refuse(
+                        f"an XML tag, comment or reference longer than {limit} bytes", part
+                    )
+                return data
+            at = token.end()
+        whole = _WHOLE.match(data, at)
+        return data[whole.end() :] if whole else data[at:]
+
+
+class _Shape:
+    """Between the parser and a target: the depth and the count of different names of one part."""
+
+    def __init__(self, package: Package, part: str, target: Target) -> None:
+        self._package = package
+        self._part = part
+        self._target = target
+        self._depth = 0
+        self._names: set[str] = set()
+
+    def _known(self, name: str) -> None:
+        self._names.add(name)
+        if len(self._names) > MAX_NAMES:
+            raise self._package.refuse(f"more than {MAX_NAMES:,} different XML names", self._part)
+
+    def start(self, name: str, attributes: dict[str, str]) -> None:
+        self._depth += 1
+        if self._depth > MAX_DEPTH:
+            raise self._package.refuse(f"XML nested deeper than {MAX_DEPTH} elements", self._part)
+        if name not in self._names:
+            self._known(name)
+        if attributes and not self._names.issuperset(attributes):
+            for attribute in attributes:
+                self._known(attribute)
+        self._target.start(name, attributes)
+
+    def end(self, name: str) -> None:
+        self._depth -= 1
+        self._target.end(name)
+
+    def doctype(self, *_declared: object) -> None:
+        """The parser's own word that a DOCTYPE began: the second guard behind the byte search."""
+        raise self._package.refuse(_DECLARED, self._part)
+
+    def prefix(self, name: str | None, _uri: str | None) -> None:
+        if name is not None and "xmlns:" + name not in self._names:
+            self._known("xmlns:" + name)
