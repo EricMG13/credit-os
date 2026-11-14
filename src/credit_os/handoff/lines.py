@@ -9,3 +9,8 @@ def split_lines(text: str) -> tuple[str, ...]:
     if parts[-1] == "":
         parts.pop()
     return tuple(parts)
+
+
+def count_terminators(text: str) -> int:
+    """How many line terminators `text` holds, by the same rule as `split_lines`."""
+    return len(_TERMINATOR.findall(text))
