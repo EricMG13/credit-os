@@ -21,8 +21,12 @@ REFUSED_FOLDER_TEXTS: tuple[str, ...] = (
 )
 # Appended to an absolute temporary folder: a name the file system cannot hold. StoreRefused.
 REFUSED_FOLDER_NAMES: tuple[str, ...] = ("nul\x00byte", "lone\ud800surrogate")
-# Not a Path at all. StoreRefused.
-REFUSED_FOLDER_VALUES: tuple[object, ...] = ("/tmp/state", b"/tmp/state", None, 5)
+# Not a Path at all. StoreRefused, and nothing is made under the test's tmp_path. The text forms
+# are built in the test from its own `tmp_path / "state"`, never a fixed absolute path: "str" is
+# str() of it, "bytes" is os.fsencode() of it. So a mutant that accepted text writes only inside
+# the test's own tree.
+REFUSED_FOLDER_TEXT_FORMS: tuple[str, ...] = ("str", "bytes")
+REFUSED_FOLDER_VALUES: tuple[object, ...] = (None, 5)
 
 # Contents of an existing state file that are refused before SQLite opens it, bytes unchanged.
 # (bytes, name of the error class) for the writer; a reader refuses each of these too.

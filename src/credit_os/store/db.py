@@ -161,14 +161,29 @@ def _check_busy_seconds(busy_seconds: object) -> None:
     raise StoreRefused(f"busy_seconds must be above 0 and at most {_MAXIMUM_BUSY_SECONDS}")
 
 
+def _strict_text(data: bytes) -> str:
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        # Its message holds no stored text; SQLite's own error for the same bytes does.
+        raise StoreCorrupt("a stored text is not UTF-8") from None
+
+
+def _check_clock(clock: object) -> None:
+    if not callable(clock):
+        raise StoreRefused("clock must be callable")
+
+
 def _connect(path: Path, mode: str, busy_seconds: float) -> sqlite3.Connection:
     uri = path.as_uri() + "?mode=" + mode
     try:
-        return sqlite3.connect(
+        connection = sqlite3.connect(
             uri, uri=True, autocommit=True, timeout=busy_seconds, check_same_thread=False
         )
     except sqlite3.Error as error:
         raise store_error(error, "connect to the state file") from error
+    connection.text_factory = _strict_text
+    return connection
 
 
 def _read_identity(connection: sqlite3.Connection) -> tuple[int, int, bool]:
@@ -244,6 +259,7 @@ def open_store(
     seconds; a naive value is StoreRefused."""
     _check_library()
     _check_busy_seconds(busy_seconds)
+    _check_clock(clock)
     migrations = txn.check_migrations(migrations)
     store = Store(_connect(location.prepare(folder), "rw", busy_seconds), clock)
     opened = False

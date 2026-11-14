@@ -125,3 +125,76 @@ FORGED_PINS: tuple[tuple[str, dict[str, object], str], ...] = (
 )
 RENAMED_PIN_NAME = "../outside.exe"
 FORGED_PIN_MESSAGE = "pin 1 is refused by the source model: {}"
+
+# --- Added for PR 2b-b: #300's whole-branch Lows ---------------------------------------------------
+
+# L1: stored text that is not UTF-8. After create_run(pins=()) of CREATE, a raw connection inserts
+# run NON_UTF8_RUN_ID with issuer_name CAST(x'ff53454352455421' AS TEXT) and, for CREATE's run, a pin
+# at position 0 named CAST(x'ff5345435245542e706466' AS TEXT) (both bytes are 0xff then "SECRET...").
+# run(NON_UTF8_RUN_ID) and pins(CREATE's run id), on the Store and on a StoreReader opened after the
+# raw writes, are each StoreCorrupt with exactly NON_UTF8_MESSAGE, which never holds "SECRET".
+NON_UTF8_RUN_ID = "run-utf8"
+NON_UTF8_ISSUER_NAME_HEX = "ff53454352455421"
+NON_UTF8_PIN_NAME_HEX = "ff5345435245542e706466"
+NON_UTF8_MESSAGE = "a stored text is not UTF-8"
+
+# L2: a stored as_of that is no date. A raw connection with PRAGMA ignore_check_constraints = ON
+# inserts run BAD_AS_OF_RUN_ID with as_of BAD_AS_OF. run() of it on the Store, and on a StoreReader
+# opened after the raw write, is StoreCorrupt with exactly BAD_AS_OF_MESSAGE and no __cause__.
+BAD_AS_OF_RUN_ID = "run-bad-date"
+BAD_AS_OF = "2026-02-30"
+BAD_AS_OF_MESSAGE = "stored as_of is not a date"
+
+# L3: open_store refuses a clock that is not callable before anything is created: StoreRefused and
+# the state folder does not exist afterwards.
+REFUSED_CLOCKS: tuple[object, ...] = (None, 5, "now")
+
+# L4, behaviours no test pinned:
+# (a) open_store's default clock writes an aware UTC time: created_at of a run created with it has
+#     utcoffset() zero and lies between datetime.now(UTC) read just before and just after create_run.
+# (b) pins are stored at positions 0, 1, ...: the raw run_sources positions of CREATE's run.
+PIN_POSITIONS = (0, 1)
+# (c) a pin of exactly SQLite's largest integer is valid: PINS[0] with this size is stored and read
+#     back equal by pins().
+LARGEST_PIN_SIZE_BYTES = 2**63 - 1
+# (d) a SQLite error inside a read keeps its cause: with runs.read_run patched to raise
+#     sqlite3.DatabaseError("injected") whose sqlite_errorcode is READ_ERROR_CODE, run() raises
+#     READ_ERROR_CLASS and its __cause__ is that same error object.
+READ_ERROR_CODE = 11
+READ_ERROR_CLASS = "StoreCorrupt"
+# (e) a request that is an instance of a bytes subclass (defined in the test, holding these bytes)
+#     is StoreRefused before BEGIN, the clock never called, nothing written.
+BYTES_SUBCLASS_REQUEST = b"request"
+
+# --- Added for PR 2b-b: #302's whole-branch Lows and the coordinator's ruling on #300 I5 ------------
+
+# A text that is not UTF-8 also reaches open_store's integrity check. After open_store(tmp_path) and
+# close, a raw connection runs CREATE TABLE bad(a) and INSERT INTO bad VALUES (NULL), then, with
+# PRAGMA writable_schema ON, sets that sqlite_schema row's name and tbl_name to
+# CAST(x'<UNREADABLE_TABLE_NAME hex>' AS TEXT) and its sql to CAST(x'<UNREADABLE_TABLE_SQL hex>' AS
+# TEXT), then writable_schema OFF. open_store(tmp_path) is StoreCorrupt with exactly NON_UTF8_MESSAGE
+# and no __cause__, and the state file's bytes are unchanged.
+UNREADABLE_TABLE_NAME = b"bad\xff"
+UNREADABLE_TABLE_SQL = b'CREATE TABLE "bad\xff"(a NOT NULL)'
+
+# A stored as_of that is not text. create_run(**BLOB_AS_OF_RUN) on open_store(tmp_path), then close.
+# BLOB_AS_OF_HEADER occurs exactly once in the state file; its byte at BLOB_AS_OF_OFFSET (as_of's
+# serial type 0x21, ten bytes of text) is set to 0x20 (ten bytes of blob), after which a raw
+# connection reads typeof(as_of) == "blob". A StoreReader opened after that: run() of the run is
+# StoreCorrupt with exactly BAD_AS_OF_MESSAGE and no __cause__.
+BLOB_AS_OF_RUN: dict[str, object] = {
+    "run_id": "run-flip1",
+    "issuer_id": "i",
+    "issuer_name": "n",
+    "as_of": date(2026, 9, 30),
+    "config_id": "cfg",
+    "cap_usd": Decimal(20),
+    "request": b"req",
+    "pins": (),
+}
+BLOB_AS_OF_HEADER = bytes([0x1F, 0x0F, 0x0F, 0x21, 0x13, 0x11, 0x12])
+BLOB_AS_OF_OFFSET = 3
+
+# A claim never shows its writer token: for Claim(run_id="run-001", token=CLAIM_TOKEN), CLAIM_TOKEN is
+# in neither repr() nor str(), and claim.token is still CLAIM_TOKEN.
+CLAIM_TOKEN = "ab" * 16

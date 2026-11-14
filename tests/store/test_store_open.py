@@ -15,8 +15,14 @@ import store_open_key as key
 import store_txn_key as txn_key
 
 from credit_os.store import db, location
-from credit_os.store.db import open_reader, open_store
-from credit_os.store.errors import StoreBusy, StoreCorrupt, StoreRefused, StoreUnusable
+from credit_os.store.db import Store, open_reader, open_store
+from credit_os.store.errors import (
+    StoreBusy,
+    StoreCorrupt,
+    StoreError,
+    StoreRefused,
+    StoreUnusable,
+)
 
 Patch = pytest.MonkeyPatch
 Lists = tuple[tuple[str, ...], ...]
@@ -76,6 +82,137 @@ def test_a_library_below_the_minimum_or_not_threadsafe_is_unusable_and_nothing_i
     monkeypatch.setattr(sqlite3, "sqlite_version_info", key.MINIMUM_SQLITE)
     monkeypatch.setattr(sqlite3, "threadsafety", key.REQUIRED_THREADSAFETY)
     open_store(tmp_path / "state").close()
+
+
+@pytest.mark.parametrize(
+    ("name", "bad", "words"), key.READER_BAD_LIBRARIES, ids=[r[0] for r in key.READER_BAD_LIBRARIES]
+)
+def test_a_bad_library_refuses_the_reader_of_a_current_store_and_the_bytes_stay(
+    name: str, bad: object, words: str, monkeypatch: Patch, tmp_path: Path
+) -> None:
+    folder = _store_at(tmp_path / "state", (M1,))
+    before = _file(folder).read_bytes()
+    monkeypatch.setattr(sqlite3, name, bad)
+    with pytest.raises(StoreUnusable, match=words):
+        open_reader(folder, migrations=(M1,))
+    assert _file(folder).read_bytes() == before
+
+
+def test_a_reader_journal_mode_read_back_other_than_delete_is_unusable_and_closed(
+    monkeypatch: Patch, tmp_path: Path
+) -> None:
+    folder = _store_at(tmp_path / "state", (M1,))
+    made: list[sqlite3.Connection] = []
+
+    class ReadBack(sqlite3.Connection):
+        def execute(self, statement: str, *args: Any) -> sqlite3.Cursor:
+            if statement == "PRAGMA journal_mode":
+                return super().execute(f"SELECT {key.READER_JOURNAL_READ_BACK!r}")
+            return super().execute(statement, *args)
+
+    real = sqlite3.connect
+
+    def spy(*args: Any, **kwargs: Any) -> sqlite3.Connection:
+        made.append(real(*args, factory=ReadBack, **kwargs))
+        return made[-1]
+
+    monkeypatch.setattr(sqlite3, "connect", spy)
+    with pytest.raises(StoreUnusable) as caught:
+        open_reader(folder, migrations=(M1,))
+    assert str(caught.value) == key.READER_JOURNAL_MESSAGE
+    assert len(made) == 1
+    with pytest.raises(sqlite3.ProgrammingError):
+        made[0].execute("SELECT 1")
+
+
+def test_a_journal_step_error_with_no_sqlite_code_is_unusable_and_names_the_step(
+    monkeypatch: Patch, tmp_path: Path
+) -> None:
+    class NoCode(sqlite3.Connection):
+        def execute(self, statement: str, *args: Any) -> sqlite3.Cursor:
+            if statement == "PRAGMA journal_mode=DELETE":
+                raise sqlite3.ProgrammingError(key.CODELESS_JOURNAL_ERROR_TEXT)
+            return super().execute(statement, *args)
+
+    real = sqlite3.connect
+    monkeypatch.setattr(sqlite3, "connect", lambda *a, **k: real(*a, factory=NoCode, **k))
+    with pytest.raises(StoreUnusable) as caught:
+        open_store(tmp_path / "state")
+    assert str(caught.value) == key.CODELESS_JOURNAL_MESSAGE
+
+
+def test_a_close_failure_is_mapped_by_its_code_and_keeps_sqlites_text(
+    monkeypatch: Patch, tmp_path: Path
+) -> None:
+    injected = sqlite3.DatabaseError(key.CLOSE_ERROR_TEXT)
+    injected.sqlite_errorcode = key.CLOSE_ERROR_CODE
+
+    class CorruptClose(sqlite3.Connection):
+        def close(self) -> None:
+            super().close()
+            raise injected
+
+    real = sqlite3.connect
+    monkeypatch.setattr(sqlite3, "connect", lambda *a, **k: real(*a, factory=CorruptClose, **k))
+    store = open_store(tmp_path / "state")
+    with pytest.raises(StoreError) as caught:
+        store.close()
+    assert type(caught.value).__name__ == key.CLOSE_ERROR_CLASS
+    assert str(caught.value) == key.CLOSE_ERROR_MESSAGE
+    assert caught.value.__cause__ is injected
+
+
+def _two_threads(
+    tmp_path: Path, holder_row: str, second: Callable[[Store], None]
+) -> tuple[Path, list[str]]:
+    """Thread A holds `_write()` with one row; thread B, once A is inside, runs `second`."""
+    folder = tmp_path / "state"
+    store = open_store(folder, migrations=(M1,))
+    inside = threading.Event()
+    errors: list[str] = []
+
+    def other() -> None:
+        inside.wait(10)
+        try:
+            second(store)
+        except (StoreError, sqlite3.Error) as error:
+            errors.append(f"second: {type(error).__name__}: {error}")
+
+    def holder() -> None:
+        try:
+            with store._write() as connection:
+                connection.execute("INSERT INTO note(body) VALUES (?)", (holder_row,))
+                inside.set()
+                time.sleep(0.3)
+        except (StoreError, sqlite3.Error) as error:
+            errors.append(f"first: {type(error).__name__}: {error}")
+
+    threads = [threading.Thread(target=holder), threading.Thread(target=other)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(30)
+    assert not any(thread.is_alive() for thread in threads)
+    store.close()
+    return folder, errors
+
+
+def test_a_second_write_waits_for_the_first_on_the_store_lock(tmp_path: Path) -> None:
+    def write(store: Store) -> None:
+        with store._write() as connection:
+            connection.execute("INSERT INTO note(body) VALUES ('second')")
+
+    folder, errors = _two_threads(tmp_path, "first", write)
+    assert errors == []
+    found = sorted(row[0] for row in _rows(folder, "SELECT body FROM note"))
+    assert found == sorted(key.LOCK_WRITE_ROWS)
+
+
+def test_a_close_waits_for_a_write_in_flight_on_the_store_lock(tmp_path: Path) -> None:
+    folder, errors = _two_threads(tmp_path, "kept", lambda store: store.close())
+    assert errors == []
+    found = [row[0] for row in _rows(folder, "SELECT body FROM note")]
+    assert found == list(key.LOCK_CLOSE_ROWS)
 
 
 def test_the_default_wait_is_the_keys() -> None:
