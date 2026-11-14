@@ -1474,8 +1474,13 @@ function insideLibrary(o: Rec, key: string, path: string): string | null {
 
 function plainSegment(segment: string): boolean {
   if (!SEGMENT.test(segment)) return false;
-  const decoded = decodeURIComponent(segment);
-  return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
+  try {
+    const decoded = decodeURIComponent(segment);
+    return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
+  } catch (error) {
+    if (!(error instanceof URIError)) throw error;
+    return false; // an escape that is not UTF-8 is refused like any other odd path
+  }
 }
 
 /** An address, or the reason there is none: exactly one of the two. */
