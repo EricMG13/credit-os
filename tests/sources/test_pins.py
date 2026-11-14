@@ -50,6 +50,10 @@ VALID_NAMES = [
     "/".join(["a" * 204] * 5),
     "CLOCK$\u00a0.txt",
     "CLOCK$X.txt",
+    "COM00.txt",
+    "COM0x.txt",
+    "xCOM0.txt",
+    "LPT.txt",
 ]
 INVALID_NAMES = [
     ("Q3-report\u202efdp.txt", "forbidden character U+202E"),
@@ -123,6 +127,13 @@ INVALID_NAMES = [
     ("/".join(["\u00e9" * 127] * 5), "longer than 1,024 bytes"),
     ("con/a.txt", "reserved device name"),
     ("CLOCK$/a.txt", "reserved device name"),
+    ("COM0", "reserved device name"),
+    ("LPT0", "reserved device name"),
+    ("COM0.txt", "reserved device name"),
+    ("lpt0.csv", "reserved device name"),
+    ("com0", "reserved device name"),
+    ("a/COM0/b.txt", "reserved device name"),
+    ("LPT0 .tar.txt", "reserved device name"),
     ("NUL." + "a" * 300, "reserved device name"),
     ("a" * 300 + ".", "segment starts or ends with a space or ends with a dot"),
 ]
@@ -151,7 +162,7 @@ def test_error_hierarchy() -> None:
 
 
 _RESERVED = {"CON", "PRN", "AUX", "NUL"}
-_RESERVED |= {f"COM{n}" for n in range(1, 10)} | {f"LPT{n}" for n in range(1, 10)}
+_RESERVED |= {f"COM{n}" for n in range(10)} | {f"LPT{n}" for n in range(10)}
 _ALPHABET = string.ascii_letters + string.digits + "\u00e9\u00df\u0416\u4e2d" + "-_ ."
 
 
