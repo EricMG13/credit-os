@@ -38,20 +38,27 @@ export function StatusBadge<S extends SetName>({ set, state, live = false }: Sta
     : undefined;
   const found = states !== undefined && Object.hasOwn(states, state) ? states[state] : undefined;
   if (found === undefined) throw new Error(`unknown status state "${state}" in set "${set}"`);
-  const halo = live && found.shape === "half-filled circle" && found.tone === "action";
+  return <ToneBadge shape={found.shape} tone={found.tone} word={found.word} live={live} />;
+}
+
+interface ToneBadgeProps extends State {
+  live?: boolean;
+}
+
+/** One badge from a shape, tone and word: the form every status and the gap badge share. */
+export function ToneBadge({ shape, tone, word, live = false }: ToneBadgeProps) {
+  const halo = live && shape === "half-filled circle" && tone === "action";
   return (
     <Badge
-      color={BADGE_COLOUR[found.tone]}
+      color={BADGE_COLOUR[tone]}
       className="gap-1.5 pl-2"
       icon={
-        <span
-          className={cx("inline-flex rounded-ds-full", MARK[found.tone], halo && "status-halo")}
-        >
-          <StatusShape shape={found.shape} />
+        <span className={cx("inline-flex rounded-ds-full", MARK[tone], halo && "status-halo")}>
+          <StatusShape shape={shape} />
         </span>
       }
     >
-      {found.word}
+      {word}
     </Badge>
   );
 }

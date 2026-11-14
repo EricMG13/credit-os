@@ -5,6 +5,11 @@ import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import { Button, styles } from "@/components/base/buttons/button";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
+import { Blocked } from "@/components/gap/Blocked";
+import { GapBadge, GapPanel } from "@/components/gap/GapPanel";
+import { Missing } from "@/components/gap/Missing";
+import { Skeleton } from "@/components/gap/Skeleton";
+import { Withheld } from "@/components/gap/Withheld";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { StatusBadge } from "@/components/status/StatusBadge";
 
@@ -179,6 +184,24 @@ export function Kit() {
             <ButtonGroupItem id="table">Table</ButtonGroupItem>
           </ButtonGroup>
         </Row>
+      </section>
+
+      <section aria-labelledby="kit-gap-states" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-gap-states" className="font-display text-h2 text-text-primary">
+          Gap states
+        </h2>
+        <GapPanel reason="No filing in the sources covers this period." />
+        <Row>
+          <GapBadge />
+        </Row>
+        <Row>
+          <Missing />
+        </Row>
+        <Withheld reason="The issuer has not released this figure." />
+        <Blocked reason="The cash-flow statement is missing from the sources." />
+        <div className="w-64">
+          <Skeleton lines={3} />
+        </div>
       </section>
     </main>
   );

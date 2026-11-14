@@ -331,3 +331,20 @@ body {
     animation: queued-shimmer 1.8s linear infinite;
   }
 }
+
+/* Gap states: static fills, no motion. */
+.gap-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-card) 0 8px,
+    var(--color-surface-canvas) 8px 16px
+  );
+}
+
+.withheld-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-subtle) 0 6px,
+    var(--color-border-container) 6px 12px
+  );
+}

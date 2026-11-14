@@ -131,4 +131,14 @@ describe("Kit", () => {
     expect(table).toHaveAttribute("aria-checked", "true");
     expect(chart).toHaveAttribute("aria-checked", "false");
   });
+
+  it("shows the five gap states", () => {
+    render(<Kit />);
+    const gaps = screen.getByRole("region", { name: "Gap states" });
+    expect(within(gaps).getAllByText("Not established for this run")).toHaveLength(2);
+    expect(within(gaps).getByLabelText("not available")).toBeInTheDocument();
+    expect(within(gaps).getByText("Withheld")).toBeInTheDocument();
+    expect(within(gaps).getByText("Not assessable")).toBeInTheDocument();
+    expect(gaps.querySelector('[aria-hidden="true"].flex-col')).not.toBeNull();
+  });
 });
