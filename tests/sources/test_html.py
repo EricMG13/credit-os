@@ -1,5 +1,6 @@
 """The HTML reader's decoding and its line writer."""
 
+import re
 import tracemalloc
 
 import pytest
@@ -92,6 +93,12 @@ _REFUSAL_ROWS = [
         UnicodeDecodeError,
         id="bom-invalid",
     ),
+    pytest.param(
+        b'<meta charset="utf-8"><p>caf\xe9</p>',
+        "not valid utf-8",
+        UnicodeDecodeError,
+        id="declared-utf-8",
+    ),
 ]
 
 
@@ -112,21 +119,49 @@ def test_encoding_refusal_shows_a_long_name_cut() -> None:
     assert str(caught.value) == "a" * 120 + "\N{HORIZONTAL ELLIPSIS}: " + _NO_CHARSET
 
 
-def test_encoding_holds_no_decoded_copy() -> None:
-    raw = b"caf\xc3\xa9 " * 174_762
-    assert len(raw) == 1_048_572
+@pytest.mark.parametrize(
+    ("raw", "size", "result"),
+    [
+        pytest.param(b"caf\xc3\xa9 " * 174_762, 1_048_572, ("utf-8", "utf-8", 0), id="utf-8"),
+        pytest.param(
+            b"\xef\xbb\xbf" + b"caf\xc3\xa9 " * 174_762,
+            1_048_575,
+            ("utf-8", "utf-8", 3),
+            id="bom",
+        ),
+        pytest.param(
+            b'<meta charset="windows-1252">' + b"caf\xe9 " * 209_709,
+            1_048_574,
+            ("cp1252", "windows-1252", 0),
+            id="declared",
+        ),
+    ],
+)
+def test_encoding_holds_no_decoded_copy(
+    raw: bytes, size: int, result: tuple[str, str, int]
+) -> None:
+    assert len(raw) == size
     tracemalloc.start()
     try:
-        result = _encoding("f.html", raw)
+        found = _encoding("f.html", raw)
         _, peak = tracemalloc.get_traced_memory()
     finally:
         tracemalloc.stop()
-    assert result == ("utf-8", "utf-8", 0)
+    assert found == result
     print(f"measured _encoding peak: {peak} bytes")
     assert peak <= 262_144
 
 
 def test_constants() -> None:
+    assert reader._SNIFF_BYTES == 4_096
+    assert reader._ACCEPTED == {
+        "utf-8": "utf-8",
+        "cp1252": "windows-1252",
+        "iso8859-1": "iso-8859-1",
+        "ascii": "ascii",
+    }
+    assert reader._CHARSET.pattern == rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)"""
+    assert reader._CHARSET.flags & re.IGNORECASE
     assert reader.PIECE_BYTES == reader.HELD_CHARACTERS == 8_192
     assert reader.PARSED_CHARACTERS == 16_384
     assert reader.MAX_TAG_NAMES == 4_096

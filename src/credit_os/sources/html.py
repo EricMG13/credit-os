@@ -62,6 +62,7 @@ _ZERO_WIDTH = dict.fromkeys((0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF))
 # These tags start and end a line; every other block tag, including div, gives a space.
 LINE_TAGS = frozenset({"p", "tr", "li", "br", "h1", "h2", "h3", "h4", "h5", "h6"})
 
+# The legacy's: a charset is looked for in the first 4,096 bytes only.
 _SNIFF_BYTES = 4096
 _CHARSET = re.compile(rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)""", re.IGNORECASE)
 # codecs.lookup(...).name -> the name reported for the source
