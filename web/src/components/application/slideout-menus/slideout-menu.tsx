@@ -21,7 +21,7 @@ const ModalOverlay = (props: ModalOverlayProps) => {
       {...props}
       className={(state) =>
         cx(
-          "fixed inset-0 flex min-h-dvh w-full items-center justify-end bg-overlay/70 pl-6 outline-hidden ease-linear md:pl-10",
+          "fixed inset-0 flex min-h-dvh w-full items-center justify-end bg-overlay/70 pl-6 outline-hidden ease-[cubic-bezier(.2,0,0,1)] md:pl-10",
           state.isEntering && "duration-200 animate-in fade-in",
           state.isExiting && "duration-200 animate-out fade-out",
           typeof props.className === "function" ? props.className(state) : props.className,
@@ -39,7 +39,7 @@ const Modal = (props: ModalProps) => (
     {...props}
     className={(state) =>
       cx(
-        "inset-y-0 right-0 h-full w-full max-w-100 shadow-xl transition",
+        "inset-y-0 right-0 h-full w-full max-w-100 shadow-xl transition ease-[cubic-bezier(.2,0,0,1)]",
         state.isEntering && "duration-200 animate-in slide-in-from-right",
         state.isExiting && "duration-200 animate-out slide-out-to-right",
         typeof props.className === "function" ? props.className(state) : props.className,
@@ -51,10 +51,10 @@ Modal.displayName = "Modal";
 
 interface DialogProps extends AriaDialogProps, RefAttributes<HTMLElement> {}
 
-const Dialog = (props: DialogProps) => (
+const Dialog = ({ "aria-label": ariaLabel, ...props }: DialogProps) => (
   <AriaDialog
     role="dialog"
-    aria-label="Slideout menu"
+    aria-label={ariaLabel ?? (props["aria-labelledby"] === undefined ? "Slideout menu" : undefined)}
     {...props}
     className={cx(
       "relative flex size-full flex-col items-start gap-6 overflow-y-auto bg-primary ring-1 ring-secondary_alt outline-hidden",
@@ -70,9 +70,18 @@ interface SlideoutMenuProps
   children: ReactNode | ((children: AriaModalRenderProps & { close: () => void }) => ReactNode);
   /** The class name applied to the inner dialog, while `className` styles the sliding panel. */
   dialogClassName?: string;
+  /** The dialog's accessible name, as a string or the id of the element that holds it. */
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
 }
 
-const Menu = ({ children, dialogClassName, ...props }: SlideoutMenuProps) => {
+const Menu = ({
+  children,
+  dialogClassName,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledby,
+  ...props
+}: SlideoutMenuProps) => {
   return (
     <ModalOverlay {...props}>
       <Modal
@@ -81,7 +90,11 @@ const Menu = ({ children, dialogClassName, ...props }: SlideoutMenuProps) => {
         }
       >
         {(state) => (
-          <Dialog className={dialogClassName}>
+          <Dialog
+            className={dialogClassName}
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledby}
+          >
             {({ close }) => {
               return typeof children === "function" ? children({ ...state, close }) : children;
             }}
@@ -130,7 +143,7 @@ const Footer = (props: ComponentPropsWithRef<"footer">) => {
     <footer
       {...props}
       className={cx(
-        "w-full p-4 shadow-[inset_0px_1px_0px_0px] shadow-border-secondary md:px-6",
+        "w-full p-4 shadow-[inset_0px_1px_0px_0px] shadow-border-hairline md:px-6",
         props.className,
       )}
     />

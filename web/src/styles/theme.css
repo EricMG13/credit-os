@@ -254,7 +254,6 @@
 
   /* Drawer and modal: the scrim is Navy (it takes the source's alpha at the use site); the footer's top rule is the hairline */
   --background-color-overlay: var(--color-surface-inverse);
-  --color-border-secondary: var(--color-border-hairline);
 
   /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
   --text-xs: calc(var(--spacing) * 3);
