@@ -125,6 +125,13 @@ describe("top level", () => {
 });
 
 describe("rejects", () => {
+  it("a first draft that is not at the documents step (a new run starts from the first draft)", () => {
+    const copy = structuredClone(fixture.slice) as { drafts: Node[] };
+    copy.drafts.reverse();
+    expect(reason(copy)).toBe(
+      'run.drafts[0].step: expected "documents" (a new run starts from the first draft)',
+    );
+  });
   it("a non-string where a string is required", () => {
     expect(reason(edit("documents", ["files", 4, "name"], 5))).toBe(
       "run.drafts[1].files[4].name: expected a string",
