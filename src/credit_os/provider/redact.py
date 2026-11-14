@@ -75,6 +75,10 @@ def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], mark
     return value[:0].join(out)
 
 
+def _with_stripped(value: str | None) -> tuple[str, ...]:
+    return (value, value.strip()) if value else ()
+
+
 class Redactor:
     def __init__(self, exact_values: Iterable[str] = ()) -> None:
         values = sorted({v for v in exact_values if v}, key=lambda v: (-len(v), v))
@@ -89,13 +93,9 @@ class Redactor:
 
     @classmethod
     def from_environ(cls, environ: Mapping[str, str]) -> Redactor:
-        values: list[str] = []
-        for name in TOKEN_ENV_NAMES:
-            value = environ.get(name)
-            if value:
-                values.append(value)
-                if value.strip() and value.strip() != value:
-                    values.append(value.strip())
+        # A value read with a trailing line ending is also matched without it; the constructor
+        # drops empties and duplicates.
+        values = [v for name in TOKEN_ENV_NAMES for v in _with_stripped(environ.get(name))]
         return cls(values)
 
     def text(self, value: str) -> str:
