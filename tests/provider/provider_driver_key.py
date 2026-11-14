@@ -123,10 +123,10 @@ _TURN_SCRIPT = [_USAGE, _DONE, _IDLE]
 _SHARED = {"start": 100.0, "list_models": 70.0, "open_session": 65.0, "send": 65.0}
 _SLOW = ("tick", 8)
 _CHATTER = [_SLOW, said(2, "a"), _SLOW, said(3, "b"), _SLOW, said(4, "c")]
-_RUNTIME = "/srv/tools/acme-runtime/copilot"  # 31 characters: the longest path form in that case
-_WITH_RUNTIME = {**ENVIRON, "COPILOT_CLI_PATH": _RUNTIME}
-_LEAKY = ("RuntimeError", f"bad {_TOKEN} in /home/jane/.copilot/x")
-_LEAK_FREE = "open_session failed: RuntimeError: bad [redacted] in [redacted]/.copilot/x"
+_RUNTIME = "/home/jane/acme-runtime/copilot"  # 31 characters, 43 with "\\" escaped twice
+_WITH_RUNTIME = {**ENVIRON, "COPILOT_CLI_PATH": _RUNTIME + " \n"}  # matched without its padding
+_LEAKY = ("RuntimeError", f"bad {_TOKEN} in /home/jane/.copilot/x or C:\\home\\janet\\y")
+_LEAK_FREE = "open_session failed: RuntimeError: bad [redacted] in <home>/.copilot/x or <home>\\y"
 _LOCKED = ("RuntimeError", "locked in C:\\Users\\bob smith (in use); status 401")
 _START_STOP = ("open_client", "start", "stop")
 _JANE = ("jane", "roe")
@@ -284,9 +284,9 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         _figures("SessionError", absent=("acme-runtime",)),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error(_RUNTIME + " died")]},
     ),
-    # A parser message 500 long loses, after redaction, the longest path form's length: 500 - 31.
+    # A parser message 500 long loses, after redaction, the longest match of a path form: 500 - 43.
     "a path cut in half by the parser's 500-character cut": (
-        _figures("SessionError", ("x: " + "y" * 482)[:469], absent=("acme", "/srv/tools")),
+        _figures("SessionError", ("x: " + "y" * 482)[:457], absent=("acme", "jane")),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error("y" * 482 + _RUNTIME + " died")]},
     ),
 }
