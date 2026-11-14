@@ -41,10 +41,10 @@ describe("the history route", () => {
 });
 
 describe("Report history, a normal issuer", () => {
-  it("draws the back link, the h2 name, the subtitle and both actions", () => {
+  it("draws the back link, the h1 name, the subtitle and both actions", () => {
     renderHistory("halden-aerostructures");
     expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("href", "#/library/home");
-    expect(screen.getByRole("heading", { level: 2, name: "Halden Aerostructures" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Halden Aerostructures" })).toBeVisible();
     expect(screen.getByText("Report history: seven runs since September 2025")).toBeVisible();
     expect(screen.getByRole("link", { name: "Open latest report" })).toHaveAttribute(
       "href",
@@ -144,7 +144,7 @@ describe("Report history, a normal issuer", () => {
 describe("Report history, an issuer with no report yet", () => {
   it("draws the mock's sentence with Back to the library and Start a run, and no feed", () => {
     renderHistory("corvane-fasteners");
-    expect(screen.getByRole("heading", { level: 2, name: "Corvane Fasteners" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Corvane Fasteners" })).toBeVisible();
     expect(screen.getByText("One run, not finished")).toBeVisible();
     expect(screen.getByText("No report yet")).toBeVisible();
     expect(
@@ -188,15 +188,16 @@ describe("Report history, a malformed entry", () => {
 });
 
 describe("Report history, heading levels", () => {
-  it("draws the issuer at h2 and its empty state one level below at h3", () => {
+  it("draws the issuer at h1 and its empty state one level below at h2", () => {
     renderHistory("corvane-fasteners");
-    expect(screen.getByRole("heading", { level: 2, name: "Corvane Fasteners" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 3, name: "No report yet" })).toBeVisible();
-    expect(screen.queryByRole("heading", { level: 2, name: "No report yet" })).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Corvane Fasteners" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "No report yet" })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 3, name: "No report yet" })).toBeNull();
   });
 
   it("draws an unknown issuer's empty state at h2, directly under the page h1", () => {
     renderHistory("no-such-issuer");
+    expect(screen.getByRole("heading", { level: 1, name: "Report history" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "No such issuer" })).toBeVisible();
   });
 });

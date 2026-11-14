@@ -10,14 +10,22 @@ import { Overview } from "./Overview";
 export { readSlice } from "./read";
 
 export const routes: readonly Route[] = [
-  { path: "/library/home", title: "Library", render: () => <Home /> },
+  {
+    path: "/library/home",
+    home: "/library/home",
+    layout: "bleed",
+    title: "Library",
+    render: () => <Home />,
+  },
   {
     path: "/library/:issuer/history",
+    layout: "bleed",
     title: "Report history",
     render: (params) => <History issuer={params["issuer"]} />,
   },
   {
     path: "/library/:issuer/:run/overview",
+    layout: "bleed",
     title: "Overview",
     render: (params) => <Overview issuer={params["issuer"]} run={params["run"]} />,
   },
