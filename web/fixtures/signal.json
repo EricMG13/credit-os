@@ -329,7 +329,73 @@
             },
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "6 members",
+              "members": [
+                { "initials": "TO", "name": "Tobias O" },
+                { "initials": "IK", "name": "Ines K" },
+                { "initials": "ML", "name": "Mara L" },
+                { "initials": "JW", "name": "Jonas W" }
+              ],
+              "moreMembers": "+2",
+              "threads": [
+                {
+                  "id": "corvane-thread",
+                  "storyId": "corvane",
+                  "note": null,
+                  "sharedBy": { "initials": "TO", "label": "Shared by Tobias O, 1 h ago" },
+                  "commentCount": "3 comments",
+                  "archived": false,
+                  "unread": true,
+                  "lastActivity": "1 h ago"
+                },
+                {
+                  "id": "packaging-note",
+                  "storyId": null,
+                  "note": "Has anyone looked at how the packaging closures read across to the two issuers we hold? Worth a slot on Thursday.",
+                  "sharedBy": { "initials": "IK", "label": "Ines K started a thread" },
+                  "commentCount": "2 comments",
+                  "archived": false,
+                  "unread": true,
+                  "lastActivity": "Yesterday 16:20"
+                },
+                {
+                  "id": "halvorsen-thread",
+                  "storyId": "halvorsen",
+                  "note": null,
+                  "sharedBy": { "initials": "ML", "label": "Shared by you, yesterday" },
+                  "commentCount": "1 comment",
+                  "archived": false,
+                  "unread": false,
+                  "lastActivity": "Yesterday"
+                },
+                {
+                  "id": "brightwell-thread",
+                  "storyId": "brightwell",
+                  "note": null,
+                  "sharedBy": { "initials": "IK", "label": "Shared by Ines K, last week" },
+                  "commentCount": "4 comments",
+                  "archived": true,
+                  "unread": false,
+                  "lastActivity": "Last week"
+                }
+              ]
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "1 member",
+              "members": [{ "initials": "ML", "name": "Mara L" }],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -449,7 +515,43 @@
             },
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "6 members",
+              "members": [
+                { "initials": "TO", "name": "Tobias O" },
+                { "initials": "IK", "name": "Ines K" },
+                { "initials": "ML", "name": "Mara L" },
+                { "initials": "JW", "name": "Jonas W" }
+              ],
+              "moreMembers": "+2",
+              "threads": [
+                {
+                  "id": "corvane-thread",
+                  "storyId": "corvane",
+                  "note": null,
+                  "sharedBy": { "initials": "TO", "label": "Shared by Tobias O, 1 h ago" },
+                  "commentCount": "3 comments",
+                  "archived": false,
+                  "unread": true,
+                  "lastActivity": "1 h ago"
+                }
+              ]
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "1 member",
+              "members": [{ "initials": "ML", "name": "Mara L" }],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -683,7 +785,27 @@
               }
             ],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -749,7 +871,27 @@
             },
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -786,7 +928,27 @@
             "topics": {},
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -823,7 +985,27 @@
             "topics": {},
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -855,7 +1037,27 @@
             "topics": {},
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -941,7 +1143,27 @@
             "topics": {},
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -978,7 +1200,27 @@
             "topics": {},
             "digests": [],
             "sources": { "approved": false }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       },
       {
@@ -1049,7 +1291,27 @@
             },
             "digests": [],
             "sources": { "approved": true }
-          }
+          },
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
         }
       }
     ]
@@ -1077,9 +1339,13 @@
       { "scene": "main", "topic": "shipping" },
       { "scene": "main", "topic": "telecoms" }
     ],
-    "/signal/:scene/group/:group": [{ "scene": "main", "group": "leveraged-credit" }],
+    "/signal/:scene/group/:group": [
+      { "scene": "main", "group": "leveraged-credit" },
+      { "scene": "main", "group": "shipping-desk" },
+      { "scene": "reader", "group": "leveraged-credit" }
+    ],
     "/signal/:scene/group/:group/thread/:thread": [
-      { "scene": "main", "group": "leveraged-credit", "thread": "thread-1" }
+      { "scene": "main", "group": "leveraged-credit", "thread": "packaging-note" }
     ],
     "/signal/:scene/digest/:digest": [{ "scene": "main", "digest": "weekly-brief" }],
     "/signal/:scene/settings/:section": [{ "scene": "main", "section": "topics" }]
