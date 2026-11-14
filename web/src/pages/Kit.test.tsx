@@ -73,6 +73,31 @@ describe("Kit", () => {
     expect(badges.querySelectorAll("svg")).toHaveLength(6);
   });
 
+  it("shows each status set by name and the live run state", () => {
+    render(<Kit />);
+    const status = screen.getByRole("region", { name: "Status badge" });
+    for (const name of [
+      "Status",
+      "Run states",
+      "Signal source states",
+      "Dated records",
+      "Answer state",
+      "Met or not met",
+      "Freshness",
+      "Module state",
+      "Change state",
+      "Gap severity",
+      "File state",
+      "Approval",
+      "Activity that cannot be read",
+    ]) {
+      expect(within(status).getByRole("heading", { level: 3, name }), name).toBeInTheDocument();
+    }
+    const live = within(status).getByRole("group", { name: "Live run state" });
+    expect(within(live).getByText("Running")).toBeInTheDocument();
+    expect(live.querySelector(".queued-shimmer")).not.toBeNull();
+  });
+
   it("shows the count on a tab and the panel of the tab selected", () => {
     render(<Kit />);
     const tabs = screen.getByRole("region", { name: "Tabs" });
