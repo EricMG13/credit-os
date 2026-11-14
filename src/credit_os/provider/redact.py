@@ -300,8 +300,20 @@ def _form_patterns(form: str, after_separator: bool) -> list[str]:
         for width in (3, 5, 7):
             if _SEPARATOR_TOKEN.fullmatch(form[:width]):
                 rest = "".join(_char_pattern(c, False) for c in form[width:])
-                found.append(rf"(?<={re.escape(form[:width])}){rest}")
+                found.append(rf"{_token_lookbehinds(form[:width])}{rest}")
     return found
+
+
+def _token_lookbehinds(token: str) -> str:
+    """Zero-width lookbehinds for a separator ``token`` as written and with its leading percent
+    encoded once and twice (``%5c`` as ``%255c``, ``%25255c``), each only where the separator run
+    still takes it as one token."""
+    seen = [token]
+    for depth in (1, 2):
+        encoded = "%" + "25" * depth + token[1:]
+        if _SEPARATOR_TOKEN.fullmatch(encoded):
+            seen.append(encoded)
+    return "(?:" + "|".join(rf"(?<={re.escape(t)})" for t in seen) + ")"
 
 
 def _word(part: str, after_separator: bool) -> str:
