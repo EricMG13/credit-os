@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from checks_context_support import build_context
+from checks_context_support import build_context, without_held
 
 from credit_os.checks import prose
 from credit_os.checks.findings import CheckContext, Finding, ordered
@@ -80,7 +80,7 @@ def _expected(case: dict[str, Any]) -> list[list[Any]]:
 def test_case(name: str) -> None:
     case = CASES[name]
     document, context = _build(case)
-    found = check_handoff(document, context)
+    found = without_held(check_handoff(document, context))
     assert [_row(finding) for finding in found] == _expected(case)
     for index, texts in case.get("reason_has", {}).items():
         for text in texts:
