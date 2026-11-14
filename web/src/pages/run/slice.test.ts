@@ -60,12 +60,28 @@ describe("committed fixture", () => {
       progress: { label: "62%", value: 62, max: 100 },
       reason: null,
     });
+    expect(docs.files).toHaveLength(6);
+    expect(docs.files[5]).toEqual({
+      name: "Synthetic annual report with supplementary schedules and notes for the year AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA final.pdf",
+      kind: "PDF",
+      size: "6.2 MB",
+      state: "Read in full",
+      progress: { label: "100%", value: 100, max: 100 },
+      reason: null,
+    });
     expect(docs.nextBlocked).toBe("Replace or remove the unreadable file to continue.");
     const purpose = by("purpose");
     if (purpose?.step !== "purpose") throw new Error("step");
     expect(purpose.chosen).toBe("full-review");
     expect(purpose.purposes[1]?.title).toBe("Earnings update");
     expect(purpose.purposes[1]?.modules).toBe("5 modules");
+    expect(purpose.purposes).toHaveLength(4);
+    expect(purpose.purposes[3]).toEqual({
+      id: "long-label",
+      title: "Long label review",
+      description: "A synthetic purpose whose module label is long, to show that the label wraps.",
+      modules: "14 modules, from documents and business profile to forecast, recovery and rating",
+    });
     const confirm = by("confirm");
     if (confirm?.step !== "confirm") throw new Error("step");
     expect(confirm.nextLabel).toBe("Approve summary");
@@ -421,6 +437,20 @@ describe("committed fixture, run activity", () => {
     });
     const s = steps("many-modules");
     expect(s).toHaveLength(6);
+    expect(r.labels).toEqual([
+      "Full credit review",
+      "As of Q3 FY2026",
+      "Full credit review with every optional module and a late cut-off",
+    ]);
+    expect(r.feed).toHaveLength(6);
+    expect(r.feed[4]).toMatchObject({
+      who: "Credit agreement review",
+      text: "Finished the review of the credit agreement and its latest amendment, then compared the stated leverage tests with the quarterly report and the segment data. Two tests were read from the amendment itself and one from its summary table, and each is stated with its period so a reader can see which was tested and when.",
+    });
+    expect(r.feed[5]).toMatchObject({
+      who: "Business profile",
+      text: "Stopped to wait for the model service, then carried on once it answered. The module that was waiting kept every figure it had already read, so nothing was read twice, and the time spent waiting counts in the elapsed time shown above, not in the spend. The run did not need to start the module again.",
+    });
     const first = s[0];
     if (first?.kind !== "group") throw new Error("group");
     expect(first).toMatchObject({
@@ -436,9 +466,18 @@ describe("committed fixture, run activity", () => {
     });
     expect(first.modules.every((m) => m.state === "Finished")).toBe(true);
     expect(s[1]).toMatchObject({ kind: "module", name: "Recovery", state: "Running" });
+    expect(s[4]).toMatchObject({
+      kind: "module",
+      name: "Environmental, social and governance factors, with supplier, customer and regulatory exposure",
+      state: "Queued",
+    });
     const last = s[5];
     if (last?.kind !== "group") throw new Error("group");
-    expect(last).toMatchObject({ title: "6 more modules queued", showAll: "Show all 6" });
+    expect(last).toMatchObject({
+      title:
+        "6 more modules queued, each one starting only once the module before it has finished running",
+      showAll: "Show all 6",
+    });
     expect(last.modules).toHaveLength(6);
   });
 
@@ -635,11 +674,20 @@ describe("rejects, run activity", () => {
       expect(reason(edit("start", ["recap", 0, "value"], "CP-3 and CP-4"))).toBe(
         "run.drafts[5].recap[0].value: expected no module code",
       );
-      expect(reason(edit("documents", ["files", 0, "name"], "CP-1.pdf"))).toBe(
-        "run.drafts[1].files[0].name: expected no module code",
-      );
       expect(reason(edit("purpose", ["purposes", 0, "modules"], "CP-2 to CP-5"))).toBe(
         "run.drafts[2].purposes[0].modules: expected no module code",
+      );
+    });
+    it("a file name on the Documents step is the analyst's: CP-1.pdf reads ok", () => {
+      const r = readSlice(edit("documents", ["files", 0, "name"], "CP-1.pdf"));
+      expect(r.kind).toBe("ok");
+      if (r.kind !== "ok") return;
+      const docs = r.data.drafts.find((d) => d.id === "documents");
+      if (docs?.step !== "documents") throw new Error("step");
+      expect(docs.files[0]?.name).toBe("CP-1.pdf");
+      // every other string of the file keeps the check
+      expect(reason(edit("documents", ["files", 0, "kind"], "CP-1"))).toBe(
+        "run.drafts[1].files[0].kind: expected no module code",
       );
     });
     it("started.activity names a run record", () => {

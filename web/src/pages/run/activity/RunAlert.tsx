@@ -1,3 +1,4 @@
+import { cx } from "@/utils/cx";
 import { StatusShape } from "@/components/status/shapes";
 import { STATUS_SETS } from "@/components/status/sets";
 import { TextLink } from "../TextLink";
@@ -10,6 +11,10 @@ const MARK = {
   warning: "text-warning-mark",
   neutral: "text-text-secondary",
 } as const;
+
+// The mock's featured-outline mark: two rings round the shape, at 0.3 and 0.1 opacity.
+const RINGS =
+  "relative m-2.5 flex size-5 flex-none items-center justify-center before:absolute before:top-1/2 before:left-1/2 before:size-7 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border-2 before:border-current before:opacity-30 before:content-[''] after:absolute after:top-1/2 after:left-1/2 after:size-[38px] after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border-2 after:border-current after:opacity-10 after:content-['']";
 
 /**
  * The alert of an ended run, marked with the run state's own shape. Failed says "alert";
@@ -33,9 +38,7 @@ export function RunAlert({
       className="flex items-start gap-4 rounded-ds-lg border border-border-container bg-surface-card p-4 shadow-xs"
     >
       <span
-        className={`flex size-6 flex-none items-center justify-center ${
-          tone === "error" || tone === "warning" ? MARK[tone] : MARK.neutral
-        }`}
+        className={cx(RINGS, tone === "error" || tone === "warning" ? MARK[tone] : MARK.neutral)}
       >
         <StatusShape shape={shape} />
       </span>
@@ -49,7 +52,11 @@ export function RunAlert({
         </div>
         <div className="flex flex-wrap gap-3">
           <TextLink href={alert.action.href}>{alert.action.label}</TextLink>
-          {alert.alt === null ? null : <TextLink href={alert.alt.href}>{alert.alt.label}</TextLink>}
+          {alert.alt === null ? null : (
+            <TextLink href={alert.alt.href} grey>
+              {alert.alt.label}
+            </TextLink>
+          )}
         </div>
       </div>
     </div>

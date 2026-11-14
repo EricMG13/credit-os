@@ -74,8 +74,13 @@ describe("Documents, with files (frame 02)", () => {
       ["Credit agreement, latest amendment.pdf", "1.3 MB", "Uploading"],
       ["Segment data FY2021 to FY2025.xlsx", "310 KB", "Read in part"],
       ["Investor presentation, scanned.pdf", "18.4 MB", "Unreadable"],
+      [
+        "Synthetic annual report with supplementary schedules and notes for the year AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA final.pdf",
+        "6.2 MB",
+        "Read in full",
+      ],
     ];
-    expect(rows()).toHaveLength(5);
+    expect(rows()).toHaveLength(6);
     rows().forEach((li, i) => {
       const [name, size, state] = expected[i] ?? [];
       expect(within(li).getByText(name ?? "")).toBeVisible();
@@ -89,7 +94,7 @@ describe("Documents, with files (frame 02)", () => {
   it("draws bars for the read and uploading files only", () => {
     expect(
       within(screen.getByRole("list", { name: "Documents added" })).getAllByRole("progressbar"),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(within(rows()[2] as HTMLElement).getByRole("progressbar")).toHaveAccessibleName("62%");
     expect(within(rows()[0] as HTMLElement).getByRole("progressbar")).toHaveAccessibleName("100%");
     expect(within(rows()[3] as HTMLElement).queryByRole("progressbar")).toBeNull();
@@ -124,6 +129,7 @@ describe("Documents, with files (frame 02)", () => {
       "Remove Credit agreement, latest amendment.pdf",
       "Remove Segment data FY2021 to FY2025.xlsx",
       "Remove Investor presentation, scanned.pdf",
+      "Remove Synthetic annual report with supplementary schedules and notes for the year AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA final.pdf",
     ];
     names.forEach((name) => {
       const b = screen.getByRole("button", { name });
@@ -142,9 +148,21 @@ describe("Documents, with files (frame 02)", () => {
   it("gives the file kind a readable band and a spoken kind once per row", () => {
     const first = rows()[0] as HTMLElement;
     const band = within(first).getByText("PDF");
-    expect(band).toHaveClass("bg-primary-solid", "text-white");
+    expect(band).toHaveClass("bg-text-secondary", "text-white");
     expect(band.closest("[aria-hidden='true']")).not.toBeNull();
     expect(within(first).getByText("PDF file:")).toHaveClass("sr-only");
+  });
+});
+
+describe("Documents, a file name that reads like a module code", () => {
+  it("draws CP-1.pdf: file names are the analyst's own", () => {
+    const source = structuredClone(fixture.slice);
+    const first = source.drafts.find((d) => d.id === "documents")?.files?.[0];
+    if (first === undefined) throw new Error("fixture has no first file");
+    first.name = "CP-1.pdf";
+    show("/run/start/documents", source);
+    expect(screen.getByText("CP-1.pdf")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Remove CP-1.pdf" })).toBeInTheDocument();
   });
 });
 

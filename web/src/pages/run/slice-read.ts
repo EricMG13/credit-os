@@ -17,6 +17,11 @@ export function str(o: Obj, key: string, path: string): string {
   const v = o[key];
   return typeof v === "string" ? noCode(v, `${path}.${key}`) : fail(`${path}.${key}`, "a string");
 }
+// A file name is the analyst's own (it may read CP-1.pdf); it is the one string with no check.
+export function fileName(o: Obj, key: string, path: string): string {
+  const v = o[key];
+  return typeof v === "string" ? v : fail(`${path}.${key}`, "a string");
+}
 export function strOrNull(o: Obj, key: string, path: string): string | null {
   const v = o[key];
   if (v === null) return v;

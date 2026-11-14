@@ -22,7 +22,7 @@ describe("Purpose (frame 03)", () => {
     show("/run/start/purpose", fixture.slice);
   });
 
-  it("draws the heading, the sentence and three radios inside a labelled group", () => {
+  it("draws the heading, the sentence and four radios inside a labelled group", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Purpose" })).toBeVisible();
     expect(
       screen.getByText(
@@ -30,8 +30,13 @@ describe("Purpose (frame 03)", () => {
       ),
     ).toBeVisible();
     const group = screen.getByRole("radiogroup", { name: "Purpose" });
-    expect(within(group).getAllByRole("radio")).toHaveLength(3);
-    for (const title of ["Full credit review", "Earnings update", "Event review"]) {
+    expect(within(group).getAllByRole("radio")).toHaveLength(4);
+    for (const title of [
+      "Full credit review",
+      "Earnings update",
+      "Event review",
+      "Long label review",
+    ]) {
       expect(within(group).getByRole("radio", { name: new RegExp(title) })).toBeInTheDocument();
     }
   });
@@ -42,6 +47,11 @@ describe("Purpose (frame 03)", () => {
     expect(screen.getByText("13 modules")).toBeVisible();
     expect(screen.getByText("5 modules")).toBeVisible();
     expect(screen.getByText("4 modules")).toBeVisible();
+    const long = screen.getByText(
+      "14 modules, from documents and business profile to forecast, recovery and rating",
+    );
+    expect(long).toBeVisible();
+    expect(long.className).not.toMatch(/whitespace-nowrap|truncate|line-clamp/);
     expect(
       screen.getByText(
         "Looks at one event, such as a refinancing, an acquisition or a rating action, and what it changes.",
@@ -72,7 +82,7 @@ describe("Purpose with nothing chosen", () => {
     );
     show("/run/start/purpose", { ...fixture.slice, drafts });
     const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(3);
+    expect(radios).toHaveLength(4);
     for (const r of radios) expect(r).not.toBeChecked();
   });
 });
