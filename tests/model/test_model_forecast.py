@@ -143,8 +143,55 @@ def good_operands() -> Operands:
 
 def test_a_result_needing_more_than_38_digits_is_refused() -> None:
     big = Operands(Value(amount=D("9" * 38)), *(Value(amount=D(1)) for _ in range(3)))
-    with pytest.raises(decimal.Inexact):
+    with pytest.raises(decimal.Inexact) as error:
         forecast(big, good_drivers(revenue_growth=(D("0.20"),) * 3))
+    assert type(error.value) is decimal.Inexact
+
+
+ZERO = (D(0),) * 3
+
+
+def test_cfo_is_one_exact_figure_of_its_operands() -> None:
+    # ebitda 1E37 + 0.01 interest credit would need 39 digits, but cfo = 1E37 - (-0.01) - 0.01.
+    drivers = {n: ZERO for n in DRIVER_NAMES}
+    drivers |= {"ebitda_margin": (D(1),) * 3, "tax_wc_pct_revenue": (D("1E-39"),) * 3}
+    year = forecast(
+        Operands(*(Value(amount=D(x)) for x in ("1E37", "1", "0", "0"))),
+        Drivers(**drivers),
+        schedule=((D("-0.01"), D(0)),) * 3,
+    )[0]
+    assert year.cfo.amount is not None
+    assert amount_text(year.cfo.amount) == "1" + "0" * 37
+
+
+def test_closing_cash_is_one_exact_figure_of_its_operands() -> None:
+    # 1E37 + 0.01 fcf would need 39 digits, but 1E37 + 0.01 - 0.01 - 0 = 1E37.
+    drivers = {n: ZERO for n in DRIVER_NAMES}
+    drivers |= {"ebitda_margin": (D("0.01"),) * 3, "dividends": (D("0.01"),) * 3}
+    year = forecast(
+        Operands(*(Value(amount=D(x)) for x in ("1", "1", "1E37", "0"))), Drivers(**drivers)
+    )[0]
+    assert year.closing_cash.amount is not None
+    assert amount_text(year.closing_cash.amount) == "1" + "0" * 37
+
+
+def test_a_schedule_replaces_the_interest_driver_entirely() -> None:
+    debt = Value(amount=D("12345678901234567890123456789012345671"))
+    zero_pair = (D(20), D(0))
+    drivers = {n: ZERO for n in DRIVER_NAMES} | {"interest_rate": (D("0.0123"),) * 3}
+    operands = Operands(Value(amount=D(1)), debt, Value(amount=D(0)), Value(amount=D(0)))
+    year = forecast(operands, Drivers(**drivers), schedule=(zero_pair,) * 3)[0]
+    assert year.interest.amount is not None
+    assert amount_text(year.interest.amount) == "20"
+
+
+def test_a_schedule_never_computes_the_unscheduled_product() -> None:
+    drivers = {n: ZERO for n in DRIVER_NAMES} | {"interest_rate": (D("1E20"),) * 3}
+    operands = Operands(
+        Value(amount=D(1)), Value(amount=D("1E90")), Value(amount=D(0)), Value(amount=D(0))
+    )
+    years = forecast(operands, Drivers(**drivers), schedule=((D(0), D(0)),) * 3)
+    assert len(years) == 3
 
 
 SCHEDULE = ((D(1), D(2)), (D(1), D(2)), (D(1), D(2)))
@@ -345,13 +392,15 @@ def test_years_chain_and_identities_hold(raw: dict[str, Any]) -> None:
         assert a["liquidity"] == a["closing_cash"] + a["undrawn"]
 
 
-def close(value: Value, num: Fraction, den: Fraction) -> bool:
+def close(value: Value, num: Fraction, den: Fraction, reason: str) -> bool:
+    """Within half a unit of the 38th significant digit of the result, or the exact refusal."""
     if den <= 0:
-        return value.missing is not None
-    return (
-        value.amount is not None
-        and abs(Fraction(value.amount) - num / den) <= abs(num / den) / 10**37
-    )
+        refused = Missing(MissingCode.ZERO_OR_NEGATIVE_DENOMINATOR, reason)
+        return value == Value(missing=refused)
+    if value.amount is None:
+        return False
+    half_unit = Fraction(1, 2) * Fraction(10) ** (value.amount.adjusted() - 37)
+    return abs(Fraction(value.amount) - num / den) <= half_unit
 
 
 @settings(max_examples=150, deadline=None)
@@ -390,10 +439,10 @@ def test_year_one_matches_the_formulas(raw: dict[str, Any], shocked: bool) -> No
     }
     for name, expected in exact.items():
         assert amounts(year)[name] == expected, name
-    assert close(year.total_leverage, closing_debt, ebitda)
-    assert close(year.net_leverage, net_debt, ebitda)
-    assert close(year.coverage, ebitda, interest)
-    assert close(year.fcf_to_debt, fcf, closing_debt)
+    assert close(year.total_leverage, closing_debt, ebitda, fc.NC_EBITDA)
+    assert close(year.net_leverage, net_debt, ebitda, fc.NC_EBITDA)
+    assert close(year.coverage, ebitda, interest, fc.NC_INTEREST)
+    assert close(year.fcf_to_debt, fcf, closing_debt, fc.NC_DEBT)
 
 
 @settings(max_examples=150, deadline=None)
