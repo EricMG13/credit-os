@@ -321,7 +321,7 @@ describe("committed fixture, run activity", () => {
     expect(q.state).toBe("Queued");
     expect(q.line).toBe("Waiting for the model service. Nothing has been spent.");
     expect(q.elapsed).toEqual({ value: null, note: "Not started yet" });
-    expect(q.spend.bar.value).toBe(0);
+    expect(q.spend.bar?.value).toBe(0);
     expect(steps("queued").every((m) => m.kind === "module" && m.state === "Queued")).toBe(true);
     expect(q.feed).toEqual([
       {
@@ -339,10 +339,7 @@ describe("committed fixture, run activity", () => {
       kind: "starting",
       label: "Starting the run. No module has reported yet.",
     });
-    expect(r.finished).toEqual({
-      value: null,
-      bar: { label: "No module has reported yet", value: 0, max: 13 },
-    });
+    expect(r.finished).toEqual({ value: null, note: "No module has reported yet", bar: null });
     expect(r.elapsed).toEqual({ value: "0 min 08 s", note: "Started today at 14:38" });
     expect(r.feed).toHaveLength(1);
   });
@@ -404,7 +401,7 @@ describe("committed fixture, run activity", () => {
       href: "#/run/start/documents",
     });
     expect(rejected.elapsed).toEqual({ value: null, note: "Rejected today at 14:37" });
-    expect(rejected.spend.bar.value).toBe(0);
+    expect(rejected.spend.bar?.value).toBe(0);
     expect(rejected.feed.map((e) => e.state)).toEqual(["Rejected", "Queued"]);
     const interrupted = run("interrupted");
     expect(interrupted.alert?.action).toEqual({
@@ -464,7 +461,7 @@ describe("committed fixture, run activity", () => {
   it("keeps null as null and zero as 0", () => {
     expect(run("queued").elapsed.value).toBeNull();
     expect(run("starting").finished.value).toBeNull();
-    expect(run("queued").spend.bar.value).toBe(0);
+    expect(run("queued").spend.bar?.value).toBe(0);
   });
 });
 
@@ -602,5 +599,78 @@ describe("rejects, run activity", () => {
     expect(reason(editRun("unreadable", ["alert"], undefined))).toBe(
       "run.runs[10].alert: expected an object",
     );
+  });
+
+  describe("batch A reader rules", () => {
+    it("a missing figure has no bar and says why; a value needs no bar to be shown", () => {
+      const starting = readSlice(
+        editRun("starting", ["finished"], { value: null, note: "Nothing yet", bar: null }),
+      );
+      expect(starting.kind).toBe("ok");
+      const noBar = readSlice(
+        editRun("running", ["spend"], { value: "USD 7.40", note: "No bar", bar: null }),
+      );
+      expect(noBar.kind).toBe("ok");
+    });
+    it("a missing figure with a bar is invalid", () => {
+      expect(
+        reason(editRun("starting", ["finished", "bar"], { label: "x", value: 0, max: 13 })),
+      ).toBe("run.runs[2].finished.bar: expected null when the value is null");
+    });
+    it("ids are lower-case letters, digits and hyphens", () => {
+      const want = "expected an id of lower-case letters, digits and hyphens";
+      expect(reason(edit("purpose", ["id"], "pur/pose"))).toBe(`run.drafts[2].id: ${want}`);
+      expect(reason(edit("documents", ["next"], "Purpose"))).toBe(`run.drafts[1].next: ${want}`);
+      expect(reason(edit("confirm", ["previous"], ""))).toBe(`run.drafts[3].previous: ${want}`);
+      expect(reason(edit("start", ["confirm", "started"], "a b"))).toBe(
+        `run.drafts[5].confirm.started: ${want}`,
+      );
+      expect(reason(edit("started", ["activity"], ""))).toBe(`run.drafts[6].activity: ${want}`);
+      expect(reason(editRun("running", ["id"], "Run 1"))).toBe(`run.runs[0].id: ${want}`);
+      const s = structuredClone(fixture.slice) as { current: string };
+      s.current = "";
+      expect(reason(s)).toBe(`run.current: ${want}`);
+    });
+    it("a module code in any Run start string is invalid", () => {
+      expect(reason(edit("start", ["recap", 0, "value"], "CP-3 and CP-4"))).toBe(
+        "run.drafts[5].recap[0].value: expected no module code",
+      );
+      expect(reason(edit("documents", ["files", 0, "name"], "CP-1.pdf"))).toBe(
+        "run.drafts[1].files[0].name: expected no module code",
+      );
+      expect(reason(edit("purpose", ["purposes", 0, "modules"], "CP-2 to CP-5"))).toBe(
+        "run.drafts[2].purposes[0].modules: expected no module code",
+      );
+    });
+    it("started.activity names a run record", () => {
+      expect(reason(edit("started", ["activity"], "none"))).toBe(
+        "run.drafts[6].activity: expected the id of a run in this slice",
+      );
+    });
+    it("a run with no steps or no feed lines is invalid", () => {
+      expect(reason(editRun("finished", ["modules", "steps"], []))).toBe(
+        "run.runs[3].modules.steps: expected a non-empty list",
+      );
+      expect(reason(editRun("finished", ["feed"], []))).toBe(
+        "run.runs[3].feed: expected a non-empty list",
+      );
+    });
+    it("an alert only on a failed, capped, rejected or interrupted run; open only on a finished one", () => {
+      const alert = { title: "t", text: "x", action: { label: "a", href: "#/" }, alt: null };
+      expect(reason(editRun("finished", ["alert"], alert))).toBe(
+        "run.runs[3].alert: expected null unless the run is Failed, Capped, Rejected or Interrupted",
+      );
+      expect(reason(editRun("running", ["alert"], alert))).toBe(
+        "run.runs[0].alert: expected null unless the run is Failed, Capped, Rejected or Interrupted",
+      );
+      expect(reason(editRun("failed", ["open"], { label: "Open", href: "#/" }))).toBe(
+        "run.runs[4].open: expected null unless the run is Finished",
+      );
+    });
+    it("structure is read before the module-code check", () => {
+      const s = editRun("running", ["id"], undefined) as { runs: { feed: Node[] }[] };
+      s.runs[0]?.feed.push({ who: "Run", time: "1", text: "CP-3 ran", state: "Queued" });
+      expect(reason(s)).toBe("run.runs[0].id: expected a string");
+    });
   });
 });

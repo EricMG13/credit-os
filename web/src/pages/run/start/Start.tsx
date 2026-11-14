@@ -45,10 +45,23 @@ export function Start({ recap, paid }: Pick<Step, "recap" | "paid">) {
 
 /** Submit and its one confirmation. Confirming only moves to the started snapshot: nothing is
  *  sent, stored or spent, because this page shows saved examples. */
-export function Submit({ label, confirm }: { label: string; confirm: Step["confirm"] }) {
+export function Submit({
+  label,
+  confirm,
+  blocked,
+}: {
+  label: string;
+  confirm: Step["confirm"];
+  blocked?: { id: string };
+}) {
   return (
     <DialogTrigger>
-      <Button size="xl" iconLeading={Lock01}>
+      <Button
+        size="xl"
+        iconLeading={Lock01}
+        isDisabled={blocked !== undefined}
+        aria-describedby={blocked?.id}
+      >
         {label}
       </Button>
       <ModalOverlay isDismissable>
