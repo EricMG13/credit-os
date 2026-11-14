@@ -603,23 +603,28 @@ def test_unlistable_directory(
 def test_public_surface() -> None:
     expected = [
         "MAX_BYTES",
+        "Page",
         "PinnedFolder",
         "SUFFIX_KINDS",
         "Skipped",
         "SourceChanged",
         "SourceError",
         "SourceKind",
+        "SourcePages",
         "SourcePin",
         "SourceRefused",
         "SourceTooLarge",
         "SourceUnreadable",
         "check_kind",
+        "csv_pages",
+        "cut_pages",
         "kind_of",
         "pin_folder",
         "read_capped",
         "read_pinned",
         "refuse_case_collisions",
         "source_path",
+        "text_pages",
         "validate_name",
     ]
     assert sorted(sources.__all__) == expected
