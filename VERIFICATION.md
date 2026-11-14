@@ -3,6 +3,62 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 2B part 1 complete (the reader guard), Signal's groups
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #318 | 2B reader guard | `889810b`, `149348e` | `checks/figures.py`: `_read` always advances past the number it read; a test that stalls `_figure` under a 1,000-call cap (31 lines) |
+| #183 | Signal S-5, 1 of 2 | `3b8de2f`, `f108b42` | `signal/groups.py`: groups, membership and the one visibility rule (772) |
+| #184 | Signal S-5, 2 of 2 | `8f375d4`, `093ccee` | the review fixes and the Low batch (742) |
+
+With #318 step 2B's first part is complete: `check_handoff` runs every check of the plan.
+Its second part waits for 1B's PR 7.
+
+**Reviews.**
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #318 | `mx-precise` pass, Info 2; `mx-adversary` pass, Info 1 | none (a one-line fix; the coordinator's call) | dispatched by the coordinator on `889810b`: pass, Low 1, Info 3 |
+| #183, #184 | `mx-precise`: Medium 4 (the size, test strength); `mx-adversary` pass, Low 2; fix round 1 re-review pass | registered | fail at `f09ac09`, Medium 1 (test strength; the code held); fix round 2; adversary re-review pass, Low 5, Info 2; scoped `mx-feature` re-review of the Low batch: pass, Low 1, Info 1 |
+
+- #318's count of record (mutmut 3.8.1, the adversary, 1-minute load 20.41): `_read`, 23
+  mutants, 23 killed. The mutant that stalled the loop on `main` and grew to 4.85 GB now
+  fails a test at 66 MB. The owner chose that the guard be its own small PR; which reviews
+  it got was the coordinator's reading, and the whole-branch review was added before merge.
+- #318's Low predates it: `_read` also trusts `_find` to return a number at or after its
+  position, which only a mutant of `_find` breaks, so mutation runs on `figures.py` keep the
+  1.5 GB stop.
+- Groups: 18 of 20 hand mutants caught (the re-review's report calls it the count of
+  record; the controller's ready message says it ran with the 1-minute load well above 40,
+  before the load rule, so the coordinator asked for one rerun in a slot); one survivor
+  (a `NOT GLOB` in the manager check) is carried to the next groups test batch, one is
+  equivalent. A caller that catches a failure inside `create_group`'s transaction and commits
+  keeps a memberless group (ruled: the caller owns the transaction).
+- #302 and #303 (2A) were closed unmerged: the secret scan flagged a made-up 32-hex test
+  literal, never a token, in a commit no later commit could remove from the scanned range.
+  No pushed branch was rewritten and no red check was accepted; their content is rebuilt on
+  fresh branches as #321 and #322 with the literal changed from the first commit.
+
+**Rulings.** For the "states 2" design step: a run that ended normally has status
+`finished` and end reason `completed` (the 3A plan's G3 is clarified with this entry); an
+interrupted run is never inferred by a reader: it is written `stopped` with end reason
+`interrupted` only when the operator takes the run over, which claims it again and fences
+the earlier writer. The coordinator's first answer named a store writer lock; the store has
+none (a per-run writer token), and the answer was corrected. A launch refused for
+its file count or size is never a run. 2B's confidence rulings C1 to C10 and R65 to R70 are
+now in the 2B plan. 1D: a declared charset name is refused unless a literal table holds it.
+
+**Ledger.**
+
+- `2B-guard task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `S-5 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n`
+
+Not verified: a mutmut count for Signal's groups; the groups hand-mutant result rerun in a
+slot; real memory growth in `_read` (simulated under a 1,000-call cap).
+
 ## 2026-11-14 Roadmap back end: 2B confidence, the run store's first tables, Signal's names and topics
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -913,83 +969,3 @@ before the merges); the published-model links from
 `npm run gates` as one command; `LimitsChart` label placement beyond the fixture; the
 reader against shapes nobody built (no fuzzing); `wb-observe` (three cases stale by design
 after task 16).
-
-## 2026-11-14 Roadmap back end: 1B facilities and forecast block, 2A store location
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its source diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #200 | 1B PR 3 | `cee12ff`, `7312294` | `model/facilities.py`: `Facility` (stated terms, one rate form, ceilings), `schedule` and `Schedule.totals`, three years of interest and repayment (575 lines) |
-| #214 | 1B PR 4a | `c5018b4`, `1125c42` | `model/refusals.py` (`ForecastRefused`, `ForecastDeclined`) and `model/inputs_json.py`: the forecast block, strict JSON, the declined block (641) |
-| #201 | 2A PR 1c | `23c6112`, `0e14a79` | `store/location.py`: `prepare` and `locate`, the path rules and the checks on an existing file before SQLite sees it (485) |
-
-**Reviews.** As each controller reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #200 | `mx-precise` and `mx-adversary` on `f099430`: Medium 1 each; one fix round; `mx-precise` re-review pass on `cee12ff` | 0 open | Pass on `cee12ff`: High 0, Medium 0, Low 3, Info 8 |
-| #214 | `mx-precise` pass; `mx-adversary` Medium 1 on `037d5f6`; one fix round; `mx-precise` re-review pass on `c5018b4` | 0 open | Pass on `c5018b4`: High 0, Medium 0, Low 2, Info 7 |
-| #201 | Three rounds on the task before the PR (two Sonnet, one from an `mx-autonomous` plan); on `23c6112` `mx-precise` and `mx-adversary` pass | register written | Changes required on `58519bd`: Medium 1, Low 1; scoped re-review pass on `23c6112`: High 0, Medium 0 |
-
-- #200's Mediums: `reference_rate` accepted a set, so each year's rate followed the process
-  hash seed (it now takes exactly a list or a tuple of three); a property test took its
-  expected totals from the code's own rows.
-- #214's Medium was in a test: the integer test could not fail, since `1 == 1.0 == True`. The
-  source was right.
-- **#201's fourth round is the owner's.** The whole-branch review found that `prepare` set an
-  existing folder to mode 0700 when the path had `..` after a missing component. Asked
-  "Authorise a fourth fix round on #201 for the `..` path Medium?", the owner answered "Yes,
-  one round". The controller had proposed treating the fix as a new task; the coordinator
-  declined that and asked.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0: #200 on `cee12ff`, #214 on
-`c5018b4`. #201: the controller's local run exits 1 on one test
-(`test_duplication_gate_arguments_are_pinned`, from a linked `web/node_modules` in its
-scratch worktree); CI passes it on both runners; `tests/store` 306 passed. Mutation
-(`mutmut`): #200, no survivor; #214, 220 mutants, 216 killed, 4 equivalent; #201, 355, 329
-killed, the one survivor in the new lines equivalent.
-
-**Ledger.**
-- `1B-3 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `1B-4a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `2A-1c task=1 agent=mx-feature fix-rounds=4 gates-first-pass=n` (two Sonnet, one planned, one
-  the owner's)
-
-**Rulings by the coordinator.** In the plans.
-- 1B: tuple fields take exactly a list or a tuple (`LIST_AS_TUPLE`), never `strict=False`;
-  the predecessor differs, and `docs/legacy/ports.md` says so. The answer-key scripts are
-  committed in two tests-only PRs after PR 4b and with each PR from PR 5, with a test that
-  each script's output equals the committed key as parsed JSON.
-- 2A: the errors-test additions move to a tests-only PR 1d-b, which merges before PR 1e is
-  ready. For the transaction helper (PR 1d, not merged) the owner chose to document, not
-  change, that an interrupt during a write leaves as `StoreUnusable` (asked "Authorise one
-  round on the transaction helper to document and pin the Ctrl-C behaviour?", answered "Yes,
-  document it"); step 3A's plan will say `StoreUnusable` always ends the run.
-
-**Open, for the owner.**
-- 1B: a facility that matures before or inside the three forecast years is assumed
-  refinanced; no repayment at maturity is modelled. It is the predecessor's reading and is
-  stated as a limitation per facility (ported in PR 7). The assumption is the owner's to
-  confirm.
-- 1C driver (#187, not merged): its third round closed three redaction leaks and opened one,
-  an escaped non-ASCII Windows home in failure text. With the owner: one more scoped round, or
-  a reset to round 2.
-- Signal's feeds (not merged): the piece-boundary fix failed on Windows CI, which runs
-  Python 3.12.10 where Ubuntu runs 3.12.14; on 3.12.10 it refused ordinary markup. The
-  memory fix is split out (#215) and passes both. A rework plan is written; the round is with
-  the owner. `html.parser` itself reads 25 hostile shapes differently on the two levels.
-- 2A: a store error message carries the operating system's error text, and so the folder
-  path; where such messages may be shown is for PR 1e's brief.
-- Handoff layer, no step owns these: a second json fence under a subheading of the forecast
-  section is ignored; `HandoffError` cannot be pickled; the block finder differs from the
-  predecessor's on tilde, long and indented fences (same text or a refusal each time).
-
-**Not verified.**
-- #200: totals near the 38-digit limit; more than 1,000 facilities; pydantic other than
-  2.13.4.
-- #214: nesting beyond 66 levels, texts beyond 200,001 characters; real model-written blocks.
-- #201: root; NFS; races beyond two processes; the PR 1e caller.
-- For all three the merge result with `main` was not built before merging; nothing else on
-  `main` touched their folders.
