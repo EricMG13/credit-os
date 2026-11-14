@@ -292,5 +292,16 @@
         "activity": "running"
       }
     ]
+  },
+  "params": {
+    "/run/start/:draft": [
+      { "draft": "no-documents" },
+      { "draft": "documents" },
+      { "draft": "purpose" },
+      { "draft": "confirm" },
+      { "draft": "context" },
+      { "draft": "start" },
+      { "draft": "started" }
+    ]
   }
 }

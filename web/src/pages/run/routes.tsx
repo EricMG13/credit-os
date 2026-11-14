@@ -3,7 +3,14 @@
 // to visit each in a browser, and a test fails if it cannot see one. A page reads its data with
 // `readSlice(useSource().run)`. Edit only this folder and fixtures/run.json.
 import type { Route } from "../route-table";
+import { StartPage } from "./start/StartPage";
 
 export { readSlice } from "./slice";
 
-export const routes: readonly Route[] = [];
+export const routes: readonly Route[] = [
+  {
+    path: "/run/start/:draft",
+    title: "Start a run",
+    render: (params) => <StartPage draft={params["draft"] ?? ""} />,
+  },
+];

@@ -54,7 +54,7 @@ describe("committed fixture", () => {
     expect(docs.nextBlocked).toBe("Replace or remove the unreadable file to continue.");
     const purpose = by("purpose");
     if (purpose?.step !== "purpose") throw new Error("step");
-    expect(purpose.chosen).toBe(purpose.purposes[0]?.id);
+    expect(purpose.chosen).toBe("full-review");
     expect(purpose.purposes[1]?.title).toBe("Earnings update");
     expect(purpose.purposes[1]?.modules).toBe("5 modules");
     const confirm = by("confirm");
@@ -147,7 +147,37 @@ describe("rejects", () => {
   });
   it("a confirm.started that names no draft", () => {
     expect(reason(edit("start", ["confirm", "started"], "nowhere"))).toBe(
-      "run.drafts[5].confirm.started: expected null or the id of a draft in this slice",
+      "run.drafts[5].confirm.started: expected the id of a draft in this slice",
+    );
+  });
+  it("a confirm.started that is null", () => {
+    expect(reason(edit("start", ["confirm", "started"], null))).toBe(
+      "run.drafts[5].confirm.started: expected a string",
+    );
+  });
+  it("a missing nullable string, naming both halves", () => {
+    expect(reason(edit("documents", ["files", 4, "reason"], undefined))).toBe(
+      "run.drafts[1].files[4].reason: expected a string or null",
+    );
+    expect(reason(edit("documents", ["previous"], 3))).toBe(
+      "run.drafts[1].previous: expected a string or null",
+    );
+  });
+  it("a missing or wrong-typed nullable bar, naming both halves", () => {
+    expect(reason(edit("documents", ["files", 2, "progress"], undefined))).toBe(
+      "run.drafts[1].files[2].progress: expected an object or null",
+    );
+    expect(reason(edit("documents", ["files", 2, "progress"], "62%"))).toBe(
+      "run.drafts[1].files[2].progress: expected an object or null",
+    );
+  });
+  it("two purposes with the same id in one draft", () => {
+    const purposes = [
+      { id: "same", title: "A", description: "a", modules: "1 module" },
+      { id: "same", title: "B", description: "b", modules: "2 modules" },
+    ];
+    expect(reason(edit("purpose", ["purposes"], purposes))).toBe(
+      "run.drafts[2].purposes[1].id: expected an id no other purpose uses",
     );
   });
   it("a chosen purpose that is not one of its purposes", () => {
