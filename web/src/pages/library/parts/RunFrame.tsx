@@ -25,6 +25,15 @@ import {
 
 export type RunTab = "overview" | "changes" | "modules" | "forecast" | "evidence";
 
+/** The route titles, which are the page names a state without a run header draws as its h1. */
+const PAGE_NAME: Record<RunTab, string> = {
+  overview: "Overview",
+  changes: "Changes",
+  modules: "Modules",
+  forecast: "Forecast",
+  evidence: "Evidence",
+};
+
 const TAB =
   "inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-1.5 pb-2.5 text-md font-semibold whitespace-nowrap";
 
@@ -202,12 +211,13 @@ export function RunFrame({
     open: false,
   });
   return (
-    <LibraryPage>
+    <LibraryPage title={PAGE_NAME[tab]}>
       {({ issuers }) => {
         const issuer = issuers.find((item) => item.id === issuerId);
         if (issuer === undefined) {
           return (
             <NotHeld
+              page={PAGE_NAME[tab]}
               title="No such issuer"
               description="The library holds no issuer at this address."
             />
@@ -216,7 +226,11 @@ export function RunFrame({
         const run = issuer.runs.find((item) => item.id === runId);
         if (run === undefined) {
           return (
-            <NotHeld title="No such run" description="This issuer has no run at this address." />
+            <NotHeld
+              page={PAGE_NAME[tab]}
+              title="No such run"
+              description="This issuer has no run at this address."
+            />
           );
         }
         const trace =

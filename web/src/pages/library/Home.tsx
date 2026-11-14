@@ -185,11 +185,14 @@ function Layout({ home }: { home: LibraryHome }) {
 /** The library home: the delivered cards, narrowed in memory by search and three filters. */
 export function Home() {
   return (
-    <LibraryPage>
+    <LibraryPage title="Library">
       {({ home }) => (
         <div className="flex flex-col gap-8">
           <div className="flex flex-wrap items-center gap-4">
-            <p className="flex-1 text-body text-text-tertiary">{home.subtitle}</p>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <h1 className="font-display text-h1 text-text-primary">Library</h1>
+              <p className="text-body text-text-tertiary">{home.subtitle}</p>
+            </div>
             {home.cards.length === 0 ? null : <ButtonLink href={RUN_START}>Start a run</ButtonLink>}
           </div>
           {home.cards.length === 0 ? <NoRuns /> : <Layout home={home} />}
