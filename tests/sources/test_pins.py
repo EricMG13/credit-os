@@ -213,6 +213,19 @@ ZIP = b"PK\x03\x04rest"
         ("x.html", SourceKind.HTML, ZIP, "x.html: starts with a zip signature"),
         ("x.csv", SourceKind.CSV, ZIP, "x.csv: starts with a zip signature"),
         ("x.txt", SourceKind.TEXT, ZIP, "x.txt: starts with a zip signature"),
+        ("a.pdf", SourceKind.PDF, b"%PDF1.4\n", "a.pdf: does not start with %PDF-"),
+        (
+            "a.docx",
+            SourceKind.DOCX,
+            b"PK\x05\x06" + b"\x00" * 18,
+            "a.docx: does not start with a zip signature",
+        ),
+        (
+            "x.bin",
+            cast("SourceKind", "pdf"),
+            b"MZ\x90\x00not a pdf",
+            "x.bin: does not start with %PDF-",
+        ),
     ],
 )
 def test_check_kind_refuses(name: str, kind: SourceKind, raw: bytes, message: str) -> None:
@@ -233,6 +246,8 @@ def test_check_kind_refuses(name: str, kind: SourceKind, raw: bytes, message: st
         ("x.txt", SourceKind.TEXT, b""),
         ("x.html", SourceKind.HTML, b""),
         ("x.csv", SourceKind.CSV, b""),
+        ("a.csv", SourceKind.CSV, b"PK,name\n"),
+        ("a.txt", SourceKind.TEXT, b"%PDF is a format\n"),
     ],
 )
 def test_check_kind_accepts(name: str, kind: SourceKind, raw: bytes) -> None:
@@ -282,3 +297,8 @@ def test_pin_rejects(fields: dict[str, object]) -> None:
     }
     with pytest.raises(ValidationError):
         SourcePin.model_validate({**base, **fields})
+
+
+def test_check_kind_refuses_a_value_that_is_no_kind() -> None:
+    with pytest.raises(ValueError):
+        check_kind("x.bin", cast("SourceKind", "pptx"), b"hello")

@@ -65,6 +65,7 @@ def kind_of(name: str) -> SourceKind | None:
 
 def check_kind(name: str, kind: SourceKind, raw: bytes) -> None:
     """Refuse bytes whose signature contradicts the kind."""
+    kind = SourceKind(kind)
     is_pdf = raw.startswith(_PDF_SIGNATURE)
     is_zip = raw.startswith(_ZIP_SIGNATURE)
     if kind is SourceKind.PDF:
