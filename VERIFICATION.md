@@ -17,8 +17,8 @@ The library and model folders on `main` equal the two heads.
 The web run on the merged tree (`5eea548`, run 43651469961) had not finished when this was
 written.
 
-**Reviews.** `mx-precise` per task: 7 pass; L2 needed one fix round (Medium: the new fixture scene
-was partly copied from another issuer), re-review pass. Sweep discovery (`mx-autonomous`,
+**Reviews.** `mx-precise` per task: six tasks passed, L2 after one fix round (Medium: the new fixture scene
+was partly copied from another issuer). Sweep discovery (`mx-autonomous`,
 changed-update): 16 rows, none Medium or above, nothing repaired. Whole-branch (`mx-architect`,
 adversarial): pass, High 0, Medium 0, Low 5, Info 5; the Lows were closed in each PR's last commit
 against the reviewer's probes with no review round. Reports:

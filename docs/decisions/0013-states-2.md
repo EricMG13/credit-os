@@ -46,7 +46,8 @@ States 2: Topic 1 (questions 1 to 7), Topic 2 (8 to 13), Topic 3 (14 and 15).
 
 Made on 2026-11-14 under the owner's instruction to the coordinators to resolve all decisions. No
 reader has seen the mocks or the words; the owner may change any row, at the cost named in the
-table above.
+table above. Where a row of the table and this section differ (questions 10, 11 and 13), this
+section stands. #303, which the text above calls open, has since closed.
 
 - Questions 1 to 9, 12, 14 and 15 (roadmap coordinator): the recommended option of each row. In
   short: C-A; the star mark and one kit scale for Signal strength and confidence; no status words
