@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Evidence } from "../slice";
 import { CopyProvider } from "./CopyToast";
+import { JumpMenu } from "./JumpMenu";
 import { RunTabLink } from "./RunFrame";
 import { SECTION_HEADING } from "./heading";
 import { evidenceHref } from "./links";
@@ -9,7 +10,8 @@ export type EvidenceTab = "summary" | "trace" | "sources" | "gaps" | "record";
 
 /**
  * The frame of every Evidence page, inside the run's frame: the heading and its one sentence, the
- * module filter where the page has one, the five tabs with their delivered counts, and the page.
+ * module filter where the page has one, the "Jump to an item" field, the five tabs with their
+ * delivered counts, and the page.
  */
 export function EvidenceFrame({
   issuer,
@@ -45,7 +47,10 @@ export function EvidenceFrame({
             <Heading className="font-display text-h2 text-text-primary">Evidence</Heading>
             <p className="mt-1 text-text-secondary">{evidence.intro}</p>
           </div>
-          {filter}
+          <div className="flex flex-wrap items-center gap-3">
+            {filter}
+            <JumpMenu items={evidence.jump} issuer={issuer} run={run} />
+          </div>
         </div>
         <nav
           aria-label="Evidence sections"
