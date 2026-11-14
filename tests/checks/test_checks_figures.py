@@ -419,3 +419,31 @@ def test_a_month_count_with_an_unrecognised_currency_is_an_amount(line: str, quo
     assert [(f.quoted, f.reason.startswith("Write the currency")) for f in found] == [
         (quoted, True)
     ]
+
+
+def test_read_advances_past_a_stalled_figure_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `_figure` end at or before the number's start must not make `_read` loop without end."""
+    original = figures._figure
+    calls: list[int] = []
+
+    def stalled(masked: Any, found: Any, text: str) -> Any:
+        calls.append(1)
+        if len(calls) > 1000:
+            raise RuntimeError("_read made no progress: more than 1000 _figure calls")
+        figure, _ = original(masked, found, text)
+        return figure, found.start()
+
+    monkeypatch.setattr(figures, "_figure", stalled)
+    read = read_figures("(5)", passage=True)
+    assert read == (
+        Figure(
+            value=Decimal(5),
+            negative=True,
+            bracketed=True,
+            unit=None,
+            currency=None,
+            shown="(5)",
+            column=1,
+        ),
+    )
+    assert len(calls) == 2
