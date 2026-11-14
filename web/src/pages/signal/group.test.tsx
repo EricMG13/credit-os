@@ -235,6 +235,7 @@ describe("the group view", () => {
     if (first === undefined) throw new Error("reader has a first group");
     first.threads = [];
     reader.snapshot.threads = [];
+    for (const one of reader.snapshot.feed.stories) Object.assign(one, { threadRef: null });
     show("/signal/reader/group/leveraged-credit", copy);
     expect(
       screen.getByText("Threads appear here when a writer shares a story or starts a note."),
