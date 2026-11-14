@@ -140,7 +140,7 @@ NON_UTF8_MESSAGE = "a stored text is not UTF-8"
 
 # L2: a stored as_of that is no date. A raw connection with PRAGMA ignore_check_constraints = ON
 # inserts run BAD_AS_OF_RUN_ID with as_of BAD_AS_OF. run() of it on the Store, and on a StoreReader
-# opened after the raw write, is StoreCorrupt with exactly BAD_AS_OF_MESSAGE.
+# opened after the raw write, is StoreCorrupt with exactly BAD_AS_OF_MESSAGE and no __cause__.
 BAD_AS_OF_RUN_ID = "run-bad-date"
 BAD_AS_OF = "2026-02-30"
 BAD_AS_OF_MESSAGE = "stored as_of is not a date"
@@ -165,3 +165,36 @@ READ_ERROR_CLASS = "StoreCorrupt"
 # (e) a request that is an instance of a bytes subclass (defined in the test, holding these bytes)
 #     is StoreRefused before BEGIN, the clock never called, nothing written.
 BYTES_SUBCLASS_REQUEST = b"request"
+
+# --- Added for PR 2b-b: #302's whole-branch Lows and the coordinator's ruling on #300 I5 ------------
+
+# A text that is not UTF-8 also reaches open_store's integrity check. After open_store(tmp_path) and
+# close, a raw connection runs CREATE TABLE bad(a) and INSERT INTO bad VALUES (NULL), then, with
+# PRAGMA writable_schema ON, sets that sqlite_schema row's name and tbl_name to
+# CAST(x'<UNREADABLE_TABLE_NAME hex>' AS TEXT) and its sql to CAST(x'<UNREADABLE_TABLE_SQL hex>' AS
+# TEXT), then writable_schema OFF. open_store(tmp_path) is StoreCorrupt with exactly NON_UTF8_MESSAGE
+# and no __cause__, and the state file's bytes are unchanged.
+UNREADABLE_TABLE_NAME = b"bad\xff"
+UNREADABLE_TABLE_SQL = b'CREATE TABLE "bad\xff"(a NOT NULL)'
+
+# A stored as_of that is not text. create_run(**BLOB_AS_OF_RUN) on open_store(tmp_path), then close.
+# BLOB_AS_OF_HEADER occurs exactly once in the state file; its byte at BLOB_AS_OF_OFFSET (as_of's
+# serial type 0x21, ten bytes of text) is set to 0x20 (ten bytes of blob), after which a raw
+# connection reads typeof(as_of) == "blob". A StoreReader opened after that: run() of the run is
+# StoreCorrupt with exactly BAD_AS_OF_MESSAGE and no __cause__.
+BLOB_AS_OF_RUN: dict[str, object] = {
+    "run_id": "run-flip1",
+    "issuer_id": "i",
+    "issuer_name": "n",
+    "as_of": date(2026, 9, 30),
+    "config_id": "cfg",
+    "cap_usd": Decimal(20),
+    "request": b"req",
+    "pins": (),
+}
+BLOB_AS_OF_HEADER = bytes([0x1F, 0x0F, 0x0F, 0x21, 0x13, 0x11, 0x12])
+BLOB_AS_OF_OFFSET = 3
+
+# A claim never shows its writer token: for Claim(run_id="run-001", token=CLAIM_TOKEN), CLAIM_TOKEN is
+# in neither repr() nor str(), and claim.token is still CLAIM_TOKEN.
+CLAIM_TOKEN = "0123456789abcdef" * 2
