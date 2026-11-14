@@ -20,6 +20,8 @@ from credit_os.sources.html import (
 Q = b"QUJD" * 5000
 X = b"x" * 20000
 EURO = b"\xe2\x82\xac"
+ASTRAL = b"\xf0\x9f\x98\x80"
+NESTED = b"<div style=display:none>" * 40 + b"h" + b"</div>" * 39 + b"still" + b"</div>shown"
 E_ACUTE = "\N{LATIN SMALL LETTER E WITH ACUTE}"
 EURO_SIGN = "\N{EURO SIGN}"
 
@@ -333,14 +335,150 @@ def test_rows_in_small_pieces(
     assert _read(raw) == text
 
 
+_NOT_SIGN = "\N{NOT SIGN}"
+_SMALL = (1, 34, 35)
+_MUTANT_ROWS = [
+    pytest.param(b'<p title="display:none">shown</p>', None, "shown\n", id="m1"),
+    pytest.param(NESTED, None, "shown\n", id="m2"),
+    pytest.param(b"<p>a<br/>b</p>", None, "a\nb\n", id="m3"),
+    pytest.param(
+        b"<!---->" + b"shown " * 3000 + b"<!-- x -->", None, "shown " * 2999 + "shown\n", id="m4"
+    ),
+    pytest.param(b"<p>a</p a = 'b>" + b" " * 9000 + b"'>c", None, "a\nc\n", id="m5"),
+    pytest.param(
+        b"<p>a</p>xx<p>y</p a = 'b>" + b" " * 9000 + b"'>c", None, "a\nxx\ny\nc\n", id="m6"
+    ),
+    pytest.param(b"&notin" * 3000, None, (_NOT_SIGN + "in") * 3000 + "\n", id="m7"),
+    pytest.param(
+        b"<!---><p>inside</p>" + b" " * 20000 + b"<!-- c --><p>after</p>", None, "after\n", id="m8"
+    ),
+    pytest.param(
+        b"<textarea>&#x41;&#65;&notin&not;&amp</textarea>e",
+        _SMALL,
+        "AA" + _NOT_SIGN + "in" + _NOT_SIGN + "&e\n",
+        id="m9",
+    ),
+    pytest.param(
+        b"<xmp>" + b"<b>&amp;</b> " * 2000 + b"</xmp>after",
+        None,
+        "<b>&amp;</b> " * 2000 + "after\n",
+        id="m10",
+    ),
+    pytest.param(
+        b"<X\"y data-x='" + X + b"'  >a<p>b</p>" + b" " * 20000 + b'"', None, 'a\nb\n"\n', id="m11"
+    ),
+    pytest.param(
+        b'<div data-x="' + X + b'" style="' + ASTRAL * 16384 + b'">t</div>', None, "t\n", id="m12"
+    ),
+    pytest.param(
+        b'<div data-x="' + X + b'" title="display:none">shown</div>', None, "shown\n", id="m13"
+    ),
+    pytest.param(
+        b'<div data-x="' + X + b'" style=display:noned>hidden</div>shown', None, "shown\n", id="m14"
+    ),
+    pytest.param(
+        b'<div style="' + Q + b';display:none">hidden</div><p>shown &amp; caf\xc3\xa9</p>',
+        None,
+        "shown & caf" + E_ACUTE + "\n",
+        id="m15",
+    ),
+    pytest.param(
+        b'<div style="' + Q + b')">shown</div><p style="display:none">h</p>',
+        None,
+        "shown\n",
+        id="m16",
+    ),
+    pytest.param(b'<p>before</p><a b="' + b"x " * 10000, None, "before\n", id="m17"),
+    pytest.param(
+        b'<img data-x="' + X + b'" style="' + b"x" * 20000 + b'\xc3\xa9">after',
+        None,
+        "after\n",
+        id="m18",
+    ),
+    pytest.param(
+        b"<div style='display:none'>hidden<!---></div>revealed?<!-- c --!>after",
+        _SMALL,
+        "",
+        id="m19",
+    ),
+    pytest.param(
+        b"<!-- a --!><div style='display:none'>hidden<!--></div>revealed"
+        + b" " * 9000
+        + b"<!-- c --!>after",
+        None,
+        "",
+        id="m20",
+    ),
+    pytest.param(b"<p title = '" + b"a>" * 5000 + b"'>shown</p>", None, "shown\n", id="m21"),
+    pytest.param(
+        b'<div data-x="'
+        + "\N{LATIN SMALL LETTER E WITH ACUTE}".encode() * 10000
+        + b'" style=display:none>h</div>s',
+        None,
+        "s\n",
+        id="m22",
+    ),
+    pytest.param(
+        b'<div style="' + Q + b';DISPLAY:NONE">hidden</div><p>shown</p>', None, "shown\n", id="m23"
+    ),
+    pytest.param(
+        b'<div style="' + Q + b';display: none">hidden</div><p>shown</p>', None, "shown\n", id="m24"
+    ),
+    pytest.param(
+        b'<div style="' + Q + b';display\x1c:none">hidden</div><p>shown</p>',
+        None,
+        "shown\n",
+        id="m25",
+    ),
+    pytest.param(
+        b'<div style="' + Q + b';display\t:\nnone">hidden</div><p>shown</p>',
+        None,
+        "shown\n",
+        id="m26",
+    ),
+    pytest.param(
+        b"<blockquote style=display:none>hidden</blockquote" + b" a" * 10000 + b">shown",
+        None,
+        "shown\n",
+        id="m27",
+    ),
+    pytest.param(b'<p>a</p a = "b>' + b" " * 9000 + b'">c', None, "a\nc\n", id="m28"),
+    pytest.param(
+        b"<!-- a --!><p>shown</p>" + b" " * 20000 + b"<!-- b --><p>after</p>",
+        None,
+        "shown\nafter\n",
+        id="m29",
+    ),
+    pytest.param(
+        b"<textarea>" + b"w &amp; " * 3000 + b"</textarea>", None, "w & " * 2999 + "w &\n", id="m30"
+    ),
+]
+
+
+@pytest.mark.parametrize(("raw", "setting", "text"), _MUTANT_ROWS)
+def test_rows_for_surviving_mutants(
+    monkeypatch: pytest.MonkeyPatch, raw: bytes, setting: tuple[int, int, int] | None, text: str
+) -> None:
+    if setting is not None:
+        _set(monkeypatch, setting)
+    assert _read(raw) == text
+
+
 def test_parser_pin() -> None:
     def differs(which: str) -> str:
         return f"html.parser differs from 3.12.14 on Python {sys.version}: {which}"
 
+    assert sys.version_info[:3] >= (3, 12, 14), differs("patch level")
     parser = html.parser
     # Not declared in typeshed: read by name from the module and the class.
     module = vars(parser)
     cls = vars(parser.HTMLParser)
+    for name in ("locatetagend", "tagfind_tolerant", "attrfind_tolerant", "commentclose"):
+        assert name in module, differs(name + " is missing")
+    for name in ("CDATA_CONTENT_ELEMENTS", "RCDATA_CONTENT_ELEMENTS"):
+        assert name in cls, differs(name + " is missing")
+    tag_end_now = reader._TAG_END  # read at call time, so a patched module is seen
+    assert tag_end_now.pattern.count(b")*+") == 1, differs("the possessive edit of _TAG_END")
     tag_end = _TAG_END.pattern.decode("ascii").replace(")*+", ")*", 1)
     assert tag_end == module["locatetagend"].pattern, differs("locatetagend")
     assert _TAG_END.flags & re.VERBOSE, differs("locatetagend flags")
@@ -367,4 +505,3 @@ def test_parser_pin() -> None:
     assert cls["RCDATA_CONTENT_ELEMENTS"] == ("textarea", "title"), differs(
         "RCDATA_CONTENT_ELEMENTS"
     )
-    assert sys.version_info[:3] >= (3, 12, 14), differs("patch level")
