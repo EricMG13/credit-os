@@ -2589,6 +2589,118 @@
                   }
                 }
               },
+              "gaps": {
+                "title": "Gaps",
+                "description": "What this run could not establish, by how much it bears on the view.",
+                "columns": {
+                  "id": "Gap",
+                  "gap": "What is missing",
+                  "module": "Module",
+                  "reason": "Effect on the view",
+                  "shownAs": "Shown as"
+                },
+                "groups": [
+                  {
+                    "severity": "High",
+                    "count": "2",
+                    "rows": [
+                      {
+                        "id": "G-01",
+                        "gap": "Security and intercreditor documents",
+                        "module": "Recovery",
+                        "moduleId": "recovery",
+                        "reason": "Recovery by class is not assessable; the view on the unsecured notes rests on rank alone.",
+                        "shownAs": "blocked",
+                        "where": {
+                          "page": "overview",
+                          "label": "Shown under the Overview's limitations"
+                        }
+                      },
+                      {
+                        "id": "G-02",
+                        "gap": "Hedge schedule",
+                        "module": "Capital structure",
+                        "moduleId": "capital-structure",
+                        "reason": "The fixed and floating split of interest is an estimate; hedge expiries are not drawn.",
+                        "shownAs": "gap",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Capital structure page"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "severity": "Medium",
+                    "count": "3",
+                    "rows": [
+                      {
+                        "id": "G-03",
+                        "gap": "Peer figures on the same basis",
+                        "module": "Peer comparison",
+                        "moduleId": "peer-comparison",
+                        "reason": "The comparison overstates Halden by an amount the module could not size.",
+                        "shownAs": "gap",
+                        "where": {
+                          "page": "overview",
+                          "label": "Shown under the Overview's limitations"
+                        }
+                      },
+                      {
+                        "id": "G-04",
+                        "gap": "Share of revenue under cost pass-through",
+                        "module": "Business profile",
+                        "moduleId": "business-profile",
+                        "reason": "The finding on input costs rests on the margin record, not on contract terms.",
+                        "shownAs": "gap",
+                        "where": { "page": "module", "label": "Shown on the Business profile page" }
+                      },
+                      {
+                        "id": "G-05",
+                        "gap": "Average cost of debt",
+                        "module": "Capital structure",
+                        "moduleId": "capital-structure",
+                        "reason": "None on the view: interest cover is computed from cash interest paid.",
+                        "shownAs": "withheld",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Capital structure page"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "severity": "Low",
+                    "count": "2",
+                    "rows": [
+                      {
+                        "id": "G-06",
+                        "gap": "EBITDA for 2022 on the current basis",
+                        "module": "Financial performance",
+                        "moduleId": "financial-performance",
+                        "reason": "Five-year trends start in 2023.",
+                        "shownAs": "missing",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Financial performance page"
+                        }
+                      },
+                      {
+                        "id": "G-07",
+                        "gap": "Lease maturity schedule",
+                        "module": "Capital structure",
+                        "moduleId": "capital-structure",
+                        "reason": "Leases appear in the debt stack but not by year.",
+                        "shownAs": "missing",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Capital structure page"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
               "sources": {
                 "files": [
                   {
@@ -4325,6 +4437,64 @@
                   }
                 }
               },
+              "gaps": {
+                "title": "Gaps",
+                "description": "What this run could not establish, by how much it bears on the view.",
+                "columns": {
+                  "id": "Gap",
+                  "gap": "What is missing",
+                  "module": "Module",
+                  "reason": "Effect on the view",
+                  "shownAs": "Shown as"
+                },
+                "groups": [
+                  {
+                    "severity": "High",
+                    "count": "1",
+                    "rows": [
+                      {
+                        "id": "G-01",
+                        "gap": "Recovery module output",
+                        "module": "Recovery",
+                        "moduleId": "recovery",
+                        "reason": "No recovery by class is given for the senior notes; the module did not run before the cost cap.",
+                        "shownAs": "gap",
+                        "where": {
+                          "page": "overview",
+                          "label": "Shown under the Overview's limitations"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "severity": "Medium",
+                    "count": "2",
+                    "rows": [
+                      {
+                        "id": "G-02",
+                        "gap": "Hedge schedule",
+                        "module": "Capital structure",
+                        "moduleId": "capital-structure",
+                        "reason": "The fixed and floating split of interest is an estimate.",
+                        "shownAs": "gap",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Capital structure page"
+                        }
+                      },
+                      {
+                        "id": "G-03",
+                        "gap": "Peer figures on the same basis",
+                        "module": "Peer comparison",
+                        "moduleId": "peer-comparison",
+                        "reason": "The comparison overstates the issuer by an amount the module could not size.",
+                        "shownAs": "gap",
+                        "where": { "page": "module", "label": "Shown on the Peer comparison page" }
+                      }
+                    ]
+                  }
+                ]
+              },
               "sources": {
                 "files": [
                   {
@@ -5099,6 +5269,55 @@
                     "reason": null
                   }
                 }
+              },
+              "gaps": {
+                "title": "Gaps",
+                "description": "What this run could not establish, by how much it bears on the view.",
+                "columns": {
+                  "id": "Gap",
+                  "gap": "What is missing",
+                  "module": "Module",
+                  "reason": "Effect on the view",
+                  "shownAs": "Shown as"
+                },
+                "groups": [
+                  {
+                    "severity": "Medium",
+                    "count": "1",
+                    "rows": [
+                      {
+                        "id": "G-01",
+                        "gap": "Security package documents",
+                        "module": "Recovery",
+                        "moduleId": "recovery",
+                        "reason": "Recovery for the senior notes is a range and not a figure.",
+                        "shownAs": "gap",
+                        "where": {
+                          "page": "overview",
+                          "label": "Shown under the Overview's limitations"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "severity": "Low",
+                    "count": "1",
+                    "rows": [
+                      {
+                        "id": "G-02",
+                        "gap": "Hedge schedule",
+                        "module": "Capital structure",
+                        "moduleId": "capital-structure",
+                        "reason": "The fixed and floating split of interest is an estimate.",
+                        "shownAs": "missing",
+                        "where": {
+                          "page": "module",
+                          "label": "Shown on the Capital structure page"
+                        }
+                      }
+                    ]
+                  }
+                ]
               },
               "sources": {
                 "files": [

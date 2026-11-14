@@ -15,6 +15,10 @@ import type {
   Download,
   Evidence,
   FileState,
+  GapForm,
+  GapRow,
+  GapSeverity,
+  GapTable,
   DatedItem,
   Finding,
   HomeCard,
@@ -1407,6 +1411,10 @@ function readSummary(value: unknown, path: string, traces: Traces): Evidence["su
   };
 }
 
+/** Whether `text` names `n` as a whole number, so a delivered label can be held to the rows it counts. */
+const namesNumber = (text: string, n: number): boolean =>
+  new RegExp(`(?<!\\d)${String(n)}(?!\\d)`).test(text);
+
 function readSources(value: unknown, path: string, held: Held): Evidence["sources"] {
   const s = rec(value, path);
   const filesPath = child(path, "files");
@@ -1426,7 +1434,7 @@ function readSources(value: unknown, path: string, held: Held): Evidence["source
     throw new SliceError(child(path, "moreLabel"), "text exactly when a file is held back");
   }
   const hidden = files.length - visible;
-  if (moreLabel !== null && !new RegExp(`(?<!\\d)${String(hidden)}(?!\\d)`).test(moreLabel)) {
+  if (moreLabel !== null && !namesNumber(moreLabel, hidden)) {
     throw new SliceError(
       child(path, "moreLabel"),
       `a label that names the ${String(hidden)} held back`,
@@ -1528,28 +1536,114 @@ function itemsHeld(traces: Traces, path: string, trace: TraceTable): void {
   }
 }
 
+const GAP_SEVERITIES = Object.keys(STATUS_SETS["Gap severity"]) as GapSeverity[];
+const GAP_FORMS = ["gap", "withheld", "blocked", "missing"] as const satisfies GapForm[];
+const GAP_PAGES = ["overview", "module"] as const;
+
+function readGapRow(value: unknown, path: string, seats: Seats): GapRow {
+  const r = rec(value, path);
+  const moduleId = str(r, "moduleId", path);
+  const { module } = readSeat(r, path, seats);
+  const wherePath = child(path, "where");
+  const where = rec(own(r, "where"), wherePath);
+  return {
+    id: named(r, "id", path),
+    gap: named(r, "gap", path),
+    module,
+    moduleId,
+    reason: named(r, "reason", path),
+    shownAs: oneOf(r, "shownAs", path, GAP_FORMS),
+    where: {
+      page: oneOf(where, "page", wherePath, GAP_PAGES),
+      label: named(where, "label", wherePath),
+    },
+  };
+}
+
+function readGapGroup(value: unknown, path: string, seats: Seats): GapTable["groups"][number] {
+  const g = rec(value, path);
+  const rows = some(
+    list(g, "rows", path, (item, p) => readGapRow(item, p, seats)),
+    child(path, "rows"),
+  );
+  const count = named(g, "count", path);
+  if (count !== String(rows.length)) {
+    throw new SliceError(
+      child(path, "count"),
+      `${String(rows.length)}, the number of rows it holds`,
+    );
+  }
+  return { severity: oneOf(g, "severity", path, GAP_SEVERITIES), count, rows };
+}
+
+/** A run with no gap has no group. Groups run High, Medium, Low as delivered, none twice; a gap's id is the run's own, in one group only. */
+function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
+  const t = rec(value, path);
+  const columnsPath = child(path, "columns");
+  const heads = rec(own(t, "columns"), columnsPath);
+  const groupsPath = child(path, "groups");
+  const groups = list(t, "groups", path, (item, p) => readGapGroup(item, p, seats));
+  const seen = new Set<string>();
+  groups.forEach((group, g) => {
+    const before = groups[g - 1];
+    if (
+      before !== undefined &&
+      GAP_SEVERITIES.indexOf(group.severity) <= GAP_SEVERITIES.indexOf(before.severity)
+    ) {
+      throw new SliceError(
+        child(nth(groupsPath, g), "severity"),
+        "a severity after the one before it",
+      );
+    }
+    group.rows.forEach((row, r) => {
+      if (seen.has(row.id)) {
+        throw new SliceError(
+          child(nth(child(nth(groupsPath, g), "rows"), r), "id"),
+          "an id not used by an earlier gap",
+        );
+      }
+      seen.add(row.id);
+    });
+  });
+  return {
+    title: named(t, "title", path),
+    description: named(t, "description", path),
+    columns: Object.fromEntries(
+      ["id", "gap", "module", "reason", "shownAs"].map((key) => [
+        key,
+        named(heads, key, columnsPath),
+      ]),
+    ) as GapTable["columns"],
+    groups,
+  };
+}
+
 function readEvidence(value: unknown, path: string, traces: Traces, modules: Module[]): Evidence {
   const e = rec(value, path);
   const moduleFilter = readFilter(e, path, modules);
   const held: Held = new Map(moduleFilter.map((option) => [option.id, option]));
   const tabsPath = child(path, "tabs");
   const tabs = rec(own(e, "tabs"), tabsPath);
-  const trace = readTraceTable(
-    own(e, "trace"),
-    child(path, "trace"),
-    new Map(modules.map((m) => [m.id, m.name])),
-  );
+  const seats: Seats = new Map(modules.map((m) => [m.id, m.name]));
+  const trace = readTraceTable(own(e, "trace"), child(path, "trace"), seats);
+  const gaps = readGapTable(own(e, "gaps"), child(path, "gaps"), seats);
   return {
     intro: named(e, "intro", path),
     moduleFilter,
     tabs: {
       trace: countsRows(tabs, "trace", tabsPath, trace.rows.length),
       sources: named(tabs, "sources", tabsPath),
-      gaps: named(tabs, "gaps", tabsPath),
+      gaps: countsRows(
+        tabs,
+        "gaps",
+        tabsPath,
+        gaps.groups.reduce((n, g) => n + g.rows.length, 0),
+      ),
     },
     summary: readSummary(own(e, "summary"), child(path, "summary"), traces),
     sources: readSources(own(e, "sources"), child(path, "sources"), held),
     trace,
+    gaps,
   };
 }
 
@@ -1594,6 +1688,14 @@ function readRun(value: unknown, path: string): Run {
   }
   const evidence = readEvidence(own(r, "evidence"), evidencePath, base.traces, modules);
   itemsHeld(base.traces, tracesPath, evidence.trace);
+  const gapsPath = child(child(overviewPath, "limitations"), "gapsLink");
+  const gapCount = evidence.gaps.groups.reduce((n, g) => n + g.rows.length, 0);
+  if (!namesNumber(overview.limitations.gapsLink.label, gapCount)) {
+    throw new SliceError(
+      child(gapsPath, "label"),
+      `a label that names the ${String(gapCount)} gaps`,
+    );
+  }
   return { ...base, loading, overview, changes, modules, evidence };
 }
 

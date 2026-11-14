@@ -344,6 +344,7 @@ describe("readSlice, run frame", () => {
     runOf(slice, 0, 0)["overview"] = runOf(slice, 0, 2)["overview"];
     runOf(slice, 0, 0)["changes"] = runOf(slice, 0, 2)["changes"];
     runOf(slice, 0, 0)["modules"] = runOf(slice, 0, 2)["modules"];
+    runOf(slice, 0, 0)["evidence"] = runOf(slice, 0, 2)["evidence"];
     runOf(slice, 0, 0).traces = Object.create({ x: {} }) as Run["traces"];
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -1164,6 +1165,15 @@ describe("readSlice, modules", () => {
     expect(invalidReason(loading)).toContain("issuers[0].runs[1].head.firstModule");
   });
 
+  /** A run that holds no module has no gap in one, and its tab and Overview link say so. */
+  const noGaps = (run: Json) => {
+    const evidence = run["evidence"] as { gaps: Json; tabs: Json };
+    evidence.gaps["groups"] = [];
+    evidence.tabs["gaps"] = "0";
+    const limits = (run["overview"] as { limitations: { gapsLink: Json } }).limitations;
+    limits.gapsLink["label"] = "See the 0 gaps in Evidence";
+  };
+
   it("allows no first module on a run that holds no modules", () => {
     const slice = fresh();
     const run = runOf(slice, 3);
@@ -1174,6 +1184,7 @@ describe("readSlice, modules", () => {
     };
     evidence.moduleFilter = [];
     for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
+    noGaps(run);
     run.head["firstModule"] = null;
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
