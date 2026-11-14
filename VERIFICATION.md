@@ -3,6 +3,79 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: Signal's threads, the run store's status writes; the owner's instruction
+
+**The owner's instruction, about 22:20 UTC, given in the lead coordinator's session and read
+there:** "tell coordinators to resolve all descisions". The back-end coordinator's reading (its
+own): no sub-session holds for the owner; each brings its questions to the coordinator, who rules
+and records the question, the ruling, why, and the cost if wrong. A round past the fix-round limit
+is the coordinator's ruling, capped at one each time. Not lifted: a paid model run or a cap
+change, credentials, the predecessor repository, the instruction files, repository settings, the
+work PC, the content security policy, a purchase, anything a permission check refuses, a
+force-push of a pushed branch, the OS-limit rule and the mutation-slot rule. No merge with a High
+or Medium open and none on a red check. Earlier the same evening the owner approved, in this
+session ("Approve 4th round") and the lead's ("Yes, direction 1"), a fourth fix round for 1D PR 3b
+(#314) as a stacked PR 3b-2 that binds namespaces outside expat.
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #289 | Signal S-7, part 1 | `738aeda4` | `164bdf6` | shared helpers made public; `identity.cleaned_text` |
+| #290 | Signal S-7, part 2 | `41341966` | `1c66c47` | `signal/threads.py` |
+| #291 | Signal S-7, part 3 | `bfd2fb68` | `2a5329d` | the carried thread tests and the ruled behaviours |
+| #292 | Signal S-7, part 4 | `7eeff990` | `98bfa71` | unread counts and their rules |
+| #293 | Signal S-7, part 5 | `e23a8d80` | `68cbc8f` | the claim, pins and survivors' tests |
+| #322 | 2A PR 2c (replaces #303) | `ab141ba4` | `cd55161` | the run store's status writes |
+
+**Signal's threads (S-7).** One sequence: the later parts carry tests for code in the earlier
+ones. Each head is the reviewed head plus merges of `main`, no rewrite. Verdict lines read in the
+report files (shared notes, `s7/`): task review "Spec: PASS", "Quality: FAIL (2 Medium: surviving
+mutants M1 ..., M2 ...)"; security review "PASS. No High or Medium introduced. 4 Low, 6 Info";
+after fix round 1 "PASS. M1 and M2 fixed"; whole-branch review "PASS. No High, no Medium. 2 Low, 4
+Info. Status: complete." One later commit changes a docstring's wording and two test files; no
+reviewer probe was rerun after it. Two counted fix rounds. Ledger:
+`S-7 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n`.
+
+What it does: threads, comments (one level of replies, 500 a thread, a 15-minute edit window) and
+three reactions inside groups. A text is cleaned and refused before any transaction; inside it
+the order is visibility (a hidden target answers like a missing one), then role, then what only
+the rows can tell. Only a writer or the owner starts a thread or comments; a reaction needs a
+registered user; any name may read and mark read. A share that joins an automatic thread claims
+it. An error text carries no caller text except a malformed cursor, cut at 120 characters.
+
+**The run store's status writes (#322).** `claim_run` makes a new writer and fences the earlier
+claim (`StoreFenced`, a sibling of the other store errors); `start_run`, `reject_run`, `end_run`
+and `record_event` each check the claim, the run's writer and its status inside one write
+transaction. A resume clears the end; a finished or rejected run takes no event. Whole-branch
+review at `b2eb949f` (2A worktree, `pr2c/`): "PASS. High 0, Medium 0, Low 4, Info 6". L2 (three
+key rows) and L3 (one assert) landed in the PR; L1 and L4 are the first task of PR 3. Ledger:
+`2A-2c task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`;
+`2A-2c lows agent=mx-scaffold fix-rounds=0 gates-first-pass=y`.
+
+Mutation, count of record with its limit named (ruled under the owner's instruction): 1,074
+mutants, 887 killed, 186 survived, 1 timed out; on the PR's lines 335, 282 killed, 53 survived,
+none real (message wording or SQL case). One load reading was 51.69 against the limit of 40; the
+timeouts were rerun alone, the kills were not.
+
+**Rulings by the back-end coordinator** (those after 22:20 UTC under the owner's instruction).
+1B: R49a, the currency check reads the prefix forms; R49b, capital `T` is a thousands mark
+wherever `k` goes; R50, only the operand's header, the first header cell and a `Unit` or `Units`
+column excuse a cell in another unit; R51, `MUS$` and `M$` are ambiguous and refused under both
+blocks (`MMUS$`, `MUSD`, `M€` stay millions); one mutation count at the final 6a3 head stands for
+6a, 6a2 and 6a3, which merge as one set. 1D: 96 MiB is a target, not a stated bound, until one
+file measures all four terms; `MAX_TOKEN_BYTES` goes to 524,288 in 3b-2 (a longer start tag is
+refused; no real-file evidence either way); a charset name cut at the sniff's last byte is
+refused, in PR 2b-4. 1C: the sigma case forms move to a stacked PR 2h-2 merged with 2h as one
+set, after a first attempt held 413.6 MB. 2A PR 3: a stored writer that is not a token is
+`StoreCorrupt` and such a run cannot be claimed; names are exact `str`.
+
+Not verified: the threads hand-mutant count (166 of 173 caught, no non-equivalent survivor) was
+taken before the slot rule with no load recorded, so it is not of record; that #322's kills taken
+at load 51.69 are free of load effects; Windows other than through CI; 1D's and 1C's figures
+above are their controllers' reports, not read by the coordinator in a diff yet.
+
 ## 2026-11-14 Roadmap back end: Signal's feed view, the run store's Low batch
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
@@ -717,95 +790,3 @@ PR green on Linux and Windows. Not verified for it: Windows timing after the cha
 one green CI run; the speed-up from the helpers was within load noise on the Mac; the
 re-render of the debt and recovery sections on a case switch is a measured cost left for the
 phase sweep.
-
-## 2026-11-14 Roadmap back end: Python 3.12.14, Signal's feed reader, 1B inputs, 2A transactions
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #209 | 1D PR 2b-1 | `33185f3`, `eb8a83a` | `sources/html.py`: HTML decoding and the line writer (511 lines) |
-| #226 | 2A PR 1d | `f4dbd73`, `567f088` | `store/txn.py`: the write transaction and the migration runner (778) |
-| #246 | 2A PR 1d-b | `5622f25`, `d32b08a` | store scans, value-free messages, parked test rows, the fail-open docstring (145) |
-| #245 | decision 0011 | `42d8410`, `a2b4f1c` | Python pinned to 3.12.14 in `pyproject.toml`, `.python-version` and both CI runners; the record |
-| #244 | 1B keys (1) | `95992d1`, `970bc15` | the answer-key scripts for PR 2 and PR 3 and the test that each reproduces its key (582, tests only) |
-| #255 | 1B keys (2) | `4398ab0`, `d008cc1` | the same for PR 4a and PR 4b; the PR 4b oracle uses `fractions.Fraction` and imports no `credit_os` (759, tests only) |
-| #243 | 1B PR 4b | `8759d10`, `59ffc77` | `model/inputs.py`: the forecast inputs schema, scale to millions, the repayment bound (797) |
-| #248 | 1C PR 2g | `c6116c3`, `68b327b` | `provider/redact.py`: a Users or home folder inside a path is redacted (198; opened by the owner's review-fix process) |
-| #109, #110, #178, #179, #185, #186 | Signal S-3a, parts 1 to 6 | `f970282`, `a689fd1`, `0d4132e`, `fd4d4ab`, `56e0c3a`, `3141609`; merges `d4c9141`, `5e5d5d1`, `2cd07b5`, `2153cdb`, `718a13b`, `4a8a6d1` | `signal/feeds.py`: the feed reader on expat, DTDs and entities refused, namespaces resolved by the reader, text and HTML streamed to bounded sinks; the memory test |
-
-The six feed PRs were stacked. Each was merged in order after its base was set to `main`, the
-PR closed and reopened so CI ran on the merge with `main`, and all three checks passed at the
-expected head. Parts 1 to 4 hold defects that later parts fix (a hex-looking last host label,
-the memory bound), so the stack was merged only as a whole, within about an hour. Parts 7a
-and 7 (#215, #207) were still in CI when this entry was written and are not recorded here.
-
-**Reviews.** As each controller reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #209 | `mx-precise` pass and `mx-adversary` pass on `baef6ee` (Lows only); Low batch by `mx-scaffold`, probes exit 0 | 0 defects | Pass on `33185f3`: High 0, Medium 0, Low 2, Info 4 |
-| #226 | Four rounds on the task (two Sonnet, one from an `mx-autonomous` plan, one the owner's); `mx-invariants` pass on `fd66ecc` | as reported | Pass on `f4dbd73`: High 0, Medium 0, Low 2, Info 3 |
-| #246 | batched `mx-feature` on `4308974`: pass, Low 1; parked Lows checked against the reviewers' probes (exit 0) | none (tests and messages) | none, by the batching rule |
-| #245 | batched `mx-feature`: pass, Low 1 (fixed in `42d8410`) | none (config, record) | none |
-| #244, #255 | batched `mx-feature`: #244 pass (Info only); #255 pass (Low 2, Info 2) | none (tests only) | none, by ruling R22 |
-| #243 | on `a42a349`, `mx-precise` Medium 1 and `mx-adversary` Medium 2 (the same holder defect, and a base key printed in full); one fix round; `mx-precise` re-review pass on `8af69fa` | as reported | Pass on `8759d10`: High 0, Medium 0, Low 1, Info 7 |
-| #248 | `mx-adversary`, two rounds: Medium 1 (a folder word in the user-name slot hid the next home), fixed in `2e4cc4d`; pass | none | none (a 198-line fix from the owner's process) |
-| Feeds | `mx-precise` and `mx-adversary` on `f970282` and `d41a8f0`; `mx-adversary` re-reviews on part 3 and on `fdfb1e7`; a third round planned by `mx-autonomous`; `mx-adversary` re-review on `ae46734` (the final tree of parts 1 to 6): pass, R24 closed by construction, Info 3 | not run on these parts | on `d41a8f0`: Medium 1 and the memory bound open, both closed by parts 3 and 5 |
-
-- #226's fourth round is the owner's ("Yes, document it", recorded in the entry below): an
-  interrupt during a write leaves as `StoreUnusable`, documented and pinned, not changed.
-- #243's Mediums: a tuple or model-instance holder skipped the scale step; a base key was
-  printed in full in a refusal. Its parked Low is test strength: 24 of 48 hand mutants of the
-  validators, field declarations and constants pass every test. Two would be silent money
-  errors (downside amounts left in thousands at scale 1000; a negative case
-  `debt_repayment`). The source is right on all 48. A tests-only PR closes it before PR 5.
-- Feeds, R24: peak parser memory stays under 64 MiB for any body within the 2 MiB cap. The
-  worst peak reached was 62.5 MiB, from expat's own attribute dictionary on a feed that is
-  then refused; the controller names that margin as the weak point.
-- The feeds whole-branch review predates parts 3 to 6. What covers the final tree is the
-  `mx-adversary` re-review on `ae46734`, not a second `mx-architect` review.
-
-**Gates and CI.** CI green on both runners at every head above; from #245 on, both runners
-are CPython 3.12.14 (read in the Windows log of #245). `tools/gates.py` exit 0 as the
-controllers reported for #209, #243, #255 and the feed parts. For #245 the implementer's
-local gates report was not relied on; CI is the evidence. Mutation: #209, 736 of 775 killed,
-34 survived (12 in `html.py`, equivalent, agreed by the whole-branch reviewer; the rest in
-unchanged `walk.py`), 5 timeouts; #243, count of record by the whole-branch reviewer with the
-clean-pass and forced-fail steps shown: `inputs.py` 332 mutants, 325 killed, 7 equivalent,
-`refusals.py` 26 of 26. Feeds: hand mutants only (53 of 56 at part 2, 3 equivalent).
-
-**Ledger.**
-- `1D-2b-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`; `1D-2b-1 Low batch agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
-- `2A-1d task=1 agent=mx-feature fix-rounds=4 gates-first-pass=n` (two Sonnet, one planned, one the owner's)
-- `1B-4b task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1B-keys1 task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`; `1B-keys2 task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
-
-**Rulings by the coordinator.** In the plans and in decision 0011.
-- Python: `requires-python` is `>=3.12.14,<3.13` after the owner's answer "3.12.14 or later".
-  A reader on `html.parser` is written against 3.12.14 and its tests pin the parser
-  behaviour it relies on. Signal's rework for 3.12.10 was shelved.
-- A mutation count is the count of record only when the run shows the clean tests passed
-  and the forced fail failed, known mutants behave as expected, and the reviewer ran it. A
-  2B run had reported 786 of 786 because collection failed inside mutmut.
-- 2B PR 4 (#250, #254, not merged): the owner authorised a fourth, tests-only round ("Yes,
-  test-only round") for two test-strength Mediums of the whole-branch review.
-
-**Open, for the owner.**
-- `CLAUDE.md`'s target table still says Python `>=3.12,<3.13`; the pin is `>=3.12.14`.
-- Redaction (#202, #248): a lower-case `\\?\unc\` lead, a lead after `:`, and a
-  single-letter drive inside a URL are not handled.
-- 2A: a second interrupt path (through the authorizer, `not authorized`) is accepted under
-  "Yes, document it".
-- 2B figure reader: `In March 1.5% growth was seen.` reads 5% in passage text (the date mask
-  takes `March 1`); PR 5 refuses it as not held and pins it as a known false refusal.
-- 1D: the csv reader takes about 1.4 s per MiB with no time bound; step 3A decides.
-
-**Not verified.**
-- The work PC's Python level was stated by the owner, not read from the machine; 3.12.15 and
-  later are untried.
-- Feeds: feeds downloaded from real publishers; operating-system memory (tracemalloc only);
-  `mutmut`; other expat builds.
-- #243: real model-written blocks. #226: races beyond those the reviewers probed.
-- #248: mutation testing of the new pass; whitespace characters beyond those probed.
