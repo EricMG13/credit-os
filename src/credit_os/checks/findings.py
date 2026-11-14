@@ -5,7 +5,8 @@ as written (cut to 80 code points by `echo`) and one sentence saying what to cha
 `ordered` sorts by line, then the position of the check in `CHECKS`, then column.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from types import MappingProxyType
 from typing import Literal
 
 from pydantic import Field, field_validator
@@ -89,6 +90,13 @@ class CheckContext(Node):
     scored: bool = False
     pins: tuple[SourcePin, ...] = ()
     other_sources: tuple[str, ...] = ()
-    upstream: dict[str, HandoffDocument] = Field(default_factory=dict)
-    accepted: dict[str, HandoffDocument] = Field(default_factory=dict)
+    upstream: Mapping[str, HandoffDocument] = Field(default_factory=dict)
+    accepted: Mapping[str, HandoffDocument] = Field(default_factory=dict)
     required_registers: tuple[str, ...] = ()
+
+    @field_validator("upstream", "accepted")
+    @classmethod
+    def _read_only_copy(
+        cls, documents: Mapping[str, HandoffDocument]
+    ) -> Mapping[str, HandoffDocument]:
+        return MappingProxyType(dict(documents))

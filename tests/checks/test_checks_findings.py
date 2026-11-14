@@ -158,6 +158,52 @@ def test_context_frozen() -> None:
         _set(context, "scored", True)
 
 
+def _context_with_document() -> tuple[CheckContext, dict[str, Any], Any]:
+    data = (HANDOFFS / "synthetic-new-format" / "SYNTHETIC-CP-0.md").read_bytes()
+    document = parse(data)
+    passed: dict[str, Any] = {"CP-0": document}
+    return CheckContext(kind="prose", upstream=passed, accepted=dict(passed)), passed, document
+
+
+@pytest.mark.parametrize("name", ["upstream", "accepted"])
+def test_context_mapping_refuses_assignment(name: str) -> None:
+    context, _, document = _context_with_document()
+    mapping: Any = getattr(context, name)
+    with pytest.raises(TypeError):
+        mapping["CP-1"] = document
+    with pytest.raises(TypeError):
+        mapping["CP-0"] = document
+    assert list(mapping) == ["CP-0"]
+
+
+@pytest.mark.parametrize("name", ["upstream", "accepted"])
+def test_context_mapping_refuses_deletion(name: str) -> None:
+    context, _, _ = _context_with_document()
+    mapping: Any = getattr(context, name)
+    with pytest.raises(TypeError):
+        del mapping["CP-0"]
+    assert "CP-0" in mapping
+
+
+def test_context_holds_its_own_copy() -> None:
+    context, passed, document = _context_with_document()
+    passed["CP-9"] = document
+    del passed["CP-0"]
+    assert list(context.upstream) == ["CP-0"]
+    assert list(context.accepted) == ["CP-0"]
+
+
+def test_context_mapping_reads() -> None:
+    context, _, document = _context_with_document()
+    assert context.upstream["CP-0"] == document
+    assert "CP-0" in context.upstream
+    assert "CP-1" not in context.upstream
+    assert len(context.accepted) == 1
+    assert list(context.accepted) == ["CP-0"]
+    assert context.upstream.get("CP-0") == document
+    assert context.upstream.get("CP-1") is None
+
+
 def test_context_refuses_unknown_kind_and_extra() -> None:
     with pytest.raises(ValidationError):
         _context(kind="other")
