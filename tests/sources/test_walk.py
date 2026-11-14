@@ -380,6 +380,13 @@ def test_bidi_name_is_written_with_escapes(tmp_path: Path) -> None:
     assert PinnedFolder.model_validate_json(result.model_dump_json()) == result
 
 
+def test_slash_lookalike_name_is_written_with_escapes(tmp_path: Path) -> None:
+    result = pin_folder(_write(tmp_path, {"readme.txt": README, "a\u2215b.png": b"x"}))
+    assert [p.name for p in result.pins] == ["readme.txt"]
+    assert result.skipped == _skipped(("a\\u2215b.png", "unsupported suffix"))
+    assert PinnedFolder.model_validate_json(result.model_dump_json()) == result
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot hold this name")
 def test_control_names_are_written_with_escapes(tmp_path: Path) -> None:
     files = {
