@@ -5,6 +5,7 @@ import { User01 } from "@untitledui/icons";
 import { cx } from "@/utils/cx";
 
 const SIZES = {
+  xs: { box: "size-6", initials: "text-xs", icon: "size-3" },
   sm: { box: "size-8", initials: "text-sm", icon: "size-4" },
   md: { box: "size-10", initials: "text-md", icon: "size-5" },
 } as const;
@@ -18,7 +19,7 @@ type AvatarProps = {
 };
 
 /** Decoration: the name beside it carries the meaning, so it is hidden from the accessibility tree. */
-function Avatar({ size, initials, own = false }: AvatarProps) {
+export function Avatar({ size, initials, own = false }: AvatarProps) {
   return (
     <span
       aria-hidden="true"

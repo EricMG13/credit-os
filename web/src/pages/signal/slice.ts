@@ -22,7 +22,7 @@ type SignalChannels = {
   digests: SignalDigestChannel[];
   savedCount: string | null;
 };
-type SignalStory = {
+export type SignalStory = {
   id: string;
   kind: "regulator" | "news" | "ratings" | "research";
   kindLabel: string;
