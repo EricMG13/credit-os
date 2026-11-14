@@ -139,7 +139,10 @@ describe("Show sources", () => {
     renderFrame();
     expect(within(screen.getByTestId("plain")).queryByRole("button")).toBeNull();
     const slice = fresh();
-    (slice.issuers[0]?.runs[0] as Run).traces = {};
+    const runs = slice.issuers[0]?.runs as Run[];
+    // The capped run's overview points at no trace, so the slice stays valid without any.
+    (runs[0] as Run)["overview"] = runs[2]?.["overview"];
+    (runs[0] as Run).traces = {};
     expect(() => renderFrame({ library: slice })).toThrow(RangeError);
   });
 });

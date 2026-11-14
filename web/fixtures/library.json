@@ -388,6 +388,105 @@
               "forecastHref": null
             },
             "loading": false,
+            "overview": {
+              "bottomLine": {
+                "label": "Bottom line",
+                "lead": "Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing before the engine programme pays back.",
+                "rest": "Halden converts a strong order book into cash more slowly than its margin suggests. We see no liquidity pressure for eighteen months. The view rests on aftermarket pricing holding and on the unsecured notes being refinanced by mid 2027.",
+                "trace": "bottom-line"
+              },
+              "metricsLabel": "Headline figures",
+              "metrics": [
+                {
+                  "label": "Revenue, USD m",
+                  "value": { "kind": "value", "text": "2,105", "at": 2105 },
+                  "note": "Year to 30 Sep 2026",
+                  "trace": "revenue"
+                },
+                {
+                  "label": "EBITDA margin",
+                  "value": { "kind": "value", "text": "23.1%", "at": 23.1 },
+                  "note": "Company-adjusted basis",
+                  "trace": "ebitda-margin"
+                },
+                {
+                  "label": "Net leverage",
+                  "value": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                  "note": "Net debt to EBITDA",
+                  "trace": "net-leverage"
+                },
+                {
+                  "label": "Interest cover",
+                  "value": { "kind": "value", "text": "2.4x", "at": 2.4 },
+                  "note": "EBITDA to cash interest",
+                  "trace": "interest-cover"
+                },
+                {
+                  "label": "Liquidity, USD m",
+                  "value": { "kind": "value", "text": "412", "at": 412 },
+                  "note": "Cash and undrawn facility",
+                  "trace": "liquidity"
+                },
+                {
+                  "label": "Recovery, senior notes",
+                  "value": null,
+                  "note": "Recovery was not assessable",
+                  "trace": null
+                }
+              ],
+              "sides": {
+                "heading": "For and against",
+                "note": "Three points on each side, as the modules weighed them",
+                "columns": [
+                  {
+                    "name": "Supports the view",
+                    "items": [
+                      {
+                        "figure": { "kind": "value", "text": "4.6x", "at": 4.6 },
+                        "text": "Net leverage fell from 4.9x a year earlier as EBITDA grew faster than debt.",
+                        "qualifier": "Reported",
+                        "trace": "net-leverage"
+                      },
+                      {
+                        "figure": { "kind": "value", "text": "61%", "at": 61 },
+                        "text": "Aftermarket share of gross profit; it held through the last two downturns in build rates.",
+                        "qualifier": "Company-adjusted",
+                        "trace": "aftermarket-share"
+                      },
+                      {
+                        "figure": { "kind": "value", "text": "18 months", "at": null },
+                        "text": "No maturity above USD 50m before the 2028 notes, and the facility is undrawn.",
+                        "qualifier": "As of 30 Sep 2026",
+                        "trace": "runway"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Against the view",
+                    "items": [
+                      {
+                        "figure": { "kind": "value", "text": "USD 310m", "at": 310 },
+                        "text": "Unsecured notes fall due in 2028 with no refinancing agreed and coupons likely to reset higher.",
+                        "qualifier": "Reported",
+                        "trace": "notes-2028"
+                      },
+                      {
+                        "figure": { "kind": "value", "text": "2.4x", "at": 2.4 },
+                        "text": "Interest cover leaves little room if floating rates stay where they are.",
+                        "qualifier": "Unhedged portion estimated",
+                        "trace": "interest-cover"
+                      },
+                      {
+                        "figure": { "kind": "value", "text": "34%", "at": 34 },
+                        "text": "Revenue from one engine programme whose ramp has slipped twice.",
+                        "qualifier": "Management disclosure",
+                        "trace": "engine-programme"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
             "traces": {
               "net-leverage": {
                 "title": "Sources for net leverage",
@@ -446,6 +545,141 @@
                 },
                 "qualification": "EBITDA is on the company-adjusted basis. The reported figure is not established for this run.",
                 "evidenceItem": "T-0014"
+              },
+              "bottom-line": {
+                "title": "Sources for the bottom line",
+                "heading": "Bottom line",
+                "subtitle": "Overview · view · as of 30 Sep 2026",
+                "statement": "The view is the modules' weighing of leverage, liquidity and the 2028 refinancing.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Stable, thin headroom",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0001"
+              },
+              "revenue": {
+                "title": "Sources for revenue",
+                "heading": "Revenue USD 2,105m",
+                "subtitle": "Financial performance · figure · as of 30 Sep 2026",
+                "statement": "Revenue of USD 2,105m for the year to 30 September 2026.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Revenue 2,105",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0021"
+              },
+              "ebitda-margin": {
+                "title": "Sources for EBITDA margin",
+                "heading": "EBITDA margin 23.1%",
+                "subtitle": "Financial performance · figure · as of 30 Sep 2026",
+                "statement": "Company-adjusted EBITDA of USD 486m on revenue of USD 2,105m.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "EBITDA margin 23.1%",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": "The margin is on the company-adjusted basis.",
+                "evidenceItem": "T-0022"
+              },
+              "interest-cover": {
+                "title": "Sources for interest cover",
+                "heading": "Interest cover 2.4x",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "Company-adjusted EBITDA of USD 486m against cash interest of USD 203m.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Interest cover 2.4x",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0015"
+              },
+              "liquidity": {
+                "title": "Sources for liquidity",
+                "heading": "Liquidity USD 412m",
+                "subtitle": "Cash flow and liquidity · figure · as of 30 Sep 2026",
+                "statement": "Cash of USD 162m and an undrawn facility of USD 250m.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Liquidity 412",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0031"
+              },
+              "aftermarket-share": {
+                "title": "Sources for aftermarket share",
+                "heading": "Aftermarket share 61%",
+                "subtitle": "Business profile · figure · as of 30 Sep 2026",
+                "statement": "Aftermarket parts were 61% of gross profit in the year.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Aftermarket share 61%",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": "The share is on the company-adjusted basis.",
+                "evidenceItem": "T-0005"
+              },
+              "runway": {
+                "title": "Sources for the maturity runway",
+                "heading": "Runway 18 months",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "No maturity above USD 50m falls due before the 2028 notes.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Runway 18 months",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0016"
+              },
+              "notes-2028": {
+                "title": "Sources for the 2028 notes",
+                "heading": "2028 notes USD 310m",
+                "subtitle": "Capital structure · figure · as of 30 Sep 2026",
+                "statement": "USD 310m of unsecured notes fall due on 15 March 2028.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "2028 notes 310",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0017"
+              },
+              "engine-programme": {
+                "title": "Sources for the engine programme share",
+                "heading": "Engine programme 34%",
+                "subtitle": "Business profile · figure · as of 30 Sep 2026",
+                "statement": "34% of revenue comes from one engine programme.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "Engine programme 34%",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": "The share is a management disclosure.",
+                "evidenceItem": "T-0006"
               }
             }
           },
@@ -461,6 +695,90 @@
               "forecastHref": null
             },
             "loading": true,
+            "overview": null,
+            "traces": {}
+          },
+          {
+            "id": "2026-03-31",
+            "head": {
+              "issuerName": "Halden Aerostructures",
+              "asOf": "As of 31 Mar 2026",
+              "pathway": "Full review",
+              "state": "Capped",
+              "tabs": { "modulesCount": "9" },
+              "firstModule": "capital-structure",
+              "forecastHref": null
+            },
+            "loading": false,
+            "overview": {
+              "bottomLine": {
+                "label": "Bottom line",
+                "lead": "No overall view was formed: the run stopped at its cost cap after nine modules.",
+                "rest": "The delivered modules can be read on their own pages. The figures below are those the nine modules established; the rest are not established for this run.",
+                "trace": null
+              },
+              "metricsLabel": "Headline figures",
+              "metrics": [
+                {
+                  "label": "Drawn on the facility, USD m",
+                  "value": { "kind": "value", "text": "0", "at": 0 },
+                  "note": "Undrawn at 31 Mar 2026",
+                  "trace": null
+                },
+                {
+                  "label": "EBITDA margin",
+                  "value": {
+                    "kind": "withheld",
+                    "reason": "Withheld until the financial performance module is delivered"
+                  },
+                  "note": "Company-adjusted basis",
+                  "trace": null
+                },
+                {
+                  "label": "Net leverage",
+                  "value": {
+                    "kind": "gap",
+                    "reason": "No net debt figure was delivered before the cap."
+                  },
+                  "note": "Net debt to EBITDA",
+                  "trace": null
+                },
+                {
+                  "label": "Recovery, senior notes",
+                  "value": null,
+                  "note": "Recovery was not assessable",
+                  "trace": null
+                }
+              ],
+              "sides": {
+                "heading": "For and against",
+                "note": "One point on each side, as the delivered modules weighed them",
+                "columns": [
+                  {
+                    "name": "Supports the view",
+                    "items": [
+                      {
+                        "figure": { "kind": "value", "text": "0", "at": 0 },
+                        "text": "No drawings on the revolving facility at the cut-off date.",
+                        "qualifier": "As of 31 Mar 2026",
+                        "trace": null
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Against the view",
+                    "items": [
+                      {
+                        "figure": null,
+                        "text": "The financial performance, cash flow and recovery modules did not run before the cap, so the pace of cash conversion, the cost of the 2028 refinancing and the recovery for the senior notes are all open questions that a reader should not infer from the nine modules that did run.",
+                        "qualifier": "Not assessable",
+                        "trace": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
             "traces": {}
           }
         ]

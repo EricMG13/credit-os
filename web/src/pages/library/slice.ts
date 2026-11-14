@@ -130,13 +130,36 @@ export type RunHead = {
   forecastHref: string | null;
 };
 
-/** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
-export type Run = {
-  id: string;
-  head: RunHead;
-  loading: boolean;
-  traces: Record<string, Trace>;
+/** The bottom line of a run or module: `trace` is a key of the run's traces, or `null`. */
+export type BottomLineText = { label: string; lead: string; rest: string; trace: string | null };
+
+/** One headline figure: `value` is `null` when the figure is missing. */
+export type Metric = { label: string; value: Cell; note: string; trace: string | null };
+
+/** One point of For and against; `qualifier` is the label drawn as a badge. */
+export type Point = { figure: Cell; text: string; qualifier: string; trace: string | null };
+
+/** The upper half of the Overview page; later tasks add the lower half. */
+export type Overview = {
+  bottomLine: BottomLineText;
+  /** The accessible name of the headline figures. */
+  metricsLabel: string;
+  metrics: readonly Metric[];
+  sides: {
+    heading: string;
+    note: string;
+    columns: readonly { name: string; items: readonly Point[] }[];
+  };
 };
+
+type RunBase = { id: string; head: RunHead; traces: Record<string, Trace> };
+
+/** A run still loading carries no overview; every other run carries one. */
+type LoadedRun = RunBase & { loading: false; overview: Overview };
+type LoadingRun = RunBase & { loading: true; overview: null };
+
+/** A run's pages; each task adds its own member. `traces` is keyed by the key a figure carries. */
+export type Run = LoadedRun | LoadingRun;
 
 export type Issuer = { id: string; name: string; history: History; runs: readonly Run[] };
 

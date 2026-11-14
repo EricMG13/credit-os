@@ -341,6 +341,7 @@ describe("readSlice, run frame", () => {
 
   it("does not read a prototype property as a trace", () => {
     const slice = fresh();
+    runOf(slice, 0, 0)["overview"] = runOf(slice, 0, 2)["overview"];
     runOf(slice, 0, 0).traces = Object.create({ x: {} }) as Run["traces"];
     const result = readSlice(slice);
     if (result.kind !== "ok") throw new Error(result.kind);
@@ -362,5 +363,71 @@ describe("traceKey", () => {
     );
     expect(() => traceKey({ trace: 3 }, "trace", "p", traces)).toThrow("p.trace");
     expect(() => traceKey({ trace: "toString" }, "trace", "p", traces)).toThrow("p.trace");
+  });
+});
+
+describe("readSlice, overview", () => {
+  type Ov = {
+    bottomLine: Json;
+    metrics: Json[];
+    sides: { columns: { items: Json[] }[] };
+  };
+  type Run = Json & { overview: Ov | null };
+  const runOf = (slice: ReturnType<typeof fresh>, r: number) =>
+    (slice.issuers[0]?.["runs"] as Run[])[r] as Run;
+  const ovOf = (slice: ReturnType<typeof fresh>) => runOf(slice, 0).overview as Ov;
+
+  it("reads the mock's overview: the loading run has none, the zero metric stays zero", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const [full, loading, capped] = result.data.issuers[0]?.runs ?? [];
+    expect(loading?.overview).toBeNull();
+    if (full?.loading !== false || capped?.loading !== false) throw new Error("runs are loaded");
+    expect(full.overview.metrics).toHaveLength(6);
+    expect(full.overview.metrics[5]?.value).toBeNull();
+    expect(full.overview.sides.columns.map((c) => c.items.length)).toEqual([3, 3]);
+    expect(capped.overview.metrics[0]?.value).toEqual({ kind: "value", text: "0", at: 0 });
+    expect(capped.overview.metrics[1]?.value).toMatchObject({ kind: "withheld" });
+  });
+
+  it.each([
+    [
+      "a malformed metric value",
+      (o: Ov) => ((o.metrics[1] as Json)["value"] = { kind: "value" }),
+      "overview.metrics[1].value.text",
+    ],
+    [
+      "a metric trace the run lacks",
+      (o: Ov) => ((o.metrics[0] as Json)["trace"] = "ghost"),
+      "overview.metrics[0].trace",
+    ],
+    [
+      "an item trace the run lacks",
+      (o: Ov) => ((o.sides.columns[1]?.items[2] as Json)["trace"] = "ghost"),
+      "overview.sides.columns[1].items[2].trace",
+    ],
+    [
+      "a bottom line without its lead",
+      (o: Ov) => delete o.bottomLine["lead"],
+      "overview.bottomLine.lead",
+    ],
+    [
+      "an item without its qualifier",
+      (o: Ov) => delete (o.sides.columns[0]?.items[0] as Json)["qualifier"],
+      "overview.sides.columns[0].items[0].qualifier",
+    ],
+  ])("is invalid for %s, with its path", (_, break_, path) => {
+    const slice = fresh();
+    break_(ovOf(slice));
+    expect(invalidReason(slice)).toContain(`issuers[0].runs[0].${path}`);
+  });
+
+  it("rejects a finished run with no overview and a loading run that carries one", () => {
+    const missing = fresh();
+    runOf(missing, 0).overview = null;
+    expect(invalidReason(missing)).toContain("issuers[0].runs[0].overview");
+    const loaded = fresh();
+    runOf(loaded, 1).overview = ovOf(fresh());
+    expect(invalidReason(loaded)).toContain("issuers[0].runs[1].overview");
   });
 });
