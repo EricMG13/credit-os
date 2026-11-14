@@ -24,8 +24,9 @@ and CI is green):
 run progress with its 22 module steps, activity, the unreadable and no-run states. A page
 group can now own its bare address and draw edge to edge; a kit button can be a link.
 
-**Gates.** `npm --prefix web run gates` exit 0 at `998b88f`, at `8199e37` (#73) and on the
-fix heads of #60 and #62; CI green on Linux and Windows for every PR at merge. One Windows
+**Gates.** `npm --prefix web run gates` exit 0 at `998b88f` and at `8199e37` (#73), and on
+`e2de49f` (#60, before its fix round). #62's full local gates did not finish under load; CI
+was its gate of record. CI green on Linux and Windows for every PR at merge. One Windows
 job on #111 failed once with `EBUSY` in `web/scripts/kit-chrome.mjs` and passed on re-run
 (the read race; its fix is PR #156, not merged at this entry).
 
@@ -42,7 +43,7 @@ job on #111 failed once with `EBUSY` in `web/scripts/kit-chrome.mjs` and passed 
 - #73: task review Needs fixes (Medium 1), fixed in `8199e37`; adversarial review PASS,
   High 0, Medium 0, Low 2 (dead `data-disabled:` classes; a Tab leg of the Chrome check that
   cannot fail), Info 3.
-- #51, #52: task review only.
+- #51: batched review (config and a decision record); #52: task review (`mx-precise`).
 - #52, #60, #62, #73 had no sweep discovery of their own (coordinator's ruling for small
   shared PRs); they go to the phase sweep.
 
