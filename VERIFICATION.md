@@ -15,8 +15,9 @@ none cancelled; the coordinator read the diff, and the three new files on `main`
 **Review.** Batched `mx-feature` docs review against the sources: pass, no High or Medium, 4 Low or
 Info applied in `9da1463` (probes `probe_contrast`, `probe_scores`, `probe_cases`, exit 0). No sweep
 and no adversarial pass: a docs-only PR. Ledger: task 1 inventory `agent=mx-feature fix-rounds=0
-gates-first-pass=n/a`; task 2 proposal `agent=mx-architect fix-rounds=0 gates-first-pass=n/a`; task 3
-fix-ups and size `agent=mx-feature fix-rounds=1 gates-first-pass=n/a`. The mocks (five Claude Design
+gates-first-pass=n/a`; task 2 proposal `agent=mx-architect fix-rounds=0 gates-first-pass=n/a`;
+task 3 fix-ups and size `agent=mx-feature fix-rounds=1 gates-first-pass=n/a`; the review's Lows
+`agent=mx-scaffold`. The mocks (five Claude Design
 files, sample data) were drawn by the step's controller: the tools are not open to `mx` agents.
 
 **Open for the owner (0013):** questions 1 to 9, 12, 14, 15, and a sixteenth raised after the merge:
@@ -894,4 +895,3 @@ Python gates on the stack (it touches no Python; CI runs them); the push runs of
 and `python` workflows on `main` `dca4981c` (queued when this entry was written), and any CI
 run of a PR head merged with later `main` (the stack was not forwarded after `970bc152`);
 mutation testing; the whole-branch review sampled the tests rather than auditing each.
-
