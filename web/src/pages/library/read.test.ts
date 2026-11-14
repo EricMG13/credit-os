@@ -1358,6 +1358,7 @@ describe("readSlice, modules", () => {
     noGaps(run);
     noTimings(run);
     run.head["firstModule"] = null;
+    (run.head["tabs"] as Json)["modulesCount"] = "0";
     (run.overview["modules"] as { items: Json[] }).items = [
       { title: "Nothing", lead: "No module ran.", state: "Not run", module: null },
     ];
@@ -1927,5 +1928,55 @@ describe("readSlice, the data module's records", () => {
       emphasis: false,
     });
     expect(gap).toMatchObject({ title: "Hedge expiries", nav: "Hedges" });
+  });
+});
+
+describe("readSlice, sweep fix batch 1", () => {
+  type Run = Json & { head: { tabs: Json } };
+  const runAt = (slice: ReturnType<typeof fresh>, i: number, r: number) =>
+    (slice.issuers[i]?.["runs"] as Run[])[r] as Run;
+
+  it("SW-04 refuses a second issuer with an id already used, naming the later one", () => {
+    const slice = fresh();
+    slice.issuers.push(structuredClone(slice.issuers[0]) as Json);
+    expect(invalidReason(slice)).toBe(
+      `issuers[${String(slice.issuers.length - 1)}].id: expected an id not used by an earlier issuer`,
+    );
+  });
+
+  it("SW-04b refuses a second home card for an issuer that already has one", () => {
+    const slice = fresh();
+    slice.home.cards.push(structuredClone(slice.home.cards[0]) as Json);
+    expect(invalidReason(slice)).toBe(
+      `home.cards[${String(slice.home.cards.length - 1)}].issuer: expected an issuer with no earlier card`,
+    );
+  });
+
+  it("SW-06 refuses a blank For-and-against figure, as it does a blank headline figure", () => {
+    const slice = fresh();
+    const run = runAt(slice, 0, 0) as unknown as {
+      overview: { sides: { columns: { items: Json[] }[] } };
+    };
+    (run.overview.sides.columns[0]?.items[0] as Json)["figure"] = {
+      kind: "value",
+      text: "",
+      at: null,
+    };
+    expect(invalidReason(slice)).toBe(
+      "issuers[0].runs[0].overview.sides.columns[0].items[0].figure.text: expected a non-empty string",
+    );
+  });
+
+  it("SW-01 ties the Modules tab count to the modules the run lists, and not on a loading run", () => {
+    const slice = fresh();
+    expect(readSlice(slice).kind).toBe("ok");
+    const full = runAt(slice, 0, 0);
+    full.head.tabs["modulesCount"] = "12";
+    expect(invalidReason(slice)).toBe(
+      "issuers[0].runs[0].head.tabs.modulesCount: expected 13, the number of modules the run lists",
+    );
+    const loading = fresh();
+    runAt(loading, 0, 1).head.tabs["modulesCount"] = "0";
+    expect(readSlice(loading).kind).toBe("ok");
   });
 });

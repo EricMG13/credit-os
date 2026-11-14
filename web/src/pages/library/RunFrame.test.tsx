@@ -122,6 +122,7 @@ describe("RunFrame tabs", () => {
     const slice = fresh();
     const run = slice.issuers[0]?.runs[0] as Run;
     run.head["firstModule"] = null;
+    (run.head["tabs"] as Json)["modulesCount"] = "0";
     run.modules = [];
     const evidence = run["evidence"] as {
       moduleFilter: unknown[];
