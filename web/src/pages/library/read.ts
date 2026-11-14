@@ -175,7 +175,7 @@ function readMeasure(o: Rec, key: string, path: string): Measure {
   if (value === null) return null;
   const m = rec(value, at);
   return {
-    text: str(m, "text", at),
+    text: named(m, "text", at),
     at: num(m, "at", at),
     basis: oneOf(m, "basis", at, ["reported", "adjusted"]),
     description: str(m, "description", at),
@@ -258,6 +258,19 @@ function oneCardEach(cards: HomeCard[], path: string): HomeCard[] {
   return cards;
 }
 
+/** Filter options the page keys and ids by their text: none is listed twice. */
+function options(o: Rec, key: string, path: string): string[] {
+  const found = strings(o, key, path);
+  const seen = new Set<string>();
+  for (const [index, text] of found.entries()) {
+    if (seen.has(text)) {
+      throw new SliceError(nth(child(path, key), index), "an option not listed earlier");
+    }
+    seen.add(text);
+  }
+  return found;
+}
+
 function readHome(value: unknown, path: string, issuerIds: ReadonlySet<string>): LibraryHome {
   const h = rec(value, path);
   const filtersPath = child(path, "filters");
@@ -269,9 +282,9 @@ function readHome(value: unknown, path: string, issuerIds: ReadonlySet<string>):
   return {
     subtitle: str(h, "subtitle", path),
     filters: {
-      sector: strings(f, "sector", filtersPath),
-      pathway: strings(f, "pathway", filtersPath),
-      state: strings(f, "state", filtersPath),
+      sector: options(f, "sector", filtersPath),
+      pathway: options(f, "pathway", filtersPath),
+      state: options(f, "state", filtersPath),
       appliedLabels,
     },
     cards: oneCardEach(
@@ -306,6 +319,10 @@ function readEntry(value: unknown, path: string): HistoryEntry {
   if (state !== "Finished" && state !== "Capped") {
     if (report !== null) throw new SliceError(child(path, "report"), `null for a ${state} run`);
     if (changes !== null) throw new SliceError(changesPath, `null for a ${state} run`);
+  }
+  // The history page draws the changes link beside the report link only.
+  if (report === null && changes !== null) {
+    throw new SliceError(changesPath, "null for an entry with no report");
   }
   return {
     asOf: str(e, "asOf", path),
@@ -485,7 +502,7 @@ function readColumns(sides: Rec, path: string, traces: Traces): Overview["sides"
     };
   });
   if (columns.length !== 2) throw new SliceError(child(path, "columns"), "two columns");
-  return columns;
+  return unique(columns, child(path, "columns"), (column) => column.name, "name");
 }
 
 function readFinding(value: unknown, path: string, traces: Traces): Finding {
@@ -534,21 +551,22 @@ function readModuleItem(value: unknown, path: string): ModuleItem {
 function readLimitations(value: unknown, path: string, traces: Traces): Limitations {
   const l = rec(value, path);
   const linkPath = child(path, "gapsLink");
-  return {
-    count: str(l, "count", path),
-    gapsLink: { label: str(rec(own(l, "gapsLink"), linkPath), "label", linkPath) },
-    items: some(
-      unique(
-        list(l, "items", path, (item, p) => {
-          const i = rec(item, p);
-          return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
-        }),
-        child(path, "items"),
-        (item) => item.text,
-        "text",
-      ),
+  const items = some(
+    unique(
+      list(l, "items", path, (item, p) => {
+        const i = rec(item, p);
+        return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
+      }),
       child(path, "items"),
+      (item) => item.text,
+      "text",
     ),
+    child(path, "items"),
+  );
+  return {
+    count: countsRows(l, "count", path, items.length),
+    gapsLink: { label: str(rec(own(l, "gapsLink"), linkPath), "label", linkPath) },
+    items,
   };
 }
 
@@ -1429,9 +1447,31 @@ function readFile(value: unknown, path: string, held: Held): SourceFile {
   };
 }
 
+/** The characters a delivered file path uses; a `%` only starts a two-digit escape. */
+const SEGMENT = /^(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+$/;
+
+/**
+ * An address the page hands to an anchor: a relative path inside the library folder, or `null`.
+ * Every segment must be plain (allow-list), and none may be `.` or `..` before or after
+ * percent-decoding, so no scheme, rooted path, whitespace or escape can leave the folder.
+ */
+function insideLibrary(o: Rec, key: string, path: string): string | null {
+  const href = gradeOrNull(o, key, path);
+  if (href !== null && !href.split("/").every(plainSegment)) {
+    throw new SliceError(child(path, key), "a relative path inside the library folder");
+  }
+  return href;
+}
+
+function plainSegment(segment: string): boolean {
+  if (!SEGMENT.test(segment)) return false;
+  const decoded = decodeURIComponent(segment);
+  return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
+}
+
 /** An address, or the reason there is none: exactly one of the two. */
 function readOffer(d: Rec, path: string): { href: string | null; reason: string | null } {
-  const href = gradeOrNull(d, "href", path);
+  const href = insideLibrary(d, "href", path);
   const reason = gradeOrNull(d, "reason", path);
   if (href === null && reason === null) {
     throw new SliceError(child(path, "reason"), "the reason no download is offered");
@@ -1799,7 +1839,12 @@ function readRunRecord(value: unknown, path: string, modules: readonly Module[])
   const registersPath = child(path, "registers");
   const registers = rec(own(r, "registers"), registersPath);
   const registerRows = some(
-    list(registers, "rows", registersPath, readRegister),
+    unique(
+      list(registers, "rows", registersPath, readRegister),
+      child(registersPath, "rows"),
+      (row) => row.name,
+      "name",
+    ),
     child(registersPath, "rows"),
   );
   return {
@@ -1813,16 +1858,21 @@ function readRunRecord(value: unknown, path: string, modules: readonly Module[])
     hashes: {
       title: named(hashes, "title", hashesPath),
       items: some(
-        list(hashes, "items", hashesPath, (item, p) => {
-          const h = rec(item, p);
-          return {
-            label: named(h, "label", p),
-            kind: named(h, "kind", p),
-            value: named(h, "value", p),
-            copyLabel: named(h, "copyLabel", p),
-            what: named(h, "what", p),
-          };
-        }),
+        unique(
+          list(hashes, "items", hashesPath, (item, p) => {
+            const h = rec(item, p);
+            return {
+              label: named(h, "label", p),
+              kind: named(h, "kind", p),
+              value: named(h, "value", p),
+              copyLabel: named(h, "copyLabel", p),
+              what: named(h, "what", p),
+            };
+          }),
+          child(hashesPath, "items"),
+          (item) => item.label,
+          "label",
+        ),
         child(hashesPath, "items"),
       ),
     },
@@ -1886,9 +1936,10 @@ function readEvidence(value: unknown, path: string, traces: Traces, modules: Mod
   const seats: Seats = new Map(modules.map((m) => [m.id, m.name]));
   const trace = readTraceTable(own(e, "trace"), child(path, "trace"), seats);
   const gaps = readGapTable(own(e, "gaps"), child(path, "gaps"), seats);
+  const sources = readSources(own(e, "sources"), child(path, "sources"), held);
   const counted = {
     trace: countsRows(tabs, "trace", tabsPath, trace.rows.length),
-    sources: named(tabs, "sources", tabsPath),
+    sources: countsRows(tabs, "sources", tabsPath, sources.files.length),
     gaps: countsRows(
       tabs,
       "gaps",
@@ -1902,7 +1953,7 @@ function readEvidence(value: unknown, path: string, traces: Traces, modules: Mod
     moduleFilter,
     tabs: counted,
     summary: readSummary(own(e, "summary"), child(path, "summary"), traces),
-    sources: readSources(own(e, "sources"), child(path, "sources"), held),
+    sources,
     trace,
     gaps,
     record: readRunRecord(own(e, "record"), child(path, "record"), modules),
@@ -1916,7 +1967,7 @@ function readRun(value: unknown, path: string, issuer: string): Run {
   const traces = rec(own(r, "traces"), tracesPath);
   const loading = own(r, "loading");
   if (typeof loading !== "boolean") throw new SliceError(child(path, "loading"), "a boolean");
-  const id = str(r, "id", path);
+  const id = named(r, "id", path);
   const base = {
     id,
     head: readHead(own(r, "head"), child(path, "head"), issuer, id),

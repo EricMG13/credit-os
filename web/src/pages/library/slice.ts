@@ -295,8 +295,13 @@ type Navigable = { nav: string | null };
 type MetricsRecord = Navigable & { kind: "metrics"; title: string; items: readonly Metric[] };
 
 /**
- * A measure against its earlier period. `delta` is delivered with its direction, never worked out;
- * it is `null` when either period is not a value, and the line then reads the earlier period itself.
+ * A measure against its earlier period. `delta` is delivered with its direction, never worked out.
+ * The reader accepts two forms only: both periods values with a `delta`, or the earlier period
+ * missing (`null`) beside any current figure with `delta` `null`, which the line words "Earlier
+ * period n.a.". The other 11 of the 16 (current, earlier) pairs (a current figure missing,
+ * withheld or a gap beside an earlier value; an earlier period withheld or a gap) are refused
+ * with their path, so delivery cannot yet send the shape of a capped run; step 3B must either
+ * widen the reader or keep delivery to these two forms.
  */
 type MeasuresRecord = Navigable & {
   kind: "measures";
@@ -459,6 +464,8 @@ export type Download = { label: string; href: string | null; reason: string | nu
  * One traced item. `moduleId` is the module it sits in, or `null` for an item of the Overview
  * (then `module` is "Overview"). `sources` is the delivered count, a real zero when there is none;
  * `calc` is the derivation of a figure the module calculated; `note` says what the row cannot.
+ * `value` is required of delivery and read, but no page draws it: it is kept as the contract the
+ * fixture-agreement test compares against the figure each trace opens from (step 3B must still send it).
  */
 export type TraceRow = {
   id: string;
@@ -481,6 +488,7 @@ export type TraceTable = {
   title: string;
   description: string;
   emptyText: string | null;
+  /** The `value` head is required and read but, like `TraceRow.value`, not drawn. */
   columns: Record<"id" | "item" | "value" | "module" | "kind" | "sources", string>;
   rows: readonly TraceRow[];
 };

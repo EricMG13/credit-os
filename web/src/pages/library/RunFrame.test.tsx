@@ -368,6 +368,36 @@ describe("Trace drawer", () => {
   });
 });
 
+describe("Trace drawer across runs", () => {
+  const data: LibraryData = {
+    schema: "credit-os-data/1",
+    issuers: fixture.issuers,
+    library: fixture.slice,
+  };
+  const frame = (run: string) => (
+    <SourceContext.Provider value={data}>
+      <RunFrame issuer={HALDEN} run={run} tab="overview">
+        <div className={TRACE_HOST}>
+          <TraceControl
+            trace={run === "2026-09-30" ? "net-leverage" : null}
+            label="Show sources for this figure"
+          />
+        </div>
+      </RunFrame>
+    </SourceContext.Provider>
+  );
+
+  it("is closed when the reader returns to a run after another one, not reopened (sweep review L1)", () => {
+    const view = render(frame("2026-09-30"));
+    openDrawer();
+    expect(screen.getByRole("dialog", { name: "Sources for net leverage" })).toBeVisible();
+    view.rerender(frame("2025-09-30"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    view.rerender(frame("2026-09-30"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
 describe("RunFrame details", () => {
   it("draws the tabs with the mock's 6px side padding", () => {
     renderFrame();

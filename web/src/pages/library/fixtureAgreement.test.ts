@@ -15,7 +15,12 @@ type TraceRow = {
   kind: string;
   value: unknown;
 };
-type Trace = { heading: string; statement: string; evidenceItem: string };
+type Trace = {
+  heading: string;
+  statement: string;
+  qualification?: string | null;
+  evidenceItem: string;
+};
 type Gap = { id: string; moduleId: string };
 type Run = {
   id: string;
@@ -234,5 +239,71 @@ describe("the fixture's runs agree with themselves", () => {
       "Engine programme delay: Medium probability, high impact.",
     );
     expect(rowOf(run, "T-0055").item).not.toBe(rowOf(run, "T-0053").item);
+  });
+});
+
+type HomeMeasure = { text: string; basis: string; description: string } | null;
+type HomeCard = {
+  kind: string;
+  issuer?: string;
+  href?: string | null;
+  measures?: Record<"leverage" | "netLeverage" | "interestCoverage", HomeMeasure>;
+};
+type Metric = {
+  label: string;
+  value: { kind: string; text?: string } | null;
+  trace: string | null;
+};
+type FullFixture = {
+  slice: {
+    home: { cards: HomeCard[] };
+    issuers: {
+      id: string;
+      runs: (Omit<Run, "overview"> & { overview: { metrics: Metric[] } })[];
+    }[];
+  };
+};
+const whole = fixture as unknown as FullFixture;
+
+describe("the Library home List agrees with the run each card opens (WBR-01)", () => {
+  // Predecessor rule: a figure on company-adjusted EBITDA is marked adjusted. The run's own trace
+  // says which basis it is on; the label of the run's Overview metric names the home measure.
+  const labels = {
+    leverage: "Leverage",
+    netLeverage: "Net leverage",
+    interestCoverage: "Interest cover",
+  };
+  const opened = whole.slice.home.cards.flatMap((card) => {
+    if (card.kind !== "issuer" || typeof card.href !== "string") return [];
+    const run = whole.slice.issuers
+      .find((i) => i.id === card.issuer)
+      ?.runs.find((r) => r.id === card.href);
+    return run === undefined || run.loading ? [] : [{ card, run }];
+  });
+
+  it("opens at least one loaded run, so the comparison below is not empty", () => {
+    expect(opened.length).toBeGreaterThan(0);
+  });
+
+  it("carries, per measure, the figure the run delivers in text and basis, and null where it delivers none", () => {
+    for (const { card, run } of opened) {
+      for (const [key, label] of Object.entries(labels) as [keyof typeof labels, string][]) {
+        const metric = run.overview.metrics.find((m) => m.label === label);
+        const listed = card.measures?.[key];
+        const where = `${String(card.issuer)} ${label}`;
+        if (metric?.value?.kind !== "value") {
+          expect(listed, where).toBeNull();
+          continue;
+        }
+        expect(listed, where).not.toBeNull();
+        expect(listed?.text, where).toBe(metric.value.text);
+        const trace = metric.trace === null ? undefined : run.traces[metric.trace];
+        const adjusted = /company-adjusted/i.test(
+          `${trace?.statement ?? ""} ${trace?.qualification ?? ""}`,
+        );
+        expect(listed?.basis, where).toBe(adjusted ? "adjusted" : "reported");
+        expect(/company-adjusted/i.test(listed?.description ?? ""), where).toBe(adjusted);
+      }
+    }
   });
 });

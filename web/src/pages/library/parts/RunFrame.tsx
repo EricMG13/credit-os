@@ -1,4 +1,4 @@
-import { Fragment, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-aria-components";
 import { Badge } from "@/components/base/badges/badges";
 import { StatusBadge } from "@/components/status/StatusBadge";
@@ -208,10 +208,6 @@ export function RunFrame({
   children: ReactNode | ((run: LoadedRun, issuer: string) => ReactNode);
 }) {
   const [sources, setSources] = useSourcesOn();
-  const [drawer, setDrawer] = useState<{ key: string | null; open: boolean }>({
-    key: null,
-    open: false,
-  });
   return (
     <LibraryPage title={PAGE_NAME[tab]}>
       {({ issuers }) => {
@@ -235,53 +231,87 @@ export function RunFrame({
             />
           );
         }
-        const trace =
-          drawer.key !== null && Object.hasOwn(run.traces, drawer.key)
-            ? run.traces[drawer.key]
-            : undefined;
         return (
-          <RunContext.Provider
-            value={{
-              traces: run.traces,
-              open: (key) => {
-                setDrawer({ key, open: true });
-              },
-            }}
+          <RunScope
+            key={`${issuer.id}/${run.id}`}
+            issuerId={issuer.id}
+            run={run}
+            tab={tab}
+            sources={sources}
+            setSources={setSources}
           >
-            <div data-sources={sources ? "on" : "off"} className="flex flex-col gap-8">
-              <div className="flex flex-col gap-5">
-                <RunHeader
-                  issuer={issuer.id}
-                  head={run.head}
-                  sources={<SourcesSwitch isSelected={sources} onChange={setSources} />}
-                />
-                <RunTabs issuer={issuer.id} run={run} tab={tab} />
-              </div>
-              {/* The app draws a route at one place, so a page's own state (a filter, a view, a
-                  collapse) would survive a hash change to another run: key the body by its run. */}
-              <Fragment key={`${issuer.id}/${run.id}`}>
-                {run.loading ? (
-                  <RunSkeleton />
-                ) : typeof children === "function" ? (
-                  children(run, issuer.id)
-                ) : (
-                  children
-                )}
-              </Fragment>
-            </div>
-            {trace === undefined ? null : (
-              <TraceDrawer
-                trace={trace}
-                evidenceHref={traceItemHref(issuer.id, run.id, trace.evidenceItem)}
-                isOpen={drawer.open}
-                onClose={() => {
-                  setDrawer({ key: drawer.key, open: false });
-                }}
-              />
-            )}
-          </RunContext.Provider>
+            {children}
+          </RunScope>
         );
       }}
     </LibraryPage>
+  );
+}
+
+/**
+ * One run's page. The app draws a route at one place, so a page's own state (a filter, a view, a
+ * collapse, the open trace drawer) would survive a hash change to another run: the caller keys
+ * this component by its run, and all of that state starts again with each run.
+ */
+function RunScope({
+  issuerId,
+  run,
+  tab,
+  sources,
+  setSources,
+  children,
+}: {
+  issuerId: string;
+  run: Run;
+  tab: RunTab;
+  sources: boolean;
+  setSources: (on: boolean) => void;
+  children: ReactNode | ((run: LoadedRun, issuer: string) => ReactNode);
+}) {
+  const [drawer, setDrawer] = useState<{ key: string | null; open: boolean }>({
+    key: null,
+    open: false,
+  });
+  const trace =
+    drawer.key !== null && Object.hasOwn(run.traces, drawer.key)
+      ? run.traces[drawer.key]
+      : undefined;
+  return (
+    <RunContext.Provider
+      value={{
+        traces: run.traces,
+        open: (key) => {
+          setDrawer({ key, open: true });
+        },
+      }}
+    >
+      <div data-sources={sources ? "on" : "off"} className="flex flex-col gap-8">
+        <div className="flex flex-col gap-5">
+          <RunHeader
+            issuer={issuerId}
+            head={run.head}
+            sources={<SourcesSwitch isSelected={sources} onChange={setSources} />}
+          />
+          <RunTabs issuer={issuerId} run={run} tab={tab} />
+        </div>
+        {run.loading ? (
+          <RunSkeleton />
+        ) : typeof children === "function" ? (
+          children(run, issuerId)
+        ) : (
+          children
+        )}
+      </div>
+      {trace === undefined ? null : (
+        <TraceDrawer
+          trace={trace}
+          evidenceHref={traceItemHref(issuerId, run.id, trace.evidenceItem)}
+          isOpen={drawer.open}
+          onClose={() => {
+            setDrawer({ key: drawer.key, open: false });
+          }}
+        />
+      )}
+    </RunContext.Provider>
   );
 }
