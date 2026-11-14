@@ -143,6 +143,14 @@ describe("the message list", () => {
     expect(screen.getAllByRole("button", { name: /^Agree/ }).length).toBeGreaterThan(0);
   });
 
+  it("gives a reply no side padding of its own, so its bubble keeps the mock's width", () => {
+    list();
+    const replies = screen.getByRole("list", { name: "Replies to Tobias O" });
+    expect(replies.className).not.toMatch(/\bp[lr]-/);
+    const item = within(replies).getAllByRole("listitem")[0];
+    expect(item?.className).not.toMatch(/\bp[lr]-/);
+  });
+
   it("draws a reply to a removed comment with no quote and no Reply of its own", () => {
     list({ comments: [{ ...removed, replies: [reply] }] });
     expect(screen.queryByRole("blockquote")).toBeNull();
