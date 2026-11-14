@@ -4,7 +4,7 @@ import { Alert } from "@/components/alert/Alert";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Badge } from "@/components/base/badges/badges";
 import { cx } from "@/utils/cx";
-import type { TraceRow, TraceTable } from "./slice";
+import type { Reader, TraceRow, TraceTable } from "./slice";
 import { DerivationTree } from "./parts/DerivationTree";
 import { InlineCell } from "./parts/InlineCell";
 import { NothingForModule } from "./parts/ModuleFilter";
@@ -44,14 +44,12 @@ export function EvidenceTrace({
   table,
   count,
   module,
-  moduleName,
   onClear,
   item,
 }: {
   table: TraceTable;
   count: string;
-  module: string | null;
-  moduleName: string | null;
+  module: Reader | null;
   onClear: () => void;
   item: string | null;
 }) {
@@ -69,26 +67,38 @@ export function EvidenceTrace({
     landed.current?.scrollIntoView({ block: "center" });
     landed.current?.focus({ preventScroll: true });
   }, []);
-  if (table.rows.length === 0) {
+  const unknown =
+    item !== null && target === null ? (
+      <Alert tone="warning" title="No item has this address">
+        {table.emptyText === null
+          ? "The table lists every traced item of this run."
+          : "This run lists no traced item."}
+      </Alert>
+    ) : null;
+  if (table.emptyText !== null) {
     return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.FeaturedIcon icon={SearchLg} />
-        </EmptyState.Header>
-        <EmptyState.Content>
-          <EmptyState.Title as={SUBSECTION_HEADING}>Nothing is traced in this run</EmptyState.Title>
-          <EmptyState.Description>
-            No paragraph, row or figure of this run carries sources.
-          </EmptyState.Description>
-        </EmptyState.Content>
-      </EmptyState>
+      <div className="flex flex-col gap-4">
+        {unknown}
+        <EmptyState>
+          <EmptyState.Header>
+            <EmptyState.FeaturedIcon icon={SearchLg} />
+          </EmptyState.Header>
+          <EmptyState.Content>
+            <EmptyState.Title as={SUBSECTION_HEADING}>
+              Nothing is traced in this run
+            </EmptyState.Title>
+            <EmptyState.Description>{table.emptyText}</EmptyState.Description>
+          </EmptyState.Content>
+        </EmptyState>
+      </div>
     );
   }
-  const held = module === null ? table.rows : table.rows.filter((row) => row.moduleId === module);
-  if (held.length === 0) {
+  const held =
+    module === null ? table.rows : table.rows.filter((row) => row.moduleId === module.id);
+  if (module !== null && held.length === 0) {
     return (
       <NothingForModule
-        title={`No traced item sits in ${moduleName ?? ""}`}
+        title={`No traced item sits in ${module.name}`}
         clearLabel="Show all items"
         onClear={onClear}
       />
@@ -105,11 +115,7 @@ export function EvidenceTrace({
   const { columns } = table;
   return (
     <div className="flex flex-col gap-4">
-      {item !== null && target === null ? (
-        <Alert tone="warning" title="No item has this address">
-          The table lists every traced item of this run.
-        </Alert>
-      ) : null}
+      {unknown}
       <RegisterCard
         title={table.title}
         count={module === null ? count : null}
@@ -169,10 +175,7 @@ export function EvidenceTrace({
                     </td>
                     <th
                       scope="row"
-                      className={cx(
-                        REGISTER_CELL,
-                        "font-mono text-left font-normal whitespace-nowrap",
-                      )}
+                      className={cx(REGISTER_CELL, "font-mono text-left font-normal")}
                     >
                       {row.id}
                     </th>
@@ -182,7 +185,7 @@ export function EvidenceTrace({
                         <p className="mt-1 text-small text-text-secondary">{row.note}</p>
                       )}
                     </td>
-                    <td className={cx(REGISTER_CELL, "whitespace-nowrap")}>
+                    <td className={REGISTER_CELL}>
                       <InlineCell cell={row.value} />
                     </td>
                     <td className={REGISTER_CELL}>{row.module}</td>

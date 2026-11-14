@@ -5,7 +5,7 @@ import { Badge } from "@/components/base/badges/badges";
 import { Missing } from "@/components/gap/Missing";
 import { Withheld } from "@/components/gap/Withheld";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
-import type { GapForm, GapRow, GapTable } from "./slice";
+import type { GapForm, GapRow, GapTable, Reader } from "./slice";
 import { NothingForModule } from "./parts/ModuleFilter";
 import {
   PlainHead,
@@ -47,15 +47,13 @@ export function EvidenceGaps({
   table,
   count,
   module,
-  moduleName,
   onClear,
   issuer,
   run,
 }: {
   table: GapTable;
   count: string;
-  module: string | null;
-  moduleName: string | null;
+  module: Reader | null;
   onClear: () => void;
   issuer: string;
   run: string;
@@ -65,7 +63,7 @@ export function EvidenceGaps({
     .map((group) => ({
       ...group,
       rows: sortRows(
-        module === null ? group.rows : group.rows.filter((row) => row.moduleId === module),
+        module === null ? group.rows : group.rows.filter((row) => row.moduleId === module.id),
         sort,
         keyOf,
       ),
@@ -86,10 +84,10 @@ export function EvidenceGaps({
       </EmptyState>
     );
   }
-  if (groups.length === 0) {
+  if (module !== null && groups.length === 0) {
     return (
       <NothingForModule
-        title={`No gap sits in ${moduleName ?? ""}`}
+        title={`No gap sits in ${module.name}`}
         clearLabel="Show all gaps"
         onClear={onClear}
       />
@@ -117,7 +115,7 @@ export function EvidenceGaps({
         {groups.map((group) => (
           <tbody key={group.severity}>
             <tr className="border-b border-border-hairline bg-surface-subtle">
-              <th scope="colgroup" colSpan={5} className="px-5 py-2 text-left font-semibold">
+              <th scope="rowgroup" colSpan={5} className="px-5 py-2 text-left font-semibold">
                 <span className="flex items-center gap-2">
                   <StatusBadge set="Gap severity" state={group.severity} />
                   {module === null ? (
@@ -130,10 +128,7 @@ export function EvidenceGaps({
             </tr>
             {group.rows.map((row) => (
               <tr key={row.id} className="border-b border-border-hairline">
-                <th
-                  scope="row"
-                  className={`${REGISTER_CELL} font-mono text-left font-normal whitespace-nowrap`}
-                >
+                <th scope="row" className={`${REGISTER_CELL} font-mono text-left font-normal`}>
                   {row.id}
                 </th>
                 <td className={`${REGISTER_CELL} text-text-primary`}>{row.gap}</td>

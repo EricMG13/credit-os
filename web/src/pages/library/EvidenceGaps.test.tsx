@@ -38,8 +38,10 @@ const outline = () =>
   allRows()
     .slice(1)
     .map((row) => {
-      const id = within(row).queryByRole("rowheader");
-      return id === null ? `group ${row.textContent}` : id.textContent;
+      const head = within(row).queryByRole("rowheader");
+      return head === null || head.getAttribute("scope") === "rowgroup"
+        ? `group ${row.textContent}`
+        : head.textContent;
     });
 const head = (name: string) => within(table()).getByRole("columnheader", { name });
 const rowOf = (id: string) => {
@@ -73,7 +75,14 @@ describe("Evidence, Gaps", () => {
     expect(screen.getByRole("region", { name: "Gaps" })).toHaveClass("overflow-x-auto");
   });
 
-  it("heads each column with a scope, the sortable ones with aria-sort", () => {
+  it("keeps the register's region free of a forced width and of focus classes it cannot use", () => {
+    renderGaps(FULL);
+    const region = screen.getByRole("region", { name: "Gaps" });
+    expect(region.className).not.toMatch(/focus|outline/);
+    expect(table().className).not.toMatch(/min-w/);
+  });
+
+  it("heads each column with scope col, each severity group with scope rowgroup, the sortable columns with aria-sort", () => {
     renderGaps(FULL);
     const heads = within(table()).getAllByRole("columnheader");
     expect(heads.map((h) => h.textContent)).toEqual([
@@ -82,12 +91,12 @@ describe("Evidence, Gaps", () => {
       "Module",
       "Effect on the view",
       "Shown as",
-      "High2",
-      "Medium3",
-      "Low2",
     ]);
-    for (const h of heads)
-      expect(h).toHaveAttribute("scope", expect.stringMatching(/^col(group)?$/));
+    for (const h of heads) expect(h).toHaveAttribute("scope", "col");
+    const rowHeads = within(table()).getAllByRole("rowheader");
+    const groups = rowHeads.filter((h) => h.getAttribute("scope") === "rowgroup");
+    expect(groups.map((h) => h.textContent)).toEqual(["High2", "Medium3", "Low2"]);
+    expect(rowHeads.filter((h) => h.getAttribute("scope") === "row")).toHaveLength(7);
     expect(head("Gap")).toHaveAttribute("aria-sort", "none");
     expect(head("Module")).toHaveAttribute("aria-sort", "none");
     expect(head("What is missing")).not.toHaveAttribute("aria-sort");

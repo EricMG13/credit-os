@@ -113,7 +113,7 @@ describe("RunFrame tabs", () => {
     const evidence = run["evidence"] as {
       moduleFilter: unknown[];
       sources: { files: { readers: unknown }[] };
-      trace: { rows: { module: string; moduleId: string | null }[] };
+      trace: { rows: { id: string; module: string; moduleId: string | null }[] };
       gaps: { groups: unknown[] };
       tabs: Json;
     };
@@ -124,6 +124,12 @@ describe("RunFrame tabs", () => {
       "See the 0 gaps in Evidence";
     for (const row of evidence.trace.rows)
       Object.assign(row, { module: "Overview", moduleId: null });
+    // a G- row is a gap of the run, and this run holds none: those rows take a T- id instead
+    const rename = (id: string) => (id.startsWith("G-") ? `T-9${id.slice(2)}` : id);
+    for (const row of evidence.trace.rows) row.id = rename(row.id);
+    for (const trace of Object.values(run.traces)) {
+      trace["evidenceItem"] = rename(String(trace["evidenceItem"]));
+    }
     for (const file of evidence.sources.files) file.readers = { shown: [], more: null };
     run.overview = {
       ...(run.overview as Json),

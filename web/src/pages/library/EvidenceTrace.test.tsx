@@ -26,6 +26,8 @@ const fixture = JSON.parse(
 const TRACE = "/library/:issuer/:run/evidence/trace";
 const ITEM = "/library/:issuer/:run/evidence/trace/:item";
 const FULL = "2026-09-30";
+const EMPTY_TEXT =
+  "The handoffs of this run were not traced item by item, so no paragraph, row or figure lists its sources here.";
 const rowsOf = (slice: Json = fixture.slice) =>
   (
     (slice["issuers"] as { runs: { evidence: { trace: { rows: Row[] } } | null }[] }[])[0]?.runs[0]
@@ -94,7 +96,7 @@ describe("the Trace routes", () => {
 describe("Evidence, Trace", () => {
   it("draws the card with the mock's title, delivered count and sentence, in one scroll region", () => {
     renderTrace(FULL);
-    expect(screen.getByRole("heading", { name: "Trace 60" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Trace 58" })).toBeVisible();
     expect(
       screen.getByText(
         "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
@@ -168,7 +170,7 @@ describe("Evidence, Trace", () => {
     expect(within(rowOf("T-0001")).getByText("n.a.")).toBeVisible();
     expect(within(rowOf("T-0014")).getByText("4.6x")).toBeVisible();
     expect(within(rowOf("T-0105")).getByText("Withheld")).toBeVisible();
-    expect(within(rowOf("G-11")).getByText("Not established for this run")).toBeVisible();
+    expect(within(rowOf("G-02")).getByText("Not established for this run")).toBeVisible();
   });
 
   it("draws a claim with no calculation as the mock's last row does: no control, a real zero and its note", () => {
@@ -320,10 +322,10 @@ describe("Evidence, Trace", () => {
         .filter((r) => r.moduleId === "recovery")
         .map((r) => r.id),
     );
-    expect(screen.queryByRole("heading", { name: "Trace 60" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Trace 58" })).toBeNull();
     expect(screen.getByRole("heading", { name: "Trace" })).toBeVisible();
     pick("All");
-    expect(ids()).toHaveLength(60);
+    expect(ids()).toHaveLength(58);
   });
 
   it("draws an empty state for a module no item sits in, and its way back", () => {
@@ -336,7 +338,7 @@ describe("Evidence, Trace", () => {
     ).toBeVisible();
     expect(screen.queryByRole("table")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Show all items" }));
-    expect(ids()).toHaveLength(60);
+    expect(ids()).toHaveLength(58);
   });
 
   it("draws an empty state for a run that traces nothing, with the delivered count", () => {
@@ -344,6 +346,28 @@ describe("Evidence, Trace", () => {
     expect(screen.getByRole("heading", { name: "Nothing is traced in this run" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Trace0" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.getByText(EMPTY_TEXT)).toBeVisible();
+    expect(screen.queryByText(/carries sources/)).toBeNull();
+  });
+
+  it("warns that an address names no item even when the run traces nothing", () => {
+    for (const run of ["2026-03-31", "2025-09-30"]) {
+      renderTrace(run, "T-0014");
+      expect(screen.getByRole("alert")).toHaveTextContent("No item has this address");
+      expect(screen.getByRole("heading", { name: "Nothing is traced in this run" })).toBeVisible();
+      expect(screen.getByText(EMPTY_TEXT)).toBeVisible();
+      cleanup();
+    }
+    renderTrace("2026-03-31");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps the register's region free of a forced width and of focus classes it cannot use", () => {
+    renderTrace(FULL);
+    const region = screen.getByRole("region", { name: "Trace" });
+    expect(region).toHaveClass("overflow-x-auto");
+    expect(region.className).not.toMatch(/focus|outline/);
+    expect(table().className).not.toMatch(/min-w/);
   });
 
   it("keeps one h1 and no skipped level in every state", () => {

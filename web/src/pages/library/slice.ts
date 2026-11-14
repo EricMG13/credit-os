@@ -472,10 +472,15 @@ export type TraceRow = {
   note: string | null;
 };
 
-/** The Trace tab: its delivered title, sentence and heads, then one row for each traced item. */
+/**
+ * The Trace tab: its delivered title, sentence and heads, then one row for each traced item. A
+ * register with no row carries `emptyText`, the delivered sentence saying what is true of that run;
+ * one with rows carries `null`. A row id starting "G-" is the id of a gap of the run, in its module.
+ */
 export type TraceTable = {
   title: string;
   description: string;
+  emptyText: string | null;
   columns: Record<"id" | "item" | "value" | "module" | "kind" | "sources", string>;
   rows: readonly TraceRow[];
 };
