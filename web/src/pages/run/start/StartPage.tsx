@@ -4,16 +4,12 @@ import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
 import { readSlice, type StartDraft } from "../slice";
+import { Confirm } from "./Confirm";
+import { Context } from "./Context";
 import { Documents } from "./Documents";
+import { Purpose } from "./Purpose";
 import { Readiness } from "./Readiness";
 import { Stepper } from "./Stepper";
-
-const PANEL_TITLE = {
-  purpose: "Purpose",
-  confirm: "Confirm what was read",
-  context: "More context",
-  start: "Start",
-} as const;
 
 function LinkButton({
   href,
@@ -114,13 +110,17 @@ export function StartPage({ draft: id }: { draft: string }) {
       <div className="grid items-start gap-6 min-[1041px]:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6 rounded-ds-lg border border-border-subtle bg-surface-card p-8 shadow-1">
           <Stepper step={draft.step} />
-          {draft.step === "documents" ? (
-            <Documents files={draft.files} />
-          ) : (
+          {draft.step === "documents" ? <Documents files={draft.files} /> : null}
+          {draft.step === "purpose" ? (
+            <Purpose key={draft.id} chosen={draft.chosen} purposes={draft.purposes} />
+          ) : null}
+          {draft.step === "confirm" ? <Confirm groups={draft.groups} /> : null}
+          {draft.step === "context" ? <Context key={draft.id} note={draft.note} /> : null}
+          {draft.step === "start" || draft.step === "started" ? (
             <h2 className="font-display text-h3 text-text-primary">
-              {draft.step === "started" ? draft.title : PANEL_TITLE[draft.step]}
+              {draft.step === "started" ? draft.title : "Start"}
             </h2>
-          )}
+          ) : null}
           {draft.step === "started" ? null : <Actions draft={draft} />}
         </div>
         <Readiness data={draft.readiness} />
