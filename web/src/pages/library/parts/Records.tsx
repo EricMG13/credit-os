@@ -40,20 +40,27 @@ function Block({ block }: { block: RecordBlock }) {
 }
 
 /** What a block is set beside: a chart table is named by its chart. */
-const kindOf = (block: RecordBlock): string =>
+type Kind =
+  | Exclude<RecordBlock["kind"], "chartTable">
+  | Extract<RecordBlock, { kind: "chartTable" }>["chart"];
+const kindOf = (block: RecordBlock): Kind =>
   block.kind === "chartTable" ? block.chart : block.kind;
 
 /** The mock sets some blocks side by side: the watch list with the questions, the terms with the tests, the peer scatter with the peer range. */
-const BESIDE: Record<string, string> = { watch: "questions", facts: "status", scatter: "range" };
+const BESIDE: Partial<Record<Kind, Kind>> = {
+  watch: "questions",
+  facts: "status",
+  scatter: "range",
+};
 
 /**
- * A pair's grid: the mock's 40px gap and two-up from 1001px, and for two chart tables its 24px gap
- * and two-up from 1200px, since each needs the room (side by side at 1440px, stacked at 1024px).
+ * A pair's grid, two-up from 1200px for every pair, so each half has room (side by side at 1440px,
+ * stacked at 1024px): the mock's 40px gap, and for two chart tables its 24px gap.
  */
-const PAIR: Record<string, string> = {
+const PAIR: Partial<Record<Kind, string>> = {
   scatter: "grid grid-cols-1 gap-6 min-[1200px]:grid-cols-2",
 };
-const PAIR_DEFAULT = "grid grid-cols-1 gap-10 min-[1001px]:grid-cols-2";
+const PAIR_DEFAULT = "grid grid-cols-1 gap-10 min-[1200px]:grid-cols-2";
 
 /** Two adjacent blocks of a pair share a row. */
 function rows(blocks: readonly RecordBlock[]): RecordBlock[][] {
