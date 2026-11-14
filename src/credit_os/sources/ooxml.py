@@ -38,15 +38,16 @@ MAX_DIRECTORY_BYTES = 4_194_304
 CHUNK_BYTES = 65_536
 # expat keeps one unfinished markup token whole; a tag of this size costs it 24 times that.
 MAX_TOKEN_BYTES = 1_048_576
-# expat keeps a copy of each open element's name and its namespace bindings: 0.89 to 1.47 MiB at
-# this depth with 255-character names (tracemalloc, macOS).
+# expat keeps a copy of each open element's name and its namespace bindings: 0.4 to 1.0 MiB at
+# this depth with names at the cap, 1.2 MiB with 4,096 declarations open (tracemalloc, macOS).
 MAX_DEPTH = 256
 # expat keeps every different element, attribute and `xmlns:` prefix name, and every namespace
 # name, for the life of a part; the same cap holds the namespace declarations open at once.
 MAX_NAMES = 4_096
 # expat builds and binds every name on every tag, so a long name costs time and memory per tag and
-# per open element, paid per UTF-8 byte; OOXML's are ASCII, under about 110 bytes. With MAX_NAMES
-# it bounds the UTF-8 bytes of all names, namespace names included, to 255 x 4,096.
+# per open element, more per byte when a name holds wide characters; OOXML's are ASCII, under about
+# 110 bytes. With MAX_NAMES it bounds the UTF-8 bytes of all names, namespace names included, to
+# 255 x 4,096.
 MAX_NAME_LENGTH = 255
 
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
