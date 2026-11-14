@@ -1,0 +1,24 @@
+{
+  "about": "Answer key for sentence, shown and passage text, written by the controller by reading (step 2B, PR 1). Values are 1-based file lines, in order; `texts` gives the text of some of them. Fixture paths are under tests/fixtures/handoffs/.",
+  "fixtures": {
+    "synthetic-new-format/SYNTHETIC-CP-0.md": {"passage": [17], "shown": [17, 27]},
+    "synthetic-new-format/SYNTHETIC-CP-1.md": {"passage": [17], "shown": [17, 29]},
+    "synthetic-new-format/SYNTHETIC-CP-1A.md": {"passage": [17, 22, 24, 26, 30, 34, 36], "shown": [17, 22, 24, 26, 30, 34, 36, 53]},
+    "synthetic-new-format/SYNTHETIC-CP-2.md": {"passage": [17, 22, 24, 26, 31, 34, 38, 39, 41], "shown": [17, 22, 24, 26, 31, 34, 38, 39, 41], "texts": {"34": "The company has not said how it intends to fund the step-down.", "38": "The Covenant package was not reviewed,  so covenant headroom is not assessed"}},
+    "synthetic-new-format/SYNTHETIC-CP-2D.md": {"passage": [14], "shown": [14, 17]},
+    "synthetic-data-views/SYNTHETIC-CP-1B.md": {"passage": [18, 23, 28], "shown": [18, 23, 28, 44, 69], "texts": {"23": "Reported earnings are stated; the bridge from reported to adjusted earnings is not.", "28": "Not supplied: no document read argues the other way.", "44": "The comparison is annual; no interim period was read."}},
+    "tdg-2026-11-09/CP-0.md": {"passage": []}
+  },
+  "case": {
+    "document": "## Request\nr\n## Sources\ns\n## Findings\n### Bottom line\nFirst line of the call\ncontinues here.\nBasis: a.pdf, page 1\n\nBasis: b.pdf\n#### Detail\n- nested item\n  wrapped\n### Key findings\n**Label one**\n| A | B |\n| --- | --- |\n| 1 | 2 |\n```\ncode line\n```\n### Chart data: revenue\nchart note\n#### Under chart\ndeeper note\n### Other\nother text\n## Calculations\ncalc text\n## Gaps\ngap text\n## Next module\nnext\n",
+    "passage": [7, 8, 13, 14, 16],
+    "shown": [7, 8, 13, 14, 16, 28, 30, 32],
+    "texts": {"7": "First line of the call", "8": "continues here.", "13": "nested item", "14": "wrapped", "16": "**Label one**", "28": "other text"}
+  },
+  "case_nested": {
+    "document": "## Request\nr\n## Sources\ns\n## Findings\n### Bottom line\nCall text.\n#### Chart data: cash\nchart words\n##### Deeper\ndeeper words\n#### Detail\ndetail words\n### Key findings\n- item one\n  Basis: a.pdf\n## Calculations\ncalc words\n### Forecast inputs\nforecast words\n## Gaps\ngap words\n## Next module\nn\n",
+    "passage": [7, 13, 15],
+    "shown": [7, 13, 15, 18, 22],
+    "texts": {"7": "Call text.", "13": "detail words", "15": "item one"}
+  }
+}
