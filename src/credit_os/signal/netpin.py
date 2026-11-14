@@ -20,7 +20,11 @@ from typing import Any, Protocol, cast
 
 @dataclass(frozen=True)
 class ConnectionTarget:
-    """``deadline`` is an absolute reading of ``clock``; ``timeout`` is a per-operation length."""
+    """``deadline`` is an absolute reading of ``clock``; ``timeout`` is a per-operation length.
+
+    ``max_received`` is the most bytes the connection may receive, counted as ``http.client``
+    reads them (see ``_BudgetedSocket``); there is no value that means no limit.
+    """
 
     host: str
     ip: str
@@ -28,6 +32,14 @@ class ConnectionTarget:
     timeout: float
     deadline: float
     clock: Callable[[], float]
+    max_received: int
+
+
+class ReceivedTooMuch(OSError):
+    """A pinned connection received more bytes than its limit; the text is fixed."""
+
+    def __init__(self, limit: int) -> None:
+        super().__init__(f"the server sent more than {limit} bytes")
 
 
 class ResponseLike(Protocol):
@@ -110,12 +122,27 @@ def tls_context() -> ssl.SSLContext:
 
 
 class _BudgetedSocket:
-    """A socket whose every receive and send is bounded by the fetch's remaining total time."""
+    """A socket whose every receive and send is bounded by the fetch's remaining total time.
+
+    It also counts what it receives and raises ``ReceivedTooMuch`` for the byte after
+    ``max_received``, reading no more than that one byte past the limit. Every read goes through
+    ``recv_into`` (``makefile`` reads through it; nothing reaches the raw socket around it). The
+    raw socket here is the TLS socket, so the count is of the bytes ``http.client`` sees after
+    decryption: on the wire it is the limit plus TLS record overhead (about 22 bytes per record of
+    up to 16 KiB) and the handshake, which finishes before this wrapper exists and is not counted.
+    """
 
     def __init__(
-        self, raw: socket.socket, timeout: float, deadline: float, clock: Callable[[], float]
+        self,
+        raw: socket.socket,
+        timeout: float,
+        deadline: float,
+        clock: Callable[[], float],
+        max_received: int,
     ) -> None:
         self._raw = raw
+        self._max_received = max_received
+        self._received = 0
         self._timeout = timeout
         self._deadline = deadline
         self._clock = clock
@@ -127,7 +154,14 @@ class _BudgetedSocket:
 
     def recv_into(self, buffer: Any, nbytes: int = 0) -> int:
         self._arm()
-        return self._raw.recv_into(buffer, nbytes)
+        room = self._max_received + 1 - self._received  # at most one byte past the limit
+        if room <= 0:  # refused already: a later read is refused too, never read as the end
+            raise ReceivedTooMuch(self._max_received)
+        got = self._raw.recv_into(buffer, min(nbytes or memoryview(buffer).nbytes, room))
+        self._received += got
+        if self._received > self._max_received:
+            raise ReceivedTooMuch(self._max_received)
+        return got
 
     def sendall(self, data: Any) -> None:
         self._arm()
@@ -156,7 +190,8 @@ class _BudgetedSocket:
 class PinnedHTTPSConnection(http.client.HTTPSConnection):
     """An https connection to a given address that verifies the certificate for the host name.
 
-    ``deadline`` (on ``clock``) bounds every socket operation.
+    ``deadline`` (on ``clock``) bounds every socket operation; ``max_received`` bounds the bytes
+    it receives (each ``connect`` starts a new count).
     """
 
     def __init__(
@@ -169,9 +204,11 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         context: ssl.SSLContext,
         deadline: float,
         clock: Callable[[], float],
+        max_received: int,
     ) -> None:
         super().__init__(host, port=port, timeout=timeout, context=context)
         self._pinned_ip = ip
+        self._max_received = max_received
         self._tls = context
         self._op_timeout = timeout
         self._deadline = deadline
@@ -190,7 +227,9 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         except BaseException:
             sock.close()
             raise
-        budgeted = _BudgetedSocket(wrapped, self._op_timeout, self._deadline, self._clock)
+        budgeted = _BudgetedSocket(
+            wrapped, self._op_timeout, self._deadline, self._clock, self._max_received
+        )
         self.sock = cast(socket.socket, budgeted)
 
     def request(
@@ -226,4 +265,5 @@ def pinned_connection(target: ConnectionTarget) -> ConnectionLike:
         context=tls_context(),
         deadline=target.deadline,
         clock=target.clock,
+        max_received=target.max_received,
     )
