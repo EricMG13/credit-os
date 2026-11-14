@@ -3,6 +3,43 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Design track: states 2, design stage (confidence, run end, restricted modules)
+
+**Merged:** #323, head `9da1463`, merge `de4f15d`, docs only (651 lines): `docs/design/states-2.md`
+(inventory, proposal, build outline), `docs/design/mocks/states-2.md`, the draft
+`docs/decisions/0013-states-2.md`, and a "Proposed (states 2, not ruled)" section of
+`docs/design/design-system.md`. Gates on Ubuntu and Windows and the review job passed on that head,
+none cancelled; the coordinator read the diff, and the three new files on `main` equal the head.
+**Nothing is decided or built:** the owner's review of the mocks is the gate.
+
+**Review.** Batched `mx-feature` docs review against the sources: pass, no High or Medium, 4 Low or
+Info applied in `9da1463` (probes `probe_contrast`, `probe_scores`, `probe_cases`, exit 0). No sweep
+and no adversarial pass: a docs-only PR. Ledger: task 1 inventory `agent=mx-feature fix-rounds=0
+gates-first-pass=n/a`; task 2 proposal `agent=mx-architect fix-rounds=0 gates-first-pass=n/a`; task 3
+fix-ups and size `agent=mx-feature fix-rounds=1 gates-first-pass=n/a`. The mocks (five Claude Design
+files, sample data) were drawn by the step's controller: the tools are not open to `mx` agents.
+
+**Open for the owner (0013):** questions 1 to 9, 12, 14, 15, and a sixteenth raised after the merge:
+the Run page needs a confirm step for taking over a run, because taking over a run whose process is
+alive stops that process's writes.
+
+**Ruled by the back-end coordinator after the merge** (the draft still shows them open; they enter
+0013 at the owner's review). Q10: status `finished`, end reason `completed`; delivery reads the
+status. Q11: the store has no lock and no heartbeat, so nothing marks a dead run; a run is `stopped`
+with end reason `interrupted` only when the operator takes it over, and "Interrupted" is drawn only
+from that stored state (a `running` run may show its last activity time, no judgement). Q13: a
+launch refusal is never a run: a start-page message, no row.
+
+**Found, predating the step, not fixed:** `web/fixtures/run.json` draws a capped run with a full
+bar (under step 3A a capped run shows spend below the cap) and a failed run offering "Open what
+finished" against decision 0006 ruling 12; the same fixture uses a real issuer name;
+`docs/design/component-map.md:94` records F7 as React Aria where the live page says Radix UI or
+Base UI.
+
+Not verified: no reader has seen the mocks or the proposed words; frames were checked at 1440 px
+for layout and console errors only; the run end and module words are plan text with no code; the
+Claude Design tools stop working by 14 Dec 2026.
+
 ## 2026-11-14 Roadmap back end: 2B part 1 complete (the reader guard), Signal's groups
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
