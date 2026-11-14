@@ -6,11 +6,12 @@ import { ButtonLink } from "./parts/ButtonLink";
 import { LibraryPage } from "./parts/LibraryPage";
 import { NotHeld } from "./parts/NotHeld";
 import { RunFeed } from "./parts/RunFeed";
-import { ISSUER_HEADING } from "./parts/heading";
+import { ISSUER_HEADING, SECTION_HEADING } from "./parts/heading";
 import { LIBRARY_HOME, RUN_START, TEXT_LINK, overviewHref } from "./parts/links";
 import type { Issuer } from "./slice";
 
 function NoReport({ issuer, sentence }: { issuer: Issuer; sentence: string }) {
+  const Title = SECTION_HEADING;
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
@@ -22,7 +23,7 @@ function NoReport({ issuer, sentence }: { issuer: Issuer; sentence: string }) {
           <EmptyState.FeaturedIcon icon={BookOpen01} />
         </EmptyState.Header>
         <EmptyState.Content>
-          <EmptyState.Title as="h3">No report yet</EmptyState.Title>
+          <EmptyState.Title as={Title}>No report yet</EmptyState.Title>
           <EmptyState.Description>{sentence}</EmptyState.Description>
         </EmptyState.Content>
         <EmptyState.Footer>
@@ -68,12 +69,13 @@ function Feed({ issuer, latest }: { issuer: Issuer; latest: string }) {
 /** An issuer's runs, newest first; an issuer with nothing to read gets the "No report yet" state. */
 export function History({ issuer: id }: { issuer: string | undefined }) {
   return (
-    <LibraryPage>
+    <LibraryPage title="Report history">
       {({ issuers }) => {
         const issuer = issuers.find((item) => item.id === id);
         if (issuer === undefined) {
           return (
             <NotHeld
+              page="Report history"
               title="No such issuer"
               description="The library holds no issuer at this address."
             />

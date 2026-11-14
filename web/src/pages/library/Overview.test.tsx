@@ -48,13 +48,13 @@ describe("the overview route", () => {
 });
 
 describe("Overview, the mock's run", () => {
-  it("draws the bottom line band: label, lead as an h3, the rest and one trace control", () => {
+  it("draws the bottom line band: label, lead as an h2, the rest and one trace control", () => {
     renderOverview("2026-09-30");
     const band = screen.getByRole("region", { name: "Bottom line" });
     expect(within(band).getByText("Bottom line")).toBeVisible();
     expect(
       within(band).getByRole("heading", {
-        level: 3,
+        level: 2,
         name: "Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing before the engine programme pays back.",
       }),
     ).toBeVisible();
@@ -80,13 +80,13 @@ describe("Overview, the mock's run", () => {
     expect(within(tiles()[5] as HTMLElement).queryByRole("button")).toBeNull();
   });
 
-  it("draws For and against: h3, its note, two h4 columns of three tiles each", () => {
+  it("draws For and against: h2, its note, two h3 columns of three tiles each", () => {
     renderOverview("2026-09-30");
-    expect(screen.getByRole("heading", { level: 3, name: "For and against" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "For and against" })).toBeVisible();
     expect(
       screen.getByText("Three points on each side, as the modules weighed them"),
     ).toBeVisible();
-    const sides = screen.getAllByRole("heading", { level: 4 });
+    const sides = screen.getAllByRole("heading", { level: 3 });
     expect(sides.map((h) => h.textContent)).toEqual(["Supports the view", "Against the view"]);
     const against = within(sides[1]?.parentElement as HTMLElement).getAllByRole("listitem");
     expect(against.map((item) => item.textContent)).toEqual([
@@ -101,14 +101,14 @@ describe("Overview, the mock's run", () => {
     );
   });
 
-  it("never skips a heading level under the frame's h2", () => {
+  it("never skips a heading level under the frame's h1", () => {
     renderOverview("2026-09-30");
     expect(screen.getAllByRole("heading").map((h) => h.tagName)).toEqual([
+      "H1",
+      "H2",
       "H2",
       "H3",
       "H3",
-      "H4",
-      "H4",
     ]);
   });
 
@@ -190,12 +190,12 @@ describe("Overview, states", () => {
 });
 
 describe("Overview, fix round 1", () => {
-  it("draws the section heading in the system h2 size and the bottom-line lead in h3", () => {
+  it("draws the section heading in the system h2 size and the bottom-line lead in h2", () => {
     renderOverview("2026-09-30");
-    expect(screen.getByRole("heading", { level: 3, name: "For and against" })).toHaveClass(
+    expect(screen.getByRole("heading", { level: 2, name: "For and against" })).toHaveClass(
       "text-h2",
     );
-    expect(screen.getByRole("heading", { level: 3, name: /^Stable credit/ })).toHaveClass(
+    expect(screen.getByRole("heading", { level: 2, name: /^Stable credit/ })).toHaveClass(
       "text-h3",
     );
   });

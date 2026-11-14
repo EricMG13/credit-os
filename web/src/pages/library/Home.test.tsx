@@ -151,10 +151,12 @@ describe("Library home, Cards side", () => {
     }
   });
 
-  it("has no h1 of its own and no skipped heading level", () => {
+  it("has one h1, Library, and no skipped heading level", () => {
     renderHome(fixture.slice);
-    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
-    expect(screen.getAllByRole("heading").every((h) => h.tagName === "H2")).toBe(true);
+    expect(screen.getByRole("heading", { level: 1, name: "Library" })).toBeVisible();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    const rest = screen.getAllByRole("heading").filter((h) => h.tagName !== "H1");
+    expect(rest.every((h) => h.tagName === "H2")).toBe(true);
   });
   it("draws a card without a finished run as a link to the issuer's history", () => {
     const slice = fresh();
@@ -171,9 +173,11 @@ describe("Library home, Cards side", () => {
     expect(screen.queryByRole("grid", { name: "Issuers" })).toBeNull();
   });
 
-  it("says the library data is missing when the data file has no library member", () => {
+  it("says the data file holds no library pages when it has no library member, under the h1", () => {
     renderHome(undefined);
-    expect(screen.getByText("Library data is missing")).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Library" })).toBeVisible();
+    expect(screen.getByText("This data file holds no library pages")).toBeVisible();
+    expect(screen.queryByText("Library data is missing")).toBeNull();
   });
 
   it("names the failing path when it is handed an invalid slice", () => {
