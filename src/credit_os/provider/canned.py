@@ -29,7 +29,7 @@ _LINE_KEYS = ("exchange_id", "call_index", "reply")
 _REPLY_KEYS = ("kind", "turn", "error_class", "message", "usage", "billed_usd", "compactions")
 _TURN_KEYS = ("text", "tool_calls", "usage", "stop_reason", "reported_model", "request_id")
 _CALL_KEYS = ("call_id", "name", "arguments")
-_COMPACTION_KEYS = ("usage", "billed_usd", "outcome", "event_id")
+_COMPACTION_KEYS = ("usage", "billed_usd", "outcome", "event_id", "supersedes")
 
 
 class RecordingError(ValueError):
@@ -200,6 +200,7 @@ def _compaction(value: object) -> Compaction:
         _charge(obj["billed_usd"]),
         obj["outcome"],
         obj["event_id"],
+        obj["supersedes"],
     )
 
 

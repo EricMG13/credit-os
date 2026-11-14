@@ -104,12 +104,15 @@ class Compaction:
     runtime reported success), `failed` (it reported failure) or `unfinished` (a start whose
     complete had not arrived when the call ended or the model was closed; it knows nothing:
     every count `None` and no charge). `event_id` is the id of the SDK event that reported it,
-    so an event delivered twice is counted once. It has no reasoning-token count."""
+    so an event delivered twice is counted once. `supersedes` is the `event_id` of an
+    unfinished compaction, delivered earlier, that this one completes (`None` when it completes
+    none); an unfinished one supersedes nothing. It has no reasoning-token count."""
 
     usage: Usage
     billed_usd: Decimal | None
     outcome: CompactionOutcome
     event_id: str
+    supersedes: str | None
 
     def __post_init__(self) -> None:
         if not isinstance(self.usage, Usage):
@@ -129,6 +132,14 @@ class Compaction:
             raise ProviderDataError("an unfinished compaction has no counts and no charge")
         if type(self.event_id) is not str or not self.event_id:
             raise ProviderDataError("event_id must be a non-empty string")
+        if self.supersedes is None:
+            return
+        if type(self.supersedes) is not str or not self.supersedes:
+            raise ProviderDataError("supersedes must be a non-empty string or None")
+        if self.outcome == "unfinished":
+            raise ProviderDataError("an unfinished compaction supersedes nothing")
+        if self.supersedes == self.event_id:
+            raise ProviderDataError("a compaction cannot supersede itself")
 
 
 @dataclass(frozen=True)
@@ -202,6 +213,9 @@ class Reply:
             raise ProviderDataError("compactions must be a tuple of Compaction")
         if len({c.event_id for c in self.compactions}) != len(self.compactions):
             raise ProviderDataError("two compactions share an event_id")
+        named = [c.supersedes for c in self.compactions if c.supersedes is not None]
+        if len(set(named)) != len(named):
+            raise ProviderDataError("two compactions supersede the same one")
         if self.compactions and self.kind == "not_sent":
             raise ProviderDataError("a not_sent reply has no compactions")
 
@@ -214,8 +228,8 @@ class Model(Protocol):
     call. `message` and `raw` are already redacted when a `Reply` leaves an adapter.
 
     A compaction is on the reply of the call during which it was observed; one observed after
-    a call returned is on the next call's reply. `close` returns those observed and not yet
-    delivered, and an adapter never drops one."""
+    a call returned is on the next reply that may carry one (a `not_sent` reply carries none),
+    else `close` returns it. An adapter never drops one."""
 
     @property
     def config_id(self) -> str: ...
