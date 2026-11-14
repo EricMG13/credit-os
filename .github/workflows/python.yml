@@ -21,6 +21,13 @@ jobs:
         with:
           version: "0.12.5"
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
       - run: uv sync --locked
       - run: uv run --locked python tools/gates.py
 
