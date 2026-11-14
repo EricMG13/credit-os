@@ -38,7 +38,9 @@ not for figures.
   #230, `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on
   focus, and draws it n.a., never 0" timed out at 5000 ms (5239 ms; the duplicate Windows
   job on the same commit passed); #233, the "Open from disk in Chrome (Windows)" step failed
-  two kit-page checks (kit code this stack does not touch). On #86, #88, #89, #91, #92 five
+  two kit-page checks (the invalid-field focus colour, reported as "no invalid fields"
+  found, and the link button role and focus ring); cause not investigated; one rerun passed
+  unchanged and every later head in the stack passed that step. On #86, #88, #89, #91, #92 five
   older duplicate runs show as cancelled (by the coordinator, earlier); each head also has
   five passing checks.
 
@@ -46,7 +48,8 @@ not for figures.
 - Task reviews: `mx-precise` per task, no High or Medium open at completion.
 - Sweep discovery (`/sweep refactoring discover changed-update`) on the range: 27 rows;
   confirmed defects R1, R2, R3, R4, K3, R5 fixed in task 15 (`mx-precise`: approve);
-  structural S1 to S9 to the next phase sweep; K6 to K9 deferred. Report `sweep/report.md`,
+  structural S1 to S8 to the next phase sweep; S9 (205 duplicated test lines) deferred
+  to the phase sweep; K6 platform-only (needs a browser); K7 to K9 deferred. Report `sweep/report.md`,
   register `sweep/register.md`.
 - Whole-branch review (`mx-architect` running `adversarial-reviewer`, with
   confidence-review; rewrite-tournament as judgement only) at `09a9dd87`: 0 High, 2 Medium
@@ -98,7 +101,15 @@ flake above).
 **Open Low** for the next model-pages change: the `StatementsPage.test.tsx` test above runs
 close to the 5 s test timeout on Windows CI.
 
-**Not verified.** Edge; Windows rendering beyond CI; the published-model links from
+**Not verified.** Edge; Windows rendering beyond CI; the cause of the #233 kit-page
+failure; real-browser layout for K3, K4 and K6 (no Chrome or Edge run for the sweep); R1 to
+R4 against real (non-fixture) deliveries; the new task 16 tests failing at the old head (the
+re-review "relied on the reviewer's probes"); the zero-exposure mark in a real browser;
+whether delivery will write " to "; that the scoped re-review did not rerun the full gates,
+`wb-all-missing`, `wb-observe`, the exhaustive probe or the Chrome walk; that source
+`66cd79e0` was not run separately from the last branch that equals it (the chain's base
+was checked at merge: the stack contained main `8ab3f387` and main moved only outside `web/`
+before the merges); the published-model links from
 `file://` (the fixture has `published: null`); `npm run audit` on each split branch;
 `npm run gates` as one command; `LimitsChart` label placement beyond the fixture; the
 reader against shapes nobody built (no fuzzing); `wb-observe` (three cases stale by design
