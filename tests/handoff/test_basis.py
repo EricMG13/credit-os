@@ -184,3 +184,49 @@ def test_property_basis_line_reaches_items(fragments: list[str], body: list[str]
     assert result is not None
     assert result.body == lines[:-1]
     assert all(item.text for item in result.items)
+
+
+KNOWN = ("context", "context notes", "Annual report (CP-0)", "calculation C9", "a; b")
+
+
+def _known(x: str, known: tuple[str, ...] = KNOWN) -> tuple[BasisItem, ...]:
+    result = read_basis(Paragraph(line=10, lines=("Body.", "Basis: " + x)), known=known)
+    assert result is not None
+    return result.items
+
+
+@pytest.mark.parametrize(
+    ("x", "items"),
+    [
+        ("context, page 1", (src("context", (1, 1), text="context, page 1"),)),
+        ("context.", (src("context"),)),
+        ("context notes", (src("context notes"),)),
+        (
+            "context notes, pages 2-3, 7",
+            (src("context notes", (2, 3), (7, 7), text="context notes, pages 2-3, 7"),),
+        ),
+        ("context notesx", (txt("context notesx"),)),
+        ("Context, page 1", (txt("Context, page 1"),)),
+        ("context , page 1", (txt("context , page 1"),)),
+        ("context, page", (txt("context, page"),)),
+        ("context, page 1, 2", (txt("context, page 1, 2"),)),
+        ("Annual report (CP-0)", (mod("Annual report", "CP-0"),)),
+        ("calculation C9", (calc("C9"),)),
+        ("Annual report (CP-1)", (mod("Annual report", "CP-1"),)),
+        ("a; b", (txt("a"), txt("b"))),
+        ("x.pdf, page 2; calculation C1", (src("x.pdf", (2, 2), text="x.pdf, page 2"), calc("C1"))),
+    ],
+)
+def test_known_source_names(x: str, items: tuple[BasisItem, ...]) -> None:
+    assert _known(x) == items
+
+
+def test_no_known_names_is_the_earlier_reading() -> None:
+    assert _known("context, page 1", ()) == (txt("context, page 1"),)
+    assert _items("context, page 1") == (txt("context, page 1"),)
+
+
+def test_known_name_holding_a_page_phrase_is_the_whole_name() -> None:
+    assert _known("a, page 1", ("a", "a, page 1")) == (
+        BasisItem(kind="source", text="a, page 1", file="a, page 1"),
+    )
