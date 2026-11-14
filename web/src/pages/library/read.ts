@@ -3,6 +3,10 @@ import type { SliceResult } from "../route-table";
 import type {
   BottomLineText,
   Cell,
+  Change,
+  ChangeModuleItem,
+  ChangeState,
+  Changes,
   ChangeView,
   DateState,
   DatedItem,
@@ -516,6 +520,89 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
   };
 }
 
+const CHANGE_STATES = Object.keys(STATUS_SETS["Change state"]) as ChangeState[];
+
+/** A figure of a change; the Table side draws it as the exact string, so a blank one is rejected. */
+function changeCell(o: Rec, key: string, path: string): Cell {
+  const c = cell(o, key, path);
+  if (c !== null && c.kind === "value" && c.text === "") {
+    throw new SliceError(child(child(path, key), "text"), "a non-empty string");
+  }
+  return c;
+}
+
+function readChange(value: unknown, path: string, traces: Traces): Change {
+  const c = rec(value, path);
+  const from = changeCell(c, "from", path);
+  const direction = oneOf(c, "direction", path, ["up", "down", "none"]);
+  const change = strOrNull(c, "change", path);
+  if (from === null && direction !== "none") {
+    throw new SliceError(child(path, "direction"), "none when the earlier figure is missing");
+  }
+  if (from === null && change !== null) {
+    throw new SliceError(child(path, "change"), "null when the earlier figure is missing");
+  }
+  if (direction !== "none" && change === null) {
+    throw new SliceError(child(path, "change"), "the delivered words for a direction mark");
+  }
+  return {
+    measure: str(c, "measure", path),
+    kind: str(c, "kind", path),
+    current: changeCell(c, "current", path),
+    from,
+    direction,
+    change,
+    cause: str(c, "cause", path),
+    effect: str(c, "effect", path),
+    trace: traceKey(c, "trace", path, traces),
+  };
+}
+
+function readChangeModule(value: unknown, path: string): ChangeModuleItem {
+  const m = rec(value, path);
+  return {
+    title: str(m, "title", path),
+    lead: str(m, "lead", path),
+    state: oneOf(m, "state", path, CHANGE_STATES),
+    module: strOrNull(m, "module", path),
+  };
+}
+
+function readChanges(value: unknown, path: string, traces: Traces): Changes {
+  const c = rec(value, path);
+  if (oneOf(c, "kind", path, ["none", "compared"]) === "none") {
+    return { kind: "none", title: str(c, "title", path), text: str(c, "text", path) };
+  }
+  const changesPath = child(path, "changes");
+  const changes = unique(
+    list(c, "changes", path, (item, p) => readChange(item, p, traces)),
+    changesPath,
+    (item) => item.measure,
+    "measure",
+  );
+  if (changes.length === 0) throw new SliceError(changesPath, "at least one change");
+  const modulesPath = child(path, "modules");
+  const m = rec(own(c, "modules"), modulesPath);
+  return {
+    kind: "compared",
+    heading: str(c, "heading", path),
+    subtitle: str(c, "subtitle", path),
+    earlierLabel: str(c, "earlierLabel", path),
+    currentLabel: str(c, "currentLabel", path),
+    tableNote: str(c, "tableNote", path),
+    changes,
+    modules: {
+      summary: str(m, "summary", modulesPath),
+      items: unique(
+        list(m, "items", modulesPath, readChangeModule),
+        child(modulesPath, "items"),
+        (item) => item.title,
+        "title",
+      ),
+    },
+  };
+}
+
 function readRun(value: unknown, path: string): Run {
   const r = rec(value, path);
   const tracesPath = child(path, "traces");
@@ -530,14 +617,17 @@ function readRun(value: unknown, path: string): Run {
     ),
   };
   const overviewPath = child(path, "overview");
+  const changesPath = child(path, "changes");
   if (loading) {
     if (own(r, "overview") !== null) throw new SliceError(overviewPath, "null for a loading run");
-    return { ...base, loading, overview: null };
+    if (own(r, "changes") !== null) throw new SliceError(changesPath, "null for a loading run");
+    return { ...base, loading, overview: null, changes: null };
   }
   return {
     ...base,
     loading,
     overview: readOverview(own(r, "overview"), overviewPath, base.traces),
+    changes: readChanges(own(r, "changes"), changesPath, base.traces),
   };
 }
 
