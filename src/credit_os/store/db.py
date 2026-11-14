@@ -135,6 +135,57 @@ class Store(_Handle):
             runs.insert_run(connection, new, token, at)
         return Claim(new.run_id, token)
 
+    def claim_run(self, run_id: str) -> Claim:
+        """Make a new writer of the run (status unchanged); the earlier claim is fenced. A missing
+        run is StoreRefused; a finished or rejected run is StoreConflict."""
+        checked = runs.check_identifier("run_id", run_id)
+        with self._write() as connection:
+            runs.gate(connection, checked, None, runs.OPEN_STATUSES)
+            at = self._now()
+            token = secrets.token_hex(16)
+            runs.replace_writer(connection, checked, token, at)
+        return Claim(checked, token)
+
+    def start_run(self, claim: Claim) -> None:
+        """Move a created, stopped or failed run to running; a resume clears its end."""
+        held = runs.check_claim(claim)
+        with self._write() as connection:
+            old = runs.gate(connection, held.run_id, held.token, runs.START_STATUSES)
+            runs.start(connection, held.run_id, old, self._now())
+
+    def reject_run(self, claim: Claim, *, reason: str, message: str | None = None) -> None:
+        """End a created run as rejected."""
+        held, text = runs.check_end(claim, "rejected", reason, message, frozenset({"rejected"}))
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"created"}))
+            runs.end(connection, held.run_id, "rejected", reason, text, self._now())
+
+    def end_run(
+        self, claim: Claim, *, status: str, reason: str, message: str | None = None
+    ) -> None:
+        """End a running run as finished, stopped or failed."""
+        held, text = runs.check_end(claim, status, reason, message, runs.END_STATUSES)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            runs.end(connection, held.run_id, status, reason, text, self._now())
+
+    def record_event(
+        self,
+        claim: Claim,
+        *,
+        kind: str,
+        detail: dict[str, str | int | None],
+        module_id: str | None = None,
+        attempt: int | None = None,
+    ) -> None:
+        """Add an event that changes no status; a finished or rejected run takes none."""
+        held = runs.check_note(claim, kind, detail, module_id, attempt)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, runs.OPEN_STATUSES)
+            runs.insert_event(
+                connection, held.run_id, self._now(), kind, detail, module_id, attempt
+            )
+
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:
         """Take the lock and run one write transaction. The lock is not re-entrant: a method

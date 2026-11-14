@@ -4,7 +4,9 @@ literal with `?` parameters, and nothing here catches `sqlite3.Error`: `db` maps
 
 import hashlib
 import re
+import secrets
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -20,11 +22,23 @@ from credit_os.store.codec import (
     money_to_text,
     time_from_text,
 )
-from credit_os.store.errors import StoreCorrupt, StoreRefused, safe_text
-from credit_os.store.records import EventRecord, RunRecord
+from credit_os.store.errors import (
+    StoreConflict,
+    StoreCorrupt,
+    StoreFenced,
+    StoreRefused,
+    safe_text,
+)
+from credit_os.store.records import Claim, EventRecord, RunRecord
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9._-]{1,128}")
+_NAME = re.compile(r"[a-z][a-z0-9_]{0,63}")
+_TOKEN = re.compile(r"[0-9a-f]{32}")
 _SQLITE_MAX_INTEGER = 2**63 - 1
+STATE_KINDS = frozenset({"run_created", "writer_replaced", "run_started", "run_ended"})
+END_STATUSES = frozenset({"finished", "stopped", "failed"})
+OPEN_STATUSES = frozenset({"created", "running", "stopped", "failed"})  # not finished or rejected
+START_STATUSES = frozenset({"created", "stopped", "failed"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +144,115 @@ def insert_event(
         "INSERT INTO events(run_id, at, kind, module_id, attempt, detail)"
         " VALUES (?, ?, ?, ?, ?, ?)",
         (run_id, at, kind, module_id, attempt, detail_to_text(detail)),
+    )
+
+
+def check_name(name: str, value: object) -> str:
+    """Return the value when it is a lower-case name of 1 to 64 characters; the message never holds it."""
+    if not isinstance(value, str) or _NAME.fullmatch(value) is None:
+        raise StoreRefused(f"{name} must be a lower-case name of 1 to 64 characters")
+    return value
+
+
+def check_claim(claim: object) -> Claim:
+    """Return the claim when it is a `Claim` of a valid run id and a 32-character lower-case hex token."""
+    if (
+        not isinstance(claim, Claim)
+        or not isinstance(claim.token, str)
+        or _TOKEN.fullmatch(claim.token) is None
+    ):
+        raise StoreRefused("claim must be a Claim holding a 32-character hex token")
+    check_identifier("run_id", claim.run_id)
+    return claim
+
+
+def check_message(message: object) -> str | None:
+    """Return None, or the message text with each lone surrogate escaped."""
+    if message is not None and not isinstance(message, str):
+        raise StoreRefused("message must be text or None")
+    return None if message is None else safe_text(message)
+
+
+def check_end(
+    claim: object, status: object, reason: object, message: object, allowed: frozenset[str]
+) -> tuple[Claim, str | None]:
+    """Check a `reject_run` or `end_run` call: the status is in `allowed`, the reason a name."""
+    if status not in allowed:
+        raise StoreRefused("status is not one this call may set")
+    check_name("reason", reason)
+    return check_claim(claim), check_message(message)
+
+
+def check_note(
+    claim: object,
+    kind: object,
+    detail: Mapping[str, str | int | None],
+    module_id: object,
+    attempt: object,
+) -> Claim:
+    """Check a `record_event` call: the kind is a name and not a state kind, and so on."""
+    if check_name("kind", kind) in STATE_KINDS:
+        raise StoreRefused("kind must not be one of the run's state kinds")
+    detail_to_text(detail)
+    if module_id is not None:
+        check_identifier("module_id", module_id)
+    if attempt is not None and (
+        type(attempt) is not int
+        or attempt < 1
+        or module_id is None
+        or attempt > _SQLITE_MAX_INTEGER
+    ):
+        raise StoreRefused("attempt must be an int of at least 1, and only with a module_id")
+    return check_claim(claim)
+
+
+def gate(
+    connection: sqlite3.Connection, run_id: str, token: str | None, allowed: frozenset[str]
+) -> str:
+    """Inside the write transaction: the run exists (StoreRefused), `token` is its writer unless
+    None (StoreFenced), its status is in `allowed` (StoreConflict). Returns the status."""
+    rows = connection.execute(
+        "SELECT writer, status FROM runs WHERE run_id = ?", (run_id,)
+    ).fetchall()
+    if not rows:
+        raise StoreRefused("no run has that run_id")
+    writer, status = rows[0]
+    if token is not None and not secrets.compare_digest(writer, token):
+        raise StoreFenced("the claim is not the run's writer")
+    if status not in allowed:
+        raise StoreConflict("the run's status does not allow that write")
+    return str(status)
+
+
+def replace_writer(connection: sqlite3.Connection, run_id: str, token: str, at: str) -> None:
+    connection.execute("UPDATE runs SET writer = ? WHERE run_id = ?", (token, run_id))
+    insert_event(connection, run_id, at, "writer_replaced", {})
+
+
+def start(connection: sqlite3.Connection, run_id: str, old_status: str, at: str) -> None:
+    """To running: `started_at` keeps its first value; a resume clears the end."""
+    connection.execute(
+        "UPDATE runs SET status = 'running', started_at = coalesce(started_at, ?),"
+        " ended_at = NULL, end_reason = NULL, end_message = NULL WHERE run_id = ?",
+        (at, run_id),
+    )
+    insert_event(connection, run_id, at, "run_started", {"from": old_status})
+
+
+def end(
+    connection: sqlite3.Connection,
+    run_id: str,
+    status: str,
+    reason: str,
+    message: str | None,
+    at: str,
+) -> None:
+    """End the run: `run_ended` first (a final run takes no event), then the UPDATE."""
+    insert_event(connection, run_id, at, "run_ended", {"status": status, "reason": reason})
+    connection.execute(
+        "UPDATE runs SET status = ?, ended_at = ?, end_reason = ?, end_message = ?"
+        " WHERE run_id = ?",
+        (status, at, reason, message, run_id),
     )
 
 
