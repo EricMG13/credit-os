@@ -67,23 +67,18 @@
           },
           "href": "2026-09-30",
           "measures": {
-            "leverage": {
-              "text": "3.4x",
-              "at": 3.4,
-              "basis": "reported",
-              "description": "Reported EBITDA, year to 30 Sep 2026"
-            },
+            "leverage": null,
             "netLeverage": {
-              "text": "2.9x",
-              "at": 2.9,
-              "basis": "reported",
-              "description": "Reported EBITDA, year to 30 Sep 2026"
+              "text": "4.6x",
+              "at": 4.6,
+              "basis": "adjusted",
+              "description": "Company-adjusted EBITDA, year to 30 Sep 2026"
             },
             "interestCoverage": {
-              "text": "4.1x",
-              "at": 4.1,
-              "basis": "reported",
-              "description": "Reported EBITDA, year to 30 Sep 2026"
+              "text": "2.4x",
+              "at": 2.4,
+              "basis": "adjusted",
+              "description": "Company-adjusted EBITDA, year to 30 Sep 2026"
             }
           }
         },
@@ -228,7 +223,7 @@
         "measures": {
           "leverage": {
             "name": "Leverage",
-            "countLine": "Leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+            "countLine": "Leverage recorded for 3 of 5 runs · 1 on adjusted EBITDA, not screened",
             "bands": [
               {
                 "label": "Below 3.0x",
@@ -249,7 +244,7 @@
           },
           "netLeverage": {
             "name": "Net leverage",
-            "countLine": "Net leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+            "countLine": "Net leverage recorded for 4 of 5 runs · 2 on adjusted EBITDA, not screened",
             "bands": [
               {
                 "label": "Below 3.0x",
@@ -270,7 +265,7 @@
           },
           "interestCoverage": {
             "name": "Interest coverage",
-            "countLine": "Interest coverage recorded for 4 of 5 runs",
+            "countLine": "Interest coverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
             "bands": [
               {
                 "label": "Below 2.0x",
