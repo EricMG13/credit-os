@@ -164,4 +164,3 @@ def test_a_cell_in_the_unit_column_does_not_hide_another_cell_in_the_other_unit(
     )
     ops = [[["base", "revenue", "row"], "Revenue check"]]
     assert _outcome(_with_table(table, ops)) is None
-
