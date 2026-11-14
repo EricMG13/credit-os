@@ -27,7 +27,7 @@ from credit_os.handoff.data import DataSection, read_data_sections
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import echo
 from credit_os.handoff.scan import Node
-from credit_os.handoff.tables import Row
+from credit_os.handoff.tables import Row, Table
 
 _TITLE = "Confidence inputs"
 _BLOCKED_ROW = "Not assessable"
@@ -126,15 +126,13 @@ def _front_matter(document: HandoffDocument) -> list[Finding]:
     ]
 
 
-def _unreadable(document: HandoffDocument, found: DataSection) -> bool:
+def _misplaced(document: HandoffDocument, found: DataSection) -> bool:
     under_findings = found.section in document.sections[2].sections
-    return found.table is None or found.section.title != _TITLE or not under_findings
+    placed = under_findings and found.section.level == 3
+    return found.section.title != _TITLE or not placed
 
 
-def _row_findings(found: DataSection) -> tuple[list[Finding], dict[str, Row]]:
-    table = found.table
-    if table is None:
-        return [], {}
+def _row_findings(table: Table) -> tuple[list[Finding], dict[str, Row]]:
     out: list[Finding] = []
     first: dict[str, Row] = {}
     for row in table.rows:
@@ -200,7 +198,8 @@ def _read(
             refusal("confidence.repeated", later.section.line, later.section.title, reason)
         )
     section = sections[0]
-    if _unreadable(document, section):
+    table = section.table
+    if table is None or _misplaced(document, section):
         reason = (
             "Make Confidence inputs a level-3 section under Findings holding one table "
             "with the columns Input and Value."
@@ -211,23 +210,22 @@ def _read(
             )
         )
         return tuple(found), ConfidenceOutcome(state="refused")
-    return _read_table(document, section, found)
+    return _read_table(document, table, found)
 
 
 def _read_table(
-    document: HandoffDocument, section: DataSection, found: list[Finding]
+    document: HandoffDocument, table: Table, found: list[Finding]
 ) -> tuple[tuple[Finding, ...], ConfidenceOutcome]:
-    table = section.table
     reader = try_reader(document)
     blocked = front_matter_blocked(document) if reader is None else is_blocked(document, reader)
-    if table is not None and _reason_of_blocked_row(table.rows):
+    if _reason_of_blocked_row(table.rows):
         if blocked:
             return tuple(found), ConfidenceOutcome(state="refused" if found else "blocked")
         row = table.rows[0]
         reason = "Write the fourteen input rows: only a blocked module writes Not assessable."
         found.append(refusal("confidence.blocked-row", row.line, _BLOCKED_ROW, reason))
         return tuple(found), ConfidenceOutcome(state="refused")
-    rows, first = _row_findings(section)
+    rows, first = _row_findings(table)
     counted, counts = _count_findings(first)
     found += [*rows, *counted, *_range_findings(first, counts)]
     if found:

@@ -68,7 +68,7 @@ def test_case(case: dict[str, Any]) -> None:
 def _table(
     claims: list[int], present: int, total: int, gate: str, crit: int, material: int, minor: int
 ) -> str:
-    rows = [*zip(_LINEAGE, claims, strict=True)]
+    rows: list[tuple[str, int | str]] = [*zip(_LINEAGE, claims, strict=True)]
     rows += [("Fields present", present), ("Fields total", total), ("Source gate", gate)]
     rows += [("CRITICAL", crit), ("MATERIAL", material), ("MINOR", minor)]
     body = "".join(f"| {name} | {value} |\n" for name, value in rows)
@@ -149,3 +149,17 @@ def test_a_thousand_registers_and_the_inputs_table_run_in_time() -> None:
     start = time.perf_counter()
     check_handoff(document, context)
     assert time.perf_counter() - start < SECONDS
+
+
+def test_a_level_four_section_directly_under_findings_is_unreadable() -> None:
+    inputs = _table([8, 2, 2, 0, 0, 0, 0, 0], 19, 20, "pass", 0, 0, 1)
+    table = inputs.split("### Confidence inputs\n")[1]
+    findings = "#### Confidence inputs\n" + table + "### Bottom line\nThe view is stable.\n"
+    case = {"findings": findings}
+    document = _document(case)
+    found = check_handoff(document, _context(case))
+    got = [
+        (f.check, f.severity, f.line, f.quoted) for f in found if f.check.startswith("confidence.")
+    ]
+    assert got == [("confidence.unreadable", "refusal", 7, "Confidence inputs")]
+    assert confidence_outcome(document, _context(case)).state == "refused"
