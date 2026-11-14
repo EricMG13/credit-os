@@ -333,6 +333,48 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         [usage(1, **_COUNTS, **nano(12300000)), usage(2, finishReason="stop", outputTokens="7")],
         _unparsable("a usage count is not a non-negative integer"),
     ),
+    # ---- rows for behaviours the tests did not pin (whole-branch review of PR 2b, L1)
+    "a sub-agent tool call with a parent id": (
+        [usage(1, **_TOOLS), start(2, "c1", "read", parentToolCallId="c0")],
+        _unparsable("sub-agent tool call", _OUT9),
+    ),
+    "an empty toolRequests list is a list of requests": (
+        [usage(1, **_TOOLS), message(2, "", toolRequests=[]), start(3, "c1", "read")],
+        _unparsable("tool requests and tool starts differ", _OUT9),
+    ),
+    "tool requests over two messages are taken together": (
+        [
+            usage(1, **_TOOLS),
+            message(2, "", toolRequests=[{"toolCallId": "c1"}]),
+            message(3, "", toolRequests=[{"toolCallId": "c2"}]),
+            start(4, "c1", "read", arguments={"p": 1, "scale": 1.5}),
+            start(5, "c2", "write"),
+        ],
+        _ok(_OUT9, None, ("", _TWO_CALLS, "tool_use", None)),
+    ),
+    "a reflected key wins over an unreadable count": (
+        [usage(1, finishReason="stop", outputTokens=-1), message(2, "see " + _TOKEN)],
+        _bad("sent_unknown", "KeyReflected", "the reply reflected a key"),
+    ),
+    "content that is not text wins over a session error": (
+        [usage(1, **_STOP), message(2, ["done"]), _ERROR],
+        _unparsable("an assistant.message content is not a string", _FULL),
+    ),
+    "a session error wins over an aborted idle": (
+        [usage(1, **_STOP), ABORTED, _ERROR],
+        _bad("sent_usage", "SessionError", "upstream: boom", _FULL),
+    ),
+    "another model wins over a routed failure": (
+        [
+            _event(1, "model.call_failure", isByok=True),
+            _event(2, "assistant.usage", model="gpt-other", outputTokens=9),
+        ],
+        _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _OUT9),
+    ),
+    "a broken tool rule wins over a length cut": (
+        [usage(1, finishReason="length", outputTokens=9), message(2, "", toolRequests=[{}])],
+        _unparsable("tool requests and tool starts differ", _OUT9),
+    ),
 }
 
 # Shapes of the event list itself: each is sent_unknown / UnparsableReply with this message.
@@ -384,3 +426,90 @@ NO_CHARGE_DATA: tuple[dict[str, Any], ...] = (
     {"copilotUsage": {}},
     {"copilotUsage": {"totalNanoAiu": None}},
 )
+
+
+# ---- compactions_from_events: name -> (events, expected); expected is one
+# (event_id, outcome, (input, cached read, cache write, output), charge text or None) per
+# compaction, in order. reasoning_tokens and supersedes are always None.
+def _begin(n: int) -> dict[str, Any]:
+    return _event(n, "session.compaction_start", conversationTokens=900)
+
+
+def _end(n: int, success: Any = True, **used: Any) -> dict[str, Any]:
+    extra = {"compactionTokensUsed": used} if used else {}
+    return _event(n, "session.compaction_complete", success=success, **extra)
+
+
+_USED = {"inputTokens": 30, "cacheReadTokens": 20, "cacheWriteTokens": 0, "outputTokens": 5}
+_C4 = (30, 20, 0, 5)
+_N4 = (None, None, None, None)
+_PAID = {**_USED, **nano(2140500000)}  # 2,140,500,000 x 1E-11 = 0.02140500000
+
+COMPACTION_CASES: dict[str, tuple[Any, tuple[Any, ...]]] = {
+    "none": ([usage(1, **_STOP), message(2, "done"), IDLE], ()),
+    "a start and its complete are one compaction": (
+        [_begin(1), _end(2, **_PAID), usage(3, **_STOP)],
+        (("e2", "done", _C4, "0.02140500000"),),
+    ),
+    "a complete with no start": ([_end(2, **_PAID)], (("e2", "done", _C4, "0.02140500000"),)),
+    "a failed complete keeps what it reports": (
+        [_begin(1), _end(2, False, **_PAID, cost=9.0)],
+        (("e2", "failed", _C4, "0.02140500000"),),
+    ),
+    "success that is not a bool is failed": (
+        [_end(1, 1, **_USED), _end(2, None), _event(3, "session.compaction_complete")],
+        (("e1", "failed", _C4, None), ("e2", "failed", _N4, None), ("e3", "failed", _N4, None)),
+    ),
+    "a start alone is unfinished": ([_begin(1), IDLE], (("e1", "unfinished", _N4, None),)),
+    "a start after a finished one is unfinished": (
+        [_begin(1), _end(2), _begin(3)],
+        (("e2", "done", _N4, None), ("e3", "unfinished", _N4, None)),
+    ),
+    "with two starts pending a complete consumes neither": (
+        [_begin(1), _begin(2), _end(3, **_PAID), _end(4)],
+        (
+            ("e1", "unfinished", _N4, None),
+            ("e2", "unfinished", _N4, None),
+            ("e3", "done", _C4, "0.02140500000"),
+            ("e4", "done", _N4, None),
+        ),
+    ),
+    "counts one by one, missing is not zero": (
+        [_end(1, outputTokens=6, inputTokens=None), _end(2, **nano(1.0)), _end(3, inputTokens=0)],
+        (
+            ("e1", "done", (None, None, None, 6), None),
+            ("e2", "done", _N4, "0.00000000001"),
+            ("e3", "done", (0, None, None, None), None),
+        ),
+    ),
+    "an unreadable count leaves nothing known": (
+        [_end(1, **{**_PAID, "outputTokens": True}), _end(2, **{**_PAID, "inputTokens": 3.0})],
+        (("e1", "done", _N4, None), ("e2", "done", _N4, None)),
+    ),
+    "a charge that cannot be read is no charge": (
+        [_end(1, **_USED, **nano(0.5)), _end(2, **_USED, copilotUsage=7), _end(3, **nano(-1))],
+        (("e1", "done", _C4, None), ("e2", "done", _C4, None), ("e3", "done", _N4, None)),
+    ),
+    "tokens used that is not an object": (
+        [
+            {
+                "id": "e1",
+                "type": "session.compaction_complete",
+                "data": {"success": True, "compactionTokensUsed": [30]},
+            }
+        ],
+        (("e1", "done", _N4, None),),
+    ),
+    "a redelivered start or complete is read once": (
+        [_begin(1), _begin(1), _end(2, **_PAID), _end(2, **_PAID), _begin(3)],
+        (("e2", "done", _C4, "0.02140500000"), ("e3", "unfinished", _N4, None)),
+    ),
+    "two differing compaction events under one id: nothing known": (
+        [_end(1, **_PAID), _begin(2), _end(1, **_USED), _end(3)],
+        (("e1", "failed", _N4, None), ("e3", "done", _N4, None)),
+    ),
+    "a start and a complete under one id": (
+        [_begin(1), _end(1, **_PAID), _begin(2)],
+        (("e1", "failed", _N4, None), ("e2", "unfinished", _N4, None)),
+    ),
+}
