@@ -37,7 +37,8 @@ _NOT_TIMED = {"raw": None, "started_at": None, "finished_at": None}
 _NONE = {**_NOT_TIMED, "compactions": ()}
 # Two context compactions reported during one call. Each keeps its own counts and its own
 # charge; the second failed and its charge could not be read (unknown, not zero). Neither is
-# added to the reply's billed_usd. event_id is the id of the event that reported it.
+# added to the reply's billed_usd. event_id is the id of the event that reported it. outcome is
+# "done", "failed" or "unfinished" (a start whose complete had not arrived: nothing is known).
 _COMPACTION_USAGE_1 = {
     "input_tokens": 177475,
     "cached_read_tokens": 176500,
@@ -52,17 +53,24 @@ _COMPACTION_USAGE_2 = {
     "output_tokens": 6100,
     "reasoning_tokens": None,
 }
+_NO_COUNTS = dict.fromkeys(_COMPACTION_USAGE_2)
+_UNFINISHED = {
+    "usage": _NO_COUNTS,
+    "billed_usd": None,
+    "outcome": "unfinished",
+    "event_id": "evt-synthetic-3",
+}
 _COMPACTIONS = (
     {
         "usage": _COMPACTION_USAGE_1,
         "billed_usd": Decimal("0.0214050"),
-        "failed": False,
+        "outcome": "done",
         "event_id": "evt-synthetic-1",
     },
     {
         "usage": _COMPACTION_USAGE_2,
         "billed_usd": None,
-        "failed": True,
+        "outcome": "failed",
         "event_id": "evt-synthetic-2",
     },
 )
@@ -138,7 +146,8 @@ CANNED_REPLIES: dict[tuple[str, int], dict[str, Any]] = {
         "message": "the runtime stopped",
         "usage": None,
         "billed_usd": None,
-        **_NONE,
+        **_NOT_TIMED,
+        "compactions": (_UNFINISHED,),
     },
 }
 
@@ -152,6 +161,7 @@ CANNED_SCALE = 1.5
 CANNED_COMPACTION_BILLED_TEXT: dict[tuple[str, int], tuple[str | None, ...]] = {
     ("cp1-synthetic", 0): ("0.0214050", None),
     ("cp2-synthetic", 1): ("0.0214050",),
+    ("cp2-synthetic", 2): (None,),
 }
 
 # A request the recording has no reply for: complete() raises, never a default reply.
@@ -190,10 +200,11 @@ _ERR: dict[str, Any] = {
 _COMPACTION: dict[str, Any] = {
     "usage": dict(_USAGE_3),
     "billed_usd": "0.0214050",
-    "failed": False,
+    "outcome": "done",
     "event_id": "evt-1",
 }
-_COMPACTION_2 = {**_COMPACTION, "billed_usd": None, "failed": True, "event_id": "evt-2"}
+_COMPACTION_2 = {**_COMPACTION, "billed_usd": None, "outcome": "failed", "event_id": "evt-2"}
+_COMPACTION_3 = {**_COMPACTION_2, "usage": _NO_COUNTS, "outcome": "unfinished", "event_id": "evt-3"}
 _CALL = {"call_id": "c", "name": "n", "arguments": {}}
 # A charge is read only from plain ASCII digits with an optional fraction: no sign, space,
 # underscore, exponent, leading zero or other digit script, and never from a JSON number.
@@ -273,9 +284,12 @@ CANNED_BAD_LINES: tuple[dict[str, Any] | str, ...] = (
         for gone in _COMPACTION
     ),
     *(
-        _line({**_OK, "compactions": [{**_COMPACTION, "failed": bad}]})
-        for bad in (None, 0, 1, "no")
+        _line({**_OK, "compactions": [{**_COMPACTION, "outcome": bad}]})
+        for bad in (None, True, "", "ok", "Done")
     ),
+    # an unfinished compaction knows nothing: a count or a charge on one is refused
+    _line({**_OK, "compactions": [{**_COMPACTION_3, "usage": dict(_USAGE_3)}]}),
+    _line({**_OK, "compactions": [{**_COMPACTION_3, "billed_usd": "0"}]}),
     *(_line({**_OK, "compactions": [{**_COMPACTION, "event_id": bad}]}) for bad in (None, "", 7)),
     # two compactions of one reply with the same event id: one event counted twice
     _line({**_OK, "compactions": [_COMPACTION, _COMPACTION]}),
@@ -322,7 +336,8 @@ CANNED_GOOD_LINES: tuple[dict[str, Any], ...] = (
     _line({**_ERR, "kind": "sent_unknown", "usage": None, "compactions": [_COMPACTION]}),
     _line({**_ERR, "billed_usd": "0"}),
     _line({**_ERR, "billed_usd": "10.50", "usage": {**_USAGE_3, "input_tokens": 10**18 - 1}}),
-    _line({**_ERR, "compactions": [{**_COMPACTION, "failed": True}]}),
+    _line({**_ERR, "compactions": [{**_COMPACTION, "outcome": "failed"}]}),
+    _line({**_OK, "compactions": [_COMPACTION, _COMPACTION_2, _COMPACTION_3]}),
 )
 
 # Two lines with the same (exchange_id, call_index): refused, naming "line 2".
