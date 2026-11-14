@@ -124,16 +124,25 @@ the PR.
   (no sign, underscore, space, exponent, non-ASCII digit, or leading zero before another digit); anything else
   refuses the recording line with its number. `-0` is not a charge.
 
-Ruled for PR 2 (not yet in `main`; #50 merged without them):
+In `main` since PR 2 (#63):
 - **Tool arguments** have one representation in both adapters, the one the SDK gives: a
-  fraction is a `float` (the canned adapter gives a `Decimal` until PR 2). Money never comes
-  from a tool argument.
+  fraction is a finite `float`. Money never comes from a tool argument; a charge is read only
+  from a decimal string.
 - **Compactions, carrier and identity.** A compaction is attached to the reply of the call
   during which it is observed, or to the next call's reply; `Model.close()` returns those
   observed and not yet delivered. `Compaction` gains `event_id` (the envelope id of the SDK
-  event, as text; a repeat is ignored) and `outcome`: `done`, `failed`, or `unfinished` for a
+  event, as text; two in one reply with the same id are refused, and the PR 3 driver removes
+  repeats first) and `outcome`: `done`, `failed`, or `unfinished` for a
   compaction that started and had not reported when the call ended. An unknown charge is
-  `None` in every case; an unfinished one has every count `None`.
+  `None` in every case; an unfinished one has every count `None`. A compaction has no
+  reasoning-token count. The `Model` contract, which the PR 3 driver implements (the canned
+  adapter holds none): a late compaction goes on the next reply that may carry one (a
+  `not_sent` reply carries none), else `close()` returns it.
+- **Replacement link.** `Compaction.supersedes` is the `event_id` of an unfinished compaction,
+  delivered earlier, that this one completes, else `None`. The type refuses a self-link, a
+  link on an unfinished compaction, and two compactions of one reply naming the same one.
+
+Ruled for PR 2b (the parser; not yet in `main`):
 - **Several usage events in one call** (a retried turn). Each count and the charge are the
   exact sum over the call's usage events when every event reports them readably, else `None`;
   a repeat of an event id is counted once. The source does not say whether such events are
@@ -142,7 +151,20 @@ Ruled for PR 2 (not yet in `main`; #50 merged without them):
   their ids must match, and a call with a parent tool call is refused. The parser takes
   `{"id", "type", "data"}` objects and imports nothing from the SDK.
 
+- **Replies that are not ok** keep their figures whenever known: `sent_usage` if a count or
+  the charge is known, else `sent_unknown`. An aborted idle is class `Aborted`.
+- **Routing, a stated limit.** SDK 1.0.8 carries `isByok` and `isAuto` only on
+  `model.call_failure`, so the two routing refusals are read from a failed call. A call routed
+  elsewhere that succeeds first time gives no signal.
+
 Ruled for PR 3 (not yet in `main`):
+- **Which compaction a completed one replaces** is the driver's rule: it links only when
+  exactly one delivered start is unpaired, and only to an unfinished compaction delivered on an
+  earlier reply. With two or more unpaired starts, in the same reply, or onto a done entry,
+  there is no link and the spend stays unknown.
+- The driver removes repeats of an event id before building a `Reply`; `event_id` is built
+  from the envelope id only; a complete whose `success` is not a bool is `failed`, counts and
+  charge as read; what `close()` returns is attributed to the run by the orchestrator.
 - **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
   Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
   with the reviewer's probe as the answer key, no later than PR 3, which does not merge while
@@ -166,7 +188,8 @@ Ruled for PR 3 (not yet in `main`):
 | :--- | :--- |
 | 1 | Types, protocol, redaction (#36) |
 | 1b | Canned adapter, with `Compaction` and `Reply.compactions` |
-| 2 | Pure Copilot event parser and cost reading |
+| 2 (#63) | Compaction outcome, identity and replacement link; `close()` returns compactions; float tool arguments |
+| 2b | Pure Copilot event parser and cost reading (`reply_from_events`); compactions from events here, or as 2c if it passes 800 lines |
 | 3 | Session driver against a fake client: one turn, errors, timeouts |
 | 3b | Tool-call turns (handlers parked until the next request), if 3 would pass 800 lines |
 | 4 | The SDK 1.0.8 binding, the `copilot-sol-medium` configuration, the `live`-marked check |
