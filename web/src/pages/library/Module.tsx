@@ -12,6 +12,7 @@ import { ModuleNav, type NavSection } from "./parts/ModuleNav";
 import { Absent } from "./parts/NotHeld";
 import { Records } from "./parts/Records";
 import { RunFrame } from "./parts/RunFrame";
+import { recordSections } from "./parts/recordNav";
 import { Section } from "./parts/Section";
 import { TRACE_HOST, TraceControl } from "./parts/TraceControl";
 import { SECTION_HEADING, SUBSECTION_HEADING } from "./parts/heading";
@@ -19,13 +20,17 @@ import { TEXT_LINK, evidenceHref } from "./parts/links";
 
 /** The sections a delivered module has, in page order: the navigator's first group. */
 function sectionsOf(body: DeliveredBody): NavSection[] {
-  const named = (key: NavSection["key"], label: string): NavSection => ({ key, label });
+  const named = (key: NavSection["icon"], label: string): NavSection => ({
+    key,
+    label,
+    icon: key,
+  });
   return [
     named("bottom-line", "Bottom line"),
     named("findings", "Key findings"),
     ...(body.contrary === null ? [] : [named("contrary", "Contrary evidence")]),
     ...(body.changeView === null ? [] : [named("change-view", "What would change the view")]),
-    ...(body.records.length === 0 ? [] : [named("records", "Records")]),
+    ...recordSections(body.records),
     named("limitations", "Limitations"),
   ];
 }
@@ -83,11 +88,7 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
           />
         </Target>
       )}
-      {body.records.length === 0 ? null : (
-        <Target id="records">
-          <Records blocks={body.records} />
-        </Target>
-      )}
+      {body.records.length === 0 ? null : <Records blocks={body.records} />}
       <Target id="limitations">
         <Limitations
           level={SUBSECTION_HEADING}

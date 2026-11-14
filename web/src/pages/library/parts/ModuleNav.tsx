@@ -37,7 +37,8 @@ const ICON = {
   limitations: InfoCircle,
 } as const;
 
-export type NavSection = { key: keyof typeof ICON; label: string };
+/** One entry: `key` addresses its target on the page, `icon` names one of the section icons. */
+export type NavSection = { key: string; label: string; icon: keyof typeof ICON };
 export type NavModule = { id: string; name: string; state: ModuleState };
 
 /**
@@ -77,7 +78,7 @@ export function ModuleNav({
           </span>
           <ul aria-labelledby={sectionsLabel}>
             {sections.map((section) => {
-              const Icon = ICON[section.key];
+              const Icon = ICON[section.icon];
               return (
                 <li key={section.key}>
                   <Button

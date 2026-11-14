@@ -1177,3 +1177,128 @@ describe("readSlice, modules", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[3].head.firstModule");
   });
 });
+
+describe("readSlice, the data module's records", () => {
+  type Mod = Json & { body: Json & { records: Json[] } };
+  const mod = (slice: ReturnType<typeof fresh>): Mod => {
+    const run = (slice.issuers[0]?.["runs"] as Json[])[0] as Json;
+    const found = (run["modules"] as Mod[]).find((m) => m["id"] === "capital-structure");
+    if (found === undefined) throw new Error("no capital structure");
+    return found;
+  };
+  const records = (slice: ReturnType<typeof fresh>) => mod(slice).body.records;
+  const blockOf = (slice: ReturnType<typeof fresh>, kind: string) =>
+    records(slice).find((r) => r["kind"] === kind) as Json;
+  const items = (slice: ReturnType<typeof fresh>, kind: string) =>
+    blockOf(slice, kind)["items"] as Json[];
+  const where = (slice: ReturnType<typeof fresh>, kind: string) =>
+    `issuers[0].runs[0].modules[${String((slice.issuers[0]?.["runs"] as { modules: Json[] }[])[0]?.modules.findIndex((m) => m["id"] === "capital-structure"))}].body.records[${String(records(slice).findIndex((r) => r["kind"] === kind))}]`;
+
+  it("reads the headline figures and measures as the mock words them", () => {
+    const result = readSlice(fixture.slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[0]?.runs[0]?.modules?.find(
+      (m) => m.id === "capital-structure",
+    )?.body;
+    if (body?.kind !== "delivered") throw new Error("not delivered");
+    const metrics = body.records.find((r) => r.kind === "metrics");
+    const measures = body.records.find((r) => r.kind === "measures");
+    expect(
+      metrics?.kind === "metrics" && metrics.items.map((i) => [i.label, i.value, i.note]),
+    ).toEqual([
+      ["Gross debt", { kind: "value", text: "USD 2,398m", at: 2398 }, "At 30 Sep 2026"],
+      ["Net debt", { kind: "value", text: "USD 2,236m", at: 2236 }, "After USD 162m cash"],
+      ["Net leverage", { kind: "value", text: "4.6x", at: 4.6 }, "Net debt to EBITDA"],
+      [
+        "Secured leverage",
+        { kind: "value", text: "3.3x", at: 3.3 },
+        "First-lien net debt to EBITDA",
+      ],
+      [
+        "Average cost of debt",
+        { kind: "withheld", reason: null },
+        "Marked confidential in the source",
+      ],
+      ["Next maturity", { kind: "value", text: "Mar 2028", at: null }, "USD 310m unsecured notes"],
+    ]);
+    expect(
+      measures?.kind === "measures" &&
+        measures.items.map((i) => [i.label, i.earlier === null, i.delta]),
+    ).toEqual([
+      ["Net leverage", false, { text: "Lower by 0.3x on 2025", direction: "down" }],
+      ["Liquidity", false, { text: "Lower by USD 43m on June", direction: "down" }],
+      ["Interest cover", true, null],
+    ]);
+  });
+
+  const broken: [string, string, (b: Json) => unknown, string][] = [
+    ["headline figures with no items", "metrics", (b: Json) => (b["items"] = []), "items"],
+    [
+      "a headline figure with an empty-string value",
+      "metrics",
+      (b: Json) =>
+        (((b["items"] as Json[])[0] as Json)["value"] = { kind: "value", text: "", at: null }),
+      "items[0].value.text",
+    ],
+    [
+      "a headline figure with an unknown trace",
+      "metrics",
+      (b: Json) => (((b["items"] as Json[])[1] as Json)["trace"] = "nothing"),
+      "items[1].trace",
+    ],
+    [
+      "a headline figure named twice",
+      "metrics",
+      (b: Json) => (((b["items"] as Json[])[1] as Json)["label"] = "Gross debt"),
+      "items[1].label",
+    ],
+    ["an empty-string navigator label", "metrics", (b: Json) => (b["nav"] = ""), "nav"],
+    ["measures with no items", "measures", (b: Json) => (b["items"] = []), "items"],
+    [
+      "a measure with an empty-string earlier figure",
+      "measures",
+      (b: Json) =>
+        (((b["items"] as Json[])[0] as Json)["earlier"] = { kind: "value", text: "", at: null }),
+      "items[0].earlier.text",
+    ],
+    [
+      "a measure with an unknown direction",
+      "measures",
+      (b: Json) =>
+        ((((b["items"] as Json[])[0] as Json)["delta"] as Json)["direction"] = "sideways"),
+      "items[0].delta.direction",
+    ],
+    [
+      "a delta given beside a missing earlier period",
+      "measures",
+      (b: Json) =>
+        (((b["items"] as Json[])[2] as Json)["delta"] = { text: "Higher", direction: "up" }),
+      "items[2].delta",
+    ],
+    [
+      "a delta given beside a withheld current figure",
+      "measures",
+      (b: Json) =>
+        (((b["items"] as Json[])[0] as Json)["current"] = { kind: "withheld", reason: null }),
+      "items[0].delta",
+    ],
+    [
+      "a measure with a missing consequence",
+      "measures",
+      (b: Json) => delete ((b["items"] as Json[])[1] as Json)["consequence"],
+      "items[1].consequence",
+    ],
+  ];
+  it.each(broken)("is invalid for %s, with its path", (_, kind, break_, path) => {
+    const slice = fresh();
+    const base = where(slice, kind);
+    break_(blockOf(slice, kind));
+    expect(invalidReason(slice)).toContain(`${base}.${path}`);
+  });
+
+  it("accepts a measure with both periods as values and no delta, and counts the items read", () => {
+    const slice = fresh();
+    (items(slice, "measures")[0] as Json)["delta"] = null;
+    expect(readSlice(slice).kind).toBe("ok");
+  });
+});

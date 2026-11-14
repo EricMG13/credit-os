@@ -352,6 +352,15 @@ function readHead(value: unknown, path: string): RunHead {
   };
 }
 
+/** A figure a page draws as written: a blank text would draw nothing and the tables refuse it. */
+function shownCell(o: Rec, key: string, path: string): Cell {
+  const c = cell(o, key, path);
+  if (c !== null && c.kind === "value" && c.text === "") {
+    throw new SliceError(child(child(path, key), "text"), "a non-empty string");
+  }
+  return c;
+}
+
 /** A trace key is checked against the run's own traces, so it is read after them. */
 type Traces = Readonly<Record<string, Trace>>;
 
@@ -359,7 +368,7 @@ function readMetric(value: unknown, path: string, traces: Traces): Metric {
   const m = rec(value, path);
   return {
     label: str(m, "label", path),
-    value: cell(m, "value", path),
+    value: shownCell(m, "value", path),
     note: str(m, "note", path),
     trace: traceKey(m, "trace", path, traces),
   };
@@ -548,22 +557,13 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
 
 const CHANGE_STATES = Object.keys(STATUS_SETS["Change state"]) as ChangeState[];
 
-/** A figure of a change; the Table side draws it as the exact string, so a blank one is rejected. */
-function changeCell(o: Rec, key: string, path: string): Cell {
-  const c = cell(o, key, path);
-  if (c !== null && c.kind === "value" && c.text === "") {
-    throw new SliceError(child(child(path, key), "text"), "a non-empty string");
-  }
-  return c;
-}
-
 /** Both figures of a change are values: only then can a direction mark or its words be delivered. */
 const isValue = (c: Cell): boolean => c !== null && c.kind === "value";
 
 function readChange(value: unknown, path: string, traces: Traces): Change {
   const c = rec(value, path);
-  const from = changeCell(c, "from", path);
-  const current = changeCell(c, "current", path);
+  const from = shownCell(c, "from", path);
+  const current = shownCell(c, "current", path);
   const direction = oneOf(c, "direction", path, ["up", "down", "flat", "none"]);
   const change = strOrNull(c, "change", path);
   if (change === "") throw new SliceError(child(path, "change"), "a non-empty string or null");
@@ -775,10 +775,75 @@ function readEdges(e: Rec, path: string): RecordBlock {
   };
 }
 
-/** Tasks 10 and 11 add the chart and table kinds. */
+/** The label of the navigator entry a data block belongs to: text, or `null` for none. */
+const navLabel = gradeOrNull;
+
+function readMetrics(m: Rec, path: string, traces: Traces): RecordBlock {
+  const itemsPath = child(path, "items");
+  return {
+    kind: "metrics",
+    nav: navLabel(m, "nav", path),
+    title: named(m, "title", path),
+    items: some(
+      unique(
+        list(m, "items", path, (item, p) => readMetric(item, p, traces)),
+        itemsPath,
+        (item) => item.label,
+        "label",
+      ),
+      itemsPath,
+    ),
+  };
+}
+
+function readDelta(o: Rec, path: string, held: boolean) {
+  const at = child(path, "delta");
+  if (own(o, "delta") === null) return null;
+  if (!held) throw new SliceError(at, "null unless both periods are values");
+  const d = rec(own(o, "delta"), at);
+  return {
+    text: named(d, "text", at),
+    direction: oneOf(d, "direction", at, ["up", "down", "flat"]),
+  };
+}
+
+function readStat(item: unknown, path: string, traces: Traces) {
+  const m = rec(item, path);
+  const current = shownCell(m, "current", path);
+  const earlier = shownCell(m, "earlier", path);
+  return {
+    label: named(m, "label", path),
+    current,
+    earlier,
+    delta: readDelta(m, path, isValue(current) && isValue(earlier)),
+    consequence: named(m, "consequence", path),
+    trace: traceKey(m, "trace", path, traces),
+  };
+}
+
+function readMeasures(m: Rec, path: string, traces: Traces): RecordBlock {
+  const itemsPath = child(path, "items");
+  return {
+    kind: "measures",
+    nav: navLabel(m, "nav", path),
+    title: named(m, "title", path),
+    items: some(
+      unique(
+        list(m, "items", path, (item, p) => readStat(item, p, traces)),
+        itemsPath,
+        (item) => item.label,
+        "label",
+      ),
+      itemsPath,
+    ),
+  };
+}
+
 function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   const r = rec(value, path);
-  switch (oneOf(r, "kind", path, ["matrix", "watch", "questions", "edges"])) {
+  switch (
+    oneOf(r, "kind", path, ["matrix", "watch", "questions", "edges", "metrics", "measures"])
+  ) {
     case "matrix":
       return readMatrix(r, path, traces);
     case "watch":
@@ -787,6 +852,10 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
       return readQuestions(r, path, traces);
     case "edges":
       return readEdges(r, path);
+    case "metrics":
+      return readMetrics(r, path, traces);
+    case "measures":
+      return readMeasures(r, path, traces);
   }
 }
 

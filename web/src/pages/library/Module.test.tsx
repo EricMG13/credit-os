@@ -139,7 +139,7 @@ describe("Module, a delivered prose module", () => {
   });
 
   it("draws no records heading for a module with none, and no placeholder for one", () => {
-    const { container } = renderModule("capital-structure");
+    const { container } = renderModule("covenants-and-documentation");
     expect(screen.queryByText(/records/i)).toBeNull();
     expect(container.textContent).not.toMatch(/coming soon|placeholder|no records/i);
   });
@@ -471,7 +471,7 @@ describe("Module, the navigator", () => {
   });
 
   it("lists only the sections a module has", () => {
-    renderModule("capital-structure");
+    renderModule("covenants-and-documentation");
     expect(
       within(within(nav()).getAllByRole("list")[0] as HTMLElement)
         .getAllByRole("button")
@@ -541,7 +541,7 @@ describe("Module, the navigator", () => {
 });
 
 describe("Module, delivered with gaps", () => {
-  it("draws the state badge beside the name and the prose passages only", () => {
+  it("draws the state badge beside the name, the prose passages, and the limitations", () => {
     renderModule("capital-structure");
     const name = screen.getByRole("heading", { level: 2, name: "Capital structure" });
     expect(name.parentElement).toHaveTextContent("Capital structureDelivered with gaps");
@@ -557,7 +557,140 @@ describe("Module, delivered with gaps", () => {
     expect(screen.queryByRole("region", { name: "Contrary evidence" })).toBeNull();
     expect(screen.queryByRole("region", { name: "What would change the view" })).toBeNull();
     expect(within(region("Limitations")).getAllByRole("listitem")).toHaveLength(3);
-    expect(sourceButtons()).toHaveLength(2);
+  });
+});
+
+/** A copy of the slice with the data module's records edited by `edit`. */
+function withRecords(edit: (records: Json[]) => void): Json {
+  const slice = structuredClone(fixture.slice) as { issuers: { runs: { modules: Json[] }[] }[] };
+  const module = slice.issuers[0]?.runs[0]?.modules.find((m) => m["id"] === "capital-structure");
+  edit((module?.["body"] as { records: Json[] }).records);
+  return slice;
+}
+const blockOf = (records: Json[], kind: string) =>
+  records.find((r) => r["kind"] === kind) as { items: Json[] } & Json;
+
+describe("Module, the headline figures", () => {
+  const figures = () => region("Headline figures");
+
+  it("draws the mock's six figures with their notes in its order, three across from 640px", () => {
+    renderModule("capital-structure");
+    const tiles = within(figures()).getAllByRole("listitem");
+    expect(tiles.map((t) => t.textContent)).toEqual([
+      "Gross debtUSD 2,398mAt 30 Sep 2026",
+      "Net debtUSD 2,236mAfter USD 162m cash",
+      "Net leverage4.6xNet debt to EBITDA",
+      "Secured leverage3.3xFirst-lien net debt to EBITDA",
+      "Average cost of debtWithheldMarked confidential in the source",
+      "Next maturityMar 2028USD 310m unsecured notes",
+    ]);
+    expect(tiles[0]?.parentElement).toHaveClass("grid-cols-1", "sm:grid-cols-3");
+  });
+
+  it("draws the withheld figure as the kit's Withheld, never as a number or n.a.", () => {
+    renderModule("capital-structure");
+    const tile = within(figures()).getAllByRole("listitem")[4] as HTMLElement;
+    expect(within(tile).getByText("Withheld")).toBeVisible();
+    expect(tile).not.toHaveTextContent(/n\.a\.|\d/);
+  });
+
+  it("names the block by a heading only a screen reader meets, which the navigator focuses", () => {
+    renderModule("capital-structure");
+    const heading = screen.getByRole("heading", { level: 3, name: "Headline figures" });
+    expect(heading).toHaveClass("sr-only");
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    fireEvent.click(within(nav()).getByRole("button", { name: "Headline figures" }));
+    expect(heading).toHaveFocus();
+    expect(scroll.mock.contexts[0]).toBe(heading.closest("[data-section]"));
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
+  it("draws one trace control for each figure, the withheld one included, each with its own drawer", () => {
+    renderModule("capital-structure");
+    const buttons = within(figures()).getAllByRole("button", {
+      name: "Show sources for this figure",
+    });
+    expect(buttons).toHaveLength(6);
+    fireEvent.click(buttons[0] as HTMLElement);
+    expect(screen.getByRole("dialog", { name: "Sources for gross debt" })).toBeVisible();
+  });
+
+  it("draws zero as zero beside n.a., and a gap as the kit's panel", () => {
+    const library = withRecords((records) => {
+      const items = blockOf(records, "metrics").items;
+      (items[0] as Json)["value"] = { kind: "value", text: "USD 0m", at: 0 };
+      (items[1] as Json)["value"] = null;
+      (items[2] as Json)["value"] = { kind: "gap", reason: "The debt schedule was not provided." };
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const tiles = within(figures()).getAllByRole("listitem");
+    expect(tiles[0]).toHaveTextContent("USD 0m");
+    expect(tiles[1]).toHaveTextContent("n.a.not available");
+    expect(tiles[1]).not.toHaveTextContent("0");
+    expect(within(tiles[2] as HTMLElement).getByText("Not established for this run")).toBeVisible();
+  });
+});
+
+describe("Module, the measures and their consequence", () => {
+  const measures = () => region("Measures and their consequence");
+
+  it("draws the mock's three measures: figure, change line and consequence", () => {
+    renderModule("capital-structure");
+    const stats = within(measures()).getAllByRole("listitem");
+    expect(stats.map((t) => t.textContent)).toEqual([
+      "Net leverage4.6xLower by 0.3x on 2025Back inside the range both agencies set for the current rating.",
+      "LiquidityUSD 412mLower by USD 43m on JuneCovers every maturity before March 2028 more than four times.",
+      "Interest cover2.4xEarlier period n.a.not availableThin: a one-point rise in floating rates would take it close to 2.0x.",
+    ]);
+    expect(stats[0]?.parentElement).toHaveClass("grid-cols-1", "sm:grid-cols-3", "gap-10");
+  });
+
+  it("marks the delivered direction, and draws no mark for a missing earlier period", () => {
+    renderModule("capital-structure");
+    const stats = within(measures()).getAllByRole("listitem");
+    expect(stats[0]?.querySelector("[data-direction]")).toHaveAttribute("data-direction", "down");
+    expect(stats[1]?.querySelector("[data-direction]")).toHaveAttribute("data-direction", "down");
+    expect(stats[2]?.querySelector("[data-direction]")).toBeNull();
+    expect(stats[2]?.querySelector("[aria-hidden=true]")).toHaveTextContent("n.a.");
+  });
+
+  it("draws one trace control for each measure, named as the mock names it", () => {
+    renderModule("capital-structure");
+    const buttons = within(measures()).getAllByRole("button");
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(
+      Array<string>(3).fill("Show sources for this measure"),
+    );
+    fireEvent.click(buttons[2] as HTMLElement);
+    expect(
+      screen.getByRole("dialog", { name: "Sources for interest cover in this module" }),
+    ).toBeVisible();
+  });
+
+  it("draws a withheld earlier period beside no change, and a flat or rising mark as delivered", () => {
+    const library = withRecords((records) => {
+      const items = blockOf(records, "measures").items;
+      (items[1] as Json)["earlier"] = { kind: "withheld", reason: null };
+      (items[1] as Json)["delta"] = null;
+      (items[2] as Json)["earlier"] = { kind: "value", text: "2.4x", at: 2.4 };
+      (items[2] as Json)["delta"] = { text: "Unchanged on 2025", direction: "flat" };
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    const stats = within(measures()).getAllByRole("listitem");
+    expect(within(stats[1] as HTMLElement).getByText("Withheld")).toBeVisible();
+    expect(stats[1]?.querySelector("[data-direction]")).toBeNull();
+    expect(stats[2]?.querySelector("[data-direction]")).toHaveAttribute("data-direction", "flat");
+  });
+});
+
+describe("Module, the navigator of the data module", () => {
+  it("lists the entries the blocks name, once each, in page order", () => {
+    renderModule("capital-structure");
+    expect(
+      within(within(nav()).getAllByRole("list")[0] as HTMLElement)
+        .getAllByRole("button")
+        .map((s) => s.textContent),
+    ).toEqual(["Bottom line", "Key findings", "Headline figures", "Limitations"]);
   });
 });
 
