@@ -170,6 +170,39 @@
   --outline-color-brand: var(--color-border-brand);
   --outline-color-error: var(--color-border-error);
 
+  /* Badge (pill-color): the source's utility families, by status family */
+  --background-color-utility-neutral-50: var(--color-surface-subtle);
+  --ring-color-utility-neutral-200: var(--color-border-container);
+  --text-color-utility-neutral-700: var(--color-text-secondary);
+  --text-color-utility-neutral-500: var(--color-text-tertiary);
+  --background-color-utility-brand-50: var(--color-action-subtle);
+  --ring-color-utility-brand-200: var(--color-action-subtle-hover);
+  --text-color-utility-brand-700: var(--color-action);
+  --text-color-utility-brand-500: var(--color-action);
+  --background-color-utility-red-50: var(--color-error-fill);
+  --ring-color-utility-red-200: var(--color-error-edge);
+  --text-color-utility-red-700: var(--color-error-text);
+  --text-color-utility-red-500: var(--color-error-mark);
+  --background-color-utility-yellow-50: var(--color-warning-fill);
+  --ring-color-utility-yellow-200: var(--color-warning-edge);
+  --text-color-utility-yellow-700: var(--color-warning-text);
+  --text-color-utility-yellow-500: var(--color-warning-mark);
+  --background-color-utility-green-50: var(--color-success-fill);
+  --ring-color-utility-green-200: var(--color-success-edge);
+  --text-color-utility-green-700: var(--color-success-text);
+  --text-color-utility-green-500: var(--color-success-mark);
+  --background-color-utility-sky-50: var(--color-info-fill);
+  --ring-color-utility-sky-200: var(--color-info-edge);
+  --text-color-utility-sky-700: var(--color-info-text);
+  --text-color-utility-sky-500: var(--color-info-mark);
+
+  /* Tabs: unselected text, the selected and hovered text and line, the track line, the focus ring */
+  --text-color-quaternary: var(--color-text-tertiary);
+  --text-color-brand-secondary: var(--color-text-link);
+  --border-color-fg-brand-primary_alt: var(--color-action);
+  --background-color-border-secondary: var(--color-border-hairline);
+  --outline-color-focus-ring: var(--color-focus);
+
   /* Source geometry used by the copied classes: sizes, radius and shadows (Navy at the source's alpha) */
   --text-xs: calc(var(--spacing) * 3);
   --text-xs--line-height: calc(var(--spacing) * 4.5);
