@@ -89,6 +89,19 @@ How the coordinator applies it:
     their "AI off" state. Nothing in Signal calls a model until the owner rules a cap; that
     is outside the delegation.
 
+### Build and kit (added as they arise)
+
+22. **Development-package advisories.** `npm audit` on the web lock reports 10 moderate
+    advisories, all among development packages; `npm audit --omit=dev`, the gate, reports
+    none. Two roots: vitest's mocker (fixed in 4.1.12, released 2026-10-15) and `minimatch`
+    under typescript-eslint (a slow-pattern denial of service in a lint tool). Ruling: vitest
+    and `@vitest/coverage-v8` move to 4.1.12 in step D2a's last pull request; the `minimatch`
+    advisory is accepted, because the tool runs only on this repository's own files. The
+    audit gate stays on runtime packages.
+23. **Invalid fields.** An invalid input or select carries the design system's Error
+    diamond and its message, not the source's info glyph, so the error never rests on colour
+    alone (ruled by the D2a session after its review).
+
 ## Cost if wrong
 
 Every ruling above changes fixture data, a label or a layout in one page group, not the data
