@@ -1,5 +1,5 @@
 import { readSlice } from "./read";
-import { edited, fixtureSlice } from "./test-fixture";
+import { edited, fixtureSlice, readRuns } from "./test-fixture";
 
 const RUN = ["runs", 0] as const;
 
@@ -36,7 +36,7 @@ describe("readSlice", () => {
   });
 
   it("keeps a null trace as null", () => {
-    const result = readSlice(edited([...RUN, "limitations", "items", 1, "trace"], null));
+    const result = readRuns(edited([...RUN, "limitations", "items", 1, "trace"], null));
     if (result.kind !== "ok") throw new Error(result.kind);
     expect(result.data.runs[0]?.limitations.items[1]?.trace).toBeNull();
   });
@@ -123,7 +123,7 @@ describe("readSlice", () => {
       "runs[0].front.parts[0].to: expected one of analysis, statements, portfolio-fit or null",
     ],
   ])("is invalid and names the failing path: %s", (_, source, reason) => {
-    expect(readSlice(source)).toEqual({ kind: "invalid", reason });
+    expect(readRuns(source)).toEqual({ kind: "invalid", reason });
   });
 });
 
@@ -134,7 +134,7 @@ const PAIR = { kind: "missing", reason: null } as const;
 
 describe("readSlice: cases and statements", () => {
   it("reads two cases and four statements of seven columns", () => {
-    const result = readSlice(fixtureSlice());
+    const result = readRuns(fixtureSlice());
     if (result.kind !== "ok") throw new Error(result.kind);
     const run = result.data.runs[0];
     expect(run?.cases.map((c) => c.name)).toEqual(["Base case", "Downside case"]);
@@ -178,7 +178,7 @@ describe("readSlice: cases and statements", () => {
         ],
       },
     ];
-    const result = readSlice(source);
+    const result = readRuns(source);
     if (result.kind !== "ok") throw new Error(JSON.stringify(result));
     expect(result.data.runs[0]?.statements.columns[1]).toEqual({
       kind: "empty",
@@ -306,7 +306,7 @@ describe("readSlice: cases and statements", () => {
       `${ROW_PATH}.cells: expected 7 entries, one per column that is not empty`,
     ],
   ])("is invalid and names the failing path: %s", (_, source, reason) => {
-    expect(readSlice(source)).toEqual({ kind: "invalid", reason });
+    expect(readRuns(source)).toEqual({ kind: "invalid", reason });
   });
 });
 
@@ -380,7 +380,7 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
       "runs[0].statements.bridges[0].title",
     ],
   ])("refuses %s, naming the second one", (_, source, where) => {
-    expect(readSlice(source)).toEqual({ kind: "invalid", reason: `${where}: ${TRACE_REPEAT}` });
+    expect(readRuns(source)).toEqual({ kind: "invalid", reason: `${where}: ${TRACE_REPEAT}` });
   });
 
   it("accepts a repeated name where one of the two draws no control", () => {
@@ -391,11 +391,11 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
     const metric = run.front.headline.metrics[1];
     if (metric === undefined) throw new Error("no metric");
     metric.trace = null;
-    expect(readSlice(source).kind).toBe("ok");
+    expect(readRuns(source).kind).toBe("ok");
   });
 
   it("accepts a statement row label that another statement repeats (one statement is open at a time)", () => {
-    const result = readSlice(fixtureSlice());
+    const result = readRuns(fixtureSlice());
     if (result.kind !== "ok") throw new Error(result.kind);
     const [income, cash] = result.data.runs[0]?.statements.statements ?? [];
     expect(income?.rows[2]?.label).toBe("EBITDA as defined");
@@ -436,11 +436,11 @@ describe("readSlice: lists the pages draw hold something", () => {
       "runs[0].statements.columns: expected at least one column",
     ],
   ])("refuses %s", (_, source, reason) => {
-    expect(readSlice(source)).toEqual({ kind: "invalid", reason });
+    expect(readRuns(source)).toEqual({ kind: "invalid", reason });
   });
 
   it("reads a run with nothing yet to report as not established, which the page draws as its heading and count", () => {
-    const result = readSlice(edited([...RUN, "limitations", "notEstablished", "items"], []));
+    const result = readRuns(edited([...RUN, "limitations", "notEstablished", "items"], []));
     expect(result.kind).toBe("ok");
   });
 });
@@ -512,7 +512,7 @@ describe("readSlice: a string the page draws is never empty", () => {
     [["statements", "checkFigure", "text"], `${P}.statements.checkFigure.text`],
     [["analysis", "measures", "period"], `${P}.analysis.measures.period`],
   ] as [(string | number)[], string][])("refuses an empty string at %j", (steps, where) => {
-    expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
+    expect(readRuns(edited([...RUN, ...steps], ""))).toEqual({
       kind: "invalid",
       reason: `${where}: ${NON_EMPTY}`,
     });
@@ -528,7 +528,7 @@ describe("readSlice: a string the page draws is never empty", () => {
   ] as [(string | number)[], string][])(
     "refuses an empty string, not null, at %j",
     (steps, where) => {
-      expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
+      expect(readRuns(edited([...RUN, ...steps], ""))).toEqual({
         kind: "invalid",
         reason: `${where}: ${NON_EMPTY_OR_NULL}`,
       });
@@ -556,7 +556,7 @@ describe("readSlice: a string of spaces is as empty as no string", () => {
       "expected a non-empty string or null",
     ],
   ] as [(string | number)[], string, string][])('refuses " " at %j', (steps, where, what) => {
-    expect(readSlice(edited([...RUN, ...steps], " \t "))).toEqual({
+    expect(readRuns(edited([...RUN, ...steps], " \t "))).toEqual({
       kind: "invalid",
       reason: `${where}: ${what}`,
     });
@@ -564,8 +564,8 @@ describe("readSlice: a string of spaces is as empty as no string", () => {
 
   it("keeps the free-text chart subtitle and note as they were: a blank one still reads", () => {
     const base = [...RUN, "analysis", "headroom"];
-    expect(readSlice(edited([...base, "subtitle"], " ")).kind).toBe("ok");
-    expect(readSlice(edited([...base, "note"], "")).kind).toBe("ok");
+    expect(readRuns(edited([...base, "subtitle"], " ")).kind).toBe("ok");
+    expect(readRuns(edited([...base, "note"], "")).kind).toBe("ok");
   });
 });
 
@@ -598,7 +598,7 @@ describe("readSlice: an address into the library starts with #/", () => {
       "ftp://example.invalid",
     ],
   ] as [(string | number)[], string, string][])("refuses %j holding %s", (steps, where, value) => {
-    expect(readSlice(edited([...RUN, ...steps], value))).toEqual({
+    expect(readRuns(edited([...RUN, ...steps], value))).toEqual({
       kind: "invalid",
       reason: `${where}: ${OFF}`,
     });
@@ -613,7 +613,7 @@ describe("readSlice: a model file link stays inside the library folder", () => {
   ] as const;
   const published = (href: unknown): unknown => ({ kind: "markdown", href });
   const read = (field: string, steps: readonly (string | number)[], href: unknown): unknown =>
-    readSlice(
+    readRuns(
       field === "published"
         ? edited([...RUN, "statements", "published"], published(href))
         : edited([...RUN, ...steps], href),
@@ -667,5 +667,89 @@ describe("readSlice: a model file link stays inside the library folder", () => {
   it("reads a #/ address as the check figure's link", () => {
     const href = "#/library/transdigm/2025-06-30/evidence";
     expect((read("checkFigure", FIELDS[1][1], href) as { kind: string }).kind).toBe("ok");
+  });
+});
+
+describe("readSlice: one run that cannot be read does not hide the others", () => {
+  function withSecond(change: (second: Record<string, unknown>) => void) {
+    const source = fixtureSlice() as { runs: Record<string, unknown>[] };
+    const second = structuredClone(source.runs[0]) as Record<string, unknown>;
+    second["run"] = "2024-12-31";
+    change(second);
+    source.runs.push(second);
+    return source;
+  }
+
+  it("keeps the first run readable and lists the second with its reason and ids", () => {
+    const source = withSecond((s) => {
+      (s["header"] as Record<string, unknown>)["asOf"] = 5;
+    });
+    const result = readSlice(source);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.runs.map((r) => r.run)).toEqual(["2025-06-30"]);
+    expect(result.data.unreadable).toEqual([
+      {
+        issuer: "transdigm",
+        run: "2024-12-31",
+        reason: "runs[1].header.asOf: expected a string",
+      },
+    ]);
+  });
+
+  it.each([
+    ["a bad issuer", (s: Record<string, unknown>) => (s["issuer"] = 5)],
+    ["a bad run", (s: Record<string, unknown>) => (s["run"] = " ")],
+  ])("gives null ids when the entry has %s", (_, change) => {
+    const result = readSlice(withSecond(change));
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.runs).toHaveLength(1);
+    expect(result.data.unreadable).toHaveLength(1);
+    expect(result.data.unreadable[0]).toMatchObject({ issuer: null, run: null });
+  });
+
+  it("gives null ids and the reason for an entry that is not an object", () => {
+    const source = fixtureSlice() as { runs: unknown[] };
+    source.runs.push("nope");
+    const result = readSlice(source);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.runs).toHaveLength(1);
+    expect(result.data.unreadable).toEqual([
+      { issuer: null, run: null, reason: "runs[1]: expected an object" },
+    ]);
+  });
+
+  it("refuses the whole slice when a readable and a named unreadable run share a pair", () => {
+    const source = fixtureSlice() as { runs: Record<string, unknown>[] };
+    const copy = structuredClone(source.runs[0]) as Record<string, unknown>;
+    (copy["header"] as Record<string, unknown>)["asOf"] = 5;
+    source.runs.push(copy);
+    expect(readSlice(source)).toEqual({
+      kind: "invalid",
+      reason: "runs[1].run: expected a run no other run has",
+    });
+  });
+
+  it("is ok with no readable run when every run is unreadable", () => {
+    const source = fixtureSlice() as { runs: Record<string, unknown>[] };
+    (source.runs[0]?.["header"] as Record<string, unknown>)["asOf"] = 5;
+    const result = readSlice(source);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.runs).toEqual([]);
+    expect(result.data.unreadable).toHaveLength(1);
+  });
+
+  it("reads the fixture with no unreadable run, and treats a delivered unreadable key as unknown", () => {
+    const ok = readSlice(fixtureSlice());
+    if (ok.kind !== "ok") throw new Error(ok.kind);
+    expect(ok.data.unreadable).toEqual([]);
+    const source = fixtureSlice() as Record<string, unknown>;
+    source["unreadable"] = [];
+    expect(readSlice(source)).toEqual({ kind: "invalid", reason: "unreadable: unknown field" });
+  });
+
+  it("refuses a slice that is not an object, lacks runs or holds runs that are not a list", () => {
+    expect(readSlice(5)).toEqual({ kind: "invalid", reason: "slice: expected an object" });
+    expect(readSlice({})).toEqual({ kind: "invalid", reason: "runs: missing" });
+    expect(readSlice({ runs: 5 })).toEqual({ kind: "invalid", reason: "runs: expected a list" });
   });
 });

@@ -3,7 +3,7 @@ import { App } from "@/App";
 import type { LibraryData, LoadResult } from "@/data";
 import { SourceContext } from "../source";
 import { RunsIndexPage } from "./RunsIndexPage";
-import { edited, fixtureSlice, must } from "./slice/test-fixture";
+import { fixtureSlice, must } from "./slice/test-fixture";
 
 function renderIndex(slice: unknown, hash = "#/model/runs") {
   window.location.hash = hash;
@@ -84,8 +84,37 @@ describe("Runs index page", () => {
   });
 
   it("leaves an invalid slice to the app", () => {
-    renderIndex(edited(["runs", 0, "header", "asOf"], 5));
-    expect(screen.getByText("runs[0].header.asOf: expected a string")).toBeInTheDocument();
+    renderIndex({ runs: [], extra: 1 });
+    expect(screen.getByText("extra: unknown field")).toBeInTheDocument();
+  });
+
+  it("lists a named unreadable run and counts an unnamed one, beside a readable run", () => {
+    const slice = fixtureSlice() as { runs: unknown[] };
+    const named = structuredClone(slice.runs[0]) as Record<string, unknown>;
+    named["run"] = "2024-12-31";
+    (named["header"] as Record<string, unknown>)["asOf"] = 5;
+    slice.runs.push(named, "nope");
+    renderIndex(slice);
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    const items = within(screen.getByRole("main")).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("TransDigm Group");
+    expect(items[1]).toHaveTextContent("transdigm");
+    expect(items[1]).toHaveTextContent("2024-12-31");
+    expect(items[1]).toHaveTextContent("Could not be read");
+    expect(within(must(items[1])).getByRole("link")).toHaveAttribute(
+      "href",
+      "#/model/transdigm/2024-12-31/front",
+    );
+    expect(screen.getByText("1 run could not be read and cannot be listed")).toBeInTheDocument();
+    expect(screen.queryByText("No model has been delivered yet")).not.toBeInTheDocument();
+  });
+
+  it("counts several unnamed unreadable runs and draws no empty state", () => {
+    renderIndex({ runs: [1, "two"] });
+    expect(screen.getByText("2 runs could not be read and cannot be listed")).toBeInTheDocument();
+    expect(screen.queryByText("No model has been delivered yet")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
   it("throws on an invalid slice that reaches it, never drawing 'no model'", () => {
@@ -93,7 +122,7 @@ describe("Runs index page", () => {
     const data = {
       schema: "credit-os-data/1",
       issuers: [],
-      model: edited(["runs", 0, "header", "asOf"], 5),
+      model: { runs: [], extra: 1 },
     } as LibraryData;
     expect(() =>
       render(
@@ -101,7 +130,7 @@ describe("Runs index page", () => {
           <RunsIndexPage />
         </SourceContext.Provider>,
       ),
-    ).toThrow("runs[0].header.asOf: expected a string");
+    ).toThrow("extra: unknown field");
     spy.mockRestore();
   });
 });

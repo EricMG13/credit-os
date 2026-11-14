@@ -1,12 +1,11 @@
-import { readSlice } from "./read";
-import { edited, fixtureSlice } from "./test-fixture";
+import { edited, fixtureSlice, readRuns } from "./test-fixture";
 
 const A = ["runs", 0, "analysis"] as const;
 const P = "runs[0].analysis";
 
 describe("the analysis page of the slice", () => {
   it("reads the fixture as the mock draws it", () => {
-    const result = readSlice(fixtureSlice());
+    const result = readRuns(fixtureSlice());
     if (result.kind !== "ok") throw new Error(result.kind);
     const page = result.data.runs[0]?.analysis;
     expect(page?.findings.map((f) => f.number)).toEqual(["01", "02", "03", "04"]);
@@ -245,11 +244,11 @@ describe("the analysis page of the slice", () => {
       `${P}.segments.head: expected a heading for the label column`,
     ],
   ])("refuses %s", (_name, steps, value, reason) => {
-    expect(readSlice(edited(steps, value))).toEqual({ kind: "invalid", reason });
+    expect(readRuns(edited(steps, value))).toEqual({ kind: "invalid", reason });
   });
 
   it("refuses a run without its analysis page", () => {
-    expect(readSlice(edited(A, undefined))).toEqual({
+    expect(readRuns(edited(A, undefined))).toEqual({
       kind: "invalid",
       reason: "runs[0].analysis: missing",
     });
@@ -309,6 +308,6 @@ describe("the analysis page: the table side holds to the chart side", () => {
       `${P}.segments.rows[0].text: expected the earlier and later cells joined by " to ", n.a. where missing`,
     ],
   ])("refuses %s", (_name, steps, value, reason) => {
-    expect(readSlice(edited(steps, value))).toEqual({ kind: "invalid", reason });
+    expect(readRuns(edited(steps, value))).toEqual({ kind: "invalid", reason });
   });
 });
