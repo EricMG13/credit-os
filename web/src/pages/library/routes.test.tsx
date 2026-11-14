@@ -40,6 +40,11 @@ function expectOneH1AndNoSkip() {
   });
 }
 
+// jsdom has no layout, so no scrollIntoView: a trace address scrolls its row into view.
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+});
+
 afterEach(() => {
   window.location.hash = "";
 });

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { EvidenceSources } from "./EvidenceSources";
 import { EvidenceSummary } from "./EvidenceSummary";
+import { EvidenceTrace } from "./EvidenceTrace";
 import type { LoadedRun, Reader } from "./slice";
 import { EvidenceFrame, type EvidenceTab } from "./parts/EvidenceFrame";
 import { useModuleFilter } from "./parts/ModuleFilter";
@@ -18,7 +19,7 @@ function FilteredTab({
 }: {
   run: LoadedRun;
   issuer: string;
-  current: Extract<EvidenceTab, "sources">;
+  current: Extract<EvidenceTab, "sources" | "trace">;
   children: (module: Reader | null, clear: () => void) => ReactNode;
 }) {
   const { chosen, clear, control } = useModuleFilter(run.evidence.moduleFilter);
@@ -40,10 +41,13 @@ export function Evidence({
   issuer,
   run,
   page,
+  item,
 }: {
   issuer: string | undefined;
   run: string | undefined;
-  page: Extract<EvidenceTab, "summary" | "sources">;
+  page: Extract<EvidenceTab, "summary" | "sources" | "trace">;
+  /** The trace item the address names, on the Trace page only. */
+  item?: string | undefined;
 }) {
   return (
     <RunFrame issuer={issuer} run={run} tab="evidence">
@@ -59,6 +63,22 @@ export function Evidence({
                     module={chosen?.id ?? null}
                     moduleName={chosen?.name ?? null}
                     onClear={clear}
+                  />
+                )}
+              </FilteredTab>
+            );
+          case "trace":
+            return (
+              <FilteredTab key="trace" run={loaded} issuer={issuerId} current="trace">
+                {(chosen, clear) => (
+                  <EvidenceTrace
+                    key={item ?? ""}
+                    table={evidence.trace}
+                    count={evidence.tabs.trace}
+                    module={chosen?.id ?? null}
+                    moduleName={chosen?.name ?? null}
+                    onClear={clear}
+                    item={item ?? null}
                   />
                 )}
               </FilteredTab>

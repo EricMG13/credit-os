@@ -5315,6 +5315,18 @@
       { "issuer": "halden-aerostructures", "run": "2026-06-30" },
       { "issuer": "halden-aerostructures", "run": "2026-03-31" },
       { "issuer": "halden-aerostructures", "run": "2025-09-30" }
+    ],
+    "/library/:issuer/:run/evidence/trace": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31" },
+      { "issuer": "halden-aerostructures", "run": "2025-09-30" }
+    ],
+    "/library/:issuer/:run/evidence/trace/:item": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "item": "T-0014" },
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "item": "T-0042" },
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "item": "T-9999" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30", "item": "T-0014" }
     ]
   }
 }
