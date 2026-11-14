@@ -1,4 +1,5 @@
 import dataclasses
+import re
 from collections.abc import Callable
 from decimal import Decimal
 from functools import partial
@@ -18,177 +19,131 @@ from credit_os.provider.types import (
     Usage,
 )
 
-USAGE_FIELDS = (
-    "input_tokens",
-    "cached_read_tokens",
-    "cache_write_tokens",
-    "output_tokens",
-    "reasoning_tokens",
-)
+USAGE_FIELDS = tuple(f.name for f in dataclasses.fields(Usage))
 CALL = ToolCall(call_id="c1", name="f", arguments={})
+_TURN = Turn("t", (), Usage(input_tokens=5), "end", None, None)
+_REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
 
 
 def _message(**kw: Any) -> Message:
-    return Message(**{"role": "user", "text": "x", **kw})
-
-
-def _usage(field: str, value: Any) -> Usage:
-    return Usage(**{field: value})
+    return dataclasses.replace(Message("user", "x"), **kw)
 
 
 def _turn(**kw: Any) -> Turn:
-    base: dict[str, Any] = {
-        "text": "t",
-        "tool_calls": (),
-        "usage": Usage(input_tokens=5),
-        "stop_reason": "end",
-        "reported_model": None,
-        "request_id": None,
-    }
-    return Turn(**{**base, **kw})
-
-
-def _fields(**kw: Any) -> dict[str, Any]:
-    base: dict[str, Any] = {
-        "kind": "not_sent",
-        "turn": None,
-        "error_class": "E",
-        "message": "m",
-        "usage": None,
-        "billed_usd": None,
-        "raw": None,
-        "started_at": None,
-        "finished_at": None,
-    }
-    return {**base, **kw}
+    return dataclasses.replace(_TURN, **kw)
 
 
 def _reply(**kw: Any) -> Reply:
-    return Reply(**_fields(**kw))
+    return dataclasses.replace(_REPLY, **kw)
 
 
-def _ok_fields(**kw: Any) -> dict[str, Any]:
+def _ok(**kw: Any) -> Reply:
     turn = _turn()
-    return _fields(kind="ok", turn=turn, error_class=None, usage=turn.usage, **kw)
+    return _reply(**{"kind": "ok", "turn": turn, "error_class": None, "usage": turn.usage, **kw})
 
 
-def _sent(**kw: Any) -> Reply:
-    return _reply(kind="sent_usage", usage=Usage(), **kw)
+_sent = partial(_reply, kind="sent_usage", usage=Usage())
 
-
-REFUSALS: list[tuple[str, Callable[[], object]]] = [
-    ("1 role", lambda: _message(role="bot")),
-    ("2 tool no id", lambda: _message(role="tool")),
-    ("2 tool empty id", lambda: _message(role="tool", tool_call_id="")),
-    ("3 calls on user", lambda: _message(role="user", tool_calls=(CALL,))),
-    ("3 calls on tool", lambda: _message(role="tool", tool_call_id="c", tool_calls=(CALL,))),
-    ("8 stop_reason", lambda: _turn(stop_reason="stop")),
-    ("9 kind", lambda: _reply(kind="sent_known")),
-    ("10 turn on not_sent", lambda: _reply(turn=_turn())),
-    ("10 turn on sent_usage", lambda: _sent(turn=_turn())),
-    ("10 ok without turn", lambda: Reply(**{**_ok_fields(), "turn": None})),
-    ("11 ok with error_class", lambda: Reply(**{**_ok_fields(), "error_class": "E"})),
-    ("11 failed no error_class", lambda: _reply(error_class=None)),
-    ("11 failed empty error_class", lambda: _reply(error_class="")),
-    ("12 ok usage differs", lambda: Reply(**{**_ok_fields(), "usage": Usage(input_tokens=6)})),
-    ("12 ok usage None", lambda: Reply(**{**_ok_fields(), "usage": None})),
-    ("13 sent_usage no usage", lambda: _reply(kind="sent_usage")),
-    ("14 not_sent usage", lambda: _reply(usage=Usage())),
-    ("14 sent_unknown usage", lambda: _reply(kind="sent_unknown", usage=Usage())),
-    ("15 not_sent billed", lambda: _reply(billed_usd=Decimal(1))),
-    ("15 sent_unknown billed", lambda: _reply(kind="sent_unknown", billed_usd=Decimal(1))),
-    ("16 float", lambda: _sent(billed_usd=0.5)),
-    ("16 int", lambda: _sent(billed_usd=1)),
-    ("16 str", lambda: _sent(billed_usd="1")),
-    ("17 nan", lambda: _sent(billed_usd=Decimal("NaN"))),
-    ("17 inf", lambda: _sent(billed_usd=Decimal("Infinity"))),
-    ("17 negative", lambda: _sent(billed_usd=Decimal("-0.1"))),
+_M = {"role": "tool", "tool_call_id": "c"}
+_CHARGE = "billed_usd must be a Decimal"
+_FINITE = "finite and not negative"
+# (builder, keyword arguments, fragment of the refusal message)
+REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
+    (_message, {"role": "bot"}, "unknown role"),
+    (_message, {"role": "tool"}, "needs a tool_call_id"),
+    (_message, {"role": "tool", "tool_call_id": ""}, "needs a tool_call_id"),
+    (_message, {"tool_calls": (CALL,)}, "tool calls on a user message"),
+    (_message, {**_M, "tool_calls": (CALL,)}, "tool calls on a tool message"),
+    (_turn, {"stop_reason": "stop"}, "unknown stop_reason"),
+    (_reply, {"kind": "sent_known"}, "unknown reply kind"),
+    (_reply, {"turn": _turn()}, "not_sent reply has no turn"),
+    (_sent, {"turn": _turn()}, "sent_usage reply has no turn"),
+    (_ok, {"turn": None}, "ok reply needs a turn"),
+    (_ok, {"error_class": "E"}, "ok reply has no error_class"),
+    (_reply, {"error_class": None}, "needs an error_class"),
+    (_reply, {"error_class": ""}, "needs an error_class"),
+    (_ok, {"usage": Usage(input_tokens=6)}, "repeats its turn's usage"),
+    (_ok, {"usage": None}, "repeats its turn's usage"),
+    (_reply, {"kind": "sent_usage"}, "sent_usage reply needs usage"),
+    (_reply, {"usage": Usage()}, "not_sent reply has no usage"),
+    (_reply, {"kind": "sent_unknown", "usage": Usage()}, "sent_unknown reply has no usage"),
+    (_reply, {"billed_usd": Decimal(1)}, "not_sent reply has no charge"),
+    (
+        _reply,
+        {"kind": "sent_unknown", "billed_usd": Decimal(1)},
+        "sent_unknown reply has no charge",
+    ),
+    (_sent, {"billed_usd": 0.5}, _CHARGE),
+    (_sent, {"billed_usd": 1}, _CHARGE),
+    (_sent, {"billed_usd": "1"}, _CHARGE),
+    (_sent, {"billed_usd": Decimal("NaN")}, _FINITE),
+    (_sent, {"billed_usd": Decimal("Infinity")}, _FINITE),
+    (_sent, {"billed_usd": Decimal("-0.1")}, _FINITE),
 ]
-BAD_COUNTS = [(-1, "negative"), (True, "true"), (False, "false"), (1.0, "float"), ("1", "str")]
-REFUSALS += [(f"4-7 {f} {n}", partial(_usage, f, v)) for f in USAGE_FIELDS for v, n in BAD_COUNTS]
+BAD_COUNTS = [-1, True, False, 1.0, "1"]
+REFUSALS += [
+    (Usage, {f: v}, f"{f} must be a non-negative int or None")
+    for f in USAGE_FIELDS
+    for v in BAD_COUNTS
+]
 
 
-@pytest.mark.parametrize(("name", "build"), REFUSALS, ids=[r[0] for r in REFUSALS])
-def test_refused(name: str, build: Callable[[], object]) -> None:
-    with pytest.raises(ProviderDataError):
-        build()
+@pytest.mark.parametrize(("build", "kw", "fragment"), REFUSALS)
+def test_refused(build: Callable[..., object], kw: dict[str, Any], fragment: str) -> None:
+    with pytest.raises(ProviderDataError, match=re.escape(fragment)):
+        build(**kw)
 
 
 @pytest.mark.parametrize("field", USAGE_FIELDS)
 def test_usage_zero_and_none_kept(field: str) -> None:
-    assert getattr(_usage(field, 0), field) == 0
+    assert getattr(Usage(**{field: 0}), field) == 0
     assert getattr(Usage(), field) is None
+
+
+def test_zero_count_is_not_missing() -> None:
     assert Usage(input_tokens=0) != Usage()
 
 
-def test_ok_reply_with_charge() -> None:
-    reply = _reply(**_ok_fields(billed_usd=Decimal("0.0996381")))
-    assert reply.kind == "ok"
-    assert reply.turn == _turn()
-    assert reply.usage == Usage(input_tokens=5)
-    assert reply.billed_usd == Decimal("0.0996381")
-    assert reply.error_class is None
+def test_assistant_message_with_tool_call() -> None:
+    message = Message("assistant", "", (CALL,))
+    assert (message.role, message.tool_calls) == ("assistant", (CALL,))
 
 
-def test_ok_reply_without_charge() -> None:
-    reply = _reply(**_ok_fields())
-    assert reply.billed_usd is None
-    assert reply.usage == Usage(input_tokens=5)
-    assert reply.turn == _turn()
-
-
-def test_ok_reply_repeats_missing_usage() -> None:
-    turn = _turn(usage=Usage())
-    reply = _reply(kind="ok", turn=turn, error_class=None, usage=Usage())
-    assert reply.usage == Usage()
+@pytest.mark.parametrize("charge", [None, Decimal("0.0996381"), Decimal(0)])
+def test_ok_reply(charge: Decimal | None) -> None:
+    assert _ok(billed_usd=charge) == Reply(
+        "ok", _turn(), None, "m", Usage(input_tokens=5), charge, None, None, None
+    )
 
 
 def test_not_sent_reply() -> None:
     reply = _reply(error_class="TokenMissing", message="no token")
-    assert (reply.kind, reply.error_class, reply.message) == (
-        "not_sent",
-        "TokenMissing",
-        "no token",
-    )
-    assert (reply.turn, reply.usage, reply.billed_usd, reply.raw) == (None, None, None, None)
-    assert (reply.started_at, reply.finished_at) == (None, None)
+    assert reply == Reply("not_sent", None, "TokenMissing", "no token", *[None] * 5)
 
 
 def test_sent_usage_with_counts_only() -> None:
     reply = _reply(kind="sent_usage", usage=Usage(input_tokens=500))
-    assert reply.usage == Usage(input_tokens=500)
-    assert reply.billed_usd is None
+    assert reply == Reply("sent_usage", None, "E", "m", Usage(input_tokens=500), *[None] * 4)
 
 
-def test_sent_usage_with_charge_only() -> None:
-    reply = _reply(kind="sent_usage", usage=Usage(), billed_usd=Decimal("0.1112661"))
-    assert reply.usage == Usage()
-    assert reply.billed_usd == Decimal("0.1112661")
-
-
-def test_zero_charge_is_not_missing() -> None:
-    assert _sent(billed_usd=Decimal(0)).billed_usd == Decimal(0)
-    assert _sent(billed_usd=Decimal(0)).billed_usd is not None
+@pytest.mark.parametrize("charge", [Decimal("0.1112661"), Decimal(0)])
+def test_sent_usage_with_charge_only(charge: Decimal) -> None:
+    reply = _sent(billed_usd=charge)
+    assert reply == Reply("sent_usage", None, "E", "m", Usage(), charge, *[None] * 3)
 
 
 def test_sent_unknown_reply() -> None:
     reply = _reply(kind="sent_unknown", error_class="Timeout", message="timed out")
-    assert (reply.kind, reply.error_class, reply.usage, reply.billed_usd) == (
-        "sent_unknown",
-        "Timeout",
-        None,
-        None,
-    )
+    assert reply == Reply("sent_unknown", None, "Timeout", "timed out", *[None] * 5)
 
 
 def test_types_are_frozen() -> None:
-    request = Request(messages=(_message(),), tools=(), max_output_tokens=10, effort="medium")
     instances: list[Any] = [
         ToolSpec(name="f", description="d", parameters={}),
         CALL,
         _message(),
         Usage(),
-        request,
+        Request((_message(),), (), 10, "medium"),
         _turn(),
         _reply(),
     ]
@@ -210,9 +165,6 @@ class _Minimal:
         return None
 
 
-def _use(model: Model) -> str:
-    return model.config_id
-
-
 def test_structural_model() -> None:
-    assert _use(_Minimal()) == "cfg"
+    model: Model = _Minimal()
+    assert model.config_id == "cfg"

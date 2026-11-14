@@ -11,11 +11,26 @@ from collections.abc import Iterable, Mapping
 
 REPLACEMENT = "[redacted]"
 TOKEN_ENV_NAMES = ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")
-# A key may follow "_" or any other non-key character, or a %XX escape (URL-encoded text); only a
-# preceding letter or digit marks the "sk-" (or "ghp_"-style or "github_pat_" prefix) as the tail
-# of a longer word such as "risk-".
+# A key may follow "_" or any other non-key character; only a preceding letter or digit marks the
+# "sk-" (or "ghp_"-style or "github_pat_" prefix) as the tail of a longer word such as "risk-".
+# It may also follow an escape sequence that ends in a letter or digit, which that rule would
+# take for a word: one alternative of the left boundary per escape form.
+_LEFT_BOUNDARIES = (
+    r"(?<![A-Za-z0-9])",  # not the tail of a longer word
+    r"(?<=%[0-9A-Fa-f]{2})",  # URL-encoded escape
+    r"(?<=%25[0-9A-Fa-f]{2})",  # double-URL-encoded escape
+    r"(?<=\\[a-z])",  # backslash escape such as \n, \t, \r
+    r"(?<=\\u[0-9A-Fa-f]{4})",  # \uXXXX
+    r"(?<=\\x[0-9A-Fa-f]{2})",  # \xXX
+    r"(?<=\x1b\[[0-9]m)",  # ANSI colour code, 1 to 5 characters of digits and ";"
+    r"(?<=\x1b\[[0-9]{2}m)",
+    r"(?<=\x1b\[[0-9;]{3}m)",
+    r"(?<=\x1b\[[0-9;]{4}m)",
+    r"(?<=\x1b\[[0-9;]{5}m)",
+)
+_KEY_BOUNDARY = "|".join(_LEFT_BOUNDARIES)
 _KEY_PATTERN = re.compile(
-    r"(?:(?<![A-Za-z0-9])|(?<=%[0-9A-Fa-f]{2}))(sk-(or|ant|proj)-[A-Za-z0-9_-]{6,}"
+    rf"(?:{_KEY_BOUNDARY})(sk-(or|ant|proj)-[A-Za-z0-9_-]{{6,}}"
     r"|sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})"
 )
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
@@ -64,24 +79,33 @@ class Redactor:
     def __init__(self, exact_values: Iterable[str] = ()) -> None:
         values = sorted({v for v in exact_values if v}, key=lambda v: (-len(v), v))
         # A lookahead finds every occurrence, including ones that overlap an earlier match.
-        self._exact = re.compile("(?=(" + "|".join(re.escape(v) for v in values) + "))")
-        self._exact_bytes = re.compile(
-            b"(?=(" + b"|".join(re.escape(v.encode("utf-8")) for v in values) + b"))"
-        )
-        self._has_values = bool(values)
+        self._exact: re.Pattern[str] | None = None
+        self._exact_bytes: re.Pattern[bytes] | None = None
+        if values:
+            self._exact = re.compile("(?=(" + "|".join(re.escape(v) for v in values) + "))")
+            self._exact_bytes = re.compile(
+                b"(?=(" + b"|".join(re.escape(v.encode("utf-8")) for v in values) + b"))"
+            )
 
     @classmethod
     def from_environ(cls, environ: Mapping[str, str]) -> Redactor:
-        return cls(environ[name] for name in TOKEN_ENV_NAMES if environ.get(name))
+        values: list[str] = []
+        for name in TOKEN_ENV_NAMES:
+            value = environ.get(name)
+            if value:
+                values.append(value)
+                if value.strip() and value.strip() != value:
+                    values.append(value.strip())
+        return cls(values)
 
     def text(self, value: str) -> str:
         spans = [m.span() for m in _KEY_PATTERN.finditer(value)]
-        if self._has_values:
+        if self._exact is not None:
             spans += [m.span(1) for m in self._exact.finditer(value)]
         return _replace_spans(value, spans, REPLACEMENT)
 
     def bytes_(self, value: bytes) -> bytes:
         spans = [m.span() for m in _KEY_PATTERN_BYTES.finditer(value)]
-        if self._has_values:
+        if self._exact_bytes is not None:
             spans += [m.span(1) for m in self._exact_bytes.finditer(value)]
         return _replace_spans(bytes(value), spans, REPLACEMENT.encode("ascii"))

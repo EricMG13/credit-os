@@ -12,33 +12,33 @@ from credit_os.provider import redact
 from credit_os.provider.redact import Redactor, home_paths
 
 
-@pytest.mark.parametrize(("values", "given", "expected"), key.REDACT_TEXT)
-def test_text_rows(values: tuple[str, ...], given: str, expected: str) -> None:
-    assert Redactor(values).text(given) == expected
+@pytest.mark.parametrize(("values", "text", "expected"), key.REDACT_TEXT)
+def test_text_rows(values: tuple[str, ...], text: str, expected: str) -> None:
+    assert Redactor(values).text(text) == expected
 
 
-@pytest.mark.parametrize(("values", "given", "expected"), key.REDACT_TEXT)
-def test_bytes_rows(values: tuple[str, ...], given: str, expected: str) -> None:
-    assert Redactor(values).bytes_(given.encode()) == expected.encode()
+@pytest.mark.parametrize(("values", "text", "expected"), key.REDACT_TEXT)
+def test_bytes_rows(values: tuple[str, ...], text: str, expected: str) -> None:
+    assert Redactor(values).bytes_(text.encode()) == expected.encode()
 
 
-@pytest.mark.parametrize(("values", "given", "expected"), key.REDACT_TEXT)
+@pytest.mark.parametrize(("values", "text", "expected"), key.REDACT_TEXT)
 def test_no_exact_value_survives_a_change(
-    values: tuple[str, ...], given: str, expected: str
+    values: tuple[str, ...], text: str, expected: str
 ) -> None:
-    out = Redactor(values).text(given)
-    if expected != given:
+    out = Redactor(values).text(text)
+    if expected != text:
         assert all(v not in out for v in values if v)
 
 
-@pytest.mark.parametrize(("environ", "given", "expected"), key.REDACT_ENVIRON)
-def test_environ_rows(environ: dict[str, str], given: str, expected: str) -> None:
-    assert Redactor.from_environ(environ).text(given) == expected
+@pytest.mark.parametrize(("environ", "text", "expected"), key.REDACT_ENVIRON)
+def test_environ_rows(environ: dict[str, str], text: str, expected: str) -> None:
+    assert Redactor.from_environ(environ).text(text) == expected
 
 
-@pytest.mark.parametrize(("given", "expected"), key.HOME_PATHS)
-def test_home_paths_rows(given: str, expected: str) -> None:
-    assert home_paths(given) == expected
+@pytest.mark.parametrize(("text", "expected"), key.HOME_PATHS)
+def test_home_paths_rows(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
 
 
 def test_empty_redactors_leave_text_unchanged() -> None:
