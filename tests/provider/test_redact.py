@@ -216,6 +216,21 @@ def test_forward_slash_unc_written_out_forms(
     assert home_paths(wrap(f'open "{head}Pat O\'Hara Jones" failed')) == expected
 
 
+# A home folder needs a separator before it: a share that merely ends in "home" or "root" is not one.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "//fileserver/sharedhome/docs/plan.txt",
+        "//h/myroot",
+        '<script src="//cdn.example.com/ahome/b.js">',
+        "//h/sUsers/x",
+        "file://srv/sharedhome/docs",
+    ],
+)
+def test_forward_slash_unc_home_folder_needs_a_separator(text: str) -> None:
+    assert home_paths(text) == text
+
+
 def test_home_path_is_the_bases_pattern() -> None:
     # the base's (52adbcac) compiled pattern, verbatim: the forward-slash form has its own pattern
     base = (

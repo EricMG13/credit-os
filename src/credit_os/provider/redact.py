@@ -87,7 +87,7 @@ _HOME_PATH = re.compile(
 # lookahead that stops a name at a following UNC head. _HOME_PATH stays the base's, so a head that
 # this pattern's separator run swallows is still found by it.
 _HOME_PATH_FWD = re.compile(
-    rf"{_LEAD}(?P<win>{_UNC_FWD}{_UNC_BODY}[\\/]*)"
+    rf"{_LEAD}(?P<win>{_UNC_FWD}{_UNC_BODY}[\\/]+)"
     rf"(?:{_HOME_DIRS}[\\/]++"
     rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))"
     r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
