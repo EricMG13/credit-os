@@ -12,7 +12,10 @@ machines, so every request is hostile input. Every request is checked before any
   ``Sec-Fetch-Mode: navigate`` and ``Sec-Fetch-Dest: document``. A request with neither header (not
   a browser) is served.
 * Every response carries ``Cross-Origin-Resource-Policy: same-origin``, ``nosniff`` and the page
-  policy ``Content-Security-Policy``.
+  policy ``Content-Security-Policy``, except the standard library's own reply to a request line it
+  cannot read (a bad version, a two-word line that is not a GET): that is a fixed JSON body with no
+  status line and no headers. The library's other error replies (400, 414, 431, 501) carry them,
+  with a fixed reason phrase and a fixed body that quote nothing of the request.
 * At most ``MAX_CONNECTIONS`` connections are open, and at most ``MAX_PER_ADDRESS`` per remote
   address; one beyond either is closed at once. A connection is shut down ``2 * SOCKET_TIMEOUT``
   seconds after it opens, however it trickles. An HTTP/0.9 request line is closed without a reply.
@@ -572,6 +575,14 @@ class _Server(ThreadingHTTPServer):
         finally:
             self._release(client_address)
 
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        """A failure the handler did not catch (a client reset while its request line or headers
+        were read): one log line with the exception's type and the client's address, escaped. The
+        library's default prints a traceback to stderr, outside logging."""
+        kind = type(sys.exc_info()[1]).__name__
+        address = str(client_address[0]).translate(_LOG_ESCAPES)
+        log.warning("%s: request failed (%s)", address, kind)
+
 
 def _params(query: str) -> dict[str, str]:
     """The query's parameters, blanks kept, the first of a repeated one."""
@@ -691,6 +702,12 @@ class Handler(BaseHTTPRequestHandler):
             and self.headers.get_all("Sec-Fetch-Mode") == ["navigate"]
             and self.headers.get_all("Sec-Fetch-Dest") == ["document"]
         )
+
+    def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
+        # The library passes request text (the request line, the method) as the reason phrase, so
+        # it would reach the status line. Only the code is passed: its own fixed reason phrase, the
+        # fixed JSON body and `Connection: close` of the library's reply stay.
+        super().send_error(code)
 
     def end_headers(self) -> None:
         # Here, not in _send, so the replies http.server writes itself (501, 400, 414) carry them.
