@@ -39,7 +39,27 @@
           "asOf": "As of 30 Sep 2026",
           "pathway": "Full review",
           "progress": { "text": "12 of 13 modules", "value": 12, "max": 13 },
-          "href": "2026-09-30"
+          "href": "2026-09-30",
+          "measures": {
+            "leverage": {
+              "text": "3.4x",
+              "at": 3.4,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Sep 2026"
+            },
+            "netLeverage": {
+              "text": "2.9x",
+              "at": 2.9,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Sep 2026"
+            },
+            "interestCoverage": {
+              "text": "4.1x",
+              "at": 4.1,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Sep 2026"
+            }
+          }
         },
         {
           "kind": "issuer",
@@ -52,7 +72,27 @@
           "asOf": "As of 30 Jun 2026",
           "pathway": "Full review",
           "progress": { "text": "5 of 13 modules", "value": 5, "max": 13 },
-          "href": "2026-06-30"
+          "href": "2026-06-30",
+          "measures": {
+            "leverage": {
+              "text": "2.1x",
+              "at": 2.1,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Jun 2026"
+            },
+            "netLeverage": {
+              "text": "0.0x",
+              "at": 0,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Jun 2026"
+            },
+            "interestCoverage": {
+              "text": "7.8x",
+              "at": 7.8,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Jun 2026"
+            }
+          }
         },
         {
           "kind": "issuer",
@@ -65,7 +105,27 @@
           "asOf": "As of 30 Sep 2026",
           "pathway": "Monitoring update",
           "progress": { "text": "6 of 6 modules", "value": 6, "max": 6 },
-          "href": "2026-09-30"
+          "href": "2026-09-30",
+          "measures": {
+            "leverage": {
+              "text": "5.6x",
+              "at": 5.6,
+              "basis": "adjusted",
+              "description": "Adjusted EBITDA (management definition), year to 30 Sep 2026"
+            },
+            "netLeverage": {
+              "text": "5.1x",
+              "at": 5.1,
+              "basis": "adjusted",
+              "description": "Adjusted EBITDA (management definition). Period not recorded"
+            },
+            "interestCoverage": {
+              "text": "1.9x",
+              "at": 1.9,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Sep 2026"
+            }
+          }
         },
         {
           "kind": "issuer",
@@ -78,7 +138,22 @@
           "asOf": "As of 31 Mar 2026",
           "pathway": "Full review",
           "progress": { "text": "13 of 13 modules", "value": 13, "max": 13 },
-          "href": "2026-03-31"
+          "href": "2026-03-31",
+          "measures": {
+            "leverage": {
+              "text": "5.2x",
+              "at": 5.2,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 31 Mar 2026"
+            },
+            "netLeverage": {
+              "text": "4.8x",
+              "at": 4.8,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 31 Mar 2026"
+            },
+            "interestCoverage": null
+          }
         },
         {
           "kind": "issuer",
@@ -91,10 +166,51 @@
           "asOf": "As of 30 Sep 2026",
           "pathway": "Full review",
           "progress": { "text": "7 of 13 modules", "value": 7, "max": 13 },
-          "href": "2026-09-30"
+          "href": "2026-09-30",
+          "measures": {
+            "leverage": null,
+            "netLeverage": null,
+            "interestCoverage": {
+              "text": "2.3x",
+              "at": 2.3,
+              "basis": "reported",
+              "description": "Reported EBITDA, year to 30 Sep 2026"
+            }
+          }
         },
         { "kind": "loading" }
-      ]
+      ],
+      "list": {
+        "measures": {
+          "leverage": {
+            "name": "Leverage",
+            "countLine": "Leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+            "bands": [
+              { "label": "Below 3.0x", "min": null, "max": 3 },
+              { "label": "3.0x to under 5.0x", "min": 3, "max": 5 },
+              { "label": "5.0x and above", "min": 5, "max": null }
+            ]
+          },
+          "netLeverage": {
+            "name": "Net leverage",
+            "countLine": "Net leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+            "bands": [
+              { "label": "Below 3.0x", "min": null, "max": 3 },
+              { "label": "3.0x to under 5.0x", "min": 3, "max": 5 },
+              { "label": "5.0x and above", "min": 5, "max": null }
+            ]
+          },
+          "interestCoverage": {
+            "name": "Interest coverage",
+            "countLine": "Interest coverage recorded for 4 of 5 runs",
+            "bands": [
+              { "label": "Below 2.0x", "min": null, "max": 2 },
+              { "label": "2.0x to under 4.0x", "min": 2, "max": 4 },
+              { "label": "4.0x and above", "min": 4, "max": null }
+            ]
+          }
+        }
+      }
     },
     "issuers": [
       { "id": "halden-aerostructures", "name": "Halden Aerostructures" },

@@ -16,6 +16,9 @@ function fresh(): { home: { cards: Json[]; filters: Json } & Json; issuers: Json
   return structuredClone(fixture.slice) as ReturnType<typeof fresh>;
 }
 
+type Card = Json & { measures: Json };
+const cardAt = (slice: ReturnType<typeof fresh>, i: number) => slice.home.cards[i] as Card;
+
 function invalidReason(source: unknown): string {
   const result = readSlice(source);
   if (result.kind !== "invalid") throw new Error(`expected invalid, got ${result.kind}`);
@@ -142,5 +145,45 @@ describe("cell", () => {
     ["a number where a cell belongs", 0, "row.c"],
   ])("rejects %s at its path", (_, value, where) => {
     expect(() => read(value)).toThrow(where);
+  });
+});
+
+describe("readSlice, the List side", () => {
+  it("names the path of a malformed measure figure", () => {
+    const slice = fresh();
+    const card = cardAt(slice, 0);
+    card.measures = { ...card.measures, netLeverage: { text: "2.9x", at: "2.9" } };
+    expect(invalidReason(slice)).toContain("home.cards[0].measures.netLeverage.at");
+  });
+
+  it("rejects a basis that is neither reported nor adjusted", () => {
+    const slice = fresh();
+    const card = cardAt(slice, 2);
+    card.measures = {
+      ...card.measures,
+      leverage: { text: "5.6x", at: 5.6, basis: "estimated", description: "x" },
+    };
+    expect(invalidReason(slice)).toContain("home.cards[2].measures.leverage.basis");
+  });
+
+  it("takes an explicit null measure as not recorded, and an absent one as malformed", () => {
+    const slice = fresh();
+    expect(cardAt(slice, 4).measures).toMatchObject({ leverage: null, netLeverage: null });
+    delete cardAt(slice, 4).measures.leverage;
+    expect(invalidReason(slice)).toContain("home.cards[4].measures.leverage");
+  });
+
+  it("names the path of a band whose range is reversed, and of a missing list", () => {
+    const slice = fresh();
+    const specs = (slice.home as unknown as { list: { measures: Record<string, Json> } }).list
+      .measures;
+    specs.leverage = {
+      ...specs.leverage,
+      bands: [{ label: "Bad", min: 5, max: 3 }],
+    };
+    expect(invalidReason(slice)).toContain("home.list.measures.leverage.bands[0].max");
+    const bare = fresh();
+    delete (bare.home as Json).list;
+    expect(invalidReason(bare)).toContain("home.list");
   });
 });

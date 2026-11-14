@@ -161,10 +161,12 @@ describe("Library home, Cards side", () => {
     expect(card("Ardenne Cable")).toHaveAttribute("href", "#/library/ardenne-cable/history");
   });
 
-  it("draws no Cards or List toggle until the List side exists", () => {
+  it("draws the Layout toggle with Cards chosen first", () => {
     renderHome(fixture.slice);
-    expect(screen.queryByRole("group", { name: "Layout" })).toBeNull();
-    expect(screen.queryByText("List")).toBeNull();
+    const group = screen.getByRole("radiogroup", { name: "Layout" });
+    expect(within(group).getByRole("radio", { name: "Cards" })).toBeChecked();
+    expect(within(group).getByRole("radio", { name: "List" })).not.toBeChecked();
+    expect(screen.queryByRole("grid", { name: "Issuers" })).toBeNull();
   });
 
   it("says the library data is missing when the data file has no library member", () => {
@@ -289,5 +291,200 @@ describe("carried fixes from task 1", () => {
     const loading = screen.getByLabelText("Loading issuer");
     expect(loading.querySelectorAll(".rounded-full")).toHaveLength(3);
     expect(loading.querySelectorAll(".h-2")).toHaveLength(1);
+  });
+});
+
+describe("Library home, List side", () => {
+  const toList = () => {
+    renderHome(fixture.slice);
+    fireEvent.click(screen.getByRole("radio", { name: "List" }));
+  };
+  const table = () => screen.getByRole("grid", { name: "Issuers" });
+  const names = () =>
+    within(table())
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => within(row).getAllByRole("link")[0]?.textContent);
+  const row = (name: string) => {
+    const found = within(table())
+      .getAllByRole("row")
+      .find((r) => within(r).queryByRole("link", { name }));
+    if (!found) throw new Error(`no row for ${name}`);
+    return found;
+  };
+  const head = (name: string) => within(table()).getByRole("columnheader", { name });
+  const band = (measure: string, label: string) => {
+    const trigger = screen.getByRole("button", { name: new RegExp(`^${measure}\\b`) });
+    const select = trigger.closest("div")?.querySelector("select");
+    if (!select) throw new Error(`no select for ${measure}`);
+    fireEvent.change(select, { target: { value: `option:${label}` } });
+  };
+
+  it("draws one row per issuer with the delivered cells and no loading card", () => {
+    toList();
+    expect(screen.queryByLabelText("Loading issuer")).toBeNull();
+    expect(
+      within(table())
+        .getAllByRole("columnheader")
+        .map((h) => h.textContent),
+    ).toEqual([
+      "Issuer",
+      "Sector",
+      "State",
+      "As of",
+      "Pathway",
+      "Modules",
+      "Leverage",
+      "Net leverage",
+      "Interest coverage",
+    ]);
+    expect(names()).toHaveLength(5);
+    const halden = row("Halden Aerostructures");
+    expect(within(halden).getByRole("link")).toHaveAttribute(
+      "href",
+      "#/library/halden-aerostructures/2026-09-30/overview",
+    );
+    for (const text of ["Aerospace components", "Finished", "As of 30 Sep 2026", "Full review"]) {
+      expect(within(halden).getByText(text)).toBeVisible();
+    }
+    expect(within(halden).getByText("12 of 13 modules")).toBeVisible();
+    for (const text of ["3.4x", "2.9x", "4.1x"]) {
+      expect(within(halden).getByRole("button", { name: text })).toBeVisible();
+    }
+    expect(within(halden).queryByText("adj.")).toBeNull();
+  });
+
+  it("marks an adjusted figure adj. and describes it with its period", () => {
+    toList();
+    const tessaly = row("Tessaly Foods");
+    const lev = within(tessaly).getByRole("button", { name: "5.6x adj." });
+    expect(lev).toHaveAccessibleDescription(
+      "Adjusted EBITDA (management definition), year to 30 Sep 2026",
+    );
+    expect(within(tessaly).getByRole("button", { name: "5.1x adj." })).toHaveAccessibleDescription(
+      "Adjusted EBITDA (management definition). Period not recorded",
+    );
+    expect(within(tessaly).getByRole("button", { name: "1.9x" })).toBeVisible();
+  });
+
+  it("draws not recorded as n.a. and a zero figure as 0.0x", () => {
+    toList();
+    expect(within(row("Lumora Health")).getAllByText("n.a.")).toHaveLength(2);
+    expect(within(row("Ardenne Cable")).getAllByText("n.a.")).toHaveLength(1);
+    expect(within(row("Corvane Packaging")).getByRole("button", { name: "0.0x" })).toBeVisible();
+    expect(within(row("Corvane Packaging")).queryByText("n.a.")).toBeNull();
+  });
+
+  it("sorts by figure, with adjusted and missing figures last in either direction", () => {
+    toList();
+    fireEvent.click(head("Leverage"));
+    expect(head("Leverage")).toHaveAttribute("aria-sort", "ascending");
+    expect(names()).toEqual([
+      "Corvane Packaging",
+      "Halden Aerostructures",
+      "Ardenne Cable",
+      "Tessaly Foods",
+      "Lumora Health",
+    ]);
+    fireEvent.click(head("Leverage"));
+    expect(head("Leverage")).toHaveAttribute("aria-sort", "descending");
+    expect(names()).toEqual([
+      "Ardenne Cable",
+      "Halden Aerostructures",
+      "Corvane Packaging",
+      "Tessaly Foods",
+      "Lumora Health",
+    ]);
+  });
+
+  it("sorts a zero figure ahead of the others, not with the missing ones", () => {
+    toList();
+    fireEvent.click(head("Net leverage"));
+    expect(names().slice(0, 3)).toEqual([
+      "Corvane Packaging",
+      "Halden Aerostructures",
+      "Ardenne Cable",
+    ]);
+  });
+
+  it("delivers a count line for each measure, with and without the adjusted clause", () => {
+    toList();
+    expect(
+      screen.getByText("Leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened"),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Net leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
+      ),
+    ).toBeVisible();
+    expect(screen.getByText("Interest coverage recorded for 4 of 5 runs")).toBeVisible();
+  });
+
+  it("applies a band: an adjusted or missing figure passes none, and its rows are listed", () => {
+    toList();
+    expect(screen.queryByRole("heading", { name: /^Hidden by/ })).toBeNull();
+    band("Leverage", "3.0x to under 5.0x");
+    expect(names()).toEqual(["Halden Aerostructures"]);
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: "Hidden by Leverage: no figure recorded, or a figure on adjusted EBITDA",
+    });
+    const hidden = heading.parentElement;
+    expect(
+      within(hidden as HTMLElement)
+        .getAllByRole("link")
+        .map((l) => l.textContent),
+    ).toEqual(["Tessaly Foods", "Lumora Health"]);
+    band("Leverage", "5.0x and above");
+    expect(names()).toEqual(["Ardenne Cable"]);
+  });
+
+  it("uses the shorter heading when no figure of that measure is adjusted", () => {
+    toList();
+    band("Interest coverage", "4.0x and above");
+    expect(names().sort()).toEqual(["Corvane Packaging", "Halden Aerostructures"]);
+    expect(
+      screen.getByRole("heading", { name: "Hidden by Interest coverage: no figure recorded" }),
+    ).toBeVisible();
+    expect(screen.queryByText(/or a figure on adjusted EBITDA/)).toBeNull();
+  });
+
+  it("passes a zero figure in the lowest band", () => {
+    toList();
+    band("Net leverage", "Below 3.0x");
+    expect(names().sort()).toEqual(["Corvane Packaging", "Halden Aerostructures"]);
+  });
+
+  it("keeps the filters when the layout goes back to Cards", () => {
+    toList();
+    pick(/Sector: All/, "Packaged food");
+    expect(names()).toEqual(["Tessaly Foods"]);
+    fireEvent.click(screen.getByRole("radio", { name: "Cards" }));
+    expect(screen.getByText("1 filter applied")).toBeInTheDocument();
+    expect(screen.queryByRole("grid", { name: "Issuers" })).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "Tessaly Foods",
+    ]);
+    fireEvent.click(screen.getByRole("radio", { name: "List" }));
+    expect(names()).toEqual(["Tessaly Foods"]);
+  });
+
+  it("says no issuer matches when the search and bands leave nothing, and clears both", () => {
+    toList();
+    band("Leverage", "Below 3.0x");
+    band("Interest coverage", "Below 2.0x");
+    expect(screen.getByText("No issuer matches")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(names()).toHaveLength(5);
+  });
+
+  it("draws no audit material and no computed text beyond the delivered strings", () => {
+    toList();
+    const audit = /CP-\d|\b[0-9a-f]{12,}\b|\.(pdf|xlsx|md|json)\b/i;
+    for (const element of table().querySelectorAll("*")) {
+      for (const attr of Array.from(element.attributes)) {
+        if (attr.name !== "class") expect(attr.value).not.toMatch(audit);
+      }
+    }
   });
 });

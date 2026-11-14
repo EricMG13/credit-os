@@ -10,6 +10,26 @@ export type Cell =
 /** The words of the Run states set: the state of an issuer's latest run. */
 export type RunState = keyof (typeof STATUS_SETS)["Run states"];
 
+/** The three measures the list draws, in column order. */
+export const MEASURES = ["leverage", "netLeverage", "interestCoverage"] as const;
+export type MeasureKey = (typeof MEASURES)[number];
+
+/**
+ * One measure of a run: `null` is not recorded. `at` only sorts and screens; `text` is drawn as
+ * delivered. `description` is the delivered EBITDA label with its period, or "Period not recorded".
+ */
+export type Measure = null | {
+  text: string;
+  at: number;
+  basis: "reported" | "adjusted";
+  description: string;
+};
+
+/** A delivered range: `min` is included and `max` excluded; `null` is open on that side. */
+type Band = { label: string; min: number | null; max: number | null };
+
+export type MeasureSpec = { name: string; countLine: string; bands: readonly Band[] };
+
 export type IssuerCard = {
   kind: "issuer";
   /** The issuer's slug, a key into `LibrarySlice.issuers`. */
@@ -25,6 +45,7 @@ export type IssuerCard = {
   progress: { text: string; value: number; max: number };
   /** The run the card opens on, or `null` when the issuer has no finished run. */
   href: string | null;
+  measures: Record<MeasureKey, Measure>;
 };
 
 export type HomeCard = IssuerCard | { kind: "loading" };
@@ -44,6 +65,7 @@ export type LibraryHome = {
     appliedLabels: readonly string[];
   };
   cards: readonly HomeCard[];
+  list: { measures: Record<MeasureKey, MeasureSpec> };
 };
 
 export type Issuer = { id: string; name: string };
