@@ -28,7 +28,11 @@ _Problem = tuple[str, str]  # (error class, message)
 
 
 def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply:
-    """The reply for the `{"id", "type", "data"}` events observed for one call. Never raises.
+    """The reply for the `{"id", "type", "data"}` events observed for one call. Never raises for
+    events built from JSON values (dict, list, str, int, float, bool, None).
+
+    An event equal to an earlier one (same id, type and data) is a redelivery and is ignored;
+    an id reused with other type or data is read as a separate event.
 
     Routing limit: SDK 1.0.8 reports `isByok` and `isAuto` only on a `model.call_failure`
     event, so `ByokRouted` and `AutoRouted` are detected only for a failed model call; a
@@ -76,11 +80,15 @@ def _serialise(events: object) -> bytes | None:
 def _as_events(events: object) -> list[Any] | None:
     if not isinstance(events, list):
         return None
-    ok = all(isinstance(e, dict) and _non_empty(e.get("id")) for e in events)
-    ok = ok and all(
-        isinstance(e.get("type"), str) and isinstance(e.get("data"), dict) for e in events
+    ok = all(
+        type(e) is dict and _exact(e.get("id"), str) and _exact(e.get("type"), str) for e in events
     )
-    return events if ok else None
+    ok = ok and all(e["id"] and _exact(e.get("data"), dict) for e in events)
+    return [e for i, e in enumerate(events) if e not in events[:i]] if ok else None
+
+
+def _exact(value: object, kind: type) -> bool:
+    return type(value) is kind
 
 
 def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> Reply:
@@ -97,10 +105,7 @@ def _contents(events: list[Any]) -> list[str]:
 
 
 def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
-    first: dict[str, dict[str, Any]] = {}
-    for e in events:
-        first.setdefault(e["id"], e)
-    return [e["data"] for e in first.values() if e["type"] == "assistant.usage"]
+    return _of_type(events, "assistant.usage")
 
 
 def _is_count(value: object) -> bool:
