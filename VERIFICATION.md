@@ -18,7 +18,7 @@ on `ubuntu-latest`, `windows-latest` and the review job, and its diff read by th
 
 | PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
 | :--- | :--- | :--- | :--- |
-| #41 | `mx-precise`, and `mx-adversary` on the name rules (two fix rounds on the development branch, re-review pass) | 0 confirmed defects; 3 evidence gaps, ruled below | PASS on `076aefd`: High 0, Medium 0, Low 5, Info 4. A 21-line Low batch followed with no review round |
+| #41 | `mx-precise`, and `mx-adversary` on task 1 (names, links, capped read; two fix rounds on the development branch, the second in `files.py`, which is not in #41; re-review pass) | 0 confirmed defects; 3 evidence gaps, ruled below | PASS on `076aefd`: High 0, Medium 0, Low 5, Info 4. A 21-line Low batch followed with no review round |
 | #42 | `mx-precise`: three tasks approved (task 1 one docs fix round) | no confirmed defect, 5 Info | FAIL on `4af30f8`: Medium 1, Low 2. Fixed in `e08e547`; scoped `mx-precise` re-review APPROVED, Medium closed |
 
 #42's Medium: a one-line bold paragraph directly above a table was removed from the blocks and
@@ -35,11 +35,12 @@ alive.
 - `1A-2 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
 - `1A-2 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
 - `1A-2 task=3 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1A-2 task=4(low batch) agent=mx-feature fix-rounds=0 gates-first-pass=n`
 - `1D-1 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n` (pins, name and kind rules,
   capped read; the capped read is not in #41)
 - `1D-1 low batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
 
-Seven of the eleven ledger lines so far (this entry and the one below) failed the gates on the
+Eight of the twelve ledger lines so far (this entry and the one below) failed the gates on the
 first run, several on `ruff format` or `mypy` in the task's own tests. Briefs from here tell the implementer to run
 `ruff format` and `mypy` before the full gate.
 

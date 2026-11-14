@@ -132,8 +132,9 @@ Blocks (PR 2, #42):
 - The parser removes no text. A one-line bold paragraph directly above a table stays a
   paragraph, and the table also carries it as `label` with `label_line`; the layer that knows
   the section decides whether it is a caption or prose.
-- A line outside a fence that starts with `|` after a tab, a no-break space or more than three
-  spaces is refused; it is never read as a paragraph.
+- A line outside a fence whose first non-blank character is `|` but which is not a table row
+  (any leading whitespace other than up to three spaces: four spaces, a tab, a no-break space)
+  is refused; it is never read as a paragraph.
 - Lists are flat. `read_blocks` takes whole heading-to-heading ranges.
 
 ## PR sequence
