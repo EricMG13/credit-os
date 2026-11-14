@@ -176,10 +176,10 @@ def _bounded(resolve: Resolver, host: str, seconds: float) -> list[str]:
         finally:
             _LOOKUP_SLOTS.release()  # when the resolver returns, however late
 
-    worker = threading.Thread(target=work, daemon=True)
     try:
+        worker = threading.Thread(target=work, daemon=True)
         worker.start()
-    except Exception as error:  # fail closed, whatever stopped the start: nothing was started
+    except Exception as error:  # fail closed, whatever stopped the build or start: nothing ran
         _LOOKUP_SLOTS.release()
         _log.warning("could not start a lookup thread: %r", error)
         raise FetchRefused("could not start a lookup of the feed's host") from error

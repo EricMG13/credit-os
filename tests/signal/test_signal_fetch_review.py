@@ -246,6 +246,28 @@ def test_a_thread_that_cannot_be_started_is_a_refusal_and_keeps_its_slot_free(
         check_address(URL, resolve=PUBLIC)
 
 
+@pytest.mark.parametrize(
+    "failure",
+    [RuntimeError("can't build a thread"), MemoryError("no memory for a thread")],
+    ids=["RuntimeError", "MemoryError"],
+)
+def test_a_thread_that_cannot_be_built_is_a_refusal_and_keeps_its_slot_free(
+    monkeypatch: pytest.MonkeyPatch, failure: Exception, caplog: pytest.LogCaptureFixture
+) -> None:
+    def no_thread(*args: object, **kwargs: object) -> threading.Thread:
+        raise failure
+
+    with monkeypatch.context() as patched, caplog.at_level(logging.WARNING, logger=LOGGER):
+        patched.setattr(threading, "Thread", no_thread)
+        for _ in range(MAX_LOOKUPS + 2):  # more refusals than the 8 slots, none may leak one
+            with pytest.raises(FetchRefused) as refused:
+                check_address(URL, resolve=PUBLIC)
+            assert str(refused.value) == NOT_STARTED
+    assert "could not start a lookup thread" in caplog.text
+    for _ in range(MAX_LOOKUPS + 2):  # every slot is free again
+        check_address(URL, resolve=PUBLIC)
+
+
 # F5: a 304 to a request that carried no validator is refused
 @pytest.mark.parametrize(
     ("etag", "modified"),
