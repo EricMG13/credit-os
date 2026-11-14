@@ -11,11 +11,17 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from credit_os.signal.feeds import (
+    _FEED_CHARS,
+    DATE_LIMIT,
+    LINK_LIMIT,
     MAX_ATTRIBUTES,
     MAX_BYTES,
     MAX_ELEMENTS,
+    MAX_HELD_CHARS,
     MAX_NAME_CHARS,
     MAX_NAMESPACE_CHARS,
+    SUMMARY_LIMIT,
+    TITLE_LIMIT,
     Entry,
     FeedError,
     _new_parser,
@@ -1199,10 +1205,22 @@ def test_a_body_that_is_not_bytes_is_a_type_error_before_the_size_check(body: ob
         parse_feed(cast(bytes, body))
 
 
+_RSS_ENTRIES = [
+    Entry(
+        "Authority opens review",
+        "https://example.org/a",
+        datetime(2026, 11, 13, 8, 0, tzinfo=UTC),
+        "Phase two begins & ends.",
+    ),
+    Entry("No date", "https://example.org/c", None, ""),
+]
+
+
 @pytest.mark.parametrize("kind", [bytearray, memoryview])
 def test_a_bytes_like_body_is_read_like_bytes(kind: type) -> None:
     # The predecessor's byte search accepted any bytes-like body; so does the port.
-    assert parse_feed(cast(bytes, kind(RSS))) == parse_feed(RSS)
+    got = parse_feed(cast(bytes, kind(RSS)))
+    assert got == _RSS_ENTRIES
 
 
 # --- R24: what the tree keeps, what is refused, and what is cut before it is cleaned ---
@@ -1341,7 +1359,7 @@ def test_a_body_that_is_not_contiguous_bytes_is_refused() -> None:
     # a contiguous memoryview of bytes in any shape is read like its bytes
     padded = RSS + b" " * (-len(RSS) % 2)
     two_d = memoryview(padded).cast("B", [2, len(padded) // 2])
-    assert parse_feed(cast(bytes, two_d)) == parse_feed(RSS)
+    assert parse_feed(cast(bytes, two_d)) == _RSS_ENTRIES
 
 
 # --- R37/R38: html.parser is driven in pieces and holds at most MAX_HELD_CHARS ---
@@ -1360,9 +1378,9 @@ def test_a_construct_open_at_the_end_drops_the_rest() -> None:
 
 
 def test_a_held_comment_or_cdata_section_ends_at_its_own_end() -> None:
-    assert _summary_of("<!--" + "a>b " * 1000 + "-->Visible") == "Visible"
+    assert _summary_of("<!--" + "a>b " * 1500 + "-->Visible") == "Visible"
     # the section holds "]]>", which a CDATA block of the feed can only carry split in two
-    section = "<![CDATA[" + "q>q " * 1000 + "]]>Visible"
+    section = "<![CDATA[" + "q>q " * 1500 + "]]>Visible"
     assert _summary_of(section.replace("]]>", "]]]]><![CDATA[>")) == "Visible"
 
 
@@ -1647,6 +1665,55 @@ def test_recorded_limit_3_reference_digits_past_the_settle_point_read_as_replace
     field = "Lead" + " " * 2036 + "&#" + "0" * 3000 + "65; tail"
     # the digits are one word of more than 300 characters, so a summary keeps only "Lead"
     assert _three(field) == ("Lead", "Lead", "Lead \ufffd" + "0" * 494)  # whole: "Lead A tail"
+
+
+# W-5: the release rules, each pinned by a field on which a mutant of the rule reads differently.
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        pytest.param("&#8203;" * 1000 + "end", "end", id="K1 zero-width references"),
+        pytest.param(
+            "<script>" + "x" * (4096 - 8 - 3) + "</script>Visible",
+            "Visible",
+            id="K2 script end tag at the release cut",
+        ),
+        pytest.param(
+            "<textarea>" + "a &amp; b " * 500 + "</textarea>",
+            ("a & b " * 50).rstrip(),
+            id="K3 textarea references",
+        ),
+        pytest.param(
+            "<textarea>" + "\u200b" * (4096 - 10 - 10 - 3) + "&amp;" + "\u200b" * 8 + "</textarea>",
+            "&",
+            id="K4 reference at the textarea release cut",
+        ),
+        pytest.param(
+            "<!--" + "x" * (6144 - 4 - 2) + "-->Visible",
+            "Visible",
+            id="K8 comment end across a piece",
+        ),
+        pytest.param(
+            '<a title="' + "x" * 3000 + ">y z" + " " * 3000 + '" href="z">Link text</a> rest',
+            'y z " href="z">Link text rest',
+            id="K10 a quoted bracket inside what is held",
+        ),
+    ],
+)
+def test_the_release_rules_read_these_fields_as_written(field: str, expected: str) -> None:
+    assert _summary_of(field) == expected
+
+
+def test_the_limits_are_these_numbers() -> None:
+    assert (MAX_ELEMENTS, MAX_ATTRIBUTES, MAX_NAME_CHARS, MAX_NAMESPACE_CHARS) == (
+        200_000,
+        256,
+        1_048_576,
+        2_048,
+    )
+    assert (MAX_HELD_CHARS, _FEED_CHARS) == (2_048, 2_048)
+    assert (TITLE_LIMIT, SUMMARY_LIMIT, LINK_LIMIT, DATE_LIMIT) == (500, 300, 2_048, 256)
 
 
 class _WholeText(HTMLParser):
