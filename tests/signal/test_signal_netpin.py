@@ -1,7 +1,8 @@
 """Public-address checks and the pinned connection of Signal's feed fetcher.
 
-Expected values are written by hand. No test opens a network connection: sockets are
-`socket.socketpair` ends (in-process, no address) and resolution is made to fail loudly.
+Expected values are written by hand. No test connects to a remote address: sockets are
+`socket.socketpair` ends (in-process; loopback at most, as on Windows) and resolution is made to
+fail loudly.
 """
 
 import http.client
@@ -14,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from credit_os.signal import netpin
@@ -144,6 +145,7 @@ V6_NON_PUBLIC = tuple(
         "2001::/32",
         "2001:db8::/32",
         "2002::/16",
+        "3fff::/20",
         "fc00::/7",
         "fe80::/10",
         "fec0::/10",
@@ -168,21 +170,18 @@ def non_public_v4(draw: st.DrawFn) -> ipaddress.IPv4Address:
     return address
 
 
-@st.composite
-def non_public_v6(draw: st.DrawFn) -> ipaddress.IPv6Address:
-    return ipaddress.IPv6Address(draw(_inside(draw(st.sampled_from(V6_NON_PUBLIC)))))
-
-
-ANY_V4 = st.integers(0, 2**32 - 1)
-
-
 @given(non_public_v4())
 def test_no_non_public_ipv4_range_is_public(address: ipaddress.IPv4Address) -> None:
     assert is_public(str(address)) is False
 
 
-@given(non_public_v6())
-def test_no_non_public_ipv6_range_is_public(address: ipaddress.IPv6Address) -> None:
+@pytest.mark.parametrize("network", V6_NON_PUBLIC, ids=str)
+@settings(max_examples=100)
+@given(data=st.data())
+def test_no_address_in_a_non_public_ipv6_network_is_public(
+    network: ipaddress.IPv6Network, data: st.DataObject
+) -> None:
+    address = ipaddress.IPv6Address(data.draw(_inside(network)))
     assert is_public(str(address)) is False
 
 
@@ -192,37 +191,121 @@ def test_a_non_public_ipv4_mapped_into_ipv6_is_not_public(address: ipaddress.IPv
     assert is_public(str(ipaddress.IPv6Address((0xFFFF << 32) | int(address)))) is False
 
 
-@given(ANY_V4)
-def test_ipv4_compatible_form_is_not_public(value: int) -> None:
-    assert is_public(str(ipaddress.IPv6Address(value))) is False
+@pytest.mark.parametrize(
+    "value", [b"\x08\x08\x08\x08", 134744072, None, ipaddress.ip_address("8.8.8.8"), ["8.8.8.8"]]
+)
+def test_a_value_that_is_not_text_is_not_public(value: object) -> None:
+    assert is_public(value) is False
 
 
-@given(ANY_V4)
-def test_nat64_well_known_prefix_is_not_public(value: int) -> None:
-    assert is_public(str(ipaddress.IPv6Address((0x64 << 112) | (0xFF9B << 96) | value))) is False
+class _LyingStr(str):
+    """Text that is a loopback address but whose ``str()`` says a public one."""
+
+    def __str__(self) -> str:
+        return "8.8.8.8"
 
 
-@given(st.integers(0, 2**80 - 1))
-def test_nat64_local_use_prefix_is_not_public(tail: int) -> None:
-    assert (
-        is_public(str(ipaddress.IPv6Address((0x64 << 112) | (0xFF9B << 96) | (1 << 80) | tail)))
-        is False
-    )
+def test_a_str_subclass_is_not_public() -> None:
+    assert is_public(_LyingStr("127.0.0.1")) is False
+    assert is_public(_LyingStr("8.8.8.8")) is False
 
 
-@given(ANY_V4, st.integers(0, 2**80 - 1))
-def test_6to4_is_not_public(value: int, tail: int) -> None:
-    packed = (0x2002 << 112) | (value << 80) | tail
-    assert is_public(str(ipaddress.IPv6Address(packed))) is False
+@pytest.mark.parametrize(
+    "address", ["2001:4860:4860::8888%lo0", "2001:4860:4860::8888%1", "2001:4860:4860::8888%"]
+)
+def test_an_address_with_a_zone_id_is_not_public(address: str) -> None:
+    assert is_public(address) is False
 
 
-@given(st.integers(0, 2**96 - 1))
-def test_teredo_is_not_public(tail: int) -> None:
-    assert is_public(str(ipaddress.IPv6Address((0x2001 << 112) | tail))) is False
+@pytest.mark.parametrize("address", ["192.0.0.9", "192.0.0.10", "::ffff:192.0.0.9"])
+def test_the_two_globally_reachable_addresses_of_192_0_0_0_24_are_public(address: str) -> None:
+    assert is_public(address) is True
 
 
-@given(st.sampled_from(PUBLIC[:3]))
-def test_the_checks_do_not_refuse_everything(address: str) -> None:
+@pytest.mark.parametrize(
+    "address",
+    ["192.0.0.0", "192.0.0.8", "192.0.0.11", "192.0.0.100", "192.0.0.255", "::ffff:192.0.0.8"],
+)
+def test_the_rest_of_192_0_0_0_24_is_not_public(address: str) -> None:
+    assert is_public(address) is False
+
+
+ISATAP_NON_PUBLIC = [
+    "2001:4860:1:2:0:5efe:7f00:1",
+    "2001:4860:1:2:200:5efe:a00:1",
+    "2001:4860:1:2:0:5efe:a9fe:a9fe",
+    "2001:4860:1:2:200:5efe:c0a8:101",
+    "2606:4700::0:5efe:c000:8",
+]
+
+
+@pytest.mark.parametrize("address", ISATAP_NON_PUBLIC)
+def test_an_isatap_address_embedding_a_non_public_ipv4_is_not_public(address: str) -> None:
+    assert is_public(address) is False
+
+
+@pytest.mark.parametrize(
+    "address", ["2001:4860:1:2:0:5efe:808:808", "2001:4860:1:2:200:5efe:101:101"]
+)
+def test_an_isatap_address_embedding_a_public_ipv4_is_public(address: str) -> None:
+    assert is_public(address) is True
+
+
+@pytest.mark.parametrize(
+    "address", ["2001:4860:1:2:100:5efe:7f00:1", "2001:4860:1:2:0:5eff:7f00:1"]
+)
+def test_only_the_two_isatap_identifiers_are_read_as_isatap(address: str) -> None:
+    assert is_public(address) is True
+
+
+@pytest.fixture
+def tables_call_everything_global(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An interpreter's ipaddress tables that call every address global, none reserved, multicast or
+    site-local."""
+    for cls in (ipaddress.IPv4Address, ipaddress.IPv6Address):
+        monkeypatch.setattr(cls, "is_global", property(lambda self: True))
+        monkeypatch.setattr(cls, "is_reserved", property(lambda self: False))
+        monkeypatch.setattr(cls, "is_multicast", property(lambda self: False))
+    monkeypatch.setattr(ipaddress.IPv6Address, "is_site_local", property(lambda self: False))
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "2002:7f00:1::1",
+        "2002:a9fe:a9fe::1",
+        "192.0.0.8",
+        "192.0.0.255",
+        "::ffff:192.0.0.8",
+        "192.0.0.11",
+        "::ffff:192.0.0.11",
+        "2606:4700::0:5efe:c000:8",
+        "3fff::1",
+        "3fff:fff:ffff:ffff:ffff:ffff:ffff:ffff",
+    ],
+)
+def test_the_explicit_ranges_refuse_whatever_the_interpreters_tables_say(
+    tables_call_everything_global: None, address: str
+) -> None:
+    assert is_public(address) is False
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "192.0.0.9",
+        "192.0.0.10",
+        "::ffff:192.0.0.10",
+        "192.0.1.0",
+        "191.255.255.255",
+        "8.8.8.8",
+        "2003::1",
+        "3fff:1000::1",
+    ],
+)
+def test_the_explicit_ranges_still_pass_the_public_addresses(
+    tables_call_everything_global: None, address: str
+) -> None:
     assert is_public(address) is True
 
 
@@ -234,6 +317,10 @@ def test_tls_context_verifies_the_certificate_and_the_host_name() -> None:
     assert context.verify_mode == ssl.CERT_REQUIRED
     assert context.check_hostname is True
     assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+
+
+def test_tls_context_applies_strict_x509_profile_checks() -> None:
+    assert tls_context().verify_flags & ssl.VERIFY_X509_STRICT
 
 
 def test_tls_context_is_new_each_call() -> None:
@@ -251,6 +338,22 @@ class Clock:
         return self.now
 
 
+class InterruptedClock(Clock):
+    """A clock that raises ``error`` on its ``nth`` read."""
+
+    def __init__(self, nth: int, error: BaseException) -> None:
+        super().__init__()
+        self.reads = 0
+        self.nth = nth
+        self.error = error
+
+    def __call__(self) -> float:
+        self.reads += 1
+        if self.reads == self.nth:
+            raise self.error
+        return self.now
+
+
 @dataclass
 class Wire:
     client: socket.socket
@@ -258,9 +361,10 @@ class Wire:
     connects: list[tuple[tuple[str, int], float]] = field(default_factory=list)
     hostnames: list[str | None] = field(default_factory=list)
     handshake_timeouts: list[float | None] = field(default_factory=list)
-    wrap_error: Exception | None = None
+    wrap_error: BaseException | None = None
     clock: Clock | None = None
     connect_takes: float = 0.0
+    wrapped: list[socket.socket] = field(default_factory=list)
 
     def create_connection(self, address: tuple[str, int], timeout: float) -> socket.socket:
         self.connects.append((address, timeout))
@@ -274,7 +378,10 @@ class Wire:
         self.handshake_timeouts.append(sock.gettimeout())
         if self.wrap_error is not None:
             raise self.wrap_error
-        return sock
+        # a real wrap_socket detaches the socket it is given and returns another object
+        tls = socket.socket(fileno=sock.detach())
+        self.wrapped.append(tls)
+        return tls
 
     def context(self, monkeypatch: pytest.MonkeyPatch) -> ssl.SSLContext:
         context = tls_context()
@@ -294,6 +401,8 @@ def wire(monkeypatch: pytest.MonkeyPatch) -> Iterator[Wire]:
     for name in ("getaddrinfo", "gethostbyname", "gethostbyname_ex"):
         monkeypatch.setattr(socket, name, _refuse_lookup)
     yield carried
+    for tls in carried.wrapped:
+        tls.close()
     client.close()
     peer.close()
 
@@ -342,6 +451,26 @@ def test_connect_timeout_is_what_is_left_when_that_is_less(
     assert wire.connects == [((IP, 443), 5.0)]
 
 
+@pytest.mark.parametrize("ip", ["127.0.0.1", "10.0.0.1", "::1", "localhost", "", "2002:7f00:1::1"])
+def test_connect_refuses_an_address_that_is_not_public_before_any_socket(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch, ip: str
+) -> None:
+    connection = PinnedHTTPSConnection(
+        HOST,
+        ip,
+        port=443,
+        timeout=10.0,
+        context=wire.context(monkeypatch),
+        deadline=100.0,
+        clock=Clock(),
+    )
+    with pytest.raises(ValueError, match="not a public address"):
+        connection.connect()
+    assert wire.connects == []
+    assert wire.hostnames == []
+    assert wire.client.fileno() != -1
+
+
 @pytest.mark.parametrize("now", [100.0, 100.5, 1000.0])
 def test_connect_with_the_total_time_spent_makes_no_connection(
     wire: Wire, monkeypatch: pytest.MonkeyPatch, now: float
@@ -350,15 +479,6 @@ def test_connect_with_the_total_time_spent_makes_no_connection(
         _connection(wire, monkeypatch, Clock(now)).connect()
     assert wire.connects == []
     assert wire.hostnames == []
-
-
-def test_a_failed_handshake_closes_the_socket_and_raises_it(
-    wire: Wire, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    wire.wrap_error = ssl.SSLError("handshake refused")
-    with pytest.raises(ssl.SSLError, match="handshake refused"):
-        _connection(wire, monkeypatch, Clock()).connect()
-    assert wire.client.fileno() == -1
 
 
 def test_the_handshake_is_bounded_by_what_is_left_after_the_connect(
@@ -392,10 +512,84 @@ def test_a_connect_that_spends_the_total_time_closes_the_socket_and_raises(
     assert wire.client.fileno() == -1
 
 
+@pytest.mark.parametrize(
+    "error", [ValueError("bad host"), UnicodeError("label too long"), ssl.SSLError("refused")]
+)
+def test_a_handshake_that_raises_anything_closes_the_socket_and_raises_it(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch, error: Exception
+) -> None:
+    wire.wrap_error = error
+    with pytest.raises(type(error)) as raised:
+        _connection(wire, monkeypatch, Clock()).connect()
+    assert raised.value is error
+    assert wire.client.fileno() == -1
+
+
+def test_an_interrupt_from_the_clock_read_after_the_connect_closes_the_socket(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    interrupt = KeyboardInterrupt()
+    # read 1 is the check before the connect, read 2 the one after it
+    with pytest.raises(KeyboardInterrupt) as raised:
+        _connection(wire, monkeypatch, InterruptedClock(2, interrupt)).connect()
+    assert raised.value is interrupt
+    assert wire.client.fileno() == -1
+
+
+def test_an_interrupt_from_the_handshake_closes_the_socket_and_propagates_unchanged(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    interrupt = KeyboardInterrupt()
+    wire.wrap_error = interrupt
+    with pytest.raises(KeyboardInterrupt) as raised:
+        _connection(wire, monkeypatch, Clock()).connect()
+    assert raised.value is interrupt
+    assert wire.client.fileno() == -1
+
+
 def test_connect_leaves_a_budgeted_socket(wire: Wire, monkeypatch: pytest.MonkeyPatch) -> None:
     connection = _connection(wire, monkeypatch, Clock())
     connection.connect()
     assert isinstance(connection.sock, netpin._BudgetedSocket)
+
+
+def test_the_request_goes_over_the_socket_the_handshake_returned(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connection = _connection(wire, monkeypatch, Clock())
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert len(wire.wrapped) == 1
+    assert wire.wrapped[0] is not wire.client
+    assert wire.client.fileno() == -1  # detached, as by a real wrap_socket
+    assert wire.peer.recv(4096) == b"GET / HTTP/1.1\r\nHost: feeds.example.org\r\n\r\n"
+
+
+def test_the_connections_operations_carry_the_per_operation_timeout(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connection = _connection(wire, monkeypatch, Clock(), timeout=3.0)
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert wire.wrapped[0].gettimeout() == 3.0
+
+
+def test_the_connections_operations_carry_the_time_left_when_that_is_less_than_the_timeout(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connection = _connection(wire, monkeypatch, Clock(98.0), timeout=3.0)
+    connection.request("GET", "/", headers={"Host": HOST})
+    assert wire.wrapped[0].gettimeout() == 2.0
+
+
+def test_an_answer_read_after_the_total_time_is_spent_is_refused(
+    wire: Wire, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = Clock()
+    connection = _connection(wire, monkeypatch, clock)
+    connection.request("GET", "/", headers={"Host": HOST})
+    wire.peer.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nlate")
+    clock.now = 100.0  # the deadline
+    with pytest.raises(TimeoutError, match="total time"):
+        connection.getresponse()
 
 
 def test_a_request_sends_exactly_the_given_headers_and_the_answer_is_read(
@@ -509,17 +703,11 @@ def test_every_send_and_receive_is_bounded_by_the_per_operation_timeout(wire: Wi
     budget.sendall(b"abc")
     assert wire.client.gettimeout() == 5.0
     assert wire.peer.recv(3) == b"abc"
-    wire.client.settimeout(None)
-    assert budget.send(b"d") == 1
-    assert wire.client.gettimeout() == 5.0
     wire.peer.sendall(b"hello!")
-    wire.client.settimeout(None)
-    assert budget.recv(5) == b"hello"
-    assert wire.client.gettimeout() == 5.0
     wire.client.settimeout(None)
     buffer = bytearray(1)
     assert budget.recv_into(buffer, 1) == 1
-    assert bytes(buffer) == b"!"
+    assert bytes(buffer) == b"h"
     assert wire.client.gettimeout() == 5.0
 
 
@@ -534,9 +722,7 @@ def test_with_the_total_time_spent_no_operation_touches_the_socket(wire: Wire, n
     budget = _budgeted(wire, Clock(now))
     buffer = bytearray(1)
     operations: list[Callable[[], object]] = [
-        lambda: budget.recv(1),
         lambda: budget.recv_into(buffer, 1),
-        lambda: budget.send(b"x"),
         lambda: budget.sendall(b"x"),
     ]
     for operation in operations:
@@ -550,7 +736,7 @@ def test_with_the_total_time_spent_no_operation_touches_the_socket(wire: Wire, n
 def test_a_silent_peer_times_out_after_the_per_operation_timeout(wire: Wire) -> None:
     budget = _budgeted(wire, Clock(0.0), timeout=0.05)
     with pytest.raises(TimeoutError):
-        budget.recv(1)
+        budget.recv_into(bytearray(1), 1)
 
 
 def test_makefile_reads_binary_only(wire: Wire) -> None:
