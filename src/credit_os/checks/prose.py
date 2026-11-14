@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from credit_os.checks.findings import CheckContext, Finding, refusal
 from credit_os.checks.text import Line, all_sections, sentence_text, shown_text, try_reader
 from credit_os.handoff.basis import read_basis
-from credit_os.handoff.blocks import CodeBlock, ListItem, Paragraph
+from credit_os.handoff.blocks import Block, CodeBlock, ListItem, Paragraph
 from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.tables import Table
 
@@ -187,16 +187,21 @@ def _table_nodes(table: Table) -> Iterable[tuple[int, str]]:
             yield row.line, cell
 
 
+def block_nodes(block: Block) -> Iterable[tuple[int, str]]:
+    """The text nodes of one block with their file lines."""
+    if isinstance(block, Table):
+        yield from _table_nodes(block)
+        return
+    if isinstance(block, CodeBlock):
+        yield block.line, block.info
+    first = block.line + 1 if isinstance(block, CodeBlock) else block.line
+    for offset, text in enumerate(block.lines):
+        yield first + offset, text
+
+
 def _block_nodes(section: Section) -> Iterable[tuple[int, str]]:
     for block in section.blocks:
-        if isinstance(block, Table):
-            yield from _table_nodes(block)
-            continue
-        if isinstance(block, CodeBlock):
-            yield block.line, block.info
-        first = block.line + 1 if isinstance(block, CodeBlock) else block.line
-        for offset, text in enumerate(block.lines):
-            yield first + offset, text
+        yield from block_nodes(block)
 
 
 def _nodes(document: HandoffDocument) -> Iterable[tuple[int, str]]:
