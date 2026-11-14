@@ -381,6 +381,14 @@ DIRECTORY_ROWS: list[tuple[str, bytes, int | None, str | None, str]] = [
         "a zip with no members",
         "none",
     ),
+    # An end signature in the record's offset field, a comment length of 1 and no comment.
+    (
+        "K12",
+        patched(patched(ONE, EOCD + 16, b"PK\x05\x06"), EOCD + 20, b"\x01\x00"),
+        None,
+        _UNREADABLE,
+        "BadZipFile",
+    ),
 ]
 
 
@@ -465,18 +473,20 @@ def test_l1_empty_unicode_path_warning_is_typed_under_any_filter() -> None:
 
 def test_pin_end_record_equals_zipfiles_lookup() -> None:
     end_record_data = vars(zipfile)["_EndRecData"]
-    rows = [row[1] for row in ZIP_ROWS] + [row[1] for row in DIRECTORY_ROWS]
-    compared = 0
-    for raw in rows:
+    skipped = set()
+    for row in [*ZIP_ROWS, *DIRECTORY_ROWS]:
+        raw = row[1]
         try:
             record = end_record_data(io.BytesIO(raw))
         except (zipfile.BadZipFile, OSError):
+            skipped.add(row[0])
             continue
         expected = None if record is None else (record[6], record[5], record[4])
         ours = ooxml._end_record(raw)
         assert ours == expected, _fail("end record", ours, expected)
-        compared += 1
-    assert compared > 0, sys.version
+    assert skipped == {"d13", "d14", "K6", "K8", "K9"}, _fail(
+        "rows zipfile raises on", skipped, {"d13", "d14", "K6", "K8", "K9"}
+    )
 
 
 def test_pieces_are_at_most_chunk_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
