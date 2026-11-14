@@ -1,0 +1,284 @@
+"""One call's session events to the `Reply` the caller prices and records. Pure: no I/O, no
+clock, no environment, no `copilot` import."""
+
+import json
+import math
+from decimal import Decimal
+from typing import Any
+
+from credit_os.provider.redact import Redactor, home_paths
+from credit_os.provider.types import Reply, StopReason, ToolCall, Turn, Usage
+
+BAD_SHAPE_MESSAGE = "an event is not an object with an id, a type and data"
+_REDACTED_RAW = b'"[redacted]"'
+_COUNTS = (
+    ("inputTokens", "input_tokens"),
+    ("cacheReadTokens", "cached_read_tokens"),
+    ("cacheWriteTokens", "cache_write_tokens"),
+    ("outputTokens", "output_tokens"),
+    ("reasoningTokens", "reasoning_tokens"),
+)
+_STOPS: dict[str, StopReason] = {
+    "stop": "end",
+    "end_turn": "end",
+    "tool_calls": "tool_use",
+    "tool_use": "tool_use",
+    "length": "max_tokens",
+    "max_tokens": "max_tokens",
+}
+_MAX_NANO = 10**39  # a charge has at most 39 digits
+_MAX_FLOAT_NANO = 2**53  # a float holds every whole number up to here
+_USD_EXPONENT = -11  # totalNanoAiu counts units of 1E-11 USD
+_Figures = tuple[Usage, Decimal | None]
+_Problem = tuple[str, str]  # (error class, message)
+
+
+def reply_from_events(given: object, *, model: str, redactor: Redactor) -> Reply:
+    """The reply for the `{"id", "type", "data"}` events observed for one call. Never raises.
+
+    Routing limit: SDK 1.0.8 reports `isByok` and `isAuto` only on a `model.call_failure`
+    event, so `ByokRouted` and `AutoRouted` are detected only for a failed model call; a
+    successful call routed either way is not detected here."""
+    raw = _serialise(given)
+    changed = False
+    if raw is not None:
+        redacted = redactor.bytes_(raw)
+        changed, raw = redacted != raw, redacted
+    events = _as_events(given)
+    if raw is None or events is None:
+        return _failed(None, ("UnparsableReply", BAD_SHAPE_MESSAGE), raw)
+    usage_data = _usage_data(events)
+    figures = _figures(usage_data)
+    text = "".join(_contents(events))
+    if changed or redactor.text(text) != text:
+        return _failed(figures, ("KeyReflected", "the reply reflected a key"), _REDACTED_RAW)
+    if figures is None:
+        return _failed(
+            None, ("UnparsableReply", "a usage count is not a non-negative integer"), raw
+        )
+    problem = _early_problem(events, usage_data, model, redactor)
+    if problem:
+        return _failed(figures, problem, raw)
+    stop = _stop_reason(usage_data[-1])
+    calls = _tool_calls(events)
+    problem = _tool_problem(calls, events, stop)
+    if problem:
+        return _failed(figures, problem, raw)
+    if stop == "max_tokens" and not calls:
+        return _failed(figures, ("ReplyCut", "finishReason length or max_tokens"), raw)
+    last = usage_data[-1]
+    usage, charge = figures
+    turn = Turn(text, tuple(calls), usage, stop, last.get("model"), _request_id(last))
+    return Reply("ok", turn, None, None, usage, charge, raw, None, None)
+
+
+def _serialise(events: object) -> bytes | None:
+    try:
+        return json.dumps(events, separators=(",", ":")).encode("utf-8")
+    except (TypeError, ValueError, RecursionError):
+        return None
+
+
+def _as_events(events: object) -> list[Any] | None:
+    """The list when every item is an object with an id, a type and data, else `None`."""
+    if isinstance(events, list) and all(
+        isinstance(e, dict)
+        and isinstance(e.get("id"), str)
+        and e["id"] != ""
+        and isinstance(e.get("type"), str)
+        and isinstance(e.get("data"), dict)
+        for e in events
+    ):
+        return events
+    return None
+
+
+def _failed(figures: _Figures | None, problem: _Problem, raw: bytes | None) -> Reply:
+    """A reply that is not `ok`, keeping whatever was counted."""
+    error_class, message = problem
+    if figures is not None and (
+        figures[1] is not None or any(v is not None for v in vars(figures[0]).values())
+    ):
+        return Reply("sent_usage", None, error_class, message, *figures, raw, None, None)
+    return Reply("sent_unknown", None, error_class, message, None, None, raw, None, None)
+
+
+def _contents(events: list[Any]) -> list[str]:
+    return [
+        e["data"]["content"]
+        for e in events
+        if e["type"] == "assistant.message" and isinstance(e["data"].get("content"), str)
+    ]
+
+
+def _usage_data(events: list[Any]) -> list[dict[str, Any]]:
+    """The data of each `assistant.usage` event, each event id once."""
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for e in events:
+        if e["id"] in seen:
+            continue
+        seen.add(e["id"])
+        if e["type"] == "assistant.usage":
+            out.append(e["data"])
+    return out
+
+
+def _is_count(value: object) -> bool:
+    return value is None or (isinstance(value, int) and not isinstance(value, bool) and value >= 0)
+
+
+def _total(values: list[Any]) -> int | None:
+    """The sum, or `None` when there is no value or any is missing: never a smaller number."""
+    return None if not values or any(v is None for v in values) else sum(values)
+
+
+def _figures(usage_data: list[dict[str, Any]]) -> _Figures | None:
+    """The call's counts and charge; `None` when a usage count is unreadable."""
+    if not all(_is_count(d.get(wire)) for d in usage_data for wire, _ in _COUNTS):
+        return None
+    counts = {field: _total([d.get(wire) for d in usage_data]) for wire, field in _COUNTS}
+    nanos = _total([_nano(d) for d in usage_data])
+    return Usage(**counts), (None if nanos is None else _usd(nanos))
+
+
+def _nano(data: dict[str, Any]) -> int | None:
+    """`copilotUsage.totalNanoAiu` as a whole count, or `None` when it cannot be read exactly."""
+    block = data.get("copilotUsage")
+    value = block.get("totalNanoAiu") if isinstance(block, dict) else None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if 0 <= value < _MAX_NANO else None
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+        return int(value) if 0 <= value <= _MAX_FLOAT_NANO else None
+    return None
+
+
+def _usd(nanos: int) -> Decimal:
+    """Built from its digits: no float and no context rounding touch a charge."""
+    return Decimal((0, tuple(int(d) for d in str(nanos)), _USD_EXPONENT))
+
+
+def _early_problem(
+    events: list[Any], usage_data: list[dict[str, Any]], model: str, redactor: Redactor
+) -> _Problem | None:
+    return (
+        _message_problem(events)
+        or _session_problem(events, redactor)
+        or _idle_problem(events)
+        or _usage_problem(usage_data, model)
+        or _route_problem(events)
+    )
+
+
+def _of_type(events: list[Any], kind: str) -> list[dict[str, Any]]:
+    return [e["data"] for e in events if e["type"] == kind]
+
+
+def _message_problem(events: list[Any]) -> _Problem | None:
+    if all(isinstance(d.get("content"), str) for d in _of_type(events, "assistant.message")):
+        return None
+    return "UnparsableReply", "an assistant.message content is not a string"
+
+
+def _session_problem(events: list[Any], redactor: Redactor) -> _Problem | None:
+    errors = _of_type(events, "session.error")
+    if not errors:
+        return None
+    parts = [errors[0].get("errorType"), errors[0].get("message")]
+    joined = ": ".join(p for p in parts if isinstance(p, str) and p)
+    return "SessionError", redactor.text(home_paths(joined))[:500]
+
+
+def _idle_problem(events: list[Any]) -> _Problem | None:
+    if any(d.get("aborted") is True for d in _of_type(events, "session.idle")):
+        return "Aborted", "the session went idle after an abort"
+    return None
+
+
+def _usage_problem(usage_data: list[dict[str, Any]], model: str) -> _Problem | None:
+    if not usage_data:
+        return "UnparsableReply", "no assistant.usage event"
+    if any(d.get("model") != model for d in usage_data):
+        return "ModelMismatch", "the reply was refused: ModelMismatch"
+    return None
+
+
+def _route_problem(events: list[Any]) -> _Problem | None:
+    failures = _of_type(events, "model.call_failure")
+    for flag, error_class in (("isByok", "ByokRouted"), ("isAuto", "AutoRouted")):
+        if any(d.get(flag) is True for d in failures):
+            return error_class, f"the reply was refused: {error_class}"
+    return None
+
+
+def _stop_reason(last_usage: dict[str, Any]) -> StopReason:
+    reason = last_usage.get("finishReason")
+    return _STOPS.get(reason, "other") if isinstance(reason, str) else "other"
+
+
+def _request_id(last_usage: dict[str, Any]) -> str | None:
+    for name in ("apiCallId", "providerCallId"):
+        value = last_usage.get(name)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _non_empty(value: object) -> bool:
+    return isinstance(value, str) and value != ""
+
+
+def _tool_call(data: dict[str, Any]) -> ToolCall | str:
+    """One `tool.execution_start` as a call, or the message of the rule it breaks."""
+    if not _non_empty(data.get("toolCallId")):
+        return "toolCallId is not a non-empty string"
+    if not _non_empty(data.get("toolName")):
+        return "toolName is not a non-empty string"
+    if data.get("parentToolCallId") is not None:
+        return "sub-agent tool call"
+    arguments = data.get("arguments")
+    if arguments is None or isinstance(arguments, dict):
+        return ToolCall(
+            data["toolCallId"], data["toolName"], {} if arguments is None else arguments
+        )
+    return ToolCall(data["toolCallId"], data["toolName"], {}, json.dumps(arguments))
+
+
+def _tool_calls(events: list[Any]) -> list[ToolCall] | str:
+    calls: list[ToolCall] = []
+    for data in _of_type(events, "tool.execution_start"):
+        call = _tool_call(data)
+        if isinstance(call, str):
+            return call
+        calls.append(call)
+    if len({c.call_id for c in calls}) != len(calls):
+        return "duplicate toolCallId"
+    return calls
+
+
+def _requested_ids(events: list[Any]) -> set[str | None] | None:
+    """The ids named by every `toolRequests` list, `None` when no message has one."""
+    lists = [d.get("toolRequests") for d in _of_type(events, "assistant.message")]
+    lists = [r for r in lists if isinstance(r, list)]
+    if not lists:
+        return None
+    return {
+        r.get("toolCallId") if isinstance(r, dict) and _non_empty(r.get("toolCallId")) else None
+        for requests in lists
+        for r in requests
+    }
+
+
+def _tool_problem(calls: list[ToolCall] | str, events: list[Any], stop: str) -> _Problem | None:
+    if isinstance(calls, str):
+        return "UnparsableReply", calls
+    requested = _requested_ids(events)
+    if requested is not None and requested != {c.call_id for c in calls}:
+        return "UnparsableReply", "tool requests and tool starts differ"
+    if stop == "tool_use" and not calls:
+        return "UnparsableReply", "stop reason tool_use with no tool call"
+    if calls and stop not in ("tool_use", "max_tokens"):
+        return "UnparsableReply", "tool calls without a tool stop reason"
+    return None
