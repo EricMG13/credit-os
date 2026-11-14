@@ -1,1 +1,21 @@
 @import "tailwindcss";
+@import "./styles/theme.css";
+@plugin "tailwindcss-animate";
+@plugin "tailwindcss-react-aria-components";
+
+/* The rule React Aria would inject at run time (blocked by the policy; index.html claims its id). */
+@layer base {
+  [data-react-aria-pressable] {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+}
+
+/* Motion off under reduced motion: no transition, no animation (the spinner holds still). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
