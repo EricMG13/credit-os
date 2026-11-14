@@ -56,11 +56,7 @@ describe("readSlice, evidence", () => {
         { kind: "value", text: "9", at: null },
         "7 read in full, 1 read in part, 1 unreadable",
       ],
-      [
-        "Calculations",
-        { kind: "value", text: "148", at: null },
-        "Each one traceable to its inputs",
-      ],
+      ["Calculations", { kind: "value", text: "60", at: null }, "Each one traceable to its inputs"],
       ["Gaps", { kind: "value", text: "7", at: null }, "2 high, 3 medium, 2 low"],
     ]);
     expect(evidence?.summary.run).toEqual({
