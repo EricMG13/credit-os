@@ -1,4 +1,5 @@
 import inspect
+import os
 import sqlite3
 import subprocess
 import sys
@@ -500,3 +501,24 @@ def test_a_failing_setconfig_is_mapped_and_closes_the_connection(
 def test_the_maximum_wait_is_the_keys(tmp_path: Path) -> None:
     open_store(tmp_path / "state", busy_seconds=key.MAXIMUM_BUSY_SECONDS).close()
     _both_raise(StoreRefused, tmp_path / "state", busy_seconds=key.MAXIMUM_BUSY_SECONDS + 1)
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32" or not hasattr(os, "geteuid") or os.geteuid() == 0,
+    reason="POSIX modes; root can write",
+)
+def test_a_denial_the_writable_check_cannot_see_fails_at_the_first_write(
+    monkeypatch: Patch, tmp_path: Path
+) -> None:
+    folder = _store_at(tmp_path / "state", ())
+    _file(folder).chmod(key.UNSEEN_DENIAL_FILE_MODE)
+    try:
+        monkeypatch.setattr(os, "access", lambda *args, **kwargs: True)
+        before = _file(folder).read_bytes()
+        with pytest.raises(Exception) as raised:
+            open_store(folder, migrations=(M1,))
+        assert type(raised.value).__name__ == key.UNSEEN_DENIAL_ERROR
+        assert "not writable" not in str(raised.value)  # the write refused it, not the check
+        assert _file(folder).read_bytes() == before
+    finally:
+        _file(folder).chmod(0o600)

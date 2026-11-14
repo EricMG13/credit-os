@@ -1,6 +1,7 @@
 """The only code that holds the run-state connection: library check, connect, identity, pragmas,
 integrity check, stamp, and the two handles. Paths come from `location`, the write transaction
-and migrations from `txn`. Every SQL string here is a static literal."""
+and migrations from `txn`. Every SQL string here is a static literal. Where store error text may
+go: see `errors.StoreError`."""
 
 import sqlite3
 import threading

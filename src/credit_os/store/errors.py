@@ -9,7 +9,14 @@ _PRIMARY_CODE_MASK = 0xFF
 
 
 class StoreError(Exception):
-    """Base of every store error."""
+    """Base of every store error.
+
+    A message may hold an absolute path taken from an operating-system error's text
+    (`location.prepare` and `location.locate` put `safe_text(str(error))` of an `OSError` into a
+    `StoreUnusable`), and so the user's home folder name. Text a caller hands the store to keep
+    (C3: a source error's text, its absolute path and notes) is stored whole. A caller that shows,
+    logs or stores a store error's message passes it through `credit_os.provider.redact.home_paths`
+    first, or shows only the error's class name."""
 
 
 class StoreRefused(StoreError, ValueError):
