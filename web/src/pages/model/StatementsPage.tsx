@@ -2,6 +2,9 @@ import { useState } from "react";
 import { CaseCards } from "./parts/CaseCards";
 import { RunPage, runKey } from "./parts/RunPage";
 import { StatementTable, type StatementView } from "./parts/StatementTable";
+import { Bridges } from "./sections/Bridges";
+import { CaseComparison } from "./sections/CaseComparison";
+import { DebtSection } from "./sections/DebtSection";
 import type { ModelRun } from "./slice/types";
 
 /** The case and the Figures or Bars choice are in-memory page state; the first case is default. */
@@ -20,6 +23,9 @@ function Body({ run }: { run: ModelRun }) {
         <CaseCards cases={run.cases} chosen={caseIndex} onChoose={setCaseIndex} />
       </section>
       <StatementTable page={run.statements} caseIndex={caseIndex} view={view} onView={setView} />
+      <Bridges bridges={run.statements.bridges} caseIndex={caseIndex} />
+      <CaseComparison data={run.statements.comparison} cases={run.cases} />
+      <DebtSection stack={run.statements.debt.stack} maturities={run.statements.debt.maturities} />
     </>
   );
 }

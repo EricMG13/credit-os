@@ -4,6 +4,7 @@ import type { LoadResult } from "@/data";
 import { fixtureSlice, must } from "./slice/test-fixture";
 
 const ADDRESS = "#/library/transdigm/2025-06-30/evidence";
+const NOT_CALCULABLE = "Not calculable: cash is negative before funding";
 const PERIODS = ["FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"];
 
 type Slice = {
@@ -48,6 +49,9 @@ function cellAt(label: string, period: string): HTMLElement {
 
 const choose = (name: string) => {
   fireEvent.click(screen.getByRole("radio", { name }));
+};
+const showBars = () => {
+  fireEvent.click(screen.getByRole("radio", { name: "Bars" }));
 };
 const openTab = (name: string) => {
   fireEvent.click(screen.getByRole("tab", { name }));
@@ -340,5 +344,181 @@ describe("Model page: the statements", () => {
     const tag = screen.getByText("Management plan, trimmed");
     expect(tag).toHaveClass("text-caption", "font-normal");
     expect(tag).not.toHaveClass("text-xs");
+  });
+
+  it("draws no bars in Figures and a bar under each figure in Bars", () => {
+    renderAt(fixtureSlice());
+    expect(screen.getByRole("table").querySelector("[data-bar]")).toBeNull();
+    showBars();
+    expect(screen.getByRole("radio", { name: "Bars" })).toBeChecked();
+    const bars = within(rowOf("Revenue")).getAllByRole("cell").slice(0, 7);
+    for (const cell of bars) expect(cell.querySelector("[data-bar]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Figures" }));
+    expect(screen.getByRole("table").querySelector("[data-bar]")).toBeNull();
+  });
+
+  it("sizes a bar by the delivered position: 8,580 of 10,190 is 84.2 per cent of the cell", () => {
+    renderAt(fixtureSlice());
+    showBars();
+    const bar = (label: string, period: string) =>
+      must(cellAt(label, period).querySelector<HTMLElement>("[data-bar]")).style.width;
+    expect(bar("Revenue", "LTM")).toBe("84.2%");
+    expect(bar("Revenue", "FY27E")).toBe("100%");
+    expect(bar("Revenue", "FY22")).toBe("53.28%");
+  });
+
+  it("draws equal values as equal bars in every period column, which share one width", () => {
+    renderAt(fixtureSlice());
+    openTab("Balance sheet");
+    showBars();
+    const widths = PERIODS.slice(3).map(
+      (p) => must(cellAt("Gross debt", p).querySelector<HTMLElement>("[data-bar]")).style.width,
+    );
+    expect(widths).toEqual(Array<string>(4).fill("100%"));
+    const heads = within(screen.getByRole("table"))
+      .getAllByRole("columnheader")
+      .slice(1, 8)
+      .map((h) => h.className.match(/\bw-\[\d+px\]/)?.[0]);
+    expect(new Set(heads).size).toBe(1);
+    expect(heads[0]).toBeDefined();
+  });
+
+  it("draws a negative figure's bar in the below colour and a positive one in the series colour", () => {
+    renderAt(fixtureSlice());
+    showBars();
+    const bar = (period: string) =>
+      must(cellAt("Depreciation and amortisation", period).querySelector("[data-bar]"));
+    expect(bar("FY27E")).toHaveAttribute("data-sign", "negative");
+    expect(bar("FY27E").className).toContain("bg-chart-3");
+    const positive = must(cellAt("Revenue", "FY27E").querySelector("[data-bar]"));
+    expect(positive).toHaveAttribute("data-sign", "positive");
+    expect(positive.className).toContain("bg-chart-1");
+  });
+
+  it("draws n.a. for a missing cell with no bar and no zero, beside a zero in the same column", () => {
+    renderAt(fixtureSlice());
+    openTab("Cash flow");
+    showBars();
+    const missing = cellAt("Cash interest", "FY23");
+    expect(missing).toHaveTextContent("n.a.");
+    expect(missing.textContent).not.toMatch(/\b0\b/);
+    expect(missing.querySelector("[data-bar]")).toBeNull();
+    const zero = cellAt("Dividends and buybacks", "FY23");
+    expect(zero).toHaveTextContent(/^0/);
+    expect(zero.querySelector("[data-bar]")).not.toBeNull();
+    expect(cellAt("Free cash flow", "FY23")).toHaveTextContent("n.a.");
+  });
+
+  it("draws a withheld cell as Withheld, with no figure, no n.a. and no bar, beside a zero", () => {
+    renderAt(fixtureSlice());
+    openTab("Cash flow");
+    showBars();
+    const withheld = cellAt("Acquisitions", "FY25E");
+    expect(within(withheld).getByText("Withheld")).toBeInTheDocument();
+    expect(withheld).not.toHaveTextContent("n.a.");
+    expect(withheld.querySelector("[data-bar]")).toBeNull();
+    expect(cellAt("Acquisitions", "FY26E")).toHaveTextContent("0");
+    choose("Downside case");
+    expect(within(cellAt("Acquisitions", "FY25E")).getByText("Withheld")).toBeInTheDocument();
+    expect(cellAt("Acquisitions", "LTM")).toHaveTextContent("-650");
+  });
+
+  it("draws the gap badge beside the pension deficit label and n.a. in every cell", () => {
+    renderAt(fixtureSlice());
+    openTab("Balance sheet");
+    const row = rowOf("Pension deficit");
+    expect(
+      within(within(row).getByRole("rowheader")).getByText("Not established for this run"),
+    ).toBeInTheDocument();
+    expect(within(row).getAllByText("n.a.")).toHaveLength(7);
+    expect(within(rowOf("Cash")).queryByText("Not established for this run")).toBeNull();
+    expect(cellAt("Inventories", "FY22")).toHaveTextContent("n.a.");
+    expect(cellAt("Shareholders’ equity", "LTM")).toHaveTextContent("-9,360");
+  });
+
+  it("describes a missing cell by its reason, shows it on focus, and draws it n.a., never 0", async () => {
+    const { slice, run } = draft();
+    const rows = must(run.statements.statements[3]).rows;
+    const lev = must(rows.find((r) => r.label === "Net leverage"));
+    lev.cells[5] = [
+      { kind: "figure", text: "5.9x", pos: 1 },
+      { kind: "missing", reason: NOT_CALCULABLE },
+    ];
+    const bs = must(run.statements.statements[2]).rows;
+    must(bs.find((r) => r.label === "Cash")).cells[5] = [
+      { kind: "figure", text: "5,940", pos: 0.6 },
+      { kind: "figure", text: "-1,200", pos: -0.1 },
+    ];
+    renderAt(slice);
+    choose("Downside case");
+    openTab("Balance sheet");
+    expect(cellAt("Cash", "FY26E")).toHaveTextContent("-1,200");
+    openTab("Key measures");
+    const cell = cellAt("Net leverage", "FY26E");
+    expect(cell).toHaveTextContent("n.a.");
+    expect(cell.textContent).not.toMatch(/\b0\b/);
+    const trigger = within(cell).getByRole("button");
+    expect(trigger).toHaveAccessibleDescription(NOT_CALCULABLE);
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    act(() => {
+      trigger.focus();
+    });
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(NOT_CALCULABLE);
+    choose("Base case");
+    expect(cellAt("Net leverage", "FY26E")).toHaveTextContent("5.9x");
+    expect(within(cellAt("Net leverage", "FY26E")).queryByRole("button")).toBeNull();
+  });
+
+  it("draws a missing cell without a reason as plain n.a. with no control", () => {
+    renderAt(fixtureSlice());
+    openTab("Key measures");
+    expect(within(cellAt("Interest cover", "FY23")).queryByRole("button")).toBeNull();
+  });
+
+  it("draws an empty pro forma column as its header and its reason, with no cells", () => {
+    const { slice, run } = draft();
+    const reason =
+      "pro forma figures are not placed in this column; the financial foundation shows any it states";
+    run.statements.columns.splice(4, 0, {
+      kind: "empty",
+      period: "Pro forma",
+      note: null,
+      reason,
+    });
+    renderAt(slice);
+    const heads = within(screen.getByRole("table")).getAllByRole("columnheader");
+    expect(heads.map((h) => h.textContent.slice(0, 9))).toContain("Pro forma");
+    expect(screen.getAllByText(reason)).toHaveLength(1);
+    expect(within(screen.getByRole("table")).getAllByRole("rowheader")).toHaveLength(8);
+    expect(cellAt("Revenue", "FY25E")).toHaveTextContent("8,840");
+    expect(within(rowOf("Gross profit")).getAllByRole("cell")).toHaveLength(8);
+    expect(within(rowOf("Revenue")).getAllByRole("cell")).toHaveLength(9);
+  });
+
+  it("lets a long row label wrap while the figures stay on one line", () => {
+    const { slice, run } = draft();
+    const long =
+      "Depreciation and amortisation of acquired intangible assets and capitalised software development costs";
+    must(must(run.statements.statements[0]).rows[3]).label = long;
+    renderAt(slice);
+    const head = screen.getByRole("rowheader", { name: long });
+    expect(head.className).toContain("whitespace-normal");
+    expect(head.className).toContain("break-words");
+    expect(cellAt(long, "LTM").className).toContain("whitespace-nowrap");
+  });
+
+  it("draws the not found state for an unknown issuer or run", () => {
+    renderAt(fixtureSlice(), "nobody");
+    expect(screen.getByText("Not found for this run")).toBeInTheDocument();
+  });
+
+  it("names the failing path when the statements are not readable", () => {
+    const { slice, run } = draft();
+    must(must(run.statements.statements[0]).rows[0]).cells[2] = { kind: "figure", text: "7,940" };
+    renderAt(slice);
+    expect(screen.getByText("This part of the library could not be read")).toBeInTheDocument();
+    expect(
+      screen.getByText("runs[0].statements.statements[0].rows[0].cells[2].pos: missing"),
+    ).toBeInTheDocument();
   });
 });
