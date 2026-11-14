@@ -6,8 +6,8 @@ from collections.abc import Sequence
 from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.scan import Node
 
-_MARKER = re.compile(r"^---[ \t]*$")
-_ENTRY = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*):(?:$|[ \t]+(.*)$)")
+_MARKER = re.compile(r"---[ \t]*")
+_ENTRY = re.compile(r"([A-Za-z_][A-Za-z0-9_-]*):(?:|[ \t]+(.*))")
 
 
 class Entry(Node):
@@ -23,19 +23,19 @@ class FrontMatter(Node):
 
 
 def _entry(text: str, number: int) -> Entry:
-    found = _ENTRY.match(text)
+    found = _ENTRY.fullmatch(text)
     if found is None:
         raise HandoffError(number, "front matter line is not `key: value`")
     return Entry(key=found.group(1), value=(found.group(2) or "").strip(" \t"), line=number)
 
 
 def read_front_matter(lines: Sequence[str]) -> FrontMatter | None:
-    if not lines or not _MARKER.match(lines[0]):
+    if not lines or not _MARKER.fullmatch(lines[0]):
         return None
     entries: list[Entry] = []
     seen: set[str] = set()
     for number, text in enumerate(lines[1:], 2):
-        if _MARKER.match(text):
+        if _MARKER.fullmatch(text):
             return FrontMatter(line=1, end=number, entries=tuple(entries))
         entry = _entry(text, number)
         if entry.key in seen:

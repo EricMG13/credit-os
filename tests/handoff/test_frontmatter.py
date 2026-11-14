@@ -99,3 +99,13 @@ def test_fixture_rows(name: str) -> None:
     rows = [(r[1], r[2], r[3]) for r in KEY["front_matter_entries"] if r[0] == name]
     got = [(e.line, e.key, e.value) for e in found.entries]
     assert all(row in got for row in rows)
+
+
+def test_marker_line_holding_a_newline_is_not_a_marker() -> None:
+    assert read_front_matter(["---\n", "---"]) is None
+
+
+def test_entry_line_holding_a_newline_is_refused() -> None:
+    with pytest.raises(HandoffError) as caught:
+        read_front_matter(["---", "a: x\n", "---"])
+    assert (caught.value.line, caught.value.message) == (2, NOT_KV)
