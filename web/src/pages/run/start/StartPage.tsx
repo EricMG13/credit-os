@@ -4,11 +4,11 @@ import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
 import { readSlice, type StartDraft } from "../slice";
+import { Documents } from "./Documents";
 import { Readiness } from "./Readiness";
 import { Stepper } from "./Stepper";
 
 const PANEL_TITLE = {
-  documents: "Documents",
   purpose: "Purpose",
   confirm: "Confirm what was read",
   context: "More context",
@@ -114,9 +114,13 @@ export function StartPage({ draft: id }: { draft: string }) {
       <div className="grid items-start gap-6 min-[1041px]:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6 rounded-ds-lg border border-border-subtle bg-surface-card p-8 shadow-1">
           <Stepper step={draft.step} />
-          <h2 className="font-display text-h3 text-text-primary">
-            {draft.step === "started" ? draft.title : PANEL_TITLE[draft.step]}
-          </h2>
+          {draft.step === "documents" ? (
+            <Documents files={draft.files} />
+          ) : (
+            <h2 className="font-display text-h3 text-text-primary">
+              {draft.step === "started" ? draft.title : PANEL_TITLE[draft.step]}
+            </h2>
+          )}
           {draft.step === "started" ? null : <Actions draft={draft} />}
         </div>
         <Readiness data={draft.readiness} />
