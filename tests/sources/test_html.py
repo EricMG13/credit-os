@@ -219,8 +219,13 @@ def test_constants() -> None:
         "iso8859-1": "iso-8859-1",
         "ascii": "ascii",
     }
+    # every label's codec has an accepted entry
+    assert set(reader._LABELS.values()) <= set(reader._ACCEPTED)
     assert reader._CHARSET.pattern == rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)"""
     assert reader._CHARSET.flags & re.IGNORECASE
+    # the whole-reading test's reference imports HIDDEN, so its pattern is pinned here
+    assert reader.HIDDEN.pattern == r"display\s*:\s*none"
+    assert reader.HIDDEN.flags & re.IGNORECASE
     assert reader.PIECE_BYTES == reader.HELD_CHARACTERS == 8_192
     assert reader.PARSED_CHARACTERS == 16_384
     assert reader.MAX_TAG_NAMES == 4_096
@@ -443,6 +448,13 @@ _HTML_REFUSALS = [
     pytest.param(b"<p>&#" + b"1" * 5000 + b";</p>", _LONG_REFERENCE_REASON, id="d5"),
     pytest.param(b"<p>&#x" + b"f" * 32 + b";</p>", _LONG_REFERENCE_REASON, id="d7"),
     pytest.param(b"<p>&#X" + b"aB" * 16 + b";</p>", _LONG_REFERENCE_REASON, id="d8"),
+    pytest.param(b"<p>" + b"x" * 9000 + b"\x00</p>", "control character U+0000", id="nul-late"),
+    # d9: the reference crosses byte 8,192, the first step end
+    pytest.param(
+        b"<p>" + b"x" * 8170 + b"&#x" + b"0" * 30 + b"41;</p>", _LONG_REFERENCE_REASON, id="d9"
+    ),
+    # d10: the reference starts at byte 0
+    pytest.param(b"&#" + b"0" * 30 + b"65;", _LONG_REFERENCE_REASON, id="d10"),
     pytest.param(
         b"<script>var s = '&#" + b"1" * 32 + b"';</script><p>x</p>", _LONG_REFERENCE_REASON, id="d6"
     ),

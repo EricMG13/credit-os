@@ -494,7 +494,8 @@ _MUTANT_ROWS = [
         "\N{ANTICLOCKWISE CONTOUR INTEGRAL}" * 2 + "\n",
         id="m31",
     ),
-    # m32: the y run between a held comment's two parts stops them forming an end mark
+    # m32: release() writes an x between a held comment's -- and > so that they form no end
+    # mark (the y run is dropped)
     pytest.param(
         b"<p>shown</p><!-- a --" + b"y" * 23 + b">zz secret</p>", _SMALL, "shown\n", id="m32"
     ),
