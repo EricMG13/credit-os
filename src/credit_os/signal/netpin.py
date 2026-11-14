@@ -46,6 +46,7 @@ class ConnectionLike(Protocol):
 
 _V4_ANYCAST = frozenset({9, 10})  # 192.0.0.9 and 192.0.0.10: IANA globally reachable
 _SIXTO4 = 0x2002  # 2002::/16
+_DOC_3FFF = 0x3FFF0  # 3fff::/20, documentation (top 20 bits)
 _ISATAP = frozenset({0x00005EFE, 0x02005EFE})  # high half of the low 64 bits: 0:5efe, 200:5efe
 
 
@@ -54,7 +55,7 @@ def _explicitly_barred(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -
     value = int(address)
     if isinstance(address, ipaddress.IPv4Address):
         return value >> 8 == 0xC00000 and value & 0xFF not in _V4_ANYCAST  # 192.0.0.0/24
-    return value >> 112 == _SIXTO4
+    return value >> 112 == _SIXTO4 or value >> 108 == _DOC_3FFF
 
 
 def _isatap_v4(address: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
@@ -68,10 +69,10 @@ def _isatap_v4(address: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
 def is_public(addr: object) -> bool:
     """A text IP literal without zone id that is global, not multicast, reserved or site-local.
 
-    ::ffff:a.b.c.d is read as a.b.c.d, 2002::/16 and 192.0.0.0/24 (except .9 and .10) are
-    refused by range, and an ISATAP address is public only if its embedded IPv4 is.
+    ::ffff:a.b.c.d is read as a.b.c.d; 2002::/16, 3fff::/20 and 192.0.0.0/24 (except .9 and
+    .10) are refused by range, and an ISATAP address is public only if its embedded IPv4 is.
     """
-    if not isinstance(addr, str) or "%" in addr:
+    if type(addr) is not str or "%" in addr:
         return False
     try:
         address: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(addr)
@@ -88,6 +89,14 @@ def is_public(addr: object) -> bool:
         if embedded is not None and not is_public(str(embedded)):
             return False
     return address.is_global and not barred
+
+
+def _time_left(deadline: float, clock: Callable[[], float]) -> float:
+    """Seconds left on the total deadline; ``TimeoutError`` once none are."""
+    remaining = deadline - clock()
+    if remaining <= 0:
+        raise TimeoutError("the total time for the fetch is spent")
+    return remaining
 
 
 def tls_context() -> ssl.SSLContext:
@@ -110,10 +119,7 @@ class _BudgetedSocket:
         self._closed = False
 
     def _arm(self) -> None:
-        remaining = self._deadline - self._clock()
-        if remaining <= 0:
-            raise TimeoutError("the total time for the fetch is spent")
-        self._raw.settimeout(min(self._timeout, remaining))
+        self._raw.settimeout(min(self._timeout, _time_left(self._deadline, self._clock)))
 
     def recv_into(self, buffer: Any, nbytes: int = 0) -> int:
         self._arm()
@@ -178,18 +184,12 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
     def connect(self) -> None:
         if not is_public(self._pinned_ip):
             raise ValueError("the pinned address is not a public address")
-        remaining = self._deadline - self._clock()
-        if remaining <= 0:
-            raise TimeoutError("the total time for the fetch is spent")
         sock = socket.create_connection(
-            (self._pinned_ip, self.port), min(self._op_timeout, remaining)
+            (self._pinned_ip, self.port),
+            min(self._op_timeout, _time_left(self._deadline, self._clock)),
         )
-        remaining = self._deadline - self._clock()
-        if remaining <= 0:
-            sock.close()
-            raise TimeoutError("the total time for the fetch is spent")
-        sock.settimeout(min(self._op_timeout, remaining))
         try:
+            sock.settimeout(min(self._op_timeout, _time_left(self._deadline, self._clock)))
             wrapped = self._tls.wrap_socket(sock, server_hostname=self.host)
         except BaseException:
             sock.close()
