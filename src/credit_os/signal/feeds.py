@@ -22,10 +22,22 @@ from xml.parsers import expat
 SUMMARY_LIMIT = 300
 MAX_BYTES = 2 * 1024 * 1024
 MAX_DEPTH = 64
+# R24. A feed of 1,000 entries each with 100 elements of XHTML has about 110,000 elements; no
+# 2 MiB feed of real markup has more than 262,144 (the shortest element with text, "<b>x</b>",
+# is 8 bytes), so a feed of more than 200,000 is a flood of empty elements.
+MAX_ELEMENTS = 200_000
+# R24. Atom and RSS elements carry at most a handful of attributes and HTML elements about ten.
+MAX_ATTRIBUTES = 256
+# R24. Total characters of element names: pyexpat builds each name in full (a 16 KiB namespace
+# URI on each of 16,000 elements is 268 MB of copying), so the time of a feed whose names are
+# long grows with the product of their length and number. A feed of 1,000 entries of 100
+# namespaced XHTML elements has about 4 million; 16 Mi leaves four times that.
+MAX_NAME_CHARS = 16 * 1024 * 1024
+# R24. Characters of one field handed to the HTML stripper (see _strip_markup).
+MAX_HTML_CHARS = 128 * 1024
 TITLE_LIMIT = 500
 LINK_LIMIT = 2048
 ERROR_TEXT_LIMIT = 120
-_ATOM = "{http://www.w3.org/2005/Atom}"
 _HOST_CHARS = frozenset(string.ascii_letters + string.digits + "-")
 _HEX_NUMBER = re.compile(r"0x[0-9a-f]*", re.ASCII | re.IGNORECASE)
 
@@ -41,68 +53,171 @@ def _refuse(*_args: object) -> NoReturn:
     raise FeedError(_DTD_MESSAGE)
 
 
-@dataclass(eq=False)
+# R17: a block-level element starts and ends a new run of text, so adjacent blocks never fuse.
+_BLOCKS = frozenset(
+    (
+        *("p", "br", "div", "li", "ul", "ol", "dl", "dt", "dd", "table", "tr", "td", "th"),
+        *("thead", "tbody", "tfoot", "caption", "h1", "h2", "h3", "h4", "h5", "h6"),
+        *("blockquote", "pre", "hr", "section", "article", "header", "footer", "figure"),
+        "figcaption",
+    )
+)
+_XHTML_TAGS = _BLOCKS | {"script", "style"}
+_LONGEST_TAG = max(map(len, _XHTML_TAGS))
+_OPEN_TAG = {tag: f"<{tag}>" for tag in _XHTML_TAGS}
+_CLOSE_TAG = {tag: f"</{tag}>" for tag in _XHTML_TAGS}
+
+
+@dataclass(eq=False, slots=True)
 class _Node:
-    """One element: its tag, attributes, child elements and its text and children in order."""
+    """A kept element. ``kind`` is its place in the feed: ``rss``, ``feed`` or ``other`` for the
+    root, then ``channel``, ``item`` and ``entry``. ``children`` are the kept elements below it.
+    An item or entry keeps, for each field read from it, the field's kind and all text below it
+    in ``fields``, and, for an Atom entry, the href of its first alternate link in ``link``.
+    """
 
-    tag: str
-    attrib: dict[str, str]
+    kind: str
     children: list["_Node"] = field(default_factory=list)
-    content: list["str | _Node"] = field(default_factory=list)
-
-    def child(self, tag: str) -> "_Node | None":
-        return next((c for c in self.children if c.tag == tag), None)
-
-    def children_named(self, tag: str) -> list["_Node"]:
-        return [c for c in self.children if c.tag == tag]
-
-    def text(self) -> str:
-        """All text below this element, in document order (nesting is capped at MAX_DEPTH)."""
-        return "".join(i if isinstance(i, str) else i.text() for i in self.content)
-
-    def inner_html(self) -> str:
-        """The content as HTML: tags only for _XHTML_TAGS, without attributes; text escaped."""
-        return "".join(
-            escape(i, quote=False) if isinstance(i, str) else i.html() for i in self.content
-        )
-
-    def html(self) -> str:
-        # R18 amended: an element outside _XHTML_TAGS contributes its inner text only, so no
-        # tag the stripper would read as raw text (xmp, iframe, plaintext) is ever written.
-        name = self.tag.rsplit("}", 1)[-1].lower()
-        if name in _XHTML_TAGS:
-            return f"<{name}>{self.inner_html()}</{name}>"
-        return self.inner_html()
+    fields: dict[str, tuple[str, str]] = field(default_factory=dict)
+    link: str | None = None
 
 
-def _qualified(name: str) -> str:
-    # expat, given "}" as namespace separator, reports "uri}local"; spell it "{uri}local".
-    return "{" + name if "}" in name else name
+@dataclass(eq=False, slots=True)
+class _Field:
+    """The field being read: its text, or, for Atom xhtml, the rebuilt markup, in order."""
+
+    owner: _Node
+    key: str
+    kind: str
+    parts: list[str] = field(default_factory=list)
+
+    @property
+    def markup(self) -> bool:
+        return self.kind == "xhtml"
+
+
+# R24: the tree keeps only what parse_feed reads. Names are expat's, "uri}local" for a name in a
+# namespace, so a name is compared as expat spells it and never rebuilt (a body-filling
+# namespace URI is then never copied per element).
+_ATOM = "http://www.w3.org/2005/Atom}"
+_ROOTS = {"rss": "rss", f"{_ATOM}feed": "feed"}
+_CHILD = {
+    "rss": ("channel", "channel"),
+    "channel": ("item", "item"),
+    "feed": (f"{_ATOM}entry", "entry"),
+}
+_FIELD_KEYS = {
+    "item": {key: key for key in ("title", "link", "pubDate", "description")},
+    "entry": {f"{_ATOM}{key}": key for key in ("published", "updated", "title", "summary", "link")},
+}
+_NO_FIELD = ("", "")
+_SLICE = 4096
+_TEXT_CONSTRUCTS = ("title", "summary")
+
+
+def _xhtml_tag(name: str) -> str | None:
+    """The tag written for an element inside Atom xhtml, or None: the element's text only."""
+    local = name[name.rfind("}") + 1 :]
+    if len(local) > _LONGEST_TAG or not local.isascii():
+        return None
+    local = local.lower()
+    return local if local in _XHTML_TAGS else None
 
 
 class _TreeBuilder:
     """Builds a _Node tree from expat events; comments and processing instructions are dropped.
 
-    ``document`` is a nameless parent of the root element, so every element has a parent.
+    ``document`` is a nameless parent of the root element. Every element is counted and its
+    depth checked; only those parse_feed reads become nodes. Elements inside a field add their
+    text to the field (R24: no node per element).
     """
 
     def __init__(self) -> None:
-        self.document = _Node("", {})
-        self._open: list[_Node] = [self.document]
+        self.document = _Node("document")
+        # One entry per open element: its node or field, the closing tag to write for an xhtml
+        # element, or None for an element that is not kept.
+        self._open: list[_Node | _Field | str | None] = []
+        self._field: _Field | None = None
+        self._elements = 0
+        self._name_chars = 0
 
     def start(self, name: str, attrs: dict[str, str]) -> None:
-        if len(self._open) > MAX_DEPTH:
+        if len(self._open) >= MAX_DEPTH:
             raise FeedError(f"feed is nested deeper than {MAX_DEPTH} elements")
-        node = _Node(_qualified(name), {_qualified(k): v for k, v in attrs.items()})
-        self._open[-1].children.append(node)
-        self._open[-1].content.append(node)
-        self._open.append(node)
+        self._elements += 1
+        if self._elements > MAX_ELEMENTS:
+            raise FeedError(f"feed has more than {MAX_ELEMENTS} elements")
+        self._name_chars += len(name)
+        if self._name_chars > MAX_NAME_CHARS:
+            raise FeedError("feed element names are too long")
+        if len(attrs) > MAX_ATTRIBUTES:
+            raise FeedError(f"feed has an element with more than {MAX_ATTRIBUTES} attributes")
+        self._open.append(self._enter(name, attrs))
+
+    def _enter(self, name: str, attrs: dict[str, str]) -> _Node | _Field | str | None:
+        if self._field is not None:
+            return self._enter_field_content(self._field, name)
+        parent = self._open[-1] if self._open else self.document
+        if not isinstance(parent, _Node):
+            return None
+        if parent.kind == "document":
+            return self._attach(parent, _Node(_ROOTS.get(name, "other")))
+        keys = _FIELD_KEYS.get(parent.kind)
+        if keys is not None:
+            return self._enter_field(parent, keys.get(name), attrs)
+        wanted = _CHILD.get(parent.kind)
+        if wanted is not None and wanted[0] == name:
+            return self._attach(parent, _Node(wanted[1]))
+        return None
+
+    @staticmethod
+    def _attach(parent: _Node, node: _Node) -> _Node:
+        parent.children.append(node)
+        return node
+
+    def _enter_field(self, record: _Node, key: str | None, attrs: dict[str, str]) -> _Field | None:
+        if key is None:
+            return None
+        if key == "link" and record.kind == "entry":
+            # The first alternate link counts, whether or not it has an href (RFC 4287, 4.2.7.2).
+            if record.link is None and attrs.get("rel") in (None, "alternate"):
+                record.link = (attrs.get("href") or "").strip()
+            return None
+        if key in record.fields:  # the first of two fields of a name wins
+            return None
+        kind = attrs.get("type", "") if record.kind == "entry" and key in _TEXT_CONSTRUCTS else ""
+        self._field = _Field(record, key, kind if kind in ("html", "xhtml") else "")
+        return self._field
+
+    @staticmethod
+    def _enter_field_content(current: _Field, name: str) -> str | None:
+        if not current.markup:
+            return None
+        tag = _xhtml_tag(name)
+        if tag is None:
+            return None
+        current.parts.append(_OPEN_TAG[tag])
+        return _CLOSE_TAG[tag]
 
     def end(self, name: str) -> None:
-        self._open.pop()
+        top = self._open.pop()
+        if isinstance(top, str) and self._field is not None:
+            self._field.parts.append(top)
+        elif isinstance(top, _Field):
+            top.owner.fields[top.key] = (top.kind, "".join(top.parts))
+            self._field = None
+        elif isinstance(top, _Node) and top.kind in ("item", "entry"):
+            self._drop_if_unread(top)
+
+    def _drop_if_unread(self, record: _Node) -> None:
+        # A record with no field read cannot make an entry; a feed of empty items costs nothing.
+        parent = self._open[-1]
+        if isinstance(parent, _Node) and not record.fields and record.link is None:
+            parent.children.pop()
 
     def data(self, text: str) -> None:
-        self._open[-1].content.append(text)
+        if self._field is not None:
+            self._field.parts.append(escape(text, quote=False) if self._field.markup else text)
 
 
 def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
@@ -121,7 +236,7 @@ def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
     return parser
 
 
-def _read_xml(body: bytes | bytearray | memoryview) -> _Node:
+def _read_xml(body: bytes) -> _Node:
     builder = _TreeBuilder()
     # Parse raises ExpatError unless the body holds exactly one root element.
     _new_parser(builder).Parse(body, True)
@@ -134,18 +249,6 @@ class Entry:
     link: str
     published: datetime | None
     summary: str
-
-
-# R17: a block-level element starts and ends a new run of text, so adjacent blocks never fuse.
-_BLOCKS = frozenset(
-    (
-        *("p", "br", "div", "li", "ul", "ol", "dl", "dt", "dd", "table", "tr", "td", "th"),
-        *("thead", "tbody", "tfoot", "caption", "h1", "h2", "h3", "h4", "h5", "h6"),
-        *("blockquote", "pre", "hr", "section", "article", "header", "footer", "figure"),
-        "figcaption",
-    )
-)
-_XHTML_TAGS = _BLOCKS | {"script", "style"}
 
 
 class _TextOnly(HTMLParser):
@@ -171,11 +274,26 @@ class _TextOnly(HTMLParser):
             self.parts.append(data)
 
 
+def _html_window(raw: str) -> str:
+    """The first MAX_HTML_CHARS characters of ``raw``, ending before a tag they would cut short.
+
+    R24. What html.parser reads is bounded because its memory is not: one start tag with a
+    million attributes costs about 280 bytes an attribute, and only a prefix of the markup can
+    reach the summary (cut to SUMMARY_LIMIT) or the title (cut to TITLE_LIMIT). The prefix
+    changes the result only when the first MAX_HTML_CHARS characters of one field hold fewer
+    than SUMMARY_LIMIT characters of text, all markup, white space or hidden script and style.
+    """
+    if len(raw) <= MAX_HTML_CHARS:
+        return raw
+    cut = raw.rfind("<", 0, MAX_HTML_CHARS)
+    return raw[: cut if cut >= 0 else MAX_HTML_CHARS]
+
+
 def _strip_markup(raw: str) -> str:
     """The text of an HTML fragment, markup removed and character references decoded."""
     parser = _TextOnly()
     try:
-        parser.feed(raw)
+        parser.feed(_html_window(raw))
         parser.close()
     except AssertionError as exc:
         # Standard libraries before the 2025 html.parser fixes assert on some markup (R20).
@@ -188,14 +306,37 @@ def _plain(raw: str) -> str:
     return "".join(ch for ch in raw if ch.isspace() or unicodedata.category(ch) not in ("Cc", "Cf"))
 
 
+def _folded(text: str, limit: int) -> str:
+    """The first ``limit`` characters of ``" ".join(_plain(text).split())``, whole text unread.
+
+    R24. Cleaning goes a slice at a time and stops once ``limit`` characters of folded text
+    exist, so it builds at most one slice of one-character strings (not one per character of a
+    2 MiB field) and reads no further than the result needs. The result is exact: a character
+    is dropped or kept on its own, and a word that ends a slice is joined to the next slice.
+    """
+    words: list[str] = []
+    size = 0  # characters in " ".join(words), plus one
+    word = ""  # the last word of the slices read, which the next slice may continue
+    for start in range(0, len(text), _SLICE):
+        chunk = word + _plain(text[start : start + _SLICE])
+        found = chunk.split()
+        word = found.pop() if found and not chunk[-1].isspace() else ""
+        words.extend(found)
+        size += sum(len(w) + 1 for w in found)
+        if size + len(word) > limit:
+            break
+    if word:
+        words.append(word)
+    return " ".join(words)[:limit]
+
+
 def _summary(text: str) -> str:
     """Plain text folded to single spaces, then cut to SUMMARY_LIMIT on a word boundary."""
-    folded = " ".join(_plain(text).split())
-    if len(folded) <= SUMMARY_LIMIT:
-        return folded
-    head = folded[: SUMMARY_LIMIT + 1]
+    head = _folded(text, SUMMARY_LIMIT + 1)
+    if len(head) <= SUMMARY_LIMIT:
+        return head
     if " " not in head:
-        return folded[:SUMMARY_LIMIT]
+        return head[:SUMMARY_LIMIT]
     return head.rsplit(" ", 1)[0].rstrip()
 
 
@@ -220,14 +361,13 @@ def _rss_date(text: str) -> datetime | None:
         return _iso_date(text)
 
 
-def _text(parent: _Node, tag: str) -> str:
-    child = parent.child(tag)
-    return child.text().strip() if child is not None else ""
+def _text(record: _Node, key: str) -> str:
+    return record.fields.get(key, _NO_FIELD)[1].strip()
 
 
 def _title(text: str) -> str:
     """Plain text with control and format characters dropped, folded, cut, then stripped."""
-    return " ".join(_plain(text).split())[:TITLE_LIMIT].strip()
+    return _folded(text, TITLE_LIMIT).strip()
 
 
 def _dns_name(host: str) -> bool:
@@ -282,59 +422,41 @@ def _rss_entry(item: _Node) -> Entry | None:
     )
 
 
-def _atom_link(entry: _Node) -> str:
-    for link in entry.children_named(f"{_ATOM}link"):
-        if link.attrib.get("rel") in (None, "alternate"):
-            return (link.attrib.get("href") or "").strip()
-    return ""
-
-
-def _atom_text(entry: _Node, name: str) -> str:
+def _atom_text(entry: _Node, key: str) -> str:
     # R18. An Atom text construct (RFC 4287, 3.1.1) says what it holds: type "html" is escaped
-    # HTML and "xhtml" is child elements, so both go through the text-only stripper; no type, or
-    # "text", is literal text and is not stripped. RSS differs: a title is literal and a
-    # description is HTML.
-    node = entry.child(f"{_ATOM}{name}")
-    if node is None:
-        return ""
-    kind = node.attrib.get("type")
-    if kind == "html":
-        return _strip_markup(node.text())
-    if kind == "xhtml":
-        return _strip_markup(node.inner_html())
-    return node.text()
+    # HTML and "xhtml" is child elements (rebuilt as markup by the tree builder), so both go
+    # through the text-only stripper; no type, or "text", is literal text and is not stripped.
+    # RSS differs: a title is literal and a description is HTML.
+    kind, text = entry.fields.get(key, _NO_FIELD)
+    return _strip_markup(text) if kind else text
 
 
 def _atom_entry(entry: _Node) -> Entry | None:
-    stamp = _text(entry, f"{_ATOM}published") or _text(entry, f"{_ATOM}updated")
+    stamp = _text(entry, "published") or _text(entry, "updated")
     date = _iso_date(stamp) if stamp else None
     return _make(
         _title(_atom_text(entry, "title")),
-        _atom_link(entry),
+        entry.link or "",
         date,
         lambda: _atom_text(entry, "summary"),
     )
 
 
 def _entries(root: _Node) -> list[Entry]:
-    if root.tag == "rss":
-        found = (
-            _rss_entry(item)
-            for channel in root.children_named("channel")
-            for item in channel.children_named("item")
-        )
-    elif root.tag == f"{_ATOM}feed":
-        found = (_atom_entry(entry) for entry in root.children_named(f"{_ATOM}entry"))
+    if root.kind == "rss":
+        found = (_rss_entry(item) for channel in root.children for item in channel.children)
+    elif root.kind == "feed":
+        found = (_atom_entry(entry) for entry in root.children)
     else:
         raise FeedError("document is neither an RSS 2.0 nor an Atom feed")
     return [entry for entry in found if entry is not None]
 
 
-def parse_feed(body: bytes | bytearray | memoryview) -> list[Entry]:
+def parse_feed(body: bytes) -> list[Entry]:
     """Return the readable entries of an RSS 2.0 or Atom feed, in feed order.
 
     R26: anything but bytes, bytearray or memoryview (the predecessor's byte search accepted
-    these three) is a TypeError, before the size check: a str is measured in characters, not
+    these; the annotation stays ``bytes``, as its was) is a TypeError, before the size check: a str is measured in characters, not
     in the bytes expat would encode it to.
     """
     if not isinstance(body, bytes | bytearray | memoryview):

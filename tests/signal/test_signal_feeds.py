@@ -7,10 +7,16 @@ from typing import cast
 import pytest
 
 from credit_os.signal.feeds import (
+    MAX_ATTRIBUTES,
     MAX_BYTES,
+    MAX_ELEMENTS,
+    MAX_HTML_CHARS,
+    MAX_NAME_CHARS,
     Entry,
     FeedError,
+    _folded,
     _new_parser,
+    _plain,
     _TreeBuilder,
     parse_feed,
 )
@@ -978,3 +984,77 @@ def test_a_body_that_is_not_bytes_is_a_type_error_before_the_size_check(body: ob
 def test_a_bytes_like_body_is_read_like_bytes(kind: type) -> None:
     # The predecessor's byte search accepted any bytes-like body; so does the port.
     assert parse_feed(cast(bytes, kind(RSS))) == parse_feed(RSS)
+
+
+# --- R24: what the tree keeps, what is refused, and what is cut before it is cleaned ---
+
+
+def _flat(count: int) -> bytes:
+    return b'<rss version="2.0">' + b"<a/>" * (count - 1) + b"</rss>"
+
+
+def test_a_feed_of_exactly_the_most_elements_is_read_and_one_more_is_refused() -> None:
+    assert parse_feed(_flat(MAX_ELEMENTS)) == []
+    with pytest.raises(FeedError, match=f"more than {MAX_ELEMENTS} elements"):
+        parse_feed(_flat(MAX_ELEMENTS + 1))
+
+
+def test_an_element_with_the_most_attributes_is_read_and_one_more_is_refused() -> None:
+    def feed(count: int) -> bytes:
+        attrs = "".join(f' a{i}="x"' for i in range(count))
+        return f'<rss version="2.0"><channel{attrs}/></rss>'.encode()
+
+    assert parse_feed(feed(MAX_ATTRIBUTES)) == []
+    with pytest.raises(FeedError, match=f"more than {MAX_ATTRIBUTES} attributes"):
+        parse_feed(feed(MAX_ATTRIBUTES + 1))
+
+
+def test_element_names_are_refused_once_their_total_length_passes_the_bound() -> None:
+    uri = "u:" + "x" * 8000
+
+    def feed(count: int) -> bytes:
+        return f'<rss version="2.0"><d xmlns="{uri}">{"<a/>" * count}</d></rss>'.encode()
+
+    fits = MAX_NAME_CHARS // (len(uri) + 2) - 4
+    assert parse_feed(feed(fits)) == []
+    with pytest.raises(FeedError, match="element names are too long"):
+        parse_feed(feed(fits + 8))
+
+
+def test_elements_inside_a_field_are_counted() -> None:
+    inner = "<b>x</b>" * (MAX_ELEMENTS // 8 + 1)
+    with pytest.raises(FeedError, match="more than"):
+        parse_feed(_rss(f"<title>t</title>{_LINK}<description>{inner * 8}</description>"))
+
+
+def test_text_outside_the_fields_that_are_read_is_not_kept() -> None:
+    body = _rss(
+        f"<title>t</title>{_LINK}<guid>g</guid><category><title>c</title></category>"
+        "<description>d</description>"
+    )
+    (e,) = parse_feed(body)
+    assert (e.title, e.summary) == ("t", "d")
+
+
+def test_folding_equals_the_whole_text_folded_then_cut() -> None:
+    import random
+
+    rnd = random.Random(7)
+    pieces = ["a", "b", "\u0436", " ", "\n", "\t", "\u200b", "\x07", "\u00a0", "\x1c", "word"]
+    for size in (0, 1, 7, 90, 4095, 4096, 4097, 9000, 20000):
+        text = "".join(rnd.choice(pieces) for _ in range(size))
+        for limit in (1, 5, 301, 500, 100_000):
+            assert _folded(text, limit) == " ".join(_plain(text).split())[:limit]
+
+
+def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
+    assert _folded("w" * 1_000_000, 500) == "w" * 500
+    assert _folded(" " * 10_000 + "a b", 10) == "a b"
+
+
+def test_a_description_is_read_for_its_first_html_window_only() -> None:
+    text = "Lead " + "<i></i>" * 100_000  # 700,000 characters, the text first
+    assert _summary_of(text + "late") == "Lead"
+    # the stated cost: more than MAX_HTML_CHARS of markup before any text hides the text
+    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 + 1) + "late") == ""
+    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 - 10) + "late") == "late"
