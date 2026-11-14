@@ -2,14 +2,21 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
+from typing import cast
 
 import pytest
 
 from credit_os.signal.feeds import (
+    MAX_ATTRIBUTES,
     MAX_BYTES,
+    MAX_ELEMENTS,
+    MAX_HTML_CHARS,
+    MAX_NAME_CHARS,
     Entry,
     FeedError,
+    _folded,
     _new_parser,
+    _plain,
     _TreeBuilder,
     parse_feed,
 )
@@ -894,3 +901,160 @@ def test_a_date_with_no_zone_is_utc_whatever_the_local_zone(
 def test_a_summary_of_300_characters_is_kept_and_301_are_cut() -> None:
     assert _summary_of("x" * 300) == "x" * 300
     assert _summary_of("x" * 301) == "x" * 300
+    # With a space inside, a 300-character summary ends a word and is kept whole (L-3: a `<`
+    # for `<=` at the boundary would cut its last word); one character more is cut at the space.
+    spaced = "x" * 149 + " " + "y" * 150
+    assert len(spaced) == 300
+    assert _summary_of(spaced) == spaced
+    assert _summary_of(spaced + "z") == "x" * 149
+
+
+# --- S-3a re-review: R7b amended, R18 amended, R26 and the 300-character boundary ---
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "1.2.3.0x7f",
+        "127.0.0.0x1",
+        "0x7f.0.0.0x1",
+        "0x7f.0x0.0x0.0x1",
+        "10.0.0.0X1",
+        "192.168.0.0x1",
+        "1.2.3.0x",
+        "e.0x",
+        "e.0xff",
+        "169.254.169.0xfe",
+    ],
+)
+def test_a_host_whose_last_label_is_a_hex_number_is_unusable(host: str) -> None:
+    # A browser reads such a host as an IPv4 address ("127.0.0.0x1" is 127.0.0.1).
+    assert parse_feed(_link_body(f"http://{host}/x")) == []
+
+
+@pytest.mark.parametrize("host", ["a.1e3", "1.2.3.7f", "e.ff", "e.0x7g", "e.x7f", "1.2.3.f"])
+def test_a_last_label_that_only_looks_like_a_number_is_a_name(host: str) -> None:
+    # A browser reads these as names, so they stay usable.
+    assert [e.link for e in parse_feed(_link_body(f"http://{host}/x"))] == [f"http://{host}/x"]
+
+
+_XHTML_DIV = 'xmlns="http://www.w3.org/1999/xhtml"'
+
+
+@pytest.mark.parametrize(
+    ("inner", "expected"),
+    [
+        ("A <xmp>&lt;b&gt; &amp;amp; B</xmp> C", "A <b> &amp; B C"),
+        ("A <iframe>&lt;b&gt;</iframe> C", "A <b> C"),
+        ("A <noembed>&lt;i&gt;</noembed> C", "A <i> C"),
+        ("A <noframes>&lt;i&gt;</noframes> C", "A <i> C"),
+        ("A <plaintext>B</plaintext> C", "A B C"),
+        ("A <_x>B</_x> C", "A B C"),
+        ("A <a.b>B</a.b> C", "A B C"),
+        ("A <m:b xmlns:m='urn:m'>B</m:b> C", "A B C"),
+        ('A <a href="javascript:x" title="T">B</a> C', "A B C"),
+        ("A <él>B</él> C", "A B C"),
+        ("A <script>SCRIPT</script>B", "A B"),
+        ("A <style>p{}</style>B", "A B"),
+        ("<p>A</p><P>B</P><x:div xmlns:x='urn:x'>C</x:div>", "A B C"),
+    ],
+)
+def test_xhtml_is_rebuilt_from_known_tags_only(inner: str, expected: str) -> None:
+    summary = f'<summary type="xhtml"><div {_XHTML_DIV}>{inner}</div></summary>'
+    assert _atom_one("<title>T</title>", summary).summary == expected
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param("not bytes", id="str"),
+        pytest.param("", id="empty str"),
+        pytest.param("x" * (MAX_BYTES + 1), id="str over the cap"),
+        pytest.param(None, id="None"),
+        pytest.param([b"x"], id="list"),
+        pytest.param(7, id="int"),
+    ],
+)
+def test_a_body_that_is_not_bytes_is_a_type_error_before_the_size_check(body: object) -> None:
+    with pytest.raises(TypeError, match="body must be bytes"):
+        parse_feed(cast(bytes, body))
+
+
+@pytest.mark.parametrize("kind", [bytearray, memoryview])
+def test_a_bytes_like_body_is_read_like_bytes(kind: type) -> None:
+    # The predecessor's byte search accepted any bytes-like body; so does the port.
+    assert parse_feed(cast(bytes, kind(RSS))) == parse_feed(RSS)
+
+
+# --- R24: what the tree keeps, what is refused, and what is cut before it is cleaned ---
+
+
+def _flat(count: int) -> bytes:
+    return b'<rss version="2.0">' + b"<a/>" * (count - 1) + b"</rss>"
+
+
+def test_a_feed_of_exactly_the_most_elements_is_read_and_one_more_is_refused() -> None:
+    assert parse_feed(_flat(MAX_ELEMENTS)) == []
+    with pytest.raises(FeedError, match=f"more than {MAX_ELEMENTS} elements"):
+        parse_feed(_flat(MAX_ELEMENTS + 1))
+
+
+def test_an_element_with_the_most_attributes_is_read_and_one_more_is_refused() -> None:
+    def feed(count: int) -> bytes:
+        attrs = "".join(f' a{i}="x"' for i in range(count))
+        return f'<rss version="2.0"><channel{attrs}/></rss>'.encode()
+
+    assert parse_feed(feed(MAX_ATTRIBUTES)) == []
+    with pytest.raises(FeedError, match=f"more than {MAX_ATTRIBUTES} attributes"):
+        parse_feed(feed(MAX_ATTRIBUTES + 1))
+
+
+def test_element_names_are_refused_once_their_total_length_passes_the_bound() -> None:
+    uri = "u:" + "x" * 8000
+
+    def feed(count: int) -> bytes:
+        return f'<rss version="2.0"><d xmlns="{uri}">{"<a/>" * count}</d></rss>'.encode()
+
+    fits = MAX_NAME_CHARS // (len(uri) + 2) - 4
+    assert parse_feed(feed(fits)) == []
+    with pytest.raises(FeedError, match="element names are too long"):
+        parse_feed(feed(fits + 8))
+
+
+def test_elements_inside_a_field_are_counted() -> None:
+    inner = "<b>x</b>" * (MAX_ELEMENTS // 8 + 1)
+    with pytest.raises(FeedError, match="more than"):
+        parse_feed(_rss(f"<title>t</title>{_LINK}<description>{inner * 8}</description>"))
+
+
+def test_text_outside_the_fields_that_are_read_is_not_kept() -> None:
+    body = _rss(
+        f"<title>t</title>{_LINK}<guid>g</guid><category><title>c</title></category>"
+        "<description>d</description>"
+    )
+    (e,) = parse_feed(body)
+    assert (e.title, e.summary) == ("t", "d")
+
+
+def test_folding_equals_the_whole_text_folded_then_cut() -> None:
+    import random
+
+    rnd = random.Random(7)
+    pieces = ["a", "b", "\u0436", " ", "\n", "\t", "\u200b", "\x07", "\u00a0", "\x1c", "word"]
+    for size in (0, 1, 7, 90, 4095, 4096, 4097, 9000, 20000):
+        text = "".join(rnd.choice(pieces) for _ in range(size))
+        for limit in (1, 5, 301, 500, 100_000):
+            assert _folded(text, limit) == " ".join(_plain(text).split())[:limit]
+
+
+def test_a_word_longer_than_the_limit_is_cut_without_reading_the_rest() -> None:
+    assert _folded("w" * 1_000_000, 500) == "w" * 500
+    assert _folded(" " * 10_000 + "a b", 10) == "a b"
+
+
+def test_a_description_is_read_for_its_first_html_window_only() -> None:
+    text = "Lead " + "<i></i>" * 100_000  # 700,000 characters, the text first
+    assert _summary_of(text + "late") == "Lead"
+    # the stated cost: more than MAX_HTML_CHARS of markup before any text hides the text
+    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 + 1) + "late") == ""
+    assert _summary_of("<i></i>" * (MAX_HTML_CHARS // 7 - 10) + "late") == "late"
