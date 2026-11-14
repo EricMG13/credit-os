@@ -14,6 +14,7 @@ Triple = tuple[Decimal, Decimal, Decimal]
 Scheduled = tuple[Decimal, Decimal]
 
 _ONE = Value(amount=Decimal(1))
+_MINUS_ONE = Value(amount=Decimal(-1))
 
 
 def _decimal(item: object, name: str) -> None:
@@ -106,22 +107,29 @@ def _check_schedule(schedule: object) -> None:
 
 
 def _flow(year: int, drivers: Drivers, shock: Shock, opening: Operands) -> tuple[Value, ...]:
-    """Revenue, EBITDA, tax and working capital, capex, then interest before any schedule."""
-    rate_up = total([_ONE, Value(amount=shock.rate_increase)])
+    """Revenue, EBITDA, tax and working capital, then capex."""
     revenue = product([opening.revenue, total([_ONE, Value(amount=drivers.revenue_growth[year])])])
     keep = difference(_ONE, Value(amount=shock.ebitda_decline))
     ebitda = product([revenue, Value(amount=drivers.ebitda_margin[year]), keep])
     tax_wc = product([revenue, Value(amount=drivers.tax_wc_pct_revenue[year])])
     capex = product([revenue, Value(amount=drivers.capex_pct_revenue[year])])
-    interest = product([opening.debt, Value(amount=drivers.interest_rate[year]), rate_up])
-    return revenue, ebitda, tax_wc, capex, interest
+    return revenue, ebitda, tax_wc, capex
 
 
-def _scheduled_interest(opening_debt: Value, scheduled: Decimal, shock: Shock) -> Value:
+def _interest(
+    year: int, opening_debt: Value, drivers: Drivers, shock: Shock, scheduled: Scheduled | None
+) -> Value:
+    """Debt x rate, or the scheduled amount (the driver is then not used); both x (1 + shock)."""
+    rate_up = total([_ONE, Value(amount=shock.rate_increase)])
+    if scheduled is None:
+        return product([opening_debt, Value(amount=drivers.interest_rate[year]), rate_up])
     if opening_debt.missing is not None:
         return opening_debt
-    rate_up = total([_ONE, Value(amount=shock.rate_increase)])
-    return product([Value(amount=scheduled), rate_up])
+    return product([Value(amount=scheduled[0]), rate_up])
+
+
+def _negated(value: Value) -> Value:
+    return product([value, _MINUS_ONE])
 
 
 def _year(
@@ -131,16 +139,16 @@ def _year(
     shock: Shock,
     scheduled: Scheduled | None,
 ) -> Year:
-    revenue, ebitda, tax_wc, capex, interest = _flow(index, drivers, shock, opening)
+    revenue, ebitda, tax_wc, capex = _flow(index, drivers, shock, opening)
+    interest = _interest(index, opening.debt, drivers, shock, scheduled)
     repayment = Value(amount=drivers.debt_repayment[index])
     if scheduled is not None:
-        interest = _scheduled_interest(opening.debt, scheduled[0], shock)
         repayment = Value(amount=scheduled[1])
     dividends = Value(amount=drivers.dividends[index])
-    cfo = difference(difference(ebitda, interest), tax_wc)
+    cfo = total([ebitda, _negated(interest), _negated(tax_wc)])
     fcf = difference(cfo, capex)
     closing_debt = difference(opening.debt, repayment)
-    closing_cash = difference(difference(total([opening.cash, fcf]), dividends), repayment)
+    closing_cash = total([opening.cash, fcf, _negated(dividends), _negated(repayment)])
     net_debt = difference(closing_debt, closing_cash)
     return Year(
         revenue=revenue,
@@ -173,6 +181,7 @@ def forecast(
     shock: Shock | None = None,
     schedule: tuple[Scheduled, Scheduled, Scheduled] | None = None,
 ) -> tuple[Year, Year, Year]:
+    """Three forecast years. A driver whose 1 + g, 1 - s or 1 + k needs more than 38 digits is refused."""
     if type(operands) is not Operands:
         raise TypeError("operands must be an Operands")
     if type(drivers) is not Drivers:
