@@ -46,32 +46,32 @@ _sent = partial(_reply, kind="sent_usage", usage=Usage())
 
 _M = {"role": "tool", "tool_call_id": "c"}
 _CHARGE = "billed_usd must be a Decimal"
-_FINITE = "finite and not negative"
+_FINITE = "billed_usd must be finite and not negative"
 # (builder, keyword arguments, fragment of the refusal message)
 REFUSALS: list[tuple[Callable[..., object], dict[str, Any], str]] = [
-    (_message, {"role": "bot"}, "unknown role"),
-    (_message, {"role": "tool"}, "needs a tool_call_id"),
-    (_message, {"role": "tool", "tool_call_id": ""}, "needs a tool_call_id"),
+    (_message, {"role": "bot"}, "unknown role 'bot'"),
+    (_message, {"role": "tool"}, "a tool message needs a tool_call_id"),
+    (_message, {"role": "tool", "tool_call_id": ""}, "a tool message needs a tool_call_id"),
     (_message, {"tool_calls": (CALL,)}, "tool calls on a user message"),
     (_message, {**_M, "tool_calls": (CALL,)}, "tool calls on a tool message"),
-    (_turn, {"stop_reason": "stop"}, "unknown stop_reason"),
-    (_reply, {"kind": "sent_known"}, "unknown reply kind"),
-    (_reply, {"turn": _turn()}, "not_sent reply has no turn"),
-    (_sent, {"turn": _turn()}, "sent_usage reply has no turn"),
-    (_ok, {"turn": None}, "ok reply needs a turn"),
-    (_ok, {"error_class": "E"}, "ok reply has no error_class"),
-    (_reply, {"error_class": None}, "needs an error_class"),
-    (_reply, {"error_class": ""}, "needs an error_class"),
-    (_ok, {"usage": Usage(input_tokens=6)}, "repeats its turn's usage"),
-    (_ok, {"usage": None}, "repeats its turn's usage"),
-    (_reply, {"kind": "sent_usage"}, "sent_usage reply needs usage"),
-    (_reply, {"usage": Usage()}, "not_sent reply has no usage"),
-    (_reply, {"kind": "sent_unknown", "usage": Usage()}, "sent_unknown reply has no usage"),
-    (_reply, {"billed_usd": Decimal(1)}, "not_sent reply has no charge"),
+    (_turn, {"stop_reason": "stop"}, "unknown stop_reason 'stop'"),
+    (_reply, {"kind": "sent_known"}, "unknown reply kind 'sent_known'"),
+    (_reply, {"turn": _turn()}, "a not_sent reply has no turn"),
+    (_sent, {"turn": _turn()}, "a sent_usage reply has no turn"),
+    (_ok, {"turn": None}, "an ok reply needs a turn"),
+    (_ok, {"error_class": "E"}, "an ok reply has no error_class"),
+    (_reply, {"error_class": None}, "a not_sent reply needs an error_class"),
+    (_reply, {"error_class": ""}, "a not_sent reply needs an error_class"),
+    (_ok, {"usage": Usage(input_tokens=6)}, "an ok reply repeats its turn's usage"),
+    (_ok, {"usage": None}, "an ok reply repeats its turn's usage"),
+    (_reply, {"kind": "sent_usage"}, "a sent_usage reply needs usage"),
+    (_reply, {"usage": Usage()}, "a not_sent reply has no usage"),
+    (_reply, {"kind": "sent_unknown", "usage": Usage()}, "a sent_unknown reply has no usage"),
+    (_reply, {"billed_usd": Decimal(1)}, "a not_sent reply has no charge"),
     (
         _reply,
         {"kind": "sent_unknown", "billed_usd": Decimal(1)},
-        "sent_unknown reply has no charge",
+        "a sent_unknown reply has no charge",
     ),
     (_sent, {"billed_usd": 0.5}, _CHARGE),
     (_sent, {"billed_usd": 1}, _CHARGE),
@@ -90,7 +90,7 @@ REFUSALS += [
 
 @pytest.mark.parametrize(("build", "kw", "fragment"), REFUSALS)
 def test_refused(build: Callable[..., object], kw: dict[str, Any], fragment: str) -> None:
-    with pytest.raises(ProviderDataError, match=re.escape(fragment)):
+    with pytest.raises(ProviderDataError, match=f"^{re.escape(fragment)}$"):
         build(**kw)
 
 
