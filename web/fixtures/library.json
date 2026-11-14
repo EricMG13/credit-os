@@ -1822,6 +1822,165 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "59", "sources": "9", "gaps": "7" },
+              "record": {
+                "timings": {
+                  "title": "Module timings",
+                  "note": "From start to accepted, 13 Nov 2026. Six of thirteen shown.",
+                  "columns": ["Module", "State", "Started, min", "Accepted, min", "Took, min"],
+                  "rows": [
+                    {
+                      "module": "Business profile",
+                      "state": "Delivered",
+                      "started": { "kind": "value", "text": "0.0", "at": 0 },
+                      "accepted": { "kind": "value", "text": "6.0", "at": 6 },
+                      "took": { "kind": "value", "text": "6.0", "at": 6 }
+                    },
+                    {
+                      "module": "Financial performance",
+                      "state": "Delivered",
+                      "started": { "kind": "value", "text": "1.6", "at": 1.6 },
+                      "accepted": { "kind": "value", "text": "9.6", "at": 9.6 },
+                      "took": { "kind": "value", "text": "8.0", "at": 8 }
+                    },
+                    {
+                      "module": "Capital structure",
+                      "state": "Delivered with gaps",
+                      "started": { "kind": "value", "text": "5.6", "at": 5.6 },
+                      "accepted": { "kind": "value", "text": "16.0", "at": 16 },
+                      "took": { "kind": "value", "text": "10.4", "at": 10.4 }
+                    },
+                    {
+                      "module": "Recovery",
+                      "state": "Not assessable",
+                      "started": { "kind": "value", "text": "14.4", "at": 14.4 },
+                      "accepted": null,
+                      "took": null
+                    },
+                    {
+                      "module": "Peer comparison",
+                      "state": "Delivered with gaps",
+                      "started": { "kind": "value", "text": "16.8", "at": 16.8 },
+                      "accepted": { "kind": "value", "text": "25.6", "at": 25.6 },
+                      "took": { "kind": "value", "text": "8.8", "at": 8.8 }
+                    },
+                    {
+                      "module": "Forecast",
+                      "state": "Delivered",
+                      "started": { "kind": "value", "text": "26.4", "at": 26.4 },
+                      "accepted": { "kind": "value", "text": "37.6", "at": 37.6 },
+                      "took": { "kind": "value", "text": "11.2", "at": 11.2 }
+                    }
+                  ],
+                  "emptyText": null
+                },
+                "hashes": {
+                  "title": "Hashes and instructions",
+                  "items": [
+                    {
+                      "label": "Method texts",
+                      "kind": "SHA-256",
+                      "value": "71c0e5a9d3b84f2607e1c9a5d3b7f1e9058c6a4e2d0b9f7d5c3a1e9f7b5d3c1a",
+                      "copyLabel": "Copy hash",
+                      "what": "The hash of the method texts"
+                    },
+                    {
+                      "label": "Model configuration",
+                      "kind": "Config",
+                      "value": "copilot-sol-medium · gpt-6-sol",
+                      "copyLabel": "Copy configuration name",
+                      "what": "The model configuration name"
+                    }
+                  ]
+                },
+                "spend": {
+                  "title": "Spend against the cap",
+                  "progress": { "text": "USD 11.40 of USD 20.00", "value": 11.4, "max": 20 },
+                  "note": "The run finished inside its cap. Spend by module is in the model calls register below."
+                },
+                "calls": {
+                  "title": "Model calls",
+                  "count": "41",
+                  "note": "Calls, tokens and cost by module.",
+                  "columns": [
+                    "Module",
+                    "Code",
+                    "Calls",
+                    "Retries",
+                    "Tokens in",
+                    "Tokens out",
+                    "Cost, USD"
+                  ],
+                  "rows": [
+                    {
+                      "label": "Business profile",
+                      "cells": ["CP-1A", "3", "0", "182,400", "9,150", "0.92"]
+                    },
+                    {
+                      "label": "Capital structure",
+                      "cells": ["CP-2C", "5", "1", "264,900", "14,720", "1.38"]
+                    },
+                    {
+                      "label": "Recovery",
+                      "cells": ["CP-3B", "2", "1", "58,300", "1,040", "0.27"]
+                    },
+                    { "label": "Peer comparison", "cells": ["CP-2E", "4", "0", null, null, "0.81"] }
+                  ],
+                  "total": { "label": "Total", "cells": ["All", "41", "6", null, null, "11.40"] }
+                },
+                "registers": {
+                  "title": "Registers as written",
+                  "count": "5",
+                  "note": "The registers each module wrote, unedited.",
+                  "columns": ["Register", "Written by", "Rows", "File", "Open"],
+                  "downloadAll": {
+                    "label": "Download all",
+                    "href": "downloads/halden-aerostructures-2026-09-30-registers.zip",
+                    "reason": null
+                  },
+                  "rows": [
+                    {
+                      "name": "Source register",
+                      "writtenBy": "Every module",
+                      "rows": "212",
+                      "file": "registers/sources.md",
+                      "href": "downloads/halden-aerostructures-2026-09-30-registers/sources.md",
+                      "reason": null
+                    },
+                    {
+                      "name": "Calculation register",
+                      "writtenBy": "Financial kernel",
+                      "rows": "148",
+                      "file": "registers/calculations.md",
+                      "href": "downloads/halden-aerostructures-2026-09-30-registers/calculations.md",
+                      "reason": null
+                    },
+                    {
+                      "name": "Gap ledger",
+                      "writtenBy": "Every module",
+                      "rows": "7",
+                      "file": "registers/gaps.md",
+                      "href": "downloads/halden-aerostructures-2026-09-30-registers/gaps.md",
+                      "reason": null
+                    },
+                    {
+                      "name": "Assumption register",
+                      "writtenBy": "Forecast",
+                      "rows": "23",
+                      "file": "registers/assumptions.md",
+                      "href": "downloads/halden-aerostructures-2026-09-30-registers/assumptions.md",
+                      "reason": null
+                    },
+                    {
+                      "name": "Withheld register",
+                      "writtenBy": "Delivery",
+                      "rows": "2",
+                      "file": "registers/withheld.md",
+                      "href": null,
+                      "reason": "The withheld register lists figures the sources marked confidential, so it is not published."
+                    }
+                  ]
+                }
+              },
               "jump": [
                 {
                   "group": "Figures",
@@ -4432,6 +4591,85 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "0", "sources": "3", "gaps": "3" },
+              "record": {
+                "timings": {
+                  "title": "Module timings",
+                  "note": "From start to accepted, 14 Apr 2026. One of thirteen shown.",
+                  "columns": ["Module", "State", "Started, min", "Accepted, min", "Took, min"],
+                  "rows": [
+                    {
+                      "module": "Financial performance",
+                      "state": "Not run",
+                      "started": null,
+                      "accepted": null,
+                      "took": null
+                    }
+                  ],
+                  "emptyText": null
+                },
+                "hashes": {
+                  "title": "Hashes and instructions",
+                  "items": [
+                    {
+                      "label": "Method texts",
+                      "kind": "SHA-256",
+                      "value": "2b94e7d10c6f35a8914d7e2b0a63c8f5d1e97b4a30c682f5e9d1b7a4c0368e2f",
+                      "copyLabel": "Copy hash",
+                      "what": "The hash of the method texts"
+                    }
+                  ]
+                },
+                "spend": {
+                  "title": "Spend against the cap",
+                  "progress": { "text": "USD 9.80 of USD 20.00", "value": 9.8, "max": 20 },
+                  "note": "The run finished inside its cap. Four modules did not run, so their calls are not listed."
+                },
+                "calls": {
+                  "title": "Model calls",
+                  "count": "27",
+                  "note": "Calls, tokens and cost by module.",
+                  "columns": [
+                    "Module",
+                    "Code",
+                    "Calls",
+                    "Retries",
+                    "Tokens in",
+                    "Tokens out",
+                    "Cost, USD"
+                  ],
+                  "rows": [
+                    {
+                      "label": "Business profile",
+                      "cells": ["CP-1A", "3", "0", "176,200", "8,870", "0.88"]
+                    }
+                  ],
+                  "total": {
+                    "label": "Total",
+                    "cells": ["All", "27", "2", "1,402,000", "71,300", "9.80"]
+                  }
+                },
+                "registers": {
+                  "title": "Registers as written",
+                  "count": "1",
+                  "note": "The registers each module wrote, unedited.",
+                  "columns": ["Register", "Written by", "Rows", "File", "Open"],
+                  "downloadAll": {
+                    "label": "Download all",
+                    "href": null,
+                    "reason": "The run's registers were not packed, so there is nothing to download."
+                  },
+                  "rows": [
+                    {
+                      "name": "Gap ledger",
+                      "writtenBy": "Every module",
+                      "rows": "3",
+                      "file": "registers/gaps.md",
+                      "href": "downloads/halden-aerostructures-2026-03-31-registers/gaps.md",
+                      "reason": null
+                    }
+                  ]
+                }
+              },
               "jump": [
                 {
                   "group": "Gaps",
@@ -5274,6 +5512,82 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "0", "sources": "2", "gaps": "2" },
+              "record": {
+                "timings": {
+                  "title": "Module timings",
+                  "note": "From start to accepted, 2 Oct 2025. One of thirteen shown.",
+                  "columns": ["Module", "State", "Started, min", "Accepted, min", "Took, min"],
+                  "rows": [
+                    {
+                      "module": "Recovery",
+                      "state": "Delivered with gaps",
+                      "started": { "kind": "value", "text": "12.0", "at": 12 },
+                      "accepted": { "kind": "value", "text": "21.6", "at": 21.6 },
+                      "took": { "kind": "value", "text": "9.6", "at": 9.6 }
+                    }
+                  ],
+                  "emptyText": null
+                },
+                "hashes": {
+                  "title": "Hashes and instructions",
+                  "items": [
+                    {
+                      "label": "Method texts",
+                      "kind": "SHA-256",
+                      "value": "c3d8a1f5069e42b7d0a95c1e83f7b2640d19e5a8c7b3f06d2e4a91c8b5073f6e",
+                      "copyLabel": "Copy hash",
+                      "what": "The hash of the method texts"
+                    }
+                  ]
+                },
+                "spend": {
+                  "title": "Spend against the cap",
+                  "progress": { "text": "USD 10.25 of USD 20.00", "value": 10.25, "max": 20 },
+                  "note": "The run finished inside its cap. Spend by module is in the model calls register below."
+                },
+                "calls": {
+                  "title": "Model calls",
+                  "count": "31",
+                  "note": "Calls, tokens and cost by module.",
+                  "columns": [
+                    "Module",
+                    "Code",
+                    "Calls",
+                    "Retries",
+                    "Tokens in",
+                    "Tokens out",
+                    "Cost, USD"
+                  ],
+                  "rows": [
+                    { "label": "Recovery", "cells": ["CP-3B", "3", "1", "73,100", "2,260", "0.34"] }
+                  ],
+                  "total": {
+                    "label": "Total",
+                    "cells": ["All", "31", "3", "1,512,000", "79,800", "10.25"]
+                  }
+                },
+                "registers": {
+                  "title": "Registers as written",
+                  "count": "1",
+                  "note": "The registers each module wrote, unedited.",
+                  "columns": ["Register", "Written by", "Rows", "File", "Open"],
+                  "downloadAll": {
+                    "label": "Download all",
+                    "href": "downloads/halden-aerostructures-2025-09-30-registers.zip",
+                    "reason": null
+                  },
+                  "rows": [
+                    {
+                      "name": "Gap ledger",
+                      "writtenBy": "Every module",
+                      "rows": "2",
+                      "file": "registers/gaps.md",
+                      "href": "downloads/halden-aerostructures-2025-09-30-registers/gaps.md",
+                      "reason": null
+                    }
+                  ]
+                }
+              },
               "jump": [
                 {
                   "group": "Gaps",

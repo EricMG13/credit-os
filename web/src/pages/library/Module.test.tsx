@@ -1565,6 +1565,7 @@ describe("Module, the index route", () => {
             sources: { files: { readers: unknown }[] };
             gaps: { groups: unknown[] };
             jump: unknown[];
+            record: { timings: Json };
             tabs: Json;
           };
         }[];
@@ -1576,6 +1577,8 @@ describe("Module, the index route", () => {
     for (const file of run.evidence.sources.files) file.readers = { shown: [], more: null };
     run.evidence.gaps.groups = [];
     run.evidence.jump = [];
+    run.evidence.record.timings["rows"] = [];
+    run.evidence.record.timings["emptyText"] = "No module ran, so no module has a time.";
     run.evidence.tabs["gaps"] = "0";
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";
