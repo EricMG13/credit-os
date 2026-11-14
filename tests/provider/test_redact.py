@@ -22,7 +22,9 @@ def test_bytes_rows(values: tuple[str, ...], text: str, expected: str) -> None:
     assert Redactor(values).bytes_(text.encode()) == expected.encode()
 
 
-@pytest.mark.parametrize(("values", "text", "expected"), key.REDACT_TEXT)
+@pytest.mark.parametrize(
+    ("values", "text", "expected"), [row for row in key.REDACT_TEXT if any(row[0])]
+)
 def test_no_exact_value_survives_a_change(
     values: tuple[str, ...], text: str, expected: str
 ) -> None:

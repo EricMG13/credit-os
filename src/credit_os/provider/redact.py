@@ -11,11 +11,12 @@ from collections.abc import Iterable, Mapping
 
 REPLACEMENT = "[redacted]"
 TOKEN_ENV_NAMES = ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")
-# A key may follow "_" or any other non-key character; only a preceding letter or digit marks the
-# "sk-" (or "ghp_"-style or "github_pat_" prefix) as the tail of a longer word such as "risk-".
-# It may also follow an escape sequence that ends in a letter or digit, which that rule would
-# take for a word: one alternative of the left boundary per escape form.
-_LEFT_BOUNDARIES = (
+# Two rules for the left side of a key. A GitHub token shape ("ghp_" and its kin, "github_pat_")
+# is redacted after any character, inside a word included: no boundary. An "sk-" key keeps one,
+# because "ask-", "risk-" and "task-" are ordinary words: it may not follow a letter or digit,
+# except after an escape sequence that ends in one (a "\n", "%0A", an ANSI colour code), which
+# that rule would take for a word. One alternative per escape form.
+_SK_LEFT_BOUNDARIES = (
     r"(?<![A-Za-z0-9])",  # not the tail of a longer word
     r"(?<=%[0-9A-Fa-f]{2})",  # URL-encoded escape
     r"(?<=%25[0-9A-Fa-f]{2})",  # double-URL-encoded escape
@@ -28,11 +29,10 @@ _LEFT_BOUNDARIES = (
     r"(?<=\x1b\[[0-9;]{4}m)",
     r"(?<=\x1b\[[0-9;]{5}m)",
 )
-_KEY_BOUNDARY = "|".join(_LEFT_BOUNDARIES)
-_KEY_PATTERN = re.compile(
-    rf"(?:{_KEY_BOUNDARY})(sk-(or|ant|proj)-[A-Za-z0-9_-]{{6,}}"
-    r"|sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})"
-)
+_SK_BOUNDARY = "|".join(_SK_LEFT_BOUNDARIES)
+_SK_KEY = r"sk-(?:(?:or|ant|proj)-[A-Za-z0-9_-]{6,}|[A-Za-z0-9_-]{20,})"
+_GITHUB_SHAPES = r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}"
+_KEY_PATTERN = re.compile(rf"(?:{_SK_BOUNDARY})(?:{_SK_KEY})|{_GITHUB_SHAPES}")
 _KEY_PATTERN_BYTES = re.compile(_KEY_PATTERN.pattern.encode("ascii"))
 _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # A home directory: "/home/<user>", "/var/home/<user>", "/Users/<user>", "/root", and on Windows
@@ -76,7 +76,7 @@ def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], mark
 
 
 def _with_stripped(value: str | None) -> tuple[str, ...]:
-    return (value, value.strip()) if value else ()
+    return (value, value.strip()) if value and value.strip() else ()
 
 
 class Redactor:
