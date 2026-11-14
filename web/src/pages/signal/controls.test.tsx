@@ -26,6 +26,17 @@ function withFreshness(id: string, freshness: Record<string, unknown>): unknown 
   return copy;
 }
 
+/** The reader scene with its one source made Failing, as the slice ties it to the feed's failing text, and `freshness` replaced. */
+function withFailingSource(freshness: Record<string, unknown>): unknown {
+  const copy = structuredClone(fixture.slice);
+  const scene = copy.scenes.find((s) => s.id === "reader");
+  const source = scene?.snapshot.settings.sources[0];
+  if (scene === undefined || source === undefined) throw new Error("the fixture holds the scene");
+  Object.assign(source, { health: "Failing", reason: "No reply from the source" });
+  Object.assign(scene.snapshot.feed.freshness, { failing: "1 source failing", ...freshness });
+  return copy;
+}
+
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
 const TESSALY = "Competition authority opens in-depth review of Tessaly Telecom's tower sale";
 const HALVORSEN = "Northgate Ratings downgrades Halvorsen Marine to B+";
@@ -113,8 +124,16 @@ describe("the freshness line", () => {
   });
 
   it("appends only the failing text when there is no error text", () => {
-    show("/signal/main/feed/for-you", withFreshness("main", { failing: "1 source failing" }));
+    show("/signal/reader/feed/for-you", withFailingSource({}));
     expect(screen.getByText("Sources checked 6 min ago · 1 source failing")).toBeInTheDocument();
+  });
+
+  it("says Source status unavailable alone when nothing is failing and no error is delivered", () => {
+    show(
+      "/signal/reader/feed/for-you",
+      withFreshness("reader", { state: "unavailable", checked: null }),
+    );
+    expect(screen.getByText("Source status unavailable")).toBeInTheDocument();
   });
 
   it("keeps the delivered failing suffix when sources are not checked yet", () => {
