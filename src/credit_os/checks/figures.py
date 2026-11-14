@@ -10,8 +10,17 @@ word, after `(`, before `)`, in the month-count mask's currency test) crosses it
 neighbour of a minus or of a leading point, and it is the left side of a range only when it touches the dash.
 
 Letters in every word of the unit table, the currency codes and the `$` prefixes are ASCII, read
-with ASCII case rules. A figure's value is `Decimal` of its digits as written, never negative,
-never rounded; a figure in brackets is a negative. Arithmetic is nowhere: no float, no division.
+with ASCII case rules. A figure's value is `Decimal` of its digits as written, never negative;
+a figure in brackets is a negative unless the Notes rule reads it as a note. The Notes rule's only
+arithmetic is a `Decimal` rounding of the figure before; there is no float and no division.
+
+Notes. A bracketed figure with no minus is a note, read as written (neither negative nor bracketed), when the
+figure before it, read with only codes masked (on the passage side a masked date or period label counts
+as that figure), is on the line, ends with only spaces or tabs before the `(` and is neither bracketed
+nor a note; and the bracket's unit is `%` or `x`; or its unit is none or the one before it, the figure
+before has no minus, and it is that figure rounded to fewer decimal places (half up or half even, in a
+context sized from the operands) or the same digits to the same places with thousands separators the
+figure before lacks. Every other bracket is a negative.
 
 Unit and scale. One rule, `_after`, reads what follows a number: a word of the unit table directly
 or after any run of whitespace; or a currency and then a scale word (`250 US$ thousands`, whitespace between each part);
@@ -33,7 +42,8 @@ bounded: it can cross a long run of whitespace, once).
 
 import re
 import string
-from decimal import Decimal
+from bisect import bisect_left
+from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Context, Decimal
 from typing import NamedTuple
 
 from pydantic import Field
@@ -146,6 +156,10 @@ _NUMBER = re.compile(
 )
 _DASHES = "–—"
 _BEFORE_SIGNS = "(-−–—+"
+_RATIOS = ("%", "x")
+_PLAIN = {"negative": False, "bracketed": False}
+_HYPHEN_NUMBER = re.compile(r"[-−](?:\d{1,3}(?:,\d{3})+(?!\d)|\d+)(?:\.\d+)?")
+_MINUS = "Write the minus before the currency: -USD 5 million."
 _COMMA = "Write the number with a decimal point, and commas only between groups of three digits."
 _DECIMALS = "Round to at most two decimals."
 _FORM = "Write the unit or scale in an accepted form (USD 250 million, 45%, 3.1x), or reword it."
@@ -402,18 +416,74 @@ def _figure(masked: _Masked, found: re.Match[str], text: str) -> tuple[Figure, i
     return figure, end
 
 
-def read_figures(text: str, *, passage: bool) -> tuple[Figure, ...]:
-    """The figures of one line of text, left to right.
-
-    Dates and period labels are read as written when `passage` is false; masked when true.
-    """
-    masked = _mask(text, passage=passage)
+def _read(text: str, masked: _Masked) -> list[Figure]:
     figures: list[Figure] = []
     position = 0
     while (found := _find(_NUMBER, masked, position)) is not None:
         figure, position = _figure(masked, found, text)
         figures.append(figure)
-    return tuple(figures)
+    return figures
+
+
+def _places(value: Decimal) -> int:
+    """The decimal places `value` is written to."""
+    return -int(value.as_tuple().exponent)
+
+
+def _rounded(value: Decimal, places: int) -> tuple[Decimal, Decimal]:
+    """`value` rounded to `places` decimals, half up and half even, in a context sized from it."""
+    size = len(value.as_tuple().digits) + _places(value) + places + 3
+    context = Context(prec=size, Emax=size, Emin=-size)
+    exponent = Decimal((0, (1,), -places))
+    return (
+        value.quantize(exponent, rounding=ROUND_HALF_UP, context=context),
+        value.quantize(exponent, rounding=ROUND_HALF_EVEN, context=context),
+    )
+
+
+def _is_note(figure: Figure, before: Figure) -> bool:
+    """A bracketed figure that is a ratio, or a rounding or a thousands-separated copy of `before`."""
+    if figure.unit in _RATIOS:
+        return True
+    if figure.unit not in (None, before.unit) or before.negative:
+        return False
+    places, before_places = _places(figure.value), _places(before.value)
+    if places == before_places:
+        return figure.value == before.value and "," in figure.shown and "," not in before.shown
+    return places < before_places and figure.value in _rounded(before.value, places)
+
+
+def _is_note_on(text: str, figure: Figure, before: Figure) -> bool:
+    if not figure.bracketed or before.bracketed:
+        return False
+    end = before.column - 1 + len(before.shown)
+    start = figure.column - 1
+    if end > start or text[end:start].strip(" \t"):
+        return False
+    return _is_note(figure, before)
+
+
+def _with_notes(text: str, figures: list[Figure], codes: list[Figure]) -> tuple[Figure, ...]:
+    """`figures` with each note read as written; `codes` is the line read with only codes masked."""
+    columns = [figure.column for figure in codes]
+    result: list[Figure] = []
+    for figure in figures:
+        at = bisect_left(columns, figure.column) - 1
+        noted = at >= 0 and _is_note_on(text, figure, codes[at])
+        result.append(figure.model_copy(update=_PLAIN) if noted else figure)
+    return tuple(result)
+
+
+def read_figures(text: str, *, passage: bool) -> tuple[Figure, ...]:
+    """The figures of one line of text, left to right.
+
+    Dates and period labels are read as written when `passage` is false; masked when true.
+    """
+    figures = _read(text, _mask(text, passage=passage))
+    if not any(figure.bracketed for figure in figures):
+        return tuple(figures)
+    codes = _read(text, _mask(text, passage=False)) if passage else figures
+    return _with_notes(text, figures, codes)
 
 
 def _plain(found: re.Match[str]) -> bool:
@@ -480,9 +550,22 @@ def _past_bracket(masked: _Masked, found: re.Match[str], after: _After) -> _Afte
     return after if beyond.unit is None else beyond
 
 
+def _currency_minus(line: int, masked: _Masked, text: str) -> tuple[Finding, ...]:
+    """A currency word directly before a hyphen or minus sign and a digit: the reader reads no minus."""
+    found: list[Finding] = []
+    for hyphen in _HYPHEN_NUMBER.finditer(masked.text):
+        word = _currency_word_before(masked.text, hyphen.start())
+        if word is None or masked.text[hyphen.start() - 1] not in _LETTERS:
+            continue
+        found.append(
+            refusal("figure.form", line, text[word[0] : hyphen.end()], _MINUS, word[0] + 1)
+        )
+    return tuple(found)
+
+
 def _line_findings(line: int, text: str) -> tuple[Finding, ...]:
     masked = _mask(text, passage=True)
-    findings: list[Finding] = []
+    findings = list(_currency_minus(line, masked, text))
     position = 0
     previous_end = -1
     while (found := _find(_FIGURE, masked, position)) is not None:
