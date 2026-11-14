@@ -139,7 +139,7 @@ function ChannelList({
             return (
               <Row
                 key={topic.id}
-                href={sceneHref(scene, `topic/${topic.id}`)}
+                href={sceneHref(scene, `topic/${encodeURIComponent(topic.id)}`)}
                 icon={Hash02}
                 on={isCurrent(current, "topic", topic.id)}
                 mark={<Count>{topic.count ?? "n.a."}</Count>}
@@ -169,7 +169,7 @@ function ChannelList({
           {channels.groups.map((group) => (
             <Row
               key={group.id}
-              href={sceneHref(scene, `group/${group.id}`)}
+              href={sceneHref(scene, `group/${encodeURIComponent(group.id)}`)}
               icon={Users01}
               on={isCurrent(current, "group", group.id)}
               mark={group.unread === null ? undefined : <Count>{group.unread}</Count>}
@@ -184,7 +184,7 @@ function ChannelList({
         {channels.digests.map((digest) => (
           <Row
             key={digest.id}
-            href={sceneHref(scene, `digest/${digest.id}`)}
+            href={sceneHref(scene, `digest/${encodeURIComponent(digest.id)}`)}
             icon={File05}
             on={isCurrent(current, "digest", digest.id)}
             mark={<DigestMark paused={digest.paused} unread={digest.unread} />}
@@ -275,7 +275,9 @@ export function SignalFrame({
   // In memory only: a typed name lasts until the page is left; nothing is written.
   const [typed, setTyped] = useState<string | null>(null);
   const [open, setOpen] = useState(viewer.name === null);
-  const [said, setSaid] = useState("");
+  // What the live region says, with a counter: the region stays on the page and each name set puts a
+  // fresh node inside it (as Share does), so the same sentence twice is announced twice.
+  const [said, setSaid] = useState({ count: 0, text: "" });
   const name = typed ?? viewer.name;
   // A typed name with no letter or digit has no initials: the avatar draws "?" as it does with no name.
   const typedInitials = typed === null ? "" : initialsOf(typed);
@@ -318,7 +320,7 @@ export function SignalFrame({
         current={name}
         onSubmit={(next) => {
           setTyped(next);
-          setSaid(`Signed in as ${next}`);
+          setSaid({ count: said.count + 1, text: `Signed in as ${next}` });
           setOpen(false);
         }}
         onCancel={() => {
@@ -327,7 +329,7 @@ export function SignalFrame({
         onGone={() => chipRef.current?.focus()}
       />
       <div role="status" className="sr-only">
-        {said}
+        {said.count > 0 ? <span key={said.count}>{said.text}</span> : null}
       </div>
       <div
         id="signal-content"

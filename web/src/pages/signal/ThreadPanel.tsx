@@ -143,7 +143,8 @@ function Conversation({
   const [added, setAdded] = useState<Added[]>([]);
   const [replyTo, setReplyTo] = useState<SignalComment | null>(null);
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
-  const [said, setSaid] = useState("");
+  // The live region stays and each post puts a fresh node in it (as Share does), so the same sentence twice is announced twice.
+  const [said, setSaid] = useState({ count: 0, text: "" });
   const comments = withAdded(thread.comments, added);
   const named = viewer.name !== null && viewer.initials !== null;
   const canWrite = writer && !thread.archived;
@@ -164,7 +165,10 @@ function Conversation({
     };
     setAdded([...added, { parentId: replyTo?.id ?? null, comment }]);
     setReplyTo(null);
-    setSaid(replyTo === null ? "Comment posted" : `Reply to ${replyTo.author.name} posted`);
+    setSaid({
+      count: said.count + 1,
+      text: replyTo === null ? "Comment posted" : `Reply to ${replyTo.author.name} posted`,
+    });
   };
   let footer;
   if (thread.archived) {
@@ -227,7 +231,7 @@ function Conversation({
           />
         )}
         <div role="status" className="sr-only">
-          {said}
+          {said.count > 0 ? <span key={said.count}>{said.text}</span> : null}
         </div>
       </SlideoutMenu.Content>
       <SlideoutMenu.Footer>{footer}</SlideoutMenu.Footer>
