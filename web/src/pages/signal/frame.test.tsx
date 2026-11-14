@@ -198,11 +198,11 @@ describe("the Signal frame", () => {
     expect(screen.queryByText("Page not found")).toBeNull();
   });
 
-  it("links an unknown scene to the bare #/signal home and draws no channel list", () => {
+  it("links an unknown scene to the first scene's For you and draws no channel list", () => {
     show("/signal/nowhere/feed/for-you");
     expect(screen.getByRole("link", { name: "Back to the sample scenes" })).toHaveAttribute(
       "href",
-      "#/signal",
+      "#/signal/main/feed/for-you",
     );
     expect(screen.queryByRole("navigation", { name: "Signal" })).toBeNull();
   });
@@ -267,6 +267,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(12);
+    expect(visits).toBe(14);
   });
 });
