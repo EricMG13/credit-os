@@ -117,7 +117,7 @@ def test_a_story_id_of_the_wrong_type_is_a_store_error(
         True,
         False,
         "x",
-        "9" * 5000,
+        pytest.param("9" * 5000, id="9-times-5000"),
         1.5,
         None,
         b"1",
@@ -352,7 +352,13 @@ HOSTILE = [
 ]
 
 
-@pytest.mark.parametrize("query", HOSTILE)
+def _hostile_id(query: str) -> str:
+    """A short ASCII id: Windows refuses an environment variable over 32,767 characters."""
+    head = ascii(query[:24])[1:-1]
+    return f"{head}-len{len(query)}"
+
+
+@pytest.mark.parametrize("query", HOSTILE, ids=_hostile_id)
 def test_hostile_search_text_returns_a_page_for_every_view(
     grid: sqlite3.Connection, query: str
 ) -> None:
