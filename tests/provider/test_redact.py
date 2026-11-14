@@ -42,6 +42,20 @@ def test_home_paths_rows(text: str, expected: str) -> None:
     assert home_paths(text) == expected
 
 
+# Mutation rows, expected values written by hand: the key does not pin these forms.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("/Users/Jane  Doe/x", "<home>/x"),
+        ("C:\\Users\\Jane Doe: next", "<home>: next"),
+        ("msg\\r/home/jane/x", "msg\\r<home>/x"),
+        ("msg\\t/home/jane/x", "msg\\t<home>/x"),
+    ],
+)
+def test_home_paths_mutation_rows(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
 def test_lone_surrogate_value_does_not_raise_and_its_encodable_forms_match() -> None:
     redactor = Redactor(["ab\ud800cd-4711"])
     assert redactor.text("x ab\ud800cd-4711 y") == "x [redacted] y"
