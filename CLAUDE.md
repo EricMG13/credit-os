@@ -20,7 +20,7 @@ and in the trace control, never in narrative sentences.
 | :--- | :--- |
 | Python | `>=3.12,<3.13` |
 | uv | `>=0.12.5,<0.13` |
-| Runtime | pydantic 2.13.4, pypdf 6.21.2, github-copilot-sdk 1.0.8 (openpyxl 3.1.5 is on the work PC but unused: xlsx is read with the standard library) |
+| Runtime | pydantic 2.13.4, pypdf 6.21.4, github-copilot-sdk 1.0.8 (openpyxl 3.1.5 is on the work PC but unused: xlsx is read with the standard library) |
 | Dev | pytest 9.1.1, ruff 0.16.8, mypy 1.18.1 |
 | Model route | GitHub Copilot CLI 1.0.108, model `gpt-6-sol`, config `copilot-sol-medium` |
 | Front end | Node 24, React 19.3.0, Vite 6.4.5, Tailwind 4.3.3, TypeScript 5.9.3 |
