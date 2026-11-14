@@ -102,27 +102,48 @@ def _hidden_end_record() -> bytes:
     return raw[:end] + bytes(tail) + comment
 
 
-def _zip64(raw: bytes, dirsize: int | None = None, sentinel: bool = True) -> bytes:
+def _zip64(
+    raw: bytes,
+    dirsize: int | None = None,
+    sentinel: bool = True,
+    rel: int | None = None,
+    extensible: bytes = b"",
+    rec_sig: bytes = b"PK\x06\x06",
+) -> bytes:
     e = raw.rindex(b"PK\x05\x06")
     n, size, off = struct.unpack_from("<HLL", raw, e + 10)
-    rec = struct.pack(
-        "<4sQHHLLQQQQ",
-        b"PK\x06\x06",
-        44,
-        45,
-        45,
-        0,
-        0,
-        n,
-        n,
-        size if dirsize is None else dirsize,
-        off,
+    rec = (
+        struct.pack(
+            "<4sQHHLLQQQQ",
+            rec_sig,
+            44 + len(extensible),
+            45,
+            45,
+            0,
+            0,
+            n,
+            n,
+            size if dirsize is None else dirsize,
+            off,
+        )
+        + extensible
     )
-    loc = struct.pack("<4sLQL", b"PK\x06\x07", 0, e, 1)
+    loc = struct.pack("<4sLQL", b"PK\x06\x07", 0, e if rel is None else rel, 1)
     tail = bytearray(raw[e:])
     if sentinel:
         tail[8:20] = struct.pack("<HHLL", 0xFFFF, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
     return raw[:e] + rec + loc + bytes(tail)
+
+
+def _hidden_record(size64: int) -> bytes:
+    """ONE whose central entry comment holds a ZIP64 record and a locator body with no signature."""
+    rec = struct.pack("<4sQHHLLQQQQ", b"PK\x06\x06", 44, 45, 45, 0, 0, 1, 1, size64, CD)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        info = zipfile.ZipInfo(PART)
+        info.comment = rec + b"XXXX" + struct.pack("<LQL", 0, 0, 1)
+        archive.writestr(info, GOOD)
+    return buffer.getvalue()
 
 
 def _eocd_size(raw: bytes, size: int) -> bytes:
@@ -141,6 +162,7 @@ ONE = zipped({PART: GOOD})
 TWO = zipped({PART: GOOD, "xl/b.xml": GOOD})
 DEFLATED = zipped({PART: b"<a>" + b"text " * 200 + b"</a>"}, zipfile.ZIP_DEFLATED)
 EOCD = ONE.rindex(b"PK\x05\x06")
+CD = central(ONE)
 SHIFTED = patched(
     patched(
         ONE,
@@ -329,6 +351,36 @@ DIRECTORY_ROWS: list[tuple[str, bytes, int | None, str | None, str]] = [
         _FOLDED,
         "none",
     ),
+    # K1 to K11 hold `_end_record` to zipfile's reading (decision 0011 item 2).
+    ("K1", patched(ONE, EOCD + 12, b"PK\x05\x06"), None, _TOO_LARGE, "none"),
+    ("K2", _commented(b"note\x00\x00"), None, None, "none"),
+    (
+        "K3",
+        patched(ONE, EOCD + 12, b"\xff\xff\xff\xff") + b"\x00" * 65_536,
+        None,
+        _UNREADABLE,
+        "BadZipFile",
+    ),
+    ("K4", _commented(b"PK\x05\x06" + b"x" * 18), None, _TOO_LARGE, "none"),
+    ("K5", _hidden_record(2**40), None, None, "none"),
+    ("K6", _zip64(ONE, rel=2**64 - 1), None, _TOO_LARGE, "none"),
+    ("K7", _zip64(ONE, extensible=b"\x00" * 8), None, None, "none"),
+    ("K8", _zip64(ONE, rec_sig=b"PK\x00\x00"), None, _TOO_LARGE, "none"),
+    ("K9", _zip64(ONE, dirsize=2**63), None, _TOO_LARGE, "none"),
+    (
+        "K10",
+        patched(ONE, CD + 42, len(ONE).to_bytes(4, "little")),
+        None,
+        "a zip member outside the file",
+        "none",
+    ),
+    (
+        "K11",
+        ONE[:CD] + struct.pack("<4s4H2LH", b"PK\x05\x06", 0, 0, 0, 0, 0, CD, 0),
+        None,
+        "a zip with no members",
+        "none",
+    ),
 ]
 
 
@@ -393,6 +445,38 @@ def test_empty_unicode_path_warning_is_typed() -> None:
             Package("b.xlsx", raw)
     assert str(caught.value) == "b.xlsx: not a readable zip"
     assert type(caught.value.__cause__) is UserWarning
+
+
+def test_l1_pieces_at_the_module_chunk_size() -> None:
+    package = Package("b.xlsx", zipped({PART: b"y" * 65_537}))
+    assert [len(piece) for piece in package.pieces(PART)] == [65_536, 1]
+
+
+def test_l1_empty_unicode_path_warning_is_typed_under_any_filter() -> None:
+    raw = _unicode_path_zip([(PART, b"")], {PART: GOOD})
+    for action in ("ignore", "default"):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action)
+            with pytest.raises(SourceUnreadable) as caught:
+                Package("b.xlsx", raw)
+        assert str(caught.value) == "b.xlsx: not a readable zip", action
+        assert type(caught.value.__cause__) is UserWarning, action
+
+
+def test_pin_end_record_equals_zipfiles_lookup() -> None:
+    end_record_data = vars(zipfile)["_EndRecData"]
+    rows = [row[1] for row in ZIP_ROWS] + [row[1] for row in DIRECTORY_ROWS]
+    compared = 0
+    for raw in rows:
+        try:
+            record = end_record_data(io.BytesIO(raw))
+        except (zipfile.BadZipFile, OSError):
+            continue
+        expected = None if record is None else (record[6], record[5], record[4])
+        ours = ooxml._end_record(raw)
+        assert ours == expected, _fail("end record", ours, expected)
+        compared += 1
+    assert compared > 0, sys.version
 
 
 def test_pieces_are_at_most_chunk_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
