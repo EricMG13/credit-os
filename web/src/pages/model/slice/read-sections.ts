@@ -40,7 +40,7 @@ const step = tagged<BridgeStep>({
   down: present("down"),
   missing: object({ label: text, kind: is("missing") }),
 });
-const bridge = object<Bridge>({
+export const bridge = object<Bridge>({
   ...chartInfo,
   yTicks: arrayOf(tick),
   caseSteps: arrayOf(arrayOf(step)),
@@ -117,7 +117,7 @@ function exactly(list: readonly unknown[], n: number, path: string, what: string
 }
 
 /** Caller ticks: two or more, rising from 0. Returns the last tick, the axis end. */
-function checkTicks(ticks: readonly Tick[], path: string): number {
+export function checkTicks(ticks: readonly Tick[], path: string): number {
   const last = ticks[ticks.length - 1];
   if (ticks.length < 2 || last === undefined) fail(path, "expected at least two ticks");
   ticks.forEach((t, i) => {
@@ -150,7 +150,7 @@ function checkStep(s: BridgeStep, axisEnd: number, path: string): void {
   }
 }
 
-function checkBridge(b: Bridge, cases: readonly CaseCard[], path: string): void {
+export function checkBridge(b: Bridge, cases: readonly CaseCard[], path: string): void {
   const axisEnd = checkTicks(b.yTicks, `${path}.yTicks`);
   exactly(b.caseSteps, cases.length, `${path}.caseSteps`, "lists of steps, one per case");
   b.caseSteps.forEach((steps, k) => {

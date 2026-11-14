@@ -197,6 +197,7 @@ export type ColumnsData = ChartInfo & {
   groups: { label: string; trace: string | null }[];
   series: { name: string; values: (number | null)[]; labels: (string | null)[] }[];
 };
+
 /** One header note per case, in the order of `ModelRun.cases`. */
 type CaseNote = { text: string };
 
@@ -392,6 +393,29 @@ export type HoldingsStrips = ChartInfo & { rangeLabel: string; head: string[]; r
 /** A tab of the run's library pages, drawn on the Forecast page; `count` is a delivered string. */
 export type RunTab = { label: string; href: string; count: string | null; current: boolean };
 
+/** What the two line charts share: the divider, the axis and the table side. */
+type PathBlock = ChartInfo & {
+  divider: { period: string; at: "on" | "after"; label: string };
+  yTicks: Tick[];
+  /** The first entry heads the label column; the rest are the page's periods. */
+  head: string[];
+  rows: { label: string; cells: (string | null)[] }[];
+};
+
+/** A line: one value and one label per period; a label is `null` where none is drawn. */
+type PathSeries = { name: string; values: (number | null)[]; labels: (string | null)[] };
+
+/**
+ * Interest cover: `cases` holds one line per case, in case order, and the chart draws the chosen
+ * one. The table holds one row per case.
+ */
+export type InterestCover = PathBlock & {
+  cases: { values: (number | null)[]; labels: (string | null)[] }[];
+};
+
+/** EBITDA by case: every line is always drawn; the table holds one row per line. */
+export type EbitdaPaths = PathBlock & { series: PathSeries[] };
+
 export type ForecastPage = {
   tabs: RunTab[];
   /** The periods of both line charts, oldest first. */
@@ -400,6 +424,10 @@ export type ForecastPage = {
   drivers: HoldingsStrips;
   /** Legend entry k is marker k's wording and the case it belongs to, in case order. */
   driverKeys: { label: string; case: string }[];
+  interestCover: InterestCover;
+  ebitda: EbitdaPaths;
+  /** The cash flow walk for FY26, drawn for the chosen case. */
+  walk: Bridge;
   gap: GapItem;
   /** What would change the forecast, drawn as a standout note. */
   watch: Passage;

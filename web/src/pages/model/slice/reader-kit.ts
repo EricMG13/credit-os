@@ -9,6 +9,7 @@ export const child = (path: string, key: string): string => (path === "" ? key :
 export function fail(path: string, what: string): never {
   throw new SliceError(`${path}: ${what}`);
 }
+
 /** A string that may be empty: a chart's subtitle or note, which draws nothing when empty. */
 const freeText: Reader<string> = (value, path) =>
   typeof value === "string" ? value : fail(path, "expected a string");

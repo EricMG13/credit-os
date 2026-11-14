@@ -118,6 +118,213 @@
             { "label": "Base case assumption", "case": "Base case" },
             { "label": "Downside case assumption", "case": "Downside case" }
           ],
+          "interestCover": {
+            "title": "Interest cover",
+            "subtitle": "EBITDA as defined divided by cash interest, times",
+            "note": "Cash interest for FY23 was not split out, so the line breaks there. It is not joined across the gap.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "divider": { "period": "LTM", "at": "after", "label": "Forecast" },
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 1, "label": "1x" },
+              { "value": 2, "label": "2x" },
+              { "value": 3, "label": "3x" },
+              { "value": 4, "label": "4x" }
+            ],
+            "cases": [
+              {
+                "values": [2.6, null, 2.8, 2.9, 3, 3.3, 3.6],
+                "labels": ["2.6x", null, "2.8x", "2.9x", "3.0x", "3.3x", "3.6x"]
+              },
+              {
+                "values": [2.6, null, 2.8, 2.9, 2.9, 2.3, 2.4],
+                "labels": ["2.6x", null, "2.8x", "2.9x", "2.9x", "2.3x", "2.4x"]
+              }
+            ],
+            "head": ["Interest cover", "FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"],
+            "rows": [
+              {
+                "label": "Base case",
+                "cells": ["2.6x", null, "2.8x", "2.9x", "3.0x", "3.3x", "3.6x"]
+              },
+              {
+                "label": "Downside case",
+                "cells": ["2.6x", null, "2.8x", "2.9x", "2.9x", "2.3x", "2.4x"]
+              }
+            ]
+          },
+          "ebitda": {
+            "title": "EBITDA by case",
+            "subtitle": "EBITDA as defined, USD millions",
+            "note": "Both cases start from the twelve months to June 2025.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "divider": { "period": "LTM", "at": "on", "label": "Last actual" },
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 1500, "label": "1,500" },
+              { "value": 3000, "label": "3,000" },
+              { "value": 4500, "label": "4,500" },
+              { "value": 6000, "label": "6,000" }
+            ],
+            "series": [
+              {
+                "name": "Actual, then base case",
+                "values": [2646, 3395, 4173, 4560, 4690, 5080, 5460],
+                "labels": ["2,646", null, null, "4,560", null, null, "5,460"]
+              },
+              {
+                "name": "Downside case",
+                "values": [null, null, null, null, 4560, 4120, 4350],
+                "labels": [null, null, null, null, null, "4,120", "4,350"]
+              }
+            ],
+            "head": ["EBITDA as defined", "FY22", "FY23", "FY24", "LTM", "FY25E", "FY26E", "FY27E"],
+            "rows": [
+              {
+                "label": "Base case",
+                "cells": ["2,646", "3,395", "4,173", "4,560", "4,690", "5,080", "5,460"]
+              },
+              {
+                "label": "Downside case",
+                "cells": ["2,646", "3,395", "4,173", "4,560", "4,560", "4,120", "4,350"]
+              }
+            ]
+          },
+          "walk": {
+            "title": "From EBITDA to free cash flow",
+            "subtitle": "FY26, USD millions",
+            "note": "Other cash items were not forecast: the slot stays empty and is not counted as zero.",
+            "trace": "#/library/transdigm/2025-06-30/evidence",
+            "yTicks": [
+              { "value": 0, "label": "0" },
+              { "value": 1500, "label": "1,500" },
+              { "value": 3000, "label": "3,000" },
+              { "value": 4500, "label": "4,500" },
+              { "value": 6000, "label": "6,000" }
+            ],
+            "caseSteps": [
+              [
+                {
+                  "label": "EBITDA",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 5080,
+                  "text": "5,080"
+                },
+                {
+                  "label": "Interest",
+                  "kind": "down",
+                  "from": 5080,
+                  "to": 3520,
+                  "text": "-1,560"
+                },
+                {
+                  "label": "Tax",
+                  "kind": "down",
+                  "from": 3520,
+                  "to": 2910,
+                  "text": "-610"
+                },
+                {
+                  "label": "Working capital",
+                  "kind": "down",
+                  "from": 2910,
+                  "to": 2740,
+                  "text": "-170"
+                },
+                {
+                  "label": "Capex",
+                  "kind": "down",
+                  "from": 2740,
+                  "to": 2540,
+                  "text": "-200"
+                },
+                { "label": "Other", "kind": "missing" },
+                {
+                  "label": "Free cash flow",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 2540,
+                  "text": "2,540"
+                }
+              ],
+              [
+                {
+                  "label": "EBITDA",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 4120,
+                  "text": "4,120"
+                },
+                {
+                  "label": "Interest",
+                  "kind": "down",
+                  "from": 4120,
+                  "to": 2330,
+                  "text": "-1,790"
+                },
+                {
+                  "label": "Tax",
+                  "kind": "down",
+                  "from": 2330,
+                  "to": 1900,
+                  "text": "-430"
+                },
+                {
+                  "label": "Working capital",
+                  "kind": "up",
+                  "from": 1900,
+                  "to": 1960,
+                  "text": "+60"
+                },
+                {
+                  "label": "Capex",
+                  "kind": "down",
+                  "from": 1960,
+                  "to": 1810,
+                  "text": "-150"
+                },
+                { "label": "Other", "kind": "missing" },
+                {
+                  "label": "Free cash flow",
+                  "kind": "total",
+                  "from": 0,
+                  "to": 1810,
+                  "text": "1,810"
+                }
+              ]
+            ],
+            "head": ["FY26, USD millions", "Base case", "Downside case"],
+            "rows": [
+              {
+                "label": "EBITDA as defined",
+                "cells": ["5,080", "4,120"],
+                "trace": null
+              },
+              {
+                "label": "Cash interest",
+                "cells": ["-1,560", "-1,790"],
+                "trace": null
+              },
+              { "label": "Cash tax", "cells": ["-610", "-430"], "trace": null },
+              {
+                "label": "Change in working capital",
+                "cells": ["-170", "60"],
+                "trace": null
+              },
+              {
+                "label": "Capital expenditure",
+                "cells": ["-200", "-150"],
+                "trace": null
+              },
+              { "label": "Other cash items", "cells": [null, null], "trace": null },
+              {
+                "label": "Free cash flow",
+                "cells": ["2,540", "1,810"],
+                "trace": null
+              }
+            ]
+          },
           "gap": {
             "title": "Quarterly cash flow",
             "reason": "The sources give annual figures only, so no quarter-by-quarter path was built."
@@ -144,7 +351,7 @@
               {
                 "label": "Single issuer",
                 "exposure": 2.1,
-                "limit": 3,
+                "limit": 3.0,
                 "scaleMax": 3.75,
                 "exposureText": "2.1%",
                 "limitText": "limit 3.0%",
@@ -153,7 +360,7 @@
               {
                 "label": "Aerospace and defence",
                 "exposure": 9.4,
-                "limit": 12,
+                "limit": 12.0,
                 "scaleMax": 15,
                 "exposureText": "9.4%",
                 "limitText": "limit 12.0%",
@@ -161,8 +368,8 @@
               },
               {
                 "label": "Rated single B",
-                "exposure": 31,
-                "limit": 35,
+                "exposure": 31.0,
+                "limit": 35.0,
                 "scaleMax": 43.75,
                 "exposureText": "31.0%",
                 "limitText": "limit 35.0%",
@@ -170,7 +377,7 @@
               },
               {
                 "label": "United States",
-                "exposure": 58,
+                "exposure": 58.0,
                 "limit": null,
                 "scaleMax": 83,
                 "exposureText": "58.0%",
@@ -180,7 +387,7 @@
               {
                 "label": "Subordinated debt",
                 "exposure": null,
-                "limit": 10,
+                "limit": 10.0,
                 "scaleMax": 12.5,
                 "exposureText": null,
                 "limitText": "limit 10.0%",
@@ -429,7 +636,9 @@
               {
                 "label": "Revenue",
                 "definition": "Net sales, latest twelve months",
-                "value": { "text": "$8,580m" },
+                "value": {
+                  "text": "$8,580m"
+                },
                 "delta": "↗ 8.1% on FY24",
                 "note": null,
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -437,7 +646,9 @@
               {
                 "label": "EBITDA as defined",
                 "definition": "EBITDA as the company defines it in its credit agreement",
-                "value": { "text": "$4,560m" },
+                "value": {
+                  "text": "$4,560m"
+                },
                 "delta": "↗ 9.3% on FY24",
                 "note": null,
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -445,7 +656,9 @@
               {
                 "label": "EBITDA margin",
                 "definition": "EBITDA as defined divided by revenue",
-                "value": { "text": "53.1%" },
+                "value": {
+                  "text": "53.1%"
+                },
                 "delta": "↗ 0.5 pts on FY24",
                 "note": null,
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -453,7 +666,9 @@
               {
                 "label": "Net leverage",
                 "definition": "Net debt divided by EBITDA as defined",
-                "value": { "text": "5.9x" },
+                "value": {
+                  "text": "5.9x"
+                },
                 "delta": "↗ from 4.5x",
                 "note": null,
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -461,7 +676,9 @@
               {
                 "label": "Interest cover",
                 "definition": "EBITDA as defined divided by cash interest",
-                "value": { "text": "2.9x" },
+                "value": {
+                  "text": "2.9x"
+                },
                 "delta": "↗ from 2.8x",
                 "note": null,
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -469,7 +686,9 @@
               {
                 "label": "Free cash flow",
                 "definition": "EBITDA as defined less cash interest, cash tax, working capital and capital expenditure",
-                "value": { "text": "$1,950m" },
+                "value": {
+                  "text": "$1,950m"
+                },
                 "delta": "↗ 10.3% on FY24",
                 "note": null,
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -477,7 +696,9 @@
               {
                 "label": "Secured net leverage",
                 "definition": "Secured net debt divided by EBITDA as defined",
-                "value": { "text": null },
+                "value": {
+                  "text": null
+                },
                 "delta": null,
                 "note": "The secured share of debt was not split out in the sources.",
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -485,7 +706,9 @@
               {
                 "label": "Revolver drawn",
                 "definition": "Amount drawn on the revolving credit facility",
-                "value": { "withheld": true },
+                "value": {
+                  "withheld": true
+                },
                 "delta": null,
                 "note": "Shown to the deal team only.",
                 "trace": "#/library/transdigm/2025-06-30/evidence"
@@ -793,24 +1016,61 @@
         "statements": {
           "intro": "USD millions unless a unit is shown. Fiscal years end 30 September.",
           "columns": [
-            { "period": "FY22", "kind": "actual", "note": "Actual" },
-            { "period": "FY23", "kind": "actual", "note": "Actual" },
-            { "period": "FY24", "kind": "actual", "note": "Actual" },
-            { "period": "LTM", "kind": "actual", "note": "To June 2025" },
+            {
+              "period": "FY22",
+              "kind": "actual",
+              "note": "Actual"
+            },
+            {
+              "period": "FY23",
+              "kind": "actual",
+              "note": "Actual"
+            },
+            {
+              "period": "FY24",
+              "kind": "actual",
+              "note": "Actual"
+            },
+            {
+              "period": "LTM",
+              "kind": "actual",
+              "note": "To June 2025"
+            },
             {
               "period": "FY25E",
               "kind": "forecast",
-              "notes": [{ "text": "Base" }, { "text": "Downside" }]
+              "notes": [
+                {
+                  "text": "Base"
+                },
+                {
+                  "text": "Downside"
+                }
+              ]
             },
             {
               "period": "FY26E",
               "kind": "forecast",
-              "notes": [{ "text": "Base" }, { "text": "Downside" }]
+              "notes": [
+                {
+                  "text": "Base"
+                },
+                {
+                  "text": "Downside"
+                }
+              ]
             },
             {
               "period": "FY27E",
               "kind": "forecast",
-              "notes": [{ "text": "Base" }, { "text": "Downside" }]
+              "notes": [
+                {
+                  "text": "Base"
+                },
+                {
+                  "text": "Downside"
+                }
+              ]
             }
           ],
           "statements": [
@@ -836,7 +1096,7 @@
                       { "kind": "figure", "text": "8,780", "pos": 0.8616 }
                     ],
                     [
-                      { "kind": "figure", "text": "10,190", "pos": 1 },
+                      { "kind": "figure", "text": "10,190", "pos": 1.0 },
                       { "kind": "figure", "text": "9,050", "pos": 0.8881 }
                     ]
                   ]
@@ -860,7 +1120,7 @@
                       { "kind": "figure", "text": "5,040", "pos": 0.8331 }
                     ],
                     [
-                      { "kind": "figure", "text": "6,050", "pos": 1 },
+                      { "kind": "figure", "text": "6,050", "pos": 1.0 },
                       { "kind": "figure", "text": "5,250", "pos": 0.8678 }
                     ]
                   ]
@@ -884,7 +1144,7 @@
                       { "kind": "figure", "text": "4,120", "pos": 0.7546 }
                     ],
                     [
-                      { "kind": "figure", "text": "5,460", "pos": 1 },
+                      { "kind": "figure", "text": "5,460", "pos": 1.0 },
                       { "kind": "figure", "text": "4,350", "pos": 0.7967 }
                     ]
                   ]
@@ -908,8 +1168,8 @@
                       { "kind": "figure", "text": "-370", "pos": -0.961 }
                     ],
                     [
-                      { "kind": "figure", "text": "-385", "pos": -1 },
-                      { "kind": "figure", "text": "-385", "pos": -1 }
+                      { "kind": "figure", "text": "-385", "pos": -1.0 },
+                      { "kind": "figure", "text": "-385", "pos": -1.0 }
                     ]
                   ]
                 },
@@ -932,7 +1192,7 @@
                       { "kind": "figure", "text": "3,400", "pos": 0.7234 }
                     ],
                     [
-                      { "kind": "figure", "text": "4,700", "pos": 1 },
+                      { "kind": "figure", "text": "4,700", "pos": 1.0 },
                       { "kind": "figure", "text": "3,610", "pos": 0.7681 }
                     ]
                   ]
@@ -957,7 +1217,7 @@
                     ],
                     [
                       { "kind": "figure", "text": "-1,530", "pos": -0.85 },
-                      { "kind": "figure", "text": "-1,800", "pos": -1 }
+                      { "kind": "figure", "text": "-1,800", "pos": -1.0 }
                     ]
                   ]
                 },
@@ -980,7 +1240,7 @@
                       { "kind": "figure", "text": "-390", "pos": -0.5132 }
                     ],
                     [
-                      { "kind": "figure", "text": "-760", "pos": -1 },
+                      { "kind": "figure", "text": "-760", "pos": -1.0 },
                       { "kind": "figure", "text": "-430", "pos": -0.5658 }
                     ]
                   ]
@@ -1004,7 +1264,7 @@
                       { "kind": "figure", "text": "1,180", "pos": 0.4979 }
                     ],
                     [
-                      { "kind": "figure", "text": "2,370", "pos": 1 },
+                      { "kind": "figure", "text": "2,370", "pos": 1.0 },
                       { "kind": "figure", "text": "1,340", "pos": 0.5654 }
                     ]
                   ]
@@ -1033,7 +1293,7 @@
                       { "kind": "figure", "text": "4,120", "pos": 0.7546 }
                     ],
                     [
-                      { "kind": "figure", "text": "5,460", "pos": 1 },
+                      { "kind": "figure", "text": "5,460", "pos": 1.0 },
                       { "kind": "figure", "text": "4,350", "pos": 0.7967 }
                     ]
                   ]
@@ -1058,7 +1318,7 @@
                     ],
                     [
                       { "kind": "figure", "text": "-1,530", "pos": -0.85 },
-                      { "kind": "figure", "text": "-1,800", "pos": -1 }
+                      { "kind": "figure", "text": "-1,800", "pos": -1.0 }
                     ]
                   ]
                 },
@@ -1081,7 +1341,7 @@
                       { "kind": "figure", "text": "-430", "pos": -0.6143 }
                     ],
                     [
-                      { "kind": "figure", "text": "-700", "pos": -1 },
+                      { "kind": "figure", "text": "-700", "pos": -1.0 },
                       { "kind": "figure", "text": "-400", "pos": -0.5714 }
                     ]
                   ]
@@ -1095,7 +1355,7 @@
                     { "kind": "figure", "text": "-260", "pos": -0.7647 },
                     { "kind": "figure", "text": "-310", "pos": -0.9118 },
                     { "kind": "figure", "text": "-290", "pos": -0.8529 },
-                    { "kind": "figure", "text": "-340", "pos": -1 },
+                    { "kind": "figure", "text": "-340", "pos": -1.0 },
                     [
                       { "kind": "figure", "text": "-230", "pos": -0.6765 },
                       { "kind": "figure", "text": "-150", "pos": -0.4412 }
@@ -1129,7 +1389,7 @@
                       { "kind": "figure", "text": "-150", "pos": -0.7009 }
                     ],
                     [
-                      { "kind": "figure", "text": "-214", "pos": -1 },
+                      { "kind": "figure", "text": "-214", "pos": -1.0 },
                       { "kind": "figure", "text": "-160", "pos": -0.7477 }
                     ]
                   ]
@@ -1153,7 +1413,7 @@
                       { "kind": "figure", "text": "1,810", "pos": 0.6382 }
                     ],
                     [
-                      { "kind": "figure", "text": "2,836", "pos": 1 },
+                      { "kind": "figure", "text": "2,836", "pos": 1.0 },
                       { "kind": "figure", "text": "1,870", "pos": 0.6594 }
                     ]
                   ]
@@ -1166,19 +1426,19 @@
                   "cells": [
                     { "kind": "figure", "text": "-437", "pos": -0.1862 },
                     { "kind": "figure", "text": "-762", "pos": -0.3247 },
-                    { "kind": "figure", "text": "-2,347", "pos": -1 },
+                    { "kind": "figure", "text": "-2,347", "pos": -1.0 },
                     { "kind": "figure", "text": "-650", "pos": -0.2769 },
                     [
                       { "kind": "withheld", "reason": null },
                       { "kind": "withheld", "reason": null }
                     ],
                     [
-                      { "kind": "figure", "text": "0", "pos": 0 },
-                      { "kind": "figure", "text": "0", "pos": 0 }
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "0", "pos": 0 },
-                      { "kind": "figure", "text": "0", "pos": 0 }
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
                     ]
                   ]
                 },
@@ -1189,20 +1449,20 @@
                   "trace": "#/library/transdigm/2025-06-30/evidence",
                   "cells": [
                     { "kind": "figure", "text": "-1,091", "pos": -0.2508 },
-                    { "kind": "figure", "text": "0", "pos": 0 },
+                    { "kind": "figure", "text": "0", "pos": 0.0 },
                     { "kind": "figure", "text": "-2,038", "pos": -0.4685 },
-                    { "kind": "figure", "text": "-4,350", "pos": -1 },
+                    { "kind": "figure", "text": "-4,350", "pos": -1.0 },
                     [
-                      { "kind": "figure", "text": "0", "pos": 0 },
-                      { "kind": "figure", "text": "0", "pos": 0 }
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "0", "pos": 0 },
-                      { "kind": "figure", "text": "0", "pos": 0 }
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "0", "pos": 0 },
-                      { "kind": "figure", "text": "0", "pos": 0 }
+                      { "kind": "figure", "text": "0", "pos": 0.0 },
+                      { "kind": "figure", "text": "0", "pos": 0.0 }
                     ]
                   ]
                 }
@@ -1230,7 +1490,7 @@
                       { "kind": "figure", "text": "5,190", "pos": 0.5914 }
                     ],
                     [
-                      { "kind": "figure", "text": "8,776", "pos": 1 },
+                      { "kind": "figure", "text": "8,776", "pos": 1.0 },
                       { "kind": "figure", "text": "7,060", "pos": 0.8045 }
                     ]
                   ]
@@ -1254,7 +1514,7 @@
                       { "kind": "figure", "text": "1,480", "pos": 0.8605 }
                     ],
                     [
-                      { "kind": "figure", "text": "1,720", "pos": 1 },
+                      { "kind": "figure", "text": "1,720", "pos": 1.0 },
                       { "kind": "figure", "text": "1,530", "pos": 0.8895 }
                     ]
                   ]
@@ -1278,7 +1538,7 @@
                       { "kind": "figure", "text": "2,000", "pos": 0.8547 }
                     ],
                     [
-                      { "kind": "figure", "text": "2,340", "pos": 1 },
+                      { "kind": "figure", "text": "2,340", "pos": 1.0 },
                       { "kind": "figure", "text": "2,080", "pos": 0.8889 }
                     ]
                   ]
@@ -1292,18 +1552,18 @@
                     { "kind": "figure", "text": "11,360", "pos": 0.7624 },
                     { "kind": "figure", "text": "11,900", "pos": 0.7987 },
                     { "kind": "figure", "text": "14,500", "pos": 0.9732 },
-                    { "kind": "figure", "text": "14,900", "pos": 1 },
+                    { "kind": "figure", "text": "14,900", "pos": 1.0 },
                     [
-                      { "kind": "figure", "text": "14,900", "pos": 1 },
-                      { "kind": "figure", "text": "14,900", "pos": 1 }
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "14,900", "pos": 1 },
-                      { "kind": "figure", "text": "14,900", "pos": 1 }
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "14,900", "pos": 1 },
-                      { "kind": "figure", "text": "14,900", "pos": 1 }
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "14,900", "pos": 1.0 }
                     ]
                   ]
                 },
@@ -1326,7 +1586,7 @@
                       { "kind": "figure", "text": "25,600", "pos": 0.8591 }
                     ],
                     [
-                      { "kind": "figure", "text": "29,800", "pos": 1 },
+                      { "kind": "figure", "text": "29,800", "pos": 1.0 },
                       { "kind": "figure", "text": "27,700", "pos": 0.9295 }
                     ]
                   ]
@@ -1340,18 +1600,18 @@
                     { "kind": "figure", "text": "19,795", "pos": 0.6665 },
                     { "kind": "figure", "text": "19,750", "pos": 0.665 },
                     { "kind": "figure", "text": "24,880", "pos": 0.8377 },
-                    { "kind": "figure", "text": "29,700", "pos": 1 },
+                    { "kind": "figure", "text": "29,700", "pos": 1.0 },
                     [
-                      { "kind": "figure", "text": "29,700", "pos": 1 },
-                      { "kind": "figure", "text": "29,700", "pos": 1 }
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "29,700", "pos": 1 },
-                      { "kind": "figure", "text": "29,700", "pos": 1 }
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 }
                     ],
                     [
-                      { "kind": "figure", "text": "29,700", "pos": 1 },
-                      { "kind": "figure", "text": "29,700", "pos": 1 }
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 },
+                      { "kind": "figure", "text": "29,700", "pos": 1.0 }
                     ]
                   ]
                 },
@@ -1374,8 +1634,8 @@
                       { "kind": "figure", "text": "2,850", "pos": 0.9828 }
                     ],
                     [
-                      { "kind": "figure", "text": "2,900", "pos": 1 },
-                      { "kind": "figure", "text": "2,900", "pos": 1 }
+                      { "kind": "figure", "text": "2,900", "pos": 1.0 },
+                      { "kind": "figure", "text": "2,900", "pos": 1.0 }
                     ]
                   ]
                 },
@@ -1412,7 +1672,7 @@
                     { "kind": "figure", "text": "-3,838", "pos": -0.41 },
                     { "kind": "figure", "text": "-1,970", "pos": -0.2105 },
                     { "kind": "figure", "text": "-1,974", "pos": -0.2109 },
-                    { "kind": "figure", "text": "-9,360", "pos": -1 },
+                    { "kind": "figure", "text": "-9,360", "pos": -1.0 },
                     [
                       { "kind": "figure", "text": "-8,600", "pos": -0.9188 },
                       { "kind": "figure", "text": "-8,700", "pos": -0.9295 }
@@ -1439,7 +1699,7 @@
                   "trace": "#/library/transdigm/2025-06-30/evidence",
                   "cells": [
                     { "kind": "missing", "reason": null },
-                    { "kind": "figure", "text": "21.3%", "pos": 1 },
+                    { "kind": "figure", "text": "21.3%", "pos": 1.0 },
                     { "kind": "figure", "text": "20.6%", "pos": 0.9671 },
                     { "kind": "figure", "text": "8.1%", "pos": 0.3803 },
                     [
@@ -1475,7 +1735,7 @@
                       { "kind": "figure", "text": "46.9%", "pos": 0.875 }
                     ],
                     [
-                      { "kind": "figure", "text": "53.6%", "pos": 1 },
+                      { "kind": "figure", "text": "53.6%", "pos": 1.0 },
                       { "kind": "figure", "text": "48.1%", "pos": 0.8974 }
                     ]
                   ]
@@ -1486,7 +1746,7 @@
                   "gap": false,
                   "trace": "#/library/transdigm/2025-06-30/evidence",
                   "cells": [
-                    { "kind": "figure", "text": "6.3x", "pos": 1 },
+                    { "kind": "figure", "text": "6.3x", "pos": 1.0 },
                     { "kind": "figure", "text": "4.8x", "pos": 0.7619 },
                     { "kind": "figure", "text": "4.5x", "pos": 0.7143 },
                     { "kind": "figure", "text": "5.9x", "pos": 0.9365 },
@@ -1523,7 +1783,7 @@
                       { "kind": "figure", "text": "2.3x", "pos": 0.6389 }
                     ],
                     [
-                      { "kind": "figure", "text": "3.6x", "pos": 1 },
+                      { "kind": "figure", "text": "3.6x", "pos": 1.0 },
                       { "kind": "figure", "text": "2.4x", "pos": 0.6667 }
                     ]
                   ]
@@ -1547,7 +1807,7 @@
                       { "kind": "figure", "text": "6.1%", "pos": 0.6421 }
                     ],
                     [
-                      { "kind": "figure", "text": "9.5%", "pos": 1 },
+                      { "kind": "figure", "text": "9.5%", "pos": 1.0 },
                       { "kind": "figure", "text": "6.3%", "pos": 0.6632 }
                     ]
                   ]
@@ -1558,7 +1818,7 @@
                   "gap": false,
                   "trace": "#/library/transdigm/2025-06-30/evidence",
                   "cells": [
-                    { "kind": "figure", "text": "2.2%", "pos": 1 },
+                    { "kind": "figure", "text": "2.2%", "pos": 1.0 },
                     { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
                     { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
                     { "kind": "figure", "text": "2.1%", "pos": 0.9545 },
@@ -1945,9 +2205,30 @@
   },
   "params": {
     "/model/:issuer/:run/portfolio-fit": [{ "issuer": "transdigm", "run": "2025-06-30" }],
-    "/model/:issuer/:run/limitations": [{ "issuer": "transdigm", "run": "2025-06-30" }],
-    "/model/:issuer/:run/front": [{ "issuer": "transdigm", "run": "2025-06-30" }],
-    "/model/:issuer/:run/analysis": [{ "issuer": "transdigm", "run": "2025-06-30" }],
-    "/model/:issuer/:run/statements": [{ "issuer": "transdigm", "run": "2025-06-30" }]
+    "/model/:issuer/:run/limitations": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ],
+    "/model/:issuer/:run/front": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ],
+    "/model/:issuer/:run/analysis": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ],
+    "/model/:issuer/:run/forecast": [{ "issuer": "transdigm", "run": "2025-06-30" }],
+    "/model/:issuer/:run/statements": [
+      {
+        "issuer": "transdigm",
+        "run": "2025-06-30"
+      }
+    ]
   }
 }
