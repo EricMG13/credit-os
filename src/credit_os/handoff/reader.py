@@ -14,6 +14,7 @@ heading inside a passage are in the passage's `sections`, not its `blocks`.
 
 from typing import Literal
 
+from credit_os.handoff.blocks import Paragraph
 from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.scan import Node
@@ -24,6 +25,7 @@ _KEY_FINDINGS = "Key findings"
 _CONTRARY = "Contrary evidence and what would change the view"
 _LIMITATIONS = "Limitations"
 _READER_SUMMARY = "Reader summary"
+_BLOCKED = "Not assessable:"
 _SUMMARY_CALL = ("Bottom line", "Confidence", "Main limitation")
 _SUMMARY_FINDINGS = ("Finding", "Creditor impact", "Confidence")
 
@@ -51,6 +53,14 @@ class Reader(Node):
     limitations: Section | None
     summary: ReaderSummary | None
     summary_section: Section | None
+
+    @property
+    def blocked(self) -> bool:
+        """True when the new format's Bottom line opens with a paragraph `Not assessable:`."""
+        if self.format != "new" or self.bottom_line is None or not self.bottom_line.blocks:
+            return False
+        first = self.bottom_line.blocks[0]
+        return isinstance(first, Paragraph) and first.lines[0].startswith(_BLOCKED)
 
 
 def _passages(level_three: list[Section]) -> dict[str, Section]:

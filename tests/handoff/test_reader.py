@@ -259,3 +259,34 @@ def test_repeated_reader_summary_refused(findings: str, line: int) -> None:
 def test_repeated_reader_summary_is_not_special_in_the_new_format() -> None:
     reader = _read("### Bottom line\nx\n### Reader summary\n### Reader summary\n")
     assert (reader.format, reader.summary, reader.summary_section) == ("new", None, None)
+
+
+def _blocked(findings: str) -> bool:
+    return _read(findings).blocked
+
+
+@pytest.mark.parametrize(
+    "findings",
+    [
+        "### Bottom line\nNot assessable: x\n",
+        "### Bottom line\nNot assessable: x\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n",
+    ],
+)
+def test_blocked_true(findings: str) -> None:
+    assert _blocked(findings) is True
+
+
+@pytest.mark.parametrize(
+    "findings",
+    [
+        "### Bottom line\nNot assessable x\n",
+        "### Bottom line\nnot assessable: x\n",
+        "### Bottom line\n**Not assessable: x**\n",
+        "### Bottom line\n- Not assessable: x\n",
+        "### Bottom line\n",
+        "### Bottom line\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nNot assessable: x\n",
+        "### Reader summary\nNot assessable: x\n",
+    ],
+)
+def test_blocked_false(findings: str) -> None:
+    assert _blocked(findings) is False
