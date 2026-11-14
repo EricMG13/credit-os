@@ -256,3 +256,16 @@ reads the diff and merges. The sub-session does not merge and does not edit shar
 - What step 3A needs from the resume read is inferred from the legacy loop and decision 0006;
   3A is not planned. The 2B plan was only searched for `store` (it places no duty here).
   Database size with raw bodies over a real run, and how long `quick_check` then takes.
+
+## Amendment, 2026-11-14 (from step 3B's plan, rulings R10, R10a and R11)
+
+The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. PR 5 also carries:
+
+- an event appended at each admission, in the same transaction, so the store-wide `events.seq`
+  orders admissions without the clock; a repeat of the same receipt stays a no-op and appends
+  nothing;
+- the admitted list giving each delivery's `admitted_at`, its key and that event's `seq`;
+  `admitted_at` is shown and never ordered on;
+- one read through `StoreReader` of every issuer and, for an issuer, every run: `as_of` newest
+  first, a run with no `as_of` after the dated ones, then `created_at`, then run id. That order
+  rests on the store clock and is for display only.

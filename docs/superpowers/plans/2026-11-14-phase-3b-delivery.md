@@ -45,8 +45,9 @@ plan; those are the coordinator's (PR 0).
 `tests/test_layering.py`). `delivery` may import the seven before it and never `signal`. It uses
 `handoff`, `model`, `checks`, `store` and `orchestrator`; it imports nothing from `provider`, and
 from `sources` only `pins.SourcePin`. A test reads the syntax tree and fails on any other import.
-Reviewers check by reading that `delivery/` matches or splits no handoff line and adds, scales or
-rounds no amount.
+Reviewers check by reading that `delivery/` splits no handoff line, selects a table column or row
+only by its exact header or label through a `handoff/` reader, compares dates only to order
+them, and adds, scales or rounds no amount.
 
 ## Component boundaries
 
@@ -107,7 +108,7 @@ D23 are its evening addition. D24 is the layer rule. Each is at least one test, 
 | D7 | A blocked forecast module or `ForecastDeclined`: `forecastHref` is `null` and the run has no model run. The reason reaches the reader through the module's blocked body | The Forecast tab opens nothing for that run; a slice state would be a design step |
 | D8 | Composed wording is a template of counts, dates and state words. No judgement, no adjective. Bands and labels are owner-set values in one file, not constants in code | The wording file and its key rows |
 | D9 | Run id and issuer id are the store's, opaque, grammar `[A-Za-z0-9._-]{1,128}`. Module ids are slugs from one fixed table (code, slug, display name). No module code reaches a screen field | Every address and download name; a slug change breaks saved links |
-| D10 | Changes is `none` only for the issuer's first report: the run whose first admission event has the lowest `seq` (R10a). Every other written run is `pending` until 5A. Delivery guarantees the first report exists and that no history entry links a pending run's Changes page | One rule; 5A replaces `pending` |
+| D10 | Changes is `none` only for the issuer's first report: of the issuer's runs that have a history entry, the one whose first admission event has the lowest `seq` (R10a, R10b). Every other written run is `pending` until 5A. Delivery guarantees the first report exists and that no history entry links a pending run's Changes page | One rule; 5A replaces `pending` |
 | D11 | Evidence and record blocks are planned against the merged slice. `Trace.excerpt` is `null` until page text has a source | Mapping rows only |
 | D12 | The `run` and `signal` members are omitted from a delivered file | Two members; 5C adds `run` |
 | D13 | Overview `sides` is `null`. If modules later write two lists, delivery selects them | A section the mock shows is absent |
@@ -129,7 +130,7 @@ D23 are its evening addition. D24 is the layer rule. Each is at least one test, 
 | :--- | :--- |
 | C1 | `Overview.sides` and `Overview.changeView` are always present as keys; `null` draws nothing |
 | C2 | `Changes` is `none`, `pending` or `compared`. For `none` and `pending`, `title` and `text` hold a character that is not whitespace |
-| C3 | The reader counts history entries only. Delivery itself proves the first report (R10a) exists and is another run before `pending`, and emits `none` only for that first report; the reader catches neither mistake |
+| C3 | The reader counts history entries only. Delivery itself proves the first report (R10a, R10b) exists and is another run before `pending`, and emits `none` only for that first report; the reader catches neither mistake |
 | C4 | No history entry carries a `changes` link to a pending run; a pending run's issuer has two or more entries |
 | C5 | Issuer and run ids hold no `/` and no `%`. `forecastHref` is exactly `#/model/<issuer>/<run>/forecast` or `null` |
 | C6 | A delivered file address is a relative path: every segment in `[A-Za-z0-9._~@+=,-]` or `%XX`; none is `.` or `..` before or after decoding; no decoded `/` or `\`; every escape valid UTF-8 |
@@ -154,7 +155,7 @@ withdrawn):
 | X4 | No confidence is sent until the states 2 build changes the slice |
 | X5 | No stop reason is sent; a run stopped for a reason other than the cap has no word |
 | X6 | A restricted module carries no mark |
-| X7 | Changes reads `pending` for every run after an issuer's first, until 5A |
+| X7 | Changes reads `pending` for every run after an issuer's first listed report (R10b), until 5A |
 | X8 | A trace has no quoted excerpt |
 | X9 | The model-calls table has no Code column (D9, R14; the fixture shows one) |
 | X10 | Record blocks are sent only for chart tables and their gaps; a module table with no kind is only in the handoff download until PR 8c (R3) |
@@ -217,7 +218,7 @@ entry has `report: null` and a counts text, and the delivery result names the ru
 | `sources.files[]` | The run's pins in order: name, kind, SHA-256; size read as an integer and shown in megabytes by PR 1b (R8); state and reason from 3A's ingest; readers are the modules whose Sources table names the file (`source_names`) | select; kernel | An unreadable file carries its reason |
 | `sources.visible`, `moreLabel` | Wording file; count | config; count | `null` when none is held back |
 | `trace.rows[]` | One per traced item and calculation, ids by position (gap rows come with PR 6b); `value` by the cell rule; `sources` the count of source items in the Basis | select; count | `emptyText` from the file |
-| `gaps.groups[]` | PR 6b, after slice contract 3: each module's `## Gaps` rows, the gap and its effect word for word, in one group with `severity: null`. Delivery never ranks a gap (R4) | select | A run with no gap has no group |
+| `gaps.groups[]` | PR 6b, after the gap-severity PR (R4a): each module's `## Gaps` rows, the gap and its effect word for word, in one group with `severity: null`. Delivery never ranks a gap (R4) | select | A run with no gap has no group |
 | `record.timings` | Attempt times from the store; elapsed minutes by PR 1b (R8) | kernel | `null` cells |
 | `record.hashes` | Method texts' hash, configuration id, request SHA-256, delivery SHA-256 | select | An item is left out; at least one always exists |
 | `record.spend` | The orchestrator's exact total and `cap_usd` | kernel | Unknown spend: the run has no entry (R6) |
@@ -234,7 +235,7 @@ An earlier-format document (`checks.text.is_earlier`) is refused: 3A never accep
 
 ## Hash checking and writing
 
-Handoff bytes come from a delivered folder, written by 3A (the step that calls `admit_delivery`)
+Handoff bytes come from a delivered folder, written by the step that calls `admit_delivery` (R9)
 and checked here against the 2A receipt. 3B writes the openable library folder itself; 4X copies
 the built front end around it and never rewrites `data.js` (R9).
 
@@ -276,7 +277,7 @@ writes the same bytes.
 | :--- | :--- | :--- |
 | S1 | Path traversal in download names | A name is built only from fixed words, a module slug from the table, and a folder key that is the first 20 hex characters of the SHA-256 of issuer id and run id. No handoff text, source name or raw id is a path segment. Rows: ids `.`, `..`, `a.`, `CON`, `nul.md`, two ids differing by case |
 | S2 | Addresses | Every `href` is joined from segments with `/`, never from an OS path. Each is checked against C6 in Python before it is written. `#/` addresses are built from ids checked against C5; `.` and `..` as ids are refused |
-| S3 | Script-safe JSON | The file is `window.CREDIT_OS_DATA = JSON.parse("...");` as `web/scripts/fixture-data.mjs` writes it. Output is ASCII only: `<`, U+2028, U+2029 and every non-ASCII character are `\u` escapes; a lone surrogate is refused. Rows: `</script>`, `<!--`, both separators, a quote, a backslash, a NUL |
+| S3 | Script-safe JSON | The file is `window.CREDIT_OS_DATA = JSON.parse("...");` in the form `web/scripts/fixture-data.mjs` writes, but stricter: that writer escapes only `<`, U+2028 and U+2029, and delivery's output is ASCII only, with `<` and every non-ASCII character written as a backslash-u escape; a lone surrogate is refused. Rows: `</script>`, `<!--`, both separators, a quote, a backslash, a NUL |
 | S4 | No `unsafe-inline` | Delivery writes no HTML and no script but `data.js`, loaded under `script-src 'self'` (`web/index.html`). No policy is written or changed |
 | S5 | Size | D6 on `data.js`; a per-file read cap; a cap on files per delivery. A size is stated by a number in tests, never by a large file on disk |
 | S6 | Handoff text is data | Every field is a JSON string. No object key comes from handoff text (trace keys and ids are made by delivery). Template values are inserted as text and never re-read as a template. Rows: `__proto__`, `constructor`, `{0}`, an instruction-like sentence, a `javascript:` address in a cell |
@@ -357,7 +358,7 @@ are test inputs, not stand-ins in source. A PR also follows the rulings (R1 to R
 | 11 | The store adapter: `StoreReader` to `RunFacts` | 2A PRs 3c and 5b; 3A PRs 1, 2a, 7c, 9a; 2A's read of all issuers and each issuer's runs (R11) | Waits for 2A PR 5b, that read and 3A PR 7c | P |
 | 12a | The library writer: staging, read-back, downloads, the archive (stored, fixed dates and order), the atomic replace, into the library folder itself (R9) | 2, 3 | After 2 and 3; its end-to-end case after 6b (R4) | P, A, I |
 | 12b | The admission check against the receipt | 2A PR 5b; the delivered folder's layout from 3A's brief (R9, R10) | Waits for 2A PR 5b | P, A |
-| 13a | Model slice: cases, forecast page, front page, limitations | 1B PR 7; 1a, 1b; slice contract 3. The brief quotes the two case names from `web/fixtures/model.json` (R7) | Waits for 1B PR 7 and slice contract 3 | P, A |
+| 13a | Model slice: cases, forecast page, front page, limitations | 1B PR 7; 1a, 1b; slice contract 3. Every kernel case, two to four (R7a) | Waits for 1B PR 7 and slice contract 3 | P, A |
 | 13b | Model slice: statements and measures | 1B PRs 10 and 11 | Waits for 1B PR 11 | P |
 | 14 | The slice readers accept a delivered file (below) | 2 to 10 and 6b (R4, R16); 8c, 13a, 13b and 15 each extend its key | After 10 and 6b | P |
 | 15 | Confidence, stop reasons, restricted modules | The states 2 build merged | Waits for states 2 | P |
@@ -417,17 +418,17 @@ all decisions"). The owner can overturn any.
 | # | Ruling | Cost if wrong |
 | :--- | :--- | :--- |
 | R1 | A run that cannot meet a reader minimum (a bottom line, a finding, a date, a limitation, a source file, a call row, a hash item, a register row; per delivered module a finding and a limitation) is left out of `runs`. Its history entry has `report: null` and a counts text, and the delivery result names the run and the rule. Never filler. A capped run whose lead module was delivered is written (decision 0006 ruling 12); one with no lead module is left out and named. The coordinator asked the design track to read the library slice per run, as the model reader does (slice contract 3) | A run with one missing passage is absent from the library rather than shown with a gap |
-| R2 | The lead module comes from a fixed table by pathway in `delivery/`: the pathway's final synthesis module as 3A's catalogue names it. The coordinator supplies the table from 3A PR 1 when it merges; PR 7 waits for that | One table |
+| R2 | The lead module comes from a fixed table by pathway in `delivery/`: one module per pathway, ruled by the coordinator from the modules and pathways 3A PR 1's catalogue lists (that catalogue names no lead module itself); PR 7 waits for the ruling, which follows 3A PR 1's merge | One table |
 | R3 | A `chartTable` block for a `Chart data:` section whose fixed header names a chart kind; a `gap` block for one with no readable table; nothing else until the methods write a mark (phase 6). The plain-table record kind the coordinator asked for is slice contract 3's, written by PR 8c | Module tables with no kind are only in the handoff download |
-| R4 | Delivery never ranks a gap. The methods add a severity column in phase 6. PR 6 ships traces and the jump list; the gap rows are PR 6b, which waits for slice contract 3 (a gap group may carry `severity: null`, drawn after the ranked groups; the coordinator has asked for that part first, as a small PR). No library folder is written before PR 6b has merged: PR 12a's end-to-end case, PR 14 and any delivered file wait for it, so a run whose modules wrote gaps never reads "0" on a screen | No library is delivered until that part of slice contract 3 and PR 6b have merged |
+| R4 | Delivery never ranks a gap. The methods add a severity column in phase 6. PR 6 ships traces and the jump list; the gap rows are PR 6b, which waits for the design track's gap-severity PR (R4a: a gap group may carry `severity: null`, drawn after the ranked groups). No library folder is written before PR 6b has merged: PR 12a's end-to-end case, PR 14 and any delivered file wait for it, so a run whose modules wrote gaps never reads "0" on a screen | No library is delivered until the gap-severity PR and PR 6b have merged |
 | R5 | A module is "Delivered with gaps" when its `## Gaps` table has at least one row | One rule; a module with a gap cell and no Gaps row reads "Delivered" |
 | R6 | Until PR 15, a run stopped for unknown spend, a charge above its hold, or by the operator gets no history entry and no card of its own; the delivery result names it. If it is the issuer's only run, the issuer is not in the library. PR 5's state table and PR 10's key hold the other states only. Never the nearest state | Such a run is invisible in the library until states 2 |
-| R7 | Until slice contract 3 widens `SectionGap` to the sections with no source and fixes the case rule, no model run is written for a run that cannot fill a required section, so `forecastHref` is `null` (D7). The holdings `strips` have no source in any run, so that is every run. PR 13a waits for slice contract 3. The two cases shown are the two the merged model fixture names; PR 13a's brief quotes them from `web/fixtures/model.json`, and the other kernel cases stay in the handoff download. Legacy owner tables (the fixed `ROW_CHARTS` headers) are the source where a module writes one | The Forecast tab is absent for every run until slice contract 3 |
+| R7 | Until slice contract 3 widens `SectionGap` to the sections with no source and fixes the case rule, no model run is written for a run that cannot fill a required section, so `forecastHref` is `null` (D7). The holdings `strips` have no source in any run, so that is every run. PR 13a waits for slice contract 3. PR 13a therefore starts after slice contract 3 and writes every case the kernel gives, two to four (R7a). Legacy owner tables (the fixed `ROW_CHARTS` headers) are the source where a module writes one | The Forecast tab is absent for every run until slice contract 3 |
 | R8 | Every derived number that needs arithmetic (elapsed minutes, sums of tokens, shares, positions, ticks, axis maxima) is a function in `model/display.py`, exact `Decimal` or `Fraction`, with hand-worked keys. A file size is read as an integer and only its display is computed (PR 1b: bytes to megabytes, half-up to one decimal, as the mock shows it). Counts are counted, not arithmetic. PR 1 splits into 1a (display text, JSON number) and 1b (positions and scales) | `model/` holds display functions that are not financial; one more PR |
-| R9 | Bytes come from a delivered folder checked against the 2A receipt. Its writer is 3A (the step that calls `admit_delivery`), named in 3A's brief by the coordinator. 3B writes the openable library folder itself; 4X copies the built front end around it and never rewrites `data.js` | 3A gains a folder writer; another target would move the atomic replace into 4X |
+| R9 | Bytes come from a delivered folder checked against the 2A receipt. Its writer is to be 3A: 3A's plan on main names no `admit_delivery` call and no folder writer yet, so the coordinator adds both to that plan before PR 12b's brief. 3B writes the openable library folder itself; 4X copies the built front end around it and never rewrites `data.js` | 3A gains a folder writer; another target would move the atomic replace into 4X |
 | R10 | The delivery shown for a run is the one whose admission event has the highest `seq` (the store's event sequence is store-wide and in commit order). `admitted_at` is shown and never ordered on | One sort rule; an earlier delivery of a run is never shown |
 | R10a | An issuer's first report (Changes `none`) is the run whose first admission event has the lowest `seq`. A run with no admitted delivery is never the first report | 5A changes one rule if it defines "earlier" by `as_of` |
-| R11 | 2A adds the read of all issuers and each issuer's runs (the coordinator tells 2A; its PR 4 or 5). `delivery/` holds no SQL. PR 11 waits for it | One 2A read |
+| R11 | 2A adds, in its PR 5: the read of all issuers and each issuer's runs; and an event appended at each admission, so the store-wide `events.seq` orders admissions (the 2A plan on main has `admitted_at` only; 2A's controller has recorded both as its rulings U19 and U20, and the coordinator amends the 2A plan). `delivery/` holds no SQL. PR 11 waits for it | One 2A read |
 | R12 | Both `handoff/` readers, as PRs 4a and 8a | Two small readers where the brief allowed one |
 | R13 | The card lead is the whole passage, word for word. D15's "refuse and gap" applies only where a slice field has a gap form | A long unmarked Bottom line fills the card |
 | R14 | The model-calls table has no Code column (X9 stands) | One column |
@@ -453,7 +454,9 @@ yes by the roadmap coordinator, not yet built):
 - R8a: megabytes are bytes divided by 1,000,000, half-up to one decimal ("1.0 MB" for 1,048,576
   bytes). A page count beside a size has no source: it is `null` if the slice allows and otherwise
   PR 9's brief brings the field to the coordinator.
-- R7a: the two fixture cases until slice contract 3 merges; after it, every case the kernel gives.
+- R7a: no model run is written before slice contract 3, so the reader's present two-case rule never
+  binds delivery; PR 13a writes every case the kernel gives (two to four), named as the kernel names
+  them.
 - R4a: the `severity: null` part is pulled forward as its own small design PR
   (`claude/gap-severity-null`): the key is always present, `null` or High, Medium, Low; ranked
   groups first, then at most one `null` group, last, headed "Not ranked"; a table whose only group
