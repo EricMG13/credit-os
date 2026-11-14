@@ -22,7 +22,95 @@
             ],
             "savedCount": "6"
           },
-          "feed": { "status": "ready", "error": null }
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": {
+                  "label": "Also in 4 other sources",
+                  "monograms": ["CL", "MP", "RG"],
+                  "more": "+1"
+                },
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": "3"
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null
+              },
+              {
+                "id": "oakhaven",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Notice of initial review: Oakhaven Lines and Pellant Terminals",
+                "url": null,
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "40 min ago",
+                "summary": "The authority has opened an initial review of the proposed terminal joint venture.",
+                "tags": [],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null
+              },
+              {
+                "id": "pellant",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Pellant Terminals plans first bond issue",
+                "url": "https://example.com/pellant",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": null,
+                "summary": "The port operator has mandated banks for a debut issue, the publication reports.",
+                "tags": [],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null
+              }
+            ],
+            "views": {
+              "for-you": { "top": ["corvane", "brightwell"], "latest": ["corvane", "brightwell"] },
+              "latest": { "top": ["oakhaven", "pellant"], "latest": ["oakhaven", "pellant"] },
+              "saved": { "top": [], "latest": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [] },
+              "packaging": { "top": [], "latest": [] },
+              "telecoms": { "top": [], "latest": [] },
+              "rating-actions": { "top": [], "latest": [] }
+            }
+          }
         }
       },
       {
@@ -46,7 +134,57 @@
             ],
             "savedCount": "6"
           },
-          "feed": { "status": "ready", "error": null }
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": "3"
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null
+              }
+            ],
+            "views": {
+              "for-you": { "top": ["corvane", "brightwell"], "latest": ["corvane", "brightwell"] },
+              "latest": { "top": [], "latest": [] },
+              "saved": { "top": [], "latest": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [] },
+              "packaging": { "top": [], "latest": [] },
+              "telecoms": { "top": [], "latest": [] },
+              "rating-actions": { "top": [], "latest": [] }
+            }
+          }
         }
       },
       {
@@ -70,7 +208,63 @@
             ],
             "savedCount": "6"
           },
-          "feed": { "status": "ready", "error": null }
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": {
+                  "label": "Also in 4 other sources",
+                  "monograms": ["CL", "MP", "RG"],
+                  "more": "+1"
+                },
+                "sharedBy": { "initials": "TO", "label": "Shared to Leveraged credit by Tobias O" },
+                "ai": {
+                  "line": "The charge lands in the quarter its leverage covenant steps down."
+                },
+                "strength": { "marks": 3, "word": "Strong" },
+                "saved": false,
+                "commentCount": "3"
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": { "marks": 1, "word": "Light" },
+                "saved": false,
+                "commentCount": null
+              }
+            ],
+            "views": {
+              "for-you": { "top": ["corvane", "brightwell"], "latest": ["corvane", "brightwell"] },
+              "latest": { "top": [], "latest": [] },
+              "saved": { "top": [], "latest": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [] },
+              "packaging": { "top": [], "latest": [] },
+              "telecoms": { "top": [], "latest": [] },
+              "rating-actions": { "top": [], "latest": [] }
+            }
+          }
         }
       },
       {
@@ -94,7 +288,22 @@
             ],
             "savedCount": "6"
           },
-          "feed": { "status": "loading", "error": null }
+          "feed": {
+            "status": "loading",
+            "error": null,
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [] },
+              "latest": { "top": [], "latest": [] },
+              "saved": { "top": [], "latest": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [] },
+              "packaging": { "top": [], "latest": [] },
+              "telecoms": { "top": [], "latest": [] },
+              "rating-actions": { "top": [], "latest": [] }
+            }
+          }
         }
       },
       {
@@ -113,7 +322,17 @@
             ],
             "savedCount": "6"
           },
-          "feed": { "status": "ready", "error": null }
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [] },
+              "latest": { "top": [], "latest": [] },
+              "saved": { "top": [], "latest": [] }
+            },
+            "topics": {}
+          }
         }
       }
     ]

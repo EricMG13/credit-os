@@ -22,9 +22,31 @@ type SignalChannels = {
   digests: SignalDigestChannel[];
   savedCount: string | null;
 };
+type SignalStory = {
+  id: string;
+  kind: "regulator" | "news" | "ratings" | "research";
+  kindLabel: string;
+  headline: string;
+  url: string | null;
+  source: { name: string; monogram: string };
+  time: string | null;
+  summary: string | null;
+  tags: string[];
+  alsoIn: { label: string; monograms: string[]; more: string | null } | null;
+  sharedBy: { initials: string; label: string } | null;
+  ai: { line: string } | null;
+  strength: { marks: 1 | 2 | 3; word: string } | null;
+  saved: boolean;
+  commentCount: string | null;
+};
+/** Entry ids in each order the service supplies; the page orders by them and ranks nothing. */
+type SignalFeedView = { top: string[]; latest: string[] };
 type SignalFeed = {
   status: "loading" | "ready";
   error: null | "unreachable" | "request" | "unreadable";
+  stories: SignalStory[];
+  views: { "for-you": SignalFeedView; latest: SignalFeedView; saved: SignalFeedView };
+  topics: Record<string, SignalFeedView>;
 };
 type SignalSnapshot = { viewer: SignalViewer; channels: SignalChannels; feed: SignalFeed };
 export type SignalScene = { id: string; snapshot: SignalSnapshot };
@@ -53,6 +75,10 @@ function oneOf<T extends string | null>(words: readonly T[], expected: string): 
   };
 }
 
+function orNull<T>(each: Reader<T>): Reader<T | null> {
+  return (v, path) => (v === null ? good(null) : each(v, path));
+}
+
 function list<T>(each: Reader<T>): Reader<T[]> {
   return (v, path) => {
     if (!Array.isArray(v)) return bad(path, "a list");
@@ -73,13 +99,56 @@ function shape<T extends object>(readers: { [K in keyof T]-?: Reader<T[K]> }): R
     const record = v as Record<string, unknown>;
     const out: Record<string, unknown> = {};
     for (const [key, read] of Object.entries<Reader<unknown>>(readers)) {
-      const got = read(record[key], path === "" ? key : `${path}.${key}`);
+      const got = read(
+        Object.hasOwn(record, key) ? record[key] : undefined,
+        path === "" ? key : `${path}.${key}`,
+      );
       if (!got.ok) return got;
       out[key] = got.value;
     }
     return good(out as T);
   };
 }
+
+/**
+ * A record of readers' values keyed by any name, read in key order. The result has no prototype, so
+ * a key such as "__proto__" or "constructor" from the data stays an ordinary own entry, validated
+ * like any other; look keys up with `Object.hasOwn`.
+ */
+function record<T>(each: Reader<T>): Reader<Record<string, T>> {
+  return (v, path) => {
+    if (typeof v !== "object" || v === null || Array.isArray(v)) return bad(path, "an object");
+    const out: Record<string, T> = Object.create(null) as Record<string, T>;
+    for (const [key, item] of Object.entries(v)) {
+      const got = each(item, `${path}.${key}`);
+      if (!got.ok) return got;
+      out[key] = got.value;
+    }
+    return good(out);
+  };
+}
+
+const marks: Reader<1 | 2 | 3> = (v, path) =>
+  v === 1 || v === 2 || v === 3 ? good(v) : bad(path, "1, 2 or 3");
+
+const story = shape<SignalStory>({
+  id: str,
+  kind: oneOf(["regulator", "news", "ratings", "research"], "regulator, news, ratings or research"),
+  kindLabel: str,
+  headline: str,
+  url: strOrNull,
+  source: shape({ name: str, monogram: str }),
+  time: strOrNull,
+  summary: strOrNull,
+  tags: list(str),
+  alsoIn: orNull(shape({ label: str, monograms: list(str), more: strOrNull })),
+  sharedBy: orNull(shape({ initials: str, label: str })),
+  ai: orNull(shape({ line: str })),
+  strength: orNull(shape({ marks, word: str })),
+  saved: bool,
+  commentCount: strOrNull,
+});
+const feedView = shape<SignalFeedView>({ top: list(str), latest: list(str) });
 
 const viewer = shape<SignalViewer>({
   name: strOrNull,
@@ -93,13 +162,54 @@ const channels = shape<SignalChannels>({
   digests: list(shape<SignalDigestChannel>({ id: str, name: str, unread: bool, paused: bool })),
   savedCount: strOrNull,
 });
-const feed = shape<SignalFeed>({
+/** Every id a view or topic names must be a story the feed holds. */
+const feedBase = shape<SignalFeed>({
   status: oneOf(["loading", "ready"], '"loading" or "ready"'),
   error: oneOf(
     [null, "unreachable", "request", "unreadable"],
     'null, "unreachable", "request" or "unreadable"',
   ),
+  stories: list(story),
+  views: shape({ "for-you": feedView, latest: feedView, saved: feedView }),
+  topics: record(feedView),
 });
+const feed: Reader<SignalFeed> = (v, path) => {
+  const got = feedBase(v, path);
+  if (!got.ok) return got;
+  const known = new Set(got.value.stories.map((s) => s.id));
+  const views: [string, SignalFeedView][] = [
+    ...Object.entries(got.value.views).map(([k, w]): [string, SignalFeedView] => [`views.${k}`, w]),
+    ...Object.entries(got.value.topics).map(([k, w]): [string, SignalFeedView] => [
+      `topics.${k}`,
+      w,
+    ]),
+  ];
+  for (const [where, view] of views) {
+    for (const order of ["top", "latest"] as const) {
+      const at = view[order].findIndex((id) => !known.has(id));
+      if (at !== -1) {
+        return bad(`${path}.${where}.${order}[${String(at)}]`, "the id of a story in the feed");
+      }
+    }
+  }
+  return got;
+};
+const snapshotBase = shape<SignalSnapshot>({ viewer, channels, feed });
+/** Each channel topic has exactly one order in the feed: a missing order is not an empty topic. */
+const snapshot: Reader<SignalSnapshot> = (v, path) => {
+  const got = snapshotBase(v, path);
+  if (!got.ok) return got;
+  const { channels: lists, feed: items } = got.value;
+  const where = `${path}.feed.topics`;
+  const missing = lists.topics.find((t) => !Object.hasOwn(items.topics, t.id));
+  if (missing !== undefined) {
+    return bad(`${where}.${missing.id}`, "an order for this channel topic");
+  }
+  const known = new Set(lists.topics.map((t) => t.id));
+  const extra = Object.keys(items.topics).find((id) => !known.has(id));
+  if (extra !== undefined) return bad(`${where}.${extra}`, "the id of a channel topic");
+  return got;
+};
 /** The slice always has a first scene, so the unknown-scene page can link home to it. */
 function nonEmpty<T>(each: Reader<T>): Reader<[T, ...T[]]> {
   return (v, path) => {
@@ -111,9 +221,7 @@ function nonEmpty<T>(each: Reader<T>): Reader<[T, ...T[]]> {
 }
 
 const scenes = shape<SignalSlice>({
-  scenes: nonEmpty(
-    shape<SignalScene>({ id: str, snapshot: shape<SignalSnapshot>({ viewer, channels, feed }) }),
-  ),
+  scenes: nonEmpty(shape<SignalScene>({ id: str, snapshot })),
 });
 
 export function readSlice(source: unknown): SliceResult<SignalSlice> {
