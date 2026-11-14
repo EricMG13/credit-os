@@ -56,6 +56,10 @@ _NAME = r"[^\s\\/:*?\"'<>|(),;]"  # one character of a path segment
 # the union of both patterns' spans is redacted, so no head that pattern finds can be hidden by a name.
 _UNC = r"\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+"
 _WIN_PREFIX = rf"(?P<win>(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z])[\\/]+|\\)"
+# A UNC head led by a forward slash ("//srv/share", "//?/UNC/srv/share", "\\/srv/share"), for
+# _HOME_PATH only. A URL is not one: it may not follow ":", nor a separator, except "file:".
+_UNC_FWD = r"(?:(?<![:/\\])|(?<=\bfile:))(?:/[\\/]|\\/)" + _UNC[4:]
+_WIN_PREFIX_FWD = _WIN_PREFIX.replace(f"|{_UNC}|", f"|{_UNC}|{_UNC_FWD}|")
 _HOME_DIRS = r"(?i:users|home|var[\\/]+home)"  # the one list of home folders
 _ROOT = rf"root(?!{_NAME})"
 _LEAD = r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
@@ -64,7 +68,7 @@ _HOME_PATH_PLAIN = re.compile(  # main's pattern at 54073086; its matches are al
     rf"(?:{_HOME_DIRS}[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|(?:[^/:\\\r\n]|\\[^\r\n]*))+|{_ROOT})"
 )
 _HOME_PATH = re.compile(
-    rf"{_LEAD}(?:{_WIN_PREFIX}|/)"
+    rf"{_LEAD}(?:{_WIN_PREFIX_FWD}|/)"
     rf"(?:{_HOME_DIRS}(?(win)[\\/]++|[\\/]+)"
     rf"(?(win)(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))"
     r"(?:\\+(?=')|[^\\/<>:\"|?*\r\n])|(?:[^/:\\\r\n]|\\[^\r\n]*))+"

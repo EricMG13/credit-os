@@ -100,6 +100,56 @@ def test_home_paths_mutation_rows(text: str, expected: str) -> None:
     assert home_paths(text) == expected
 
 
+# A UNC home whose leading separators are forward slashes (a Windows form: the Windows name
+# rule and the escaped-apostrophe rule apply). Expected values by hand.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("//srv/share/Users/Bo Lu", "<home>"),
+        ("//?/UNC/srv/share/Users/Bo Lu", "<home>"),
+        ('open "//srv/share/Users/Bo Lu" failed', 'open "<home>" failed'),
+        ("//srv//share//Users//Bo Lu", "<home>"),
+        ("//?//UNC//srv//share//Users//Bo Lu", "<home>"),
+        ("//srv/share/USERS/Bo Lu", "<home>"),
+        ("//srv/share/var/home/Bo Lu", "<home>"),
+        ("//srv/share/root", "<home>"),
+        ("//srv/share/Users/Bo Lu/x", "<home>/x"),
+        ("//srv/share/Users/Bo Lu: next", "<home>: next"),
+        ('open "//srv/share/Users/Pat O\\\'Hara Jones" failed', 'open "<home>" failed'),
+        # Mixed leading separators.
+        ("\\/srv/share/Users/Bo Lu/x", "<home>/x"),
+        ("/\\srv\\share\\Users\\Bo Lu\\x", "<home>\\x"),
+        # Straight after a written-out "\n".
+        ("msg\\n//srv/share/Users/Bo Lu/x", "msg\\n<home>/x"),
+        # A UNC file URL is a UNC path: it fails closed (the "file:" prefix stays).
+        ("file://srv/share/Users/x", "file:<home>"),
+        # A protocol-relative URL after a quote cannot be told from a UNC path: it fails closed.
+        ('<script src="//cdn.example.com/a/home/b">', '<script src="<home>">'),
+    ],
+)
+def test_forward_slash_unc_rows(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
+# Not UNC paths: the output is the base's (52adbcac) output, recorded before the change.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("https://example.com/a/Users/jane/p", "https://example.com/a/Users/jane/p"),
+        ("https://srv/share/Users/jane/p", "https://srv/share/Users/jane/p"),
+        ("ftp://srv/share/home/jane", "ftp://srv/share/home/jane"),
+        ("file:///home/jane/x.txt", "file://<home>/x.txt"),
+        ("file:///C:/Users/Jane Doe/x", "file:///<home>/x"),
+        ("/home/jane//x", "<home>//x"),
+        ("/a//b/Users/c", "/a//b/Users/c"),
+        ("x//srv/share/Users/y", "x//srv/share/Users/y"),
+        ("// see /Users/jane", "// see <home>"),
+    ],
+)
+def test_forward_slash_unc_leaves_non_unc_unchanged(text: str, expected: str) -> None:
+    assert home_paths(text) == expected
+
+
 def test_lone_surrogate_value_does_not_raise_and_its_encodable_forms_match() -> None:
     redactor = Redactor(["ab\ud800cd-4711"])
     assert redactor.text("x ab\ud800cd-4711 y") == "x [redacted] y"
