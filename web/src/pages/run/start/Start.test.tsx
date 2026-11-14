@@ -236,3 +236,19 @@ describe("the run pages reach no service, storage or timer", () => {
     }
   });
 });
+
+describe("Start with a blocked draft", () => {
+  it("disables Submit, shows the reason and describes Submit with it; the dialog cannot open", () => {
+    const slice = structuredClone(fixture.slice) as { drafts: Record<string, unknown>[] };
+    const d = slice.drafts.find((x) => x.id === "start") as Record<string, unknown>;
+    d.next = null;
+    d.nextBlocked = "The spending cap is used up.";
+    show("/run/start/start", slice);
+    const submit = screen.getByRole("button", { name: SUBMIT });
+    expect(submit).toBeDisabled();
+    const reason = screen.getByText("The spending cap is used up.");
+    expect(submit.getAttribute("aria-describedby")).toBe(reason.id);
+    fireEvent.click(submit);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

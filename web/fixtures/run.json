@@ -479,7 +479,8 @@
         },
         "finished": {
           "value": null,
-          "bar": { "label": "No module has reported yet", "value": 0, "max": 13 }
+          "note": "No module has reported yet",
+          "bar": null
         },
         "elapsed": { "value": "0 min 08 s", "note": "Started today at 14:38" },
         "modules": { "kind": "starting", "label": "Starting the run. No module has reported yet." },

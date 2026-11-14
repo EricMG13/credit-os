@@ -23,10 +23,17 @@ function Item({
 }
 
 function WithBar({ caption, figure }: { caption: string; figure: Figure }) {
-  const { label, value, max } = figure.bar;
+  const value = figure.value ?? <Missing />;
+  if (figure.bar === null)
+    return (
+      <Item caption={caption} value={value}>
+        <span className="text-sm text-text-tertiary">{figure.note}</span>
+      </Item>
+    );
+  const { label, value: at, max } = figure.bar;
   return (
-    <Item caption={caption} value={figure.value ?? <Missing />}>
-      <ProgressBar value={value} max={max} label={label} />
+    <Item caption={caption} value={value}>
+      <ProgressBar value={at} max={max} label={label} />
     </Item>
   );
 }

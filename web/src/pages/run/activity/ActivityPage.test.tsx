@@ -232,3 +232,12 @@ describe("Run activity, every address", () => {
     expect(within(stepsOf()[5] as HTMLElement).getByText(detail)).toBeTruthy();
   });
 });
+
+describe("Run activity, a missing figure", () => {
+  it("draws n.a. and its note with no progress bar for Modules finished", () => {
+    show("/run/activity/starting");
+    expect(screen.getByText("No module has reported yet")).toBeTruthy();
+    const bars = screen.getAllByRole("progressbar");
+    expect(bars.map((b) => b.getAttribute("aria-valuemax"))).toEqual(["20"]);
+  });
+});

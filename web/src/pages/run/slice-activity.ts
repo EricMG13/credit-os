@@ -4,12 +4,15 @@ import {
   type Obj,
   bar,
   fail,
+  id as idOf,
   list,
+  nonEmpty,
   obj,
   oneOf,
   orNull,
   str,
   strOrNull,
+  strings,
 } from "./slice-read";
 
 const RUN_STATES = [
@@ -43,7 +46,8 @@ export type ActivityLine = {
   text: string;
   state: RunState | "Not assessable";
 };
-export type Figure = { value: string | null; bar: Bar }; // null draws "n.a."
+export type Figure =
+  { value: string | null; bar: Bar } | { value: string | null; bar: null; note: string }; // a missing figure draws "n.a." and no bar
 export type RunRecord = {
   kind: "run";
   id: string;
@@ -67,45 +71,35 @@ export type ActivityRecord =
   | { kind: "none"; id: string } // nothing has been started
   | { kind: "unreadable"; id: string; issuer: string; labels: string[]; alert: RunAlert };
 
-// A module code (CP-3) stays off these pages: every string is checked where it is read.
-const noCode = (v: string, at: string): string =>
-  /\bCP-\d/.test(v) ? fail(at, "no module code") : v;
-const text = (o: Obj, key: string, path: string): string =>
-  noCode(str(o, key, path), `${path}.${key}`);
-const textOrNull = (o: Obj, key: string, path: string): string | null => {
-  const v = strOrNull(o, key, path);
-  return v === null ? v : noCode(v, `${path}.${key}`);
-};
-const texts = (o: Obj, key: string, path: string): string[] =>
-  list(o, key, path, (v, p) => (typeof v === "string" ? noCode(v, p) : fail(p, "a string")));
-
 const link = (v: unknown, path: string): Link => {
   const o = obj(v, path);
-  const href = text(o, "href", path);
+  const label = str(o, "label", path);
+  const href = str(o, "href", path);
   if (!href.startsWith("#/")) fail(`${path}.href`, 'an address starting with "#/"');
-  return { label: text(o, "label", path), href };
+  return { label, href };
 };
 const alert = (v: unknown, path: string): RunAlert => {
   const o = obj(v, path);
   return {
-    title: text(o, "title", path),
-    text: text(o, "text", path),
+    title: str(o, "title", path),
+    text: str(o, "text", path),
     action: link(o.action, `${path}.action`),
     alt: orNull(o, "alt", path, link),
   };
 };
 const figure = (v: unknown, path: string): Figure => {
   const o = obj(v, path);
-  const value = textOrNull(o, "value", path);
-  const b = bar(o.bar, `${path}.bar`);
-  return { value, bar: { ...b, label: noCode(b.label, `${path}.bar.label`) } };
+  const value = strOrNull(o, "value", path);
+  if (o.bar === null) return { value, bar: null, note: str(o, "note", path) };
+  if (value === null) fail(`${path}.bar`, "null when the value is null");
+  return { value, bar: bar(o.bar, `${path}.bar`) };
 };
 const line = (v: unknown, path: string): ActivityLine => {
   const o = obj(v, path);
   return {
-    who: text(o, "who", path),
-    time: text(o, "time", path),
-    text: text(o, "text", path),
+    who: str(o, "who", path),
+    time: str(o, "time", path),
+    text: str(o, "text", path),
     state: oneOf(o, "state", path, [...RUN_STATES, "Not assessable"] as const),
   };
 };
@@ -125,9 +119,9 @@ const moduleOf =
   (v: unknown, path: string): Module => {
     const o = obj(v, path);
     return {
-      name: text(o, "name", path),
+      name: str(o, "name", path),
       state: wordFor(state)(o, path),
-      detail: textOrNull(o, "detail", path),
+      detail: strOrNull(o, "detail", path),
     };
   };
 const stepOf =
@@ -142,12 +136,12 @@ const stepOf =
       if ("kind" in mo || "modules" in mo) fail(p, "a plain module, not a group");
       return module(mo, p);
     });
-    if (members.length === 0) fail(`${path}.modules`, "a non-empty list");
+    nonEmpty(members, `${path}.modules`);
     return {
       kind: "group",
-      title: text(o, "title", path),
+      title: str(o, "title", path),
       state: wordFor(state)(o, path),
-      showAll: text(o, "showAll", path),
+      showAll: str(o, "showAll", path),
       modules: members,
     };
   };
@@ -157,28 +151,34 @@ function modules(o: Obj, state: RunState, path: string): RunRecord["modules"] {
   const at = `${path}.modules`;
   switch (oneOf(m, "kind", at, ["steps", "starting", "none"] as const)) {
     case "steps":
-      return { kind: "steps", steps: list(m, "steps", at, stepOf(state)) };
+      return { kind: "steps", steps: nonEmpty(list(m, "steps", at, stepOf(state)), `${at}.steps`) };
     case "starting":
       if (state !== "Running") fail(`${at}.kind`, "starting only in a Running run");
-      return { kind: "starting", label: text(m, "label", at) };
+      return { kind: "starting", label: str(m, "label", at) };
     case "none":
       if (state !== "Rejected") fail(`${at}.kind`, "none only in a Rejected run");
-      return { kind: "none", title: text(m, "title", at), text: text(m, "text", at) };
+      return { kind: "none", title: str(m, "title", at), text: str(m, "text", at) };
   }
 }
 
+const ALERT_WHEN = "Failed, Capped, Rejected or Interrupted";
+const ALERTED: readonly RunState[] = ["Failed", "Capped", "Rejected", "Interrupted"];
+const only = <T>(v: T | null, at: string, allowed: boolean, when: string): T | null =>
+  v === null || allowed ? v : fail(at, `null unless the run is ${when}`);
+
 export function activity(v: unknown, path: string): ActivityRecord {
   const o = obj(v, path);
-  const id = text(o, "id", path);
-  switch (oneOf(o, "kind", path, ["run", "none", "unreadable"] as const)) {
+  const kind = oneOf(o, "kind", path, ["run", "none", "unreadable"] as const);
+  const id = idOf(o, "id", path);
+  switch (kind) {
     case "none":
       return { kind: "none", id };
     case "unreadable":
       return {
         kind: "unreadable",
         id,
-        issuer: text(o, "issuer", path),
-        labels: texts(o, "labels", path),
+        issuer: str(o, "issuer", path),
+        labels: strings(o, "labels", path),
         alert: alert(o.alert, `${path}.alert`),
       };
     case "run": {
@@ -187,20 +187,25 @@ export function activity(v: unknown, path: string): ActivityRecord {
       return {
         kind: "run",
         id,
-        issuer: text(o, "issuer", path),
+        issuer: str(o, "issuer", path),
         state,
-        labels: texts(o, "labels", path),
-        line: textOrNull(o, "line", path),
-        alert: orNull(o, "alert", path, alert),
-        open: orNull(o, "open", path, link),
+        labels: strings(o, "labels", path),
+        line: strOrNull(o, "line", path),
+        alert: only(
+          orNull(o, "alert", path, alert),
+          `${path}.alert`,
+          ALERTED.includes(state),
+          ALERT_WHEN,
+        ),
+        open: only(orNull(o, "open", path, link), `${path}.open`, state === "Finished", "Finished"),
         spend: figure(o.spend, `${path}.spend`),
         finished: figure(o.finished, `${path}.finished`),
         elapsed: {
-          value: textOrNull(elapsed, "value", `${path}.elapsed`),
-          note: text(elapsed, "note", `${path}.elapsed`),
+          value: strOrNull(elapsed, "value", `${path}.elapsed`),
+          note: str(elapsed, "note", `${path}.elapsed`),
         },
         modules: modules(o, state, path),
-        feed: list(o, "feed", path, line),
+        feed: nonEmpty(list(o, "feed", path, line), `${path}.feed`),
       };
     }
   }

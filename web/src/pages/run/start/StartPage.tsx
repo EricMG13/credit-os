@@ -52,26 +52,32 @@ function Actions({ draft }: { draft: StartDraft }) {
         <LinkButton href={`#/run/start/${previous}`}>Previous</LinkButton>
       )}
       <span className="text-sm text-text-tertiary">{draft.position}</span>
-      {draft.step === "start" ? (
-        <Submit label={draft.nextLabel} confirm={draft.confirm} />
-      ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          {nextBlocked === null ? null : (
-            <span id={reasonId} className="text-sm text-text-secondary">
-              {nextBlocked}
-            </span>
-          )}
-          {next === null || nextBlocked !== null ? (
-            <Button isDisabled aria-describedby={nextBlocked === null ? undefined : reasonId}>
-              {draft.nextLabel}
-            </Button>
-          ) : (
-            <LinkButton primary href={`#/run/start/${next}`}>
-              {draft.nextLabel}
-            </LinkButton>
-          )}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-3">
+        {nextBlocked === null ? null : (
+          <span id={reasonId} className="text-sm text-text-secondary">
+            {nextBlocked}
+          </span>
+        )}
+        {draft.step === "start" ? (
+          <Submit
+            label={draft.nextLabel}
+            confirm={draft.confirm}
+            blocked={nextBlocked === null ? undefined : { id: reasonId }}
+          />
+        ) : (
+          <>
+            {next === null || nextBlocked !== null ? (
+              <Button isDisabled aria-describedby={nextBlocked === null ? undefined : reasonId}>
+                {draft.nextLabel}
+              </Button>
+            ) : (
+              <LinkButton primary href={`#/run/start/${next}`}>
+                {draft.nextLabel}
+              </LinkButton>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

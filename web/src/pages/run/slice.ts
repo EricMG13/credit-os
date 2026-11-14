@@ -2,7 +2,7 @@
 // that validates a whole slice by hand. The first failure wins and names its path.
 import type { SliceResult } from "../route-table";
 import { type ActivityRecord, activity } from "./slice-activity";
-import { Invalid, fail, list, obj, strOrNull } from "./slice-read";
+import { Invalid, fail, idOrNull, list, obj } from "./slice-read";
 import { type StartDraft, draft } from "./slice-start";
 
 export type { Readiness, Row, StartDraft } from "./slice-start";
@@ -42,11 +42,12 @@ function slice(source: unknown): RunSlice {
     "run.runs",
     "run",
   );
-  const current = strOrNull(root, "current", "run");
+  const runKinds = new Set(runs.filter((r) => r.kind === "run").map((r) => r.id));
+  const current = idOrNull(root, "current", "run");
   if (current !== null && !runIds.has(current))
     fail("run.current", "null or the id of a run in this slice");
   drafts.forEach((d, i) => {
-    if (d.step === "started" && !runIds.has(d.activity))
+    if (d.step === "started" && !runKinds.has(d.activity))
       fail(`run.drafts[${String(i)}].activity`, "the id of a run in this slice");
   });
   return { drafts, runs, current };

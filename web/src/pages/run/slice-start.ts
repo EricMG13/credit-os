@@ -3,6 +3,8 @@ import {
   type Bar,
   bar,
   fail,
+  id,
+  idOrNull,
   list,
   obj,
   oneOf,
@@ -89,7 +91,7 @@ function confirm(v: unknown, path: string): Confirm {
     title: str(o, "title", path),
     text: str(o, "text", path),
     action: str(o, "action", path),
-    started: str(o, "started", path),
+    started: id(o, "started", path),
   };
 }
 
@@ -97,11 +99,11 @@ const STEPS = ["documents", "purpose", "confirm", "context", "start", "started"]
 export function draft(v: unknown, path: string): StartDraft {
   const o = obj(v, path);
   const base: DraftBase = {
-    id: str(o, "id", path),
+    id: id(o, "id", path),
     issuer: str(o, "issuer", path),
     position: str(o, "position", path),
-    previous: strOrNull(o, "previous", path),
-    next: strOrNull(o, "next", path),
+    previous: idOrNull(o, "previous", path),
+    next: idOrNull(o, "next", path),
     nextLabel: str(o, "nextLabel", path),
     nextBlocked: strOrNull(o, "nextBlocked", path),
     readiness: readiness(o.readiness, `${path}.readiness`),
@@ -163,7 +165,7 @@ export function draft(v: unknown, path: string): StartDraft {
         title: str(o, "title", path),
         text: str(o, "text", path),
         cap: bar(o.cap, `${path}.cap`),
-        activity: str(o, "activity", path),
+        activity: id(o, "activity", path),
       };
   }
 }
