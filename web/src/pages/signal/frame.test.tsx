@@ -20,12 +20,14 @@ function channels() {
 
 /** The h1 each declared path shows for its fixture parameter sets (the view, topic, group, digest or page name). */
 const TITLES: Record<string, string> = {
-  "/signal/:scene/topic/:topic": "Shipping",
   "/signal/:scene/group/:group": "Leveraged credit",
   "/signal/:scene/group/:group/thread/:thread": "Leveraged credit",
   "/signal/:scene/digest/:digest": "Weekly brief",
   "/signal/:scene/settings/:section": "Settings",
 };
+
+/** A topic page's h1 is the topic's name as the channel list gives it. */
+const TOPIC_TITLES: Record<string, string> = { shipping: "Shipping", telecoms: "Telecoms" };
 
 const VIEW_TITLES: Record<string, string> = {
   "for-you": "For you",
@@ -149,7 +151,9 @@ describe("the Signal frame", () => {
     expect(skip.className).toContain("outline-focus-ring");
     fireEvent.click(skip);
     expect(
-      screen.getByRole("heading", { level: 1, name: "For you" }).closest("[tabindex='-1']"),
+      screen
+        .getByRole("heading", { level: 1, name: "For you" })
+        .parentElement?.closest("[tabindex='-1']"),
     ).toHaveFocus();
     expect(window.location.hash).toBe("#/signal/main/feed/for-you");
   });
@@ -183,7 +187,7 @@ describe("the Signal frame", () => {
     expect(channels().className).toContain("w-64");
     const content = screen
       .getByRole("heading", { level: 1, name: "For you" })
-      .closest("[tabindex='-1']");
+      .parentElement?.closest("[tabindex='-1']");
     expect(content?.className).toContain("overflow-y-auto");
     expect(content?.className).toContain("p-8");
   });
@@ -257,7 +261,11 @@ describe("the Signal frame", () => {
         expect(missing).toEqual([]);
         const view = show(hash);
         expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-        const title = pattern.includes("/feed/") ? VIEW_TITLES[set["view"] ?? ""] : TITLES[pattern];
+        const title = pattern.includes("/feed/")
+          ? VIEW_TITLES[set["view"] ?? ""]
+          : pattern.includes("/topic/")
+            ? TOPIC_TITLES[set["topic"] ?? ""]
+            : TITLES[pattern];
         if (title === undefined) throw new Error(`no expected title for ${hash}`);
         expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(title);
         expect(skippedLevels()).toEqual([]);
@@ -267,6 +275,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(14);
+    expect(visits).toBe(22);
   });
 });
