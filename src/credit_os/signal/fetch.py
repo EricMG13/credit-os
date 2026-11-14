@@ -458,6 +458,7 @@ def _follow(url: str, etag: str | None, modified: str | None, budget: _Budget) -
             connection = budget.connect(target)
         response: ResponseLike | None = None
         try:
+            # inner _connecting first: a certificate failure is both an OSError and a ValueError
             with _http_call(), _connecting(place.host):
                 connection.request("GET", place.path, headers=headers)
             with _http_call():

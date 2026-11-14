@@ -168,6 +168,38 @@ def test_a_ninth_lookup_while_eight_are_waiting_is_refused_without_a_thread_or_a
     _until_a_lookup_is_free()
 
 
+class _SlotSpy:
+    """A semaphore of one slot that notes how it was asked and when it was given back."""
+
+    def __init__(self) -> None:
+        self.inner = threading.BoundedSemaphore(1)
+        self.acquires: list[tuple[bool, float | None]] = []
+        self.released = threading.Event()
+
+    def acquire(self, blocking: bool = True, timeout: float | None = None) -> bool:
+        self.acquires.append((blocking, timeout))
+        return self.inner.acquire(blocking, timeout)
+
+    def release(self) -> None:
+        self.inner.release()
+        self.released.set()
+
+
+def test_a_lookup_never_waits_for_a_slot(monkeypatch: pytest.MonkeyPatch) -> None:
+    slots = _SlotSpy()
+    monkeypatch.setattr(fetch_module, "_LOOKUP_SLOTS", slots)
+    held = Held()
+    try:
+        with pytest.raises(FetchRefused, match="took too long"):
+            fetch_module._bounded(held, "feeds.example.org", 0.01)
+        with pytest.raises(FetchRefused, match=TOO_MANY):
+            fetch_module._bounded(held, "feeds.example.org", 0.01)
+    finally:
+        held.release.set()
+        assert slots.released.wait(5)  # the late worker gives its slot back to this semaphore
+    assert slots.acquires == [(False, None), (False, None)]
+
+
 def test_a_slot_is_released_when_the_late_lookup_returns() -> None:
     held = Held()
     for _ in range(8):
