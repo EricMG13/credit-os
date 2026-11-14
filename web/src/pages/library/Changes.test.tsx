@@ -29,6 +29,7 @@ function renderChanges(
   );
 }
 
+const cards = () => screen.getAllByRole("listitem").filter((li) => li.tagName === "LI");
 const cardOf = (measure: string) => {
   const card = screen.getByText(measure, { selector: "strong" }).closest("li");
   if (card === null) throw new Error(`no card for ${measure}`);
@@ -37,6 +38,7 @@ const cardOf = (measure: string) => {
 const click = (element: HTMLElement) => {
   fireEvent.click(element);
 };
+const presentation = () => screen.getByRole("radiogroup", { name: "Presentation" });
 
 describe("the changes route", () => {
   it("is titled Changes, full bleed, and the fixture visits every state of the page", () => {
@@ -142,8 +144,92 @@ describe("Changes, the mock's compared run", () => {
   });
 });
 
+describe("Changes, the Table side", () => {
+  const openTable = () => {
+    click(within(presentation()).getByRole("radio", { name: "Table" }));
+  };
+
+  it("draws the toggle Presentation with Cards chosen first and no Chart side", () => {
+    renderChanges("2026-09-30");
+    const radios = within(presentation()).getAllByRole("radio");
+    expect(radios.map((r) => r.textContent)).toEqual(["Cards", "Table"]);
+    expect(within(presentation()).getByRole("radio", { name: "Cards" })).toBeChecked();
+    expect(cards().length).toBeGreaterThan(0);
+  });
+
+  it("switches by pointer to the table, headed by the delivered labels, and back", () => {
+    renderChanges("2026-09-30");
+    openTable();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Earlier against current" }),
+    ).toBeVisible();
+    expect(screen.getByText("All six changes, in the order the module wrote them.")).toBeVisible();
+    const table = screen.getByRole("table", { name: "Earlier against current" });
+    const heads = within(table)
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent);
+    expect(heads).toEqual(["Change", "30 Jun 2026", "30 Sep 2026", "Sources"]);
+    const rows = within(table).getAllByRole("row");
+    expect(rows).toHaveLength(7);
+    const cells = (row: HTMLElement) =>
+      [within(row).getByRole("rowheader"), ...within(row).getAllByRole("cell")].map(
+        (c) => c.textContent,
+      );
+    expect(cells(rows[1] as HTMLElement).slice(0, 3)).toEqual(["Net leverage", "4.9x", "4.6x"]);
+    expect(cells(rows[3] as HTMLElement).slice(0, 3)).toEqual([
+      "Liquidity",
+      "USD 455m",
+      "USD 412m",
+    ]);
+    expect(cells(rows[6] as HTMLElement).slice(0, 3)).toEqual([
+      "Refinancing of the 2028 notes",
+      "By 31 Dec 2026",
+      "By 30 Jun 2027",
+    ]);
+    click(within(presentation()).getByRole("radio", { name: "Cards" }));
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(cards().length).toBeGreaterThan(0);
+  });
+
+  it("switches by keyboard: focus the Table choice and press Space", () => {
+    renderChanges("2026-09-30");
+    const table = within(presentation()).getByRole("radio", { name: "Table" });
+    table.focus();
+    expect(table).toHaveFocus();
+    fireEvent.keyDown(table, { key: " " });
+    fireEvent.keyUp(table, { key: " " });
+    expect(screen.getByRole("table", { name: "Earlier against current" })).toBeVisible();
+    expect(table).toBeChecked();
+  });
+
+  it("draws n.a. in the earlier column of Interest cover, as missing and not zero", () => {
+    renderChanges("2026-09-30");
+    openTable();
+    const row = within(screen.getByRole("table")).getByRole("row", { name: /Interest cover/ });
+    const [earlier, current] = within(row).getAllByRole("cell");
+    expect(earlier).toHaveTextContent("n.a.");
+    expect(earlier).not.toHaveTextContent("0");
+    expect(current).toHaveTextContent("2.4x");
+    expect(earlier).toHaveClass("text-right");
+  });
+
+  it("keeps one trace control per row", () => {
+    renderChanges("2026-09-30");
+    openTable();
+    expect(screen.getAllByRole("button", { name: "Show sources for this change" })).toHaveLength(6);
+  });
+
+  it("keeps no skipped heading level in either presentation", () => {
+    renderChanges("2026-09-30");
+    const levels = () => screen.getAllByRole("heading").map((h) => Number(h.tagName.slice(1)));
+    expect(levels().slice(0, 2)).toEqual([1, 2]);
+    openTable();
+    expect(levels().slice(0, 3)).toEqual([1, 2, 3]);
+  });
+});
+
 describe("Changes, a withheld value and a zero", () => {
-  it("draws Withheld with its reason in the card, and zero as 0", () => {
+  it("draws Withheld with its reason in the card and the table, and zero as 0", () => {
     renderChanges("2026-03-31");
     const margin = cardOf("EBITDA margin");
     expect(within(margin).getByText("Withheld")).toBeVisible();
@@ -154,6 +240,47 @@ describe("Changes, a withheld value and a zero", () => {
     const drawn = cardOf("Drawn on the facility, USD m");
     expect(drawn).toHaveTextContent("0");
     expect(drawn).toHaveTextContent("from 40");
+    click(within(presentation()).getByRole("radio", { name: "Table" }));
+    const row = within(screen.getByRole("table")).getByRole("row", { name: /EBITDA margin/ });
+    expect(within(row).getByText("Withheld")).toBeVisible();
+    const zero = within(screen.getByRole("table")).getByRole("row", { name: /Drawn on/ });
+    expect(within(zero).getAllByRole("cell")[1]).toHaveTextContent("0");
+    expect(within(zero).getAllByRole("cell")[1]).not.toHaveTextContent("n.a.");
+  });
+});
+
+describe("Changes, the Modules section", () => {
+  it("draws the delivered summary and each module's change state", () => {
+    renderChanges("2026-09-30");
+    expect(screen.getByRole("heading", { level: 2, name: "Modules" })).toBeVisible();
+    expect(screen.getByText("3 changed, 9 unchanged, 1 not assessable")).toBeVisible();
+    const list = screen.getByRole("heading", { level: 2, name: "Modules" }).closest("section");
+    const items = within(list as HTMLElement).getAllByRole("listitem");
+    expect(items).toHaveLength(5);
+    expect(items[0]).toHaveTextContent("Capital structure");
+    expect(items[0]).toHaveTextContent("Changed");
+    expect(items[0]).toHaveTextContent(
+      "Now: secured debt is long-dated and the unsecured notes mature first. Before: the 2028 notes were expected to be refinanced within the year.",
+    );
+    expect(within(items[0] as HTMLElement).getByRole("link")).toHaveAttribute(
+      "href",
+      "#/library/halden-aerostructures/2026-09-30/modules/capital-structure",
+    );
+    expect(items[4]).toHaveTextContent("Recovery");
+    expect(items[4]).toHaveTextContent("Not assessable");
+    expect(items[4]).toHaveTextContent(
+      "Not assessable in this run or the earlier one, so there is nothing to compare.",
+    );
+  });
+
+  it("collapses the nine unchanged modules to one plain item with the delivered count", () => {
+    renderChanges("2026-09-30");
+    const item = screen.getByText("9 modules unchanged").closest("li") as HTMLElement;
+    expect(item).toHaveTextContent("Unchanged");
+    expect(item).toHaveTextContent(
+      "Business profile, Industry and competition, Financial performance, Covenants and documentation, Management and governance, Peer comparison, Environmental, social and governance, Forecast, Credit snapshot.",
+    );
+    expect(within(item).queryByRole("link")).toBeNull();
   });
 });
 
@@ -207,5 +334,14 @@ describe("Changes, the other states of the frame", () => {
       screen.getByText(/issuers\[0\]\.runs\[0\]\.changes\.changes\[0\]\.direction/),
     ).toBeVisible();
     expect(screen.queryByRole("radiogroup", { name: "Presentation" })).toBeNull();
+  });
+
+  it("keeps every trace control hidden at rest until the frame's Show sources is on", () => {
+    renderChanges("2026-09-30");
+    const first = screen.getAllByRole("button", { name: "Show sources for this change" })[0];
+    expect(first?.className).toContain("opacity-0");
+    expect(first?.className).toContain("in-data-[sources=on]:opacity-100");
+    fireEvent.click(screen.getByRole("switch"));
+    expect(document.querySelector("[data-sources='on']")).not.toBeNull();
   });
 });
