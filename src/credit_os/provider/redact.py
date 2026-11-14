@@ -102,10 +102,13 @@ _HOME_PATH_FWD = re.compile(
 # folder name may hold one and the two cannot be told apart, so it fails closed. The span is the
 # separators before the folder, the folder, its separators and the user name; the name follows the
 # rule of the path's form. A folder must be a whole segment, and "root" has no nested form. A path
-# is scanned once: a start inside an earlier start's reach adds nothing and is skipped.
+# is scanned once: a start inside an earlier start's reach is skipped, since the scan of that reach
+# meets every folder in it. The user name of one nested home can be the folder of the next
+# ("\\home\\users\\jdoeq"), so the search for the next folder resumes where the last one's folder
+# ends, not where its name ends; both spans are kept and overlapping spans render as one "<home>".
 _NEST_START = re.compile(rf"{_LEAD}(?:[A-Za-z]:|{_UNC}|/mnt/[A-Za-z]|{_UNC_FWD}{_UNC_BODY})[\\/]+")
 _NEST_WORD = re.compile(r"(?i:users|home)")  # every folder in _HOME_DIRS holds one
-_NEST_HEAD = re.compile(rf"(?<![\\/])[\\/]++{_HOME_DIRS}[\\/]++")
+_NEST_HEAD = re.compile(rf"(?<![\\/])[\\/]++{_HOME_DIRS}(?P<folder_end>)[\\/]++")
 _NEST_WIN_NAME = re.compile(
     rf"(?:(?!\\*{_UNC}[\\/]+(?:{_HOME_DIRS}[\\/]|{_ROOT}))(?:\\+(?=')|[^\\/<>:\"|?*\r\n]))+"
 )
@@ -116,6 +119,23 @@ _NEST_FORMS = {
     True: (_NEST_WIN_REACH, _NEST_WIN_NAME),
     False: (_NEST_POSIX_REACH, _NEST_POSIX_NAME),
 }
+
+
+def _reach_spans(
+    text: str, start: int, end: int, name: re.Pattern[str], spans: list[tuple[int, int]]
+) -> int:
+    """Append to ``spans`` the nested homes in ``text[start:end]``; return where the last name ended."""
+    at = start
+    named = 0
+    while (head := _NEST_HEAD.search(text, at, end)) is not None:
+        at = head.end("folder_end")
+        # Inside a name that took the rest of its line, a later head's name ends where that did.
+        if head.start() < named and text[named : named + 1] in ("", "\r", "\n"):
+            continue
+        if (user := name.match(text, head.end())) is not None:
+            spans.append((head.start(), user.end()))
+            named = max(named, user.end())
+    return named
 
 
 def _nested_spans(text: str, homes: list[tuple[int, bool]]) -> list[tuple[int, int]]:
@@ -132,13 +152,7 @@ def _nested_spans(text: str, homes: list[tuple[int, bool]]) -> list[tuple[int, i
             continue
         reach, name = _NEST_FORMS[win]
         end = next(reach.finditer(text, start)).end()  # the reach pattern matches, empty or not
-        at = start
-        while (head := _NEST_HEAD.search(text, at, end)) is not None:
-            at = head.end()
-            if (user := name.match(text, at)) is not None:
-                spans.append((head.start(), user.end()))
-                at = user.end()
-        scanned[win] = max(end, at)
+        scanned[win] = max(end, _reach_spans(text, start, end, name, spans))
     return spans
 
 

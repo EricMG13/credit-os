@@ -421,6 +421,25 @@ def test_home_path_plain_is_mains_pattern() -> None:
         ("/root/backup/home/bob/x", "<home>/backup<home>/x"),
         # a straight drive or share folder is the old rule's, unchanged
         ("D:\\Users\\bob\\x", "<home>\\x"),
+        # the user name of one nested home can be the folder of the next: both go, and the two
+        # overlapping spans (the first's folder and name, the second's folder and name) render as
+        # one "<home>"
+        ("D:\\data\\home\\users\\jdoeq\\x", "D:\\data<home>\\x"),
+        ("D:/data/home/users/jdoeq/x", "D:/data<home>/x"),
+        ("\\\\srv\\share\\data\\home\\users\\jdoeq\\x", "\\\\srv\\share\\data<home>\\x"),
+        ("//srv/share/data/home/users/jdoeq/x", "//srv/share/data<home>/x"),
+        ("/mnt/c/data/home/users/jdoeq/x", "/mnt/c/data<home>/x"),
+        ("D:\\data\\Users\\home\\bobq", "D:\\data<home>"),
+        ("C:\\Users\\home\\Users\\bobq\\x", "<home>\\x"),
+        ("/home/jane/backup/home/users/jdoeq/x", "<home>/backup<home>/x"),
+        # rule (c) with backslashes
+        ("/mnt/c\\data\\Users\\bob", "/mnt/c\\data<home>"),
+        # a folder word as the user name at the top level under each of (a) to (d)
+        ("D:\\Users\\home\\x", "<home>"),
+        ("\\\\srv\\share\\Users\\users\\x", "<home>"),
+        ("/mnt/c/Users/home/x", "<home>"),
+        ("C:\\Users\\mary\\backup\\Users\\home\\x", "<home>\\backup<home>"),
+        ("/home/jane/backup/home/Users/x", "<home>/backup<home>"),
     ],
 )
 def test_nested_home_rows(text: str, expected: str) -> None:
