@@ -38,8 +38,6 @@ src/deploy_workflow/inline_xbrl.py
 src/deploy_workflow/owners/cpos.py
 src/deploy_workflow/owners/cpos_launch.py
 src/deploy_workflow/owners/cpos_cp1_check.py
-src/deploy_workflow/research/weblookup.py
-src/deploy_workflow/research/web_allowlist.json
 src/deploy_workflow/signal
 src/deploy_workflow/owners/cpos_forecast.py
 src/deploy_workflow/owners/cpos_periods.py

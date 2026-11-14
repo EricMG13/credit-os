@@ -29,7 +29,7 @@ merges. A row not yet ported sits at the baseline pin with nothing pending.
 | `src/deploy_workflow/model/handoff.py`, `loop.py`, `copilot.py`, `copilot_adapter.py`, `adapter.py`, `record.py`, `redact.py`, `reply_classes.py`, `turn.py`, `model_testing/configs.py`, `src/deploy_vii/live/schema.py`, `live/prompts.py`, `live/tools.py`, `execution.py` | `provider/` | 1C | `8e3954a` | none |
 | `src/deploy_workflow/run_events.py`, `library_index.py`, `reader_summary.py`, `platform_io.py` | `store/` | 2A | `8e3954a` | none |
 | `src/deploy_workflow/prose_checks.py`, `confidence.py` | `checks/` | 2B | `8e3954a` | none |
-| `src/deploy_vii/registry.py`, `business_context.py`, `src/deploy_workflow/owners/cpos.py`, `owners/cpos_launch.py`, `owners/cpos_cp1_check.py` (new in legacy #111; CP-1's acceptance check, imported by the launcher), `research/weblookup.py`, `research/web_allowlist.json` (new in legacy #110; CP-DR web lookup, imported by the launcher; whether the rebuild carries it is an open owner question, see the 2026-11-14 check), `context.py`, `run_expectations.py`, `model/budget.py`, `model/pricing.py` (run cap; see open questions) | `orchestrator/` | 3A | `8e3954a` | none |
+| `src/deploy_vii/registry.py`, `business_context.py`, `src/deploy_workflow/owners/cpos.py`, `owners/cpos_launch.py`, `owners/cpos_cp1_check.py` (new in legacy #111; CP-1's acceptance check, imported by the launcher), `context.py`, `run_expectations.py`, `model/budget.py`, `model/pricing.py` (run cap; see open questions) | `orchestrator/` | 3A | `8e3954a` | none |
 | `apps/issuer-library/update_library.py`, `credit_os/store.py`, `src/deploy_workflow/credit_os_catalogue.py`, `credit_os_chips.py`, `src/deploy_vii/render.py` | `delivery/` | 3B | `8e3954a` | none |
 | `apps/issuer-library/credit_os/web` | `web/` (behaviour to match, not code to copy) | 4 | `8e3954a` | none |
 | `src/deploy_workflow/changes.py`, `changes_check.py` | `orchestrator/`, `checks/`, `delivery/` | 5A | `8e3954a` | none |
@@ -91,6 +91,8 @@ Changes under these legacy paths are not adapted; the roadmap says why.
 - `src/deploy_workflow/model/providers.py`, `transport.py`
 - `src/deploy_vii` outside the files named in the map
 - `docs/reuse` outside `selected-methods`; within it, the archived `runtime/` snapshots
+- `src/deploy_workflow/research/weblookup.py`, `web_allowlist.json` and the launcher code that
+  calls them: CP-DR's web lookup (owner, 2026-11-14)
 - `docs/work-pc`, `apps/issuer-library/packaging`, `tools/work_pc_delta.py`
 
 A bug fix that lands in one of these and also describes a rule the rebuild must keep (a
@@ -119,7 +121,7 @@ as it stands that day. Mapped paths changed in 40 files (4,069 lines added, 291 
 | `model/` 1B | `owners/cpos_forecast.py`, `cpos_periods.py` (forecast labels, #112; downside follows the forward model, #113; negative cash not calculable, #114) |
 | `provider/` 1C | `model/handoff.py` (865 lines), `copilot.py`, `copilot_adapter.py`, `adapter.py`, `record.py`, `turn.py` |
 | `checks/` 2B | `prose_checks.py` (157 lines) |
-| `orchestrator/` 3A | `owners/cpos_launch.py` (1,056 lines), `cpos.py`, `run_expectations.py`; two new files added to the row |
+| `orchestrator/` 3A | `owners/cpos_launch.py` (1,056 lines), `cpos.py`, `run_expectations.py`; `owners/cpos_cp1_check.py` is new and added to the row |
 | `delivery/` 3B | `apps/issuer-library/credit_os/store.py`, `credit_os_catalogue.py` |
 | `web/` 4 | `views.js`, `screening.js`, `shapes.js`, `screen.css`: a leverage or cover figure on adjusted EBITDA is marked in the list and left out of filters and sort (#117, #118); zero-width label (#105) |
 | 5A, 5C | `changes.py`; `run_start/service.py`, `submissions.py`, `context-form.html` |
@@ -129,10 +131,9 @@ as it stands that day. Mapped paths changed in 40 files (4,069 lines added, 291 
 Outside the map: Signal merged (row added above); `docs/work-pc` and sweeps records (left
 behind).
 
-**Open for the owner:** the live launcher now imports `research/weblookup.py` (CP-DR looks up
-web pages during a run, #110). `research/` is on the left-behind list and the library rule
-here is no network; a run is not the library, but the roadmap does not say whether the rebuild
-carries the lookup. Until ruled, step 3A's plan treats it as not ported.
+**Ruled by the owner, 2026-11-14 ("Leave it out"):** the rebuild does not carry CP-DR's web
+lookup. The live launcher imports `research/weblookup.py` since #110; step 3A's port drops
+that import and the lookup's instructions, and `research/` stays left behind.
 
 ## Not tracked
 
