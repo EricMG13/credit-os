@@ -178,6 +178,12 @@ try {
   const original = readFileSync(dataFile, "utf8");
   const results = [checkAssets(folder), checkStyleUrls(folder), checkClasses(folder)];
   results.push(check("data.js present", browser, folder, "No runs yet"));
+  // The dump is the live DOM: a style element injected by a library would appear in it.
+  results.push(
+    check("component kit, no injected style", browser, folder, "Component kit", "#/kit", [
+      "<style",
+    ]),
+  );
   rmSync(dataFile);
   results.push(check("data.js deleted", browser, folder, "Library data is missing"));
   writeFileSync(dataFile, original.replace("credit-os-data/1", "credit-os-data/2"));
