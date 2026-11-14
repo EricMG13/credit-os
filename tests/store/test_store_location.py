@@ -50,9 +50,16 @@ def test_unholdable_folder_names_are_refused(name: str, tmp_path: Path) -> None:
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("value", key.REFUSED_FOLDER_VALUES, ids=repr)
+_TEXT_FORMS: dict[str, Callable[[Path], object]] = {"str": str, "bytes": os.fsencode}
+_NOT_PATHS: list[Any] = [*key.REFUSED_FOLDER_VALUES, *key.REFUSED_FOLDER_TEXT_FORMS]
+
+
+@pytest.mark.parametrize("value", _NOT_PATHS, ids=repr)
 def test_a_folder_that_is_not_a_path_is_refused(value: object, tmp_path: Path) -> None:
+    if isinstance(value, str):
+        value = _TEXT_FORMS[value](tmp_path / "state")
     _both_raise(StoreRefused, value)
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_a_folder_that_resolves_to_a_network_path_is_refused(
