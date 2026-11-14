@@ -6,6 +6,7 @@ entity is ever defined, expanded or fetched. No article body is fetched; only th
 title, link, date and summary are read.
 """
 
+import re
 import string
 import unicodedata
 from collections.abc import Callable
@@ -26,6 +27,7 @@ LINK_LIMIT = 2048
 ERROR_TEXT_LIMIT = 120
 _ATOM = "{http://www.w3.org/2005/Atom}"
 _HOST_CHARS = frozenset(string.ascii_letters + string.digits + "-")
+_HEX_NUMBER = re.compile(r"0x[0-9a-f]*", re.ASCII | re.IGNORECASE)
 
 
 _DTD_MESSAGE = "feed declares a DTD or entities"
@@ -59,14 +61,18 @@ class _Node:
         return "".join(i if isinstance(i, str) else i.text() for i in self.content)
 
     def inner_html(self) -> str:
-        """The content as HTML: element names without attributes, text escaped."""
+        """The content as HTML: tags only for _XHTML_TAGS, without attributes; text escaped."""
         return "".join(
             escape(i, quote=False) if isinstance(i, str) else i.html() for i in self.content
         )
 
     def html(self) -> str:
-        name = self.tag.rsplit("}", 1)[-1]
-        return f"<{name}>{self.inner_html()}</{name}>"
+        # R18 amended: an element outside _XHTML_TAGS contributes its inner text only, so no
+        # tag the stripper would read as raw text (xmp, iframe, plaintext) is ever written.
+        name = self.tag.rsplit("}", 1)[-1].lower()
+        if name in _XHTML_TAGS:
+            return f"<{name}>{self.inner_html()}</{name}>"
+        return self.inner_html()
 
 
 def _qualified(name: str) -> str:
@@ -115,7 +121,7 @@ def _new_parser(builder: _TreeBuilder) -> expat.XMLParserType:
     return parser
 
 
-def _read_xml(body: bytes) -> _Node:
+def _read_xml(body: bytes | bytearray | memoryview) -> _Node:
     builder = _TreeBuilder()
     # Parse raises ExpatError unless the body holds exactly one root element.
     _new_parser(builder).Parse(body, True)
@@ -139,6 +145,7 @@ _BLOCKS = frozenset(
         "figcaption",
     )
 )
+_XHTML_TAGS = _BLOCKS | {"script", "style"}
 
 
 class _TextOnly(HTMLParser):
@@ -224,16 +231,20 @@ def _title(text: str) -> str:
 
 
 def _dns_name(host: str) -> bool:
-    """ASCII letters, digits and hyphens in dot-joined labels; two or more, the last with a letter.
+    """ASCII letters, digits and hyphens in dot-joined labels; two or more labels.
 
-    This refuses every spelling of an IP address (dotted, hex, octal, integer, IPv6) and a
-    single-label host.
+    The last label must contain a letter and must not be ``0x`` followed by hex digits (or
+    none): a browser reads a host ending in a number, as ``127.0.0.0x1`` does, as an IPv4
+    address. That refuses dotted-decimal, octal and integer spellings, a trailing hex number
+    and a single-label host. A host the rule cannot spell (IPv6, ``[`` or a character outside
+    the set) fails on the character set.
     """
     labels = host.split(".")
     return (
         len(labels) >= 2
         and all(label and _HOST_CHARS.issuperset(label) for label in labels)
         and any(ch.isalpha() for ch in labels[-1])
+        and _HEX_NUMBER.fullmatch(labels[-1]) is None
     )
 
 
@@ -319,9 +330,16 @@ def _entries(root: _Node) -> list[Entry]:
     return [entry for entry in found if entry is not None]
 
 
-def parse_feed(body: bytes) -> list[Entry]:
-    """Return the readable entries of an RSS 2.0 or Atom feed, in feed order."""
-    if len(body) > MAX_BYTES:
+def parse_feed(body: bytes | bytearray | memoryview) -> list[Entry]:
+    """Return the readable entries of an RSS 2.0 or Atom feed, in feed order.
+
+    R26: anything but bytes, bytearray or memoryview (the predecessor's byte search accepted
+    these three) is a TypeError, before the size check: a str is measured in characters, not
+    in the bytes expat would encode it to.
+    """
+    if not isinstance(body, bytes | bytearray | memoryview):
+        raise TypeError("feed body must be bytes")
+    if memoryview(body).nbytes > MAX_BYTES:
         raise FeedError("feed is larger than 2 MiB")
     try:
         root = _read_xml(body)

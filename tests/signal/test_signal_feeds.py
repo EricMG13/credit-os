@@ -2,6 +2,7 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
+from typing import cast
 
 import pytest
 
@@ -894,3 +895,86 @@ def test_a_date_with_no_zone_is_utc_whatever_the_local_zone(
 def test_a_summary_of_300_characters_is_kept_and_301_are_cut() -> None:
     assert _summary_of("x" * 300) == "x" * 300
     assert _summary_of("x" * 301) == "x" * 300
+    # With a space inside, a 300-character summary ends a word and is kept whole (L-3: a `<`
+    # for `<=` at the boundary would cut its last word); one character more is cut at the space.
+    spaced = "x" * 149 + " " + "y" * 150
+    assert len(spaced) == 300
+    assert _summary_of(spaced) == spaced
+    assert _summary_of(spaced + "z") == "x" * 149
+
+
+# --- S-3a re-review: R7b amended, R18 amended, R26 and the 300-character boundary ---
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "1.2.3.0x7f",
+        "127.0.0.0x1",
+        "0x7f.0.0.0x1",
+        "0x7f.0x0.0x0.0x1",
+        "10.0.0.0X1",
+        "192.168.0.0x1",
+        "1.2.3.0x",
+        "e.0x",
+        "e.0xff",
+        "169.254.169.0xfe",
+    ],
+)
+def test_a_host_whose_last_label_is_a_hex_number_is_unusable(host: str) -> None:
+    # A browser reads such a host as an IPv4 address ("127.0.0.0x1" is 127.0.0.1).
+    assert parse_feed(_link_body(f"http://{host}/x")) == []
+
+
+@pytest.mark.parametrize("host", ["a.1e3", "1.2.3.7f", "e.ff", "e.0x7g", "e.x7f", "1.2.3.f"])
+def test_a_last_label_that_only_looks_like_a_number_is_a_name(host: str) -> None:
+    # A browser reads these as names, so they stay usable.
+    assert [e.link for e in parse_feed(_link_body(f"http://{host}/x"))] == [f"http://{host}/x"]
+
+
+_XHTML_DIV = 'xmlns="http://www.w3.org/1999/xhtml"'
+
+
+@pytest.mark.parametrize(
+    ("inner", "expected"),
+    [
+        ("A <xmp>&lt;b&gt; &amp;amp; B</xmp> C", "A <b> &amp; B C"),
+        ("A <iframe>&lt;b&gt;</iframe> C", "A <b> C"),
+        ("A <noembed>&lt;i&gt;</noembed> C", "A <i> C"),
+        ("A <noframes>&lt;i&gt;</noframes> C", "A <i> C"),
+        ("A <plaintext>B</plaintext> C", "A B C"),
+        ("A <_x>B</_x> C", "A B C"),
+        ("A <a.b>B</a.b> C", "A B C"),
+        ("A <m:b xmlns:m='urn:m'>B</m:b> C", "A B C"),
+        ('A <a href="javascript:x" title="T">B</a> C', "A B C"),
+        ("A <él>B</él> C", "A B C"),
+        ("A <script>SCRIPT</script>B", "A B"),
+        ("A <style>p{}</style>B", "A B"),
+        ("<p>A</p><P>B</P><x:div xmlns:x='urn:x'>C</x:div>", "A B C"),
+    ],
+)
+def test_xhtml_is_rebuilt_from_known_tags_only(inner: str, expected: str) -> None:
+    summary = f'<summary type="xhtml"><div {_XHTML_DIV}>{inner}</div></summary>'
+    assert _atom_one("<title>T</title>", summary).summary == expected
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param("not bytes", id="str"),
+        pytest.param("", id="empty str"),
+        pytest.param("x" * (MAX_BYTES + 1), id="str over the cap"),
+        pytest.param(None, id="None"),
+        pytest.param([b"x"], id="list"),
+        pytest.param(7, id="int"),
+    ],
+)
+def test_a_body_that_is_not_bytes_is_a_type_error_before_the_size_check(body: object) -> None:
+    with pytest.raises(TypeError, match="body must be bytes"):
+        parse_feed(cast(bytes, body))
+
+
+@pytest.mark.parametrize("kind", [bytearray, memoryview])
+def test_a_bytes_like_body_is_read_like_bytes(kind: type) -> None:
+    # The predecessor's byte search accepted any bytes-like body; so does the port.
+    assert parse_feed(cast(bytes, kind(RSS))) == parse_feed(RSS)
