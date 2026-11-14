@@ -2,3 +2,13 @@
 @import "./styles/theme.css";
 @plugin "tailwindcss-animate";
 @plugin "tailwindcss-react-aria-components";
+
+/* Motion off under reduced motion: no transition, no animation (the spinner holds still). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
