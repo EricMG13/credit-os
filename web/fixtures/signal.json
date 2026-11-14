@@ -1,1 +1,3162 @@
-{}
+{
+  "slice": {
+    "scenes": [
+      {
+        "id": "main",
+        "snapshot": {
+          "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": [
+                "Group: Leveraged credit",
+                "Group: Shipping desk",
+                "Topic: Shipping",
+                "Topic: Packaging"
+              ],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00", "Daily, 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 3 points", "Up to 5 points", "Up to 8 points"],
+              "brief": "Lead with anything that changes a refinancing date. Skip price moves."
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": {
+                "title": "Spend in November",
+                "label": "USD 6.40 of USD 15.00",
+                "note": null,
+                "position": 0.43
+              },
+              "parts": [
+                {
+                  "id": "ai-line",
+                  "label": "AI line on stories",
+                  "hint": "One line on why a story matters, marked AI.",
+                  "on": false
+                },
+                {
+                  "id": "strength",
+                  "label": "Signal strength",
+                  "hint": "Three marks and a word on each story.",
+                  "on": false
+                },
+                { "id": "digests", "label": "Digests", "hint": "Scheduled briefs.", "on": false }
+              ]
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "31", "height": 0.89 },
+                  { "label": "Week of 13 Oct", "items": "28", "height": 0.8 },
+                  { "label": "Week of 20 Oct", "items": "35", "height": 1.0 },
+                  { "label": "Week of 27 Oct", "items": "30", "height": 0.86 },
+                  { "label": "Week of 3 Nov", "items": "26", "height": 0.74 },
+                  { "label": "Week of 10 Nov", "items": "33", "height": 0.94 }
+                ],
+                "sort": { "name": 2, "state": 1, "health": 1 }
+              },
+              {
+                "id": "regulatory-gazette",
+                "name": "Regulatory Gazette",
+                "kind": "Regulatory cases",
+                "state": "Approved",
+                "health": "Quiet",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": "No item for 9 days",
+                "lastCheck": "6 min ago",
+                "lastItem": "4 Nov",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "4", "height": 0.67 },
+                  { "label": "Week of 13 Oct", "items": "6", "height": 1.0 },
+                  { "label": "Week of 20 Oct", "items": "3", "height": 0.5 },
+                  { "label": "Week of 27 Oct", "items": "5", "height": 0.83 },
+                  { "label": "Week of 3 Nov", "items": "1", "height": 0.17 },
+                  { "label": "Week of 10 Nov", "items": "0", "height": 0 }
+                ],
+                "sort": { "name": 4, "state": 1, "health": 2 }
+              },
+              {
+                "id": "northgate-ratings",
+                "name": "Northgate Ratings",
+                "kind": "Rating actions",
+                "state": "Approved",
+                "health": "Failing",
+                "reason": "The feed returned an error at the last 3 checks",
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "yesterday",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "9", "height": 0.82 },
+                  { "label": "Week of 13 Oct", "items": "7", "height": 0.64 },
+                  { "label": "Week of 20 Oct", "items": "11", "height": 1.0 },
+                  { "label": "Week of 27 Oct", "items": "8", "height": 0.73 },
+                  { "label": "Week of 3 Nov", "items": null, "height": null },
+                  { "label": "Week of 10 Nov", "items": "6", "height": 0.55 }
+                ],
+                "sort": { "name": 3, "state": 1, "health": 3 }
+              },
+              {
+                "id": "meridian-post",
+                "name": "The Meridian Post",
+                "kind": "News",
+                "state": "Paused",
+                "health": null,
+                "reason": null,
+                "stateNote": "By the owner, 2 Nov",
+                "healthNote": null,
+                "lastCheck": "2 Nov",
+                "lastItem": "2 Nov",
+                "weeks": [
+                  { "label": "Week of 6 Oct", "items": "18", "height": 0.82 },
+                  { "label": "Week of 13 Oct", "items": "22", "height": 1.0 },
+                  { "label": "Week of 20 Oct", "items": "20", "height": 0.91 },
+                  { "label": "Week of 27 Oct", "items": "19", "height": 0.86 },
+                  { "label": "Week of 3 Nov", "items": null, "height": null },
+                  { "label": "Week of 10 Nov", "items": null, "height": null }
+                ],
+                "sort": { "name": 5, "state": 2, "health": 4 }
+              },
+              {
+                "id": "freight-monitor",
+                "name": "Freight Monitor",
+                "kind": "News",
+                "state": "Proposed",
+                "health": null,
+                "reason": null,
+                "stateNote": "By Tobias O, yesterday",
+                "healthNote": null,
+                "lastCheck": null,
+                "lastItem": null,
+                "weeks": [],
+                "sort": { "name": 1, "state": 3, "health": 4 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week, 6 weeks",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "I", "name": "Ines K" },
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "J", "name": "Jonas W" }
+                ],
+                "moreMembers": "+2",
+                "memberSummary": "6 members",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "A", "name": "Amir S" }
+                ],
+                "moreMembers": null,
+                "memberSummary": "3 members",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "committee-prep",
+                "name": "Committee prep",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [
+              {
+                "id": "comments-edited",
+                "label": "Comments can be edited",
+                "hint": "An edited comment is marked \"edited\".",
+                "on": true
+              },
+              {
+                "id": "authors-remove",
+                "label": "Authors can remove their own comments",
+                "hint": "The thread keeps a line saying a comment was removed.",
+                "on": true
+              },
+              {
+                "id": "readers-react",
+                "label": "Readers can react",
+                "hint": "Off: only writers react. Readers never comment.",
+                "on": false
+              },
+              {
+                "id": "archive-30",
+                "label": "Archive a thread after 30 days without a comment",
+                "hint": "An archived thread can be read but not added to.",
+                "on": true
+              }
+            ],
+            "notifications": {
+              "events": [
+                {
+                  "id": "comment",
+                  "label": "A comment on a thread I am in",
+                  "inSignal": true,
+                  "onDesktop": true
+                },
+                {
+                  "id": "shared",
+                  "label": "A story shared to one of my groups",
+                  "inSignal": true,
+                  "onDesktop": false
+                },
+                { "id": "digest", "label": "A new digest", "inSignal": true, "onDesktop": false },
+                {
+                  "id": "rating",
+                  "label": "A rating action in a topic I follow",
+                  "inSignal": false,
+                  "onDesktop": false
+                }
+              ]
+            }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": []
+              }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "6"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": "1 source failing",
+              "error": null
+            },
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": {
+                  "label": "Also in 4 other sources",
+                  "monograms": ["CL", "MP", "RG"],
+                  "more": "+1"
+                },
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": "4",
+                "threadRef": { "groupId": "leveraged-credit", "threadId": "corvane-thread" },
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Telecoms", "Disposals"],
+                "stage": {
+                  "current": "In-depth review",
+                  "label": "Stage 3 of 4",
+                  "position": 0.75,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": true },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "tessaly",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                "url": "https://example.com/tessaly",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "5 h ago",
+                "summary": "The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": true,
+                "commentCount": "1",
+                "threadRef": { "groupId": "leveraged-credit", "threadId": "halvorsen-thread" },
+                "tags": ["Shipping", "Rating actions"],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB-", "to": "B+", "word": "Downgrade, one notch" },
+                  { "from": "Negative", "to": "Stable", "word": "Outlook" }
+                ],
+                "id": "halvorsen",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                "url": "https://example.com/halvorsen",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "Yesterday",
+                "summary": "The agency cites weaker charter rates and a refinancing due in 2027."
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "oakhaven",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Notice of initial review: Oakhaven Lines and Pellant Terminals",
+                "url": null,
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "40 min ago",
+                "summary": "The authority has opened an initial review of the proposed terminal joint venture.",
+                "tags": [],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": {
+                  "current": "Initial review",
+                  "label": "Stage 2 of 4",
+                  "position": 0.5,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": true },
+                    { "name": "In-depth review", "current": false },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": []
+              },
+              {
+                "id": "pellant",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Pellant Terminals plans first bond issue",
+                "url": "https://example.com/pellant",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": null,
+                "summary": "The port operator has mandated banks for a debut issue, the publication reports.",
+                "tags": [],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": true,
+                "commentCount": "2",
+                "threadRef": { "groupId": "leveraged-credit", "threadId": "brightwell-thread" },
+                "tags": [],
+                "stage": {
+                  "current": "Decision: cleared with conditions",
+                  "label": "Stage 4 of 4",
+                  "position": 1,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": false },
+                    { "name": "Decision", "current": true }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "brightwell-clearance",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Authority clears Brightwell Foods' dairy purchase with conditions",
+                "url": "https://example.com/brightwell-clearance",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "3 Nov",
+                "summary": "Brightwell must sell three depots within six months."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": [],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB", "to": "BB", "word": "Affirmed" },
+                  { "from": "Stable", "to": "Positive", "word": "Outlook" }
+                ],
+                "id": "oakhaven-affirm",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings affirms Oakhaven Lines at BB, outlook to positive",
+                "url": "https://example.com/oakhaven-affirm",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "28 Oct",
+                "summary": "The agency points to contract cover through 2028."
+              },
+              {
+                "id": "lenmark",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Lenmark Retail secures a covenant waiver from its banks",
+                "url": "https://example.com/lenmark",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "3 days ago",
+                "summary": "The waiver runs to the end of the financial year. Lenmark pays a small fee for it.",
+                "tags": ["Retail"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "karsten",
+                "kind": "regulator",
+                "kindLabel": "Regulator",
+                "headline": "Karsten Power files its annual report with the securities regulator",
+                "url": "https://example.com/karsten",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "4 days ago",
+                "summary": "The filing lists two new related-party loans.",
+                "tags": ["Power"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              }
+            ],
+            "views": {
+              "for-you": {
+                "top": ["corvane", "tessaly", "halvorsen", "brightwell"],
+                "latest": ["corvane", "tessaly", "brightwell", "halvorsen"],
+                "waiting": {
+                  "label": "4 new stories",
+                  "ids": ["oakhaven", "pellant", "brightwell-clearance", "oakhaven-affirm"]
+                },
+                "older": ["lenmark", "karsten"]
+              },
+              "latest": {
+                "top": ["oakhaven", "pellant"],
+                "latest": ["oakhaven", "pellant"],
+                "waiting": null,
+                "older": []
+              },
+              "saved": {
+                "top": ["halvorsen", "brightwell-clearance"],
+                "latest": ["halvorsen", "brightwell-clearance"],
+                "waiting": null,
+                "older": []
+              }
+            },
+            "topics": {
+              "shipping": {
+                "top": ["halvorsen", "oakhaven-affirm"],
+                "latest": ["halvorsen", "oakhaven-affirm"],
+                "waiting": null,
+                "older": []
+              },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "No new digest is written while AI is off or at its cap. Earlier digests stay readable.",
+              "issues": [
+                {
+                  "id": "week-13-nov",
+                  "title": "Leveraged credit: the week to 13 November",
+                  "date": "Fri 13 Nov",
+                  "ai": true,
+                  "summary": "5 points from 41 stories",
+                  "nothing": null,
+                  "points": []
+                }
+              ]
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "No new digest is written while AI is off or at its cap. Earlier digests stay readable.",
+              "issues": []
+            }
+          ],
+          "threads": [
+            {
+              "id": "corvane-thread",
+              "groupId": "leveraged-credit",
+              "storyId": "corvane",
+              "note": null,
+              "archived": false,
+              "title": "Thread",
+              "subline": "Leveraged credit, 4 comments",
+              "archivedLine": null,
+              "comments": [
+                {
+                  "id": "c1",
+                  "author": { "initials": "TO", "name": "Tobias O" },
+                  "own": false,
+                  "time": "10:02",
+                  "text": "Sharing for Thursday. The charge is larger than the saving in year one.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [
+                    { "word": "Agree", "count": "2", "mine": false },
+                    { "word": "Seen", "count": "1", "mine": false }
+                  ],
+                  "replies": [
+                    {
+                      "id": "c2",
+                      "author": { "initials": "IK", "name": "Ines K" },
+                      "own": false,
+                      "time": "10:15",
+                      "text": "Agreed. Their covenant test date is the thing to check.",
+                      "edited": true,
+                      "removed": false,
+                      "reactions": [],
+                      "replies": []
+                    }
+                  ]
+                },
+                {
+                  "id": "c3",
+                  "author": { "initials": "JW", "name": "Jonas W" },
+                  "own": false,
+                  "time": "10:31",
+                  "text": null,
+                  "edited": false,
+                  "removed": true,
+                  "reactions": [],
+                  "replies": []
+                },
+                {
+                  "id": "c4",
+                  "author": { "initials": "ML", "name": "Mara L" },
+                  "own": true,
+                  "time": "10:40",
+                  "text": "I will pull the test dates from the last report before Thursday.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [{ "word": "Seen", "count": "3", "mine": true }],
+                  "replies": []
+                }
+              ]
+            },
+            {
+              "id": "packaging-note",
+              "groupId": "leveraged-credit",
+              "storyId": null,
+              "note": "Has anyone looked at how the packaging closures read across to the two issuers we hold? Worth a slot on Thursday.",
+              "archived": false,
+              "title": "Thread",
+              "subline": "Leveraged credit, 2 comments",
+              "archivedLine": null,
+              "comments": [
+                {
+                  "id": "c1",
+                  "author": { "initials": "TO", "name": "Tobias O" },
+                  "own": false,
+                  "time": "Yesterday 16:40",
+                  "text": "Closures at both look manageable on the maturity profile. I will check the revolver.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [],
+                  "replies": []
+                },
+                {
+                  "id": "c2",
+                  "author": { "initials": "IK", "name": "Ines K" },
+                  "own": false,
+                  "time": "Yesterday 17:05",
+                  "text": "Good. Add it to the Thursday list.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [],
+                  "replies": []
+                }
+              ]
+            },
+            {
+              "id": "halvorsen-thread",
+              "groupId": "leveraged-credit",
+              "storyId": "halvorsen",
+              "note": null,
+              "archived": false,
+              "title": "Thread",
+              "subline": "Leveraged credit, 1 comment",
+              "archivedLine": null,
+              "comments": [
+                {
+                  "id": "c1",
+                  "author": { "initials": "ML", "name": "Mara L" },
+                  "own": true,
+                  "time": "Yesterday 11:20",
+                  "text": "Noted. The downgrade looks priced in.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [],
+                  "replies": []
+                }
+              ]
+            },
+            {
+              "id": "brightwell-thread",
+              "groupId": "leveraged-credit",
+              "storyId": "brightwell-clearance",
+              "note": null,
+              "archived": true,
+              "title": "Thread",
+              "subline": "Leveraged credit, 2 comments",
+              "archivedLine": "Archived on 2 Nov 2026",
+              "comments": [
+                {
+                  "id": "c1",
+                  "author": { "initials": "IK", "name": "Ines K" },
+                  "own": false,
+                  "time": "28 Oct 14:05",
+                  "text": "Decision is due next week. Depot sales look likely.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [],
+                  "replies": []
+                },
+                {
+                  "id": "c2",
+                  "author": { "initials": "TO", "name": "Tobias O" },
+                  "own": false,
+                  "time": "3 Nov 09:12",
+                  "text": "Cleared with conditions, as expected. Closing this one.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [{ "word": "Agree", "count": "1", "mine": false }],
+                  "replies": []
+                }
+              ]
+            }
+          ],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "6 members",
+              "members": [
+                { "initials": "TO", "name": "Tobias O" },
+                { "initials": "IK", "name": "Ines K" },
+                { "initials": "ML", "name": "Mara L" },
+                { "initials": "JW", "name": "Jonas W" }
+              ],
+              "moreMembers": "+2",
+              "threads": [
+                {
+                  "id": "corvane-thread",
+                  "storyId": "corvane",
+                  "note": null,
+                  "sharedBy": { "initials": "TO", "label": "Shared by Tobias O, 1 h ago" },
+                  "commentCount": "4 comments",
+                  "archived": false,
+                  "unread": true,
+                  "lastActivity": "1 h ago"
+                },
+                {
+                  "id": "packaging-note",
+                  "storyId": null,
+                  "note": "Has anyone looked at how the packaging closures read across to the two issuers we hold? Worth a slot on Thursday.",
+                  "sharedBy": { "initials": "IK", "label": "Ines K started a thread" },
+                  "commentCount": "2 comments",
+                  "archived": false,
+                  "unread": true,
+                  "lastActivity": "Yesterday 16:20"
+                },
+                {
+                  "id": "halvorsen-thread",
+                  "storyId": "halvorsen",
+                  "note": null,
+                  "sharedBy": { "initials": "ML", "label": "Shared by you, yesterday" },
+                  "commentCount": "1 comment",
+                  "archived": false,
+                  "unread": false,
+                  "lastActivity": "Yesterday"
+                },
+                {
+                  "id": "brightwell-thread",
+                  "storyId": "brightwell-clearance",
+                  "note": null,
+                  "sharedBy": { "initials": "IK", "label": "Shared by Ines K, last week" },
+                  "commentCount": "2 comments",
+                  "archived": true,
+                  "unread": false,
+                  "lastActivity": "Last week"
+                }
+              ]
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "3 members",
+              "members": [
+                { "initials": "ML", "name": "Mara L" },
+                { "initials": "TO", "name": "Tobias O" },
+                { "initials": "AS", "name": "Amir S" }
+              ],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "reader",
+        "snapshot": {
+          "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "I", "name": "Ines K" },
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "J", "name": "Jonas W" }
+                ],
+                "moreMembers": "+2",
+                "memberSummary": "6 members",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [
+                  { "initials": "M", "name": "Mara L" },
+                  { "initials": "T", "name": "Tobias O" },
+                  { "initials": "A", "name": "Amir S" }
+                ],
+                "moreMembers": null,
+                "memberSummary": "3 members",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "committee-prep",
+                "name": "Committee prep",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members yet",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [
+              {
+                "id": "comments-edited",
+                "label": "Comments can be edited",
+                "hint": "An edited comment is marked \"edited\".",
+                "on": true
+              },
+              {
+                "id": "authors-remove",
+                "label": "Authors can remove their own comments",
+                "hint": "The thread keeps a line saying a comment was removed.",
+                "on": true
+              },
+              {
+                "id": "readers-react",
+                "label": "Readers can react",
+                "hint": "Off: only writers react. Readers never comment.",
+                "on": false
+              },
+              {
+                "id": "archive-30",
+                "label": "Archive a thread after 30 days without a comment",
+                "hint": "An archived thread can be read but not added to.",
+                "on": true
+              }
+            ],
+            "notifications": {
+              "events": [
+                {
+                  "id": "comment",
+                  "label": "A comment on a thread I am in",
+                  "inSignal": true,
+                  "onDesktop": true
+                },
+                {
+                  "id": "shared",
+                  "label": "A story shared to one of my groups",
+                  "inSignal": true,
+                  "onDesktop": false
+                },
+                { "id": "digest", "label": "A new digest", "inSignal": true, "onDesktop": false },
+                {
+                  "id": "rating",
+                  "label": "A rating action in a topic I follow",
+                  "inSignal": false,
+                  "onDesktop": false
+                }
+              ]
+            }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "reader", "roleLabel": "Reader" },
+          "channels": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": []
+              }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": "4",
+                "threadRef": { "groupId": "leveraged-credit", "threadId": "corvane-thread" },
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              }
+            ],
+            "views": {
+              "for-you": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "latest": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [
+            {
+              "id": "corvane-thread",
+              "groupId": "leveraged-credit",
+              "storyId": "corvane",
+              "note": null,
+              "archived": false,
+              "title": "Thread",
+              "subline": "Leveraged credit, 4 comments",
+              "archivedLine": null,
+              "comments": [
+                {
+                  "id": "c1",
+                  "author": { "initials": "TO", "name": "Tobias O" },
+                  "own": false,
+                  "time": "10:02",
+                  "text": "Sharing for Thursday. The charge is larger than the saving in year one.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [
+                    { "word": "Agree", "count": "2", "mine": false },
+                    { "word": "Seen", "count": "1", "mine": false }
+                  ],
+                  "replies": [
+                    {
+                      "id": "c2",
+                      "author": { "initials": "IK", "name": "Ines K" },
+                      "own": false,
+                      "time": "10:15",
+                      "text": "Agreed. Their covenant test date is the thing to check.",
+                      "edited": true,
+                      "removed": false,
+                      "reactions": [],
+                      "replies": []
+                    }
+                  ]
+                },
+                {
+                  "id": "c3",
+                  "author": { "initials": "JW", "name": "Jonas W" },
+                  "own": false,
+                  "time": "10:31",
+                  "text": null,
+                  "edited": false,
+                  "removed": true,
+                  "reactions": [],
+                  "replies": []
+                },
+                {
+                  "id": "c4",
+                  "author": { "initials": "ML", "name": "Mara L" },
+                  "own": true,
+                  "time": "10:40",
+                  "text": "I will pull the test dates from the last report before Thursday.",
+                  "edited": false,
+                  "removed": false,
+                  "reactions": [{ "word": "Seen", "count": "3", "mine": true }],
+                  "replies": []
+                }
+              ]
+            }
+          ],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "6 members",
+              "members": [
+                { "initials": "TO", "name": "Tobias O" },
+                { "initials": "IK", "name": "Ines K" },
+                { "initials": "ML", "name": "Mara L" },
+                { "initials": "JW", "name": "Jonas W" }
+              ],
+              "moreMembers": "+2",
+              "threads": [
+                {
+                  "id": "corvane-thread",
+                  "storyId": "corvane",
+                  "note": null,
+                  "sharedBy": { "initials": "TO", "label": "Shared by Tobias O, 1 h ago" },
+                  "commentCount": "4 comments",
+                  "archived": false,
+                  "unread": true,
+                  "lastActivity": "1 h ago"
+                }
+              ]
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "3 members",
+              "members": [
+                { "initials": "ML", "name": "Mara L" },
+                { "initials": "TO", "name": "Tobias O" },
+                { "initials": "AS", "name": "Amir S" }
+              ],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "ai-on",
+        "snapshot": {
+          "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": [
+                "Group: Leveraged credit",
+                "Group: Shipping desk",
+                "Topic: Shipping",
+                "Topic: Packaging"
+              ],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00", "Daily, 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 3 points", "Up to 5 points", "Up to 8 points"],
+              "brief": "Lead with anything that changes a refinancing date. Skip price moves."
+            },
+            "ai": {
+              "state": "on",
+              "notice": null,
+              "spend": {
+                "title": "Spend in November",
+                "label": "USD 6.40 of USD 15.00",
+                "note": "The cap resets on 1 December.",
+                "position": 0.43
+              },
+              "parts": [
+                {
+                  "id": "ai-line",
+                  "label": "AI line on stories",
+                  "hint": "One line on why a story matters, marked AI.",
+                  "on": true
+                },
+                {
+                  "id": "strength",
+                  "label": "Signal strength",
+                  "hint": "Three marks and a word on each story.",
+                  "on": true
+                },
+                {
+                  "id": "digests",
+                  "label": "Digests",
+                  "hint": "Scheduled briefs. A digest with nothing to report makes no call.",
+                  "on": true
+                }
+              ]
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": []
+              }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": true, "paused": false },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": false }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": {
+                  "label": "Also in 4 other sources",
+                  "monograms": ["CL", "MP", "RG"],
+                  "more": "+1"
+                },
+                "sharedBy": { "initials": "TO", "label": "Shared to Leveraged credit by Tobias O" },
+                "ai": {
+                  "line": "The charge lands in the quarter its leverage covenant steps down."
+                },
+                "strength": { "marks": 3, "word": "Strong" },
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": { "marks": 1, "word": "Light" },
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": {
+                  "line": "Sale proceeds are earmarked to repay the 2027 notes; a delay moves that date."
+                },
+                "strength": { "marks": 2, "word": "Moderate" },
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Telecoms", "Disposals"],
+                "stage": {
+                  "current": "In-depth review",
+                  "label": "Stage 3 of 4",
+                  "position": 0.75,
+                  "stages": [
+                    { "name": "Opened", "current": false },
+                    { "name": "Initial review", "current": false },
+                    { "name": "In-depth review", "current": true },
+                    { "name": "Decision", "current": false }
+                  ]
+                },
+                "ratingMoves": [],
+                "id": "tessaly",
+                "kind": "regulator",
+                "kindLabel": "Regulatory case",
+                "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                "url": "https://example.com/tessaly",
+                "source": { "name": "Regulatory Gazette", "monogram": "RG" },
+                "time": "5 h ago",
+                "summary": "The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies."
+              },
+              {
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": { "line": "B+ is one notch above the level that raises its loan margin." },
+                "strength": { "marks": 3, "word": "Strong" },
+                "saved": true,
+                "commentCount": null,
+                "threadRef": null,
+                "tags": ["Shipping", "Rating actions"],
+                "stage": null,
+                "ratingMoves": [
+                  { "from": "BB-", "to": "B+", "word": "Downgrade, one notch" },
+                  { "from": "Negative", "to": "Stable", "word": "Outlook" }
+                ],
+                "id": "halvorsen",
+                "kind": "ratings",
+                "kindLabel": "Rating action",
+                "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                "url": "https://example.com/halvorsen",
+                "source": { "name": "Northgate Ratings", "monogram": "NR" },
+                "time": "Yesterday",
+                "summary": "The agency cites weaker charter rates and a refinancing due in 2027."
+              }
+            ],
+            "views": {
+              "for-you": {
+                "top": [
+                  "corvane",
+                  "tessaly",
+                  "halvorsen",
+                  "weekly-brief",
+                  "brightwell",
+                  "daily-ratings-12-nov",
+                  "daily-ratings-11-nov"
+                ],
+                "latest": [
+                  "corvane",
+                  "tessaly",
+                  "halvorsen",
+                  "weekly-brief",
+                  "brightwell",
+                  "daily-ratings-12-nov",
+                  "daily-ratings-11-nov"
+                ],
+                "waiting": null,
+                "older": []
+              },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "digests": [
+              {
+                "summary": "5 points from 41 stories",
+                "nothing": null,
+                "points": [
+                  { "number": "1", "lead": "Packaging issuers are cutting capacity, not prices" },
+                  { "number": "2", "lead": "Two telecoms disposals are now in in-depth review" },
+                  { "number": "3", "lead": "Shipping downgrades cluster around 2027 maturities" }
+                ],
+                "ai": true,
+                "unread": true,
+                "id": "weekly-brief",
+                "digestId": "weekly-brief",
+                "issueId": "week-13-nov",
+                "digestName": "Weekly brief",
+                "monogram": "WB",
+                "title": "Leveraged credit: the week to 13 November",
+                "date": "Fri 13 Nov"
+              },
+              {
+                "summary": "2 points from 7 stories",
+                "nothing": null,
+                "points": [
+                  {
+                    "number": "1",
+                    "lead": "Halvorsen Marine cut one notch to B+ on refinancing risk"
+                  },
+                  { "number": "2", "lead": "Oakhaven Lines affirmed at BB, outlook to positive" }
+                ],
+                "ai": true,
+                "unread": false,
+                "id": "daily-ratings-12-nov",
+                "digestId": "daily-ratings",
+                "issueId": "12-nov",
+                "digestName": "Daily ratings",
+                "monogram": "DR",
+                "title": "Rating actions: 12 November",
+                "date": "Thu 12 Nov"
+              },
+              {
+                "summary": null,
+                "nothing": "Nothing material to report: no rating action reached this digest's sources on 11 November.",
+                "points": [],
+                "ai": false,
+                "unread": false,
+                "id": "daily-ratings-11-nov",
+                "digestId": "daily-ratings",
+                "issueId": "11-nov",
+                "digestName": "Daily ratings",
+                "monogram": "DR",
+                "title": "Rating actions: 11 November",
+                "date": "Wed 11 Nov"
+              }
+            ],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": null,
+              "issues": [
+                {
+                  "id": "week-13-nov",
+                  "title": "Leveraged credit: the week to 13 November",
+                  "date": "Fri 13 Nov 2026",
+                  "ai": true,
+                  "summary": "Covers 9 to 13 Nov 2026. Written by a model from 41 stories in Leveraged credit, Shipping and Packaging.",
+                  "nothing": null,
+                  "points": [
+                    {
+                      "number": "1",
+                      "lead": "Packaging issuers are cutting capacity, not prices",
+                      "body": "Three issuers announced plant closures this week. Each kept guidance and booked a one-off charge, which puts the cost in the same quarter as their covenant step-downs.",
+                      "stories": [
+                        {
+                          "headline": "Corvane Packaging to close two plants as volumes fall",
+                          "url": "https://example.com/harbour-wire/corvane-plants",
+                          "source": "Harbour Wire",
+                          "time": "13 Nov"
+                        },
+                        {
+                          "headline": "Delmere Board mothballs its northern mill",
+                          "url": "https://example.com/credit-ledger/delmere-mill",
+                          "source": "Credit Ledger Daily",
+                          "time": "11 Nov"
+                        },
+                        {
+                          "headline": "Packaging volumes fall for a third quarter",
+                          "url": "https://example.com/meridian/packaging-volumes",
+                          "source": "The Meridian Post",
+                          "time": "10 Nov"
+                        }
+                      ],
+                      "storiesLine": "3 stories behind this point"
+                    },
+                    {
+                      "number": "2",
+                      "lead": "Two telecoms disposals are now in in-depth review",
+                      "body": "Both sellers planned to repay 2027 debt from the proceeds. A review of this kind usually adds months, so the repayment dates are less certain than a week ago.",
+                      "stories": [
+                        {
+                          "headline": "Competition authority opens in-depth review of Tessaly Telecom's tower sale",
+                          "url": "https://example.com/gazette/tessaly-review",
+                          "source": "Regulatory Gazette",
+                          "time": "13 Nov"
+                        },
+                        {
+                          "headline": "Authority extends its review of the Norvik fibre sale",
+                          "url": "https://example.com/gazette/norvik-review",
+                          "source": "Regulatory Gazette",
+                          "time": "10 Nov"
+                        }
+                      ],
+                      "storiesLine": "2 stories behind this point"
+                    },
+                    {
+                      "number": "3",
+                      "lead": "Shipping downgrades cluster around 2027 maturities",
+                      "body": "One downgrade and one outlook change, both citing refinancing due in 2027 against weaker charter rates.",
+                      "stories": [
+                        {
+                          "headline": "Northgate Ratings downgrades Halvorsen Marine to B+",
+                          "url": "https://example.com/northgate/halvorsen-b-plus",
+                          "source": "Northgate Ratings",
+                          "time": "12 Nov"
+                        },
+                        {
+                          "headline": "Halvorsen Marine hires advisers on its 2027 notes",
+                          "url": "https://example.com/meridian/halvorsen-advisers",
+                          "source": "The Meridian Post",
+                          "time": "13 Nov"
+                        }
+                      ],
+                      "storiesLine": "2 stories behind this point"
+                    },
+                    {
+                      "number": "4",
+                      "lead": "Loan extensions are clearing at a higher margin",
+                      "body": "Brightwell Foods extended by three years for 50 basis points more. It is the fourth extension this quarter priced that way.",
+                      "stories": [
+                        {
+                          "headline": "Brightwell Foods extends its term loan by three years",
+                          "url": "https://example.com/credit-ledger/brightwell-extension",
+                          "source": "Credit Ledger Daily",
+                          "time": "12 Nov"
+                        }
+                      ],
+                      "storiesLine": "1 story behind this point"
+                    },
+                    {
+                      "number": "5",
+                      "lead": "A port operator is preparing a first bond",
+                      "body": "Pellant Terminals has mandated banks while its terminal joint venture is under initial review. The two timetables now depend on each other.",
+                      "stories": [
+                        {
+                          "headline": "Pellant Terminals plans first bond issue",
+                          "url": "https://example.com/credit-ledger/pellant-bond",
+                          "source": "Credit Ledger Daily",
+                          "time": "12 Nov"
+                        },
+                        {
+                          "headline": "Notice of initial review: Oakhaven Lines and Pellant Terminals",
+                          "url": null,
+                          "source": "Regulatory Gazette",
+                          "time": "13 Nov"
+                        }
+                      ],
+                      "storiesLine": "2 stories behind this point"
+                    }
+                  ]
+                },
+                {
+                  "id": "week-6-nov",
+                  "title": "Leveraged credit: the week to 6 November",
+                  "date": "Fri 6 Nov",
+                  "ai": true,
+                  "summary": "5 points from 36 stories",
+                  "nothing": null,
+                  "points": []
+                }
+              ]
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": null,
+              "issues": [
+                {
+                  "id": "13-nov",
+                  "title": "Rating actions: 13 November",
+                  "date": "Fri 13 Nov 2026",
+                  "ai": false,
+                  "summary": null,
+                  "nothing": "No rating action reached this digest's sources on 13 November. The next digest is due on Mon 16 Nov.",
+                  "points": []
+                },
+                {
+                  "id": "12-nov",
+                  "title": "Rating actions: 12 November",
+                  "date": "Thu 12 Nov",
+                  "ai": true,
+                  "summary": "2 points from 7 stories",
+                  "nothing": null,
+                  "points": []
+                },
+                {
+                  "id": "11-nov",
+                  "title": "Rating actions: 11 November",
+                  "date": "Wed 11 Nov",
+                  "ai": false,
+                  "summary": null,
+                  "nothing": "No rating action reached this digest's sources on 11 November.",
+                  "points": []
+                }
+              ]
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "no-name",
+        "snapshot": {
+          "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": null,
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": null,
+                "lastItem": null,
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": null, "initials": null, "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": true,
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": true,
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": true,
+                "keywords": []
+              }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": null
+          },
+          "feed": {
+            "status": "loading",
+            "error": null,
+            "freshness": { "state": "checking", "checked": null, "failing": null, "error": null },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "no-topics",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "not-checked",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": null,
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": null,
+                "lastItem": null,
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "not-checked",
+              "checked": null,
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "loading",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": null,
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": null,
+                "lastItem": null,
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": null
+          },
+          "feed": {
+            "status": "loading",
+            "error": null,
+            "freshness": { "state": "checking", "checked": null, "failing": null, "error": null },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "unreachable",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": "unreachable",
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [
+              {
+                "id": "corvane",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Corvane Packaging to close two plants as volumes fall",
+                "url": "https://example.com/corvane",
+                "source": { "name": "Harbour Wire", "monogram": "HW" },
+                "time": "2 h ago",
+                "summary": "Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.",
+                "tags": ["Packaging", "Restructuring"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              },
+              {
+                "id": "brightwell",
+                "kind": "news",
+                "kindLabel": "News",
+                "headline": "Brightwell Foods extends its term loan by three years",
+                "url": "https://example.com/brightwell",
+                "source": { "name": "Credit Ledger Daily", "monogram": "CL" },
+                "time": "Yesterday",
+                "summary": "Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.",
+                "tags": ["Food", "Refinancing"],
+                "alsoIn": null,
+                "sharedBy": null,
+                "ai": null,
+                "strength": null,
+                "saved": false,
+                "commentCount": null,
+                "threadRef": null,
+                "stage": null,
+                "ratingMoves": []
+              }
+            ],
+            "views": {
+              "for-you": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "latest": {
+                "top": ["corvane", "brightwell"],
+                "latest": ["corvane", "brightwell"],
+                "waiting": null,
+                "older": []
+              },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "no-sources",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "not-checked",
+              "checked": null,
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": false }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "nothing-followed",
+        "snapshot": {
+          "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "count": "12",
+                "followed": false,
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "count": "8",
+                "followed": false,
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "count": "5",
+                "followed": false,
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "count": "9",
+                "followed": false,
+                "keywords": []
+              }
+            ],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {
+              "shipping": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "packaging": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "telecoms": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "rating-actions": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      },
+      {
+        "id": "ai-capped",
+        "snapshot": {
+          "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "capped",
+              "notice": {
+                "title": "AI has reached its cap for November",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused until 1 December. Only the owner can raise the cap."
+              },
+              "spend": {
+                "title": "Spend in November",
+                "label": "USD 15.00 of USD 15.00",
+                "note": null,
+                "position": 1
+              },
+              "parts": [
+                {
+                  "id": "ai-line",
+                  "label": "AI line on stories",
+                  "hint": "One line on why a story matters, marked AI.",
+                  "on": true
+                },
+                {
+                  "id": "strength",
+                  "label": "Signal strength",
+                  "hint": "Three marks and a word on each story.",
+                  "on": true
+                },
+                { "id": "digests", "label": "Digests", "hint": "Scheduled briefs.", "on": true }
+              ]
+            },
+            "sources": [
+              {
+                "id": "harbour-wire",
+                "name": "Harbour Wire",
+                "kind": "News",
+                "state": "Approved",
+                "health": "Healthy",
+                "reason": null,
+                "stateNote": null,
+                "healthNote": null,
+                "lastCheck": "6 min ago",
+                "lastItem": "2 h ago",
+                "weeks": [],
+                "sort": { "name": 1, "state": 1, "health": 1 }
+              }
+            ],
+            "sourceWeeksHeading": "Items per week",
+            "groups": [
+              {
+                "id": "leveraged-credit",
+                "name": "Leveraged credit",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Visible to everyone",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              },
+              {
+                "id": "shipping-desk",
+                "name": "Shipping desk",
+                "members": [],
+                "moreMembers": null,
+                "memberSummary": "No members listed",
+                "visibility": "Members only",
+                "visibilityOptions": ["Visible to everyone", "Members only"]
+              }
+            ],
+            "rules": [],
+            "notifications": { "events": [] }
+          },
+          "viewer": { "name": "Mara L", "initials": "ML", "role": "writer", "roleLabel": "Writer" },
+          "channels": {
+            "topics": [],
+            "groups": [
+              { "id": "leveraged-credit", "name": "Leveraged credit", "unread": "3" },
+              { "id": "shipping-desk", "name": "Shipping desk", "unread": null }
+            ],
+            "digests": [
+              { "id": "weekly-brief", "name": "Weekly brief", "unread": false, "paused": true },
+              { "id": "daily-ratings", "name": "Daily ratings", "unread": false, "paused": true }
+            ],
+            "savedCount": "0"
+          },
+          "feed": {
+            "status": "ready",
+            "error": null,
+            "freshness": {
+              "state": "checked",
+              "checked": "6 min ago",
+              "failing": null,
+              "error": null
+            },
+            "stories": [],
+            "views": {
+              "for-you": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "latest": { "top": [], "latest": [], "waiting": null, "older": [] },
+              "saved": { "top": [], "latest": [], "waiting": null, "older": [] }
+            },
+            "topics": {},
+            "digests": [],
+            "sources": { "approved": true }
+          },
+          "digests": [
+            {
+              "id": "weekly-brief",
+              "name": "Weekly brief",
+              "monogram": "WB",
+              "paused": "AI is off.",
+              "issues": []
+            },
+            {
+              "id": "daily-ratings",
+              "name": "Daily ratings",
+              "monogram": "DR",
+              "paused": "AI is off.",
+              "issues": []
+            }
+          ],
+          "threads": [],
+          "groups": [
+            {
+              "id": "leveraged-credit",
+              "name": "Leveraged credit",
+              "visibility": "Open to everyone",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            },
+            {
+              "id": "shipping-desk",
+              "name": "Shipping desk",
+              "visibility": "Invited only",
+              "memberSummary": "No members listed",
+              "members": [],
+              "moreMembers": null,
+              "threads": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "params": {
+    "/signal/:scene/feed/:view": [
+      { "scene": "main", "view": "for-you" },
+      { "scene": "main", "view": "latest" },
+      { "scene": "main", "view": "saved" },
+      { "scene": "reader", "view": "for-you" },
+      { "scene": "reader", "view": "latest" },
+      { "scene": "ai-on", "view": "for-you" },
+      { "scene": "no-name", "view": "for-you" },
+      { "scene": "no-topics", "view": "for-you" },
+      { "scene": "not-checked", "view": "for-you" },
+      { "scene": "loading", "view": "for-you" },
+      { "scene": "unreachable", "view": "for-you" },
+      { "scene": "no-sources", "view": "for-you" },
+      { "scene": "nothing-followed", "view": "for-you" },
+      { "scene": "no-sources", "view": "latest" },
+      { "scene": "nothing-followed", "view": "saved" },
+      { "scene": "not-checked", "view": "latest" }
+    ],
+    "/signal/:scene/topic/:topic": [
+      { "scene": "main", "topic": "shipping" },
+      { "scene": "main", "topic": "telecoms" }
+    ],
+    "/signal/:scene/group/:group": [
+      { "scene": "main", "group": "leveraged-credit" },
+      { "scene": "main", "group": "shipping-desk" },
+      { "scene": "reader", "group": "leveraged-credit" }
+    ],
+    "/signal/:scene/group/:group/thread/:thread": [
+      { "scene": "main", "group": "leveraged-credit", "thread": "corvane-thread" },
+      { "scene": "main", "group": "leveraged-credit", "thread": "packaging-note" },
+      { "scene": "main", "group": "leveraged-credit", "thread": "brightwell-thread" },
+      { "scene": "reader", "group": "leveraged-credit", "thread": "corvane-thread" }
+    ],
+    "/signal/:scene/digest/:digest": [
+      { "scene": "main", "digest": "weekly-brief" },
+      { "scene": "main", "digest": "daily-ratings" },
+      { "scene": "ai-on", "digest": "weekly-brief" },
+      { "scene": "ai-on", "digest": "daily-ratings" }
+    ],
+    "/signal/:scene/settings/:section": [
+      { "scene": "main", "section": "groups" },
+      { "scene": "main", "section": "sources" },
+      { "scene": "main", "section": "thread-rules" },
+      { "scene": "main", "section": "notifications" },
+      { "scene": "main", "section": "topics" },
+      { "scene": "main", "section": "digests" },
+      { "scene": "main", "section": "ai" },
+      { "scene": "ai-on", "section": "ai" },
+      { "scene": "ai-capped", "section": "ai" },
+      { "scene": "reader", "section": "topics" },
+      { "scene": "reader", "section": "notifications" },
+      { "scene": "reader", "section": "groups" }
+    ]
+  }
+}
