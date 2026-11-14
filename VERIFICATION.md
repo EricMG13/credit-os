@@ -3,6 +3,98 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: Python 3.12.14, Signal's feed reader, 1B inputs, 2A transactions
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #209 | 1D PR 2b-1 | `33185f3`, `eb8a83a` | `sources/html.py`: HTML decoding and the line writer (510 lines) |
+| #226 | 2A PR 1d | `f4dbd73`, `567f088` | `store/txn.py`: the write transaction and the migration runner (778) |
+| #246 | 2A PR 1d-b | `5622f25`, `d32b08a` | store scans, value-free messages, parked test rows, the fail-open docstring (145) |
+| #245 | decision 0011 | `42d8410`, `a2b4f1c` | Python pinned to 3.12.14 in `pyproject.toml`, `.python-version` and both CI runners; the record |
+| #244 | 1B keys (1) | `95992d1`, `970bc15` | the answer-key scripts for PR 2 and PR 3 and the test that each reproduces its key (582, tests only) |
+| #255 | 1B keys (2) | `4398ab0`, `d008cc1` | the same for PR 4a and PR 4b; the PR 4b oracle uses `fractions.Fraction` and imports no `credit_os` (759, tests only) |
+| #243 | 1B PR 4b | `8759d10`, `59ffc77` | `model/inputs.py`: the forecast inputs schema, scale to millions, the repayment bound (797) |
+| #248 | 1C PR 2g | `c6116c3`, `68b327b` | `provider/redact.py`: a Users or home folder inside a path is redacted (198; opened by the owner's review-fix process) |
+| #109, #110, #178, #179, #185, #186 | Signal S-3a, parts 1 to 6 | `f970282`, `a689fd1`, `0d4132e`, `fd4d4ab`, `56e0c3a`, `3141609`; merges `d4c9141`, `5e5d5d1`, `2cd07b5`, `2153cdb`, `718a13b`, `4a8a6d1` | `signal/feeds.py`: the feed reader on expat, DTDs and entities refused, namespaces resolved by the reader, text and HTML streamed to bounded sinks; the memory test |
+
+The six feed PRs were stacked. Each was merged in order after its base was set to `main`, the
+PR closed and reopened so CI ran on the merge with `main`, and all three checks passed at the
+expected head. Parts 1 to 4 hold defects that later parts fix (a hex-looking last host label,
+the memory bound), so the stack was merged only as a whole, within about two hours. Parts 7a
+and 7 (#215, #207) were still in CI when this entry was written and are not recorded here.
+
+**Reviews.** As each controller reported.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #209 | `mx-precise` pass and `mx-adversary` pass on `baef6ee` (Lows only); Low batch by `mx-scaffold`, probes exit 0 | 0 defects | Pass on `33185f3`: High 0, Medium 0, Low 2, Info 4 |
+| #226 | Four rounds on the task (two Sonnet, one from an `mx-autonomous` plan, one the owner's); `mx-invariants` pass on `fd66ecc` | as reported | Pass on `f4dbd73`: High 0, Medium 0, Low 2, Info 3 |
+| #246 | batched `mx-feature` on `4308974`: pass, Low 1; parked Lows checked against the reviewers' probes (exit 0) | none (tests and messages) | none, by the batching rule |
+| #245 | batched `mx-feature`: pass, Low 1 (fixed in `42d8410`) | none (config, record) | none |
+| #244, #255 | batched `mx-feature`: pass (Info only; Low 2, Info 2) | none (tests only) | none, by ruling R22 |
+| #243 | `mx-precise` and `mx-adversary` on `a42a349`: Medium 1 and Medium 2; one fix round; `mx-precise` re-review pass on `8af69fa` | as reported | Pass on `8759d10`: High 0, Medium 0, Low 1, Info 7 |
+| #248 | `mx-adversary`, two rounds: Medium 1 (a folder word in the user-name slot hid the next home), fixed in `2e4cc4d`; pass | none | none (a 198-line fix from the owner's process) |
+| Feeds | `mx-precise` and `mx-adversary` on `f970282` and `d41a8f0`; `mx-adversary` re-reviews on part 3 and on `fdfb1e7`; a third round planned by `mx-autonomous`; `mx-adversary` re-review on `ae46734` (the final tree of parts 1 to 6): pass, R24 closed by construction, Info 3 | not run on these parts | on `d41a8f0`: Medium 1 and the memory bound open, both closed by parts 3 and 5 |
+
+- #226's fourth round is the owner's ("Yes, document it", recorded in the entry below): an
+  interrupt during a write leaves as `StoreUnusable`, documented and pinned, not changed.
+- #243's Mediums: a tuple or model-instance holder skipped the scale step; a base key was
+  printed in full in a refusal. Its parked Low is test strength: 24 of 48 hand mutants of the
+  validators, field declarations and constants pass every test. Two would be silent money
+  errors (downside amounts left in thousands at scale 1000; a negative case
+  `debt_repayment`). The source is right on all 48. A tests-only PR closes it before PR 5.
+- Feeds, R24: peak parser memory stays under 64 MiB for any body within the 2 MiB cap. The
+  worst peak reached was 62.5 MiB, from expat's own attribute dictionary on a feed that is
+  then refused; the controller names that margin as the weak point.
+- The feeds whole-branch review predates parts 3 to 6. What covers the final tree is the
+  `mx-adversary` re-review on `ae46734`, not a second `mx-architect` review.
+
+**Gates and CI.** CI green on both runners at every head above; from #245 on, both runners
+are CPython 3.12.14 (read in the Windows log of #245). `tools/gates.py` exit 0 as the
+controllers reported for #209, #243, #255 and the feed parts. For #245 the implementer's
+local gates report was not relied on; CI is the evidence. Mutation: #209, 736 of 775 killed,
+34 survived (12 in `html.py`, equivalent, agreed by the whole-branch reviewer; the rest in
+unchanged `walk.py`), 5 timeouts; #243, count of record by the whole-branch reviewer with the
+clean-pass and forced-fail steps shown: `inputs.py` 332 mutants, 325 killed, 7 equivalent,
+`refusals.py` 26 of 26. Feeds: hand mutants only (53 of 56 at part 2, 3 equivalent).
+
+**Ledger.**
+- `1D-2b-1 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`; `1D-2b-1 Low batch agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
+- `2A-1d task=1 agent=mx-feature fix-rounds=4 gates-first-pass=n` (two Sonnet, one planned, one the owner's)
+- `1B-4b task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n`
+- `1B-keys1 task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`; `1B-keys2 task=1 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
+
+**Rulings by the coordinator.** In the plans and in decision 0011.
+- Python: `requires-python` is `>=3.12.14,<3.13` after the owner's answer "3.12.14 or later".
+  A reader on `html.parser` is written against 3.12.14 and its tests pin the parser
+  behaviour it relies on. Signal's rework for 3.12.10 was shelved.
+- A mutation count is the count of record only when the run shows the clean tests passed
+  and the forced fail failed, known mutants behave as expected, and the reviewer ran it. A
+  2B run had reported 786 of 786 because collection failed inside mutmut.
+- 2B PR 4 (#250, #254, not merged): the owner authorised a fourth, tests-only round ("Yes,
+  test-only round") for two test-strength Mediums of the whole-branch review.
+
+**Open, for the owner.**
+- `CLAUDE.md`'s target table still says Python `>=3.12,<3.13`; the pin is `>=3.12.14`.
+- Redaction (#202, #248): a lower-case `\\?\unc\` lead, a lead after `:`, and a
+  single-letter drive inside a URL are not handled.
+- 2A: a second interrupt path (through the authorizer, `not authorized`) is accepted under
+  "Yes, document it".
+- 2B figure reader: `In March 1.5% growth was seen.` reads 5% in passage text (the date mask
+  takes `March 1`); PR 5 refuses it as not held and pins it as a known false refusal.
+- 1D: the csv reader takes about 1.4 s per MiB with no time bound; step 3A decides.
+
+**Not verified.**
+- The work PC's Python level was stated by the owner, not read from the machine; 3.12.15 and
+  later are untried.
+- Feeds: feeds downloaded from real publishers; operating-system memory (tracemalloc only);
+  `mutmut`; other expat builds.
+- #243: real model-written blocks. #226: races beyond those the reviewers probed.
+- #248: mutation testing of the new pass; whitespace characters beyond those probed.
+
 ## 2026-11-14 Design track: Signal pages (step D2e)
 
 **Merged** into `main` in stack order by the coordinator, 43 PRs as merge commits: #64, #65,
@@ -818,146 +910,3 @@ position and focus kept across routes, `render` called as a function, no error b
 pointer hover states; whether delivery (3B) or the service (5C) will send the shapes D2d's
 8 Low findings describe; the full gate on #73 merged with current `main`, locally (CI ran
 it). D2b, D2c and D2e are not merged and are not covered by this entry.
-
-## 2026-11-14 Roadmap back end: 1C PR 2b, 1D PR 1d, and the plans for 1B, 2A and 2B
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #102 | 1C PR 2b | `49751b4`, `4994b8d` | `provider/events.py`: one call's session events to a `Reply`, and the cost reading (800 lines, at the cap) |
-| #100 | 1D PR 1d | `a9a8bba`, `b34dd6a` | `sources/walk.py`: the folder walk (800 lines, at the cap) |
-| #121 | plans | `a9edbff`, `4643521` | Plans for steps 1B, 2A and 2B; ports map rows |
-| #108 | records | `6e3d39b`, `176ce78` | The entry below this one and the 1A and 1D plan rules |
-
-**Reviews.**
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #102 | `mx-precise` approved; `mx-adversary` FAIL, Medium 1, fixed and re-reviewed PASS | 2 confirmed defects, Medium 1 and Low 1, fixed; `mx-adversary` re-review PASS, Low 1 | PASS: High 0, Medium 0, Low 4, Info 3 |
-| #100 | `mx-precise` quality PASS, Low 3 (its spec verdict failed only on the controller's 560-line estimate, ruled by the 800 cap); `mx-adversary` FAIL, High 1 (the Windows type check on a test), Low 6; fixed, re-review PASS | 0 confirmed defects, 4 measured costs | PASS on `46a502d`: High 0, Medium 0, Low 5, Info 6. One docstring and test-spelling commit followed |
-| #121 | batched `mx-feature`: PASS, Low 4, three fixed (returned as text; the verdict is the PR's comment) | skipped (docs) | skipped (docs) |
-
-- #102's two Mediums were both on money. Removing repeats by event id alone dropped a later
-  usage event and its charge and could hide another model or a session error; and repeats were
-  compared with Python `==`, so `100` and `100.0` merged and a charge was understated. A
-  redelivery is now an event whose JSON text equals an earlier one's.
-- #100's last commit corrects a sentence the coordinator had ruled into a docstring: it said
-  the pin's digest guards content, and when a pin is created no digest exists yet.
-- #121's reviewer recomputed the 1B seed row and the 2B worked confidence example with
-  fractions: both match the plans.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller: #102
-on `49751b4` (1,331 passed, coverage 100%), #100 on macOS. CI green on Ubuntu, Windows and the
-review job on each merged head. Mutation (`mutmut`): #102 at `50b6363`, 1,275 mutants, 1,265
-killed, 10 equivalent; #100 at `b0bc8bc`, 377 of 392 killed, 13 equivalent, 2 closed by tests
-added after.
-
-**Ledger.**
-- `1C-2b task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
-- `1D-1d task=walk agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1D-1d task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
-
-**Plans written.** 1B (the Decimal kernel and forecast, 11 PRs), 2A (run state in SQLite, 5)
-and 2B (checks, 6, with a second part after 1B). Drafted by architect agents against the
-predecessor at `9d040f8`; the rulings are the coordinator's. Their sub-sessions are proposed
-and wait for the owner to start them: the app does not start a session from an unattended
-turn. The 1A sub-session is archived; its review reports were copied to the coordinator's
-notes folder first.
-
-**Rulings by the coordinator.** In the plans. The ones the owner may want to see:
-- 1B ports what the launcher calls, about 2,500 of 9,565 legacy lines (the plan's table); the statement frames are
-  deferred, so the Model page's statement rows beyond the sixteen measures have no Python
-  source yet. Nothing is defaulted: a missing currency is refused (the predecessor read USD).
-- 2A: a call left open by a crash stays unknown, and such a run cannot resume until the owner
-  rules; an operator settle would need a decision record.
-- 2B computes the confidence score exactly; the predecessor's float differs by one point in 59
-  of 400,000 random sets, one a band change.
-- 1C: the open Medium M2 of #36 (part of a Windows user name left by `home_paths`) is fixed in
-  PR 2c, before the session driver.
-- 1D: when a pin is created, a link swapped in between the path check and the open is hashed
-  and pinned. Accepted as a limit.
-
-**Not verified.**
-- Any live event stream: order, per-attempt against cumulative usage on a retried turn,
-  whether the runtime reuses an envelope id, that one nano-AIU is 1E-11 USD.
-- The walk on a real Windows file system outside CI; on Windows CI every row for a name
-  Windows normalises or cannot hold is skipped, so `notes.` beside `notes` is simulated only.
-- Mutation was not rerun on `49751b4` or `a9a8bba`.
-- The three plans' "live on the launcher's path" rulings rest on reading the predecessor, not
-  running it; SQLite's own documentation was not fetched for 2A.
-
-## 2026-11-14 Roadmap back end: step 1A complete (PR 5); 1D PRs 1b and 1c
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green, and its diff read by the coordinator. Step 1A (the handoff parser) is complete.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #78 | 1A PR 5 | `15c1321`, `db5219a` | Gaps, typed data sections, registers, blocked flag, known source names, one synthetic new-format fixture (744 counted lines) |
-| #59 | 1D PR 1b | `5dec6a3`, `7bf6fd0` | Capped read, path resolution, symbolic-link refusal (707 lines) |
-| #82 | 1D PR 1c | `1c09ce2`, `302f5d7` | `read_capped` refuses a final link on Windows; `COM0` and `LPT0` reserved (89 lines) |
-| #81 | records | `e95ef49`, `56cced5` | The entry below this one, the addendum to decision 0009, the 1C plan rules |
-
-**Reviews.**
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #78 | `mx-precise`: both approved, Low 1 fixed | 0 confirmed defects | FAIL on `430e5b4`: Medium 1, Low 5, Info 7. Fixed in one round; scoped `mx-precise` re-review on `15c1321` approved |
-| #59 | `mx-adversary` on the link refusal: FAIL, Medium 1, fixed and re-reviewed | 1 confirmed defect, Low, fixed test first | FAIL on `5b094bc`: High 1, Low 2, Info 4. Fixed; `mx-adversary` re-review on `5dec6a3` PASS |
-| #82 | scoped `mx-adversary` PASS, Low 1, Info 3 | 0 confirmed | PASS on `1c09ce2`: High 0, Medium 0, Low 1, Info 5 |
-
-- #78's Medium: a register heading id was recognised only in dotted form, fitted to the 25
-  fixtures; a real new-format reply has `T1` to `T8`, which were silently missed.
-- #59's Medium: an `OSError` from the link test escaped untyped. Its High: the Windows gate was
-  red on the reviewed head, because a key row written by the controller asserted the error
-  type Linux raises; the production code was right. The controller had dispatched the review
-  before reading Windows CI.
-- #78's reviewers each rebuilt the answer keys with their own reader: no difference on the 25
-  fixtures or the new one.
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller, on
-`15c1321`, `5dec6a3` and `1c09ce2`. CI green on Ubuntu, Windows and the review job on each
-merged head. On Windows every symbolic-link and junction row ran in #59 and #82; rows still
-skipped there are a FIFO, opening a directory and two `chmod` rows. Mutation on #59
-(`mutmut`, at `5b094bc`): 173 of 173 killed.
-
-**Ledger.**
-- `1A-5 task=0 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1A-5 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1A-5 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-- `1A-5 task=whole-branch-M1 agent=mx-feature fix-rounds=1 gates-first-pass=n/a` (not reported)
-- `1D-1b task=2(link refusal) agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1D-1b task=low-batch-2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1D-1b task=sweep-defect(NUL folder) agent=mx-feature fix-rounds=1 gates-first-pass=n`
-- `1D-1c task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
-
-**Rulings by the coordinator.** In the 1A and 1D plans. The ones a later step depends on:
-- A module citation `name (CP-X)` is read as a module before the Sources-table names are
-  tried. Citations inside table cells have no reader; delivery's trace control (phase 4) needs
-  one before it draws them.
-- `Reader.blocked` is unknown, not false, for an earlier-format handoff.
-- Step 2B refuses a repeated register id and checks Sources-table names against pinned sources.
-- Ruled for the folder walk (#100, open, not in `main`): it refuses a folder with two names
-  that differ only by case or Unicode form.
-  The coordinator first ruled both are pinned as listed, against an earlier ruling; the 1D
-  controller raised the conflict and the earlier ruling stands.
-- The first layer that prints or stores a `SourceError` encodes with `backslashreplace`.
-
-**A committed answer key was edited once.** #78's `data.json`: `blocked` false to null for
-the 20 earlier-format files, by the controller after the coordinator's ruling; the re-review
-confirmed only those 20 values changed.
-
-**For the owner.** `main` has no branch protection: the Windows job is read by hand before
-each merge.
-
-**Not verified.**
-- `npm --prefix web run gates` for #78: it fails in the 1A worktree on lint errors in web
-  files the PR does not touch, cause not found; CI ran no web job on these PRs.
-- No mutation tool ran on #78 or #82 (hand mutants by reviewers on #82).
-- Nothing ran on a real Windows work PC: long paths, 8.3 names, OneDrive placeholders and
-  other reparse points. That Windows treats `COM0` and `LPT0` as devices.
-- No fixture or retained reply holds an empty cell or text on a tag's own line; the 14-row
-  form of Confidence inputs is tested by synthetic rows only.
-- The gap between a link check and the open is not closed.

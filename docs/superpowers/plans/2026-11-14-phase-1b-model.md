@@ -225,6 +225,15 @@ same bound for scheduled repayments. Parked for the next change to `forecast.py`
 repayment driver is still range-checked under a schedule, and the docstring does not give the
 order of a schedule pair.
 
+PR 4b (#243) and both key-script PRs (#244, #255) are merged. Order from here: a tests-only
+Lows PR (key rows for the two money gaps of #243: downside amounts left in thousands at scale
+1000, a negative case `debt_repayment`; and #214's parked Low), then PR 5a (fixtures, tests
+only), then PR 5. PR 5 is not dispatched before the Lows PR merges. Ruled for PR 5: an
+excluded region is a whole section with its subsections (the predecessor differs; the
+`docs/legacy/ports.md` line comes with the PR); refusals name "CP-1" and pass document text
+through `echo`; a cell refusal is `RefusalKind.CELL`. A key script is compared with its key as
+parsed JSON, types and key order at every node, and writes no file.
+
 PRs 3 (#200) and 4a (#214) are merged. Ruled with them: a tuple field takes exactly a list or
 a tuple through `LIST_AS_TUPLE`, never `strict=False`; `FRACTION_PATTERN` is the signed
 pattern and the unsigned one is `SHARE_PATTERN`; no refusal message holds a lone surrogate,
