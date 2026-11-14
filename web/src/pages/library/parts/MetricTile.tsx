@@ -2,7 +2,7 @@ import type { Metric } from "../slice";
 import { CellValue } from "./CellValue";
 import { TRACE_HOST, TraceControl } from "./TraceControl";
 
-const FIGURE = "text-[30px]/[38px] font-semibold tabular-nums text-text-primary";
+const FIGURE = "text-[30px]/[38px] tabular-nums text-text-primary";
 
 /**
  * One headline figure on its own card (F1), drawn from the source's look: the kit's MetricCard has

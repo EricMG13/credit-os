@@ -4,8 +4,8 @@ import { Withheld } from "@/components/gap/Withheld";
 import type { Cell } from "../slice";
 
 /**
- * A figure as the slice delivered it, in a block: its text in `figureClass` (size, weight,
- * numerals), "n.a." the same size but regular weight, or Withheld or a gap panel in their own
+ * A figure as the slice delivered it, in a block: its text in `figureClass` (size, numerals) at
+ * semibold, "n.a." the same size but regular weight, or Withheld or a gap panel in their own
  * type, which never inherits the figure's.
  */
 export function CellValue({ cell, figureClass }: { cell: Cell; figureClass: string }) {
@@ -22,7 +22,7 @@ export function CellValue({ cell, figureClass }: { cell: Cell; figureClass: stri
     case "value":
       return (
         <div>
-          <span className={figureClass}>{cell.text}</span>
+          <span className={`${figureClass} font-semibold`}>{cell.text}</span>
         </div>
       );
     case "withheld":
