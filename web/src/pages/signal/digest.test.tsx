@@ -25,14 +25,21 @@ function with_(id: string, change: (scene: Scene) => void): unknown {
 }
 
 /** The page itself, without the channel list beside it. */
-/** The "main" scene with its Daily ratings running (not paused), changed by `change`. */
+/** The "main" scene with AI turned on (no digest paused; the rule ties the two) and Daily ratings changed by `change`. */
 function running(change: (digest: Scene["snapshot"]["digests"][number]) => void): unknown {
   return with_("main", (scene) => {
-    const digest = scene.snapshot.digests[1];
-    const channel = scene.snapshot.channels.digests[1];
-    if (digest === undefined || channel === undefined) throw new Error("main has Daily ratings");
-    Object.assign(digest, { paused: null });
-    channel.paused = false;
+    const { snapshot } = scene;
+    const digest = snapshot.digests[1];
+    if (digest === undefined) throw new Error("main has Daily ratings");
+    Object.assign(snapshot.settings.ai, { state: "on", notice: null });
+    for (const channel of snapshot.channels.digests) channel.paused = false;
+    for (const one of snapshot.digests) {
+      Object.assign(one, { paused: null });
+      // A running digest's newest issue has points or a nothing-material sentence.
+      for (const issue of one.issues.slice(0, 1)) {
+        Object.assign(issue, { ai: false, summary: null, nothing: "Nothing material to report." });
+      }
+    }
     change(digest);
   });
 }

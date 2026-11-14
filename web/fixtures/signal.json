@@ -5,6 +5,85 @@
         "id": "main",
         "snapshot": {
           "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": [
+                "Group: Leveraged credit",
+                "Group: Shipping desk",
+                "Topic: Shipping",
+                "Topic: Packaging"
+              ],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00", "Daily, 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 3 points", "Up to 5 points", "Up to 8 points"],
+              "brief": "Lead with anything that changes a refinancing date. Skip price moves."
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": {
+                "title": "Spend in November",
+                "label": "USD 6.40 of USD 15.00",
+                "note": null,
+                "position": 0.43
+              },
+              "parts": [
+                {
+                  "id": "ai-line",
+                  "label": "AI line on stories",
+                  "hint": "One line on why a story matters, marked AI.",
+                  "on": false
+                },
+                {
+                  "id": "strength",
+                  "label": "Signal strength",
+                  "hint": "Three marks and a word on each story.",
+                  "on": false
+                },
+                { "id": "digests", "label": "Digests", "hint": "Scheduled briefs.", "on": false }
+              ]
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -785,6 +864,61 @@
         "id": "reader",
         "snapshot": {
           "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -1131,6 +1265,87 @@
         "id": "ai-on",
         "snapshot": {
           "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": [
+                "Group: Leveraged credit",
+                "Group: Shipping desk",
+                "Topic: Shipping",
+                "Topic: Packaging"
+              ],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00", "Daily, 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 3 points", "Up to 5 points", "Up to 8 points"],
+              "brief": "Lead with anything that changes a refinancing date. Skip price moves."
+            },
+            "ai": {
+              "state": "on",
+              "notice": null,
+              "spend": {
+                "title": "Spend in November",
+                "label": "USD 6.40 of USD 15.00",
+                "note": "The cap resets on 1 December.",
+                "position": 0.43
+              },
+              "parts": [
+                {
+                  "id": "ai-line",
+                  "label": "AI line on stories",
+                  "hint": "One line on why a story matters, marked AI.",
+                  "on": true
+                },
+                {
+                  "id": "strength",
+                  "label": "Signal strength",
+                  "hint": "Three marks and a word on each story.",
+                  "on": true
+                },
+                {
+                  "id": "digests",
+                  "label": "Digests",
+                  "hint": "Scheduled briefs. A digest with nothing to report makes no call.",
+                  "on": true
+                }
+              ]
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -1604,6 +1819,61 @@
         "id": "no-name",
         "snapshot": {
           "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -1748,6 +2018,26 @@
         "id": "no-topics",
         "snapshot": {
           "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -1863,6 +2153,26 @@
         "id": "not-checked",
         "snapshot": {
           "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -1978,6 +2288,26 @@
         "id": "loading",
         "snapshot": {
           "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -2088,6 +2418,26 @@
         "id": "unreachable",
         "snapshot": {
           "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",
@@ -2254,6 +2604,26 @@
         "id": "no-sources",
         "snapshot": {
           "settings": {
+            "topics": [],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [],
             "sourceWeeksHeading": "Items per week",
             "groups": [
@@ -2354,6 +2724,61 @@
         "id": "nothing-followed",
         "snapshot": {
           "settings": {
+            "topics": [
+              {
+                "id": "shipping",
+                "name": "Shipping",
+                "weekly": "12 stories this week",
+                "keywords": [
+                  "charter rates",
+                  "tanker",
+                  "container line",
+                  "shipowner",
+                  "Halvorsen Marine"
+                ],
+                "kinds": ["News", "Rating actions"]
+              },
+              {
+                "id": "packaging",
+                "name": "Packaging",
+                "weekly": "8 stories this week",
+                "keywords": ["packaging", "containerboard", "plant closure", "Corvane"],
+                "kinds": ["News", "Regulatory cases", "Rating actions"]
+              },
+              {
+                "id": "telecoms",
+                "name": "Telecoms",
+                "weekly": "5 stories this week",
+                "keywords": ["towers", "fibre", "spectrum", "Tessaly"],
+                "kinds": ["News", "Regulatory cases"]
+              },
+              {
+                "id": "rating-actions",
+                "name": "Rating actions",
+                "weekly": "9 stories this week",
+                "keywords": [],
+                "kinds": ["Rating actions"]
+              }
+            ],
+            "digestForm": {
+              "name": "Weekly brief",
+              "covers": "Group: Leveraged credit",
+              "coversOptions": ["Group: Leveraged credit"],
+              "schedule": "Weekly, Friday 07:00",
+              "scheduleOptions": ["Weekly, Friday 07:00"],
+              "length": "Up to 5 points",
+              "lengthOptions": ["Up to 5 points"],
+              "brief": ""
+            },
+            "ai": {
+              "state": "off",
+              "notice": {
+                "title": "AI is off",
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+              },
+              "spend": null,
+              "parts": []
+            },
             "sources": [
               {
                 "id": "harbour-wire",

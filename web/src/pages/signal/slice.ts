@@ -230,7 +230,48 @@ export type SignalSource = {
   weeks: SignalSourceWeek[];
   sort: { name: number; state: number; health: number };
 };
+/**
+ * A topic as Settings lists it: the delivered "N stories this week" line, its keywords (none means
+ * every story of its kinds) and the kinds it takes, as the labels to draw.
+ */
+export type SignalSettingsTopic = {
+  id: string;
+  name: string;
+  weekly: string;
+  keywords: string[];
+  kinds: string[];
+};
+/**
+ * The digest form: the delivered name and, for covers, schedule and length, the chosen option (one
+ * of the listed options, which the Select offers); the brief is optional text.
+ */
+export type SignalDigestForm = {
+  name: string;
+  covers: string;
+  coversOptions: string[];
+  schedule: string;
+  scheduleOptions: string[];
+  length: string;
+  lengthOptions: string[];
+  brief: string;
+};
+/** An AI part's switch (as delivered: it is not changed here) with its label and optional hint. */
+export type SignalAiPart = { id: string; label: string; hint: string | null; on: boolean };
+/**
+ * AI and cost. The notice (an alert) is present exactly when AI is off or at its cap. The spend
+ * line is the delivered title, label ("USD 6.40 of USD 15.00") and optional note; `position` (0 to
+ * 1) places the bar only. No spend reading is null.
+ */
+export type SignalAi = {
+  state: "on" | "off" | "capped";
+  notice: { title: string; text: string } | null;
+  spend: { title: string; label: string; note: string | null; position: number } | null;
+  parts: SignalAiPart[];
+};
 export type SignalSettings = {
+  topics: SignalSettingsTopic[];
+  digestForm: SignalDigestForm;
+  ai: SignalAi;
   groups: SignalSettingsGroup[];
   rules: SignalSettingsRule[];
   notifications: { events: SignalNotificationEvent[] };
@@ -805,7 +846,67 @@ const source: Reader<SignalSource> = (v, path) => {
     ? bad(`${path}.lastItem`, "null when there is no last check")
     : got;
 };
+/** Each chosen option is one the Select offers, and an option list is not empty and repeats none. */
+const digestForm: Reader<SignalDigestForm> = (v, path) => {
+  const got = shape<SignalDigestForm>({
+    name: str,
+    covers: str,
+    coversOptions: list(str),
+    schedule: str,
+    scheduleOptions: list(str),
+    length: str,
+    lengthOptions: list(str),
+    brief: str,
+  })(v, path);
+  if (!got.ok) return got;
+  for (const field of ["covers", "schedule", "length"] as const) {
+    const options = got.value[`${field}Options`];
+    if (options.length === 0) return bad(`${path}.${field}Options`, "at least one option");
+    const repeat = repeatAt(options);
+    if (repeat !== -1) {
+      return bad(
+        `${path}.${field}Options[${String(repeat)}]`,
+        "an option the list does not repeat",
+      );
+    }
+    if (!options.includes(got.value[field])) {
+      return bad(`${path}.${field}`, `one of ${field}Options`);
+    }
+  }
+  return got;
+};
+const aiBase = shape<SignalAi>({
+  state: oneOf(["on", "off", "capped"], "on, off or capped"),
+  notice: orNull(shape({ title: str, text: str })),
+  spend: orNull(shape({ title: str, label: str, note: strOrNull, position: unit })),
+  parts: list(shape<SignalAiPart>({ id: str, label: str, hint: strOrNull, on: bool })),
+});
 const settings = shape<SignalSettings>({
+  topics: list(
+    shape<SignalSettingsTopic>({
+      id: str,
+      name: str,
+      weekly: str,
+      keywords: list(str),
+      kinds: list(str),
+    }),
+  ),
+  digestForm,
+  ai: (v, path) => {
+    const got = aiBase(v, path);
+    if (!got.ok) return got;
+    const { state, notice, parts } = got.value;
+    if ((notice === null) !== (state === "on")) {
+      return bad(`${path}.notice`, state === "on" ? "null while AI is on" : "the delivered notice");
+    }
+    const repeat = repeatAt(parts.map((p) => p.id));
+    if (repeat !== -1)
+      return bad(`${path}.parts[${String(repeat)}].id`, "an id the list does not repeat");
+    const lit = parts.findIndex((p) => p.on);
+    return state === "off" && lit !== -1
+      ? bad(`${path}.parts[${String(lit)}].on`, "false while AI is off")
+      : got;
+  },
   groups: list(settingsGroup),
   rules: list(shape<SignalSettingsRule>({ id: str, label: str, hint: strOrNull, on: bool })),
   notifications: shape({
@@ -945,7 +1046,54 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
       return `${at}.groups[${String(index)}].name: expected the name the channel list gives this group`;
     }
   }
-  return settingsSourcesProblem(snap, path) ?? settingsMembersProblem(snap, path);
+  return (
+    settingsTopicsProblem(snap, path) ??
+    settingsAiProblem(snap, path) ??
+    settingsSourcesProblem(snap, path) ??
+    settingsMembersProblem(snap, path)
+  );
+}
+
+/**
+ * Settings lists the channel list's topics and no others, each with the channel's name (frame 4
+ * shows no settings-only topic). The keywords and the "N stories" line are not tied to the channel
+ * list's: they are delivered text, not compared.
+ */
+function settingsTopicsProblem(snap: SignalSnapshot, path: string): string | null {
+  const at = `${path}.settings.topics`;
+  for (const [i, held] of snap.settings.topics.entries()) {
+    const channel = snap.channels.topics.find((t) => t.id === held.id);
+    if (channel === undefined) {
+      return `${at}[${String(i)}].id: expected the id of a topic in the channel list`;
+    }
+    if (channel.name !== held.name) {
+      return `${at}[${String(i)}].name: expected the name the channel list gives this topic`;
+    }
+  }
+  const missing = snap.channels.topics.find(
+    (t) => !snap.settings.topics.some((o) => o.id === t.id),
+  );
+  return missing === undefined
+    ? null
+    : `${at}: expected a topic for the channel list's "${missing.id}"`;
+}
+
+/**
+ * AI state against the rest of the snapshot, without reading any text: every digest in the channel
+ * list is paused exactly when AI is off or at its cap, and with AI off or capped no story carries an
+ * AI line or a signal strength. (Which sentence a paused digest shows is not compared.)
+ */
+function settingsAiProblem(snap: SignalSnapshot, path: string): string | null {
+  const stopped = snap.settings.ai.state !== "on";
+  const wrong = snap.channels.digests.findIndex((d) => d.paused !== stopped);
+  if (wrong !== -1) {
+    return `${path}.channels.digests[${String(wrong)}].paused: expected ${String(stopped)}, as settings.ai.state ${snap.settings.ai.state} says`;
+  }
+  if (!stopped) return null;
+  const lit = snap.feed.stories.findIndex((s) => s.ai !== null || s.strength !== null);
+  return lit === -1
+    ? null
+    : `${path}.feed.stories[${String(lit)}].ai: expected null (and strength null), as settings.ai.state ${snap.settings.ai.state} says`;
 }
 
 /**
