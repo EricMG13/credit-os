@@ -237,6 +237,7 @@ PR 2c (#147), before the driver:
 | 2b (#102) | Pure Copilot event parser and cost reading (`reply_from_events`) |
 | 2c (#147) | `redact.py`: JSON-escaped exact values; compactions from events |
 | 2d (#171) | `redact.py`: the home-directory fix (M2) |
+| 2e (#191) | `redact.py`: a written-out apostrophe does not end a Windows user name |
 | 2f (#202) | `redact.py`: a forward-slash UNC home path |
 | 2g (#248) | `redact.py`: a Users or home folder inside a path |
 | 2h | `redact.py`: known paths in every listed encoding, one union, the pattern net frozen (decision 0012) |
