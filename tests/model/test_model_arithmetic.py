@@ -28,7 +28,6 @@ from credit_os.model.value import Missing, MissingCode, Value, amount_text
 KEY = json.loads((Path(__file__).parent / "expected" / "pr1.json").read_text("utf-8"))
 RAISES = {"Inexact": decimal.Inexact, "Overflow": decimal.Overflow, "Underflow": decimal.Underflow}
 NON_POSITIVE = KEY["ratio"]["non_positive"]
-SECTIONS = ("total", "difference", "product", "ratio", "half_unit", "beyond_rounding")
 
 
 def build(item: Any) -> Value:
@@ -193,6 +192,7 @@ def test_half_unit_and_beyond_refuse_bad_amounts(bad: Any) -> None:
         lambda: beyond_rounding(bad, good),
         lambda: beyond_rounding(good, bad),
         lambda: beyond_rounding(good, good, [bad]),
+        lambda: beyond_rounding(good, bad, [good]),
     ):
         with pytest.raises(error):
             call_()
@@ -308,6 +308,7 @@ def test_domain_refuses_outside_amounts(outside: Decimal) -> None:
         lambda: beyond_rounding(outside, good),
         lambda: beyond_rounding(good, outside),
         lambda: beyond_rounding(good, good, [outside]),
+        lambda: beyond_rounding(good, outside, [good]),
     ):
         with pytest.raises(ValueError):
             call_()
@@ -422,11 +423,11 @@ def test_difference_and_product_are_exact_or_refused(a: Decimal, b: Decimal) -> 
 @settings(max_examples=200, deadline=None)
 @given(decs(8), decs(8))
 def test_difference_is_total_with_negation(a: Decimal, b: Decimal) -> None:
-    def attempt(fn: Callable[[], Value]) -> Value | None:
+    def attempt(fn: Callable[[], Value]) -> Value | type[decimal.DecimalException]:
         try:
             return fn()
-        except decimal.DecimalException:
-            return None
+        except decimal.DecimalException as error:
+            return type(error)
 
     left = attempt(lambda: difference(val(a), val(b)))
     right = attempt(lambda: total([val(a), val(b.copy_negate())]))

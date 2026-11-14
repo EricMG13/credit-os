@@ -127,7 +127,10 @@ def _decimals(amounts: Iterable[Decimal]) -> tuple[Decimal, ...]:
 
 
 def half_unit(amounts: Iterable[Decimal]) -> Decimal:
-    """Half a unit in the finest last place any of `amounts` is written to, at most 0.5."""
+    """Half a unit in the finest last place any of `amounts` is written to, at most 0.5.
+
+    Pass the figures as printed: the exponent as written is the information, and an amount
+    read back from a `Value` has lost its trailing zeros."""
     exponents = [_integer_parts(amount)[1] for amount in _decimals(amounts)]
     with decimal.localcontext(exact_context()):
         return _HALF.scaleb(min(min(exponents, default=0), 0))
@@ -137,7 +140,10 @@ def beyond_rounding(
     stated: Decimal, host: Decimal, printed: Iterable[Decimal] | None = None
 ) -> bool:
     """Whether `host` differs from `stated` by strictly more than half a unit in the finest
-    place among `stated` and `printed` (`host` itself when `printed` is None)."""
+    place among `stated` and `printed` (`host` itself when `printed` is None).
+
+    Pass the figures as printed: the exponent as written is the information, and an amount
+    read back from a `Value` has lost its trailing zeros."""
     figures = _decimals((stated, host))
     places = (host,) if printed is None else _decimals(printed)
     half = half_unit((stated, *places))
