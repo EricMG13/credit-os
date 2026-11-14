@@ -81,6 +81,13 @@ def test_home_paths_rows(text: str, expected: str) -> None:
             "C:\\Users\\mary\\'s \\\\'srv\\share\\var\\home\\bob smith\\x",
             "<home><home>\\x",
         ),
+        # A UNC head under a root folder begins the next home path; it goes too.
+        ("C:\\Users\\mary\\'s \\\\'srv\\share\\root\\x", "<home><home>\\x"),
+        # A drive head inside the name after the run begins its own home path.
+        ("C:\\Users\\mary\\'s D:/Users/x \\\\h/s/Users/bob", "<home>"),
+        ("C:\\Users\\mary\\'s D:\\Users\\bob", "<home>"),
+        # Without the written-out apostrophe: the base's output.
+        ("C:\\Users\\mary D:\\Users\\bob", "<home>:<home>"),
         # POSIX heads: a backslash after the separator stays in the name (base output).
         ("/home/\\:x", "<home>:x"),
         ("/Users\\\\:y", "<home>:y"),
@@ -200,3 +207,15 @@ def test_no_word_of_a_home_name_survives(
         w for w in words if len(w) > 1 and w not in lead + prefix and w not in tail and w in out
     ]
     assert kept == []
+
+
+def test_home_path_plain_is_the_base_pattern() -> None:
+    # 781bbc6's compiled pattern, verbatim: the fail-closed floor must not drift silently.
+    base = (
+        r"(?:(?<![\w.-])|(?<=\\[nrt])(?=[A-Za-z]:|\\\\|/))"
+        r"(?:(?P<win>(?:[A-Za-z]:|\\\\(?:\?[\\/]+UNC[\\/]+)?[^\s\\/]+[\\/]+[^\s\\/]+|/mnt/[A-Za-z])"
+        r"[\\/]+|\\)|/)"
+        r"(?:(?i:users|home|var[\\/]+home)[\\/]+(?(win)[^\\/<>:\"|?*\r\n]|[^/:\r\n])+"
+        r"|root(?![^\s\\/:*?\"'<>|(),;]))"
+    )
+    assert redact._HOME_PATH_PLAIN.pattern == base
