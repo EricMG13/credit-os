@@ -181,6 +181,8 @@ Written by the controller before each task, by reading, never by running a check
 | 6 | Confidence inputs and score (sensitive); `check_handoff` and the key over all fixtures |
 
 None of the six imports `model/`. A PR that would pass 800 lines is split, not trimmed of tests.
+PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b the structure
+checks and `check_handoff`.
 
 ## How it runs
 

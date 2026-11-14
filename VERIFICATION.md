@@ -3,6 +3,97 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 1D PR 1e, Signal's fetch, and CI runs per pull request
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #135 | 1D PR 1e | `a6b53ae`, `c54397a` | `sources/`: the two untyped exits are typed, a failed close is reported, eight more characters refused in a name (325 lines) |
+| #148 to #152 | Signal S-2b | `9f8d185`, `6c47a1b`, `5ed09aa`, `1fbb3e9`, `eb83e0a`; last merge `8978b9d` | `signal/fetch.py` (473 lines) and its tests; `signal/netpin.py` gains a limit on bytes received per connection. Five stacked PRs, each retargeted to `main` and under the 800-line cap |
+| #153 | CI | `28dfa17`, `17809de` | Both workflows: a newer push to a pull request cancels that pull request's older run; each push to `main` has its own group |
+
+After the last merge `src/credit_os/signal` and `tests/signal` on `main` equal the reviewed
+head `eb83e0a` (`git diff --stat eb83e0a origin/main -- src/credit_os/signal tests/signal`,
+empty).
+
+**Reviews.**
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #135 | `mx-precise` PASS, Low 1; `mx-adversary` PASS, Low 1; both at `7ab69d6`, both fixed in `a6b53ae` | 0 defects introduced; 1 Low that predates the diff | PASS on `a6b53ae`: High 0, Medium 0, Low 0, Info 5 |
+| #148 to #152 | `mx-precise` and `mx-adversary` PASS at `6c47a1b` | 1 Low defect (a redirect location with a tab), fixed in `1fbb3e9` | FAIL on `1fbb3e9`: Medium 1, Low 5; fixed test first; `mx-adversary` scoped re-review PASS on `588f5c6`, Low 2, fixed in `eb83e0a` |
+| #153 | batched `mx-feature`: FAIL on `e90efa0`, Medium 1; fixed; scoped re-review PASS on `28dfa17` | skipped (config) | skipped (config) |
+
+- Fetch's Medium: a chunk size of -1 made `http.client` read to the end of the connection, so
+  the 2 MiB body cap did not hold (194 MiB was read). The connection now counts what it
+  receives after decryption and refuses the byte after 8 MiB; a test over a real TLS
+  connection on loopback is committed.
+- #153's Medium: with one group for all pushes to `main`, a waiting run would have been
+  replaced by a newer one and that merge commit left without a result. The group is the
+  pull request's ref for a pull request and the commit otherwise. Seen working on #153
+  itself: its second push cancelled the first push's two runs.
+- `a6b53ae` and `eb83e0a` are Low batches after the last review, with no review round of
+  their own (global rules 1). The 1D controller checked `a6b53ae` itself because a restart
+  cut off its implementer after the commit.
+
+**Gates and CI.** `uv run --locked python tools/gates.py` exit 0, each by its controller:
+#135 on macOS at `a6b53ae`; fetch at `eb83e0a`, with the web gates and `mypy --platform
+win32`. CI green on Ubuntu, Windows and the review job on every merged head (#135: 1,780
+passed on Ubuntu, 1,765 on Windows). Mutation: #135 with `mutmut` at `7ab69d6`, 389 of 404
+killed, 13 equivalent, 2 closed by tests added in `a6b53ae`; fetch by hand mutants only, 58
+of 59 non-equivalent caught at `588f5c6`, the last by a test in `eb83e0a`.
+
+**Ledger.**
+- `1D-1e task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1D-1e task=2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1D-1e task=3 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `1D-1e task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `S-2b task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `S-2b task=2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `S-2b task=3 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `CI-153 task=1 agent=mx-scaffold fix-rounds=1 gates-first-pass=n/a`
+
+**Incident.** A fetch re-review probe started threads until the system refused, and the Mac
+reached its 16,384-thread limit and panicked four times; the Signal controller re-ran that
+agent after each restart without reading what it ran. The owner's rule (global rules 1,
+2026-11-14) now caps any such loop at 1,000 and has the failure simulated. The probe is
+capped; a second one that opens sockets until a connect fails is not to be run. The 1C, 1D,
+2A and Signal controllers each report their other probes and committed tests within the
+rule; the coordinator read the capped probe and the committed fetch tests, not the rest.
+About 100 CI runs then queued behind duplicate pushes of the design track's stacks, which is
+what #153 answers.
+
+**Rulings by the coordinator.**
+- 1D: a name that uses U+FF0F as a slash stand-in (seen in some Japanese and Chinese file
+  names) refuses its folder, as do the other seven characters. PR 2's first task makes
+  `cannot read (None)` name the error's class and corrects a comment in `source_path`.
+- For the first layer that stores or shows a `SourceError` (2A's brief, 3A's plan): it keeps
+  the error's notes, where a failed close is recorded, and decides whether the absolute path
+  in the message is kept.
+- Signal's ingest: one source at a time; a refusal for want of a lookup slot does not count
+  against the source; a `FetchRefused` is not kept (about 8 MiB each through its traceback).
+- 1C: the redactor's third and last fix round fails closed. Where the end of a home
+  directory name is not decided by a separator, it redacts to the end of the string or line.
+- 2A and 2B each split their PR 1 in two to hold the 800-line cap, as their plans allow.
+
+**Accepted limits (fetch).** A flood of headers within `http.client`'s own limits peaks near
+50 MiB. The lookup limit of 8 is for the whole process, so 8 stuck lookups refuse a healthy
+host until they return. TLS record overhead and the handshake are not counted. A 2 MiB body
+sent in 1-byte chunks is refused.
+
+**Not verified.**
+- Fetch against a real resolver, a public certificate authority or real DNS; a real refusal
+  to start a thread (simulated only, by the owner's rule); other CPython 3.12 patch releases
+  and OpenSSL builds; `mutmut` on fetch.
+- 1D: nothing ran on Windows outside CI; a close failure is simulated, none from a real
+  network share; look-alike characters beyond the eight still pass; `mutmut` on `a6b53ae`.
+- #153: GitHub's replacement of a waiting run in a shared group was reasoned from its
+  documentation as remembered, not observed. Observed after the change: the five fetch
+  merges landed within a minute and each merge commit got its own `python` run, none
+  replaced; their results were not yet in when this entry was written.
+
 ## 2026-11-14 Design track: run pages (step D2d) and the shared changes for D2b to D2e
 
 **Merged**, on the owner's instruction (merge when the review has no High or Medium finding
