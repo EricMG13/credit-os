@@ -6,6 +6,7 @@ import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
 import type { LoadResult } from "../../data";
 import { FeedPage, type FeedEntry } from "./FeedPage";
+import { SignalFrame } from "./SignalFrame";
 import { readSlice } from "./slice";
 
 function show(hash: string, slice: unknown = fixture.slice) {
@@ -335,10 +336,20 @@ describe("a loading feed has no list controls", () => {
       },
       topic: null,
     };
-    const { rerender } = render(<FeedPage {...props} loading={false} />);
+    // Inside the real frame, as in production: the page announces through the frame's status region.
+    const framed = (loading: boolean) => (
+      <SignalFrame
+        scene={scene}
+        current={{ kind: "view", id: "for-you" }}
+        follow={{ on: (topic) => topic.followed, toggle: () => undefined }}
+      >
+        <FeedPage {...props} loading={loading} />
+      </SignalFrame>
+    );
+    const { rerender } = render(framed(false));
     expect(screen.getByRole("button", { name: "Show 2 new stories" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show older" })).toBeInTheDocument();
-    rerender(<FeedPage {...props} loading />);
+    rerender(framed(true));
     expect(screen.queryByRole("button", { name: /^Show/ })).toBeNull();
   });
 
