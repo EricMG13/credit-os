@@ -26,7 +26,12 @@ export function BottomLine({ text, level }: { text: BottomLineText; level: Level
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <span className="text-sm font-medium text-brand-100">{text.label}</span>
-        <Lead className="font-display text-h3">{text.lead}</Lead>
+        <Lead
+          tabIndex={-1}
+          className="rounded-ds-xs font-display text-h3 outline-hidden focus-visible:ring-2 focus-visible:ring-white"
+        >
+          {text.lead}
+        </Lead>
         <p className="max-w-[76ch] text-body">{text.rest}</p>
       </div>
       <TraceControl trace={text.trace} label="Show sources for the bottom line" onDark />

@@ -18,25 +18,27 @@ import { TEXT_LINK, evidenceHref } from "./parts/links";
 
 /** The sections a delivered module has, in page order: the navigator's first group. */
 function sectionsOf(body: DeliveredBody): NavSection[] {
+  const named = (key: NavSection["key"], label: string): NavSection => ({ key, label });
   return [
-    { key: "bottom-line", label: "Bottom line" },
-    { key: "findings", label: "Key findings" },
-    ...(body.contrary === null ? [] : [{ key: "contrary", label: "Contrary evidence" }]),
-    ...(body.changeView === null
-      ? []
-      : [{ key: "change-view", label: "What would change the view" }]),
-    { key: "limitations", label: "Limitations" },
+    named("bottom-line", "Bottom line"),
+    named("findings", "Key findings"),
+    ...(body.contrary === null ? [] : [named("contrary", "Contrary evidence")]),
+    ...(body.changeView === null ? [] : [named("change-view", "What would change the view")]),
+    named("limitations", "Limitations"),
   ];
 }
 
-/** What the navigator moves focus to; it is named by the section it holds. */
+/**
+ * Contrary evidence in the mock's 16/26 body with a 600 lead (x.css `.s-alert`; the kit's Alert
+ * draws 14px and 500), room for the trace control, and the text at most 72 characters wide.
+ */
+const CONTRARY =
+  "[&>[role=alert]]:pr-12 [&_p]:max-w-[72ch] [&_p]:text-body [&_strong]:text-body [&_strong]:font-semibold";
+
+/** What the navigator scrolls to; focus then goes to the heading it holds. */
 function Target({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <div
-      data-section={id}
-      tabIndex={-1}
-      className="scroll-mt-6 rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
-    >
+    <div data-section={id} className="scroll-mt-6">
       {children}
     </div>
   );
@@ -56,7 +58,7 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
       {body.contrary === null ? null : (
         <Target id="contrary">
           <Section title="Contrary evidence" level={SUBSECTION_HEADING}>
-            <div className={`${TRACE_HOST} [&>[role=alert]]:pr-12`}>
+            <div className={`${TRACE_HOST} ${CONTRARY}`}>
               <Alert tone="warning" title={body.contrary.title}>
                 {body.contrary.text}
               </Alert>
@@ -134,13 +136,16 @@ function ModuleView({
   const content = useRef<HTMLDivElement>(null);
   const body = module.body;
   const sections = body.kind === "delivered" ? sectionsOf(body) : [];
-  const [active, setActive] = useState(sections[0]?.key ?? "");
+  const [active, setActive] = useState<string | null>(sections[0]?.key ?? null);
   const gapsHref = evidenceHref(issuer, run.id, "gaps");
   const goTo = (key: string) => {
     const target = content.current?.querySelector<HTMLElement>(`[data-section="${key}"]`);
-    if (target === null || target === undefined) return;
+    const heading = target?.querySelector<HTMLElement>("h2, h3, h4");
+    if (target === null || target === undefined || heading === null || heading === undefined) {
+      throw new Error(`the module page has no section "${key}" to move to`);
+    }
     target.scrollIntoView();
-    target.focus();
+    heading.focus();
     setActive(key);
   };
   return (
@@ -157,7 +162,7 @@ function ModuleView({
       <div ref={content} className="flex min-w-0 flex-col gap-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Heading className="font-display text-h2 text-text-primary">{module.name}</Heading>
-          {body.kind === "delivered" && module.state !== "Delivered" ? (
+          {body.kind === "delivered" ? (
             <StatusBadge set="Module state" state={module.state} />
           ) : null}
         </div>

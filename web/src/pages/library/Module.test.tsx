@@ -59,11 +59,11 @@ describe("the module routes", () => {
 });
 
 describe("Module, a delivered prose module", () => {
-  it("draws the issuer as the one h1, the module name as an h2 with no badge, sections as h3", () => {
+  it("draws the issuer as the one h1, the module name as an h2 with its state badge, sections as h3", () => {
     renderModule("business-profile");
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     const name = screen.getByRole("heading", { level: 2, name: "Business profile" });
-    expect(name.parentElement).toHaveTextContent(/^Business profile$/);
+    expect(name.parentElement).toHaveTextContent(/^Business profileDelivered$/);
     expect(screen.getAllByRole("heading").map((h) => [h.tagName, h.textContent])).toEqual([
       ["H1", "Halden Aerostructures"],
       ["H2", "Business profile"],
@@ -105,6 +105,18 @@ describe("Module, a delivered prose module", () => {
     expect(within(alert).queryByRole("button")).toBeNull();
   });
 
+  it("sets the contrary evidence in the mock's 16/26 body with a 600 lead (x.css .s-alert)", () => {
+    renderModule("business-profile");
+    const host = within(region("Contrary evidence")).getByRole("alert")
+      .parentElement as HTMLElement;
+    expect(host).toHaveClass(
+      "[&_p]:text-body",
+      "[&_p]:max-w-[72ch]",
+      "[&_strong]:text-body",
+      "[&_strong]:font-semibold",
+    );
+  });
+
   it("draws what would change the view as the info note", () => {
     renderModule("business-profile");
     const note = within(region("What would change the view")).getByRole("note");
@@ -128,13 +140,20 @@ describe("Module, a delivered prose module", () => {
     expect(container.textContent).not.toMatch(/coming soon|placeholder|no records/i);
   });
 
-  it("draws one trace control for each traced finding, named as the mock names it, and opens its drawer", () => {
+  it("draws the nine trace controls the mock shows, each named as the mock names it, and opens a drawer", () => {
     renderModule("business-profile");
     expect(sourceButtons().map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Show sources for the bottom line",
       "Show sources for this finding",
       "Show sources for this finding",
+      "Show sources for this finding",
+      "Show sources for this finding",
+      "Show sources for the contrary evidence",
+      "Show sources for the trigger",
+      "Show sources for this limitation",
+      "Show sources for this limitation",
     ]);
-    fireEvent.click(sourceButtons()[0] as HTMLElement);
+    fireEvent.click(sourceButtons()[1] as HTMLElement);
     expect(screen.getByRole("dialog", { name: "Sources for aftermarket share" })).toBeVisible();
   });
 
@@ -142,13 +161,24 @@ describe("Module, a delivered prose module", () => {
     const { container } = renderModule("business-profile");
     fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
     expect(container.querySelector("[data-sources]")).toHaveAttribute("data-sources", "on");
-    expect(sourceButtons()).toHaveLength(2);
+    expect(sourceButtons()).toHaveLength(9);
+  });
+
+  it("opens the drawer of each passage's own module-level trace", () => {
+    renderModule("business-profile");
+    const titles = [];
+    for (const button of sourceButtons()) {
+      fireEvent.click(button);
+      titles.push(screen.getByRole("dialog").getAttribute("aria-label"));
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    }
+    expect(new Set(titles).size).toBe(9);
   });
 
   it("shows no audit material and no module or trace code", () => {
     const { container } = renderModule("business-profile");
     const all = [container.innerHTML, container.textContent].join(" ");
-    expect(all).not.toMatch(/T-\d{4}|C-\d{4}|\.pdf|hash|aftermarket-share|engine-programme/i);
+    expect(all).not.toMatch(/T-\d{4}|C-\d{4}|\.pdf|hash|aftermarket-share|engine-programme|bp-/i);
   });
 });
 
@@ -185,6 +215,18 @@ describe("Module, the navigator", () => {
     ]);
   });
 
+  it("gives each section entry the mock's 20px icon slot", () => {
+    renderModule("business-profile");
+    const entries = within(within(nav()).getAllByRole("list")[0] as HTMLElement).getAllByRole(
+      "button",
+    );
+    for (const entry of entries) {
+      const slot = entry.querySelector("svg") as SVGElement;
+      expect(slot).toHaveAttribute("aria-hidden", "true");
+      expect(slot).toHaveClass("size-5", "flex-none", "opacity-75");
+    }
+  });
+
   it("lists only the sections a module has", () => {
     renderModule("capital-structure");
     expect(
@@ -201,10 +243,12 @@ describe("Module, the navigator", () => {
     window.location.hash = "#/library/halden-aerostructures/2026-09-30/modules/business-profile";
     const before = window.location.hash;
     fireEvent.click(within(nav()).getByRole("button", { name: "Contrary evidence" }));
-    const target = region("Contrary evidence").parentElement as HTMLElement;
+    const target = screen.getByRole("heading", { level: 3, name: "Contrary evidence" });
     expect(scroll).toHaveBeenCalledTimes(1);
-    expect(scroll.mock.contexts[0]).toBe(target);
+    expect((scroll.mock.contexts[0] as HTMLElement).contains(target)).toBe(true);
     expect(target).toHaveFocus();
+    expect(target).toHaveAttribute("tabindex", "-1");
+    expect(target).toHaveClass("focus-visible:ring-2", "focus-visible:ring-brand");
     expect(window.location.hash).toBe(before);
     expect(within(nav()).getByRole("button", { name: "Contrary evidence" })).toHaveAttribute(
       "aria-current",
@@ -222,6 +266,9 @@ describe("Module, the navigator", () => {
     const links = within(nav()).getAllByRole("link");
     expect(links).toHaveLength(13);
     expect(links[0]).toHaveAccessibleName("Business profile, Delivered");
+    const named = links[0]?.querySelector(".sr-only")?.parentElement as HTMLElement;
+    expect(named).not.toBe(links[0]);
+    expect(named.textContent).toBe("Business profile, Delivered");
     expect(links[0]).toHaveAttribute("aria-current", "page");
     expect(links[0]).toHaveAttribute("href", `${BASE}2026-09-30/modules/business-profile`);
     expect(links.filter((l) => l.hasAttribute("aria-current"))).toHaveLength(1);
@@ -355,6 +402,28 @@ describe("Module, a limitation longer than three lines", () => {
     expect(show).toHaveTextContent("Show all");
   });
 
+  it("builds one observer for each limitation, not one for every render", () => {
+    layout(true);
+    const Original = globalThis.ResizeObserver;
+    let built = 0;
+    globalThis.ResizeObserver = class extends Original {
+      constructor(callback: ResizeObserverCallback) {
+        super(callback);
+        built += 1;
+      }
+    };
+    try {
+      renderModule("business-profile");
+      const first = built;
+      expect(first).toBe(2);
+      fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
+      fireEvent.click(screen.getByRole("switch", { name: "Show sources" }));
+      expect(built).toBe(first);
+    } finally {
+      globalThis.ResizeObserver = Original;
+    }
+  });
+
   it("offers nothing when the text fits in three lines", () => {
     layout(false);
     renderModule("business-profile");
@@ -386,6 +455,7 @@ describe("Module, states of the address", () => {
     const { container } = renderModule("capital-structure", "2026-06-30");
     expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
     expect(screen.queryByRole("navigation", { name: "Modules and sections" })).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 });
 

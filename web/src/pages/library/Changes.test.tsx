@@ -111,7 +111,11 @@ describe("Changes, the mock's compared run", () => {
       const flat = cardOf(measure);
       expect(mark(flat)).toHaveAttribute("data-direction", "flat");
       expect(mark(flat)).toHaveClass("h-[1.5px]", "w-3.5", "bg-current");
-      expect(mark(flat)).not.toHaveClass("rotate-45", "-rotate-135");
+      expect(mark(flat)).not.toHaveClass("rotate-45");
+      expect(mark(flat)).not.toHaveClass("-rotate-135");
+    }
+    for (const m of [mark(down), mark(up), mark(cardOf("Rating outlook"))]) {
+      expect(m).toHaveClass("mx-1");
     }
     expect(cardOf("Rating outlook")).toHaveTextContent("Changed");
     expect(cardOf("Refinancing of the 2028 notes")).toHaveTextContent("Later by six months");
