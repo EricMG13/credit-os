@@ -14,12 +14,15 @@ class Fake:
         self.bounds: dict[str, float] = {}
         self.opened: dict[str, Any] = {}
         self.sent: str | None = None
+        self.given: list[float] = []  # every timeout_s given, next_event included
+        self.read: list[object] = []  # the envelopes next_event handed over
         self.script: list[object] = list(case["script"])
 
     def clock(self) -> float:
         return self.now
 
     def step(self, name: str, timeout_s: float = 0, *, seen: bool = True) -> "Fake":
+        self.given.append(timeout_s)
         if seen:
             self.steps.append(name)
             self.bounds[name] = timeout_s
@@ -77,6 +80,7 @@ class Fake:
         else:
             if self.script:
                 self.now += waited
+                self.read.append(self.script[0])
                 return self.script.pop(0)
         self.now += timeout_s
         return None

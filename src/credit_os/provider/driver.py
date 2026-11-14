@@ -80,12 +80,10 @@ def scrub_raw(raw: bytes, redact: Callable[[str], str]) -> bytes:
 
 
 def _path_forms(values: list[str]) -> set[str]:
-    forms = set()
-    for v in values:
-        for b in (v, v.rstrip("/\\")):  # with and without trailing separators
-            for s in (b, b.replace("\\", "/"), b.replace("/", "\\")):
-                forms |= {c for c in (s, s.lower(), s.upper()) if len(c) > 3}
-    return forms
+    bases = {b for v in values for b in (v, v.rstrip("/\\"))}  # and without trailing separators
+    bases |= {b[2:] for b in bases if re.match(r"[A-Za-z]:", b)}  # a POSIX home may eat "X:"
+    slashes = [(b, b.replace("\\", "/"), b.replace("/", "\\")) for b in bases]
+    return {c for t in slashes for s in t for c in (s, s.lower(), s.upper()) if len(c) > 3}
 
 
 def _has_figures(reply: Reply) -> bool:

@@ -35,13 +35,13 @@ def _run(given: dict[str, Any]) -> tuple[Reply, Fake, CopilotDriver]:
         driver.close()
     if case["before"] == "same":
         _complete(driver, case)
-    fake.steps, fake.opened, fake.sent = [], {}, None
+    fake.steps, fake.opened, fake.sent, fake.given, fake.read = [], {}, None, [], []
     return _complete(driver, case), fake, driver
 
 
 @pytest.mark.parametrize(("want", "given"), key.CASES.values(), ids=list(key.CASES))
 def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
-    reply, fake, _ = _run(given)
+    reply, fake, driver = _run(given)
     case = {**key.DEFAULTS, **given}
     parser = reply_from_events(
         case["script"], model=key.MODEL, redactor=Redactor.from_environ(case["environ"])
@@ -59,12 +59,20 @@ def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
         assert reply.message == (want["message"] if exact else parser.message)
     assert tuple(fake.steps) == want["calls"]
     if "open_session" in want["calls"]:
-        assert fake.opened == {**key.SESSION_ARGS, "system": want.get("system", "You are careful.")}
+        opened = ("model", "effort", "session_id", "system")
+        system = want.get("system", "You are careful.")
+        assert fake.opened == dict(
+            zip(opened, (key.MODEL, case["effort"], case["exchange_id"], system))
+        )
     assert fake.sent == (key.PROMPT if "send" in want["calls"] else None)
     assert all(fake.bounds[s] == v for s, v in want.get("bounds", {}).items())
+    assert min(fake.given, default=0) >= 0
+    assert driver.config_id == "copilot-sol-medium"
     assert reply.compactions == ()
     _check_turn(reply, want["turn"])
     _check_raw(reply, want, case)
+    if "send" in want["calls"] and "absent" not in want:
+        assert json.loads(reply.raw or b"null") == fake.read
 
 
 def _check_turn(reply: Reply, turn: Any) -> None:
@@ -91,11 +99,11 @@ def test_unreadable_raw_gives_the_placeholder(raw: bytes) -> None:
 
 
 def test_release_failure_is_logged_once_without_its_text(caplog: pytest.LogCaptureFixture) -> None:
+    case, has, lacks = key.RELEASE_LOG
     with caplog.at_level(logging.WARNING):
-        _run(key.CASES[key.RELEASE_LOG_CASE][1])
-    assert len(caplog.records) == 1
-    assert all(t in caplog.text for t in key.RELEASE_LOG_HAS)
-    assert not any(t in caplog.text for t in key.RELEASE_LOG_LACKS)
+        _run(key.CASES[case][1])
+    assert len(caplog.records) == 1 and lacks not in caplog.text
+    assert all(w in caplog.text for w in has.split(" "))
 
 
 def test_close_releases_the_kept_session_once() -> None:
