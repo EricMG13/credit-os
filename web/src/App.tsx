@@ -4,7 +4,11 @@ import { useHashRoute } from "./route";
 import { PageHeader } from "./shell/PageHeader";
 import { Shell, type Area } from "./shell/Shell";
 
-const NOT_BUILT: Record<string, string> = { "/model": "Model", "/run": "Run", "/signal": "Signal" };
+const NOT_BUILT = new Map<string, { title: string; area: Area }>([
+  ["/model", { title: "Model", area: "model" }],
+  ["/run", { title: "Run", area: "run" }],
+  ["/signal", { title: "Signal", area: "signal" }],
+]);
 
 function Library({ result }: { result: LoadResult }) {
   return (
@@ -48,11 +52,11 @@ export function App({ result }: { result: LoadResult }) {
       </Shell>
     );
   }
-  const title = NOT_BUILT[route];
-  if (title !== undefined) {
+  const notBuilt = NOT_BUILT.get(route);
+  if (notBuilt !== undefined) {
     return (
-      <Shell current={title.toLowerCase() as Area}>
-        <PageHeader title={title} />
+      <Shell current={notBuilt.area}>
+        <PageHeader title={notBuilt.title} />
         <p className="mt-6 text-text-secondary">Not built yet</p>
       </Shell>
     );

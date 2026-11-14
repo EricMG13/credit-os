@@ -34,6 +34,15 @@ describe("App", () => {
     expect(screen.getByText("Library data is missing")).toBeInTheDocument();
   });
 
+  it.each(["constructor", "__proto__", "toString", "hasOwnProperty"])(
+    "falls back to the library for #%s",
+    (name) => {
+      window.location.hash = `#${name}`;
+      render(<App result={{ kind: "missing" }} />);
+      expect(screen.getByText("Library data is missing")).toBeInTheDocument();
+    },
+  );
+
   it("says so when there are no runs", () => {
     render(<App result={{ kind: "ok", data: { schema: "credit-os-data/1", issuers: [] } }} />);
     expect(screen.getByText("No runs yet")).toBeInTheDocument();
@@ -58,6 +67,8 @@ describe("App", () => {
 
   it("says when the data is from a newer version", () => {
     render(<App result={{ kind: "newer", schema: "credit-os-data/2" }} />);
-    expect(screen.getByText("This library was written by a newer version")).toBeInTheDocument();
+    expect(screen.getByRole("main").textContent).toBe(
+      "LibraryThis library was written by a newer version",
+    );
   });
 });

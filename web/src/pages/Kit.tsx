@@ -268,7 +268,7 @@ export function Kit() {
           Page header
         </h2>
         <PageHeader
-          as="h2"
+          as="h3"
           title="Issuer name"
           badges={
             <>

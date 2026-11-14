@@ -27,6 +27,11 @@ describe("Kit", () => {
     }
   });
 
+  it("puts the demo page header title under the Page header section heading", () => {
+    render(<Kit />);
+    expect(screen.getByRole("heading", { level: 3, name: "Issuer name" })).toBeInTheDocument();
+  });
+
   it("reads the four button colours from the design system", () => {
     expect(colours).toEqual(["primary", "secondary", "tertiary", "primary-destructive"]);
   });
