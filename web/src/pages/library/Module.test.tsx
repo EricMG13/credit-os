@@ -683,6 +683,136 @@ describe("Module, the measures and their consequence", () => {
   });
 });
 
+describe("Module, the facility terms", () => {
+  const terms = () => region("Facility terms");
+  const facts = () => terms().querySelectorAll("dl > div");
+
+  it("draws the groups with their names and each row as a term and its value", () => {
+    renderModule("capital-structure");
+    expect(within(terms()).getAllByRole("heading")).toHaveLength(1);
+    expect(
+      within(terms())
+        .getAllByRole("term")
+        .map((t) => t.textContent),
+    ).toEqual(["Amount", "Margin", "Maturity", "Size", "Drawn", "Commitment fee", "Availability"]);
+    expect([...facts()].map((f) => f.textContent)).toEqual([
+      "AmountUSD 1,150m",
+      "MarginReference rate plus 3.25%",
+      "MaturitySeptember 2030",
+      "SizeUSD 250m",
+      "DrawnUSD 0m",
+      "Commitment feen.a.not available",
+      "AvailabilityWithheld",
+    ]);
+    expect(
+      [...terms().querySelectorAll("dl")].map((dl) => dl.getAttribute("aria-labelledby")),
+    ).toEqual(
+      ["Term loan B", "Revolving facility", "Receivables facility"].map(
+        (name) => within(terms()).getByText(name).id,
+      ),
+    );
+  });
+
+  it("keeps zero as zero beside n.a., and draws a withheld value as the kit's Withheld", () => {
+    renderModule("capital-structure");
+    const [, , , , drawn, fee, receivables] = [...facts()] as HTMLElement[];
+    expect(drawn).toHaveTextContent("USD 0m");
+    expect(fee).not.toHaveTextContent("0");
+    expect(within(receivables as HTMLElement).getByText("Withheld")).toBeVisible();
+  });
+
+  it("draws one trace control for each row, named as the mock names it", () => {
+    renderModule("capital-structure");
+    const buttons = within(terms()).getAllByRole("button");
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(
+      Array<string>(7).fill("Show sources for this fact"),
+    );
+    fireEvent.click(buttons[0] as HTMLElement);
+    expect(screen.getByRole("dialog", { name: "Sources for the term loan" })).toBeVisible();
+  });
+
+  it("sets a group of no name without a label, and a gap as the inline badge", () => {
+    const library = withRecords((records) => {
+      const groups = (records.find((r) => r["kind"] === "facts") as Json)["groups"] as Json[];
+      (groups[0] as Json)["name"] = null;
+      ((groups[0]?.["rows"] as Json[])[0] as Json)["value"] = { kind: "gap", reason: "Not read." };
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    expect(within(terms()).queryByText("Term loan B")).toBeNull();
+    expect(terms().querySelector("dl")).not.toHaveAttribute("aria-labelledby");
+    expect(within(terms()).getByText("Not established for this run")).toBeVisible();
+  });
+});
+
+describe("Module, the documentation tests", () => {
+  const tests = () => region("Documentation tests");
+  const groups = () => within(tests()).getAllByRole("group");
+
+  it("draws the not met group first, as delivered, then the met group, each with its count", () => {
+    renderModule("capital-structure");
+    expect(groups().map((g) => g.firstElementChild?.textContent)).toEqual(["Not met1", "Met3"]);
+    expect(
+      groups().map((g) =>
+        within(g)
+          .getAllByRole("listitem")
+          .map((i) => i.textContent),
+      ),
+    ).toEqual([
+      ["Compliance certificate on timeDelivered 12 days late"],
+      [
+        "First-lien net leverage3.3x against 6.5x",
+        "Restricted payments basketUSD 20m of USD 75m used",
+        "Receivables facility availabilityWithheld",
+      ],
+    ]);
+  });
+
+  it("names each group by its status word and shape, never by colour alone", () => {
+    renderModule("capital-structure");
+    const [notMet, met] = groups();
+    expect(notMet?.querySelector("svg")).toHaveAttribute("data-shape", "triangle");
+    expect(met?.querySelector("svg")).toHaveAttribute("data-shape", "filled circle");
+    expect(groups().map((g) => g.getAttribute("aria-labelledby"))).toEqual(
+      groups().map((g) => g.firstElementChild?.id),
+    );
+  });
+
+  it("draws the withheld test as the kit's Withheld and no value beside none", () => {
+    renderModule("capital-structure");
+    const item = within(groups()[1] as HTMLElement).getAllByRole("listitem")[2] as HTMLElement;
+    expect(within(item).getByText("Withheld")).toBeVisible();
+    expect(item).not.toHaveTextContent(/n\.a\./);
+  });
+
+  it("draws no trace control where the mock draws none, and one where a test carries a trace", () => {
+    renderModule("capital-structure");
+    expect(within(tests()).queryAllByRole("button")).toHaveLength(0);
+    cleanup();
+    const library = withRecords((records) => {
+      const group = ((records.find((r) => r["kind"] === "status") as Json)["groups"] as Json[])[0];
+      (group?.["items"] as Json[])[0] = {
+        ...((group?.["items"] as Json[])[0] as Json),
+        trace: "cs-term-loan",
+        note: "The certificate was due on 15 January.",
+      };
+    });
+    renderModule("capital-structure", "2026-09-30", library);
+    expect(
+      within(tests())
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Show sources for this test"]);
+    expect(within(tests()).getByText("The certificate was due on 15 January.")).toBeVisible();
+  });
+
+  it("sets the two blocks side by side from 1001px and stacked below", () => {
+    renderModule("capital-structure");
+    const row = tests().parentElement;
+    expect(row).toHaveClass("grid-cols-1", "min-[1001px]:grid-cols-2");
+    expect(region("Facility terms").closest("[data-section]")?.parentElement).toBe(row);
+  });
+});
+
 describe("Module, the navigator of the data module", () => {
   it("lists the entries the blocks name, once each, in page order", () => {
     renderModule("capital-structure");
@@ -690,7 +820,13 @@ describe("Module, the navigator of the data module", () => {
       within(within(nav()).getAllByRole("list")[0] as HTMLElement)
         .getAllByRole("button")
         .map((s) => s.textContent),
-    ).toEqual(["Bottom line", "Key findings", "Headline figures", "Limitations"]);
+    ).toEqual([
+      "Bottom line",
+      "Key findings",
+      "Headline figures",
+      "Terms and tests",
+      "Limitations",
+    ]);
   });
 });
 
