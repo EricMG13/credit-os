@@ -15,7 +15,7 @@ type StartFile = {
 };
 type Purpose = { id: string; title: string; description: string; modules: string };
 type Items = { count: string; items: string[] };
-type Readiness = { line: string; notMet: Items; met: Items; cap: Bar };
+export type Readiness = { line: string; notMet: Items; met: Items; cap: Bar };
 type DraftBase = {
   id: string;
   issuer: string;
@@ -27,7 +27,7 @@ type DraftBase = {
   readiness: Readiness;
 };
 type Confirm = { title: string; text: string; action: string; started: string };
-type StartDraft = DraftBase &
+export type StartDraft = DraftBase &
   (
     | { step: "documents"; files: StartFile[] }
     | { step: "purpose"; chosen: string | null; purposes: Purpose[] }
@@ -36,7 +36,7 @@ type StartDraft = DraftBase &
     | { step: "start"; recap: Row[]; paid: { text: string; amount: string }; confirm: Confirm }
     | { step: "started"; title: string; text: string; cap: Bar; activity: string }
   );
-type RunSlice = { drafts: StartDraft[] };
+export type RunSlice = { drafts: StartDraft[] };
 
 class Invalid extends Error {}
 const fail = (path: string, expected: string): never => {
@@ -54,7 +54,7 @@ function str(o: Obj, key: string, path: string): string {
 }
 function strOrNull(o: Obj, key: string, path: string): string | null {
   const v = o[key];
-  return v === null ? null : str(o, key, path);
+  return v === null || typeof v === "string" ? v : fail(`${path}.${key}`, "a string or null");
 }
 function list<T>(o: Obj, key: string, path: string, read: (v: unknown, p: string) => T): T[] {
   const v = o[key];
@@ -81,7 +81,10 @@ function bar(v: unknown, path: string): Bar {
   return { label: str(o, "label", path), value: value as number, max: max as number };
 }
 function barOrNull(o: Obj, key: string, path: string): Bar | null {
-  return o[key] === null ? null : bar(o[key], `${path}.${key}`);
+  const v = o[key];
+  if (v === null) return null;
+  if (typeof v !== "object" || Array.isArray(v)) return fail(`${path}.${key}`, "an object or null");
+  return bar(v, `${path}.${key}`);
 }
 const strings = (o: Obj, key: string, path: string): string[] =>
   list(o, key, path, (v, p) => (typeof v === "string" ? v : fail(p, "a string")));
@@ -150,6 +153,12 @@ function draft(v: unknown, path: string): StartDraft {
       return { ...base, step: "documents", files: list(o, "files", path, file) };
     case "purpose": {
       const purposes = list(o, "purposes", path, purpose);
+      const seen = new Set<string>();
+      purposes.forEach((p, i) => {
+        if (seen.has(p.id))
+          fail(`${path}.purposes[${String(i)}].id`, "an id no other purpose uses");
+        seen.add(p.id);
+      });
       const chosen = strOrNull(o, "chosen", path);
       if (chosen !== null && !purposes.some((p) => p.id === chosen)) {
         fail(`${path}.chosen`, "null or the id of one of its purposes");
@@ -199,13 +208,15 @@ function slice(source: unknown): RunSlice {
     ids.add(d.id);
   });
   drafts.forEach((d, i) => {
-    const names = (key: string, id: string | null) => {
-      if (id !== null && !ids.has(id))
-        fail(`run.drafts[${String(i)}].${key}`, "null or the id of a draft in this slice");
+    const names = (key: string, id: string | null, nullable: boolean) => {
+      if (id === null ? !nullable : !ids.has(id)) {
+        const expected = "the id of a draft in this slice";
+        fail(`run.drafts[${String(i)}].${key}`, nullable ? `null or ${expected}` : expected);
+      }
     };
-    names("previous", d.previous);
-    names("next", d.next);
-    if (d.step === "start") names("confirm.started", d.confirm.started);
+    names("previous", d.previous, true);
+    names("next", d.next, true);
+    if (d.step === "start") names("confirm.started", d.confirm.started, false);
   });
   return { drafts };
 }
