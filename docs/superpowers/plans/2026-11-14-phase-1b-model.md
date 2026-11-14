@@ -225,6 +225,25 @@ same bound for scheduled repayments. Parked for the next change to `forecast.py`
 repayment driver is still range-checked under a schedule, and the docstring does not give the
 order of a schedule pair.
 
+PRs 3 (#200) and 4a (#214) are merged. Ruled with them: a tuple field takes exactly a list or
+a tuple through `LIST_AS_TUPLE`, never `strict=False`; `FRACTION_PATTERN` is the signed
+pattern and the unsigned one is `SHARE_PATTERN`; no refusal message holds a lone surrogate,
+and a key with one is refused in the pairs hook ahead of the repeated-key test; both
+exceptions survive pickle and copy; `read_object` takes exactly a `str`; the 80-character
+bound is for refusal messages, and `str(ForecastDeclined)` keeps up to 200 characters of the
+first scope limit. For PR 4b: an operand with an amount names its row and exactly one of
+period or column; a year is 1000 to 9999; a present scale other than the integer 1 or 1000 is
+its own refusal before the schema; the schema refusal names up to three issues with keys cut
+to 80 characters and no input value; a tuple length error that only echoes failed items is
+dropped; a negative repayment driver is refused by the amount pattern. PR 4b stays under 800
+lines with no case dropped, else the repayment bound moves to PR 4c. PR 6 never uses
+`model_copy` or `model_construct` on a `Facility`, passes `None` when no facilities are
+stated, and decides the repayment bound on the schedule path. PR 7 ports the two maturity
+limitations (before the forecast; inside it), with key rows. Answer-key rule 2 ("with its
+working") is met by committed scripts, `tests/model/expected/make_pr<n>.py`, standard library
+only, with one test that each script's output equals the committed key as parsed JSON: two
+tests-only PRs after 4b, then one script with each PR from PR 5.
+
 ## How it runs
 
 Global rules §1, §3 and §7. The sub-session is the controller and writes no code: `mx-feature`

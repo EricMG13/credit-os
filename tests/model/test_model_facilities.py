@@ -313,3 +313,25 @@ def test_all_in_bounds_are_inclusive() -> None:
     tops = schedule([Facility.model_validate(top)]).rows[0]
     assert [amount_text(y.rate) for y in zeros] == ["0", "0", "0"]
     assert [amount_text(y.rate) for y in tops] == ["0.3", "0.3", "0.3"]
+
+
+@pytest.mark.parametrize("hostile", ["local", "default"], indirect=True)
+@pytest.mark.usefixtures("hostile")
+def test_stored_forms_under_hostile_contexts() -> None:
+    year = schedule([Facility.model_validate(terms(fixed_rate_pct="16.1234"))]).rows[0][0]
+    assert amount_text(year.rate) == "0.161234"
+    year = schedule([Facility.model_validate(terms(balance="400.00"))]).rows[0][0]
+    assert amount_text(year.opening) == "400"
+    year = schedule([Facility.model_validate(terms(annual_amortisation="25.50"))]).rows[0][0]
+    assert amount_text(year.repaid) == "25.5"
+
+
+def test_fixed_rate_with_reference_rate_alone_is_refused() -> None:
+    facility = terms(reference_rate=["0.01", "0.01", "0.01"])
+    assert message(facility) == "a facility states a fixed rate or a floating one, not both"
+
+
+def test_facility_year_is_frozen() -> None:
+    year = schedule([Facility.model_validate(terms())]).rows[0][0]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        cast(Any, year).opening = Decimal(1)

@@ -143,6 +143,8 @@ class Schedule:
     rows: tuple[Years, ...]
 
     def totals(self) -> tuple[Pair, Pair, Pair]:
+        """(interest, repayment) for each forecast year, summed over the facilities."""
+
         def column(year: int, field: str) -> Decimal:
             parts = [Value(amount=Decimal(0))]
             parts += [Value(amount=getattr(row[year], field)) for row in self.rows]
@@ -174,6 +176,7 @@ def _years(facility: Facility) -> Years:
 
 
 def schedule(facilities: Sequence[Facility]) -> Schedule:
+    """One three-year triple per facility, in input order."""
     if type(facilities) not in (list, tuple):
         raise TypeError("facilities must be a list or a tuple of Facility")
     if any(type(item) is not Facility for item in facilities):
