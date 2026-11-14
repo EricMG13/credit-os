@@ -420,8 +420,9 @@ def _read(text: str, masked: _Masked) -> list[Figure]:
     figures: list[Figure] = []
     position = 0
     while (found := _find(_NUMBER, masked, position)) is not None:
-        figure, position = _figure(masked, found, text)
+        figure, end = _figure(masked, found, text)
         figures.append(figure)
+        position = max(end, found.end())
     return figures
 
 

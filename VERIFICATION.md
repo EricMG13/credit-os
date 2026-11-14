@@ -3,6 +3,78 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 2B confidence, the run store's first tables, Signal's names and topics
+
+**Merged**, under the owner's delegation (decision 0006), each at the head named with every
+check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
+
+| PR | Step | Head, merge | Content |
+| :--- | :--- | :--- | :--- |
+| #312 | 2B PR 6 | `23c00a4`, `5e378d0` | `checks/confidence.py`: the confidence checks and the exact score; `check_handoff` is complete (525 lines) |
+| #296 | 2A PR 2a | `d5f83c9`, `a1a99f4` | `store/schema.py`: migration 1, the runs, pins and events tables (478) |
+| #297 | 2A PR 2a-b | `d2e62b0`, `a20f04e` | migration 1's CHECKs and triggers tested on a raw connection (788, tests only) |
+| #300 | 2A PR 2b | `eaf01a0`, `3a17fb9` | `store/runs.py`, `records.py`, `db.py`: create a run and read it back (799) |
+| #164 | Signal S-4, 1 of 3 | `0645a12`, `4a976e2` | `signal/identity.py`, `topics.py`: names and topics (777) |
+| #165 | Signal S-4, 2 of 3 | `917823b`, `b7076a3` | clean names and topic text, caps, short error texts (640) |
+| #166 | Signal S-4, 3 of 3 | `0bf4852`, `7a3871a` | topics listed for no user; distinct kinds; surviving mutants killed (197) |
+
+Stacked PRs were retargeted to `main` and their CI rerun there before each merge. #166's
+first merge attempt stopped because its base had not moved; it was retargeted and rerun.
+
+**Reviews.** As each controller reported; the coordinator read each quoted verdict line in
+its report file.
+
+| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
+| :--- | :--- | :--- | :--- |
+| #312 | task 1: `mx-precise` Medium 1, `mx-adversary` Medium 2; fix round 1, then a key gap closed by key cases; task 2: both pass | 0 defects | pass on `23c00a4`: Low 3, Info 6 |
+| #296 | `mx-precise` and `mx-invariants` on the first version: changes required, High 1 (REPLACE overwrote rows), Medium 2; two fix rounds, both re-reviews pass | as #297 | at `8395bc1`: changes required, Medium 1, Low 2, Info 5 (a REPLACE naming the hidden rowid); third round on an `mx-autonomous` plan; scoped re-review on `d5f83c9`: pass, M1 and L1 closed |
+| #297 | as the stack's task reviews | registered, 0 defects | pass on `d2e62b0`: Low 2, Info 5 |
+| #300 | `mx-precise` pass, Low 2; `mx-invariants` pass, Low 2 | 6 rows, 0 defects | changes required, Medium 1 (pins revalidated before the write); scoped re-review pass, Info 4 |
+| #164 to #166 | `mx-precise` Medium 3 (test strength); `mx-adversary` Medium 1; fix round 1; adversary re-review pass | registered | pass at `a7227ed`: Low 6, Info 9. #166's Low batch after it: scoped `mx-feature` re-review run by the coordinator, pass, Low 1, Info 1 |
+
+- Mutation counts of record (mutmut 3.8.1, reviewers' runs). #312: `confidence.py` 499
+  mutants, 460 killed, 39 survived; the five functions task 2 changed, 174, 150 killed, 24
+  survived; of those 63, 21 are shown equivalent and 42 change only reason wording (open,
+  graded with the next checks change). #300, taken before its fix: 675, 526 killed, 148
+  survived, 1 with no test; in its own lines 388, 290, 97, 1, all graded. #297: 184 SQL
+  hand mutants, 167 killed, 16 equivalent, 1 invalid.
+- #166: the whole-branch reviewer's probe caught 28 of 40 hand mutants before the Low
+  batch and 39 of 40 on the merged head; the survivor (`IdentityError` made a `StoreError`)
+  is carried to the service step.
+- #297 and #300 were force-pushed earlier in the day (entry of #313); each merged with the
+  reviewer's line that the pushed head is the content reviewed.
+
+**Rulings.** 2B C1 to C10, R65 to R68, and R69: a confidence outcome is used only for a
+document `check_handoff` returns no refusal for (a reader error does not know the format).
+2A R31; migrations after the first take no hidden rowid; `repr(Claim)` must not print the
+writer token (in #302's Low batch). 1B R46 (unit forms, PR 6a2 merged with 6a) and R47 (a
+balance is printed only as a number of its own), both ahead of their PRs.
+
+**Machine.** The coordinator's own measurement and actions, not a controller's report: at
+20:07 UTC `uptime` gave a load average of 184 on 10 cores, and the lead coordinator had
+counted seven mutation runs alive a minute earlier. From 20:10 at most two mutation runs run at a time across all sessions, queued in a
+shared file; a count taken with the 1-minute load above 40 is not of record until its
+timeouts are rerun alone. 1B's PR 6b count was taken above that load and is held.
+Thirteen finished worktrees were removed; `.superpowers/` is git-ignored there, so a
+worktree's reports are copied out before it is removed.
+
+**Ledger.**
+
+- `2B-6 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `2B-6 task=2 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `2B-6 task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y` (from 2B's ready message)
+- `2A-2a task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
+- `2A-2a wbr-fix=1 agent=mx-feature (mx-autonomous plan) fix-rounds=3 gates-first-pass=y`
+- `2A-2b task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2A-2b task=2 agent=mx-feature fix-rounds=0 gates-first-pass=y`
+- `2A-2b wbr-fix=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `S-4 task=1 agent=mx-feature fix-rounds=1 gates-first-pass=n` (from Signal's ready message)
+
+Not verified: real model output against the confidence checks; SQLite builds other than
+3.53.1 (both runners); #300's mutation count after its fix (hand mutants only); a mutmut
+count for Signal's names and topics (`mutmut` was not run there); the 42 reason-wording
+survivors' equivalence.
+
 ## 2026-11-14 Roadmap back end: 2B figures and held figures, 1D HTML engine and zip guards, 1B base operands
 
 **Merged**, under the owner's delegation (decision 0006), each at the head named with every
@@ -276,21 +348,29 @@ repository, in the session notes folder `d2b-records/`; the D2b worktree was arc
   Whole-branch fix round: one gates run at `b32a784`, not per commit, for the seven commits
   `2f032bd` to `b32a784`. Tasks 8 and 12 were re-cut to at most 800 lines per commit with a tree identical to the
   gated one (diff checked empty).
-- CI: every PR head had `gates (ubuntu-latest)`, `gates (windows-latest)` and `review`
-  passing before its merge, with one exception: #168 was merged with one of its
-  two Windows jobs failed: the rerun of that job (run 43622974167, attempt 2) ended
-  cancelled and never produced a result, so on #168's commit that job has one failure and no
-  pass. The failure was
-  `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on focus, and
-  draws it n.a., never 0" (`Test timed out in 5000ms`, 5,130 ms), a model-pages test outside
-  this stack (see "Model pages test timeout (#295)" below); the duplicate Windows job on the
-  same commit (run 43622974170) passed. #168's first run (43613658822) failed "Changed lines
-  at most 800" because it still measured against its old base (10,753 lines against the old
-  base, 296 against the new one); the D2b session closed and reopened the PR with no new
-  commit to get runs on the right base. Earlier failed checks on #127 and #139 were the
-  Windows `DevToolsActivePort` read race fixed by #156, on heads the end push replaced; #71
-  and #83 failed once in the shared kit page check and #264 and #280 had Windows gates
-  cancelled under queue load, each rerun.
+- CI: every PR head had `gates (ubuntu-latest)` and `review` passing and at least one passing `gates
+  (windows-latest)` job before its merge, but not every Windows job passed. #140 (run 43613667245,
+  17:23:45 to 17:43:47; duplicate run 43613667111 passed), #282, #284, #286, #287 and #294 each also
+  carry one Windows job that ended cancelled; #168's failed job was rerun and the rerun was cancelled
+  (18:04:13 to 18:24:17). Those jobs were cut off by the `web` workflow's 20-minute job limit, not by a
+  failed check; omitted here because the coordinator's pre-merge check counted only failed and pending
+  jobs. Measured on `main` `4a0cbdbb` (run 43624986501, Windows, attempt 2, the first rerun, started
+  18:49 UTC): `npm run gates` 10 min 5 s and "Open from disk in Edge" 6 min 1 s passed; "Open from disk
+  in Chrome" was cancelled after 3 min 13 s at the 20-minute mark. With all four page groups on `main`
+  the Windows job no longer fits 20 minutes on a slow runner; Linux takes about 8 minutes. #58, #70,
+  #83, #107 and #130 each have two Windows jobs cancelled within a minute at about 16:04 UTC (not the
+  limit; cause not established) and each later has two passing Windows jobs. The other exception: #168
+  was merged with one of its two Windows jobs failed: the rerun of that job (run 43622974167, attempt 2)
+  never produced a result, so on #168's commit that job has one failure and no pass. The failure was
+  `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on focus, and draws it
+  n.a., never 0" (`Test timed out in 5000ms`, 5,130 ms), a model-pages test outside this stack (see
+  "Model pages test timeout (#295)" below); the duplicate Windows job on the same commit (run
+  43622974170) passed. #168's first run (43613658822) failed "Changed lines at most 800" because it
+  still measured against its old base (10,753 lines against the old base, 296 against the new one); the
+  D2b session closed and reopened the PR with no new commit to get runs on the right base. Earlier
+  failed checks on #127 and #139 were the Windows `DevToolsActivePort` read race fixed by #156, on heads
+  the end push replaced; #71 and #83 failed once in the shared kit page check and #264 and #280 had
+  Windows gates cancelled under queue load, each rerun.
 
 **Reviews.**
 - Task review per task, `mx-precise`; scoped re-reviews by `mx-precise`, except task 5's
@@ -431,30 +511,36 @@ folder: nothing lost.
   TraceDrawer, DerivationTree, avatar group, copy snippet and toast, command menu,
   DownloadButton, details list, numbered list panel.
 
-**Not verified.** That any reviewer read `3ca2f8c7` (RR-01 and RR-02 were checked against the
-reviewer's probe only); that the re-review was by a fresh agent (it was the agent that wrote
-the review); a live walk on `3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home
-list and the drawer only); the Windows web gates on the merged tree (`main` `4a0cbdbb`: `python` push run
-43624986619 passed; `web` push run 43624986501 had `gates (ubuntu-latest)` passed and
-`gates (windows-latest)` cancelled before it finished, requeued by the coordinator at 18:50
-UTC with no result when this was written; the "about 88 runs queued on superseded `main`
-commits" remark, the coordinator's reading at about 18:08 UTC, is the state before the lead
-coordinator cancelled 79 queued push runs on 41 superseded `main` commits at about 18:27 UTC
-on the owner's instruction, keeping the tip's two runs); per-commit gating of the seven fix-round commits (the re-review
-lists it); the print preview of collapsed limitations (task 7 walk: "Not walked"); open
-Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex` on
-issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer
-across runs, was fixed in the fix round); any CI run of a PR
-head merged with `main` after `718a13b4` (the stack was forwarded once; `git merge-tree` with
-`9f900d53` was clean); a passing run of #168's failed Windows job (its rerun was cancelled); the full
-gates at `3ca2f8c7` by the controller (the fixer ran them); the whole-branch review did not
-rerun the gates (taken from the ledger), read the tests in full (about 13k lines, sampled),
-compare each page with its mock frame again, run WBR-12's deep tree, or probe WBR-05 for
-issuer and module ids; the fixer's WBR-08 mutant; RR-01 in a real browser (judged by Node's
-URL parser); Edge and Windows browsers beyond CI; screen-reader announcements; print output;
-the Chart sides of the missing chart kinds; real download files; the Halden Forecast link
-against a model fixture holding Halden; any slice against a real delivered run (step 3B does
-not exist); whether the fixture's invented issuer names match a real company.
+**Not verified.** That any reviewer read `3ca2f8c7` (RR-01 and RR-02 were checked against the reviewer's probe
+only); that the re-review was by a fresh agent (it was the agent that wrote the review); a live walk on
+`3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home list and the drawer only); per-commit gating
+of the seven fix-round commits (the re-review lists it); the print preview of collapsed limitations (task 7
+walk: "Not walked"); open Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex`
+on issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer across runs, was fixed
+in the fix round); any CI run of a PR head merged with `main` after `718a13b4` (the stack was forwarded once;
+`git merge-tree` with `9f900d53` was clean); a passing run of #168's failed Windows job on its own commit (its
+rerun was cancelled); a complete Windows run of the cancelled job on each of #140, #282, #284, #286, #287 and
+#294 (each has a passing duplicate job on the same commit); cancelled Windows jobs on earlier commits of the
+stack's PRs (only each PR's last commit was read); the full gates at `3ca2f8c7` by the controller (the fixer ran
+them); the whole-branch review did not rerun the gates (taken from the ledger), read the tests in full (about
+13k lines, sampled), compare each page with its mock frame again, run WBR-12's deep tree, or probe WBR-05 for
+issuer and module ids; the fixer's WBR-08 mutant; RR-01 in a real browser (judged by Node's URL parser); Edge
+and Windows browsers beyond CI; screen-reader announcements; print output; the Chart sides of the missing chart
+kinds; real download files; the Halden Forecast link against a model fixture holding Halden; any slice against a
+real delivered run (step 3B does not exist); whether the fixture's invented issuer names match a real company;
+any report kept only in the git-ignored `.superpowers/` folders of eight finished design-track worktrees
+(`agent-a72a…`, `agent-aeee…`, `agent-a44c…`, `agent-ac21…`, `d2c-pr-a`, `d2c-pr-b`, `d2c-split`,
+`kit-link-toggle`): the coordinator removed them at about 19:50 UTC after checking only for uncommitted tracked
+files, so such reports were deleted unread (the D2b, D2c and D2e records cited in the entries were copied to the
+notes folder before and are unaffected).
+**Corrected, the Windows web gates on the merged tree.** On `main` `4a0cbdbb`, `python` push run 43624986619
+passed; `web` push run 43624986501 passed on Linux and its Windows job was cancelled three times (the original
+run and two reruns started 18:49 and 19:11 UTC), each at the 20-minute limit, none with a failed check; in the
+second rerun gates took 11 min 50 s and the Edge check 6 min 17 s before the Chrome check was cut off. PR #311
+(back-end coordinator, merged; `web.yml` only) raised the limit to 40 minutes. The `web` push run 43632557384 on
+`main` `cb091afe` (the merge of #311; `git diff --stat 4a0cbdbb cb091afe -- web` prints nothing, checked) passed
+on both systems; on Windows `npm run gates` took 10 min 37 s, the Edge check 5 min 33 s and the Chrome check 3
+min 26 s.
 
 **Model pages test timeout (#295).** PR #295, test only
 (`web/src/pages/model/StatementsPage.test.tsx`, +16/-6), merged at about 18:04 UTC. The test
@@ -907,79 +993,3 @@ killed, the one survivor in the new lines equivalent.
 - #201: root; NFS; races beyond two processes; the PR 1e caller.
 - For all three the merge result with `main` was not built before merging; nothing else on
   `main` touched their folders.
-
-## 2026-11-14 Roadmap back end: 1D text and csv readers, 2B passages and Sources checks, a redactor fix
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its source diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #161 | 1D PR 2 | `3be463e`, `3fe21ed` | `sources/pages.py` (`Page`, `SourcePages`, the one cut rule) and `sources/text.py` (`text_pages`, `csv_pages`); one reason rule for errors (799 lines) |
-| #198 | 2B PR 3 | `14927fb`, `dc3fe1f` | `checks/passages.py` (register ids in text, repeated limitations, the limitation helpers) and `checks/sources.py` (table, name, sha256, type); underscore boundaries in `prose.py` (776) |
-| #202 | 1C, owner's review-fix process | `b9a525e`, `b20bd04` | `provider/redact.py`: a UNC home path led by forward slashes is redacted; a third pattern, the union of three redacted (177) |
-
-**Reviews.** As each controller, or for #202 the PR body, reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #161 | `mx-precise` and `mx-adversary` on `9ae24ed`; scoped `mx-adversary` re-reviews: `1c5c0b7` fail, `af6fe41` fail (test only), `3df9f0e` pass | 0 defects on `b463fa5` | Pass on `b463fa5`: High 0, Medium 0, Low 2, Info 4; the same reviewer then checked the two literals of `3be463e`: pass stands |
-| #198 | `mx-precise` approve | 0 defects, 2 costs for the phase sweep | Pass on `14927fb`: High 0, Medium 0, Low 7, Info 8; 224 hand rows and 900 generated documents against independent oracles |
-| #202 | `mx-adversary`, two rounds in the owner's process; final pass | not run | not run |
-
-- **#161 took four fix rounds on its second task.** The third round's re-review passed and
-  found one more Medium, in a test only: the memory case `text-crlf-then-control` would pass a
-  reader that numbers lines by building a list of them. The fourth round is the owner's: asked
-  "Authorise one test-only literal change in #161 as a fourth round?", the owner answered
-  "Yes, one literal". The change needed two literals, the shape and the line number in that
-  case's expected message (`87382` to `65536`); the coordinator let the pair go on its own
-  responsibility and told the owner. No production line changed in rounds three and four.
-- #202's first round redacted less than #191 where a forward-slash head ran into a second
-  Windows head; the union of three patterns fixes that. A protocol-relative URL after a quote
-  is redacted as if a path (fails closed).
-
-**Gates and CI.** `uv run --locked python tools/gates.py` exit 0: #161 on `3be463e` (fixer's
-run); #202 on its branch (its body, macOS). #198: CI only on `14927fb`, `tests/checks` 975
-passed. Mutation (`mutmut`): #161 on `3df9f0e`, 633 mutants, 599 killed; not rerun after two
-test-only commits. Not run on #198 (hand mutants, 3 of 16 survive) or by the coordinator on
-#202.
-
-**Ledger.**
-- `1D-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `1D-2 task=2 agent=mx-feature fix-rounds=4 gates-first-pass=n` (the fourth is the owner's)
-- `1D-2 task=low-batch agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
-- `2B-3 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-3 task=assembly+rulings agent=mx-feature fix-rounds=0 gates-first-pass=y`
-- `2B-2 task=low-batch agent=mx-feature fix-rounds=0 gates-first-pass=y`
-
-**Rulings by the coordinator.** In the plans.
-- 2B: a Sources table with no rows is refused in a module that is not blocked; a register id
-  in underscore emphasis is reported; the register-id reason points to the Basis line. These
-  land key-first in the next checks PR.
-- 2B figure reader (PR 4, not merged): the controller's rulings R37 to R53 are confirmed; they
-  enter the plan with PR 4a's record.
-- 1D: carried to PR 2b-1 with key rows first: two mutation survivors that are not equivalent
-  (`cut_stream`'s inner `>=`; `held = 1` in `csv_pages`) and an independent reference for
-  `test_cut_stream_property`, which compares `cut_stream` with itself.
-
-**Open, for the owner.**
-- 2B: the limitation key drops signs, points and currency signs, as the predecessor's does, so
-  a limitation that differs from an earlier one only by `+5%` against `-5%`, or `4.5x` against
-  `45x`, is refused as a repeat. Left, pinned as known false refusals; step 5A reads the key.
-- 2B figure reader: `USD-5 million` and `(USD−5)` are read as 5 with no sign and no currency,
-  and no finding is raised.
-- 1D: a csv of blank rows takes about 1.4 s per MiB (one measurement; about 75 s at the 50 MiB
-  cap, extrapolated) and no time bound is stated; for step 3A's plan.
-- 1D, for other layers: invisible format characters pass the text reader; the windows-1252
-  fallback gives wrong characters for other single-byte encodings; a row wider than a page is
-  cut inside a cell; a chained decode error holds the whole file in its `repr`.
-- #202, unchanged by it: `\\?\unc\` in lower case and `\\.\UNC\` are not matched; a lead after
-  `:` (`PATH=/usr/bin://srv/...`) is not redacted.
-
-**Not verified.**
-- #161: memory and time above 4 MiB; per-case peaks on Windows and Ubuntu (CI is pass or
-  fail); no real issuer file was read.
-- #198: inputs above 1,000 rows, ids or items; whether the Copilot route writes the Sources
-  shapes ruled on (no retained reply in the new format exists; no provider run); how 3A fills
-  `accepted`, `upstream` and `other_sources`.
-- #202 by this track's own reviewers; how Windows tools write `file:` URLs of UNC paths.
