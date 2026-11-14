@@ -1,0 +1,95 @@
+"""Read the Basis line that ends a paragraph or list item.
+
+The line starts `Basis: `; its items are split on `; ` and each is a calculation id, an
+upstream module, a source file with optional pages, or plain text. Nothing is guessed: a piece
+that does not fit is kept as text.
+"""
+
+import re
+from typing import Literal
+
+from credit_os.handoff.blocks import ListItem, Paragraph
+from credit_os.handoff.scan import Node
+
+_PREFIX = "Basis: "
+_CALCULATION = re.compile(r"calculation (\S+)")
+_MODULE = re.compile(r"(.+) \(CP-([A-Z0-9]+)\)", re.DOTALL)
+_EXTENSION = re.compile(r"\.[A-Za-z][A-Za-z0-9]{0,4}")
+_SPAN = r"[0-9]+(?: *[-–] *[0-9]+)?"
+_PAGE_LIST = re.compile(rf"{_SPAN}(?:, {_SPAN})*")
+_SPAN_PARTS = re.compile(r"([0-9]+)(?: *[-–] *([0-9]+))?")
+
+
+class BasisItem(Node):
+    kind: Literal["calculation", "module", "source", "text"]
+    text: str
+    calculation: str | None = None
+    name: str | None = None
+    code: str | None = None
+    file: str | None = None
+    pages: tuple[tuple[int, int], ...] = ()
+
+
+class Basis(Node):
+    line: int
+    body: tuple[str, ...]
+    items: tuple[BasisItem, ...]
+
+
+def _spans(text: str) -> tuple[tuple[int, int], ...]:
+    spans: list[tuple[int, int]] = []
+    for part in text.split(", "):
+        found = _SPAN_PARTS.fullmatch(part)
+        if found is None:
+            raise ValueError("not a page span")
+        first, last = found.groups()
+        spans.append((int(first), int(first if last is None else last)))
+    return tuple(spans)
+
+
+def _file_ends(piece: str) -> list[int]:
+    ends: list[int] = []
+    for dot in re.finditer(r"\.", piece):
+        found = _EXTENSION.match(piece, dot.start())
+        if found is not None:
+            ends.extend(range(dot.start() + 2, found.end() + 1))
+    return ends
+
+
+def _source(piece: str) -> BasisItem | None:
+    for end in _file_ends(piece):
+        rest = piece[end:]
+        if not rest:
+            return BasisItem(kind="source", text=piece, file=piece)
+        for word, one_only in ((", page ", True), (", pages ", False)):
+            if rest.startswith(word):
+                listed = rest[len(word) :]
+                if _PAGE_LIST.fullmatch(listed) is None or (one_only and ", " in listed):
+                    return None
+                return BasisItem(kind="source", text=piece, file=piece[:end], pages=_spans(listed))
+    return None
+
+
+def _item(piece: str) -> BasisItem:
+    calculation = _CALCULATION.fullmatch(piece)
+    if calculation is not None:
+        return BasisItem(kind="calculation", text=piece, calculation=calculation.group(1))
+    module = _MODULE.fullmatch(piece)
+    if module is not None:
+        return BasisItem(
+            kind="module", text=piece, name=module.group(1), code=f"CP-{module.group(2)}"
+        )
+    return _source(piece) or BasisItem(kind="text", text=piece)
+
+
+def read_basis(block: Paragraph | ListItem) -> Basis | None:
+    last = block.lines[-1] if block.lines else ""
+    if not last.startswith(_PREFIX):
+        return None
+    text = last[len(_PREFIX) :].rstrip().removesuffix(".")
+    pieces = [piece.strip() for piece in text.split("; ")]
+    return Basis(
+        line=block.line + len(block.lines) - 1,
+        body=block.lines[:-1],
+        items=tuple(_item(piece) for piece in pieces if piece),
+    )
