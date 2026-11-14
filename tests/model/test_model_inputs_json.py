@@ -274,7 +274,7 @@ def test_refused_construction() -> None:
     assert str(error) == "a sentence"
     assert isinstance(error, Exception)
     assert not isinstance(error, ValueError)
-    assert [kind.value for kind in RefusalKind] == ["block", "json"]
+    assert [kind.value for kind in RefusalKind] == ["block", "json", "schema", "scale", "repayment"]
     wrong: Any = "json"
     with pytest.raises(TypeError, match="^kind must be a RefusalKind$"):
         ForecastRefused(wrong, "s", "m")

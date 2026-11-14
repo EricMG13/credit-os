@@ -1,3 +1,5 @@
+import ast
+import os
 import sqlite3
 from collections.abc import Callable
 from contextlib import closing
@@ -145,6 +147,7 @@ def test_store_refused_is_a_value_error_and_the_rest_are_not() -> None:
     for name in ("StoreBusy", "StoreConflict", "StoreCorrupt", "StoreUnusable"):
         assert issubclass(getattr(errors, name), StoreError)
         assert not issubclass(getattr(errors, name), ValueError)
+        assert getattr(errors, name).__bases__ == (StoreError,)
 
 
 def test_mapped_store_errors_are_siblings_of_one_another() -> None:
@@ -174,3 +177,86 @@ def test_safe_text_refuses_non_text(value: Any) -> None:
         safe_text(value)
     assert type(caught.value) is StoreRefused
     assert type(value).__name__ in str(caught.value)
+
+
+_FAILURES = {
+    "unique": ("CREATE TABLE t(a TEXT UNIQUE, b TEXT)", ["INSERT INTO t(a) VALUES (?)"] * 2),
+    "check": (
+        "CREATE TABLE t(a TEXT CHECK(length(a) < 3), b TEXT)",
+        ["INSERT INTO t(a) VALUES (?)"],
+    ),
+    "not null": (
+        "CREATE TABLE t(a TEXT, b TEXT NOT NULL)",
+        ["INSERT INTO t(a, b) VALUES (?, NULL)"],
+    ),
+    "foreign key": (
+        "CREATE TABLE p(a TEXT PRIMARY KEY); CREATE TABLE t(a TEXT REFERENCES p(a), b TEXT)",
+        ["INSERT INTO t(a) VALUES (?)"],
+    ),
+    "datatype": ("CREATE TABLE t(a INTEGER, b TEXT) STRICT", ["INSERT INTO t(a) VALUES (?)"]),
+}
+
+
+@pytest.mark.parametrize("kind", key.VALUE_FREE_FAILURES)
+def test_a_real_failure_message_does_not_carry_the_bound_value(kind: str) -> None:
+    schema, statements = _FAILURES[kind]
+    with closing(sqlite3.connect(":memory:", autocommit=True)) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.executescript(schema)
+        with pytest.raises(sqlite3.Error) as caught:
+            for statement in statements:
+                connection.execute(statement, (key.BOUND_VALUE,))
+    assert key.BOUND_VALUE not in str(store_error(caught.value, "x"))
+    assert type(store_error(caught.value, "x")).__name__ != "StoreUnusable"
+
+
+_SOURCES = sorted(Path(errors.__file__).parent.glob("*.py"))
+
+
+@pytest.mark.skipif(
+    "MUTANT_UNDER_TEST" in os.environ, reason="mutmut rewrites the modules in place"
+)
+def test_every_store_error_call_is_raised_from_its_cause_and_every_sql_string_is_literal() -> None:
+    assert len(_SOURCES) >= 4
+    unliteral: list[str] = []
+    for source in _SOURCES:
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        raised = {id(n.exc) for n in ast.walk(tree) if isinstance(n, ast.Raise) and n.cause}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
+            if name == "store_error":
+                assert id(node) in raised, source.name
+                assert isinstance(node.args[1], ast.Constant), source.name
+            if name == "execute" and not isinstance(node.args[0], ast.Constant):
+                unliteral.append(ast.unparse(node.args[0]))
+    assert unliteral == ["statement"]
+
+
+_HOOK_SETTERS = {
+    ("txn.py", "write_transaction", "set_authorizer"),
+    ("txn.py", "write_transaction", "set_progress_handler"),
+    ("txn.py", "_clear_hooks", "set_authorizer"),
+    ("txn.py", "_clear_hooks", "set_progress_handler"),
+    ("txn.py", "_run", "set_authorizer"),
+}
+
+
+@pytest.mark.skipif(
+    "MUTANT_UNDER_TEST" in os.environ, reason="mutmut rewrites the modules in place"
+)
+def test_only_the_transaction_helper_sets_or_clears_the_connection_hooks() -> None:
+    found: set[tuple[str, str, str]] = set()
+    for source in _SOURCES:
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        for function in ast.walk(tree):
+            if not isinstance(function, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            for node in ast.walk(function):
+                if isinstance(node, ast.Attribute) and node.attr in {
+                    "set_authorizer",
+                    "set_progress_handler",
+                }:
+                    found.add((source.name, function.name, node.attr))
+    assert found == _HOOK_SETTERS

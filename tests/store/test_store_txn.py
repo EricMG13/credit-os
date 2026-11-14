@@ -312,6 +312,7 @@ def test_a_body_that_swallows_sqlites_own_rollback_commits_nothing(
                 with suppress(sqlite3.Error):
                     c.execute("INSERT INTO note(body) VALUES ('b')")
         assert ended == [True]
+        assert not hasattr(caught.value, "__notes__")
         if tail != "write":
             assert "ended inside its body" in str(caught.value)
         assert _rows(c) == []
@@ -347,6 +348,14 @@ def test_a_body_that_closes_the_connection_leaves_a_typed_error(
             raise RuntimeError("body")
     if raise_after:
         assert any("rollback failed" in note for note in caught.value.__notes__)
+    else:
+        text = " ".join(caught.value.__notes__)
+        first = text.index(key.CLEAR_PROGRESS_NOTE_PREFIX)
+        second = text.index(key.CLEAR_AUTH_NOTE_PREFIX)
+        assert first < second
+        assert text[second + len(key.CLEAR_AUTH_NOTE_PREFIX) :].startswith(
+            key.CLOSED_CONNECTION_TEXT
+        )
 
 
 def test_a_commit_blocked_by_a_readers_lock_is_busy_and_nothing_is_written(tmp_path: Path) -> None:
