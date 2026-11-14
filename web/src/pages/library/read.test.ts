@@ -920,6 +920,96 @@ describe("readSlice, modules", () => {
     expect(invalidReason(changes)).toMatch(/runs\[0\]\.changes\.modules\.items\[\d+\]\.lead/);
   });
 
+  it("has every module a finished run holds advertised by its Overview exactly once", () => {
+    for (const [r, run] of (fresh().issuers[0]?.["runs"] as Run[]).entries()) {
+      if (run.modules === null) continue;
+      const items = (run.overview["modules"] as { items: Json[] }).items;
+      const advertised = items.reduce(
+        (sum, i) =>
+          sum + (i["module"] === null ? Number(/^(\d+) /.exec(String(i["title"]))?.[1]) : 1),
+        0,
+      );
+      const unlisted = run.modules.filter(
+        (m) =>
+          !items.some(
+            (i) =>
+              i["module"] === m["id"] ||
+              (i["module"] === null && `, ${String(i["lead"])}`.includes(`, ${String(m["name"])}`)),
+          ),
+      );
+      expect(
+        unlisted.map((m) => m["id"]),
+        `run ${String(r)}`,
+      ).toEqual([]);
+      expect(advertised, `run ${String(r)}`).toBe(run.modules.length);
+    }
+  });
+
+  describe("a collapsed item whose module names overlap", () => {
+    // "Business" and "Business, industry" are both names, and "industry" is a third, so the lead
+    // "Business, industry." is one module or two, and the title says which.
+    const overlapped = (nameFirst: string, nameSecond: string, title: string, lead: string) => {
+      const slice = fresh();
+      modOf(slice, "business-profile", 2)["name"] = nameFirst;
+      modOf(slice, "industry-and-competition", 2)["name"] = nameSecond;
+      modOf(slice, "peer-comparison", 2)["name"] = "industry";
+      const item = (runOf(slice, 2).overview["modules"] as { items: Json[] }).items[0] as Json;
+      item["title"] = title;
+      item["lead"] = lead;
+      return slice;
+    };
+
+    it("takes the longer name when the shorter is listed first and the title counts one", () => {
+      const slice = overlapped(
+        "Business",
+        "Business, industry",
+        "1 module delivered",
+        "Business, industry.",
+      );
+      expect(readSlice(slice).kind).toBe("ok");
+    });
+
+    it("takes the longer name when it is listed first and the title counts one", () => {
+      const slice = overlapped(
+        "Business, industry",
+        "Business",
+        "1 module delivered",
+        "Business, industry.",
+      );
+      expect(readSlice(slice).kind).toBe("ok");
+    });
+
+    it("takes the two shorter names when the title counts two, in either order", () => {
+      for (const [a, b] of [
+        ["Business", "Business, industry"],
+        ["Business, industry", "Business"],
+      ] as const) {
+        const slice = overlapped(a, b, "2 modules delivered", "Business, industry.");
+        expect(readSlice(slice).kind).toBe("ok");
+      }
+    });
+
+    it("still refuses a count no split of the lead has", () => {
+      const slice = overlapped(
+        "Business",
+        "Business, industry",
+        "3 modules delivered",
+        "Business, industry.",
+      );
+      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].title");
+    });
+
+    it("still refuses a lead no split of held names covers", () => {
+      const slice = overlapped(
+        "Business",
+        "Business, industry",
+        "1 module delivered",
+        "Business, trade.",
+      );
+      expect(invalidReason(slice)).toContain("issuers[0].runs[2].overview.modules.items[0].lead");
+    });
+  });
+
   it("rejects a first module the run does not hold", () => {
     const slice = fresh();
     runOf(slice, 0).head["firstModule"] = "nowhere";

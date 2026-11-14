@@ -715,21 +715,27 @@ function opensHeld(
 }
 
 /**
- * The module names a collapsed item's lead lists, in order, each followed by ", " or the closing
- * full stop. Names hold commas themselves, so each is matched whole against the run's own names.
- * `null` when the lead is not such a list.
+ * The counts of modules a collapsed item's lead can list: every way to split it into names the run
+ * holds, each followed by ", " or the closing full stop. Names hold commas themselves, and one name
+ * can open another, so every split is tried. Empty when the lead is not such a list.
  */
-function namesListed(lead: string, names: readonly string[]): string[] | null {
-  const listed: string[] = [];
-  let rest = lead.endsWith(".") ? lead.slice(0, -1) : null;
-  while (rest !== null && rest !== "") {
-    const left: string = rest;
-    const name = names.find((n) => left === n || left.startsWith(`${n}, `));
-    if (name === undefined) return null;
-    listed.push(name);
-    rest = left === name ? "" : left.slice(name.length + 2);
-  }
-  return rest === null ? null : listed;
+function namesListed(lead: string, names: readonly string[]): Set<number> {
+  const memo = new Map<string, Set<number>>();
+  const counts = (rest: string): Set<number> => {
+    if (rest === "") return new Set([0]);
+    const known = memo.get(rest);
+    if (known !== undefined) return known;
+    const found = new Set<number>();
+    for (const name of names) {
+      const tail =
+        rest === name ? "" : rest.startsWith(`${name}, `) ? rest.slice(name.length + 2) : null;
+      if (tail === null) continue;
+      for (const n of counts(tail)) found.add(n + 1);
+    }
+    memo.set(rest, found);
+    return found;
+  };
+  return lead.endsWith(".") ? counts(lead.slice(0, -1)) : new Set();
 }
 
 /** A collapsed item's title opens with the count of the modules it stands for. */
@@ -749,10 +755,10 @@ function namesHeld(
     const counted = item.module === null ? COLLAPSED_TITLE.exec(item.title) : null;
     if (counted === null) continue;
     const listed = namesListed(item.lead, names);
-    if (listed === null) {
+    if (listed.size === 0) {
       throw new SliceError(child(nth(path, index), "lead"), "the names of modules this run holds");
     }
-    if (listed.length !== Number(counted[1])) {
+    if (!listed.has(Number(counted[1]))) {
       throw new SliceError(
         child(nth(path, index), "title"),
         "the count of the modules its lead names",

@@ -204,7 +204,14 @@ export function ModulePage({
             <Absent title="No such module" description="This run has no module at this address." />
           );
         }
-        return <ModuleView key={found.id} module={found} run={loaded} issuer={issuerId} />;
+        return (
+          <ModuleView
+            key={`${issuerId}/${loaded.id}/${found.id}`}
+            module={found}
+            run={loaded}
+            issuer={issuerId}
+          />
+        );
       }}
     </RunFrame>
   );

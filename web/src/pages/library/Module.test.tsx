@@ -261,6 +261,35 @@ describe("Module, the navigator", () => {
     Reflect.deleteProperty(Element.prototype, "scrollIntoView");
   });
 
+  it("forgets the selected section when the run changes to one whose same module lacks it", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const data: LibraryData = {
+      schema: "credit-os-data/1",
+      issuers: fixture.issuers,
+      library: fixture.slice,
+    };
+    const route = routes.find((r) => r.path === PATH);
+    if (route === undefined) throw new Error(`no route ${PATH}`);
+    const at = (run: string) => (
+      <SourceContext.Provider value={data}>
+        {route.render({ issuer: "halden-aerostructures", run, module: "business-profile" })}
+      </SourceContext.Provider>
+    );
+    const view = render(at("2026-09-30"));
+    fireEvent.click(within(nav()).getByRole("button", { name: "Contrary evidence" }));
+    expect(within(nav()).getByRole("button", { name: "Contrary evidence" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+    view.rerender(at("2026-03-31"));
+    expect(within(nav()).queryByRole("button", { name: "Contrary evidence" })).toBeNull();
+    const current = within(nav())
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("aria-current") === "location");
+    expect(current.map((b) => b.textContent)).toEqual(["Bottom line"]);
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
   it("lists all thirteen modules with the state in each name and the current one marked", () => {
     renderModule("business-profile");
     const links = within(nav()).getAllByRole("link");
