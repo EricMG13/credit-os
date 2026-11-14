@@ -459,6 +459,18 @@ CUT = "a" * 120 + "\u2026"
 LONG = "a" * 130 + ".txt"
 
 
+def test_source_path_link_check_oserror_bounds_the_name(
+    folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(self: Path) -> bool:
+        raise OSError(errno.ENAMETOOLONG, "synthetic")
+
+    monkeypatch.setattr(Path, "is_symlink", fail)
+    with pytest.raises(SourceRefused) as caught:
+        source_path(folder, LONG)
+    assert str(caught.value) == CUT + ": cannot be resolved"
+
+
 def test_source_path_long_name_self_loop(folder: Path) -> None:
     _symlink(folder / LONG, folder / LONG)
     with pytest.raises(SourceRefused) as caught:
