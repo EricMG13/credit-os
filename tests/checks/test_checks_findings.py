@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from credit_os.checks.findings import CHECKS, CheckContext, Finding, ordered
+from credit_os.checks.findings import CHECKS, CheckContext, Finding, ordered, refusal
 from credit_os.handoff.document import parse
 from credit_os.sources.pins import SourceKind, SourcePin
 
@@ -300,3 +300,20 @@ def test_quoted_keeps_quote_and_spaces() -> None:
 def test_quoted_one_line_idempotent() -> None:
     once = _finding(quoted="a\nb\u202ec" * 40).quoted
     assert _finding(quoted=once).quoted == once
+
+
+def test_refusal_helper_defaults_to_column_one() -> None:
+    found = refusal("prose.page", 7, "p. 3", "Remove it.")
+    assert found == Finding(
+        check="prose.page",
+        severity="refusal",
+        line=7,
+        column=1,
+        quoted="p. 3",
+        reason="Remove it.",
+    )
+
+
+def test_refusal_helper_takes_a_column() -> None:
+    found = refusal("prose.hash", 2, "abc", "Remove it.", column=9)
+    assert (found.severity, found.line, found.column, found.quoted) == ("refusal", 2, 9, "abc")

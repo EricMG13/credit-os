@@ -93,6 +93,12 @@ class Finding(Node):
         return f'{self.check}, line {self.line}: "{self.quoted}": {self.reason}'
 
 
+def refusal(check: str, line: int, quoted: str, reason: str, column: int = 1) -> Finding:
+    return Finding(
+        check=check, severity="refusal", line=line, column=column, quoted=quoted, reason=reason
+    )
+
+
 def _position(finding: Finding) -> tuple[int, int, int]:
     return (finding.line, CHECKS.index(finding.check), finding.column)
 
