@@ -220,3 +220,50 @@ REJECT_REASON = "late"
 # start_run from a status it may not start from, with the run's valid claim: StoreConflict, the clock
 # never called, the full dump unchanged.
 START_REFUSED_STATUSES = ("running", "finished", "rejected")
+
+# --- Added for PR 3a (controller; rulings U1 and U2, under the owner's instruction of 2026-11-14
+# 22:20 UTC) ----------------------------------------------------------------------------------------
+
+
+class NameSubclass(str):
+    """A `str` subclass. Ruling U2: a name (an event kind, an end or reject reason) must be exactly
+    `str`, so any instance of this is StoreRefused, whatever its text."""
+
+
+class SlyName(str):
+    """A `str` subclass that hides from a set: equal to nothing and hashed as another text, so
+    `SlyName("run_started") in STATE_KINDS` is False. Refused by its type alone (U2)."""
+
+    def __eq__(self, other: object) -> bool:
+        return False
+
+    def __hash__(self) -> int:
+        return hash("not a state kind")
+
+
+# Refused like REFUSED_ARGUMENTS (StoreRefused before anything is written, the clock never called,
+# the full dump unchanged): (label, call, arguments).
+REFUSED_NAME_TYPES: tuple[tuple[str, str, dict[str, object]], ...] = (
+    ("note kind a str subclass", "note", {"kind": NameSubclass("module_opened"), "detail": {}}),
+    ("note kind hiding a state kind", "note", {"kind": SlyName("run_started"), "detail": {}}),
+    ("end reason a str subclass", "end", {"status": "stopped", "reason": NameSubclass("done")}),
+    ("reject reason a str subclass", "reject", {"reason": NameSubclass("late")}),
+)
+
+# U1: a stored writer that is not a 32-character lower-case hex token. With the store open, a raw
+# second connection runs `PRAGMA ignore_check_constraints = ON` and then
+# `UPDATE runs SET writer = ?` with the damaged text, on a run that is created (for claim, start and
+# reject) or running (for end and note). Then each call of DAMAGED_WRITER_CALLS, made with the run's
+# last valid claim, is StoreCorrupt with exactly STORED_WRITER_MESSAGE, the clock is never called,
+# and runs, run_sources and events read back unchanged as bytes. `claim_run` refuses rather than
+# replacing the writer; the message never holds the stored text.
+DAMAGED_WRITERS: tuple[tuple[str, str], ...] = (
+    ("not hex", "z" * 32),
+    ("not ASCII", "é" * 16),
+    ("upper case", "A" * 32),
+    ("31 characters", "0" * 31),
+    ("33 characters", "0" * 33),
+    ("empty", ""),
+)
+DAMAGED_WRITER_CALLS = ("claim", "start", "reject", "end", "note")
+STORED_WRITER_MESSAGE = "stored writer is not a token"
