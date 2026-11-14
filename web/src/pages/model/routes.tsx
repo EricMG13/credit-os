@@ -6,6 +6,7 @@ import type { Route } from "../route-table";
 import { FrontPage } from "./FrontPage";
 import { LimitationsPage } from "./LimitationsPage";
 import { RunsIndexPage } from "./RunsIndexPage";
+import { StatementsPage } from "./StatementsPage";
 
 export { readSlice } from "./slice/read";
 
@@ -22,6 +23,12 @@ export const routes: readonly Route[] = [
     layout: "bleed",
     title: "Front page",
     render: (params) => <FrontPage params={params} />,
+  },
+  {
+    path: "/model/:issuer/:run/statements",
+    layout: "bleed",
+    title: "Model",
+    render: (params) => <StatementsPage params={params} />,
   },
   {
     path: "/model/:issuer/:run/limitations",
