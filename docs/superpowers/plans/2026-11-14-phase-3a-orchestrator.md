@@ -154,7 +154,7 @@ paragraph. Each is at least one test, named after it. None is reopened here.
 | D13 | Text and csv sources are capped at 16 MiB each; other kinds keep 50 MiB |
 | D14 | Each source has a 120 s deadline on an injected clock. One that passes it is refused with a reason and shown as a gap, never skipped silently. No sleep and no thread in tests |
 | D15 | One source is paged at a time; text is kept, not exception objects. 3A has no fetch |
-| D16 | A run takes at most 200 files and 400 MiB; over either it is refused at launch with the count |
+| D16 | A run takes at most 200 files and 400 MiB; over either it is refused at launch with the count, and it is never a run: nothing is stored (ruled 2026-11-14) |
 | D17 | Page numbers differ from the predecessor's; a recording adapted from it says so |
 | D18 | `accepted` holds earlier modules only, never the module's own document, at the first check and on resume |
 | D19 | An earlier-format document gets `structure.format` only, by 2B's single helper (2B PR 6) |
@@ -232,7 +232,7 @@ the PR named is briefed. Each is ruled in the next section.
 | C8 | Settled by D6 as amended above: the rule reads state and charge, not ids |
 | G1 | The run goes on after a module ends unaccepted. A module whose required producer has no accepted handoff is not run and is shown as a gap with that reason; with only an optional producer missing it runs restricted |
 | G2 | 32 turns per module and 2 nudges, the values the predecessor ran with |
-| G3 | End reasons and status: completed is `completed`; the cap is `stopped` (capped); unknown spend is `stopped` (spend unknown); a charge above its hold is `stopped` (hold exceeded); a provider failure that is not retried is `failed`; an exception out of `complete` is `failed` (provider raised) and leaves its call open, so spend is unknown (D7); a stop asked for by the operator (decision 0006 ruling 5) is `stopped` (operator), taken between calls, never inside one; `StoreUnusable` writes nothing (D9). The set is closed and keyed in PR 3 |
+| G3 | End reasons and status: a run that ended normally is `finished`, the merged schema's word (corrected 2026-11-14: this row first said `completed`); a run found still `running` at start-up by the process that holds the store's writer lock is written `stopped` (interrupted) before anything else, and no reader infers it (PR 8); the cap is `stopped` (capped); unknown spend is `stopped` (spend unknown); a charge above its hold is `stopped` (hold exceeded); a provider failure that is not retried is `failed`; an exception out of `complete` is `failed` (provider raised) and leaves its call open, so spend is unknown (D7); a stop asked for by the operator (decision 0006 ruling 5) is `stopped` (operator), taken between calls, never inside one; `StoreUnusable` writes nothing (D9). The set is closed and keyed in PR 3 |
 | G4 | An attempt a stop left open is failed as interrupted; the module is rerun as a new conversation; attempts already used count toward the 3 |
 | G5 | A known charge above its hold stops the run: the hold arithmetic is then wrong for every later call. The charge is recorded exactly |
 | G6 | CP-MODEL is in no pathway here. The forecast is Python's (step 1B) and is run by a later step, not as a module conversation |

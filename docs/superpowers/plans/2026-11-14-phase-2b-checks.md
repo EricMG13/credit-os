@@ -207,6 +207,28 @@ with the owner: `1.25-a` judged as `1`; an en dash before a bracketed figure is 
 refused; `In March 1.5% growth` reads 5% in passage text. The owner authorised a fourth,
 tests-only round on PR 4 for two test-strength Mediums of #250's whole-branch review.
 
+Ruled for PR 6 (#312; C1 to C10 and R65 to R70). `confidence.absent` is a refusal only when
+the context is scored (C1). Every data section of kind `confidence` counts; a second is
+`confidence.repeated` and only the first is read (C2). The section is unreadable unless it is
+a level-3 section directly under Findings, titled exactly `Confidence inputs`, with one table
+of columns `Input` and `Value` (C3). Fourteen rows, each once in any order: the eight lineage
+counts, `Fields present`, `Fields total`, `Source gate`, `CRITICAL`, `MATERIAL`, `MINOR` (C4).
+A count is 1 to 20 ASCII digits, never read as zero when it cannot be read (C5). Ranges: a
+total of 0, present above total, a gate other than pass, partial or fail; each test reads
+only the counts it needs (C6, R67, R68). A blocked module may write the one row
+`Not assessable` with `Not supplied: <reason>`; the same row elsewhere is refused (C7). The
+front matter keys `confidence_score`, `confidence_band` and `qa_status` are refused (C8). The
+checks run on the new format only and do not need the reader (C9); the earlier format is
+never scored and its outcome is `absent`. The score is exact, in `int` and
+`fractions.Fraction`, rounded half to even: 3/5 evidence plus 2/5 completeness, times the
+gate, less 40, 15 and 3 for each critical, material and minor finding, clamped to 0 to 100,
+capped at 39 by any critical and at 59 by any material (C10). Any `confidence.*` refusal
+other than `absent` makes the outcome `refused` with no value (R65); R66 fixes each quoted
+text. A confidence outcome is used only for a document `check_handoff` returns no refusal
+for: a reader error does not know the format, so a value can stand beside a refusal that is
+not a confidence one (R69). `check_handoff` is the only caller of `check_confidence` for the
+earlier format (R70). The reader's progress guard merged as #318.
+
 PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b (#170) the
 structure checks and `check_handoff`. PR 4 is split 4a, 4b (above).
 
