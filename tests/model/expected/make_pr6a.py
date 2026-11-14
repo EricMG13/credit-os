@@ -443,6 +443,9 @@ WORDS: list[Any] = [
     ["bnEUR", []],
     ["mmEUR", []],
     ["mnEUR", []],
+    # R52: the 6a3 re-review's entries for R51.
+    ["5MUS$", ["ambiguous"]],
+    ["Mus$", ["ambiguous"]],
 ]
 CURRENCIES: list[Any] = [
     ["Statements (EURm)", "EUR", True],
@@ -687,6 +690,24 @@ def r46_rows() -> list[Doc]:
         for scale, block in ((1, "millions"), (1000, "thousands")):
             reading = "the block's unit" if unit == block else f"{unit}, not the block's {block}"
             rows.append(unit_row(f"R51: `{form}` under a {block} block is {reading}", form, scale))
+    # R52: the 6a3 re-review's rows for R50 and R51.
+    r52 = [
+        (
+            "R50: a column titled `first header cell` does not excuse",
+            "| Line item | FY2024 | first header cell | Unit |\n"
+            + rule4
+            + "| Revenue check | 1,456 | USD millions | USD k |\n",
+        ),
+        (
+            "R51: a Note chosen before an ambiguous Unit cell takes the unit message",
+            note4 + rule4 + "| Revenue check | 1,456 | MUS$ | in thousands |\n",
+        ),
+    ]
+    for label, table in r52:
+        edits = [[CALC_TEXT, f"{CALC_TEXT}\n{table}"]]
+        rows.append(
+            {"label": label, "edits": edits, "ops": [[["base", "revenue", "row"], "Revenue check"]]}
+        )
     return rows
 
 
@@ -707,7 +728,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 127 and len(accepted) == 51
+    assert len(labels) == len(set(labels)) == 129 and len(accepted) == 51
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
