@@ -50,9 +50,6 @@ class _Handle:
             connection = self._live()
             try:
                 yield connection
-            except UnicodeDecodeError:
-                # Its message holds no stored text; SQLite's own error for the same bytes does.
-                raise StoreCorrupt("a stored text is not UTF-8") from None
             except sqlite3.Error as error:
                 raise store_error(error, "read the store") from error
 
@@ -165,7 +162,11 @@ def _check_busy_seconds(busy_seconds: object) -> None:
 
 
 def _strict_text(data: bytes) -> str:
-    return data.decode("utf-8")
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        # Its message holds no stored text; SQLite's own error for the same bytes does.
+        raise StoreCorrupt("a stored text is not UTF-8") from None
 
 
 def _check_clock(clock: object) -> None:

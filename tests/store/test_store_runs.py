@@ -21,6 +21,7 @@ from credit_os.store.errors import (
     StoreRefused,
     StoreUnusable,
 )
+from credit_os.store.records import Claim
 
 RUN_ID = "run-001"
 TABLES = ("runs", "run_sources", "events")
@@ -343,6 +344,49 @@ def test_a_stored_as_of_that_is_no_date_is_corrupt(
     with pytest.raises(StoreCorrupt) as caught:
         handle.run(key.BAD_AS_OF_RUN_ID)
     assert str(caught.value) == key.BAD_AS_OF_MESSAGE
+    assert caught.value.__cause__ is None
+
+
+def test_a_stored_as_of_that_is_no_text_is_corrupt(tmp_path: Path) -> None:
+    with open_store(tmp_path) as writer:
+        writer.create_run(**_args(**key.BLOB_AS_OF_RUN))
+    file = tmp_path / location.STATE_FILE_NAME
+    data = file.read_bytes()
+    assert data.count(key.BLOB_AS_OF_HEADER) == 1
+    at = data.index(key.BLOB_AS_OF_HEADER) + key.BLOB_AS_OF_OFFSET
+    file.write_bytes(data[:at] + bytes([0x20]) + data[at + 1 :])
+    assert _query(tmp_path, "SELECT typeof(as_of) FROM runs") == [("blob",)]
+    with open_reader(tmp_path) as reader, pytest.raises(StoreCorrupt) as caught:
+        reader.run(str(key.BLOB_AS_OF_RUN["run_id"]))
+    assert str(caught.value) == key.BAD_AS_OF_MESSAGE
+    assert caught.value.__cause__ is None
+
+
+def test_an_integrity_check_that_names_a_text_that_is_not_utf8_is_corrupt(tmp_path: Path) -> None:
+    open_store(tmp_path).close()
+    name, sql = key.UNREADABLE_TABLE_NAME.hex(), key.UNREADABLE_TABLE_SQL.hex()
+    with closing(sqlite3.connect(tmp_path / location.STATE_FILE_NAME, autocommit=True)) as raw:
+        raw.execute("CREATE TABLE bad(a)")
+        raw.execute("INSERT INTO bad VALUES (NULL)")
+        raw.execute("PRAGMA writable_schema = ON")
+        raw.execute(
+            f"UPDATE sqlite_schema SET name = CAST(x'{name}' AS TEXT),"
+            f" tbl_name = CAST(x'{name}' AS TEXT), sql = CAST(x'{sql}' AS TEXT) WHERE name = 'bad'"
+        )
+        raw.execute("PRAGMA writable_schema = OFF")
+    before = (tmp_path / location.STATE_FILE_NAME).read_bytes()
+    with pytest.raises(StoreCorrupt) as caught:
+        open_store(tmp_path)
+    assert str(caught.value) == key.NON_UTF8_MESSAGE
+    assert caught.value.__cause__ is None
+    assert (tmp_path / location.STATE_FILE_NAME).read_bytes() == before
+
+
+def test_a_claim_never_shows_its_token() -> None:
+    claim = Claim(run_id="run-001", token=key.CLAIM_TOKEN)
+    assert key.CLAIM_TOKEN not in repr(claim)
+    assert key.CLAIM_TOKEN not in str(claim)
+    assert claim.token == key.CLAIM_TOKEN
 
 
 @pytest.mark.parametrize("clock", key.REFUSED_CLOCKS, ids=["none", "int", "str"])
