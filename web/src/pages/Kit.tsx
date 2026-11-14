@@ -6,11 +6,14 @@ import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/but
 import { Button, styles } from "@/components/base/buttons/button";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
 import { TrendChart } from "@/components/chart/TrendChart";
+import { Card, Tile } from "@/components/card/Card";
 import { Blocked } from "@/components/gap/Blocked";
 import { GapPanel } from "@/components/gap/GapPanel";
 import { Missing } from "@/components/gap/Missing";
 import { Skeleton } from "@/components/gap/Skeleton";
 import { Withheld } from "@/components/gap/Withheld";
+import { MetricCard } from "@/components/metric/MetricCard";
+import { Timeline } from "@/components/timeline/Timeline";
 import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
@@ -225,6 +228,40 @@ export function Kit() {
         </Row>
       </section>
 
+      <section aria-labelledby="kit-card" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-card" className="font-display text-h2 text-text-primary">
+          Card and tile
+        </h2>
+        <Card title="Card with a title">
+          <p className="text-body text-text-secondary">Card content, with a shadow.</p>
+        </Card>
+        <Tile>Tile content</Tile>
+      </section>
+
+      <section aria-labelledby="kit-metric" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-metric" className="font-display text-h2 text-text-primary">
+          Metric card
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <MetricCard label="Net leverage" value="4.2x" note="Net debt over EBITDA." />
+          <MetricCard label="Revenue" value="1,204" from="1,150" />
+          <MetricCard label="Interest cover" value={null} />
+        </div>
+      </section>
+
+      <section aria-labelledby="kit-timeline" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-timeline" className="font-display text-h2 text-text-primary">
+          Timeline
+        </h2>
+        <Timeline
+          items={[
+            { date: "12 Feb 2025", title: "Annual report filed", text: "Filed.", state: "Past" },
+            { date: "15 Mar 2026", title: "Covenant test", state: "Next" },
+            { date: "24 Apr 2027", title: "Notes mature", state: "Later" },
+          ]}
+        />
+      </section>
+
       <section aria-labelledby="kit-trend-chart" className="mt-8 flex flex-col gap-6">
         <h2 id="kit-trend-chart" className="font-display text-h2 text-text-primary">
           Trend chart
@@ -268,7 +305,7 @@ export function Kit() {
           Page header
         </h2>
         <PageHeader
-          as="h2"
+          as="h3"
           title="Issuer name"
           badges={
             <>

@@ -6,8 +6,8 @@ interface PageHeaderProps {
   badges?: ReactNode;
   /** Actions on the right. */
   actions?: ReactNode;
-  /** The page's own header is an h1; a header shown inside a page (the kit) is an h2. */
-  as?: "h1" | "h2";
+  /** The page's own header is an h1; a header shown under a section's h2 (the kit) is an h3. */
+  as?: "h1" | "h2" | "h3";
 }
 
 export function PageHeader({ title, badges, actions, as: Heading = "h1" }: PageHeaderProps) {
