@@ -2312,6 +2312,14 @@
       { "issuer": "halden-aerostructures", "run": "2026-06-30" },
       { "issuer": "halden-aerostructures", "run": "2026-03-31" },
       { "issuer": "halden-aerostructures", "run": "2025-09-30" }
+    ],
+    "/library/:issuer/:run/modules/:module": [
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "business-profile" },
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "capital-structure" },
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "recovery" },
+      { "issuer": "halden-aerostructures", "run": "2026-03-31", "module": "forecast" },
+      { "issuer": "halden-aerostructures", "run": "2026-06-30", "module": "capital-structure" },
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "no-such-module" }
     ]
   }
 }

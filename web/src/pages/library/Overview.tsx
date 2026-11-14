@@ -1,9 +1,9 @@
-import { Callout } from "@/components/alert/Alert";
 import { Badge } from "@/components/base/badges/badges";
 import { Tile } from "@/components/card/Card";
 import { Timeline } from "@/components/timeline/Timeline";
 import type { Overview as OverviewData, Point } from "./slice";
 import { BottomLine } from "./parts/BottomLine";
+import { ChangeViewNote } from "./parts/ChangeViewNote";
 import { CellValue } from "./parts/CellValue";
 import { Findings } from "./parts/Findings";
 import { Limitations } from "./parts/Limitations";
@@ -58,20 +58,6 @@ function ForAndAgainst({ sides }: { sides: OverviewData["sides"] }) {
   );
 }
 
-/** What would change the view: the kit's info Callout, with its one trace control at the corner. */
-function ChangeViewNote({ view }: { view: OverviewData["changeView"] }) {
-  return (
-    <Section title="What would change the view">
-      <div className={`${TRACE_HOST} [&>[role=note]]:pr-12`}>
-        <Callout title={view.title}>{view.text}</Callout>
-        <span className="absolute top-3 right-3">
-          <TraceControl trace={view.trace} label="Show sources for the triggers" />
-        </span>
-      </div>
-    </Section>
-  );
-}
-
 /** The Overview page of a run: the upper half, bottom line, headline figures, for and against. */
 export function Overview({ issuer, run }: { issuer: string | undefined; run: string | undefined }) {
   return (
@@ -92,7 +78,7 @@ export function Overview({ issuer, run }: { issuer: string | undefined; run: str
               <Findings findings={overview.findings} />
             </Section>
             <div className="flex flex-col gap-10">
-              <ChangeViewNote view={overview.changeView} />
+              <ChangeViewNote view={overview.changeView} label="Show sources for the triggers" />
               <Section title="Dates to watch">
                 <Timeline items={overview.dates} />
               </Section>
@@ -102,6 +88,7 @@ export function Overview({ issuer, run }: { issuer: string | undefined; run: str
             <ModuleItems items={overview.modules.items} issuer={issuerId} run={runId} />
           </Section>
           <Limitations
+            level={SECTION_HEADING}
             limitations={overview.limitations}
             gapsHref={evidenceHref(issuerId, runId, "gaps")}
           />

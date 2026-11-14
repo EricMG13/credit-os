@@ -6,6 +6,7 @@ import type { Route } from "../route-table";
 import { Changes } from "./Changes";
 import { History } from "./History";
 import { Home } from "./Home";
+import { ModulePage } from "./Module";
 import { Overview } from "./Overview";
 import { PAGE_NAME } from "./parts/PageTitle";
 
@@ -36,5 +37,13 @@ export const routes: readonly Route[] = [
     layout: "bleed",
     title: PAGE_NAME.changes,
     render: (params) => <Changes issuer={params["issuer"]} run={params["run"]} />,
+  },
+  {
+    path: "/library/:issuer/:run/modules/:module",
+    layout: "bleed",
+    title: PAGE_NAME.modules,
+    render: (params) => (
+      <ModulePage issuer={params["issuer"]} run={params["run"]} module={params["module"]} />
+    ),
   },
 ];
