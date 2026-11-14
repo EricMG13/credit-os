@@ -72,7 +72,9 @@ docs/superpowers/plans/  the roadmap and one plan per phase
   (coordinator sessions, pre-merge review) apply as written.
 - `uv run --locked python tools/gates.py` and `npm --prefix web run gates` are the gates. Both
   exit 0 before a task is done; CI runs the same two commands. Always launch the first with
-  `--locked`: a plain `uv run` re-locks silently before the gates start.
+  `--locked`: a plain `uv run` re-locks silently before the gates start. Run `npm ci` in `web/`
+  once before the Python gates: their duplication gate uses the `jscpd` pinned there (decision
+  0005).
 - Committed fixtures and retained responses come only from public or synthetic cases; this
   repository is public.
 - An analyst's Submit on the run start page may start a paid run only under an owner ruling
