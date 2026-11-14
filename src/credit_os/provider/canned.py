@@ -74,7 +74,7 @@ class CannedModel:
 def canned_model(config_id: str, recording: Path) -> CannedModel:
     """Read one UTF-8 JSON Lines recording. Reads no environment variable."""
     try:
-        text = recording.read_text(encoding="utf-8")
+        text = recording.read_bytes().decode("utf-8")
     except (OSError, UnicodeDecodeError) as error:
         raise RecordingError(f"{recording.name}: unreadable: {type(error).__name__}") from None
     replies: dict[tuple[str, int], Reply] = {}
@@ -128,7 +128,9 @@ def _parse_line(line: str) -> tuple[tuple[str, int], Reply]:
         raise RecordingError(str(error)) from None
 
 
-def _exact(value: object, keys: tuple[str, ...], what: str, optional: str = "") -> dict[str, Any]:
+def _exact(
+    value: object, keys: tuple[str, ...], what: str, optional: str | None = None
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RecordingError(f"{what} must be an object")
     if not set(keys) <= set(value) <= {*keys, optional}:

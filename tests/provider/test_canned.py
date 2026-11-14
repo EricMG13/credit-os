@@ -1,6 +1,7 @@
 import dataclasses
 import json
 import os
+import re
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -76,6 +77,97 @@ def test_bad_lines_refused(tmp_path: Path, line: dict[str, Any] | str) -> None:
         canned_model("c", _file(tmp_path, line))
 
 
+_BASE = key.CANNED_GOOD_LINES[0]
+_TURN = _BASE["reply"]["turn"]
+_CALL = {"call_id": "c", "name": "n", "arguments": {}}
+_USAGE_KEYS = (
+    "input_tokens, cached_read_tokens, cache_write_tokens, output_tokens, reasoning_tokens"
+)
+_CHARGE = "billed_usd must be a decimal string or null"
+_NUMBER = '{"exchange_id":"e","call_index":0,"reply":{"x":NaN}}'
+
+
+def _reply(**changes: Any) -> dict[str, Any]:
+    return {**_BASE, "reply": {**_BASE["reply"], **changes}}
+
+
+def _turn(**changes: Any) -> dict[str, Any]:
+    return _reply(turn={**_TURN, **changes})
+
+
+def _call(**changes: Any) -> dict[str, Any]:
+    return _turn(tool_calls=[{**_CALL, **changes}])
+
+
+# (one-line recording, the whole refusal text after "rec.jsonl line 1: ")
+MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
+    ("[]", "line must be an object"),
+    ({**_BASE, "x": 1}, "line must have exactly the keys exchange_id, call_index, reply"),
+    ({**_BASE, "exchange_id": ""}, "exchange_id must be a non-empty string"),
+    ({**_BASE, "call_index": -1}, "call_index must be a non-negative integer"),
+    ({**_BASE, "reply": []}, "reply must be an object"),
+    (
+        _reply(x=1),
+        (
+            "reply must have exactly the keys kind, turn, error_class, message, usage, "
+            "billed_usd, compactions"
+        ),
+    ),
+    (_reply(kind="sent_known"), "unknown reply kind 'sent_known'"),
+    (_reply(usage={}), "an ok reply's usage is its turn's: usage must be null"),
+    (_reply(billed_usd=0.5), _CHARGE),
+    (_reply(billed_usd="one"), "billed_usd is not a decimal"),
+    (_reply(error_class=5), "error_class must be a string or null"),
+    (_reply(message=5), "message must be a string or null"),
+    (_reply(compactions={}), "compactions must be a list"),
+    (_reply(compactions=[None]), "compaction must be an object"),
+    (
+        _reply(compactions=[{"usage": None, "billed_usd": None}]),
+        "usage must be an object",
+    ),
+    (
+        _reply(compactions=[{"usage": {}, "billed_usd": None, "x": 1}]),
+        "compaction must have exactly the keys usage, billed_usd",
+    ),
+    (
+        _turn(x=1),
+        (
+            "turn must have exactly the keys text, tool_calls, usage, stop_reason, "
+            "reported_model, request_id"
+        ),
+    ),
+    (_turn(text=None), "text must be a string"),
+    (_turn(reported_model=6), "reported_model must be a string or null"),
+    (_turn(request_id=6), "request_id must be a string or null"),
+    (_turn(usage={"input_tokens": 1}), f"usage must have exactly the keys {_USAGE_KEYS}"),
+    (_turn(tool_calls={}), "tool_calls must be a list"),
+    (_turn(tool_calls=[1]), "tool call must be an object"),
+    (_call(x=1), "tool call must have exactly the keys call_id, name, arguments"),
+    (_call(call_id=1), "call_id must be a string"),
+    (_call(name=1), "name must be a string"),
+    (_call(arguments="{}"), "arguments must be an object"),
+    (_call(bad_arguments=1), "bad_arguments must be a string or null"),
+    ('{"exchange_id":"e","exchange_id":"e"}', "duplicate key 'exchange_id'"),
+    (_NUMBER, "NaN is not allowed in a JSON number"),
+    (_NUMBER.replace("NaN", "-Infinity"), "-Infinity is not allowed in a JSON number"),
+    ("{not json", "not JSON: Expecting property name enclosed in double quotes"),
+    ("[" * 100_000, "not JSON: nested too deeply"),
+]
+
+
+@pytest.mark.parametrize(("line", "message"), MESSAGES)
+def test_refusal_text(tmp_path: Path, line: dict[str, Any] | str, message: str) -> None:
+    with pytest.raises(RecordingError, match=rf"^rec\.jsonl line 1: {re.escape(message)}$"):
+        canned_model("c", _file(tmp_path, line))
+
+
+def test_null_text_fields_accepted(tmp_path: Path) -> None:
+    line = _turn(reported_model=None, request_id=None, tool_calls=[_CALL])
+    reply = _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
+    assert reply.turn is not None
+    assert (reply.turn.reported_model, reply.turn.tool_calls[0].bad_arguments) == (None, None)
+
+
 @pytest.mark.parametrize("line", key.CANNED_GOOD_LINES)
 def test_good_lines_accepted(tmp_path: Path, line: dict[str, Any]) -> None:
     reply = _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
@@ -91,7 +183,7 @@ def test_good_line_details(tmp_path: Path) -> None:
 
 
 def test_duplicate_refused_at_second_line(tmp_path: Path) -> None:
-    with pytest.raises(RecordingError, match="line 2"):
+    with pytest.raises(RecordingError, match=r"^rec\.jsonl line 2: 'e' call_index 0 is recorded"):
         canned_model("c", _file(tmp_path, *key.CANNED_DUPLICATE))
 
 
