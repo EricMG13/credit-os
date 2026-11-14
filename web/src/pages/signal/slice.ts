@@ -40,6 +40,8 @@ export type SignalStory = {
   strength: { marks: 1 | 2 | 3; word: string } | null;
   saved: boolean;
   commentCount: string | null;
+  /** The thread this story has in a group, where its Comment control goes; null when it has none (Comment then opens Share to group). */
+  threadRef: { groupId: string; threadId: string } | null;
   /** A regulatory case's stage; `label` ("Stage 3 of 4") is delivered, `position` (0 to 1) only places the bar. */
   stage: {
     current: string;
@@ -270,6 +272,7 @@ const story = shape<SignalStory>({
   strength: orNull(shape({ marks, word: str })),
   saved: bool,
   commentCount: strOrNull,
+  threadRef: orNull(shape({ groupId: str, threadId: str })),
   stage: orNull(
     shape({
       current: str,
@@ -637,6 +640,19 @@ function threadProblem(snap: SignalSnapshot, path: string): string | null {
     : `${path}.threads[${String(stray)}].id: expected the id of an item in its group's threads`;
 }
 
+/** A story's thread reference names a thread of the snapshot that is about this very story. */
+function threadRefProblem(snap: SignalSnapshot, path: string): string | null {
+  for (const [index, one] of snap.feed.stories.entries()) {
+    const ref = one.threadRef;
+    if (ref === null) continue;
+    const found = snap.threads.find((t) => t.groupId === ref.groupId && t.id === ref.threadId);
+    if (found?.storyId !== one.id) {
+      return `${path}.feed.stories[${String(index)}].threadRef: expected a thread of this story in the snapshot's threads`;
+    }
+  }
+  return null;
+}
+
 /** A group id is used once; each thread id once in its group; each thread's story is in the feed. */
 function groupProblem(groups: SignalGroup[], stories: Set<string>, path: string): string | null {
   const seen = new Set<string>();
@@ -685,7 +701,8 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
   const problem =
     groupProblem(got.value.groups, stories, path) ??
     channelGroupProblem(got.value, path) ??
-    threadProblem(got.value, path);
+    threadProblem(got.value, path) ??
+    threadRefProblem(got.value, path);
   if (problem !== null) return { ok: false, reason: problem };
   const { channels: lists, feed: items } = got.value;
   const where = `${path}.feed.topics`;

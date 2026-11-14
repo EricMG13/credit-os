@@ -247,6 +247,10 @@ describe("a group's items and the threads, in both directions", () => {
         if (items[0] === undefined || items[1] === undefined) throw new Error("two items");
         items[0].id = "__proto__";
         items[1].id = "constructor";
+        // the story's reference follows the renamed thread
+        for (const one of scene.snapshot.feed.stories) {
+          if (one.threadRef?.threadId === "corvane-thread") one.threadRef.threadId = "__proto__";
+        }
       }),
     );
     expect(result.kind).toBe("ok");
