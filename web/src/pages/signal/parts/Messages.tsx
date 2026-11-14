@@ -82,7 +82,12 @@ function Message({
     .filter((s) => s !== null)
     .join(", ");
   return (
-    <li className={cx("flex items-start gap-3", comment.own ? "self-end pl-10" : "pr-10")}>
+    <li
+      className={cx(
+        "flex items-start gap-3",
+        isReply ? null : comment.own ? "self-end pl-10" : "pr-10",
+      )}
+    >
       {comment.own ? null : <Avatar size="sm" initials={comment.author.initials} />}
       <article className="flex min-w-0 flex-1 flex-col gap-1.5">
         <header className="flex items-center gap-2">
@@ -130,7 +135,7 @@ function Message({
           </div>
         )}
         {comment.replies.length === 0 ? null : (
-          <ol aria-label={`Replies to ${author}`} className="mt-2 flex flex-col gap-4 pl-8">
+          <ol aria-label={`Replies to ${author}`} className="mt-2 flex flex-col gap-4">
             {comment.replies.map((reply) => (
               <Message
                 key={reply.id}

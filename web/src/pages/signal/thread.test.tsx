@@ -1,5 +1,5 @@
 // The thread panel (mock frames "Thread panel" and "Thread archived"; behaviour list 2.9; ruling 19, 20).
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
 import { App } from "../../App";
 import type { LoadResult } from "../../data";
@@ -22,6 +22,15 @@ const panel = () => screen.getByRole("dialog", { name: "Thread" });
 const box = () => within(panel()).getByRole("textbox", { name: "Write a comment" });
 const type = (value: string) => fireEvent.change(box(), { target: { value } });
 const send = () => fireEvent.click(within(panel()).getByRole("button", { name: "Send" }));
+
+/** Lets the animation frames after a close run, where the dialog library restores focus by itself. */
+const settled = () =>
+  act(async () => {
+    for (let i = 0; i < 5; i += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
 
 /** A copy of the fixture whose "main" scene is changed by `change`. */
 function withMain(change: (main: (typeof fixture.slice.scenes)[number]) => void) {
@@ -318,6 +327,30 @@ describe("the thread panel", () => {
     });
   });
 
+  it.each([
+    [
+      "the Close thread button",
+      () => fireEvent.click(within(panel()).getByRole("button", { name: "Close thread" })),
+    ],
+    ["Escape", () => fireEvent.keyDown(panel(), { key: "Escape" })],
+  ])(
+    "keeps focus on the thread's link after %s when the address was loaded directly and the frames have run",
+    async (_how, close) => {
+      show(CORVANE_PATH);
+      expect(document.activeElement).not.toBe(
+        screen.queryByRole("link", { name: `Open thread: ${CORVANE}`, hidden: true }),
+      );
+      close();
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+      });
+      await settled();
+      expect(document.activeElement).toBe(
+        screen.getByRole("link", { name: `Open thread: ${CORVANE}` }),
+      );
+    },
+  );
+
   it("closes with Escape the same way", async () => {
     show(`${GROUP}/thread/brightwell-thread`);
     fireEvent.keyDown(panel(), { key: "Escape" });
@@ -339,9 +372,8 @@ describe("the thread panel", () => {
       expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
     });
     expect(window.location.hash).toBe(`#${GROUP}`);
-    await waitFor(() => {
-      expect(document.activeElement).not.toBe(document.body);
-    });
+    await settled();
+    expect(document.activeElement?.id).toBe("signal-content");
   });
 
   it("opens the group view again with the panel gone, and its thread links still point at the thread", async () => {

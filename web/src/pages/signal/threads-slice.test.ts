@@ -144,6 +144,20 @@ describe("the threads in a snapshot", () => {
     );
   });
 
+  it("rejects an archived thread with no archived line, with its path", () => {
+    const result = readSlice(
+      withMain((scene) => {
+        const archived = thread(scene, 3);
+        archived.archivedLine = null;
+      }),
+    );
+    expect(result).toEqual(
+      invalid(
+        "scenes[0].snapshot.threads[3].archivedLine: expected the delivered line when the thread is archived",
+      ),
+    );
+  });
+
   it("rejects a snapshot with no threads member, with its path", () => {
     const result = readSlice(
       withMain((scene) => {

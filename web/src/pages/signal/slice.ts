@@ -570,6 +570,9 @@ const threadRecord: Reader<SignalThread> = (v, path) => {
     comments: list(topComment),
   })(v, path);
   if (!got.ok) return got;
+  if (got.value.archived && got.value.archivedLine === null) {
+    return bad(`${path}.archivedLine`, "the delivered line when the thread is archived");
+  }
   if (!got.value.archived && got.value.archivedLine !== null) {
     return bad(`${path}.archivedLine`, "null when the thread is not archived");
   }
