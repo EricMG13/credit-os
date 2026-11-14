@@ -169,6 +169,16 @@ def test_first_below_one_is_a_caller_error() -> None:
         read_blocks(scan(["a"]), first=0)
 
 
+def test_rows_after_a_blank_line_are_not_guessed_into_the_table() -> None:
+    lines = [HEAD, SEP, "| 1 | 2 |", "", "| 3 | 4 |", "| 5 | 6 |"]
+    with pytest.raises(HandoffError) as caught:
+        read_blocks(scan(lines))
+    assert caught.value.line == 5
+    assert caught.value.message == (
+        "the table header is not followed by a separator row of --- cells"
+    )
+
+
 def test_refusal_propagates_with_its_line() -> None:
     with pytest.raises(HandoffError) as caught:
         read_blocks(scan(["text", "| A | B"]))

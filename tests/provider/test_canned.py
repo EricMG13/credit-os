@@ -1,7 +1,6 @@
 import dataclasses
 import json
 import re
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +8,7 @@ import provider_canned_key as key
 import pytest
 
 from credit_os.provider.canned import RecordingError, RecordingMissing, canned_model
-from credit_os.provider.types import Message, Model, Reply, Request
+from credit_os.provider.types import Message, Model, Reply, Request, Usage
 
 RECORDING = Path(__file__).parent / "recordings" / "canned.jsonl"
 REQUEST = Request((Message("user", "x"),), (), 10, "medium")
@@ -42,7 +41,9 @@ def test_digits_kept_and_missing_count_not_zero() -> None:
     turn = _ask(model, CP1_1).turn
     assert turn is not None
     scale = turn.tool_calls[0].arguments["scale"]
-    assert isinstance(scale, Decimal) and str(scale) == key.CANNED_SCALE_TEXT
+    assert type(scale) is float and scale == key.CANNED_SCALE
+    offset = turn.tool_calls[0].arguments["offset"]
+    assert type(offset) is float and offset == -2.5
     usage = _ask(model, CP1_1).usage
     assert usage is not None and (usage.cached_read_tokens, usage.input_tokens) == (0, None)
 
@@ -82,6 +83,19 @@ def _call(**changes: Any) -> dict[str, Any]:
     return _turn(tool_calls=[{**_CALL, **changes}])
 
 
+_C: dict[str, Any] = {
+    "usage": {**dict.fromkeys(_USAGE_TEXT.split(", "), 1), "reasoning_tokens": None},
+    "billed_usd": None,
+    "outcome": "done",
+    "event_id": "a",
+    "supersedes": None,
+}
+
+
+def _compactions(*items: dict[str, Any]) -> dict[str, Any]:
+    return _reply(compactions=list(items))
+
+
 # (one-line recording, the whole refusal text after "rec.jsonl line 1: ")
 MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     ("[]", "line must be an object"),
@@ -101,10 +115,39 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     (_reply(message=5), "message must be a string or null"),
     (_reply(compactions={}), "compactions must be a list"),
     (_reply(compactions=[None]), "compaction must be an object"),
-    (_reply(compactions=[{"usage": None, "billed_usd": None}]), "usage must be an object"),
+    (_compactions({**_C, "usage": None}), "usage must be an object"),
     (
-        _reply(compactions=[{"usage": {}, "billed_usd": None, "x": 1}]),
-        _EXACTLY("compaction", "usage, billed_usd"),
+        _compactions({**_C, "x": 1}),
+        _EXACTLY("compaction", "usage, billed_usd, outcome, event_id, supersedes"),
+    ),
+    (_compactions({**_C, "outcome": "ok"}), "unknown compaction outcome 'ok'"),
+    (_compactions({**_C, "event_id": ""}), "event_id must be a non-empty string"),
+    (
+        _compactions({**_C, "usage": {**_C["usage"], "reasoning_tokens": 5}}),
+        "a compaction has no reasoning-token count",
+    ),
+    (_compactions(_C, {**_C, "billed_usd": None}), "two compactions share an event_id"),
+    *(
+        (_compactions({**_C, "supersedes": v}), "supersedes must be a non-empty string or None")
+        for v in (7, "")
+    ),
+    (
+        _compactions(
+            {**_C, "usage": dict.fromkeys(_C["usage"]), "outcome": "unfinished", "supersedes": "z"}
+        ),
+        "an unfinished compaction supersedes nothing",
+    ),
+    (
+        _compactions({**_C, "supersedes": "a"}),
+        "a compaction cannot supersede itself",
+    ),
+    (
+        _compactions({**_C, "supersedes": "z"}, {**_C, "event_id": "b", "supersedes": "z"}),
+        "two compactions supersede the same one",
+    ),
+    (
+        _compactions({**_C, "outcome": "unfinished", "billed_usd": None}),
+        "an unfinished compaction has no counts and no charge",
     ),
     (
         _turn(x=1),
@@ -125,6 +168,7 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
     (_NUMBER, "NaN is not allowed in a JSON number"),
     (_NUMBER.replace("NaN", "-Infinity"), "-Infinity is not allowed in a JSON number"),
     (_NUMBER.replace("NaN", "1e9999999999999999999999999"), "a number is out of range"),
+    (_NUMBER.replace("NaN", "1e999"), "a number is out of range"),
     (_NUMBER.replace("NaN", "1" * 19), "an integer has more than 18 digits"),
     (_reply(kind="sent_usage", usage={}), _EXACTLY("usage", _USAGE_TEXT)),
     ("{not json", "not JSON: Expecting property name enclosed in double quotes"),
@@ -150,6 +194,13 @@ def test_good_lines_accepted_and_details(tmp_path: Path) -> None:
     texts = key.CANNED_COMPACTION_BILLED_TEXT[("cp1-synthetic", 0)]
     assert [str(c.billed_usd) for c in two.compactions] == [str(t) for t in texts]
     assert [str(load(key.CANNED_GOOD_LINES[i]).billed_usd) for i in (6, 7)] == ["0", "10.50"]
+    last = load(key.CANNED_GOOD_LINES[9]).compactions
+    assert [c.outcome for c in last] == ["done", "failed", "unfinished"]
+    assert last[2].usage == Usage()
+    (kept,) = load(key.CANNED_GOOD_LINES[10]).compactions
+    assert (kept.event_id, kept.supersedes) == (" evt ", "evt-0")
+    (failed,) = load(key.CANNED_GOOD_LINES[11]).compactions
+    assert (failed.outcome, failed.billed_usd, failed.supersedes) == ("failed", None, "evt-0")
     null = load(_turn(reported_model=None, request_id=None, tool_calls=[_CALL]))
     assert null.turn is not None
     assert (null.turn.reported_model, null.turn.tool_calls[0].bad_arguments) == (None, None)
@@ -177,5 +228,5 @@ def test_config_close_and_repeat() -> None:
     model = canned_model("copilot-sol-medium", RECORDING)
     first = _ask(model, CP1_1)
     assert model.config_id == "copilot-sol-medium"
-    model.close()
+    assert model.close() == ()
     assert _ask(model, CP1_1) is first
