@@ -10,6 +10,7 @@ import { GapBadge, GapPanel } from "@/components/gap/GapPanel";
 import { Missing } from "@/components/gap/Missing";
 import { Skeleton } from "@/components/gap/Skeleton";
 import { Withheld } from "@/components/gap/Withheld";
+import { PageHeader } from "@/shell/PageHeader";
 import { STATUS_SETS, type SetName } from "@/components/status/sets";
 import { StatusBadge } from "@/components/status/StatusBadge";
 
@@ -46,8 +47,8 @@ export function Kit() {
   const colours = Object.keys(styles.colors) as (keyof typeof styles.colors)[];
   const sizes = Object.keys(styles.sizes) as (keyof typeof styles.sizes)[];
   return (
-    <main className="min-h-screen bg-surface-canvas p-8 text-text-primary">
-      <h1 className="font-display text-h1 text-text-primary">Component kit</h1>
+    <div className="text-text-primary">
+      <PageHeader title="Component kit" />
 
       <section className="mt-8 flex flex-col gap-4">
         <h2 className="font-display text-h2 text-text-primary">Button</h2>
@@ -203,6 +204,23 @@ export function Kit() {
           <Skeleton lines={3} />
         </div>
       </section>
-    </main>
+
+      <section aria-labelledby="kit-page-header" className="mt-8 flex flex-col gap-4">
+        <h2 id="kit-page-header" className="font-display text-h2 text-text-primary">
+          Page header
+        </h2>
+        <PageHeader
+          as="h2"
+          title="Issuer name"
+          badges={
+            <>
+              <Badge color="gray">As of 31 Dec 2025</Badge>
+              <BadgeWithDot color="success">Complete</BadgeWithDot>
+            </>
+          }
+          actions={<Button color="secondary">Action</Button>}
+        />
+      </section>
+    </div>
   );
 }
