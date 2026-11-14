@@ -192,7 +192,7 @@ ROWS = [
 
 
 U = b"u" * 1_048_000
-LENGTH = "an XML name longer than 255 characters"
+LENGTH = "an XML name longer than 255 bytes"
 OPEN = "more than 4,096 namespace declarations open at once"
 H3_NAMES = [
     e for _ in range(2) for i in range(2048) for e in (_start(f"u}}n{i}"), ("end", f"u}}n{i}"))
@@ -236,6 +236,22 @@ def _declarations(count: int) -> bytes:
 
 N4 = b"<a " + _declarations(2048) + b"><b " + _declarations(2049) + b"/></a>"
 N5 = b"<a " + _declarations(2048) + b"><b " + _declarations(2048) + b"/></a>"
+
+
+def _namespaces(count: int) -> bytes:
+    # names r, a, xmlns:p and each namespace name: 4,096 at 4,093 namespace names
+    return b"<r>" + b"".join(b'<a xmlns:p="u%d"/>' % i for i in range(count)) + b"</r>"
+
+
+def _closed(last: int) -> bytes:
+    held = b"<a " + _declarations(4_093) + b">" + b'<a xmlns:p0="u"/>' * 3
+    return held + b"<a " + _declarations(last) + b"/></a>"
+
+
+E = [_start("e"), ("end", "e")]
+CJK = "\N{CJK UNIFIED IDEOGRAPH-4E00}"
+R4 = [_start("r")] + [_start("a"), ("end", "a")] * 4_093 + [("end", "r")]
+R5 = [_start("a")] + [_start("a"), ("end", "a")] * 4 + [("end", "a")]
 NAME_ROWS = [
     _case("n1", b"<" + b"n" * 255 + b"/>", [_start("n" * 255), ("end", "n" * 255)]),
     _case("n2", b"<" + b"n" * 256 + b"/>", None, LENGTH),
@@ -258,6 +274,16 @@ NAME_ROWS = [
         b'<a xmlns="u"><b xmlns=""/></a>',
         [_start("u}a"), _start("b"), ("end", "b"), ("end", "u}a")],
     ),
+    _case("n9", f"<{CJK * 85}/>".encode(), [_start(CJK * 85), ("end", CJK * 85)]),
+    _case("n10", f"<{CJK * 86}/>".encode(), None, LENGTH),
+    _case("r1", b"<e xmlns:" + b"p" * 249 + b'="u"/>', E),
+    _case("r2", b"<e xmlns:" + b"p" * 250 + b'="u"/>', None, LENGTH),
+    _case("r3", b'<e xmlns:p="' + b"u" * 255 + b'"/>', E),
+    _case("r3b", b'<e xmlns:p="' + b"u" * 256 + b'"/>', None, LENGTH),
+    _case("r4", _namespaces(4_093), R4),
+    _case("r4b", _namespaces(4_094), None, NAMES),
+    _case("r5", _closed(3), R5),
+    _case("r5b", _closed(4), None, OPEN),
 ]
 
 

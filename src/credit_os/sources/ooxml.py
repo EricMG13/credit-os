@@ -38,13 +38,15 @@ MAX_DIRECTORY_BYTES = 4_194_304
 CHUNK_BYTES = 65_536
 # expat keeps one unfinished markup token whole; a tag of this size costs it 24 times that.
 MAX_TOKEN_BYTES = 1_048_576
-# expat keeps about 140 bytes per open element.
+# expat keeps a copy of each open element's name and its namespace bindings: 0.89 to 1.47 MiB at
+# this depth with 255-character names (tracemalloc, macOS).
 MAX_DEPTH = 256
-# expat keeps every different element, attribute and prefix name for the life of a part.
+# expat keeps every different element, attribute and `xmlns:` prefix name, and every namespace
+# name, for the life of a part; the same cap holds the namespace declarations open at once.
 MAX_NAMES = 4_096
 # expat builds and binds every name on every tag, so a long name costs time and memory per tag and
-# per open element; OOXML's are under about 110 characters. With MAX_NAMES it bounds the characters
-# of all names, namespace names included, to 255 x 4,096.
+# per open element, paid per UTF-8 byte; OOXML's are ASCII, under about 110 bytes. With MAX_NAMES
+# it bounds the UTF-8 bytes of all names, namespace names included, to 255 x 4,096.
 MAX_NAME_LENGTH = 255
 
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
@@ -313,9 +315,9 @@ class _Shape:
         self._uris: set[str] = set()
 
     def _known(self, name: str, kept: set[str]) -> None:
-        if len(name) > MAX_NAME_LENGTH:
+        if len(name.encode()) > MAX_NAME_LENGTH:
             raise self._package.refuse(
-                f"an XML name longer than {MAX_NAME_LENGTH} characters", self._part
+                f"an XML name longer than {MAX_NAME_LENGTH} bytes", self._part
             )
         kept.add(name)
         if len(self._names) + len(self._uris) > MAX_NAMES:
