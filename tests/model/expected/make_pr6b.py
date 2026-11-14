@@ -160,6 +160,11 @@ def with_ops(row: Doc, *ops: list[Any]) -> Doc:
     return {**row, "ops": row["ops"] + list(ops)}
 
 
+def prose(line: str) -> Doc:
+    """One prose line added under Calculations."""
+    return {"edits": [[CALC, f"{CALC}\n{line}\n"]]}
+
+
 def floor_in(old: str, new: str) -> Doc:
     return {"edits": [NO_FLOOR, [old, new]]}
 
@@ -296,6 +301,143 @@ ROWS: list[Doc] = [
         "ops": [[["currency"], "GBP"], [["facilities", 1, "balance"], "451"]],
     },
     {"label": "the layer-1 block states no facilities to check", "source": "foundation.md"},
+    {
+        "label": "the spread is checked before the floor",
+        "ops": [[["facilities", 0, "spread_pct"], "3.3"], [["facilities", 0, "floor_pct"], "0.8"]],
+    },
+    {
+        "label": "the balance is checked before the rates",
+        "ops": [[["facilities", 0, "balance"], "641"], [["facilities", 0, "spread_pct"], "3.3"]],
+    },
+    {
+        "label": "the balances bound before a case debt_repayment",
+        **with_ops(debt("871.9999", "871.9999"), [["upside_drivers", "debt_repayment"], DRIVER]),
+    },
+    {
+        "label": "the schedule bound before a case debt_repayment",
+        **with_ops(
+            amortising("640", "450", "1,000", "1000"),
+            [["upside_drivers", "debt_repayment"], DRIVER],
+        ),
+    },
+    {
+        "label": "a case debt_repayment with base debt missing",
+        "ops": [
+            [
+                ["base", "debt"],
+                {
+                    "amount": None,
+                    "reason": "Not read.",
+                    "row": None,
+                    "period": None,
+                    "column": None,
+                },
+            ],
+            [["upside_drivers", "debt_repayment"], DRIVER],
+        ],
+    },
+    {
+        "label": "a balance printed only after a comma",
+        "ops": [[["facilities", 1, "balance"], "456"]],
+    },
+    {
+        "label": "a balance printed only after a point",
+        "ops": [[["facilities", 1, "balance"], "125"]],
+    },
+    {
+        "label": "a balance printed only after a digit",
+        "ops": [[["facilities", 1, "balance"], "56"]],
+    },
+    {
+        "label": "a balance printed only before a point and a digit",
+        "ops": [[["facilities", 1, "balance"], "7"]],
+    },
+    {
+        "label": "a fixed rate printed only after a point",
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "25"]],
+    },
+    {
+        "label": "a fixed rate printed only after a digit",
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "5"]],
+    },
+    # 6b fix round 1: the adversary's Medium 1 to 3 and Low 1 to 3.
+    {
+        "label": "a balance printed only before a comma and a digit",
+        **prose("Shares issued: 457,000."),
+        "ops": [[["facilities", 1, "balance"], "457"]],
+    },
+    {
+        "label": "a balance printed at the end of a sentence",
+        **prose("The drawn amount was 458."),
+        "ops": [[["facilities", 1, "balance"], "458"]],
+    },
+    {
+        "label": "a fractional balance printed with a point",
+        **prose("The notes stand at 459.5."),
+        "ops": [[["facilities", 1, "balance"], "459.5"]],
+    },
+    {
+        "label": "a fractional balance printed only with a letter for the point",
+        **prose("Reference 459x5."),
+        "ops": [[["facilities", 1, "balance"], "459.5"]],
+    },
+    {
+        "label": "a balance over 999 printed without commas",
+        **with_ops(
+            {
+                "edits": [
+                    *debt("2,000", "2000")["edits"],
+                    [CALC, f"{CALC}\nNotes of 1450 outstanding.\n"],
+                ],
+                "ops": debt("2,000", "2000")["ops"],
+            },
+            [["facilities", 1, "balance"], "1450"],
+        ),
+    },
+    {
+        "label": "a balance printed in a cell beside other words",
+        "edits": [["| Senior notes 2029 | 450 |", "| Senior notes 2029 | 450 outstanding |"]],
+    },
+    {
+        "label": "a fixed rate printed only inside a longer number",
+        "edits": [["Fixed 7.125%", "Fixed 17.125%"]],
+    },
+    {
+        "label": "a fixed rate printed only after a comma",
+        **prose("A rate of 2,5% applies elsewhere."),
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "5"]],
+    },
+    {
+        "label": "a rate printed with a no-break space before the percent sign",
+        "edits": [["Fixed 7.125%", "Fixed 7.125\u00a0%"]],
+    },
+    {
+        "label": "a rate printed with two spaces before the percent sign",
+        "edits": [["Fixed 7.125%", "Fixed 7.125  %"]],
+    },
+    {
+        "label": "a rate printed only with a letter for the point",
+        "edits": [["Fixed 7.125%", "Fixed 7x125%"]],
+    },
+    {
+        "label": "a downside debt_repayment beside facilities",
+        "ops": [[["downside_drivers", "debt_repayment"], DRIVER]],
+    },
+    {
+        "label": "the printed terms before a case debt_repayment",
+        "ops": [
+            [["facilities", 1, "balance"], "451"],
+            [["upside_drivers", "debt_repayment"], DRIVER],
+        ],
+    },
+    {
+        "label": "a long facility name is cut at 80 characters in the rate message",
+        "ops": [[["facilities", 0, "name"], LONG], [["facilities", 0, "spread_pct"], "3.3"]],
+    },
+    {
+        "label": "the running total is exact: equal to base debt by year 3 at ten-thousandths",
+        **amortising("200.0001", "90.6666", "872.0001", "872.0001"),
+    },
 ]
 
 
@@ -305,7 +447,7 @@ def render() -> str:
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 31 and len(accepted) == 8
+    assert len(labels) == len(set(labels)) == 57 and len(accepted) == 13
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
