@@ -6,7 +6,6 @@ import { Badge } from "@/components/base/badges/badges";
 import { cx } from "@/utils/cx";
 import type { Reader, TraceRow, TraceTable } from "./slice";
 import { DerivationTree } from "./parts/DerivationTree";
-import { InlineCell } from "./parts/InlineCell";
 import { NothingForModule } from "./parts/ModuleFilter";
 import {
   PlainHead,
@@ -20,18 +19,11 @@ import {
 } from "./parts/RegisterTable";
 import { SUBSECTION_HEADING } from "./parts/heading";
 
-type Column = "id" | "module" | "value";
+type Column = "id" | "module";
 
-/** What each sortable column is ordered by: the delivered id or module name, or the figure's own sort key. */
+/** What each sortable column is ordered by: the delivered id or module name. */
 function keyOf(row: TraceRow, column: Column): SortKey {
-  switch (column) {
-    case "id":
-      return row.id;
-    case "module":
-      return row.module;
-    case "value":
-      return row.value === null || row.value.kind !== "value" ? null : row.value.at;
-  }
+  return column === "id" ? row.id : row.module;
 }
 
 /**
@@ -128,7 +120,6 @@ export function EvidenceTrace({
               <PlainHead srOnly>Derivation</PlainHead>
               <SortHead column="id" label={columns.id} sort={sort} onSort={onSort} />
               <PlainHead>{columns.item}</PlainHead>
-              <SortHead column="value" label={columns.value} sort={sort} onSort={onSort} />
               <SortHead column="module" label={columns.module} sort={sort} onSort={onSort} />
               <PlainHead>{columns.kind}</PlainHead>
               <PlainHead>{columns.sources}</PlainHead>
@@ -175,7 +166,10 @@ export function EvidenceTrace({
                     </td>
                     <th
                       scope="row"
-                      className={cx(REGISTER_CELL, "font-mono text-left font-normal")}
+                      className={cx(
+                        REGISTER_CELL,
+                        "font-mono text-left font-normal whitespace-nowrap",
+                      )}
                     >
                       {row.id}
                     </th>
@@ -184,9 +178,6 @@ export function EvidenceTrace({
                       {row.note === null ? null : (
                         <p className="mt-1 text-small text-text-secondary">{row.note}</p>
                       )}
-                    </td>
-                    <td className={REGISTER_CELL}>
-                      <InlineCell cell={row.value} />
                     </td>
                     <td className={REGISTER_CELL}>{row.module}</td>
                     <td className={REGISTER_CELL}>
@@ -198,7 +189,7 @@ export function EvidenceTrace({
                   </tr>
                   {row.calc !== null && isOpen ? (
                     <tr id={panel} className="border-b border-border-hairline">
-                      <td colSpan={7} className="px-5 py-3">
+                      <td colSpan={6} className="px-5 py-3">
                         <DerivationTree node={row.calc} label={`How ${row.item} was derived`} />
                       </td>
                     </tr>

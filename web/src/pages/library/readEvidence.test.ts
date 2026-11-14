@@ -47,7 +47,7 @@ describe("readSlice, evidence", () => {
     if (result.kind !== "ok") throw new Error(result.kind);
     const evidence = result.data.issuers[0]?.runs[0]?.evidence;
     expect(evidence?.intro).toBe("Where every figure and claim in this run comes from.");
-    expect(evidence?.tabs).toEqual({ trace: "58", sources: "9", gaps: "7" });
+    expect(evidence?.tabs).toEqual({ trace: "59", sources: "9", gaps: "7" });
     expect(evidence?.summary.delivered).toEqual({
       note: "Recovery was not assessable",
       progress: { text: "12 of 13", value: 12, max: 13 },
@@ -58,7 +58,7 @@ describe("readSlice, evidence", () => {
         { kind: "value", text: "9", at: null },
         "7 read in full, 1 read in part, 1 unreadable",
       ],
-      ["Calculations", { kind: "value", text: "58", at: null }, "Each one traceable to its inputs"],
+      ["Calculations", { kind: "value", text: "59", at: null }, "Each one traceable to its inputs"],
       ["Gaps", { kind: "value", text: "7", at: null }, "2 high, 3 medium, 2 low"],
     ]);
     expect(evidence?.summary.run).toEqual({
@@ -248,7 +248,7 @@ describe("readSlice, trace", () => {
       sources: "Sources",
     });
     const rows = trace?.rows ?? [];
-    expect(rows).toHaveLength(58);
+    expect(rows).toHaveLength(59);
     const mock = ["T-0001", "T-0014", "T-0015", "T-0031", "T-0047", "T-0052", "T-0068"];
     expect(rows.map((r) => r.id).filter((id) => mock.includes(id))).toEqual(mock);
     expect(
@@ -313,12 +313,12 @@ describe("readSlice, trace", () => {
       for (const trace of Object.values(run.traces)) expect(held).toContain(trace.evidenceItem);
       expect(run.evidence.tabs.trace).toBe(String(held.length));
     }
-    expect(read().map((run) => run.evidence?.trace.rows.length)).toEqual([58, undefined, 0, 0]);
+    expect(read().map((run) => run.evidence?.trace.rows.length)).toEqual([59, undefined, 0, 0]);
   });
 
   const brokenRows: [string, (e: ReturnType<typeof evidenceOf>) => unknown, string][] = [
-    ["a row with no id", (e) => (rowOf(e, "T-0042")["id"] = ""), "trace.rows[11].id"],
-    ["an id given twice", (e) => (rowOf(e, "T-0042")["id"] = "T-0001"), "trace.rows[11].id"],
+    ["a row with no id", (e) => (rowOf(e, "T-0042")["id"] = ""), "trace.rows[12].id"],
+    ["an id given twice", (e) => (rowOf(e, "T-0042")["id"] = "T-0001"), "trace.rows[12].id"],
     ["a statement that is not text", (e) => (rowOf(e, "T-0001")["item"] = 6), "trace.rows[0].item"],
     [
       "a module the run does not hold",
@@ -358,7 +358,7 @@ describe("readSlice, trace", () => {
     [
       "a note that is an empty string",
       (e) => (rowOf(e, "T-0068")["note"] = ""),
-      "trace.rows[33].note",
+      "trace.rows[34].note",
     ],
     [
       "a head that is missing",
@@ -367,7 +367,7 @@ describe("readSlice, trace", () => {
     ],
     [
       "a tab count that is not the number of rows",
-      (e) => ((e["tabs"] as Json)["trace"] = "59"),
+      (e) => ((e["tabs"] as Json)["trace"] = "58"),
       "tabs.trace",
     ],
   ];

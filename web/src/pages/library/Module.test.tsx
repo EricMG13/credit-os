@@ -169,7 +169,9 @@ describe("Module, a delivered prose module", () => {
       "Show sources for this limitation",
     ]);
     fireEvent.click(sourceButtons()[1] as HTMLElement);
-    expect(screen.getByRole("dialog", { name: "Sources for aftermarket share" })).toBeVisible();
+    expect(
+      screen.getByRole("dialog", { name: "Sources for the aftermarket finding" }),
+    ).toBeVisible();
   });
 
   it("turns every control on with Show sources, as the mock draws this page", () => {
