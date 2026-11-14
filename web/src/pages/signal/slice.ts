@@ -301,6 +301,13 @@ const bad = (path: string, expected: string): Got<never> => ({
 });
 
 const str: Reader<string> = (v, path) => (typeof v === "string" ? good(v) : bad(path, "a string"));
+/** An id names a record in a link: it is not empty and has no lone surrogate (the address could not be made). */
+const id: Reader<string> = (v, path) => {
+  if (typeof v !== "string") return bad(path, "a string");
+  return v === "" || /\p{Surrogate}/u.test(v)
+    ? bad(path, "a non-empty id that an address can hold")
+    : good(v);
+};
 const bool: Reader<boolean> = (v, path) =>
   typeof v === "boolean" ? good(v) : bad(path, "true or false");
 const strOrNull: Reader<string | null> = (v, path) =>
@@ -385,7 +392,7 @@ const marks: Reader<1 | 2 | 3> = (v, path) =>
   v === 1 || v === 2 || v === 3 ? good(v) : bad(path, "1, 2 or 3");
 
 const story = shape<SignalStory>({
-  id: str,
+  id,
   kind: oneOf(["regulator", "news", "ratings", "research"], "regulator, news, ratings or research"),
   kindLabel: str,
   headline: str,
@@ -400,7 +407,7 @@ const story = shape<SignalStory>({
   strength: orNull(shape({ marks, word: str })),
   saved: bool,
   commentCount: strOrNull,
-  threadRef: orNull(shape({ groupId: str, threadId: str })),
+  threadRef: orNull(shape({ groupId: id, threadId: id })),
   stage: orNull(
     shape({
       current: str,
@@ -412,9 +419,9 @@ const story = shape<SignalStory>({
   ratingMoves: list(shape({ from: str, to: str, word: str })),
 });
 const digestBase = shape<SignalDigestCard>({
-  id: str,
-  digestId: str,
-  issueId: str,
+  id,
+  digestId: id,
+  issueId: id,
   digestName: str,
   monogram: str,
   title: str,
@@ -439,16 +446,25 @@ function noModel<T extends { ai: boolean; points: unknown[]; nothing: string | n
   };
 }
 const nothingCard = noModel(digestBase, "nothing-to-report card");
-/** A nothing-to-report card draws its one sentence only; a summary beside it would never be drawn. */
+/**
+ * A nothing-to-report card draws its one sentence only; a summary beside it would never be drawn. Any
+ * other card draws its points, which are model text (so it is marked AI), and so needs some.
+ */
 const digestCard: Reader<SignalDigestCard> = (v, path) => {
   const got = nothingCard(v, path);
-  return got.ok && got.value.nothing !== null && got.value.summary !== null
-    ? bad(`${path}.summary`, "null on a nothing-to-report card")
-    : got;
+  if (!got.ok) return got;
+  const card = got.value;
+  if (card.nothing !== null) {
+    return card.summary === null ? got : bad(`${path}.summary`, "null on a nothing-to-report card");
+  }
+  if (card.points.length === 0) {
+    return bad(`${path}.points`, "points or a nothing-to-report sentence");
+  }
+  return card.ai ? got : bad(`${path}.ai`, "true on a card with points");
 };
 const digestIssue = noModel(
   shape<SignalDigestIssue>({
-    id: str,
+    id,
     title: str,
     date: strOrNull,
     ai: bool,
@@ -467,7 +483,7 @@ const digestIssue = noModel(
   "nothing-to-report issue",
 );
 const digestRecord = shape<SignalDigest>({
-  id: str,
+  id,
   name: str,
   monogram: str,
   paused: strOrNull,
@@ -491,8 +507,12 @@ const freshness: Reader<SignalFreshness> = (v, path) => {
     error: strOrNull,
   })(v, path);
   if (!got.ok) return got;
-  return got.value.state === "checked" && got.value.checked === null
-    ? bad(`${path}.checked`, "the delivered time when the state is checked")
+  if (got.value.state === "checked" && got.value.checked === null) {
+    return bad(`${path}.checked`, "the delivered time when the state is checked");
+  }
+  // Only the checked state draws a time; a time on any other state would be accepted and never shown.
+  return got.value.state !== "checked" && got.value.checked !== null
+    ? bad(`${path}.checked`, "null unless the state is checked")
     : got;
 };
 
@@ -513,7 +533,7 @@ const viewer: Reader<SignalViewer> = (v, path) => {
 /** A shared item holds a story, a note or both; a thread with neither has nothing to draw. */
 const thread: Reader<SignalThreadSummary> = (v, path) => {
   const got = shape<SignalThreadSummary>({
-    id: str,
+    id,
     storyId: strOrNull,
     note: strOrNull,
     sharedBy: shape({ initials: str, label: str }),
@@ -535,7 +555,7 @@ function repeatedName(members: { name: string }[], path: string): Got<never> | n
     : bad(`${path}.members[${String(at)}].name`, "a name the group does not repeat");
 }
 const groupBase = shape<SignalGroup>({
-  id: str,
+  id,
   name: str,
   visibility: str,
   memberSummary: str,
@@ -556,15 +576,15 @@ const group: Reader<SignalGroup> = (v, path) => {
 const channelsBase = shape<SignalChannels>({
   topics: list(
     shape<SignalTopicChannel>({
-      id: str,
+      id,
       name: str,
       count: strOrNull,
       followed: bool,
       keywords: list(str),
     }),
   ),
-  groups: list(shape<SignalGroupChannel>({ id: str, name: str, unread: strOrNull })),
-  digests: list(shape<SignalDigestChannel>({ id: str, name: str, unread: bool, paused: bool })),
+  groups: list(shape<SignalGroupChannel>({ id, name: str, unread: strOrNull })),
+  digests: list(shape<SignalDigestChannel>({ id, name: str, unread: bool, paused: bool })),
   savedCount: strOrNull,
 });
 /**
@@ -721,6 +741,12 @@ const feed: Reader<SignalFeed> = (v, path) => {
       }
     }
   }
+  for (const [where, view] of views) {
+    // The pill's Show reveals these entries: a pill that reveals none is drawn and does nothing.
+    if (view.waiting !== null && view.waiting.ids.length === 0) {
+      return bad(`${path}.${where}.waiting.ids`, "at least one id for the new-stories pill");
+    }
+  }
   return got;
 };
 
@@ -774,8 +800,8 @@ const topComment = comment(list(comment(noReplies)));
 /** Comment ids are used once in a thread, replies included; an archived line belongs to an archived thread. */
 const threadRecord: Reader<SignalThread> = (v, path) => {
   const got = shape<SignalThread>({
-    id: str,
-    groupId: str,
+    id,
+    groupId: id,
     storyId: strOrNull,
     note: strOrNull,
     archived: bool,
@@ -806,7 +832,7 @@ const threadRecord: Reader<SignalThread> = (v, path) => {
   return got;
 };
 const settingsGroupBase = shape<SignalSettingsGroup>({
-  id: str,
+  id,
   name: str,
   members: list(shape({ initials: str, name: str })),
   moreMembers: strOrNull,
@@ -926,7 +952,7 @@ const aiBase = shape<SignalAi>({
 const settings = shape<SignalSettings>({
   topics: list(
     shape<SignalSettingsTopic>({
-      id: str,
+      id,
       name: str,
       weekly: str,
       keywords: list(str),
@@ -1266,11 +1292,43 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
     if (!named.issues.some((issue) => issue.id === card.issueId)) {
       return `${where}.issueId: expected the id of an issue of the digest the card names`;
     }
+    const issue = named.issues.find((i) => i.id === card.issueId);
+    if (issue !== undefined && card.title !== issue.title) {
+      return `${where}.title: expected the title of the issue the card names`;
+    }
     if (card.digestName !== named.name) {
       return `${where}.digestName: expected the name of the digest the card names`;
     }
     if (card.monogram !== named.monogram) {
       return `${where}.monogram: expected the monogram of the digest the card names`;
+    }
+  }
+  return null;
+}
+
+/**
+ * The Saved view lists stories marked saved, and a story marked saved means the view lists something
+ * (the view may be a first page of a longer list, so nothing more is compared). Digest cards are no stories.
+ */
+function savedProblem(snap: SignalSnapshot, path: string): string | null {
+  const { stories } = snap.feed;
+  const view = snap.feed.views.saved;
+  const listed: [string, string[]][] = [
+    ["top", view.top],
+    ["latest", view.latest],
+    ["waiting.ids", view.waiting?.ids ?? []],
+    ["older", view.older],
+  ];
+  for (const [name, ids] of listed) {
+    const at = ids.findIndex((id) => stories.find((s) => s.id === id)?.saved !== true);
+    if (at !== -1) {
+      return `${path}.feed.views.saved.${name}[${String(at)}]: expected the id of a story marked saved`;
+    }
+  }
+  if (listed.every(([, ids]) => ids.length === 0)) {
+    const marked = stories.findIndex((s) => s.saved);
+    if (marked !== -1) {
+      return `${path}.feed.stories[${String(marked)}].saved: expected false while the Saved view lists nothing`;
     }
   }
   return null;
@@ -1331,6 +1389,8 @@ const snapshot: Reader<SignalSnapshot> = (v, path) => {
         : "the delivered count while the Saved view lists stories",
     );
   }
+  const saved = savedProblem(got.value, path);
+  if (saved !== null) return { ok: false, reason: saved };
   const where = `${path}.feed.topics`;
   const missing = lists.topics.find((t) => !Object.hasOwn(items.topics, t.id));
   if (missing !== undefined) {
@@ -1378,7 +1438,7 @@ function withMain(
 }
 
 const scenes = shape<SignalSlice>({
-  scenes: uniqueScenes(withMain(nonEmpty(shape<SignalScene>({ id: str, snapshot })))),
+  scenes: uniqueScenes(withMain(nonEmpty(shape<SignalScene>({ id, snapshot })))),
 });
 
 export function readSlice(source: unknown): SliceResult<SignalSlice> {
