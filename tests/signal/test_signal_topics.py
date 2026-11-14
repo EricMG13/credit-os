@@ -6,7 +6,7 @@ import sqlite3
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -108,23 +108,37 @@ def test_keywords_with_query_syntax_are_plain_text(
 
 
 @settings(deadline=None)
-@given(st.text(min_size=1, max_size=60).filter(lambda s: bool(s.strip())))
-def test_any_keyword_is_accepted_without_error(keyword: str) -> None:
-    try:
-        with fresh_db() as db:
-            add_topic(db, "T", [keyword], [], "ak")
-    except StoreError:
-        # Only a keyword SQLite cannot encode (a lone surrogate) may be refused, and only so.
-        assert any("\ud800" <= ch <= "\udfff" for ch in keyword)
+@given(
+    st.text(alphabet=st.characters(min_codepoint=33, max_codepoint=126), min_size=1, max_size=60)
+)
+def test_any_visible_ascii_keyword_is_accepted_as_plain_text(keyword: str) -> None:
+    with fresh_db() as db:
+        add_topic(db, "T", [keyword], [], "ak")
+        assert rows(db, "SELECT keywords FROM topics") == [(json.dumps([keyword]),)]
 
 
-def test_nul_in_a_keyword_is_plain_text_and_does_not_poison_matching(
+@settings(deadline=None)
+@given(st.text(alphabet=st.characters(min_codepoint=0xD800, max_codepoint=0xDFFF), min_size=1))
+def test_a_keyword_holding_a_lone_surrogate_is_refused(keyword: str) -> None:
+    with fresh_db() as db, pytest.raises(StoreError):
+        add_topic(db, "T", ["a" + keyword], [], "ak")
+
+
+def test_nul_in_a_keyword_is_refused_and_the_phrase_builder_still_neutralises_it() -> None:
+    with fresh_db() as db, pytest.raises(StoreError):
+        add_topic(db, "Nul", ["a\x00b"], [], "ak")
+    assert topics.fts_phrase("a\x00b") == '"a b"'
+
+
+def test_a_quote_in_a_keyword_is_doubled_so_the_phrase_matches_the_words(
     db_two_sources: sqlite3.Connection,
 ) -> None:
-    add_topic(db_two_sources, "Nul", ["a\x00b"], [], "ak")
-    add_story(db_two_sources, 1, Entry("Authority review", "https://a.org/1", T0, ""), T0)
-    assert match_story(db_two_sources, 1) == []
-    add_topic(db_two_sources, "Nul again", ["a\x00b"], [], "ak")
+    add_story(db_two_sources, 1, Entry("They say hello today", "https://a.org/1", T0, ""), T0)
+    assert topics.fts_phrase('say "hello"') == '"say ""hello"""'
+    tid = add_topic(db_two_sources, "Quoted", ['say "hello"'], [], "ak")
+    assert rows(db_two_sources, "SELECT story_id FROM topic_stories WHERE topic_id=?", tid) == [
+        (1,)
+    ]
 
 
 def test_follow_is_personal_and_idempotent(db_two_sources: sqlite3.Connection) -> None:
@@ -151,45 +165,60 @@ def test_a_slice_1_database_gains_the_new_tables(tmp_path: Path) -> None:
         db.close()
 
 
-def test_add_topic_links_exactly_what_the_per_story_path_links(tmp_path: Path) -> None:
+WORDS = ["merger", "remedy", "spectrum", "auction", "roaming", "broadband", "tariff", "fine"]
+KIND_NAMES = ["regulator", "news", "research"]
+
+
+def phrase_in(phrase: list[str], tokens: list[str]) -> bool:
+    size = len(phrase)
+    return any(tokens[i : i + size] == phrase for i in range(len(tokens) - size + 1))
+
+
+def test_add_topic_links_exactly_what_the_rule_says_and_the_per_story_path_agrees(
+    tmp_path: Path,
+) -> None:
     database = open_db(tmp_path)
     try:
-        words = [
-            *("merger", "remedy", "spectrum", "auction", "roaming"),
-            *("broadband", "tariff", "licence", "appeal", "fine"),
-        ]
         base = datetime(2026, 1, 1, tzinfo=UTC)
         with database:
-            for index, kind in enumerate(("regulator", "news", "research")):
+            for index, kind in enumerate(KIND_NAMES):
                 database.execute(
                     "INSERT INTO sources(name, kind, url, state, proposed_by, created_at)"
                     " VALUES(?, ?, ?, 'approved', 'x', ?)",
                     (f"S{index}", kind, f"https://s{index}.org/f", base.isoformat()),
                 )
-            batch = []
-            for i in range(2000):
-                at = (base + timedelta(minutes=i)).isoformat()
-                title = " ".join(words[(i * k + k) % len(words)] for k in (1, 3, 7))
-                summary = " ".join(words[(i * k + 2) % len(words)] for k in (2, 5, 9))
-                link = f"https://s{i % 3}.org/{i}"
-                batch.append((i % 3 + 1, title, link, link, title, at, at, summary))
-            database.executemany(
-                "INSERT INTO stories(source_id, title, link, link_key, title_key, published_at,"
-                " fetched_at, summary) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                batch,
-            )
-        keywords = ["merger", "spectrum auction", 'say "tariff"', "no such word"]
+        keywords = ["merger", "spectrum auction", "tariff", "no such word"]
         kinds = ["regulator", "research"]
-        first = add_topic(database, "New path", keywords, kinds, "x")
-        with database:
-            second = database.execute(
-                "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
-                " VALUES('Old path', ?, ?, 'x', ?)",
-                (json.dumps(keywords), json.dumps(kinds), base.isoformat()),
-            ).lastrowid
-        assert second is not None
-        for story_id in range(1, 2001):
-            match_story(database, story_id)
+        stored: list[tuple[int, int, list[str], list[str]]] = []
+        for i in range(1, 401):
+            title = [WORDS[i % 8], WORDS[(i * 3 + 1) % 8]]
+            summary = [WORDS[(i * 5 + 2) % 8], WORDS[(i * 7 + 3) % 8]]
+            kind_index = i % 3
+            stored.append((i, kind_index, title, summary))
+            add_story(
+                database,
+                kind_index + 1,
+                Entry(" ".join(title), f"https://s{kind_index}.org/{i}", base, " ".join(summary)),
+                base,
+            )
+        by_hand = {
+            story
+            for story, kind_index, title, summary in stored
+            if KIND_NAMES[kind_index] in kinds
+            and any(
+                phrase_in(keyword.split(), tokens)
+                for keyword in keywords
+                for tokens in (title, summary)
+            )
+        }
+        first_keyword_only = {
+            story
+            for story, kind_index, title, summary in stored
+            if KIND_NAMES[kind_index] in kinds and "merger" in title + summary
+        }
+        every_allowed = {s for s, kind_index, _, _ in stored if KIND_NAMES[kind_index] in kinds}
+        # The data can tell a rule from a shortcut: each keyword adds stories, the kinds exclude some.
+        assert first_keyword_only < by_hand < every_allowed
 
         def linked(topic_id: int) -> set[int]:
             return {
@@ -199,8 +228,20 @@ def test_add_topic_links_exactly_what_the_per_story_path_links(tmp_path: Path) -
                 )
             }
 
-        assert linked(first) == linked(second)
-        assert 0 < len(linked(first)) < 2000
+        with database:
+            old = database.execute(
+                "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
+                " VALUES('Old path', ?, ?, 'x', ?)",
+                (json.dumps(keywords), json.dumps(kinds), base.isoformat()),
+            ).lastrowid
+        assert old is not None
+        new = add_topic(database, "New path", keywords, kinds, "x")
+        assert linked(new) == by_hand
+        assert linked(old) == set()
+        for story_id in range(1, 401):
+            match_story(database, story_id)
+        assert linked(old) == by_hand
+        assert linked(new) == by_hand
     finally:
         database.close()
 
@@ -292,6 +333,7 @@ BAD_CALLS: list[Callable[[Any], object]] = [
     lambda db: follow(db, "u" * 61, 1),
     lambda db: add_topic(db, untyped(5), ["k"], [], "ak"),
     lambda db: add_topic(db, "T", "keyword", [], "ak"),
+    lambda db: add_topic(db, "T", ["k"], ["x" * 100], "ak"),
     lambda db: add_topic(db, "T", [untyped(5)], [], "ak"),
     lambda db: add_topic(db, "T", ["k"], untyped("news"), "ak"),
     lambda db: add_topic(db, "T", ["k"], [], untyped(None)),
@@ -304,6 +346,13 @@ BAD_CALLS: list[Callable[[Any], object]] = [
     lambda db: match_story(db, 2**63),
     lambda db: match_story(db, untyped("1")),
     lambda db: list_topics(db, untyped(None)),
+    lambda db: follow(db, "Eve ", 1),
+    lambda db: follow(db, "", 1),
+    lambda db: unfollow(db, "E\u202eve", 1),
+    lambda db: list_topics(db, "A  B"),
+    lambda db: add_topic(db, "T", ["k"], [], "e\u0301ve"),
+    lambda db: add_topic(db, "T", ["k"], [], ""),
+    lambda db: add_topic(db, "T", ["k"], [], "\u3164"),
 ]
 
 
@@ -330,3 +379,189 @@ def test_a_topic_name_at_the_limit_is_accepted_and_a_duplicate_is_refused(
 def test_a_blank_topic_name_is_refused(db_two_sources: sqlite3.Connection) -> None:
     with pytest.raises(StoreError, match="must not be empty"):
         add_topic(db_two_sources, "   ", ["k"], [], "ak")
+
+
+# R33: topic text is clean text (A5), capped (A7), and errors do not echo input (A3).
+
+UNCLEAN_TEXT = [
+    "Competition\u200b",
+    " Competition",
+    "Competition ",
+    "Compe\u00adtition",
+    "\x1b[2J\x1b[31mCompetition",
+    "Line one\r\nLine two",
+    "\u202eecnaniF",
+    "Nul\x00name",
+    "a  b",
+    "e\u0301",
+    "\u3164",
+    "\ufe0f",
+    "a" + "\u0316" * 9,
+]
+
+
+@pytest.mark.parametrize("text", UNCLEAN_TEXT)
+def test_a_topic_name_that_is_not_clean_text_is_refused(
+    db_two_sources: sqlite3.Connection, text: str
+) -> None:
+    with pytest.raises(StoreError):
+        add_topic(db_two_sources, text, ["k"], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+
+
+@pytest.mark.parametrize("text", UNCLEAN_TEXT)
+def test_a_keyword_that_is_not_clean_text_is_refused(
+    db_two_sources: sqlite3.Connection, text: str
+) -> None:
+    with pytest.raises(StoreError):
+        add_topic(db_two_sources, "T", ["fine", text], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+
+
+@pytest.mark.parametrize("text", ["Competition", "M&A review", "\u65e5\u672c", "\u00e9ve", "a-b"])
+def test_clean_text_is_stored_exactly_as_given(
+    db_two_sources: sqlite3.Connection, text: str
+) -> None:
+    add_topic(db_two_sources, text, [text], [], "ak")
+    assert rows(db_two_sources, "SELECT name, keywords FROM topics") == [(text, json.dumps([text]))]
+
+
+def test_the_keyword_limit_is_sixty_characters(db_two_sources: sqlite3.Connection) -> None:
+    add_topic(db_two_sources, "At the limit", ["k" * 60], [], "ak")
+    with pytest.raises(StoreError):
+        add_topic(db_two_sources, "Over", ["k" * 61], [], "ak")
+
+
+def test_a_topic_holds_at_most_sixty_keywords(db_two_sources: sqlite3.Connection) -> None:
+    add_topic(db_two_sources, "Sixty", [f"word{i}" for i in range(60)], [], "ak")
+    with pytest.raises(StoreError, match="at most 60 keywords"):
+        add_topic(db_two_sources, "Sixty one", [f"word{i}" for i in range(61)], [], "ak")
+    with pytest.raises(StoreError, match="at most 60 keywords"):
+        add_topic(db_two_sources, "Huge", [f"w{i}" for i in range(100_000)], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(1,)]
+
+
+def test_there_are_at_most_two_hundred_topics(db_two_sources: sqlite3.Connection) -> None:
+    for number in range(200):
+        add_topic(db_two_sources, f"Topic {number}", ["k"], [], "ak")
+    with pytest.raises(StoreError, match="at most 200 topics"):
+        add_topic(db_two_sources, "One too many", ["k"], [], "ak")
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(200,)]
+
+
+HOSTILE = "\x1b[2J\r\nX-Injected: 1\u202e\x00"
+BIG = 1_000_000
+
+ECHO_CALLS: list[Callable[[Any], object]] = [
+    lambda db: add_topic(db, "T1", ["k" * BIG], [], "ak"),
+    lambda db: add_topic(db, "T2", [HOSTILE * 50_000], [], "ak"),
+    lambda db: add_topic(db, "T3", ["k"], ["x" * BIG], "ak"),
+    lambda db: add_topic(db, "T4", ["k"], [HOSTILE], "ak"),
+    lambda db: add_topic(db, "T5", ["k"], ["blog"], "ak"),
+    lambda db: add_topic(db, "n" * BIG, ["k"], [], "ak"),
+    lambda db: add_topic(db, HOSTILE, ["k"], [], "ak"),
+    lambda db: add_topic(db, "T6", [HOSTILE], [], "ak"),
+    lambda db: add_topic(db, "Base", ["k"], [], "ak"),
+    lambda db: follow(db, "u" * BIG, 1),
+    lambda db: list_topics(db, HOSTILE * 1000),
+    lambda db: unfollow(db, "ak", 2**62),
+    lambda db: match_story(db, 2**80),
+]
+
+
+@pytest.mark.parametrize("call", ECHO_CALLS)
+def test_an_error_text_does_not_grow_with_the_input(
+    db_two_sources: sqlite3.Connection, call: Callable[[Any], object]
+) -> None:
+    add_topic(db_two_sources, "Base", ["review"], [], "ak")
+    with pytest.raises(StoreError) as caught:
+        call(db_two_sources)
+    text = str(caught.value)
+    assert len(text) < 200
+    assert "k" * 20 not in text and "X-Injected" not in text and "\x1b" not in text
+
+
+# Transactions, follows and listing (Q3, Q4).
+
+
+def test_a_topic_and_its_links_are_one_transaction(db_two_sources: sqlite3.Connection) -> None:
+    add_story(db_two_sources, 1, Entry("Authority review", "https://a.org/1", T0, ""), T0)
+    db_two_sources.execute(
+        "CREATE TEMP TRIGGER refuse_links BEFORE INSERT ON topic_stories"
+        " BEGIN SELECT RAISE(ABORT, 'link refused'); END"
+    )
+    with pytest.raises(sqlite3.DatabaseError, match="link refused"):
+        add_topic(db_two_sources, "Competition", ["review"], [], "ak")
+    assert not db_two_sources.in_transaction
+    assert rows(db_two_sources, "SELECT count(*) FROM topics") == [(0,)]
+    db_two_sources.execute("DROP TRIGGER refuse_links")
+    assert add_topic(db_two_sources, "Competition", ["review"], [], "ak") == 1
+
+
+def test_unfollow_refuses_a_missing_topic_and_writes_nothing(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    with pytest.raises(StoreError, match="no topic with id 999"):
+        unfollow(db_two_sources, "ak", 999)
+    assert not db_two_sources.in_transaction
+
+
+def test_unfollow_removes_only_that_users_follow_of_that_topic(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    one = add_topic(db_two_sources, "One", ["review"], [], "ak")
+    two = add_topic(db_two_sources, "Two", ["review"], [], "ak")
+    for user, topic in [("ak", one), ("ml", one), ("ak", two)]:
+        follow(db_two_sources, user, topic)
+    unfollow(db_two_sources, "ak", one)
+    assert rows(db_two_sources, "SELECT user_name, topic_id FROM topic_follows ORDER BY 1, 2") == [
+        ("ak", two),
+        ("ml", one),
+    ]
+
+
+def test_list_topics_gives_every_topic_in_id_order_with_its_follow_and_story_count(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_story(db_two_sources, 1, Entry("Merger review", "https://a.org/1", T0, ""), T0)
+    add_story(db_two_sources, 2, Entry("Merger remedy", "https://b.org/1", T0, ""), T0)
+    add_story(db_two_sources, 2, Entry("Spectrum auction", "https://b.org/2", T0, ""), T0)
+    first = add_topic(db_two_sources, "Merger", ["merger"], [], "ak")
+    second = add_topic(db_two_sources, "Spectrum", ["spectrum"], [], "ak")
+    third = add_topic(db_two_sources, "Nothing", ["absent"], [], "ak")
+    follow(db_two_sources, "ml", second)
+    got = [tuple(r) for r in list_topics(db_two_sources, "ml")]
+    assert got == [
+        (first, "Merger", 0, 2),
+        (second, "Spectrum", 1, 1),
+        (third, "Nothing", 0, 0),
+    ]
+
+
+def test_match_story_gives_the_topic_ids_in_ascending_order(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_story(db_two_sources, 1, Entry("Merger review", "https://a.org/1", T0, ""), T0)
+    low = add_topic(db_two_sources, "Low", ["review"], [], "ak")
+    high = add_topic(db_two_sources, "High", ["merger"], [], "ak")
+    assert match_story(db_two_sources, 1) == [low, high]
+
+
+def test_a_long_list_of_kinds_is_accepted_and_filters_like_the_short_one(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_story(db_two_sources, 1, Entry("Regulator review", "https://a.org/1", T0, ""), T0)
+    add_story(db_two_sources, 2, Entry("News review", "https://b.org/1", T0, ""), T0)
+    tid = add_topic(db_two_sources, "Many", ["review"], ["regulator"] * 1000, "ak")
+    assert rows(db_two_sources, "SELECT story_id FROM topic_stories WHERE topic_id=?", tid) == [
+        (1,)
+    ]
+
+
+def test_the_duplicate_name_error_does_not_repeat_a_long_name(
+    db_two_sources: sqlite3.Connection,
+) -> None:
+    add_topic(db_two_sources, "n" * 200, ["k"], [], "ak")
+    with pytest.raises(StoreError) as caught:
+        add_topic(db_two_sources, "n" * 200, ["j"], [], "ak")
+    assert str(caught.value) == "a topic with that name already exists"

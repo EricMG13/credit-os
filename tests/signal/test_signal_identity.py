@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import tempfile
+import unicodedata
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -17,8 +18,10 @@ from credit_os.signal.identity import (
     IdentityError,
     User,
     clean_name,
+    cleaned,
     cookie_for,
     current_user,
+    require_name,
 )
 from credit_os.signal.store import StoreError, add_user, open_db
 
@@ -79,7 +82,7 @@ def test_cookie_attributes() -> None:
 
 
 def test_clean_name_drops_invisible_characters_before_composing() -> None:
-    raw = "e\u200b́"
+    raw = "e\u200b\u0301"
     assert clean_name(raw) == "é"
     assert clean_name(clean_name(raw)) == clean_name(raw)
 
@@ -115,18 +118,129 @@ def test_any_cookie_header_is_safe(header: str) -> None:
         assert user is None or (0 < len(user.name) <= 60 and user.role == "reader")
 
 
-# Departures from the predecessor (S3-03, R15).
+# Departures from the predecessor (S3-03, R15, R33).
+
+# Default_Ignorable_Code_Point ranges (Unicode 17) plus U+2800, entered by hand: characters a
+# renderer draws as nothing.
+IGNORABLE_RANGES = [
+    ("\u00ad", "\u00ad"),
+    ("\u034f", "\u034f"),
+    ("\u061c", "\u061c"),
+    ("\u115f", "\u1160"),
+    ("\u17b4", "\u17b5"),
+    ("\u180b", "\u180f"),
+    ("\u200b", "\u200f"),
+    ("\u202a", "\u202e"),
+    ("\u2060", "\u206f"),
+    ("\u2800", "\u2800"),
+    ("\u3164", "\u3164"),
+    ("\ufe00", "\ufe0f"),
+    ("\ufeff", "\ufeff"),
+    ("\uffa0", "\uffa0"),
+    ("\ufff0", "\ufff8"),
+    ("\U0001bca0", "\U0001bca3"),
+    ("\U0001d173", "\U0001d17a"),
+    ("\U000e0000", "\U000e0fff"),
+]
 
 
-@pytest.mark.parametrize("blank", ["ㅤ", "͏", "️", "⠀"])
-def test_look_alike_blank_characters_are_dropped(blank: str) -> None:
-    assert clean_name("A" + blank + "B") == "AB"
+@pytest.mark.parametrize("first,last", IGNORABLE_RANGES)
+def test_every_ignorable_character_is_dropped(first: str, last: str) -> None:
+    for code in range(ord(first), ord(last) + 1):
+        blank = chr(code)
+        assert clean_name("A" + blank + "B") == "AB", hex(code)
+        with pytest.raises(IdentityError):
+            clean_name(blank * 3)
+
+
+@pytest.mark.parametrize(
+    "kept",
+    [
+        *("\u00ac", "\u00ae", "\u034e", "\u0350", "\u061b", "\u061d", "\u115e", "\u1161"),
+        *("\u17b3", "\u17b6", "\u180a", "\u1810", "\u2010", "\u2070", "\u27ff", "\u2801"),
+        *("\u3163", "\u3165", "\ufe10", "\uffa1", "\U0001bc9f", "\U0001d172", "\U0001d17b"),
+        *("\U000e1000",),
+    ],
+)
+def test_characters_next_to_the_ignorable_ranges_are_kept(kept: str) -> None:
+    assert clean_name("A" + kept + "B") == "A" + kept + "B"
+
+
+@pytest.mark.parametrize("fmt", ["\u0600", "\u0605", "\u06dd", "\u070f", "\ufff9", "\ufffb"])
+def test_format_characters_outside_the_ignorable_ranges_are_dropped(fmt: str) -> None:
+    assert clean_name("A" + fmt + "B") == "AB"
     with pytest.raises(IdentityError):
-        clean_name(blank * 3)
+        clean_name(fmt * 3)
 
 
 def test_a_name_of_blanks_cannot_become_a_user(db: sqlite3.Connection) -> None:
     assert current_user(db, "signal_name=%E3%85%A4%E2%A0%80") is None
+    assert current_user(db, "signal_name=%EF%B8%80%E1%85%9F") is None
+
+
+@pytest.mark.parametrize("mark", ["\u0316", "\u0903", "\u0489"])
+def test_a_run_of_marks_is_cut_to_eight(mark: str) -> None:
+    assert clean_name("a" + mark * 8) == "a" + mark * 8
+    assert clean_name("a" + mark * 9) == "a" + mark * 8
+    assert clean_name("a" + mark * 59) == "a" + mark * 8
+    assert clean_name("a" + mark * 9 + "b" + mark * 9) == "a" + mark * 8 + "b" + mark * 8
+
+
+def test_marks_that_alternate_form_one_run() -> None:
+    assert clean_name("a" + "\u0316\u0489" * 40) == "a" + "\u0316\u0489" * 4
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["\u0301" * 60, "\u0301", "\u0489" * 3, "\u0301 \u0903", "\u0301 " * 30 + "x"],
+)
+def test_a_name_with_no_letter_under_its_marks_is_empty(raw: str) -> None:
+    with pytest.raises(IdentityError):
+        clean_name(raw)
+
+
+@pytest.mark.parametrize("raw", ["\u0301" * 60, "\u0301", "\u0489 \u0903", "\u3164"])
+def test_cleaned_text_with_no_letter_under_its_marks_is_empty(raw: str) -> None:
+    assert cleaned(raw) == ""
+
+
+def test_a_name_of_marks_cannot_become_a_user(db: sqlite3.Connection) -> None:
+    assert current_user(db, "signal_name=%CC%81%CC%81") is None
+
+
+def test_source_and_test_write_invisible_characters_as_escapes() -> None:
+    root = Path(__file__).resolve().parents[2]
+    paths = [root / "src/credit_os/signal/identity.py", Path(__file__).resolve()]
+    for path in paths:
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for ch in line:
+                hidden = unicodedata.category(ch) in ("Mn", "Mc", "Me", "Cc", "Cf", "Co", "Zs")
+                in_range = any(a <= ch <= b for a, b in IGNORABLE_RANGES)
+                assert ch == " " or not (ord(ch) > 126 and (hidden or in_range)), (
+                    f"{path.name}:{number} holds U+{ord(ch):04X}"
+                )
+
+
+@pytest.mark.parametrize("name", ["A. Kovac", "Eve", "x" * 60, "\u00e9ve", "<b>Eve</b>"])
+def test_require_name_returns_a_clean_name_unchanged(name: str) -> None:
+    assert require_name(name) == name
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["", "   ", "Eve ", " Eve", "E\u202eve", "Eve\x00", "Eve\r\nBob", "A  B", "e\u0301ve"]
+    + ["x" * 61, "Eve\ud800", "\u3164", "a" + "\u0316" * 9, "\u0301", "A\tB"],
+)
+def test_require_name_refuses_a_name_clean_name_would_change_or_refuse(name: str) -> None:
+    with pytest.raises(StoreError) as caught:
+        require_name(name)
+    assert len(str(caught.value)) < 100
+
+
+@pytest.mark.parametrize("bad", [None, 5, b"Eve", ["Eve"]])
+def test_require_name_refuses_what_is_not_text(bad: Any) -> None:
+    with pytest.raises(StoreError):
+        require_name(bad)
 
 
 @pytest.mark.parametrize("bad", [None, 5, b"Eve", ["Eve"]])
@@ -137,7 +251,7 @@ def test_a_name_that_is_not_text_is_a_store_error(bad: Any) -> None:
         cookie_for(bad)
 
 
-@pytest.mark.parametrize("bad", [5, b"signal_name=Eve", ["signal_name=Eve"]])
+@pytest.mark.parametrize("bad", [5, 0, b"", [], b"signal_name=Eve", ["signal_name=Eve"]])
 def test_a_cookie_header_that_is_not_text_is_a_store_error(
     db: sqlite3.Connection, bad: Any
 ) -> None:
@@ -147,3 +261,43 @@ def test_a_cookie_header_that_is_not_text_is_a_store_error(
 
 def test_an_empty_cookie_header_is_no_user(db: sqlite3.Connection) -> None:
     assert current_user(db, "") is None
+
+
+# Cookie headers as browsers send them (Q1).
+
+COOKIE_CASES = [
+    ("a=1; signal_name=Eve", "Eve"),
+    ("a=1;signal_name=Eve; b=2", "Eve"),
+    ("a=1;   signal_name =Eve", "Eve"),
+    ("signal_name=First; signal_name=Second", "First"),
+    ("signal_name; signal_name=Eve", "Eve"),
+    ("signal_namex=Bob; signal_name=Eve", "Eve"),
+    ('signal_name= "Al" ', "Al"),
+    ("signal_name=  Eve  ", "Eve"),
+    ('signal_name="', '"'),
+    ('signal_name=""', None),
+    ("signal_name=%22Al%22", '"Al"'),
+    ("signal_name=Eve%ff", "Eve\ufffd"),
+    ("signal_name=%C3%A9ve", "\u00e9ve"),
+    ("signal_name=a=b", "a=b"),
+    ("x=signal_name=Eve", None),
+    ("signal_name", None),
+    (";;;", None),
+]
+
+
+@pytest.mark.parametrize("header,want", COOKIE_CASES)
+def test_cookie_headers_are_read_the_way_browsers_send_them(
+    db: sqlite3.Connection, header: str, want: str | None
+) -> None:
+    user = current_user(db, header)
+    assert (user.name if user else None) == want
+
+
+def test_a_name_cut_at_the_limit_loses_the_space_the_cut_left_at_its_end() -> None:
+    assert clean_name("a" * 59 + " b") == "a" * 59
+
+
+def test_the_set_cookie_value_is_exactly_this() -> None:
+    assert cookie_for("x") == ("signal_name=x; Path=/; Max-Age=31536000; SameSite=Strict; HttpOnly")
+    assert cookie_for("a/b c").startswith("signal_name=a%2Fb%20c; ")

@@ -603,8 +603,20 @@ def test_a_database_file_that_already_exists_keeps_its_mode(tmp_path: Path) -> N
 
 def test_require_id_refuses_an_unholdable_id_with_the_kind_named() -> None:
     require_id(1, "source")
-    with pytest.raises(StoreError, match=r"^no widget with id 9223372036854775808$"):
+    require_id(2**63 - 1, "source")
+    require_id(-(2**63), "source")
+    with pytest.raises(StoreError, match=r"^no widget with that id$"):
         require_id(2**63, "widget")
+    with pytest.raises(StoreError, match=r"^no widget with that id$"):
+        require_id(-(2**63) - 1, "widget")
+
+
+@pytest.mark.parametrize("digits", [4_000, 4_301, 5_000])
+def test_require_id_refuses_a_huge_id_without_formatting_it(digits: int) -> None:
+    for number in (10 ** (digits - 1), -(10 ** (digits - 1))):
+        with pytest.raises(StoreError) as caught:
+            require_id(number, "widget")
+        assert str(caught.value) == "no widget with that id"
 
 
 def test_new_row_id_returns_the_insert_id_and_refuses_a_missing_one(tmp_path: Path) -> None:

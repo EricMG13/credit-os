@@ -365,9 +365,11 @@ def _require_name(name: str) -> None:
 
 
 def require_id(number: int, what: str) -> None:
-    """Refuse an id SQLite cannot hold: no row of this kind has it."""
+    """Refuse an id SQLite cannot hold: no row of this kind has it.
+
+    The number is not in the text: formatting an int of over 4,300 digits raises ValueError."""
     if not in_range(number):
-        raise StoreError(f"no {what} with id {number}")
+        raise StoreError(f"no {what} with that id")
 
 
 def new_row_id(cur: sqlite3.Cursor) -> int:

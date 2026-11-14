@@ -7,19 +7,21 @@ import sqlite3
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from credit_os.signal.identity import MAX_NAME as MAX_USER_NAME
+from credit_os.signal.identity import cleaned, require_name
 from credit_os.signal.store import (
     KINDS,
     StoreError,
     new_row_id,
     require_id,
-    require_text,
     utc_text,
     write_transaction,
 )
 
 MAX_KEYWORD = 60
+MAX_KEYWORDS = 60
 MAX_TOPIC_NAME = 200
+MAX_TOPICS = 200
+_MAX_KIND = max(len(kind) for kind in KINDS)
 
 
 def fts_phrase(text: str) -> str:
@@ -28,10 +30,12 @@ def fts_phrase(text: str) -> str:
 
 
 def _text(value: object, what: str, limit: int) -> str:
-    """A string SQLite can encode and no longer than `limit`; anything else is a StoreError."""
+    """A string no longer than `limit`; anything else is a StoreError.
+
+    A lone surrogate, which SQLite cannot encode, never gets past the callers: clean text and
+    names drop it, and a kind with one is not a kind."""
     if not isinstance(value, str):
         raise StoreError(f"{what} must be text")
-    require_text(value)
     if len(value) > limit:
         raise StoreError(f"{what} must be at most {limit} characters")
     return value
@@ -44,28 +48,43 @@ def _id(number: object, what: str) -> int:
     return number
 
 
-def _texts(values: object, what: str) -> list[str]:
-    """A list or tuple of strings; a bare string is not a list of one."""
+def _clean_text(value: object, what: str, limit: int) -> str:
+    """`value` itself when it is clean text: what `identity.cleaned` returns unchanged.
+
+    Refused, not repaired: the text a user typed is the text stored and shown. The length is
+    checked first, so the cleaning never runs on a long input."""
+    text = _text(value, what, limit)
+    if not cleaned(text):
+        raise StoreError(f"{what} must not be empty")
+    if cleaned(text) != text:
+        raise StoreError(
+            f"{what} must be clean text: no control or invisible characters, one space between"
+            " words, none at the ends, composed form"
+        )
+    return text
+
+
+def _listed(values: object, what: str) -> Sequence[object]:
+    """A list or tuple; a bare string is not a list of one."""
     if not isinstance(values, (list, tuple)):
         raise StoreError(f"{what} must be a list of text")
-    return [_text(value, what, 2**31) for value in values]
+    return values
 
 
-def _clean_keywords(keywords: Sequence[str]) -> list[str]:
-    cleaned = [keyword.strip() for keyword in _texts(keywords, "keywords")]
-    if not cleaned:
+def _clean_keywords(keywords: object) -> list[str]:
+    listed = _listed(keywords, "keywords")
+    if not listed:
         raise StoreError("a topic needs at least one keyword")
-    for keyword in cleaned:
-        if not 1 <= len(keyword) <= MAX_KEYWORD:
-            raise StoreError(f"a keyword must be 1 to {MAX_KEYWORD} characters, got {keyword!r}")
-    return cleaned
+    if len(listed) > MAX_KEYWORDS:
+        raise StoreError(f"a topic holds at most {MAX_KEYWORDS} keywords")
+    return [_clean_text(keyword, "keyword", MAX_KEYWORD) for keyword in listed]
 
 
-def _clean_kinds(kinds: Sequence[str]) -> list[str]:
-    texts = _texts(kinds, "kinds")
+def _clean_kinds(kinds: object) -> list[str]:
+    texts = [_text(kind, "kind", _MAX_KIND) for kind in _listed(kinds, "kinds")]
     for kind in texts:
         if kind not in KINDS:
-            raise StoreError(f"invalid kind {kind!r}; expected one of {', '.join(KINDS)}")
+            raise StoreError(f"invalid kind; expected one of {', '.join(KINDS)}")
     return texts
 
 
@@ -136,22 +155,23 @@ def add_topic(
     created_by: str,
 ) -> int:
     """Create a topic and match every existing story against it before returning."""
-    if not _text(name, "name", MAX_TOPIC_NAME).strip():
-        raise StoreError("name must not be empty")
-    _text(created_by, "created_by", MAX_USER_NAME)
-    cleaned = _clean_keywords(keywords)
+    _clean_text(name, "name", MAX_TOPIC_NAME)
+    require_name(created_by)
+    words = _clean_keywords(keywords)
     allowed = _clean_kinds(kinds)
     with write_transaction(db):
+        if db.execute("SELECT count(*) FROM topics").fetchone()[0] >= MAX_TOPICS:
+            raise StoreError(f"at most {MAX_TOPICS} topics are allowed")
         try:
             cur = db.execute(
                 "INSERT INTO topics(name, keywords, kinds, created_by, created_at)"
                 " VALUES(?, ?, ?, ?, ?)",
-                (name, json.dumps(cleaned), json.dumps(allowed), created_by, utc_text(_now())),
+                (name, json.dumps(words), json.dumps(allowed), created_by, utc_text(_now())),
             )
         except sqlite3.IntegrityError as exc:
-            raise StoreError(f"topic {name!r} already exists") from exc
+            raise StoreError("a topic with that name already exists") from exc
         topic_id = new_row_id(cur)
-        _link_existing(db, topic_id, cleaned, allowed)
+        _link_existing(db, topic_id, words, allowed)
     return topic_id
 
 
@@ -165,7 +185,7 @@ def _require_topic(db: sqlite3.Connection, topic_id: int) -> None:
 
 
 def follow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
-    _text(user_name, "user name", MAX_USER_NAME)
+    require_name(user_name)
     _id(topic_id, "topic")
     with write_transaction(db):
         _require_topic(db, topic_id)
@@ -176,7 +196,7 @@ def follow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
 
 
 def unfollow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
-    _text(user_name, "user name", MAX_USER_NAME)
+    require_name(user_name)
     _id(topic_id, "topic")
     with write_transaction(db):
         _require_topic(db, topic_id)
@@ -187,7 +207,7 @@ def unfollow(db: sqlite3.Connection, user_name: str, topic_id: int) -> None:
 
 def list_topics(db: sqlite3.Connection, user_name: str) -> list[sqlite3.Row]:
     """Every topic with whether `user_name` follows it and how many stories it holds."""
-    _text(user_name, "user name", MAX_USER_NAME)
+    require_name(user_name)
     return db.execute(
         "SELECT t.id, t.name,"
         " EXISTS(SELECT 1 FROM topic_follows f WHERE f.topic_id = t.id AND f.user_name = ?)"
