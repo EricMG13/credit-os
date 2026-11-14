@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { assetProblems } from "./assets.mjs";
+import { assetProblems, fontProblems } from "./assets.mjs";
 
 const roots = [];
 
@@ -66,3 +66,30 @@ test("a page without a stylesheet is a problem", () => {
   const root = page(SCRIPT, { "assets/a.js": "1" });
   assert.match(assetProblems(root).join("\n"), /no stylesheet/);
 });
+
+function sheetWith(css, files = {}) {
+  const root = page(LINK + SCRIPT, { "assets/a.css": css, "assets/a.js": "1", ...files });
+  mkdirSync(path.join(root, "fonts"));
+  for (const [name, body] of Object.entries(files)) {
+    if (name.startsWith("fonts/")) writeFileSync(path.join(root, name), body);
+  }
+  return root;
+}
+
+test("a stylesheet with an existing relative font has no font problems", () => {
+  const root = sheetWith("@font-face{src:url(../fonts/a.woff2)}", {});
+  writeFileSync(path.join(root, "fonts", "a.woff2"), "w");
+  assert.deepEqual(fontProblems(root), []);
+});
+
+test("a stylesheet url to a missing font is a problem", () => {
+  const root = sheetWith('@font-face{src:url("../fonts/gone.woff2")}');
+  assert.match(fontProblems(root).join("\n"), /missing.*gone\.woff2/);
+});
+
+for (const bad of ["/fonts/a.woff2", "https://example.com/a.woff2", "data:font/woff2;base64,AA"]) {
+  test(`stylesheet url ${bad} is a problem`, () => {
+    const root = sheetWith(`@font-face{src:url(${bad})}`);
+    assert.match(fontProblems(root).join("\n"), /absolute or has a scheme/);
+  });
+}

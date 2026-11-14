@@ -59,5 +59,5 @@ def test_a_path_listed_twice_is_reported_once_as_a_duplicate(tmp_path: Path) -> 
 
 def test_the_real_fixtures_are_all_listed_and_match() -> None:
     entries = (FIXTURES / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
-    assert len(entries) == 27
+    assert len(entries) == 28
     assert problems(FIXTURES) == []

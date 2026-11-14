@@ -136,7 +136,9 @@ def read_blocks(scan: Scan, first: int = 1, last: int | None = None) -> tuple[Bl
             number = reader.table(number, stop)
         elif shown.lstrip().startswith("|"):
             raise HandoffError(
-                number, "a | line indented more than three spaces is not a table row"
+                number,
+                "a line starting with | after a tab, a no-break space or more than three spaces "
+                "is not a table row",
             )
         else:
             reader.text(number, shown)
