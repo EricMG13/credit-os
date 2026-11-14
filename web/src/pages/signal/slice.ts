@@ -394,6 +394,9 @@ const feed: Reader<SignalFeed> = (v, path) => {
       if (full !== undefined) {
         return bad(`${path}.${where}.${full[0]}[0]`, "no entries while the feed is loading");
       }
+      if (view.waiting !== null) {
+        return bad(`${path}.${where}.waiting`, "no new-story pill while the feed is loading");
+      }
     }
   }
   return got;
