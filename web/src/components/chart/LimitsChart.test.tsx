@@ -66,6 +66,10 @@ const base = {
   table: TABLE,
 } satisfies Props;
 
+function first(): LimitColumn {
+  return COLUMNS[0] as LimitColumn;
+}
+
 function column(container: HTMLElement, label: string) {
   const el = [...container.querySelectorAll("[data-column]")].find(
     (c) => c.getAttribute("data-column") === label,
@@ -143,6 +147,38 @@ describe("LimitsChart chart side", () => {
     expect(bar?.textContent).toContain("limit n.a.");
   });
 
+  it("draws the plot 276px high: the mock's 240px track under 36px of label headroom", () => {
+    const { container } = render(<LimitsChart {...base} />);
+    expect(container.querySelector("[data-plot]")).toHaveClass("h-[276px]");
+  });
+
+  it("places 'limit n.a.' at the mock's 86% of the track when the bar is clear of it", () => {
+    const { container } = render(<LimitsChart {...base} />);
+    const col = column(container, "United States");
+    const note = col.querySelector("[data-limit-missing]");
+    expect(note?.textContent).toContain("limit n.a.");
+    expect(note?.closest("[data-limit-at]")).toHaveAttribute("data-limit-at", "86");
+    expect(col.querySelector("[data-bar]")?.contains(note ?? null)).toBe(false);
+  });
+
+  it("draws a zero exposure as a minimal mark, as the other kinds do, and a missing one as none", () => {
+    const zero: LimitColumn = { ...first(), exposure: 0, exposureText: "0.0%" };
+    const table = {
+      ...TABLE,
+      rows: [{ label: "Single issuer", cells: ["0.0%", "3.0%"] }, ...TABLE.rows.slice(1)],
+    };
+    const { container } = render(
+      <LimitsChart {...base} columns={[zero, ...COLUMNS.slice(1)]} table={table} />,
+    );
+    const bar = column(container, "Single issuer").querySelector("[data-bar]");
+    expect(bar?.getAttribute("data-height")).toBe("0");
+    expect(bar?.className).toContain("min-h-0.5");
+    expect(bar?.textContent).toBe("0.0%");
+    const missing = column(container, "Subordinated debt");
+    expect(missing.querySelector("[data-bar]")).toBeNull();
+    expect(missing.textContent).toContain("n.a.");
+  });
+
   it("draws n.a. and no bar when the exposure is missing, and keeps the tick", () => {
     const { container } = render(<LimitsChart {...base} />);
     const col = column(container, "Subordinated debt");
@@ -156,6 +192,118 @@ describe("LimitsChart chart side", () => {
     expect(container.querySelector("[data-column] [tabindex], [data-column][tabindex]")).toBeNull();
     expect(screen.getByText("Aerospace and defence")).toBeInTheDocument();
     expect(screen.getByText(base.subtitle)).toBeInTheDocument();
+  });
+});
+
+/** One column on a 240 scale, so a position in px of the 240px track equals its value. */
+function drawn(exposure: number | null, limit: number | null, scaleMax = 240) {
+  const col: LimitColumn = {
+    label: "Edge",
+    exposure,
+    limit,
+    scaleMax,
+    exposureText: exposure === null ? null : `${String(exposure)}%`,
+    limitText: limit === null ? null : `limit ${String(limit)}%`,
+  };
+  const row: TableRowData = {
+    label: "Edge",
+    cells: [
+      exposure === null ? null : `${String(exposure)}%`,
+      limit === null ? null : `${String(limit)}%`,
+    ],
+  };
+  const { container } = render(
+    <LimitsChart {...base} columns={[col]} table={{ ...TABLE, rows: [row] }} />,
+  );
+  const el = column(container, "Edge");
+  return {
+    bar: el.querySelector<HTMLElement>("[data-bar]"),
+    tick: el.querySelector<HTMLElement>("[data-tick]"),
+    limitLabel: el.querySelector<HTMLElement>("[data-limit-label]"),
+    exposure: el.querySelector<HTMLElement>("[data-exposure]"),
+    el,
+  };
+}
+
+describe("LimitsChart labels never overlap", () => {
+  it("leaves the mock's placement alone for Rated single B (tick 21.9px above the bar)", () => {
+    const { container } = render(<LimitsChart {...base} />);
+    const col = column(container, "Rated single B");
+    expect(
+      col.querySelector("[data-tick]")?.contains(col.querySelector("[data-limit-label]")),
+    ).toBe(true);
+    expect(col.querySelector("[data-bar]")?.contains(col.querySelector("[data-exposure]"))).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    ["the tick 10px above the bar top (exposure 95% of limit)", 190, 200],
+    ["the tick 10px below the bar top (exposure 105% of limit)", 210, 200],
+    ["a full bar with the tick at 95%", 240, 228],
+    ["the tick 17px above the bar top (inside the band)", 100, 117],
+    ["the tick 13px below the bar top (inside the band)", 100, 87],
+  ])("stacks both labels above the higher mark for %s", (_n, exposure, limit) => {
+    const { bar, tick, limitLabel, exposure: label } = drawn(exposure, limit);
+    const holder = exposure >= limit ? bar : tick;
+    expect(holder?.contains(limitLabel)).toBe(true);
+    expect(holder?.contains(label)).toBe(true);
+    // One column: the exposure label directly above the mark, the limit label above it.
+    expect(label?.compareDocumentPosition(limitLabel as Node)).toBe(
+      Node.DOCUMENT_POSITION_PRECEDING,
+    );
+    expect(label?.parentElement).toBe(limitLabel?.parentElement);
+    // The tick carries no second label of its own.
+    expect(tick?.querySelectorAll("[data-limit-label]").length).toBe(holder === tick ? 1 : 0);
+  });
+
+  it.each([
+    ["the upper edge: the tick 18px above the bar top", 100, 118],
+    ["the lower edge: the tick 14px below the bar top", 100, 86],
+  ])("keeps the mock's placement at %s", (_n, exposure, limit) => {
+    const { bar, tick, limitLabel, exposure: label } = drawn(exposure, limit);
+    expect(tick?.contains(limitLabel)).toBe(true);
+    expect(bar?.contains(label)).toBe(true);
+  });
+});
+
+describe("LimitsChart 'limit n.a.' boundary", () => {
+  it("keeps it at 86% for a bar exactly 77% high", () => {
+    const { el, bar } = drawn(77, null, 100);
+    const note = el.querySelector("[data-limit-missing]");
+    expect(note?.closest("[data-limit-at]")).toHaveAttribute("data-limit-at", "86");
+    expect(bar?.contains(note ?? null)).toBe(false);
+  });
+
+  it("stacks it above the exposure label for a bar just above 77%", () => {
+    const { el, bar } = drawn(77.5, null, 100);
+    expect(el.querySelector("[data-limit-at]")).toBeNull();
+    expect(bar?.contains(el.querySelector("[data-limit-missing]"))).toBe(true);
+  });
+
+  it("draws n.a. and limit n.a. together, with no bar and no tick, when both are missing", () => {
+    const { el, bar, tick } = drawn(null, null);
+    expect(bar).toBeNull();
+    expect(tick).toBeNull();
+    expect(el.querySelector("[data-missing]")?.textContent).toContain("n.a.");
+    expect(el.querySelector("[data-missing] [data-limit-missing]")?.textContent).toContain("limit");
+  });
+});
+
+describe("LimitsChart limit with no exposure", () => {
+  it("stacks the limit label above n.a. for a tick 17px above the baseline", () => {
+    const { el, tick, limitLabel } = drawn(null, 17);
+    const missing = el.querySelector("[data-missing]");
+    expect(missing?.contains(limitLabel)).toBe(true);
+    expect(tick?.contains(limitLabel)).toBe(false);
+    expect(el.querySelectorAll("[data-limit-label]")).toHaveLength(1);
+    expect(missing?.firstElementChild).toBe(limitLabel);
+  });
+
+  it("keeps the label on the tick for a tick 18px above the baseline", () => {
+    const { el, tick, limitLabel } = drawn(null, 18);
+    expect(tick?.contains(limitLabel)).toBe(true);
+    expect(el.querySelector("[data-missing]")?.contains(limitLabel)).toBe(false);
   });
 });
 
@@ -182,6 +330,19 @@ describe("LimitsChart check", () => {
     bad([{ ...first, exposure: 9 }, ...COLUMNS.slice(1)]).toThrow(/scale/);
     bad([{ ...first, exposure: -1 }, ...COLUMNS.slice(1)]).toThrow(/zero or more/);
     bad([{ ...first, scaleMax: 0 }, ...COLUMNS.slice(1)]).toThrow(/scale/);
+  });
+  it("throws for a limit drawn with its word alone beside a table cell that is n.a.", () => {
+    const word = { ...first, limitText: "limit " };
+    const table = {
+      ...TABLE,
+      rows: [{ label: "Single issuer", cells: ["2.1%", null] }, ...TABLE.rows.slice(1)],
+    };
+    bad([word, ...COLUMNS.slice(1)], table).toThrow(
+      "column \"Single issuer\": the table's cells must be the column's texts",
+    );
+    bad([first, ...COLUMNS.slice(1)], table).toThrow(
+      "column \"Single issuer\": the table's cells must be the column's texts",
+    );
   });
   it("throws for repeated labels and a table that does not match the columns", () => {
     bad([first, first]).toThrow(/distinct/);

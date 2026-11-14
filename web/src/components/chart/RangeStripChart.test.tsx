@@ -219,4 +219,83 @@ describe("RangeStripChart with one marker (Portfolio fit)", () => {
     expect(rowOf("Spread over benchmark")).toHaveTextContent("n.a.");
     expect(legendTexts()).toEqual(["Range across holdings", "TransDigm"]);
   });
+
+  it("draws the value as text alone: no key glyph beside one marker's value or its n.a.", () => {
+    render(
+      <RangeStripChart title="T" rangeLabel="Range across holdings" rows={rows} table={table} />,
+    );
+    expect(document.querySelectorAll("[data-value] i")).toHaveLength(0);
+  });
+});
+
+describe("RangeStripChart key glyphs with two markers", () => {
+  it("draws a glyph beside each present value and none beside a missing one", () => {
+    const first = DRIVERS[0] as RangeRow;
+    const row = { ...first, markers: mk(8, null, "8.0%", null) };
+    const only = { head: DRIVER_TABLE.head, rows: DRIVER_TABLE.rows.slice(0, 1) };
+    render(
+      <RangeStripChart title="T" rangeLabel="Range over five years" rows={[row]} table={only} />,
+    );
+    const values = [...rowOf(first.label).querySelectorAll("[data-value]")];
+    expect(values.map((v) => v.querySelectorAll("i").length)).toEqual([1, 0]);
+  });
+});
+
+describe("RangeStripChart markers", () => {
+  const ui = (emphasised?: number) => (
+    <RangeStripChart
+      title="What drives each case"
+      rangeLabel="Range over five years"
+      rows={DRIVERS}
+      table={DRIVER_TABLE}
+      emphasised={emphasised}
+    />
+  );
+  const markers = (label: string) => [...rowOf(label).querySelectorAll("[data-marker]")];
+
+  it("rings every marker in the card surface, as the mock's 2px white ring, and fades none", () => {
+    render(ui());
+    for (const m of markers("EBITDA margin")) {
+      expect(m.className).toContain("ring-2");
+      expect(m.className).toContain("ring-surface-card");
+      expect(m.className).not.toMatch(/opacity/);
+    }
+  });
+
+  it("draws every marker the same size when no case is emphasised", () => {
+    render(ui());
+    expect(markers("EBITDA margin").map((m) => m.className.includes("w-1.5"))).toEqual([
+      false,
+      false,
+    ]);
+  });
+
+  it("makes the emphasised marker wider and taller in every row, and only that one", () => {
+    render(ui(1));
+    for (const row of DRIVERS.filter(
+      (r) => r.range !== null && r.markers.every((m) => m.value !== null),
+    )) {
+      const [first, second] = markers(row.label);
+      expect(first?.classList.contains("w-1")).toBe(true);
+      expect(first?.classList.contains("h-6")).toBe(true);
+      expect(second?.classList.contains("w-1.5")).toBe(true);
+      expect(second?.classList.contains("h-7")).toBe(true);
+    }
+  });
+
+  it("sets the other case's value text in the tertiary colour, and every value alike with no emphasis", () => {
+    const tone = () =>
+      [...rowOf("EBITDA margin").querySelectorAll("[data-value]")].map((v) =>
+        v.classList.contains("text-text-tertiary"),
+      );
+    const { unmount } = render(ui());
+    expect(tone()).toEqual([false, false]);
+    unmount();
+    render(ui(0));
+    expect(tone()).toEqual([false, true]);
+  });
+
+  it("throws on an emphasised position the rows have no marker at", () => {
+    expect(() => render(ui(2))).toThrow(/emphasised/);
+  });
 });
