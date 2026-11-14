@@ -13,7 +13,15 @@ const ITEMS = [
 ] as const;
 
 /** The slim icon rail and the page region on the canvas. */
-export function Shell({ current, children }: { current: Area; children: ReactNode }) {
+export function Shell({
+  current,
+  bleed = false,
+  children,
+}: {
+  current: Area;
+  bleed?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="flex h-screen bg-surface-canvas text-text-primary">
       <aside style={{ width: 68 }} className="flex h-full max-h-full max-w-full py-1 pl-1">
@@ -37,7 +45,7 @@ export function Shell({ current, children }: { current: Area; children: ReactNod
           </nav>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 overflow-y-auto p-8">{children}</main>
+      <main className={`min-w-0 flex-1 overflow-y-auto${bleed ? "" : " p-8"}`}>{children}</main>
     </div>
   );
 }
