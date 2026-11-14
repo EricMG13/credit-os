@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
 import { routes } from "./routes";
@@ -27,6 +27,14 @@ function renderHome(library: unknown) {
 /** The cards of the issuer grid, by issuer name. */
 const card = (name: string) => screen.getByRole("link", { name: new RegExp(name) });
 
+/** The hidden native select React Aria keeps beside each custom select: the testable control. */
+function pick(label: RegExp, value: string) {
+  const trigger = screen.getByRole("button", { name: label });
+  const select = trigger.closest("div")?.querySelector("select");
+  if (!select) throw new Error(`no select for ${String(label)}`);
+  fireEvent.change(select, { target: { value: `option:${value}` } });
+}
+
 describe("the /library route", () => {
   it("is declared once, titled Library", () => {
     expect(routes.map((r) => [r.path, r.title])).toEqual([["/library/home", "Library"]]);
@@ -38,6 +46,15 @@ describe("Library home, Cards side", () => {
     renderHome(fixture.slice);
     expect(screen.getByText("Five issuers, each opening on its latest finished run")).toBeVisible();
     expect(screen.getByRole("link", { name: "Start a run" })).toHaveAttribute("href", "#/run");
+  });
+
+  it("draws the filter bar: search, three selects, and no filter applied", () => {
+    renderHome(fixture.slice);
+    expect(screen.getByRole("textbox", { name: "Search issuers" })).toBeInTheDocument();
+    for (const name of ["Sector: All", "Pathway: All", "State: All"]) {
+      expect(screen.getByRole("button", { name: new RegExp(name) })).toBeInTheDocument();
+    }
+    expect(screen.getByText("No filter applied")).toBeInTheDocument();
   });
 
   it("draws a finished issuer as a card linking to its latest run's Overview", () => {
@@ -104,6 +121,113 @@ describe("Library home, Cards side", () => {
     expect(loading).toHaveAttribute("aria-busy", "true");
     expect(loading.tagName).not.toBe("A");
     expect(container.querySelector(".animate-pulse")).toBeNull();
+  });
+
+  it("exposes the delivered progress text and no computed percentage", () => {
+    renderHome(fixture.slice);
+    const bars = screen.getAllByRole("progressbar");
+    expect(bars).toHaveLength(5);
+    const halden = within(card("Halden Aerostructures")).getByRole("progressbar");
+    expect(halden).toHaveAccessibleName("12 of 13 modules");
+    expect(halden.parentElement?.textContent).toBe("12 of 13 modules");
+    for (const bar of bars) expect(bar.parentElement?.textContent).not.toMatch(/%/);
+  });
+
+  it("puts no audit material in any attribute, and only slug links in hrefs", () => {
+    const { container } = renderHome(fixture.slice);
+    const audit = /CP-\d|\b[0-9a-f]{12,}\b|\.(pdf|xlsx|md|json)\b|sha\d*[:-]|run[-_]?code/i;
+    for (const element of container.querySelectorAll("*")) {
+      for (const attr of Array.from(element.attributes)) {
+        if (attr.name !== "class" && attr.name !== "style") expect(attr.value).not.toMatch(audit);
+        if (attr.name === "href") {
+          expect(attr.value).toMatch(
+            /^#\/(run|library\/[a-z-]+\/(history|\d{4}-\d{2}-\d{2}\/overview))$/,
+          );
+        }
+      }
+    }
+  });
+
+  it("has no h1 of its own and no skipped heading level", () => {
+    renderHome(fixture.slice);
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+    expect(screen.getAllByRole("heading").every((h) => h.tagName === "H2")).toBe(true);
+  });
+  it("draws a card without a finished run as a link to the issuer's history", () => {
+    const slice = fresh();
+    slice.home.cards[3] = { ...slice.home.cards[3], href: null };
+    renderHome(slice);
+    expect(card("Ardenne Cable")).toHaveAttribute("href", "#/library/ardenne-cable/history");
+  });
+
+  it("draws no Cards or List toggle until the List side exists", () => {
+    renderHome(fixture.slice);
+    expect(screen.queryByRole("group", { name: "Layout" })).toBeNull();
+    expect(screen.queryByText("List")).toBeNull();
+  });
+
+  it("says the library data is missing when the data file has no library member", () => {
+    renderHome(undefined);
+    expect(screen.getByText("Library data is missing")).toBeVisible();
+  });
+
+  it("names the failing path when it is handed an invalid slice", () => {
+    const slice = fresh();
+    slice.home.cards[1] = { ...slice.home.cards[1], note: 7 };
+    renderHome(slice);
+    expect(screen.getByText(/home\.cards\[1\]\.note/)).toBeVisible();
+    expect(screen.queryByRole("link", { name: /Halden/ })).toBeNull();
+  });
+});
+
+describe("narrowing the cards", () => {
+  const shown = () =>
+    screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent)
+      .filter((name) => name !== "Loading issuer");
+
+  it("matches the search against names, ignoring case, and counts it as one filter", () => {
+    renderHome(fixture.slice);
+    fireEvent.change(screen.getByRole("textbox", { name: "Search issuers" }), {
+      target: { value: "haLDEN" },
+    });
+    expect(shown()).toEqual(["Halden Aerostructures"]);
+    expect(screen.getByText("1 filter applied")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Loading issuer")).toBeNull();
+  });
+
+  it("matches a select's option exactly", () => {
+    renderHome(fixture.slice);
+    pick(/Sector: All/, "Packaged food");
+    expect(shown()).toEqual(["Tessaly Foods"]);
+    pick(/Pathway/, "Monitoring update");
+    expect(shown()).toEqual(["Tessaly Foods"]);
+    expect(screen.getByText("2 filters applied")).toBeInTheDocument();
+    pick(/State/, "Failed");
+    expect(screen.getByText("No issuer matches")).toBeInTheDocument();
+    expect(screen.getByText("3 filters applied")).toBeInTheDocument();
+  });
+
+  it("filters by run state", () => {
+    renderHome(fixture.slice);
+    pick(/State: All/, "Capped");
+    expect(shown()).toEqual(["Lumora Health"]);
+  });
+
+  it("says no issuer matches and clears every filter from the empty state", () => {
+    renderHome(fixture.slice);
+    fireEvent.change(screen.getByRole("textbox", { name: "Search issuers" }), {
+      target: { value: "zzz" },
+    });
+    pick(/Sector: All/, "Packaged food");
+    expect(screen.getByText("No issuer matches")).toBeInTheDocument();
+    expect(screen.getByText("2 filters applied")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(shown()).toHaveLength(5);
+    expect(screen.getByText("No filter applied")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Search issuers" })).toHaveValue("");
+    expect(screen.getByRole("button", { name: /Sector: All/ })).toBeInTheDocument();
   });
 });
 
