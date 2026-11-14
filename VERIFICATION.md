@@ -30,7 +30,7 @@ this entry was written.
 
 | Level | Reviewer | Result |
 | :--- | :--- | :--- |
-| Task | `mx-precise`, 14 tasks | 8 approved with no fix round, 6 after one fix round and a re-review |
+| Task | `mx-precise` (as the plan sets; the ledger does not name the reviewer per task), 14 tasks | 8 approved with no fix round, 6 after one fix round and a re-review |
 | Sweep discovery | `mx-autonomous`, on `d0ca6f3..b12f99f` | 5 confirmed defects (Medium 1, Low 4), 8 structural costs. D-1 (Medium), D-2, D-3, S-1, S-2 fixed in `4a7d851` |
 | Whole-branch | fresh `mx-architect`, adversarial, on `d0ca6f3..4a7d851` | Needs fixes: High 0, Medium 3, Low 6, Info 3 |
 | Re-review of the Medium fixes | `mx-precise`, on `891a91c` | Approved: High 0, Medium 0. Final verdict Pass |
@@ -40,7 +40,7 @@ reason, because jsdom computes names differently from Chrome and applies no styl
 column headers had an empty accessible name; focus on an invalid input or select only
 thickened the ring in the same colour; a loading button had no name. The open-from-disk gate
 now reads names and the invalid field's focus ring in headless Chrome
-(`web/scripts/kit-chrome.mjs`). The first whole-branch review agent died in a usage outage
+(`web/scripts/kit-chrome.mjs`). The first whole-branch review agent died in a credit outage
 and left nothing; the review recorded here was run from scratch. Reports and probes are in
 the D2a worktree's `.superpowers/sdd/2026-11-13-design-d2a-kit/` (git-ignored, not in the
 repository); the verdicts are in #43's body.
@@ -73,7 +73,8 @@ commits carry a Sonnet co-author trailer. **Before the first Bar or Pie chart:**
 group's live page:** 22 horizontal progress steps do not fit a 1280 or 1920 row.
 
 **Not verified.**
-- Edge, and any browser on Windows: CI runs the gates on Windows in Chrome only.
+- Edge, and any browser run by hand on Windows: the gate drives headless Chrome, on both CI
+  runners.
 - Any screen reader; mobile widths; the focus ring outside the kit page; the error mark and
   hint text while a field is focused (read in the code, not measured).
 - The coordinator read the whole-branch report, the fix diff `4a7d851..891a91c` and each PR's
