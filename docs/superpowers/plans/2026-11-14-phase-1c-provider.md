@@ -183,6 +183,10 @@ Ruled for PR 3 (not yet in `main`); the later bullets are the pre-flight rulings
   slash and case variants and `home_paths`, is applied to `message` and to `raw` before the
   `Reply` is built. The unredacted `raw` never leaves the driver; if it cannot be decoded or
   re-encoded it becomes the fixed redacted placeholder.
+- **Superseded in part by decision 0012** (2026-11-14): the driver builds one `Redactor`
+  with `known_paths` and calls `message()`; its own slash and case variants and its
+  exact-value pass over `home_paths`' output are deleted. PR 2h carries the redactor; PR 3
+  (#187) is rebased onto it. The guarantee is bounded as 0012 states.
 - `close()` reads what is queued without waiting, bounded at 5 seconds on an injected clock.
   When the bound is hit, the list cannot be read, or a leftover event carries usage or a
   charge, it returns what was pending plus one `Compaction`: `failed`, no counts, charge
@@ -233,6 +237,10 @@ PR 2c (#147), before the driver:
 | 2b (#102) | Pure Copilot event parser and cost reading (`reply_from_events`) |
 | 2c (#147) | `redact.py`: JSON-escaped exact values; compactions from events |
 | 2d (#171) | `redact.py`: the home-directory fix (M2) |
+| 2e (#191) | `redact.py`: a written-out apostrophe does not end a Windows user name |
+| 2f (#202) | `redact.py`: a forward-slash UNC home path |
+| 2g (#248) | `redact.py`: a Users or home folder inside a path |
+| 2h | `redact.py`: known paths in every listed encoding, one union, the pattern net frozen (decision 0012) |
 | 3 | Session driver against a fake client: one turn, errors, timeouts |
 | 3b | Tool-call turns (handlers parked until the next request), if 3 would pass 800 lines |
 | 4 | The SDK 1.0.8 binding, the `copilot-sol-medium` configuration, the `live`-marked check |

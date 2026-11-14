@@ -238,6 +238,7 @@ ROWS = rf"""
 {{"label": "a reason with no row, period or column names no cell", "ops": [[["base", "undrawn"], {STATED}]]}}
 {{"label": "a table in the Bottom line passage is not read", "edits": [["{PASSAGE}", "{PASSAGE}\n{CONFLICT}"]]}}
 {{"label": "a table under a heading inside the Bottom line passage is not read", "edits": [["{PASSAGE}", "{PASSAGE}\n#### Passage detail\n\n{CONFLICT}"]]}}
+{{"label": "a table in each of the other three passages is not read", "edits": [["{PASSAGE}", "{PASSAGE}\n### Key findings\n\n{CONFLICT}\n### Contrary evidence and what would change the view\n\n{CONFLICT}\n### Limitations\n\n{CONFLICT}"]]}}
 {{"label": "a table under Sources is not read", "edits": [["{SOURCES}", "{SOURCES}\n{CONFLICT}"]]}}
 {{"label": "a table under a subsection of Sources is not read", "edits": [["{SOURCES}", "{SOURCES}\n### Notes on sources\n\n{CONFLICT}"]]}}
 {{"label": "a table in the forecast section is not read", "edits": [["{FORECAST}", "```\n\n{CONFLICT}\n## Calculations"]]}}
@@ -287,7 +288,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 55 and len(accepted) == 30
+    assert len(labels) == len(set(labels)) == 56 and len(accepted) == 31
     assert key["tables"]["foundation.md"] == [21, 28, 44, 55, 64, 71, 78, 130]
     lines = ["{"]
     for name, value in key.items():
