@@ -57,6 +57,31 @@ def test_entry_points_launch_gates_locked() -> None:
         assert "uv run --locked python tools/gates.py" in text, name
 
 
+def test_python_workflow_skips_front_end_only_changes() -> None:
+    text = Path(".github/workflows/python.yml").read_text(encoding="utf-8")
+    paths = (
+        '    paths:\n      - "**"\n      - "!web/**"\n'
+        '      - "web/package.json"\n      - "web/package-lock.json"\n'
+    )
+    assert text.count(paths) == 2
+    assert "gitleaks" not in text
+    assert "Changed lines at most 800" not in text
+
+
+def test_review_workflow_runs_on_every_pull_request() -> None:
+    text = Path(".github/workflows/review.yml").read_text(encoding="utf-8")
+    assert "gitleaks/gitleaks-action@v2" in text
+    assert "awk '{s+=$1+$2} END{print s \" changed lines\"; exit s>800}'" in text
+    assert "tests/fixtures/handoffs/**" in text
+    assert "fetch-depth: 0" in text
+    assert "paths:" not in text
+
+
+def test_web_workflow_still_filters_on_web() -> None:
+    text = Path(".github/workflows/web.yml").read_text(encoding="utf-8")
+    assert '- "web/**"' in text
+
+
 def _marker(*parts: str) -> str:
     return "".join(parts)
 
