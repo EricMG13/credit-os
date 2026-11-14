@@ -230,4 +230,42 @@ describe("readSlice, issuer history", () => {
     historyOf(both, 0)["empty"] = "Nothing to read.";
     expect(invalidReason(both)).toContain("issuers[0].history.empty");
   });
+
+  it.each(["Failed", "Rejected", "Interrupted", "Running", "Queued"])(
+    "rejects a report or changes link on a %s entry, naming the field",
+    (state) => {
+      const withReport = fresh();
+      historyOf(withReport, 0).entries[4] = {
+        ...historyOf(withReport, 0).entries[4],
+        state,
+        report: "2025-12-31",
+      };
+      expect(invalidReason(withReport)).toContain("issuers[0].history.entries[4].report");
+      const withChanges = fresh();
+      historyOf(withChanges, 0).entries[4] = {
+        ...historyOf(withChanges, 0).entries[4],
+        state,
+        changes: { label: "What changed", run: "2025-12-31" },
+      };
+      expect(invalidReason(withChanges)).toContain("issuers[0].history.entries[4].changes");
+    },
+  );
+
+  it.each(["Finished", "Capped"])("accepts a report and changes link on a %s entry", (state) => {
+    const slice = fresh();
+    historyOf(slice, 0).entries[4] = {
+      ...historyOf(slice, 0).entries[4],
+      state,
+      report: "2025-12-31",
+      changes: { label: "What changed", run: "2025-12-31" },
+    };
+    expect(readSlice(slice).kind).toBe("ok");
+  });
+
+  it("rejects two entries with the same asOf and ran, naming the second", () => {
+    const slice = fresh();
+    const entries = historyOf(slice, 0).entries;
+    entries[1] = { ...entries[1], asOf: entries[0]?.["asOf"], ran: entries[0]?.["ran"] };
+    expect(invalidReason(slice)).toContain("issuers[0].history.entries[1]");
+  });
 });

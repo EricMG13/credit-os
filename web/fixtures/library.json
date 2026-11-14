@@ -1,11 +1,29 @@
 {
   "issuers": [
-    { "id": "halden-aerostructures", "name": "Halden Aerostructures" },
-    { "id": "corvane-packaging", "name": "Corvane Packaging" },
-    { "id": "tessaly-foods", "name": "Tessaly Foods" },
-    { "id": "ardenne-cable", "name": "Ardenne Cable" },
-    { "id": "lumora-health", "name": "Lumora Health" },
-    { "id": "corvane-fasteners", "name": "Corvane Fasteners" }
+    {
+      "id": "halden-aerostructures",
+      "name": "Halden Aerostructures"
+    },
+    {
+      "id": "corvane-packaging",
+      "name": "Corvane Packaging"
+    },
+    {
+      "id": "tessaly-foods",
+      "name": "Tessaly Foods"
+    },
+    {
+      "id": "ardenne-cable",
+      "name": "Ardenne Cable"
+    },
+    {
+      "id": "lumora-health",
+      "name": "Lumora Health"
+    },
+    {
+      "id": "corvane-fasteners",
+      "name": "Corvane Fasteners"
+    }
   ],
   "slice": {
     "home": {
@@ -42,7 +60,11 @@
           "note": null,
           "asOf": "As of 30 Sep 2026",
           "pathway": "Full review",
-          "progress": { "text": "12 of 13 modules", "value": 12, "max": 13 },
+          "progress": {
+            "text": "12 of 13 modules",
+            "value": 12,
+            "max": 13
+          },
           "href": "2026-09-30",
           "measures": {
             "leverage": {
@@ -75,7 +97,11 @@
           "note": "A new run as of 30 Sep 2026 is in progress. This is the run as of 30 Jun 2026.",
           "asOf": "As of 30 Jun 2026",
           "pathway": "Full review",
-          "progress": { "text": "5 of 13 modules", "value": 5, "max": 13 },
+          "progress": {
+            "text": "5 of 13 modules",
+            "value": 5,
+            "max": 13
+          },
           "href": "2026-06-30",
           "measures": {
             "leverage": {
@@ -108,7 +134,11 @@
           "note": null,
           "asOf": "As of 30 Sep 2026",
           "pathway": "Monitoring update",
-          "progress": { "text": "6 of 6 modules", "value": 6, "max": 6 },
+          "progress": {
+            "text": "6 of 6 modules",
+            "value": 6,
+            "max": 6
+          },
           "href": "2026-09-30",
           "measures": {
             "leverage": {
@@ -141,7 +171,11 @@
           "note": "The run as of 30 Sep 2026 failed. This is the run as of 31 Mar 2026.",
           "asOf": "As of 31 Mar 2026",
           "pathway": "Full review",
-          "progress": { "text": "13 of 13 modules", "value": 13, "max": 13 },
+          "progress": {
+            "text": "13 of 13 modules",
+            "value": 13,
+            "max": 13
+          },
           "href": "2026-03-31",
           "measures": {
             "leverage": {
@@ -169,7 +203,11 @@
           "note": "Seven modules delivered; their findings can be read.",
           "asOf": "As of 30 Sep 2026",
           "pathway": "Full review",
-          "progress": { "text": "7 of 13 modules", "value": 7, "max": 13 },
+          "progress": {
+            "text": "7 of 13 modules",
+            "value": 7,
+            "max": 13
+          },
           "href": "2026-09-30",
           "measures": {
             "leverage": null,
@@ -182,7 +220,9 @@
             }
           }
         },
-        { "kind": "loading" }
+        {
+          "kind": "loading"
+        }
       ],
       "list": {
         "measures": {
@@ -190,27 +230,63 @@
             "name": "Leverage",
             "countLine": "Leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
             "bands": [
-              { "label": "Below 3.0x", "min": null, "max": 3 },
-              { "label": "3.0x to under 5.0x", "min": 3, "max": 5 },
-              { "label": "5.0x and above", "min": 5, "max": null }
+              {
+                "label": "Below 3.0x",
+                "min": null,
+                "max": 3
+              },
+              {
+                "label": "3.0x to under 5.0x",
+                "min": 3,
+                "max": 5
+              },
+              {
+                "label": "5.0x and above",
+                "min": 5,
+                "max": null
+              }
             ]
           },
           "netLeverage": {
             "name": "Net leverage",
             "countLine": "Net leverage recorded for 4 of 5 runs · 1 on adjusted EBITDA, not screened",
             "bands": [
-              { "label": "Below 3.0x", "min": null, "max": 3 },
-              { "label": "3.0x to under 5.0x", "min": 3, "max": 5 },
-              { "label": "5.0x and above", "min": 5, "max": null }
+              {
+                "label": "Below 3.0x",
+                "min": null,
+                "max": 3
+              },
+              {
+                "label": "3.0x to under 5.0x",
+                "min": 3,
+                "max": 5
+              },
+              {
+                "label": "5.0x and above",
+                "min": 5,
+                "max": null
+              }
             ]
           },
           "interestCoverage": {
             "name": "Interest coverage",
             "countLine": "Interest coverage recorded for 4 of 5 runs",
             "bands": [
-              { "label": "Below 2.0x", "min": null, "max": 2 },
-              { "label": "2.0x to under 4.0x", "min": 2, "max": 4 },
-              { "label": "4.0x and above", "min": 4, "max": null }
+              {
+                "label": "Below 2.0x",
+                "min": null,
+                "max": 2
+              },
+              {
+                "label": "2.0x to under 4.0x",
+                "min": 2,
+                "max": 4
+              },
+              {
+                "label": "4.0x and above",
+                "min": 4,
+                "max": null
+              }
             ]
           }
         }
@@ -232,7 +308,10 @@
               "pathway": "Full review",
               "text": "Stable credit with thin headroom. Twelve of thirteen modules delivered; recovery was not assessable.",
               "report": "2026-09-30",
-              "changes": { "label": "What changed since 30 Jun 2026", "run": "2026-09-30" }
+              "changes": {
+                "label": "What changed since 30 Jun 2026",
+                "run": "2026-09-30"
+              }
             },
             {
               "asOf": "30 Jun 2026",
@@ -241,7 +320,10 @@
               "pathway": "Monitoring update",
               "text": "Stable, outlook negative: leverage at 4.9x after the Corvane Fasteners purchase.",
               "report": "2026-06-30",
-              "changes": { "label": "What changed since 31 Mar 2026", "run": "2026-06-30" }
+              "changes": {
+                "label": "What changed since 31 Mar 2026",
+                "run": "2026-06-30"
+              }
             },
             {
               "asOf": "31 Mar 2026",
@@ -250,7 +332,10 @@
               "pathway": "Full review",
               "text": "The run stopped at its cost cap after nine modules. The delivered modules can be read; no overall view was formed.",
               "report": "2026-03-31",
-              "changes": { "label": "What changed since 31 Dec 2025", "run": "2026-03-31" }
+              "changes": {
+                "label": "What changed since 31 Dec 2025",
+                "run": "2026-03-31"
+              }
             },
             {
               "asOf": "31 Mar 2026",
@@ -295,16 +380,25 @@
         "id": "corvane-packaging",
         "name": "Corvane Packaging",
         "history": {
-          "subtitle": "Report history: one run",
+          "subtitle": "Report history: two runs since June 2026",
           "latest": "2026-06-30",
           "empty": null,
           "entries": [
             {
-              "asOf": "30 Jun 2026",
-              "ran": "2 Jul 2026",
+              "asOf": "30 Sep 2026",
+              "ran": "3 Nov 2026",
               "state": "Running",
               "pathway": "Full review",
-              "text": "In progress: the modules delivered so far can be read.",
+              "text": "In progress. Nothing from this run is shown until it finishes.",
+              "report": null,
+              "changes": null
+            },
+            {
+              "asOf": "30 Jun 2026",
+              "ran": "2 Aug 2026",
+              "state": "Finished",
+              "pathway": "Full review",
+              "text": "Improving: volume recovery and a cleared 2027 maturity leave two years of runway.",
               "report": "2026-06-30",
               "changes": null
             }
@@ -335,16 +429,25 @@
         "id": "ardenne-cable",
         "name": "Ardenne Cable",
         "history": {
-          "subtitle": "Report history: one run",
+          "subtitle": "Report history: two runs since March 2026",
           "latest": "2026-03-31",
           "empty": null,
           "entries": [
             {
-              "asOf": "31 Mar 2026",
-              "ran": "12 May 2026",
+              "asOf": "30 Sep 2026",
+              "ran": "9 Nov 2026",
               "state": "Failed",
               "pathway": "Full review",
-              "text": "The run failed after the modules shown were accepted.",
+              "text": "The run failed before any module was accepted. Nothing from it is shown in the library.",
+              "report": null,
+              "changes": null
+            },
+            {
+              "asOf": "31 Mar 2026",
+              "ran": "12 May 2026",
+              "state": "Finished",
+              "pathway": "Full review",
+              "text": "Stable: subscriber losses are offset by pricing; leverage is flat at 5.2x.",
               "report": "2026-03-31",
               "changes": null
             }
@@ -395,8 +498,12 @@
   },
   "params": {
     "/library/:issuer/history": [
-      { "issuer": "halden-aerostructures" },
-      { "issuer": "corvane-fasteners" }
+      {
+        "issuer": "halden-aerostructures"
+      },
+      {
+        "issuer": "corvane-fasteners"
+      }
     ]
   }
 }
