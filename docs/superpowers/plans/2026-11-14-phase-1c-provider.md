@@ -120,6 +120,16 @@ the PR.
   condition. A `session.idle` with `aborted` true is never an `ok` reply. One turn can hold
   several model calls (`assistant.turn_retry`), so usage is taken from every usage event of
   the call.
+- **A recorded charge** is read only from a string of plain digits with an optional fraction
+  (no sign, underscore, space, exponent, leading zero or non-ASCII digit); anything else
+  refuses the recording line with its number. `-0` is not a charge.
+- **Tool arguments** have one representation in both adapters, the one the SDK gives: a
+  fraction is a `float`. Money never comes from a tool argument.
+- **Compactions, carrier and identity.** A compaction is attached to the reply of the call
+  during which it is observed, or to the next call's reply; `Model.close()` returns those
+  observed and not yet delivered. `Compaction` carries `failed`; an unknown charge is `None`
+  whether or not it failed. If the SDK's event has an id, `Compaction` carries it and a repeat
+  is ignored.
 - **Home directory (open Medium M2 of #36's security review):** `home_paths` leaves part of a
   Windows user name that has a space or `'()` in it. It is fixed in `redact.py`, test first,
   with the reviewer's probe as the answer key, no later than PR 3, which does not merge while
@@ -132,8 +142,9 @@ the PR.
    in the installed 1.0.8 source, with the expected `Reply` for each (text, tool calls, usage,
    cost, kind, error class). They are adapted from the legacy's `tests/model/test_copilot_parse.py`
    and `test_copilot_adapter.py` scripts with the model id changed.
-2. Hand-worked costs: the two compaction charges in the legacy's `tests/model/_compaction.py`
-   (0.0996381 and 0.1112661), re-derived by hand in the brief from their nano-unit figures.
+2. Hand-worked costs: invented `totalNanoAiu` integers, each multiplied by 1E-11 by hand in the
+   brief. No figure comes from the predecessor's run fragments (fixtures are public or
+   synthetic only).
 3. Redaction: a fixed list of strings with and without secrets and the exact expected output.
 
 ## PR sequence
