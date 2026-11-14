@@ -182,9 +182,19 @@ def test_contexts(make: Callable[[], decimal.Context]) -> None:
 @pytest.mark.parametrize("make", [ratio_context, exact_context])
 def test_contexts_ignore_changed_default_context(make: Callable[[], decimal.Context]) -> None:
     d = decimal.DefaultContext
-    saved = (d.prec, d.rounding, d.Emax, d.Emin, d.clamp, d.flags.copy(), d.traps.copy())
+    saved = (
+        d.prec,
+        d.rounding,
+        d.Emax,
+        d.Emin,
+        d.clamp,
+        d.flags.copy(),
+        d.traps.copy(),
+        d.capitals,
+    )
     try:
         d.prec, d.rounding, d.Emax, d.Emin, d.clamp = 7, decimal.ROUND_DOWN, 50, -20, 1
+        d.capitals = 0
         d.flags[decimal.Inexact] = True
         d.traps[decimal.Underflow] = True
         check_context(make)
@@ -192,6 +202,7 @@ def test_contexts_ignore_changed_default_context(make: Callable[[], decimal.Cont
         d.prec, d.rounding, d.Emax, d.Emin, d.clamp = saved[:5]
         d.flags.update(saved[5])
         d.traps.update(saved[6])
+        d.capitals = saved[7]
 
 
 def test_hostile_ambient_context() -> None:
