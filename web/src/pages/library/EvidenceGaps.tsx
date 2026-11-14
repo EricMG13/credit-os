@@ -128,7 +128,10 @@ export function EvidenceGaps({
             </tr>
             {group.rows.map((row) => (
               <tr key={row.id} className="border-b border-border-hairline">
-                <th scope="row" className={`${REGISTER_CELL} font-mono text-left font-normal`}>
+                <th
+                  scope="row"
+                  className={`${REGISTER_CELL} font-mono text-left font-normal whitespace-nowrap`}
+                >
                   {row.id}
                 </th>
                 <td className={`${REGISTER_CELL} text-text-primary`}>{row.gap}</td>

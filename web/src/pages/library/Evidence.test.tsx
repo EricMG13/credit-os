@@ -85,7 +85,7 @@ describe("the Evidence frame", () => {
     const links = tabs().getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual([
       "Summary",
-      "Trace58",
+      "Trace59",
       "Sources9",
       "Gaps7",
       "Record",
@@ -149,7 +149,7 @@ describe("Evidence, Summary", () => {
     const tiles = within(screen.getByRole("region", { name: "Counts" })).getAllByRole("listitem");
     expect(tiles.map((t) => t.textContent)).toEqual([
       "Source files97 read in full, 1 read in part, 1 unreadable",
-      "Calculations58Each one traceable to its inputs",
+      "Calculations59Each one traceable to its inputs",
       "Gaps72 high, 3 medium, 2 low",
     ]);
     expect(within(screen.getByRole("region", { name: "Counts" })).queryByRole("button")).toBeNull();

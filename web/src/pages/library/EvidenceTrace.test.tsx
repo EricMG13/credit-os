@@ -96,7 +96,7 @@ describe("the Trace routes", () => {
 describe("Evidence, Trace", () => {
   it("draws the card with the mock's title, delivered count and sentence, in one scroll region", () => {
     renderTrace(FULL);
-    expect(screen.getByRole("heading", { name: "Trace 58" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Trace 59" })).toBeVisible();
     expect(
       screen.getByText(
         "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
@@ -115,14 +115,12 @@ describe("Evidence, Trace", () => {
       "Derivation",
       "Item",
       "Statement",
-      "Value",
       "Module",
       "Kind",
       "Sources",
     ]);
     for (const h of heads) expect(h).toHaveAttribute("scope", "col");
-    for (const name of ["Item", "Value", "Module"])
-      expect(head(name)).toHaveAttribute("aria-sort", "none");
+    for (const name of ["Item", "Module"]) expect(head(name)).toHaveAttribute("aria-sort", "none");
     for (const name of ["Statement", "Kind", "Sources"])
       expect(head(name)).not.toHaveAttribute("aria-sort");
   });
@@ -165,12 +163,18 @@ describe("Evidence, Trace", () => {
     }
   });
 
-  it("says a figure is not recorded with n.a., and draws the withheld and gap forms", () => {
+  it("draws no Value column: the mock has none, and most rows have no figure to show", () => {
     renderTrace(FULL);
-    expect(within(rowOf("T-0001")).getByText("n.a.")).toBeVisible();
-    expect(within(rowOf("T-0014")).getByText("4.6x")).toBeVisible();
-    expect(within(rowOf("T-0105")).getByText("Withheld")).toBeVisible();
-    expect(within(rowOf("G-02")).getByText("Not established for this run")).toBeVisible();
+    expect(within(table()).queryByRole("columnheader", { name: "Value" })).toBeNull();
+    expect(within(table()).queryByText("n.a.")).toBeNull();
+    expect(within(rowOf("T-0014")).getAllByRole("cell")).toHaveLength(5);
+  });
+
+  it("keeps an item id whole: the id cells never break inside an id", () => {
+    renderTrace(FULL);
+    for (const id of ["T-0014", "G-02"]) {
+      expect(within(rowOf(id)).getByRole("rowheader")).toHaveClass("whitespace-nowrap");
+    }
   });
 
   it("draws a claim with no calculation as the mock's last row does: no control, a real zero and its note", () => {
@@ -246,32 +250,6 @@ describe("Evidence, Trace", () => {
     );
   });
 
-  it("sorts by Value by the figure's own sort key and leaves a missing one last either way", () => {
-    renderTrace(FULL);
-    const keyed = rowsOf().filter(
-      (r) => r.value?.kind === "value" && typeof r.value.at === "number",
-    );
-    const unkeyed = rowsOf().length - keyed.length;
-    const at = (id: string) => {
-      const v = rowsOf().find((r) => r.id === id)?.value;
-      return v?.kind === "value" && typeof v.at === "number" ? v.at : null;
-    };
-    for (const [clicks, way] of [
-      [1, 1],
-      [2, -1],
-    ] as const) {
-      cleanup();
-      renderTrace(FULL);
-      for (let i = 0; i < clicks; i += 1)
-        fireEvent.click(within(head("Value")).getByRole("button"));
-      const order = ids().map((id) => at(id ?? ""));
-      const present = order.slice(0, keyed.length);
-      expect(present.every((n) => n !== null)).toBe(true);
-      expect(order.slice(keyed.length)).toEqual(Array<null>(unkeyed).fill(null));
-      expect(present).toEqual([...present].sort((a, b) => way * ((a ?? 0) - (b ?? 0))));
-    }
-  });
-
   it("keeps a row open when the table is sorted", () => {
     renderTrace(FULL);
     fireEvent.click(expander("T-0014"));
@@ -322,10 +300,10 @@ describe("Evidence, Trace", () => {
         .filter((r) => r.moduleId === "recovery")
         .map((r) => r.id),
     );
-    expect(screen.queryByRole("heading", { name: "Trace 58" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Trace 59" })).toBeNull();
     expect(screen.getByRole("heading", { name: "Trace" })).toBeVisible();
     pick("All");
-    expect(ids()).toHaveLength(58);
+    expect(ids()).toHaveLength(59);
   });
 
   it("draws an empty state for a module no item sits in, and its way back", () => {
@@ -338,7 +316,7 @@ describe("Evidence, Trace", () => {
     ).toBeVisible();
     expect(screen.queryByRole("table")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Show all items" }));
-    expect(ids()).toHaveLength(58);
+    expect(ids()).toHaveLength(59);
   });
 
   it("draws an empty state for a run that traces nothing, with the delivered count", () => {

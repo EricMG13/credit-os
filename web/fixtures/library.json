@@ -784,7 +784,7 @@
                       "number": "01",
                       "lead": "The aftermarket is the franchise",
                       "body": "Parts and repair bring 44% of revenue and about three fifths of gross profit. Most parts are sole-source and certified to the airframe.",
-                      "trace": "aftermarket-share"
+                      "trace": "bp-finding-1"
                     },
                     {
                       "number": "02",
@@ -1821,7 +1821,33 @@
                 { "id": "forecast", "name": "Forecast", "initials": "FC" },
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
-              "tabs": { "trace": "58", "sources": "9", "gaps": "7" },
+              "tabs": { "trace": "59", "sources": "9", "gaps": "7" },
+              "jump": [
+                {
+                  "group": "Figures",
+                  "label": "Net leverage 4.6x",
+                  "detail": "Capital structure · T-0014",
+                  "target": { "tab": "trace", "item": "T-0014" }
+                },
+                {
+                  "group": "Figures",
+                  "label": "Secured leverage 3.3x",
+                  "detail": "Capital structure · T-0104",
+                  "target": { "tab": "trace", "item": "T-0104" }
+                },
+                {
+                  "group": "Calculations",
+                  "label": "Net debt ÷ EBITDA",
+                  "detail": "C-0412",
+                  "target": { "tab": "trace", "item": "T-0014" }
+                },
+                {
+                  "group": "Gaps",
+                  "label": "Peer figures on the same basis",
+                  "detail": "Peer comparison · G-03",
+                  "target": { "tab": "gaps", "item": "G-03" }
+                }
+              ],
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
@@ -2000,6 +2026,17 @@
                   {
                     "id": "T-0031",
                     "item": "Three customers bring 58% of revenue and one engine programme 34%.",
+                    "module": "Business profile",
+                    "moduleId": "business-profile",
+                    "kind": "Passage",
+                    "value": null,
+                    "sources": "2",
+                    "calc": null,
+                    "note": null
+                  },
+                  {
+                    "id": "T-0032",
+                    "item": "Parts and repair bring 44% of revenue and about three fifths of gross profit.",
                     "module": "Business profile",
                     "moduleId": "business-profile",
                     "kind": "Passage",
@@ -2544,7 +2581,7 @@
                   },
                   {
                     "label": "Calculations",
-                    "value": { "kind": "value", "text": "58", "at": null },
+                    "value": { "kind": "value", "text": "59", "at": null },
                     "note": "Each one traceable to its inputs",
                     "trace": null
                   },
@@ -3123,6 +3160,21 @@
                 "excerpt": null,
                 "qualification": null,
                 "evidenceItem": "T-0064"
+              },
+              "bp-finding-1": {
+                "title": "Sources for the aftermarket finding",
+                "heading": "The aftermarket is the franchise",
+                "subtitle": "Business profile · finding · as of 30 Sep 2026",
+                "statement": "Parts and repair bring 44% of revenue and about three fifths of gross profit.",
+                "derivation": {
+                  "label": "Result",
+                  "value": "The aftermarket is the franchise",
+                  "note": null,
+                  "children": []
+                },
+                "excerpt": null,
+                "qualification": null,
+                "evidenceItem": "T-0032"
               },
               "bp-finding-2": {
                 "title": "Sources for original equipment pricing",
@@ -4380,6 +4432,14 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "0", "sources": "3", "gaps": "3" },
+              "jump": [
+                {
+                  "group": "Gaps",
+                  "label": "Recovery module output",
+                  "detail": "Recovery · G-01",
+                  "target": { "tab": "gaps", "item": "G-01" }
+                }
+              ],
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",
@@ -5214,6 +5274,14 @@
                 { "id": "credit-snapshot", "name": "Credit snapshot", "initials": "SN" }
               ],
               "tabs": { "trace": "0", "sources": "2", "gaps": "2" },
+              "jump": [
+                {
+                  "group": "Gaps",
+                  "label": "Security package documents",
+                  "detail": "Recovery · G-01",
+                  "target": { "tab": "gaps", "item": "G-01" }
+                }
+              ],
               "trace": {
                 "title": "Trace",
                 "description": "One row per traced paragraph, row or figure. Open a row to see how it was derived.",

@@ -169,7 +169,9 @@ describe("Module, a delivered prose module", () => {
       "Show sources for this limitation",
     ]);
     fireEvent.click(sourceButtons()[1] as HTMLElement);
-    expect(screen.getByRole("dialog", { name: "Sources for aftermarket share" })).toBeVisible();
+    expect(
+      screen.getByRole("dialog", { name: "Sources for the aftermarket finding" }),
+    ).toBeVisible();
   });
 
   it("turns every control on with Show sources, as the mock draws this page", () => {
@@ -1562,6 +1564,7 @@ describe("Module, the index route", () => {
             moduleFilter: unknown[];
             sources: { files: { readers: unknown }[] };
             gaps: { groups: unknown[] };
+            jump: unknown[];
             tabs: Json;
           };
         }[];
@@ -1572,6 +1575,7 @@ describe("Module, the index route", () => {
     run.evidence.moduleFilter = [];
     for (const file of run.evidence.sources.files) file.readers = { shown: [], more: null };
     run.evidence.gaps.groups = [];
+    run.evidence.jump = [];
     run.evidence.tabs["gaps"] = "0";
     (run.overview["limitations"] as { gapsLink: Json }).gapsLink["label"] =
       "See the 0 gaps in Evidence";
