@@ -120,16 +120,10 @@ def _decimals(amounts: Iterable[Decimal]) -> tuple[Decimal, ...]:
     return checked
 
 
-def _half_context() -> decimal.Context:
-    context = exact_context()
-    context.traps[decimal.Underflow] = True
-    return context
-
-
 def half_unit(amounts: Iterable[Decimal]) -> Decimal:
     """Half a unit in the finest last place any of `amounts` is written to, at most 0.5."""
     exponents = [_exponent(amount) for amount in _decimals(amounts)]
-    with decimal.localcontext(_half_context()):
+    with decimal.localcontext(exact_context()):
         return _HALF.scaleb(min(min(exponents, default=0), 0))
 
 
