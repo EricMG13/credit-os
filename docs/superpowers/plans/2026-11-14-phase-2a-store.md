@@ -192,6 +192,9 @@ Written by the controller before each task from invented values only. No databas
 | 4 | The resume read; the per-method rollback test, the kill test, threads and two processes |
 | 5 | Migration 3 (deliveries); admission and its refusals; the admitted list |
 
+PR 1 is split to hold the 800-line cap: 1a the errors, the codecs and the SQLite version
+check; 1b the rest of PR 1's row.
+
 ## How it runs
 
 Global rules §1, §3 and §7. The sub-session is the controller and writes no code: `mx-feature`
