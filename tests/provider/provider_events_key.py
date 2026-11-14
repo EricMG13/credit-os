@@ -508,6 +508,14 @@ COMPACTION_CASES: dict[str, tuple[Any, tuple[Any, ...]]] = {
         [_end(1, **_PAID), _begin(2), _end(1, **_USED), _end(3)],
         (("e1", "failed", _N4, None), ("e3", "done", _N4, None)),
     ),
+    "a start under a clashing id is not pending": (
+        [_begin(1), _end(1, **_PAID), _end(2, **_PAID)],
+        (("e1", "failed", _N4, None), ("e2", "done", _C4, "0.02140500000")),
+    ),
+    "a clashing id stands in the place of its first event": (
+        [_end(1), _end(2), _end(1, **_USED)],
+        (("e1", "failed", _N4, None), ("e2", "done", _N4, None)),
+    ),
     "a start and a complete under one id": (
         [_begin(1), _end(1, **_PAID), _begin(2)],
         (("e1", "failed", _N4, None), ("e2", "unfinished", _N4, None)),
