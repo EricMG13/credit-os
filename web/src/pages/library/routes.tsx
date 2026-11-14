@@ -88,6 +88,12 @@ export const routes: readonly Route[] = [
     ),
   },
   {
+    path: "/library/:issuer/:run/evidence/record",
+    layout: "bleed",
+    title: PAGE_NAME.evidence,
+    render: (params) => <Evidence issuer={params["issuer"]} run={params["run"]} page="record" />,
+  },
+  {
     path: "/library/:issuer/:run/evidence/gaps",
     layout: "bleed",
     title: PAGE_NAME.evidence,
