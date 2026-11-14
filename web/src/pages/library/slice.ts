@@ -285,8 +285,35 @@ type EdgesRecord = {
   steps: readonly { title: string; text: string }[];
 };
 
-/** One block of a module's records. Tasks 10 and 11 add the chart and table kinds. */
-export type RecordBlock = MatrixRecord | WatchRecord | QuestionsRecord | EdgesRecord;
+/**
+ * The data module's blocks carry `nav`: the delivered label of the navigator entry that moves to
+ * them, shared by every block that names the same one, or `null` for a block with no entry.
+ */
+type Navigable = { nav: string | null };
+
+/** Headline figures: each is a `Metric`, whose missing value is `null` and withheld one a `withheld` cell. */
+type MetricsRecord = Navigable & { kind: "metrics"; title: string; items: readonly Metric[] };
+
+/**
+ * A measure against its earlier period. `delta` is delivered with its direction, never worked out;
+ * it is `null` when either period is not a value, and the line then reads the earlier period itself.
+ */
+type MeasuresRecord = Navigable & {
+  kind: "measures";
+  title: string;
+  items: readonly {
+    label: string;
+    current: Cell;
+    earlier: Cell;
+    delta: { text: string; direction: "up" | "down" | "flat" } | null;
+    consequence: string;
+    trace: string | null;
+  }[];
+};
+
+/** One block of a module's records. Task 11 adds the chart kinds. */
+export type RecordBlock =
+  MatrixRecord | WatchRecord | QuestionsRecord | EdgesRecord | MetricsRecord | MeasuresRecord;
 
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {
