@@ -9,10 +9,11 @@ title, link, date and summary are read.
 import re
 import string
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 from typing import NoReturn
 from urllib.parse import urlsplit
@@ -37,9 +38,14 @@ MAX_NAME_CHARS = 1024 * 1024
 # R31. Longest namespace URI declared. The parser resolves prefixes itself and never joins a
 # URI to a name, so a URI costs only its own characters; real namespace URIs are under 100.
 MAX_NAMESPACE_CHARS = 2048
-# R31. Longest tag, in characters, handed to the HTML stripper; a longer one is dropped (see
-# _drop_long_tags). html.parser keeps about 280 bytes for each attribute of a tag.
-MAX_TAG_CHARS = 4096
+# R37. The most characters html.parser may hold unparsed (a tag, comment or reference that is
+# still open, or the content of script, style, textarea and the like); beyond it the construct
+# is released (see _Markup). Text reaches html.parser _FEED_CHARS at a time, so it never parses
+# more than MAX_HELD_CHARS + _FEED_CHARS = 4,096 characters at once: a tag of at most about
+# 2,048 attributes (html.parser keeps about 280 bytes for each), and a character reference of
+# fewer digits than the 4,300 int() reads.
+MAX_HELD_CHARS = 2048
+_FEED_CHARS = 2048
 TITLE_LIMIT = 500
 LINK_LIMIT = 2048
 # R37. Longest date read, blanks at either end not counted; a longer one is no date.
@@ -103,7 +109,7 @@ class _Field:
     owner: _Node
     key: str
     markup: bool  # Atom xhtml: the text is the rebuilt markup, in order
-    sink: "_Fold | _Head | _Collect"
+    sink: "_Fold | _Markup | _Head"
 
 
 # R24: the tree keeps only what parse_feed reads. R31: an element is named by its namespace URI
@@ -367,147 +373,6 @@ class Entry:
     summary: str
 
 
-class _TextOnly(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-        self._skip = 0
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in ("script", "style"):
-            self._skip += 1
-        elif tag in _BLOCKS:
-            self.parts.append(" ")
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in ("script", "style") and self._skip:
-            self._skip -= 1
-        elif tag in _BLOCKS:
-            self.parts.append(" ")
-
-    def handle_data(self, data: str) -> None:
-        if not self._skip:
-            self.parts.append(data)
-
-
-_ASCII_LETTERS = frozenset(string.ascii_letters)
-_TAG_OPEN = re.compile(r"<[a-zA-Z/!?]")
-_NAME_END = "\t\n\r\f />"
-_TAG_NAME = re.compile(r"[a-zA-Z][^\t\n\r\f />]*")
-_BLANKS_SLASHES = re.compile(r"[\t\n\r\f /]*")
-_BLANKS = re.compile(r"[\t\n\r\f ]*")
-_ATTRIBUTE_NAME = re.compile(r"[^\t\n\r\f />][^\t\n\r\f /=>]*")
-_BARE_VALUE = re.compile(r"[^>\t\n\r\f ]*")
-_BEFORE_ATTRIBUTE = frozenset("'\"\t\n\r\f /")
-
-
-class _TagScanner:
-    """Finds where html.parser's idea of a tag that opens at a ``<`` ends.
-
-    R31. This is html.parser's own grammar for a tag (``locatetagend``, CPython 3.12.14) walked
-    by hand, because its regular expression holds memory for every attribute it passes: a tag
-    runs through quoted values (a quote opens a value only after ``=``, and a name may start
-    with ``=`` or a quote), so a ``>`` inside a value does not end it. A scan that stopped at
-    the first ``>`` would hide a tag of a million attributes from the size check while
-    html.parser read it whole. Every piece is a character-class match that cannot backtrack,
-    and the closing quote of a value is looked for with ``str.find``; a quote with no partner
-    in the text opens nothing (one ``rfind`` answers it, so no search is repeated).
-    The scanner is for size only: html.parser remains the reader of what is kept, and a test
-    holds this walk at or beyond the end html.parser itself finds.
-    """
-
-    def __init__(self, raw: str) -> None:
-        self.raw = raw
-        self.size = len(raw)
-        self._last = {'"': raw.rfind('"'), "'": raw.rfind("'")}
-
-    def end(self, name_start: int) -> int:
-        """The index after the tag whose name begins at ``name_start``, and its ``>`` if any."""
-        raw, size = self.raw, self.size
-        pos = _run(_BLANKS_SLASHES, raw, _run(_TAG_NAME, raw, name_start))
-        while pos < size and raw[pos] not in _NAME_END and raw[pos - 1] in _BEFORE_ATTRIBUTE:
-            pos = self._value(_run(_ATTRIBUTE_NAME, raw, pos))
-            pos = _run(_BLANKS_SLASHES, raw, pos)
-        return pos + 1 if pos < size and raw[pos] == ">" else pos
-
-    def _value(self, name_end: int) -> int:
-        """The index after an attribute's value, or ``name_end`` if it has none."""
-        raw = self.raw
-        sign = _run(_BLANKS, raw, name_end)
-        if sign >= self.size or raw[sign] != "=":
-            return name_end
-        start = _run(_BLANKS, raw, sign + 1)
-        if start < self.size and raw[start] in "'\"":
-            if self._last[raw[start]] <= start:
-                # No partner. The pattern backs off the blanks after "=" to read an empty bare
-                # value there; with no blank, the value and its "=" are not matched at all.
-                return sign + 1 if start > sign + 1 else name_end
-            return raw.find(raw[start], start + 1) + 1
-        return _run(_BARE_VALUE, raw, start)
-
-
-def _run(pattern: re.Pattern[str], raw: str, pos: int) -> int:
-    """The index after the match of ``pattern`` at ``pos``; ``pos`` if there is none."""
-    found = pattern.match(raw, pos)
-    return found.end() if found else pos
-
-
-def _drop_long_tags(raw: str) -> str:
-    """``raw`` with each tag of more than MAX_TAG_CHARS characters replaced by one space.
-
-    R31. What html.parser reads is bounded by removing what costs memory: one start tag with a
-    million attributes is about 280 bytes an attribute, and only the text outside tags can
-    reach the summary or the title. A tag is a ``<`` followed by an ASCII letter, ``/``, ``!``
-    or ``?`` and what follows it up to the closing ``>`` (see _TagScanner for start and end
-    tags; the others end at the first ``>``); one that never closes takes what the scan
-    walked. Comments and CDATA sections are cut the same way. Text outside tags is never
-    dropped, and one space cannot join two pieces into markup. The scanner's idea of a tag is
-    only for size; the result still goes to html.parser, the reader of what is kept.
-    """
-    scanner = _TagScanner(raw)
-    kept: list[str] = []
-    copied = 0
-    found = _TAG_OPEN.search(raw)
-    while found:
-        at = found.start()
-        end = _tag_end(scanner, at)
-        resume = at + 1 if end is None else end
-        if end is not None and end - at > MAX_TAG_CHARS:
-            kept += (raw[copied:at], " ")
-            copied = end
-        found = _TAG_OPEN.search(raw, resume)
-    if not copied:
-        return raw
-    kept.append(raw[copied:])
-    return "".join(kept)
-
-
-def _tag_end(scanner: _TagScanner, at: int) -> int | None:
-    """The index after the tag that opens at ``at``; None if it is not a tag."""
-    raw, size = scanner.raw, scanner.size
-    after = raw[at + 1 : at + 3]
-    if after[:1] in _ASCII_LETTERS:
-        return scanner.end(at + 1)
-    if after[:1] == "/" and after[1:] in _ASCII_LETTERS:
-        return scanner.end(at + 2)
-    if after[:1] in ("/", "!", "?"):
-        close = raw.find(">", at + 2)
-        return size if close < 0 else close + 1
-    return None
-
-
-def _strip_markup(raw: str) -> str:
-    """The text of an HTML fragment, markup removed and character references decoded."""
-    parser = _TextOnly()
-    try:
-        parser.feed(_drop_long_tags(raw))
-        parser.close()
-    except AssertionError as exc:
-        # Standard libraries before the 2025 html.parser fixes assert on some markup (R20).
-        raise FeedError("feed text could not be read") from exc
-    return "".join(parser.parts)
-
-
 def _plain(raw: str) -> str:
     """Control and format characters dropped (white space is kept for the caller to fold)."""
     return "".join(ch for ch in raw if ch.isspace() or unicodedata.category(ch) not in ("Cc", "Cf"))
@@ -582,26 +447,153 @@ class _Head:
         return "" if self.over else "".join(self.kept).rstrip()
 
 
-class _Collect:
-    """An HTML field, kept whole until its end and then stripped and folded (see _strip_markup).
+class _Enough(Exception):
+    """Raised inside html.parser once the field has all the text its entry can use."""
 
-    R37: this is the one sink that still holds a whole field; _Markup replaces it.
+
+# What ends a construct html.parser held too long: a comment ends at "-->" or "--!>", a CDATA
+# section at "]]>", anything else (a tag, a declaration, an instruction) at the next ">".
+_CONSTRUCT_ENDS = (("<!--", re.compile("--!?>")), ("<![CDATA[", re.compile(r"\]\]>")))
+_NEXT_GT = re.compile(">")
+
+
+class _Markup(HTMLParser):
+    """The text of an HTML field, read as it arrives into a _Fold (R17, R18, R20, R37).
+
+    html.parser is given ``_FEED_CHARS`` at a time and stopped once the fold is full. What it
+    holds unparsed never passes MAX_HELD_CHARS after a step; a part held longer is released by
+    its kind: (a) the content of script, style, textarea and the like is read up to the
+    characters that could begin its end tag (decoded, and never cut inside a reference, for
+    textarea and title); (b) held text ends at a character reference html.parser waits to see
+    whole, and no reference holds an ``&``, so everything before the last one is read; (c) a held
+    tag, comment or declaration is dropped, read as one space, and the input skipped to its end
+    (see _CONSTRUCT_ENDS), so nothing after it joins what came before. A tag that is open past
+    the limit therefore ends at the next ``>``, even one inside a quoted value. ``rawdata``,
+    ``cdata_elem`` and ``goahead`` are html.parser's (CPython 3.12.14); the tests pin each
+    release path against html.parser itself.
     """
 
-    def __init__(self, limit: int) -> None:
-        self.limit = limit
-        self.parts: list[str] = []
+    def __init__(self, limit: int, *, strip: bool = False) -> None:
+        super().__init__(convert_charrefs=True)
+        self.text = _Fold(limit)
+        self._strip = strip  # an RSS description is read with blanks at its ends removed
+        self._skip = 0
+        self._until: re.Pattern[str] | None = None  # the end of the construct being skipped
+        self._tail = ""  # the last characters seen of it, in case its end spans two pieces
+        self._done = False
+        self._out: list[str] = []
+        self._out_size = 0
 
-    def add(self, text: str) -> None:
-        self.parts.append(text)
+    def add(self, data: str) -> None:
+        for start in range(0, len(data), _FEED_CHARS):
+            if self._done:
+                return
+            self._read(data[start : start + _FEED_CHARS])
 
     def value(self) -> str:
-        fold = _Fold(self.limit)
-        fold.add(_strip_markup("".join(self.parts).strip()))
-        return fold.value()
+        if not self._done and self._until is None:
+            if self._strip:
+                self.rawdata = self.rawdata.rstrip()
+            self._guarded(self.close)
+        if not self._done:
+            self._guarded(self._flush)
+        return self.text.value()
+
+    def _read(self, piece: str) -> None:
+        if self._until is not None:
+            piece = self._past_end(self._until, piece)
+        if piece:
+            self.rawdata += piece
+            self._guarded(self._parse)
+
+    def _guarded(self, step: Callable[[], None]) -> None:
+        try:
+            step()
+        except _Enough:
+            # The only use of this exception: the fold is full and the rest cannot matter.
+            self._done = True
+        except AssertionError as exc:
+            # Standard libraries before the 2025 html.parser fixes assert on some markup (R20).
+            raise FeedError("feed text could not be read") from exc
+
+    def _parse(self) -> None:
+        self.goahead(False)
+        while len(self.rawdata) > MAX_HELD_CHARS:
+            self._release(self.rawdata)
+
+    def _release(self, held: str) -> None:
+        if self.cdata_elem:
+            self._release_content(held, self.cdata_elem)
+        elif held.startswith("<"):
+            self._release_construct(held)
+        else:
+            amp = held.rfind("&")
+            cut = amp if amp > 0 else len(held)
+            self.rawdata = held[cut:]
+            self.handle_data(unescape(held[:cut]))
+
+    def _release_content(self, held: str, element: str) -> None:
+        # Keep what could begin the end tag ("</" and the name); in textarea and title, whose
+        # references html.parser decodes, do not cut a reference in two.
+        cut = len(held) - len(element) - 2
+        decoded = element in ("textarea", "title")  # html.parser's RCDATA content elements
+        if decoded and "&" in held[cut - 34 : cut]:
+            cut = held.rfind("&", 0, cut)
+        self.rawdata = held[cut:]
+        self.handle_data(unescape(held[:cut]) if decoded else held[:cut])
+
+    def _release_construct(self, held: str) -> None:
+        self.rawdata = ""
+        self._add(" ")
+        ends = (end for start, end in _CONSTRUCT_ENDS if held.startswith(start))
+        self._until = next(ends, _NEXT_GT)
+        rest = self._past_end(self._until, held[1:])
+        if rest:
+            self.rawdata = rest
+            self.goahead(False)
+
+    def _past_end(self, until: re.Pattern[str], piece: str) -> str:
+        """What follows the end of the construct being skipped, or "" if it has not ended."""
+        text = self._tail + piece
+        found = until.search(text)
+        if found is None:
+            self._tail = text[-3:]
+            return ""
+        self._until, self._tail = None, ""
+        return text[found.end() :]
+
+    def _add(self, text: str) -> None:
+        # Pieces are gathered up to a slice before folding: a block tag is one space each.
+        self._out.append(text)
+        self._out_size += len(text)
+        if self._out_size >= _SLICE:
+            self._flush()
+
+    def _flush(self) -> None:
+        self.text.add("".join(self._out))
+        self._out.clear()
+        self._out_size = 0
+        if self.text.full:
+            raise _Enough
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in ("script", "style"):
+            self._skip += 1
+        elif tag in _BLOCKS:
+            self._add(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style") and self._skip:
+            self._skip -= 1
+        elif tag in _BLOCKS:
+            self._add(" ")
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip:
+            self._add(data)
 
 
-def _sink(key: str, kind: str) -> _Fold | _Head | _Collect:
+def _sink(key: str, kind: str) -> _Fold | _Markup | _Head:
     """Where a field's text goes (R18: an Atom html or xhtml text construct is markup; an RSS
     description is markup; an RSS title or an Atom text construct of no type is literal)."""
     if key == "link":
@@ -609,7 +601,9 @@ def _sink(key: str, kind: str) -> _Fold | _Head | _Collect:
     if key in ("pubDate", "published", "updated"):
         return _Head(DATE_LIMIT)
     limit = TITLE_LIMIT if key == "title" else SUMMARY_LIMIT + 1
-    return _Collect(limit) if key == "description" or kind else _Fold(limit)
+    if key == "description":
+        return _Markup(limit, strip=True)
+    return _Markup(limit) if kind else _Fold(limit)
 
 
 def _summary(head: str) -> str:

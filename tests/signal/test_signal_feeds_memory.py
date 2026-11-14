@@ -211,6 +211,42 @@ CASES: dict[str, Callable[[int], bytes]] = {
 # R37: one row per stage that held a copy of a whole field. Each is read at full size and must
 # stay under TEXT_CEILING as well as CEILING.
 TEXT_CASES: dict[str, Callable[[int], bytes]] = {
+    "description: entity flood": lambda s: _fill(_C0, b"&a", _C1, s),
+    "description: entity flood, one astral character": lambda s: _fill(_C0 + _AST, b"&a", _C1, s),
+    "description: blank, astral, entity flood": lambda s: _fill(_C0 + b" " + _AST, b"&a", _C1, s),
+    "description: entity flood, astral and blank last": lambda s: _fill(
+        _C0, b"&a", _AST + b" " + _C1, s
+    ),
+    "description: textarea held open, entity flood, astral": lambda s: _fill(
+        _C0 + b" " + _AST + b"<textarea>", b"&a", b" " + _C1, s
+    ),
+    "description: script held open, astral text": lambda s: _fill(
+        _C0 + b" <script>", _AST, b" " + _C1, s
+    ),
+    "description: a quoted value held open, astral": lambda s: _fill(
+        _C0 + b'<img src="' + _AST, b"x", _C1, s
+    ),
+    "description: inline tags and 2-byte letters, blank and astral": lambda s: _fill(
+        _C0 + b" " + _AST, b"<b>" + _LETTER, b" " + _C1, s
+    ),
+    "description: block tags and 2-byte letters, blank and astral": lambda s: _fill(
+        _C0 + b" " + _AST, b"<p>" + _LETTER, b" " + _C1, s
+    ),
+    "description: a reference that widens the text": lambda s: _fill(
+        _C0 + b" &Afr;", b"&a", b" " + _C1, s
+    ),
+    "atom html summary: blank, astral, entity flood": lambda s: _fill(
+        _ATOM_T + _ATOM_L + b'<summary type="html"><![CDATA[ ' + _AST,
+        b"&a",
+        b" ]]></summary>" + _ATOM1,
+        s,
+    ),
+    "atom html title: block tags and 2-byte letters, astral": lambda s: _fill(
+        _ATOM0 + b'<title type="html"><![CDATA[ ' + _AST,
+        b"<p>" + _LETTER,
+        b" ]]></title>" + _ATOM1,
+        s,
+    ),
     "title: words, blank and astral first": lambda s: _fill(
         _RSS0 + b"<link>https://e.org/a</link><title> " + _AST, b"w ", b" </title>" + _TAIL, s
     ),
