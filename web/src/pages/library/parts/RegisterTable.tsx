@@ -138,27 +138,33 @@ export function RegisterCard({
   title,
   count,
   description,
+  action,
   children,
 }: {
   title: string;
   /** The delivered count beside the title, or `null` when a filter makes it no longer the number shown. */
   count: string | null;
   description: string;
+  /** A control at the right of the title, such as "Download all". */
+  action?: ReactNode;
   children: ReactNode;
 }) {
   const Heading = SUBSECTION_HEADING;
   return (
     <section className="flex flex-col gap-4 rounded-xl border border-border-subtle bg-surface-card pt-5 shadow-xs">
-      <div className="px-5">
-        <Heading className="flex items-center gap-2 font-display text-h4 text-text-primary">
-          {title}{" "}
-          {count === null ? null : (
-            <Badge size="sm" color="gray">
-              {count}
-            </Badge>
-          )}
-        </Heading>
-        <p className="mt-1 text-small text-text-secondary">{description}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5">
+        <div>
+          <Heading className="flex items-center gap-2 font-display text-h4 text-text-primary">
+            {title}{" "}
+            {count === null ? null : (
+              <Badge size="sm" color="gray">
+                {count}
+              </Badge>
+            )}
+          </Heading>
+          <p className="mt-1 text-small text-text-secondary">{description}</p>
+        </div>
+        {action}
       </div>
       {children}
     </section>
