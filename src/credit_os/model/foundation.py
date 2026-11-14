@@ -28,7 +28,11 @@ _SHOWN = 5
 _NOT_AFTER = r"(?![A-Za-z])"
 _LETTERS = r"(?:USD|EUR|GBP)"
 _CODE = rf"(?:(?<![A-Za-z])(?:US\$|{_LETTERS})|[$€£])"
-_AFTER = r"(?:US\$|[$€£])"
+_DOLLARS = r"(?:US\$|\$)"
+_AFTER = rf"(?:{_DOLLARS}|[€£])"
+_CAPITAL_M = "(?-i:M)"
+_AMBIGUOUS = rf"(?<![A-Za-z]){_CAPITAL_M}{_DOLLARS}"
+_UNIT_COLUMNS = ("Unit", "Units")
 _ZEROS = r"000s?"
 _WORDS = {
     "thousands": ("thousands?",),
@@ -58,7 +62,7 @@ def _unit_pattern(unit: str) -> re.Pattern[str]:
     forms = [
         rf"(?<![A-Za-z])(?:{words}){_NOT_AFTER}",
         rf"{_CODE}\s?(?:{marks}){_NOT_AFTER}",
-        rf"(?<![A-Za-z])(?:{before})\s?{_AFTER}",
+        rf"(?<![A-Za-z])(?!{_CAPITAL_M}{_DOLLARS})(?:{before})\s?{_AFTER}",
         rf"(?<![A-Za-z0-9])(?:{before})\s{_LETTERS}{_NOT_AFTER}",
     ]
     if unit in _GLUED:
@@ -69,7 +73,10 @@ def _unit_pattern(unit: str) -> re.Pattern[str]:
     return re.compile("|".join(forms), re.IGNORECASE)
 
 
-_UNITS = {unit: _unit_pattern(unit) for unit in _WORDS}
+_UNITS = {
+    **{unit: _unit_pattern(unit) for unit in _WORDS},
+    "ambiguous": re.compile(_AMBIGUOUS, re.IGNORECASE),
+}
 _SCALE_SUFFIX = "|".join([*_MARKS["millions"], *_MARKS["billions"], *_MARKS["thousands"], _ZEROS])
 _SIGNS = {"USD": r"(?i:(?<![A-Za-z])US\$)", "EUR": "€", "GBP": "£"}
 
@@ -82,6 +89,11 @@ _NONE = "base {key}: no table cell of CP-1 is at {where}"
 _MANY = "base {key}: {where} is not one number in CP-1 ({count} cells: {shown}{more})"
 _UNIT = (
     "base {key}: row `{row}` states its {what} as `{cell}`, not the block's unit ({unit}); "
+    "state a reason instead of an amount"
+)
+_AMBIGUOUS_UNIT = (
+    "base {key}: row `{row}` states its {what} as `{cell}`, whose mark is ambiguous "
+    "(thousands or millions), not the block's unit ({unit}); "
     "state a reason instead of an amount"
 )
 _CURRENCY = (
@@ -162,14 +174,17 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 
 
 def units_named(text: str) -> frozenset[str]:
-    """The units (`thousands`, `millions`, `billions`) the text names; any number of them.
+    """The units (`thousands`, `millions`, `billions`, `ambiguous`) the text names; any number.
 
-    A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
+    `ambiguous` is a capital `M` glued before `US$` or `$` (`MUS$`, `M$`): thousands in some
+    statements, millions in others, so it is read as neither. A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
     its mark, by its mark and then a sign, or by its mark before a letter code, glued (`kEUR`,
     `TEUR`, `MUSD`) or after one whitespace (`m EUR`). Capital `T` is a thousands mark where `k`
     is, before a code or sign. Thousands also by `000` and `000s` after a code or sign and at
     most one whitespace, `(000)` standing alone, and the apostrophe forms. Letters around a mark
-    hide it, emphasis marks and digits do not. Billions is never a block's unit.
+    hide it and emphasis marks do not. Digits do not hide it either, except directly before a mark
+    in the spaced mark-before-code form (`5m EUR` names nothing). Billions and `ambiguous` are
+    never a block's unit.
     """
     return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
@@ -245,20 +260,28 @@ def _sign_clause(key: str, cell: Decimal, amount: Decimal) -> str:
     return ""
 
 
-def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str]]:
-    group = [(f"{kind} header", table.columns[column]), ("first header cell", table.columns[0])]
+def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str, bool]]:
+    """The cells of one operand's group as (what, cell, whether it may excuse the others).
+
+    Only the operand's header, the first header cell and a cell under a `Unit` or `Units` column
+    may excuse; every cell can still raise an issue.
+    """
+    group = [
+        (f"{kind} header", table.columns[column], True),
+        ("first header cell", table.columns[0], True),
+    ]
     group.extend(
-        (_plain(table.columns[index]), cell)
+        (_plain(table.columns[index]), cell, _plain(table.columns[index]) in _UNIT_COLUMNS)
         for index, cell in enumerate(line.cells)
         if index != column
     )
     return group
 
 
-def _group_issues(group: list[tuple[str, str]], unit: str) -> list[tuple[str, str]]:
-    if any(unit in units_named(cell) for _, cell in group):
+def _group_issues(group: list[tuple[str, str, bool]], unit: str) -> list[tuple[str, str]]:
+    if any(unit in units_named(cell) for _, cell, excuses in group if excuses):
         return []
-    return [(what, cell) for what, cell in group if units_named(cell)]
+    return [(what, cell) for what, cell, _ in group if units_named(cell) - {unit}]
 
 
 def _table_issues(table: Table, named: tuple[str, str, str], unit: str) -> list[tuple[str, str]]:
@@ -286,7 +309,8 @@ def _unit_problem(
         return None
     what, cell = min(issues)
     label = f"{inputs.currency} {unit}, scale {inputs.scale}"
-    return _UNIT.format(
+    template = _AMBIGUOUS_UNIT if "ambiguous" in units_named(cell) else _UNIT
+    return template.format(
         key=key,
         row=echo(_plain(named[0])),
         what=echo(what),
