@@ -114,9 +114,16 @@ def test_not_utf8_refused(tmp_path: Path) -> None:
 
 
 class _NoEnvironment:
+    """Every read raises, except the two names the mutation tool itself reads."""
+
     def __contains__(self, name: str) -> bool:
-        if name == "MUTANT_UNDER_TEST":  # the mutation tool's own probe, not the code under test
+        if name == "MUTANT_UNDER_TEST":
             return False
+        raise AssertionError("environment read")
+
+    def get(self, name: str, default: str) -> str:
+        if name == "MUTMUT_DEPENDENCY_DEPTH":
+            return default
         raise AssertionError("environment read")
 
     def __getitem__(self, name: str) -> str:
