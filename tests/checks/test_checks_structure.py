@@ -12,6 +12,7 @@ from credit_os.checks.run import check_handoff
 from credit_os.handoff.document import HandoffDocument, parse
 from credit_os.handoff.reader import read_reader
 
+_KEY_ONLY = ("name", "findings", "front", "tail", "expect", "reason", "reason_has", "reason_lacks")
 KEY: dict[str, Any] = json.loads(
     (Path(__file__).resolve().parent / "expected" / "structure.json").read_text("utf-8")
 )
@@ -21,7 +22,7 @@ CASES: dict[str, dict[str, Any]] = {case["name"]: case for case in KEY["cases"]}
 def _build(case: dict[str, Any]) -> tuple[HandoffDocument, CheckContext]:
     findings = case["findings"].replace("{prose}", KEY["prose"])
     text = case.get("front", "") + KEY["head"] + findings + case.get("tail", KEY["tail"])
-    context = build_context({"kind": "prose", **KEY["context"]}, case)
+    context = build_context({"kind": "prose", **KEY["context"]}, case, _KEY_ONLY)
     return parse(text.encode("utf-8")), context
 
 

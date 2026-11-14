@@ -20,6 +20,7 @@ KEY: dict[str, Any] = json.loads(
 )
 CASES: dict[str, dict[str, Any]] = {case["name"]: case for case in KEY["cases"]}
 
+_KEY_ONLY = ("name", "findings", "front", "tail", "expect", "reason_has")
 _MACRO = re.compile(r"\{(words|z):(\d+)\}")
 
 ALL_CHECKS = (
@@ -49,7 +50,9 @@ def _build(case: dict[str, Any]) -> tuple[HandoffDocument, CheckContext]:
         + _expand(case["findings"])
         + _expand(case.get("tail", KEY["tail"]))
     )
-    return parse(text.encode("utf-8")), build_context({"kind": "data", **KEY["context"]}, case)
+    return parse(text.encode("utf-8")), build_context(
+        {"kind": "data", **KEY["context"]}, case, _KEY_ONLY
+    )
 
 
 def _document(text: str) -> HandoffDocument:
@@ -104,11 +107,23 @@ def test_column_in_second_table_cell() -> None:
             KEY["head"]
             + "### Bottom line\nThe view holds.\n"
             + "## Calculations\nNone.\n## Gaps\n| Gap | Effect |\n| --- | --- |\n"
-            + "| g | abc |\n## Next module\nNone.\n"
+            + "| g | abc\ue200 |\n## Next module\nNone.\n"
         ).encode("utf-8")
     )
     found = prose.check_provider_marker(document, _ctx())
     assert [(f.line, f.column, f.quoted) for f in found] == [(14, 4, "U+E200")]
+
+
+@pytest.mark.parametrize(
+    ("text", "columns"),
+    [
+        ("The view [a] holds and then [b] ends.", [10, 29]),
+        ("The view holds [ here.", [16]),
+    ],
+)
+def test_bracket_finding_columns(text: str, columns: list[int]) -> None:
+    found = prose.check_bracket(_document("### Bottom line\n" + text + "\n"), _ctx())
+    assert [finding.column for finding in found] == columns
 
 
 def test_bottom_line_length_reasons_state_the_count() -> None:
