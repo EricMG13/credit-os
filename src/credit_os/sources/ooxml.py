@@ -99,6 +99,8 @@ class Package:
         self._archive = archive
         infos = archive.infolist()
         self._check_places(infos, len(raw))
+        if not infos:
+            raise self.refuse("a zip with no members")
         if stated is None or stated[0] != archive.start_dir or stated[2] != len(infos):
             raise self.refuse("a zip end record that disagrees with its directory")
         self._check_names(infos)
