@@ -52,13 +52,17 @@ function Toast({ outcome }: { outcome: Outcome }) {
 export function CopyProvider({ children }: { children: ReactNode }) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const timer = useRef<number | undefined>(undefined);
-  useEffect(
-    () => () => {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       window.clearTimeout(timer.current);
-    },
-    [],
-  );
+    };
+  }, []);
   const show = (next: Outcome) => {
+    // A copy can settle after the page has gone; nothing is drawn and no timer starts then.
+    if (!mounted.current) return;
     window.clearTimeout(timer.current);
     setOutcome(next);
     timer.current = window.setTimeout(() => {

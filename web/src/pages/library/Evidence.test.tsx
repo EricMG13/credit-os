@@ -144,7 +144,7 @@ describe("Evidence, Summary", () => {
     expect(screen.getByText("Recovery was not assessable")).toBeVisible();
   });
 
-  it("draws the three counts as the mock words them", () => {
+  it("draws the three counts, the file note as the fixture words it (a departure from the mock)", () => {
     renderEvidence("2026-09-30");
     const tiles = within(screen.getByRole("region", { name: "Counts" })).getAllByRole("listitem");
     expect(tiles.map((t) => t.textContent)).toEqual([
@@ -182,6 +182,29 @@ describe("Evidence, Summary", () => {
       "href",
       `${BASE}/sources`,
     );
+  });
+
+  it("draws the download in the secondary look, with and without an address", () => {
+    renderEvidence("2026-09-30");
+    expect(screen.getByRole("link", { name: "Download handoffs" })).toHaveClass("bg-primary");
+    expect(screen.getByRole("link", { name: "Download handoffs" })).not.toHaveClass(
+      "bg-brand-solid",
+    );
+    cleanup();
+    renderEvidence("2026-03-31");
+    expect(screen.getByRole("button", { name: "Download handoffs" })).toHaveClass("bg-primary");
+    expect(screen.getByRole("button", { name: "Download handoffs" })).not.toHaveClass(
+      "bg-brand-solid",
+    );
+  });
+
+  it("gives the delivered section a heading id of its own", () => {
+    renderEvidence("2026-09-30");
+    const region = screen.getByRole("region", { name: "Modules delivered" });
+    const heading = screen.getByRole("heading", { name: "Modules delivered" });
+    expect(region.getAttribute("aria-labelledby")).toBe(heading.id);
+    expect(heading.id).not.toBe("delivered-heading");
+    expect(heading.id).not.toBe("");
   });
 
   it("draws a download with no address as a disabled button with its delivered reason beside it", () => {
@@ -259,6 +282,23 @@ describe("Evidence, copying", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy run code" }));
     await screen.findByRole("status");
     unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("starts no timer for a copy that settles after the page has gone", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let settle: () => void = () => undefined;
+    const pending = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    stubClipboard(() => pending);
+    const { unmount } = renderEvidence("2026-09-30");
+    fireEvent.click(screen.getByRole("button", { name: "Copy run code" }));
+    unmount();
+    await act(async () => {
+      settle();
+      await pending;
+    });
     expect(vi.getTimerCount()).toBe(0);
   });
 

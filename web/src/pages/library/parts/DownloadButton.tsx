@@ -11,7 +11,7 @@ export function DownloadButton({ download }: { download: Download }) {
   if (download.href === null) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <Button isDisabled aria-describedby={reason}>
+        <Button color="secondary" isDisabled aria-describedby={reason}>
           {download.label}
         </Button>
         <span id={reason} className="max-w-prose text-small text-text-secondary">
@@ -21,7 +21,7 @@ export function DownloadButton({ download }: { download: Download }) {
     );
   }
   return (
-    <Button href={download.href} download>
+    <Button color="secondary" href={download.href} download>
       {download.label}
     </Button>
   );

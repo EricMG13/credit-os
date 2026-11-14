@@ -1423,6 +1423,13 @@ function readSources(value: unknown, path: string, held: Held): Evidence["source
   if (visible < files.length !== (moreLabel !== null)) {
     throw new SliceError(child(path, "moreLabel"), "text exactly when a file is held back");
   }
+  const hidden = files.length - visible;
+  if (moreLabel !== null && !new RegExp(`(?<!\\d)${String(hidden)}(?!\\d)`).test(moreLabel)) {
+    throw new SliceError(
+      child(path, "moreLabel"),
+      `a label that names the ${String(hidden)} held back`,
+    );
+  }
   return { files, visible, moreLabel };
 }
 
