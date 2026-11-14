@@ -101,8 +101,7 @@ describe("a story's threadRef", () => {
         Reflect.deleteProperty(story(scene, "corvane"), "threadRef");
       }),
     );
-    expect(result.kind).toBe("invalid");
-    expect(JSON.stringify(result)).toContain("threadRef");
+    expect(result).toEqual(invalid(`${AT}[0].threadRef: expected an object`));
   });
 
   it("looks threads up by value: ids such as constructor are no special case", () => {

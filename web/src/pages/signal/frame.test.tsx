@@ -20,7 +20,6 @@ function channels() {
 
 /** The h1 each declared path shows for its fixture parameter sets (the view, topic, group, digest or page name). */
 const TITLES: Record<string, string> = {
-  "/signal/:scene/digest/:digest": "Weekly brief",
   "/signal/:scene/settings/:section": "Settings",
 };
 
@@ -28,6 +27,12 @@ const TITLES: Record<string, string> = {
 const GROUP_TITLES: Record<string, string> = {
   "leveraged-credit": "Leveraged credit",
   "shipping-desk": "Shipping desk",
+};
+
+/** A digest page's h1 is the digest's name. */
+const DIGEST_TITLES: Record<string, string> = {
+  "weekly-brief": "Weekly brief",
+  "daily-ratings": "Daily ratings",
 };
 
 /** A topic page's h1 is the topic's name as the channel list gives it. */
@@ -286,7 +291,9 @@ describe("the Signal frame", () => {
             ? TOPIC_TITLES[set["topic"] ?? ""]
             : pattern.includes("/group/")
               ? GROUP_TITLES[set["group"] ?? ""]
-              : TITLES[pattern];
+              : pattern.includes("/digest/")
+                ? DIGEST_TITLES[set["digest"] ?? ""]
+                : TITLES[pattern];
         if (title === undefined) throw new Error(`no expected title for ${hash}`);
         expect(screen.getByRole("heading", { level: 1, hidden }).textContent).toBe(title);
         expect(skippedLevels()).toEqual([]);
@@ -296,6 +303,6 @@ describe("the Signal frame", () => {
         visits += 1;
       }
     }
-    expect(visits).toBe(27);
+    expect(visits).toBe(30);
   });
 });

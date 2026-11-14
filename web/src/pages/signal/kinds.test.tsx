@@ -149,6 +149,14 @@ describe("the digest card", () => {
     );
   });
 
+  it("links each card to the page of the digest it is an issue of, not to its own id", () => {
+    show("/signal/ai-on/feed/for-you");
+    expect(card(DAILY).getByRole("link", { name: DAILY })).toHaveAttribute(
+      "href",
+      "#/signal/ai-on/digest/daily-ratings",
+    );
+  });
+
   it("draws a read digest with no unread mark", () => {
     show("/signal/ai-on/feed/for-you");
     const daily = card(DAILY);
@@ -214,7 +222,16 @@ describe("lists that repeat a text", () => {
 
   it("keys the numbered points by position", () => {
     expect(
-      keyClashes(() => render(<NumberedPanel items={["Same point", "Same point"]} />)),
+      keyClashes(() =>
+        render(
+          <NumberedPanel
+            items={[
+              { number: "1", lead: "Same point" },
+              { number: "2", lead: "Same point" },
+            ]}
+          />,
+        ),
+      ),
     ).toEqual([]);
   });
 
