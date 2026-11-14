@@ -242,3 +242,32 @@ describe("Run start, addresses the slice does not hold", () => {
     );
   });
 });
+
+describe("readiness items", () => {
+  it("are plain text rows with no status shape of their own", () => {
+    show("/run/start/documents", fixture.slice);
+    const panel = screen.getByRole("complementary", { name: "Readiness" });
+    const items = within(panel).getAllByRole("listitem");
+    expect(items).toHaveLength(6);
+    items.forEach((li) => {
+      expect(li.querySelector("svg")).toBeNull();
+    });
+    // the group header keeps its shape, word and count
+    expect(within(panel).getByRole("heading", { level: 3, name: "Not met 3" })).toBeVisible();
+  });
+
+  it("two items with the same text are both drawn", () => {
+    const source = structuredClone(fixture.slice) as {
+      drafts: { id: string; readiness: { met: { items: string[] } } }[];
+    };
+    const d = source.drafts.find((x) => x.id === "documents");
+    if (d === undefined) throw new Error("fixture has no documents draft");
+    d.readiness.met.items = ["Spending cap set", "Spending cap set", "Spending cap set"];
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    show("/run/start/documents", source);
+    const met = screen.getByRole("list", { name: "Met 3" });
+    expect(within(met).getAllByRole("listitem")).toHaveLength(3);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});

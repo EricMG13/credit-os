@@ -190,6 +190,17 @@ describe("rejects", () => {
       "run.drafts[6].next: expected null on a started draft",
     );
   });
+  it("a step other than started with no next and no reason", () => {
+    expect(reason(edit("purpose", ["next"], null))).toBe(
+      "run.drafts[2].nextBlocked: expected a reason when next is null",
+    );
+  });
+  it("a step with no next but a reason is read", () => {
+    const source = edit("purpose", ["next"], null);
+    const copy = source as { drafts: Node[] };
+    (copy.drafts[2] as Node).nextBlocked = "Not yet.";
+    expect(readSlice(source).kind).toBe("ok");
+  });
   it("a missing list", () => {
     expect(reason(edit("documents", ["files"], undefined))).toBe(
       "run.drafts[1].files: expected a list",

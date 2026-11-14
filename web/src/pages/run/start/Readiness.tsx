@@ -1,12 +1,9 @@
 import { useId } from "react";
 import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
 import { StatusBadge } from "@/components/status/StatusBadge";
-import { StatusShape } from "@/components/status/shapes";
-import { STATUS_SETS } from "@/components/status/sets";
 import type { Readiness as ReadinessData } from "../slice";
 
 type Group = "Not met" | "Met";
-const MARK: Record<Group, string> = { "Not met": "text-warning-mark", Met: "text-success-mark" };
 
 function ItemGroup({ state, count, items }: { state: Group; count: string; items: string[] }) {
   const id = useId();
@@ -16,14 +13,11 @@ function ItemGroup({ state, count, items }: { state: Group; count: string; items
         <StatusBadge set="Met or not met" state={state} /> <span>{count}</span>
       </h3>
       <ul aria-labelledby={id} className="flex flex-col gap-2">
-        {items.map((item) => (
+        {items.map((item, i) => (
           <li
-            key={item}
-            className="flex items-center gap-2 rounded-ds-md border border-border-hairline bg-surface-card p-2 text-sm font-medium text-text-primary"
+            key={`${String(i)}-${item}`}
+            className="rounded-ds-md border border-border-hairline bg-surface-card p-2 text-sm font-medium text-text-primary"
           >
-            <span className={MARK[state]}>
-              <StatusShape shape={STATUS_SETS["Met or not met"][state].shape} />
-            </span>
             {item}
           </li>
         ))}

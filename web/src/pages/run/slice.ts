@@ -148,7 +148,10 @@ function draft(v: unknown, path: string): StartDraft {
     nextBlocked: strOrNull(o, "nextBlocked", path),
     readiness: readiness(o.readiness, `${path}.readiness`),
   };
-  switch (oneOf(o, "step", path, STEPS)) {
+  const step = oneOf(o, "step", path, STEPS);
+  if (step !== "started" && base.next === null && base.nextBlocked === null)
+    fail(`${path}.nextBlocked`, "a reason when next is null");
+  switch (step) {
     case "documents":
       return { ...base, step: "documents", files: list(o, "files", path, file) };
     case "purpose": {
