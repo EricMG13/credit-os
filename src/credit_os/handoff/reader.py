@@ -4,7 +4,9 @@ The format is new when the first level-3 section under `Findings` is `Bottom lin
 real sections are read, never text inside a code block.
 
 Passages exist only in the new format; a repeated passage heading is refused here, not by
-`parse`. An earlier-format summary has three states: no `Reader summary` section (`summary_section`
+`parse`. In the earlier format a repeated `Reader summary` heading is refused the same way, as
+either one would be a guess; in the new format that title is not special. An earlier-format
+summary has three states: no `Reader summary` section (`summary_section`
 None); a section that does not hold exactly its two tables (`summary` None, `summary_section`
 set: present but unreadable); or both set. In the new format both are None. Blocks under a deeper
 heading inside a passage are in the passage's `sections`, not its `blocks`.
@@ -21,6 +23,7 @@ _BOTTOM_LINE = "Bottom line"
 _KEY_FINDINGS = "Key findings"
 _CONTRARY = "Contrary evidence and what would change the view"
 _LIMITATIONS = "Limitations"
+_READER_SUMMARY = "Reader summary"
 _SUMMARY_CALL = ("Bottom line", "Confidence", "Main limitation")
 _SUMMARY_FINDINGS = ("Finding", "Creditor impact", "Confidence")
 
@@ -103,7 +106,10 @@ def read_reader(document: HandoffDocument) -> Reader:
             summary=None,
             summary_section=None,
         )
-    section = next((s for s in level_three if s.title == "Reader summary"), None)
+    sections = [s for s in level_three if s.title == _READER_SUMMARY]
+    if len(sections) > 1:
+        raise HandoffError(sections[1].line, f"heading `{_READER_SUMMARY}` is repeated")
+    section = sections[0] if sections else None
     return Reader(
         format="earlier",
         bottom_line=None,
