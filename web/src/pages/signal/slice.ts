@@ -206,10 +206,37 @@ export type SignalNotificationEvent = {
   inSignal: boolean;
   onDesktop: boolean;
 };
+/**
+ * One week of a source's items: the delivered label and count text (`null` is no reading, `"0"` a
+ * reading of zero) and the bar's height from 0 to 1, used to position the bar only.
+ */
+export type SignalSourceWeek = { label: string; items: string | null; height: number | null };
+/**
+ * A source as Settings lists it. `health` is null for a source that is not checked (proposed or
+ * paused); `reason` is the failing text; the two notes are the delivered lines under each badge;
+ * `sort` holds the delivered ranks the table sorts by. `weeks` is empty when no week was read.
+ */
+export type SignalSource = {
+  id: string;
+  name: string;
+  kind: string;
+  state: "Proposed" | "Approved" | "Paused";
+  health: "Healthy" | "Quiet" | "Failing" | null;
+  reason: string | null;
+  stateNote: string | null;
+  healthNote: string | null;
+  lastCheck: string | null;
+  lastItem: string | null;
+  weeks: SignalSourceWeek[];
+  sort: { name: number; state: number; health: number };
+};
 export type SignalSettings = {
   groups: SignalSettingsGroup[];
   rules: SignalSettingsRule[];
   notifications: { events: SignalNotificationEvent[] };
+  sources: SignalSource[];
+  /** The Items per week column's heading, with its delivered week count ("Items per week, 6 weeks"). */
+  sourceWeeksHeading: string;
 };
 type SignalSnapshot = {
   viewer: SignalViewer;
@@ -726,6 +753,56 @@ const settingsGroup: Reader<SignalSettingsGroup> = (v, path) => {
     ? bad(`${path}.moreMembers`, "null when the group lists no members")
     : got;
 };
+const rank: Reader<number> = (v, path) =>
+  typeof v === "number" && Number.isFinite(v) ? good(v) : bad(path, "a number");
+const sourceWeek: Reader<SignalSourceWeek> = (v, path) => {
+  const got = shape<SignalSourceWeek>({
+    label: str,
+    items: strOrNull,
+    height: orNull(unit),
+  })(v, path);
+  if (!got.ok) return got;
+  const { items, height } = got.value;
+  if ((items === null) !== (height === null)) {
+    return bad(
+      `${path}.${items === null ? "items" : "height"}`,
+      "both a count and a height, or neither",
+    );
+  }
+  return items === "0" && height !== 0 ? bad(`${path}.height`, "0 for a reading of zero") : got;
+};
+const sourceBase = shape<SignalSource>({
+  id: str,
+  name: str,
+  kind: str,
+  state: oneOf(["Proposed", "Approved", "Paused"], "Proposed, Approved or Paused"),
+  health: oneOf(["Healthy", "Quiet", "Failing", null], "Healthy, Quiet, Failing or null"),
+  reason: strOrNull,
+  stateNote: strOrNull,
+  healthNote: strOrNull,
+  lastCheck: strOrNull,
+  lastItem: strOrNull,
+  weeks: list(sourceWeek),
+  sort: shape({ name: rank, state: rank, health: rank }),
+});
+/** A reason goes with Failing and only with it; a proposed source is not checked, so has no health. */
+const source: Reader<SignalSource> = (v, path) => {
+  const got = sourceBase(v, path);
+  if (!got.ok) return got;
+  const one = got.value;
+  if (one.state === "Proposed" && one.health !== null) {
+    return bad(`${path}.health`, "null for a proposed source");
+  }
+  if ((one.reason === null) !== (one.health !== "Failing")) {
+    return bad(`${path}.reason`, "a reason exactly when the health is Failing");
+  }
+  if (one.health === null && one.healthNote !== null) {
+    return bad(`${path}.healthNote`, "null when the source has no health");
+  }
+  return one.lastCheck === null && one.lastItem !== null
+    ? bad(`${path}.lastItem`, "null when there is no last check")
+    : got;
+};
 const settings = shape<SignalSettings>({
   groups: list(settingsGroup),
   rules: list(shape<SignalSettingsRule>({ id: str, label: str, hint: strOrNull, on: bool })),
@@ -734,6 +811,8 @@ const settings = shape<SignalSettings>({
       shape<SignalNotificationEvent>({ id: str, label: str, inSignal: bool, onDesktop: bool }),
     ),
   }),
+  sources: list(source),
+  sourceWeeksHeading: str,
 });
 const snapshotBase = shape<SignalSnapshot>({
   viewer,
@@ -847,6 +926,7 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
     ["groups", snap.settings.groups.map((g) => g.id)],
     ["rules", snap.settings.rules.map((r) => r.id)],
     ["notifications.events", snap.settings.notifications.events.map((e) => e.id)],
+    ["sources", snap.settings.sources.map((o) => o.id)],
   ];
   for (const [name, ids] of lists) {
     const repeat = repeatAt(ids);
@@ -863,7 +943,30 @@ function settingsProblem(snap: SignalSnapshot, path: string): string | null {
       return `${at}.groups[${String(index)}].name: expected the name the channel list gives this group`;
     }
   }
-  return settingsMembersProblem(snap, path);
+  return settingsSourcesProblem(snap, path) ?? settingsMembersProblem(snap, path);
+}
+
+/**
+ * Every source has as many weeks as the others that have any. The feed's own claims about sources
+ * agree with the list: it says a source is approved exactly when one is listed Approved, and says
+ * sources are failing only when one is listed Failing.
+ */
+function settingsSourcesProblem(snap: SignalSnapshot, path: string): string | null {
+  const { sources } = snap.settings;
+  const at = `${path}.settings.sources`;
+  const width = sources.find((o) => o.weeks.length > 0)?.weeks.length ?? 0;
+  const odd = sources.findIndex((o) => o.weeks.length > 0 && o.weeks.length !== width);
+  if (odd !== -1) {
+    return `${at}[${String(odd)}].weeks: expected ${String(width)} weeks, as the other sources have`;
+  }
+  const approved = sources.some((o) => o.state === "Approved");
+  if (snap.feed.sources.approved !== approved) {
+    return `${path}.feed.sources.approved: expected ${String(approved)}, as settings.sources lists`;
+  }
+  const failing = sources.some((o) => o.health === "Failing");
+  return snap.feed.freshness.failing !== null && !failing
+    ? `${path}.feed.freshness.failing: expected null, as settings.sources lists no failing source`
+    : null;
 }
 
 /**
