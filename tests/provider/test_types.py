@@ -30,7 +30,7 @@ USAGE_FIELDS = (
 CALL = ToolCall(call_id="c1", name="f", arguments={})
 _TURN = Turn("t", (), Usage(input_tokens=5), "end", None, None)
 _REPLY = Reply("not_sent", None, "E", "m", None, None, None, None, None)
-_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0240831"))
+_COMPACTION = Compaction(Usage(output_tokens=7), Decimal("0.0214050"))
 
 
 def _message(**kw: Any) -> Message:
@@ -140,7 +140,7 @@ def test_assistant_message_with_tool_call() -> None:
     assert (message.role, message.tool_calls) == ("assistant", (CALL,))
 
 
-@pytest.mark.parametrize("charge", [None, Decimal("0.0996381"), Decimal(0)])
+@pytest.mark.parametrize("charge", [None, Decimal("0.07319425613"), Decimal(0)])
 def test_ok_reply(charge: Decimal | None) -> None:
     assert _ok(billed_usd=charge) == Reply(
         "ok", _turn(), None, "m", Usage(input_tokens=5), charge, None, None, None
@@ -162,7 +162,7 @@ def test_sent_usage_with_counts_only(count: int) -> None:
     )
 
 
-@pytest.mark.parametrize("charge", [Decimal("0.1112661"), Decimal(0)])
+@pytest.mark.parametrize("charge", [Decimal("0.1305870"), Decimal(0)])
 def test_sent_usage_with_charge_only(charge: Decimal) -> None:
     reply = _sent(billed_usd=charge)
     assert reply == Reply("sent_usage", None, "E", "m", Usage(), charge, None, None, None)
@@ -181,7 +181,7 @@ def test_reply_carries_compactions_without_taking_their_charge(
 ) -> None:
     reply = build(compactions=(_COMPACTION, _compaction(billed_usd=None)))
     assert reply.billed_usd is None
-    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0240831"), None]
+    assert [c.billed_usd for c in reply.compactions] == [Decimal("0.0214050"), None]
 
 
 def test_types_are_frozen() -> None:

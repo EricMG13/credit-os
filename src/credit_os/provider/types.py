@@ -115,9 +115,9 @@ class Reply:
     """`ok`: a turn came back. `not_sent`: the call never left. `sent_usage`: sent, failed,
     at least one count in usage or the charge known. `sent_unknown`: may have been sent, cost
     unknown. `started_at` and `finished_at` are epoch seconds, `None` when the call never
-    started. `billed_usd` is the call's own charge only: a compaction's charge is never added
-    to it and nothing in this layer sums them (a total with any `None` is unknown; step 3A
-    decides)."""
+    started or the reply was read from a recording (no times). `billed_usd` is the call's own
+    charge only: a compaction's charge is never added to it and nothing in this layer sums
+    them (a total with any `None` is unknown; step 3A decides)."""
 
     kind: ReplyKind
     turn: Turn | None

@@ -42,12 +42,9 @@ def test_digits_kept_and_missing_count_not_zero() -> None:
     turn = _ask(model, CP1_1).turn
     assert turn is not None
     scale = turn.tool_calls[0].arguments["scale"]
-    assert isinstance(scale, Decimal)
-    assert str(scale) == key.CANNED_SCALE_TEXT
+    assert isinstance(scale, Decimal) and str(scale) == key.CANNED_SCALE_TEXT
     usage = _ask(model, CP1_1).usage
-    assert usage is not None
-    assert usage.cached_read_tokens == 0
-    assert usage.input_tokens is None
+    assert usage is not None and (usage.cached_read_tokens, usage.input_tokens) == (0, None)
 
 
 @pytest.mark.parametrize("at", key.CANNED_MISSING)
@@ -135,7 +132,7 @@ MESSAGES: list[tuple[dict[str, Any] | str, str]] = [
 ]
 
 
-@pytest.mark.parametrize(("line", "message"), MESSAGES)
+@pytest.mark.parametrize(("line", "message"), MESSAGES, ids=range(len(MESSAGES)))
 def test_refusal_text(tmp_path: Path, line: dict[str, Any] | str, message: str) -> None:
     with pytest.raises(RecordingError, match=rf"^rec\.jsonl line 1: {re.escape(message)}$"):
         canned_model("c", _file(tmp_path, line))
@@ -145,14 +142,14 @@ def test_good_lines_accepted_and_details(tmp_path: Path) -> None:
     def load(line: dict[str, Any]) -> Reply:
         return _ask(canned_model("c", _file(tmp_path, line)), ("e", 0))
 
-    for line in key.CANNED_GOOD_LINES:
-        reply = load(line)
+    for reply in map(load, key.CANNED_GOOD_LINES):
         assert (reply.raw, reply.started_at, reply.finished_at) == (None, None, None)
     bad = load(key.CANNED_GOOD_LINES[2])
-    assert bad.turn is not None
-    assert bad.turn.tool_calls[0].bad_arguments == "[1]"
+    assert bad.turn is not None and bad.turn.tool_calls[0].bad_arguments == "[1]"
     two = load(key.CANNED_GOOD_LINES[3])
-    assert [c.billed_usd for c in two.compactions] == [Decimal("0.0240831"), None]
+    texts = key.CANNED_COMPACTION_BILLED_TEXT[("cp1-synthetic", 0)]
+    assert [str(c.billed_usd) for c in two.compactions] == [str(t) for t in texts]
+    assert [str(load(key.CANNED_GOOD_LINES[i]).billed_usd) for i in (6, 7)] == ["0", "10.50"]
     null = load(_turn(reported_model=None, request_id=None, tool_calls=[_CALL]))
     assert null.turn is not None
     assert (null.turn.reported_model, null.turn.tool_calls[0].bad_arguments) == (None, None)
