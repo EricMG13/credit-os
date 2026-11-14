@@ -191,3 +191,19 @@ _EVENT = st.fixed_dictionaries(
 def test_it_never_raises(events: Any) -> None:
     assert isinstance(_reply(events), Reply)
     assert isinstance(compactions_from_events(events), tuple)
+
+
+def test_compactions_of_events_that_are_not_json_are_none() -> None:
+    events = [{"id": "e1", "type": "session.compaction_start", "data": {"x": {1, 2}}}]
+    assert compactions_from_events(events) == ()
+
+
+@pytest.mark.parametrize("reasoning", [5, True, "x"])
+def test_a_compaction_has_no_reasoning_count(reasoning: Any) -> None:
+    used = {"inputTokens": 30, "outputTokens": 5, "reasoningTokens": reasoning}
+    event = {
+        "id": "e1",
+        "type": "session.compaction_complete",
+        "data": {"success": True, "compactionTokensUsed": used},
+    }
+    assert _seen([event]) == (("e1", "done", (30, None, None, 5), None),)
