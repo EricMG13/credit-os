@@ -213,7 +213,8 @@ def test_a_cut_name_is_refused_before_any_lookup(monkeypatch: pytest.MonkeyPatch
         _encoding("f.html", b" " * 4071 + b'<meta charset="iso-8859-15"><p>price \xa4 100</p>')
     assert str(caught.value) == "f.html: " + _CUT
     assert caught.value.__cause__ is None
-    assert names == []
+    # only the UTF-8 trial decode looks a codec up; the declared name never is
+    assert names == ["utf-8"]
 
 
 def test_constants() -> None:
