@@ -176,4 +176,14 @@ describe("Kit", () => {
     expect(paths.some((p) => p.getAttribute("d")?.match(/M/g)?.length === 2)).toBe(true);
     expect(within(trend).getAllByRole("radio", { name: "Table" })).toHaveLength(2);
   });
+
+  it("names each chart by its title and labels the y-axis from the supplied ticks", () => {
+    render(<Kit />);
+    const debt = screen.getByRole("figure", { name: "Debt by period" });
+    const ticks = [
+      ...debt.querySelectorAll(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value"),
+    ].map((t) => t.textContent);
+    expect(ticks).toEqual(["0", "200", "400", "600"]);
+    expect(screen.getByRole("figure", { name: "Eight series" })).toBeInTheDocument();
+  });
 });

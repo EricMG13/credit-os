@@ -71,26 +71,40 @@ const TREND = {
   ],
 };
 
-const EIGHT = [
-  "Term loan",
-  "Notes",
-  "Revolver",
-  "Leases",
-  "Pensions",
-  "Overdraft",
-  "Bonds",
-  "Other debt",
-];
 const FOLDED = {
-  series: EIGHT.map((name, i) => ({
-    name,
-    values: PERIODS.map((_, p) => 10 * (i + 1) + 3 * p),
-  })),
-  table: EIGHT.map((name, i) => ({
-    name,
-    cells: PERIODS.map((_, p) => String(10 * (i + 1) + 3 * p)),
-  })),
+  series: [
+    { name: "Term loan", values: [10, 13, 16, 19, 22, 25] },
+    { name: "Notes", values: [20, 23, 26, 29, 32, 35] },
+    { name: "Revolver", values: [30, 33, 36, 39, 42, 45] },
+    { name: "Leases", values: [40, 43, 46, 49, 52, 55] },
+    { name: "Pensions", values: [50, 53, 56, 59, 62, 65] },
+    { name: "Overdraft", values: [60, 63, 66, 69, 72, 75] },
+    { name: "Bonds", values: [70, 73, 76, 79, 82, 85] },
+    { name: "Other debt", values: [80, 83, 86, 89, 92, 95] },
+  ],
+  table: [
+    { name: "Term loan", cells: ["10", "13", "16", "19", "22", "25"] },
+    { name: "Notes", cells: ["20", "23", "26", "29", "32", "35"] },
+    { name: "Revolver", cells: ["30", "33", "36", "39", "42", "45"] },
+    { name: "Leases", cells: ["40", "43", "46", "49", "52", "55"] },
+    { name: "Pensions", cells: ["50", "53", "56", "59", "62", "65"] },
+    { name: "Overdraft", cells: ["60", "63", "66", "69", "72", "75"] },
+    { name: "Bonds", cells: ["70", "73", "76", "79", "82", "85"] },
+    { name: "Other debt", cells: ["80", "83", "86", "89", "92", "95"] },
+  ],
 };
+
+const TREND_TICKS = [
+  { value: 0, label: "0" },
+  { value: 200, label: "200" },
+  { value: 400, label: "400" },
+  { value: 600, label: "600" },
+];
+const FOLDED_TICKS = [
+  { value: 0, label: "0" },
+  { value: 50, label: "50" },
+  { value: 100, label: "100" },
+];
 
 function Row({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-4">{children}</div>;
@@ -370,6 +384,7 @@ export function Kit() {
           periods={PERIODS}
           series={TREND.series}
           table={TREND.table}
+          yTicks={TREND_TICKS}
         />
         <TrendChart
           title="Eight series"
@@ -377,6 +392,7 @@ export function Kit() {
           periods={PERIODS}
           series={FOLDED.series}
           table={FOLDED.table}
+          yTicks={FOLDED_TICKS}
         />
       </section>
 

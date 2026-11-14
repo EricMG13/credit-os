@@ -32,6 +32,13 @@ interface TrendChartProps {
   series: SeriesData[];
   /** The same data as display strings, one row per series. */
   table: TableRow[];
+  /** The y-axis ticks and their labels, supplied by the caller. Without them the axis has no labels. */
+  yTicks?: YTick[];
+}
+
+interface YTick {
+  value: number;
+  label: string;
 }
 
 const HEIGHT = 240;
@@ -101,7 +108,41 @@ function ChartTooltip({
   );
 }
 
-function Chart({ periods, series, table }: Omit<TrendChartProps, "title" | "note">) {
+function YAxisLabels({ yTicks }: { yTicks: YTick[] | undefined }) {
+  if (yTicks === undefined || yTicks.length === 0) {
+    return <YAxis width={0} tick={false} tickLine={false} axisLine={false} />;
+  }
+  const first = yTicks[0]?.value ?? 0;
+  const last = yTicks[yTicks.length - 1]?.value ?? 0;
+  const labels = new Map(yTicks.map((t) => [t.value, t.label]));
+  return (
+    <YAxis
+      width="auto"
+      tickLine={false}
+      axisLine={false}
+      tick={TICK}
+      tickMargin={8}
+      domain={[first, last]}
+      ticks={yTicks.map((t) => t.value)}
+      interval={0}
+      tickFormatter={(v: number) => labels.get(v) ?? ""}
+    />
+  );
+}
+
+function check({ periods, series, table }: Pick<TrendChartProps, "periods" | "series" | "table">) {
+  const same = series.length === table.length && series.every((s, i) => s.name === table[i]?.name);
+  if (!same) throw new Error("series and table must carry the same names in the same order");
+  const n = periods.length;
+  const bad = series.find((s, i) => s.values.length !== n || table[i]?.cells.length !== n);
+  if (bad !== undefined) {
+    throw new Error(
+      `series "${bad.name}" must have one value and one cell per period (${String(n)} periods)`,
+    );
+  }
+}
+
+function Chart({ periods, series, table, yTicks }: Omit<TrendChartProps, "title" | "note">) {
   const styles = assignSeries(series.map((s) => s.name));
   const data = periods.map((period, index) => ({
     period,
@@ -114,7 +155,7 @@ function Chart({ periods, series, table }: Omit<TrendChartProps, "title" | "note
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--color-border-hairline)" />
           <XAxis dataKey="period" tickLine={false} axisLine={BASELINE} tick={TICK} tickMargin={8} />
-          <YAxis width="auto" tickLine={false} axisLine={false} tick={TICK} tickMargin={8} />
+          <YAxisLabels yTicks={yTicks} />
           <Tooltip
             isAnimationActive={false}
             cursor={false}
@@ -195,12 +236,13 @@ function DataTable({
 }
 
 /** A line chart over periods, with the Chart or Table toggle on the same data. */
-export function TrendChart({ title, note, periods, series, table }: TrendChartProps) {
+export function TrendChart({ title, note, periods, series, table, yTicks }: TrendChartProps) {
+  check({ periods, series, table });
   return (
     <ChartFrame title={title} note={note}>
       {(view) =>
         view === "chart" ? (
-          <Chart periods={periods} series={series} table={table} />
+          <Chart periods={periods} series={series} table={table} yTicks={yTicks} />
         ) : (
           <DataTable title={title} periods={periods} table={table} />
         )
