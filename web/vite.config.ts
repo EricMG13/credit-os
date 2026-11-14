@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -27,6 +28,7 @@ function classicScriptTags(): Plugin {
 
 export default defineConfig({
   base: "./",
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
   plugins: [react(), tailwindcss(), classicScriptTags()],
   build: {
     outDir: "dist",
