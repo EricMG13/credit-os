@@ -1,5 +1,4 @@
-import { readSlice } from "./read";
-import { edited, fixtureSlice } from "./test-fixture";
+import { edited, fixtureSlice, readRuns } from "./test-fixture";
 
 const STM = ["runs", 0, "statements"] as const;
 const P = "runs[0].statements";
@@ -439,7 +438,7 @@ const pageCases: Case[] = [
 
 describe("readSlice: the second half of the Model page", () => {
   it("reads the bridges, the comparison, the debt, the recovery and the links", () => {
-    const result = readSlice(fixtureSlice());
+    const result = readRuns(fixtureSlice());
     if (result.kind !== "ok") throw new Error(`${result.kind}: ${JSON.stringify(result)}`);
     const page = result.data.runs[0]?.statements;
     expect(page?.bridges.map((b) => b.title)).toEqual(["EBITDA bridge", "Net debt walk"]);
@@ -457,7 +456,7 @@ describe("readSlice: the second half of the Model page", () => {
   it.each([[{ kind: "markdown", href: "model.md" }], [{ kind: "html", href: "model.html" }]])(
     "reads a published model %j",
     (published) => {
-      const result = readSlice(edited([...STM, "published"], published));
+      const result = readRuns(edited([...STM, "published"], published));
       if (result.kind !== "ok") throw new Error(result.kind);
       expect(result.data.runs[0]?.statements.published).toEqual(published);
     },
@@ -471,6 +470,6 @@ describe("readSlice: the second half of the Model page", () => {
     ...columnsCases(["recovery"], R, 100, "Term loans and secured notes", "Base case"),
     ...pageCases,
   ])("is invalid and names the failing path: %s", (_, steps, value, reason) => {
-    expect(readSlice(edited(steps, value))).toEqual({ kind: "invalid", reason });
+    expect(readRuns(edited(steps, value))).toEqual({ kind: "invalid", reason });
   });
 });

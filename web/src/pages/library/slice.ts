@@ -173,13 +173,15 @@ export type Overview = {
   /** The accessible name of the headline figures. */
   metricsLabel: string;
   metrics: readonly Metric[];
+  /** `null` when the handoff has no For and against section. */
   sides: {
     heading: string;
     note: string;
     columns: readonly { name: string; items: readonly Point[] }[];
-  };
+  } | null;
   findings: readonly Finding[];
-  changeView: ChangeView;
+  /** `null` when the handoff has no passage on what would change the view. */
+  changeView: ChangeView | null;
   dates: readonly DatedItem[];
   /** `summary` is delivered text such as "12 of 13 delivered". */
   modules: { summary: string; items: readonly ModuleItem[] };
@@ -215,9 +217,13 @@ export type Change = {
   trace: string | null;
 };
 
-/** The Changes page of a run: the first run on an issuer has nothing to compare with. */
+/**
+ * The Changes page of a run: the first run on an issuer has nothing to compare with (`none`); a
+ * later run that has not been compared yet is `pending`.
+ */
 export type Changes =
   | { kind: "none"; title: string; text: string }
+  | { kind: "pending"; title: string; text: string }
   | {
       kind: "compared";
       heading: string;

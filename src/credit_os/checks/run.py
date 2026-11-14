@@ -3,7 +3,7 @@
 Later pull requests add steps here; each step is one plain line of this function.
 """
 
-from credit_os.checks import figures, held, passages, prose, sources, structure
+from credit_os.checks import confidence, figures, held, passages, prose, sources, structure, text
 from credit_os.checks.findings import CheckContext, Finding, ordered
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import HandoffError
@@ -42,9 +42,10 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
                 *structure.check_register_id(document, context),
                 *_prose_text(document, context),
                 *_sources(document, context),
+                *confidence.check_confidence(document, context),
             )
         )
-    if reader.format == "earlier":
+    if text.is_earlier(reader):
         return ordered(
             (
                 *structure.check_format(document, context),
@@ -67,5 +68,6 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
             *figures.check_form(document, context),
             *held.check_not_held(document, context),
             *held.check_mismatch(document, context),
+            *confidence.check_confidence(document, context),
         )
     )

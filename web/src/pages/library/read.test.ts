@@ -25,6 +25,26 @@ function invalidReason(source: unknown): string {
   return result.reason;
 }
 
+describe("the address rule's decode", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rethrows a failure that is not a URIError instead of refusing the address", () => {
+    vi.spyOn(globalThis, "decodeURIComponent").mockImplementation(() => {
+      throw new TypeError("injected");
+    });
+    expect(() => readSlice(fixture.slice)).toThrow(TypeError);
+  });
+
+  it("refuses the address on a URIError", () => {
+    vi.spyOn(globalThis, "decodeURIComponent").mockImplementation(() => {
+      throw new URIError("injected");
+    });
+    expect(readSlice(fixture.slice).kind).toBe("invalid");
+  });
+});
+
 describe("readSlice", () => {
   it("reads the fixture's slice as ok", () => {
     const result = readSlice(fixture.slice);
@@ -270,6 +290,95 @@ describe("readSlice, issuer history", () => {
   });
 });
 
+describe("readSlice, a run not yet compared", () => {
+  type Issuer = Json & { history: Json & { entries: Json[] }; runs: (Json & { changes: Json })[] };
+  const brevane = (slice: ReturnType<typeof fresh>): Issuer => {
+    const found = slice.issuers.find((issuer) => issuer["id"] === "brevane-marine");
+    if (found === undefined) throw new Error("no brevane-marine in the fixture");
+    return found as Issuer;
+  };
+
+  it("reads the pending run, with its title and text exactly as delivered", () => {
+    const result = readSlice(fresh());
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers.find((issuer) => issuer.id === "brevane-marine")?.runs[0];
+    expect(run?.changes).toEqual({
+      kind: "pending",
+      title: "Comparison not yet run",
+      text: "An earlier run exists on Brevane Marine; the comparison with it has not been run.",
+    });
+  });
+
+  it("refuses a pending run without a title or text, naming the field", () => {
+    const slice = fresh();
+    delete brevane(slice).runs[0]?.changes["text"];
+    expect(invalidReason(slice)).toContain("issuers[6].runs[0].changes.text");
+  });
+
+  it.each([
+    ["none", "title", ""],
+    ["none", "text", "  "],
+    ["pending", "title", ""],
+    ["pending", "text", " \t"],
+  ])("refuses a %s run whose %s is blank, at the field", (kind, field, blank) => {
+    const slice = fresh();
+    const changes = brevane(slice).runs[0]?.changes as Record<string, unknown>;
+    changes["kind"] = kind;
+    changes[field] = blank;
+    expect(invalidReason(slice)).toContain(`issuers[6].runs[0].changes.${field}`);
+  });
+
+  it("gives the Brevane Overview a headline figure", () => {
+    const run = brevane(fresh()).runs[0] as unknown as { overview: { metrics: unknown[] } };
+    expect(run.overview.metrics.length).toBeGreaterThan(0);
+  });
+
+  it("refuses a history entry whose changes link names the pending run, at the entry's changes", () => {
+    const slice = fresh();
+    const entry = brevane(slice).history.entries[0];
+    brevane(slice).history.entries[0] = {
+      ...entry,
+      changes: { label: "What changed since 30 Sep 2026", run: "r-0412" },
+    };
+    expect(invalidReason(slice)).toContain(
+      "issuers[6].history.entries[0].changes: expected null for a run not yet compared",
+    );
+  });
+
+  it("refuses a pending run that is the issuer's only history entry, at changes.kind", () => {
+    const slice = fresh();
+    brevane(slice).history.entries = brevane(slice).history.entries.slice(0, 1);
+    expect(invalidReason(slice)).toContain(
+      "issuers[6].runs[0].changes.kind: expected a history of at least two entries for a run not yet compared",
+    );
+  });
+
+  it("keeps the none state's rules: a first run with one history entry still reads", () => {
+    const slice = fresh();
+    const first = brevane(slice).runs[0];
+    if (first === undefined) throw new Error("no run");
+    first.changes = { kind: "none", title: "No earlier run", text: "First." };
+    brevane(slice).history.entries = brevane(slice).history.entries.slice(0, 1);
+    expect(readSlice(slice).kind).toBe("ok");
+  });
+
+  it("keeps a loading run's changes null", () => {
+    const slice = fresh();
+    const run = slice.issuers[0]?.["runs"] as Json[];
+    const loading = run[1] as Json;
+    loading["changes"] = { kind: "pending", title: "t", text: "x" };
+    expect(invalidReason(slice)).toContain(
+      "issuers[0].runs[1].changes: expected null for a loading run",
+    );
+  });
+
+  it("reads a run whose id is not a date", () => {
+    const result = readSlice(fresh());
+    if (result.kind !== "ok") throw new Error(result.kind);
+    expect(result.data.issuers.some((i) => i.runs.some((r) => r.id === "r-0412"))).toBe(true);
+  });
+});
+
 describe("readSlice, run frame", () => {
   type Run = Json & { head: Json; traces: Record<string, Json & { derivation: Json }> };
   const runOf = (slice: ReturnType<typeof fresh>, i: number, r: number) =>
@@ -416,13 +525,13 @@ describe("readSlice, overview", () => {
     if (full?.loading !== false || capped?.loading !== false) throw new Error("runs are loaded");
     expect(full.overview.metrics).toHaveLength(6);
     expect(full.overview.metrics[5]?.value).toBeNull();
-    expect(full.overview.sides.columns.map((c) => c.items.length)).toEqual([3, 3]);
+    expect(full.overview.sides?.columns.map((c) => c.items.length)).toEqual([3, 3]);
     expect(capped.overview.metrics[0]?.value).toEqual({ kind: "value", text: "0", at: 0 });
     expect(capped.overview.metrics[1]?.value).toMatchObject({ kind: "withheld" });
     expect(full.overview.findings.map((f) => f.number)).toEqual(["01", "02", "03", "04", "05"]);
     expect(full.overview.dates.map((d) => d.state)).toEqual(["Past", "Next", "Later", "Later"]);
-    expect(full.overview.changeView.title).toBe("Two triggers, either is enough");
-    expect(capped.overview.changeView.trace).toBeNull();
+    expect(full.overview.changeView?.title).toBe("Two triggers, either is enough");
+    expect(capped.overview.changeView?.trace).toBeNull();
     expect(full.overview.modules.items).toHaveLength(13);
     expect(capped.overview.modules.items[0]?.module).toBeNull();
     expect(full.overview.limitations.count).toBe("4");
@@ -1978,5 +2087,27 @@ describe("readSlice, sweep fix batch 1", () => {
     const loading = fresh();
     runAt(loading, 0, 1).head.tabs["modulesCount"] = "0";
     expect(readSlice(loading).kind).toBe("ok");
+  });
+});
+
+describe("readSlice, an overview without For and against or a change view", () => {
+  type Ov = Json & { sides: unknown; changeView: unknown };
+  const ovOf = (slice: ReturnType<typeof fresh>) =>
+    ((slice.issuers[0]?.["runs"] as { overview: Ov }[])[0] as { overview: Ov }).overview;
+
+  it.each(["sides", "changeView"])("reads %s: null as null", (key) => {
+    const slice = fresh();
+    ovOf(slice)[key] = null;
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers[0]?.runs[0];
+    if (run?.loading !== false) throw new Error("run is loaded");
+    expect(run.overview[key as "sides" | "changeView"]).toBeNull();
+  });
+
+  it.each(["sides", "changeView"])("still refuses a missing %s key", (key) => {
+    const slice = fresh();
+    Reflect.deleteProperty(ovOf(slice), key);
+    expect(invalidReason(slice)).toContain(`issuers[0].runs[0].overview.${key}`);
   });
 });

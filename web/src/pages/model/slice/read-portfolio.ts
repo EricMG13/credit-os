@@ -19,18 +19,21 @@ import {
   textOrNull,
   type Reader,
 } from "./reader-kit";
-import type {
-  HoldingsScatter,
-  HoldingsStrips,
-  Limits,
-  LimitsColumn,
-  PortfolioFitPage,
-  RatingTile,
-  Ratings,
-  RelativeValue,
-  ScatterAxis,
-  ScatterRow,
-  StripRow,
+import {
+  isGap,
+  type GapItem,
+  type HoldingsScatter,
+  type HoldingsStrips,
+  type Limits,
+  type LimitsColumn,
+  type PortfolioFitPage,
+  type RatingTile,
+  type Ratings,
+  type RelativeValue,
+  type ScatterAxis,
+  type ScatterRow,
+  type StripRow,
+  type SectionGap,
 } from "./types";
 
 const pairCells = pairOf(textOrNull);
@@ -99,11 +102,20 @@ export const strips = object<HoldingsStrips>({
   rows: arrayOf(stripRow),
 });
 
+const sectionGap = object<SectionGap>({ gap: object<GapItem>({ title: text, reason: text }) });
+/** An object with an own `gap` key is a gap; any other value is read as the chart. */
+function orGap<T extends object>(chart: Reader<T>): Reader<T | SectionGap> {
+  return (value, path) =>
+    typeof value === "object" && value !== null && Object.hasOwn(value, "gap")
+      ? sectionGap(value, path)
+      : chart(value, path);
+}
+
 export const portfolioFit: Reader<PortfolioFitPage> = object<PortfolioFitPage>({
-  limits,
+  limits: orGap(limits),
   ratings,
   relativeValue,
-  scatter,
+  scatter: orGap(scatter),
   strips,
 });
 
@@ -235,7 +247,7 @@ export function checkStrips(s: HoldingsStrips, path: string, markersNeedRange = 
 
 /** Every rule the page and its charts enforce, so a slice that reads ok never throws there. */
 export function checkPortfolioFit(page: PortfolioFitPage, path: string): void {
-  checkLimits(page.limits, child(path, "limits"));
+  if (!isGap(page.limits)) checkLimits(page.limits, child(path, "limits"));
   const [first, second] = page.ratings.tiles;
   if (first.label === second.label) {
     fail(
@@ -243,11 +255,14 @@ export function checkPortfolioFit(page: PortfolioFitPage, path: string): void {
       "expected a label the other tile does not have",
     );
   }
-  checkScatter(page.scatter, child(path, "scatter"));
+  if (!isGap(page.scatter)) checkScatter(page.scatter, child(path, "scatter"));
   checkStrips(page.strips, child(path, "strips"));
   const named = [page.limits, page.ratings, page.scatter, page.strips].map((c, i) => ({
-    name: c.title,
-    where: child(path, `${["limits", "ratings", "scatter", "strips"][i] ?? ""}.title`),
+    name: isGap(c) ? c.gap.title : c.title,
+    where: child(
+      path,
+      `${["limits", "ratings", "scatter", "strips"][i] ?? ""}${isGap(c) ? ".gap" : ""}.title`,
+    ),
   }));
   named.forEach((item, i) => {
     if (named.findIndex((other) => other.name === item.name) !== i) {

@@ -3,14 +3,18 @@ integrity check, stamp, and the two handles. Paths come from `location`, the wri
 and migrations from `txn`. Every SQL string here is a static literal. Where store error text may
 go: see `errors.StoreError`."""
 
+import secrets
 import sqlite3
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Self
 
-from credit_os.store import location, txn
+from credit_os.sources.pins import SourcePin
+from credit_os.store import codec, location, runs, schema, txn
 from credit_os.store.errors import (
     StoreCorrupt,
     StoreRefused,
@@ -18,11 +22,13 @@ from credit_os.store.errors import (
     safe_text,
     store_error,
 )
+from credit_os.store.records import Claim, EventRecord, RunRecord
 from credit_os.store.txn import Migration
 
 APPLICATION_ID = 1129467731
-MIGRATIONS: tuple[Migration, ...] = ()
+MIGRATIONS: tuple[Migration, ...] = (schema.MIGRATION_1,)
 _MAXIMUM_BUSY_SECONDS = 3600
+Clock = Callable[[], datetime | float]
 
 
 class _Handle:
@@ -36,6 +42,31 @@ class _Handle:
         if self._connection is None:
             raise StoreUnusable("the store is closed")
         return self._connection
+
+    @contextmanager
+    def _reading(self) -> Iterator[sqlite3.Connection]:
+        """Take the lock for one read; the one place a read maps a SQLite error."""
+        with self._lock:
+            connection = self._live()
+            try:
+                yield connection
+            except sqlite3.Error as error:
+                raise store_error(error, "read the store") from error
+
+    def run(self, run_id: str) -> RunRecord:
+        """The run's row; a run id never created is StoreRefused."""
+        with self._reading() as connection:
+            return runs.read_run(connection, run_id)
+
+    def pins(self, run_id: str) -> tuple[SourcePin, ...]:
+        """The run's pins in position order; a row the source model refuses is StoreCorrupt."""
+        with self._reading() as connection:
+            return runs.read_pins(connection, run_id)
+
+    def events(self, run_id: str) -> tuple[EventRecord, ...]:
+        """The run's events in seq order; stored text the codecs refuse is StoreCorrupt."""
+        with self._reading() as connection:
+            return runs.read_events(connection, run_id)
 
     def close(self) -> None:
         with self._lock:
@@ -57,7 +88,104 @@ class StoreReader(_Handle):
     """A read-only handle; it never writes and never migrates."""
 
 
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
 class Store(_Handle):
+    def __init__(self, connection: sqlite3.Connection, clock: Clock) -> None:
+        super().__init__(connection)
+        self._clock = clock
+
+    def _now(self) -> str:
+        """The one clock call of a write, as stored text; call it inside `_write`."""
+        text = codec.time_to_text(self._clock())
+        if text is None:
+            raise StoreRefused("the clock returned None")
+        return text
+
+    def create_run(
+        self,
+        *,
+        run_id: str,
+        issuer_id: str,
+        issuer_name: str,
+        as_of: date | None,
+        config_id: str,
+        cap_usd: Decimal,
+        request: bytes,
+        pins: Sequence[SourcePin],
+    ) -> Claim:
+        """Create the run (status created) with its pins and its `run_created` event, and return
+        the claim that may write it. Bad input is StoreRefused before anything is written; a
+        run id already taken is StoreConflict."""
+        new = runs.check_new_run(
+            run_id=run_id,
+            issuer_id=issuer_id,
+            issuer_name=issuer_name,
+            as_of=as_of,
+            config_id=config_id,
+            cap_usd=cap_usd,
+            request=request,
+            pins=pins,
+        )
+        with self._write() as connection:
+            at = self._now()
+            token = secrets.token_hex(16)
+            runs.insert_run(connection, new, token, at)
+        return Claim(new.run_id, token)
+
+    def claim_run(self, run_id: str) -> Claim:
+        """Make a new writer of the run (status unchanged); the earlier claim is fenced. A missing
+        run is StoreRefused; a finished or rejected run is StoreConflict."""
+        checked = runs.check_identifier("run_id", run_id)
+        with self._write() as connection:
+            runs.gate(connection, checked, None, runs.OPEN_STATUSES)
+            at = self._now()
+            token = secrets.token_hex(16)
+            runs.replace_writer(connection, checked, token, at)
+        return Claim(checked, token)
+
+    def start_run(self, claim: Claim) -> None:
+        """Move a created, stopped or failed run to running; a resume clears its end."""
+        held = runs.check_claim(claim)
+        with self._write() as connection:
+            old = runs.gate(connection, held.run_id, held.token, runs.START_STATUSES)
+            runs.start(connection, held.run_id, old, self._now())
+
+    def reject_run(self, claim: Claim, *, reason: str, message: str | None = None) -> None:
+        """End a created run as rejected."""
+        held, text = runs.check_end(claim, "rejected", reason, message, frozenset({"rejected"}))
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"created"}))
+            runs.end(connection, held.run_id, "rejected", reason, text, self._now())
+
+    def end_run(
+        self, claim: Claim, *, status: str, reason: str, message: str | None = None
+    ) -> None:
+        """End a running run as finished, stopped or failed."""
+        held, text = runs.check_end(claim, status, reason, message, runs.END_STATUSES)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            runs.end(connection, held.run_id, status, reason, text, self._now())
+
+    def record_event(
+        self,
+        claim: Claim,
+        *,
+        kind: str,
+        detail: dict[str, str | int | None],
+        module_id: str | None = None,
+        attempt: int | None = None,
+    ) -> None:
+        """Add an event that changes no status; a finished or rejected run takes none."""
+        held = runs.check_note(claim, kind, detail, module_id, attempt)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, runs.OPEN_STATUSES)
+            runs.insert_event(
+                connection, held.run_id, self._now(), kind, detail, module_id, attempt
+            )
+
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:
         """Take the lock and run one write transaction. The lock is not re-entrant: a method
@@ -84,14 +212,29 @@ def _check_busy_seconds(busy_seconds: object) -> None:
     raise StoreRefused(f"busy_seconds must be above 0 and at most {_MAXIMUM_BUSY_SECONDS}")
 
 
+def _strict_text(data: bytes) -> str:
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        # Its message holds no stored text; SQLite's own error for the same bytes does.
+        raise StoreCorrupt("a stored text is not UTF-8") from None
+
+
+def _check_clock(clock: object) -> None:
+    if not callable(clock):
+        raise StoreRefused("clock must be callable")
+
+
 def _connect(path: Path, mode: str, busy_seconds: float) -> sqlite3.Connection:
     uri = path.as_uri() + "?mode=" + mode
     try:
-        return sqlite3.connect(
+        connection = sqlite3.connect(
             uri, uri=True, autocommit=True, timeout=busy_seconds, check_same_thread=False
         )
     except sqlite3.Error as error:
         raise store_error(error, "connect to the state file") from error
+    connection.text_factory = _strict_text
+    return connection
 
 
 def _read_identity(connection: sqlite3.Connection) -> tuple[int, int, bool]:
@@ -156,13 +299,20 @@ def _stamp(store: Store, migrations: tuple[Migration, ...]) -> None:
 
 
 def open_store(
-    folder: Path, *, busy_seconds: float = 30.0, migrations: tuple[Migration, ...] = MIGRATIONS
+    folder: Path,
+    *,
+    busy_seconds: float = 30.0,
+    migrations: tuple[Migration, ...] = MIGRATIONS,
+    clock: Clock = _utc_now,
 ) -> Store:
-    """Open the writer, creating the folder and file when absent and migrating forward."""
+    """Open the writer, creating the folder and file when absent and migrating forward. Each
+    write method makes one `clock()` call inside its transaction: an aware datetime or epoch
+    seconds; a naive value is StoreRefused."""
     _check_library()
     _check_busy_seconds(busy_seconds)
+    _check_clock(clock)
     migrations = txn.check_migrations(migrations)
-    store = Store(_connect(location.prepare(folder), "rw", busy_seconds))
+    store = Store(_connect(location.prepare(folder), "rw", busy_seconds), clock)
     opened = False
     try:
         connection = store._live()

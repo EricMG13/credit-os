@@ -1,7 +1,7 @@
 """Check each base operand's named cell, its unit and the currency against the foundation.
 
 The operand's amount must be the one number at the cell it names, under the sign rule, and the
-named row must not print the other unit than the block's. The foundation must name the block's
+named row must not print a unit other than the block's. The foundation must name the block's
 currency. Every rule is a plain function; numbers are read and compared exactly, never under the
 ambient decimal context (`Decimal(text)`, `copy_negate`, `copy_abs` and `==` do not round).
 """
@@ -28,9 +28,59 @@ _BRACKETED = re.compile(r"\(" + _DIGITS + r"\)")
 _MAGNITUDES = ("interest", "taxes", "capex")
 _SHOWN = 5
 
-_SIGN = r"(?:US\$|USD|EUR|GBP|[$€£])"
-_THOUSANDS = re.compile(rf"\bthousands?\b|[$'’]000s?\b|{_SIGN}\s?k\b", re.IGNORECASE)
-_MILLIONS = re.compile(rf"\b(?:millions?|billions?)\b|{_SIGN}\s?(?:m|mm|mn|bn)\b", re.IGNORECASE)
+_NOT_AFTER = r"(?![A-Za-z])"
+_LETTERS = r"(?:USD|EUR|GBP)"
+_CODE = rf"(?:(?<![A-Za-z])(?:US\$|{_LETTERS})|[$€£])"
+_DOLLARS = r"(?:US\$|\$)"
+_AFTER = rf"(?:{_DOLLARS}|[€£])"
+_CAPITAL_M = "(?-i:M)"
+_AMBIGUOUS = rf"(?<![A-Za-z]){_CAPITAL_M}{_DOLLARS}"
+_UNIT_COLUMNS = ("Unit", "Units")
+_ZEROS = r"000s?"
+_WORDS = {
+    "thousands": ("thousands?",),
+    "millions": ("millions?", "mln", "mm"),
+    "billions": ("billions?", "bln", "bn"),
+}
+_MARKS = {
+    "thousands": ("k",),
+    "millions": ("mln", "mm", "mn", "m"),
+    "billions": ("bln", "bn"),
+}
+_CAPITAL_T = "(?-i:T)"
+_BEFORE = {**_MARKS, "thousands": (*_MARKS["thousands"], _CAPITAL_T)}
+_GLUED = {"thousands": _BEFORE["thousands"], "millions": ("m",)}
+_EXTRA_THOUSANDS = (
+    rf"{_CODE}(?:['’]|\s)?{_ZEROS}(?![A-Za-z0-9])",
+    r"(?<![A-Za-z0-9])\(000\)(?![A-Za-z0-9])",
+    rf"(?<![0-9])['’]{_ZEROS}(?![A-Za-z0-9])",
+    r"(?<![A-Za-z0-9.,])000s(?![A-Za-z0-9])",
+)
+
+
+def _unit_pattern(unit: str) -> re.Pattern[str]:
+    words = "|".join(_WORDS[unit])
+    marks = "|".join(_MARKS[unit])
+    before = "|".join(_BEFORE[unit])
+    forms = [
+        rf"(?<![A-Za-z])(?:{words}){_NOT_AFTER}",
+        rf"{_CODE}\s?(?:{marks}){_NOT_AFTER}",
+        rf"(?<![A-Za-z])(?!{_CAPITAL_M}{_DOLLARS})(?:{before})\s?{_AFTER}",
+        rf"(?<![A-Za-z0-9])(?:{before})\s{_LETTERS}{_NOT_AFTER}",
+    ]
+    if unit in _GLUED:
+        glued = "|".join(_GLUED[unit])
+        forms.append(rf"(?<![A-Za-z])(?:{glued}){_LETTERS}{_NOT_AFTER}")
+    if unit == "thousands":
+        forms.extend(_EXTRA_THOUSANDS)
+    return re.compile("|".join(forms), re.IGNORECASE)
+
+
+_UNITS = {
+    **{unit: _unit_pattern(unit) for unit in _WORDS},
+    "ambiguous": re.compile(_AMBIGUOUS, re.IGNORECASE),
+}
+_SCALE_SUFFIX = "|".join([*_MARKS["millions"], *_MARKS["billions"], *_MARKS["thousands"], _ZEROS])
 _SIGNS = {"USD": r"(?i:(?<![A-Za-z])US\$)", "EUR": "€", "GBP": "£"}
 
 _LOCATED = "base {key} states no amount, so it names no row, period or column"
@@ -42,6 +92,11 @@ _NONE = "base {key}: no table cell of CP-1 is at {where}"
 _MANY = "base {key}: {where} is not one number in CP-1 ({count} cells: {shown}{more})"
 _UNIT = (
     "base {key}: row `{row}` states its {what} as `{cell}`, not the block's unit ({unit}); "
+    "state a reason instead of an amount"
+)
+_AMBIGUOUS_UNIT = (
+    "base {key}: row `{row}` states its {what} as `{cell}`, whose mark is ambiguous "
+    "(thousands or millions), not the block's unit ({unit}); "
     "state a reason instead of an amount"
 )
 _CURRENCY = (
@@ -61,6 +116,8 @@ _SCHEDULE = (
 _CASE = "{name} states debt_repayment, which is not used when facilities are stated"
 _RATES = ("fixed_rate_pct", "spread_pct", "floor_pct")
 _OTHER = "base {key} {amount} is not CP-1's cell at {where} ({cell})"
+_NEGATIVE = "; wc is stated as the negative of its cell"
+_MAGNITUDE = "; {key} is stated as a magnitude, without a sign"
 
 
 def _plain(text: str) -> str:
@@ -132,14 +189,25 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 
 
 def units_named(text: str) -> frozenset[str]:
-    """The units, `thousands` and `millions`, the text names; it may name both or neither."""
-    named = {"thousands": _THOUSANDS, "millions": _MILLIONS}
-    return frozenset(name for name, pattern in named.items() if pattern.search(text))
+    """The units (`thousands`, `millions`, `billions`, `ambiguous`) the text names; any number.
+
+    `ambiguous` is a capital `M` glued before `US$` or `$` (`MUS$`, `M$`): thousands in some
+    statements, millions in others, so it is read as neither. A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
+    its mark, by its mark and then a sign, or by its mark before a letter code, glued (`kEUR`,
+    `TEUR`, `MUSD`) or after one whitespace (`m EUR`). Capital `T` is a thousands mark where `k`
+    is, before a code or sign. Thousands also by `000` and `000s` after a code or sign and at
+    most one whitespace, `(000)` standing alone, and the apostrophe forms. Letters around a mark
+    hide it and emphasis marks do not. Digits do not hide it either, except directly before a mark
+    in the spaced mark-before-code form (`5m EUR` names nothing). Billions and `ambiguous` are
+    never a block's unit.
+    """
+    return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
 
 def names_currency(text: str, currency: str) -> bool:
-    """Whether the text names the code, alone or with a scale suffix, or the code's own sign."""
-    forms = [rf"(?<![A-Za-z]){currency}(?i:mm|mn|bn|m|k|000s?)?(?![A-Za-z0-9])"]
+    """Whether the text names the code, alone, after a glued mark or with a scale suffix, or its sign."""
+    glued = "|".join(dict.fromkeys(mark for marks in _GLUED.values() for mark in marks))
+    forms = [rf"(?<![A-Za-z])(?i:{glued})?{currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
     if currency in _SIGNS:
         forms.append(_SIGNS[currency])
     return re.search("|".join(forms), text) is not None
@@ -193,24 +261,42 @@ def _problem(
         return _many(key, where, cells)
     if _agrees(key, only, Decimal(amount)):
         return None
-    return _OTHER.format(key=key, amount=amount, where=where, cell=echo(min(cells)))
+    message = _OTHER.format(key=key, amount=amount, where=where, cell=echo(min(cells)))
+    return message + _sign_clause(key, only, Decimal(amount))
 
 
-def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str]]:
-    group = [(f"{kind} header", table.columns[column]), ("first header cell", table.columns[0])]
+def _sign_clause(key: str, cell: Decimal, amount: Decimal) -> str:
+    if cell.copy_abs() != amount.copy_abs():
+        return ""
+    if key == "wc":
+        return _NEGATIVE
+    if key in _MAGNITUDES:
+        return _MAGNITUDE.format(key=key)
+    return ""
+
+
+def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str, bool]]:
+    """The cells of one operand's group as (what, cell, whether it may excuse the others).
+
+    Only the operand's header, the first header cell and a cell under a `Unit` or `Units` column
+    may excuse; every cell can still raise an issue.
+    """
+    group = [
+        (f"{kind} header", table.columns[column], True),
+        ("first header cell", table.columns[0], True),
+    ]
     group.extend(
-        (_plain(table.columns[index]), cell)
+        (_plain(table.columns[index]), cell, _plain(table.columns[index]) in _UNIT_COLUMNS)
         for index, cell in enumerate(line.cells)
         if index != column
     )
     return group
 
 
-def _group_issues(group: list[tuple[str, str]], unit: str) -> list[tuple[str, str]]:
-    other = "thousands" if unit == "millions" else "millions"
-    if any(unit in units_named(cell) for _, cell in group):
+def _group_issues(group: list[tuple[str, str, bool]], unit: str) -> list[tuple[str, str]]:
+    if any(unit in units_named(cell) for _, cell, excuses in group if excuses):
         return []
-    return [(what, cell) for what, cell in group if other in units_named(cell)]
+    return [(what, cell) for what, cell, _ in group if units_named(cell) - {unit}]
 
 
 def _table_issues(table: Table, named: tuple[str, str, str], unit: str) -> list[tuple[str, str]]:
@@ -238,7 +324,8 @@ def _unit_problem(
         return None
     what, cell = min(issues)
     label = f"{inputs.currency} {unit}, scale {inputs.scale}"
-    return _UNIT.format(
+    template = _AMBIGUOUS_UNIT if "ambiguous" in units_named(cell) else _UNIT
+    return template.format(
         key=key,
         row=echo(_plain(named[0])),
         what=echo(what),
@@ -270,7 +357,7 @@ def check_base(
 ) -> None:
     """Refuse the first base operand whose amount is not the foundation's cell it names.
 
-    A named row printed in the other unit than the block's is refused as well.
+    A named row printed in a unit other than the block's is refused as well.
     """
     tables = foundation_tables(foundation)
     for key in OPERANDS:

@@ -8,6 +8,7 @@ from html import unescape
 from html.parser import HTMLParser
 
 from credit_os.sources.errors import SourceUnreadable, shown_name
+from credit_os.sources.pages import SourcePages, cut_stream, text_state_pages
 
 # Characters of one page of text.
 PAGE_CHARACTERS = 3_000
@@ -69,7 +70,25 @@ LINE_TAGS = frozenset({"p", "tr", "li", "br", "h1", "h2", "h3", "h4", "h5", "h6"
 # The legacy's: a charset is looked for in the first 4,096 bytes only.
 _SNIFF_BYTES = 4096
 _CHARSET = re.compile(rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)""", re.IGNORECASE)
-# codecs.lookup(...).name -> the name reported for the source
+# A declared charset, lower-cased with "_" as "-", -> its codec. The codec search is an import keyed
+# by the file's text, so only these names reach a codec; any other is refused, never looked up.
+_LABELS = {
+    "utf-8": "utf-8",
+    "utf8": "utf-8",
+    "windows-1252": "cp1252",
+    "cp1252": "cp1252",
+    "iso-8859-1": "iso8859-1",
+    "iso8859-1": "iso8859-1",
+    "latin1": "iso8859-1",
+    "latin-1": "iso8859-1",
+    "ascii": "ascii",
+    "us-ascii": "ascii",
+}
+# codec -> the name reported for the source.
+# Tags are read from the bytes (_visible_text, _long_tag), which is exact only for an encoding in
+# which no ASCII byte occurs inside a longer character and decoding then encoding gives the same
+# bytes back. The four here are such; check that before adding one (utf-16, shift_jis and
+# gb18030 are not).
 _ACCEPTED = {
     "utf-8": "utf-8",
     "cp1252": "windows-1252",
@@ -77,6 +96,8 @@ _ACCEPTED = {
     "ascii": "ascii",
 }
 _BOM = b"\xef\xbb\xbf"
+# A character reference of 32 or more digits, which a step of the reading could cut in two.
+_LONG_REFERENCE = re.compile(rb"&#(?:[0-9]{32}|[xX][0-9a-fA-F]{32})")
 
 # HIDDEN for bytes that are ASCII: \s written out as the ASCII characters str.isspace() accepts.
 _HIDDEN_ASCII = re.compile(rb"display[\t-\r\x1c-\x1f ]*:[\t-\r\x1c-\x1f ]*none", re.IGNORECASE)
@@ -159,16 +180,9 @@ def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
             name, "not valid UTF-8 and declares no charset in its first 4,096 bytes"
         ) from utf8_error
     declared = found.group(1).decode("ascii")
-    lookup_error: LookupError | None = None
-    codec = ""
-    try:
-        codec = codecs.lookup(declared).name
-    except LookupError as error:
-        lookup_error = error
-    if codec not in _ACCEPTED:
-        raise _refuse(
-            name, f"declares a charset that is not accepted: {declared[:40]!r}"
-        ) from lookup_error
+    codec = _LABELS.get(declared.lower().replace("_", "-"))
+    if codec is None:
+        raise _refuse(name, f"declares a charset that is not accepted: {declared[:40]!r}")
     reported = _ACCEPTED[codec]
     codec_error = _decodes(raw, 0, codec)
     if codec_error is not None:
@@ -318,7 +332,9 @@ class _Visible(HTMLParser):
         elif _TAG_OPEN.match(held):
             return False
         else:
-            # a comment, declaration or processing instruction: its body is never read
+            # A comment, declaration or processing instruction: its body is never read. The first 9
+            # characters decide which kind of construct it is, the last 3 can begin its end mark
+            # (-->, --!>, ]]>, ?>), and the "x" stops the two parts forming an end mark together.
             self.rawdata = held[:9] + "x" + held[-3:]
         return True
 
@@ -404,7 +420,14 @@ def _long_tag(name: str, raw: bytes, start: int, codec: str) -> tuple[str, int]:
 
 
 def _visible_text(name: str, raw: bytes, codec: str, position: int) -> Iterator[str]:
-    """Feed html.parser the bytes from position a piece at a time; yield the lines in pieces."""
+    """Feed html.parser the bytes from position a piece at a time; yield the lines in pieces.
+
+    The caller (html_pages) must have established, in this order: `raw` decodes in full with this
+    codec (it is decoded a second time here, so no decoding error can occur), `position` is the
+    first text byte `_encoding` returned, `raw` has no zero byte, and `raw` has no character
+    reference of 32 or more digits (a step could cut one, and the reading would then depend on
+    where steps end, or int() could raise for more than 4,300 digits).
+    """
     last_close = max(raw.rfind(b"-->") + 3, raw.rfind(b"--!>") + 4)
     last_quote = {"'": raw.rfind(b"'"), '"': raw.rfind(b'"')}
     view = memoryview(raw)
@@ -428,3 +451,21 @@ def _visible_text(name: str, raw: bytes, codec: str, position: int) -> Iterator[
     reader.close()
     reader.lines.line_end()
     yield from reader.lines.take()
+
+
+def html_pages(name: str, raw: bytes) -> SourcePages:
+    """The visible text of HTML bytes in pages of PAGE_CHARACTERS, or a refusal."""
+    codec, encoding, position = _encoding(name, raw)
+    if b"\x00" in raw:  # in all four codecs a NUL character is exactly a zero byte
+        raise _refuse(name, "control character U+0000")
+    if _LONG_REFERENCE.search(raw):
+        raise _refuse(name, f"a character reference of {REFERENCE_DIGITS} or more digits")
+    try:
+        pages = tuple(cut_stream(_visible_text(name, raw, codec, position), PAGE_CHARACTERS))
+    except AssertionError as error:
+        # html.parser's own refusal of markup it gives up on (earlier 3.12 patch levels raised it
+        # for "<![x"; 3.12.14 reaches none). Refused with the error as its cause, not hidden.
+        raise _refuse(name, "markup the parser cannot read") from error
+    if not pages:
+        raise _refuse(name, "has no visible text")
+    return text_state_pages(pages, encoding)
