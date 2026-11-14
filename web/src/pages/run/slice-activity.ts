@@ -30,21 +30,21 @@ const MODULE_WORDS = [
   "Not run",
 ] as const;
 type RunState = (typeof RUN_STATES)[number];
-type ModuleWord = (typeof MODULE_WORDS)[number];
+export type ModuleWord = (typeof MODULE_WORDS)[number];
 type Link = { label: string; href: string }; // href starts with "#/"
 type RunAlert = { title: string; text: string; action: Link; alt: Link | null };
 type Module = { name: string; state: ModuleWord; detail: string | null };
-type ModuleStep =
+export type ModuleStep =
   | ({ kind: "module" } & Module)
   | { kind: "group"; title: string; state: ModuleWord; showAll: string; modules: Module[] };
-type ActivityLine = {
+export type ActivityLine = {
   who: string;
   time: string;
   text: string;
   state: RunState | "Not assessable";
 };
-type Figure = { value: string | null; bar: Bar }; // null draws "n.a."
-type RunRecord = {
+export type Figure = { value: string | null; bar: Bar }; // null draws "n.a."
+export type RunRecord = {
   kind: "run";
   id: string;
   issuer: string;
