@@ -46,7 +46,7 @@ def test_text_stays_keys_only() -> None:
     assert redactor.bytes_(b"D:\\Profiles") == b"D:\\Profiles"
 
 
-@pytest.mark.parametrize(("label", "text"), key.TIMING)
+@pytest.mark.parametrize(("label", "text"), key.TIMING, ids=[row[0] for row in key.TIMING])
 def test_message_time(label: str, text: str, capsys: pytest.CaptureFixture[str]) -> None:
     redactor = Redactor(known_paths=(key.H2, key._RT))
     start = time.perf_counter()
@@ -57,7 +57,9 @@ def test_message_time(label: str, text: str, capsys: pytest.CaptureFixture[str])
     assert seconds <= key.SECONDS
 
 
-@pytest.mark.parametrize(("label", "known", "text"), key.TIMING_PATHS)
+@pytest.mark.parametrize(
+    ("label", "known", "text"), key.TIMING_PATHS, ids=[row[0] for row in key.TIMING_PATHS]
+)
 def test_message_time_by_path(
     label: str, known: tuple[str, ...], text: str, capsys: pytest.CaptureFixture[str]
 ) -> None:

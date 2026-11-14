@@ -259,6 +259,12 @@ def _escapes(kind: str, values: Iterable[int], width: int) -> str:
     return _ESCAPE.join(f"{kind}{v:0{width}x}" for v in values)
 
 
+def _longest_first(forms: Iterable[str]) -> list[str]:
+    """``forms`` longest first, then by text: a form that is a prefix of another is tried after it,
+    since nothing follows the last character of a name to make a short match fail."""
+    return sorted(forms, key=lambda f: (-len(f), f))
+
+
 def _char_pattern(char: str, after_separator: bool) -> str:
     """One character: as written, and each same-length case form of it (as given, lower, upper) as
     ``\\uXXXX`` (a surrogate pair above U+FFFF), ``\\xXX`` (below U+0100), its UTF-8 bytes as
@@ -274,7 +280,11 @@ def _char_pattern(char: str, after_separator: bool) -> str:
         if ord(form) < 0x100:
             escaped.add(_escapes("x", [ord(form)], 2))
     lead = rf"(?:{_ESCAPE}|{_SHARED})" if after_separator else rf"{_ESCAPE}"
-    return "(?:" + "|".join(sorted(plain) + [lead + "(?:" + "|".join(sorted(escaped)) + ")"]) + ")"
+    return (
+        "(?:"
+        + "|".join([lead + "(?:" + "|".join(_longest_first(escaped)) + ")", *_longest_first(plain)])
+        + ")"
+    )
 
 
 _SEPARATOR_TOKEN = re.compile(r"%(?:25){0,2}(?:2f|5c)", re.IGNORECASE)
@@ -299,7 +309,7 @@ def _word(part: str, after_separator: bool) -> str:
     forms = {part, unicodedata.normalize("NFC", part), unicodedata.normalize("NFD", part)}
     return (
         "(?:"
-        + "|".join(sorted({p for f in forms for p in _form_patterns(f, after_separator)}))
+        + "|".join(_longest_first({p for f in forms for p in _form_patterns(f, after_separator)}))
         + ")"
     )
 
