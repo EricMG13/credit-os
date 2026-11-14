@@ -17,6 +17,147 @@
           "evidence": "#/library/transdigm/2025-06-30/evidence",
           "evidenceGaps": "#/library/transdigm/2025-06-30/evidence"
         },
+        "front": {
+          "bottomLine": {
+            "lead": "Leverage falls only if the cash is kept: net debt drops from 5.9x to 3.8x EBITDA by FY27 in the base case, and cash flow covers interest about three times throughout.",
+            "rest": "The downside case holds leverage above 5x and still funds interest from operations. Debt is not repaid in either case, and about USD 17 billion falls due between 2028 and 2030.",
+            "trace": "#/library/transdigm/2025-06-30/evidence"
+          },
+          "headline": {
+            "period": "Latest twelve months to 30 June 2025",
+            "metrics": [
+              {
+                "label": "Revenue",
+                "definition": "Net sales, latest twelve months",
+                "value": { "text": "$8,580m" },
+                "delta": "↗ 8.1% on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "EBITDA as defined",
+                "definition": "EBITDA as the company defines it in its credit agreement",
+                "value": { "text": "$4,560m" },
+                "delta": "↗ 9.3% on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "EBITDA margin",
+                "definition": "EBITDA as defined divided by revenue",
+                "value": { "text": "53.1%" },
+                "delta": "↗ 0.5 pts on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Net leverage",
+                "definition": "Net debt divided by EBITDA as defined",
+                "value": { "text": "5.9x" },
+                "delta": "↗ from 4.5x",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Interest cover",
+                "definition": "EBITDA as defined divided by cash interest",
+                "value": { "text": "2.9x" },
+                "delta": "↗ from 2.8x",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Free cash flow",
+                "definition": "EBITDA as defined less cash interest, cash tax, working capital and capital expenditure",
+                "value": { "text": "$1,950m" },
+                "delta": "↗ 10.3% on FY24",
+                "note": null,
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Secured net leverage",
+                "definition": "Secured net debt divided by EBITDA as defined",
+                "value": { "text": null },
+                "delta": null,
+                "note": "The secured share of debt was not split out in the sources.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Revolver drawn",
+                "definition": "Amount drawn on the revolving credit facility",
+                "value": { "withheld": true },
+                "delta": null,
+                "note": "Shown to the deal team only.",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "covers": {
+            "facts": [
+              {
+                "label": "Currency and units",
+                "value": "US dollars, millions",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Fiscal year end",
+                "value": "30 September",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Historic periods",
+                "value": "FY22 to FY24, as reported",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Latest twelve months",
+                "value": "To 30 June 2025",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Forecast periods",
+                "value": "FY25 to FY27",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Cases",
+                "value": "Base and downside",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              },
+              {
+                "label": "Earnings measure",
+                "value": "EBITDA as the company defines it",
+                "trace": "#/library/transdigm/2025-06-30/evidence"
+              }
+            ]
+          },
+          "parts": [
+            {
+              "title": "Analysis",
+              "text": "Deleveraging depends on keeping the cash, not on repaying debt.",
+              "to": "analysis",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Model",
+              "text": "Statements for FY22 to FY27, two cases, bridges and the debt stack.",
+              "to": "statements",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Portfolio fit",
+              "text": "Within every limit that could be tested, with 0.9 points of room under the single-issuer limit.",
+              "to": "portfolio-fit",
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            },
+            {
+              "title": "Relative value",
+              "text": "The pricing comparison failed in this run, so the model's spread view is missing.",
+              "to": null,
+              "trace": "#/library/transdigm/2025-06-30/evidence"
+            }
+          ]
+        },
         "limitations": {
           "count": "6",
           "gapsLinkText": "See the 3 gaps in Evidence",
@@ -80,5 +221,8 @@
       }
     ]
   },
-  "params": { "/model/:issuer/:run/limitations": [{ "issuer": "transdigm", "run": "2025-06-30" }] }
+  "params": {
+    "/model/:issuer/:run/limitations": [{ "issuer": "transdigm", "run": "2025-06-30" }],
+    "/model/:issuer/:run/front": [{ "issuer": "transdigm", "run": "2025-06-30" }]
+  }
 }

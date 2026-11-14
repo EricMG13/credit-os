@@ -82,6 +82,46 @@ describe("readSlice", () => {
       edited([...RUN, "limitations", "notEstablished", "count"], 3),
       "runs[0].limitations.notEstablished.count: expected a string",
     ],
+    [
+      "a bottom line with no trace",
+      edited([...RUN, "front", "bottomLine", "trace"], undefined),
+      "runs[0].front.bottomLine.trace: missing",
+    ],
+    [
+      "a metric whose value is neither text nor withheld",
+      edited([...RUN, "front", "headline", "metrics", 6, "value"], { text: 3 }),
+      "runs[0].front.headline.metrics[6].value.text: expected a string or null",
+    ],
+    [
+      "a withheld value that is not true",
+      edited([...RUN, "front", "headline", "metrics", 7, "value", "withheld"], false),
+      "runs[0].front.headline.metrics[7].value.withheld: expected true",
+    ],
+    [
+      "a metric delta that is a number",
+      edited([...RUN, "front", "headline", "metrics", 2, "delta"], 0.5),
+      "runs[0].front.headline.metrics[2].delta: expected a string or null",
+    ],
+    [
+      "a delta beside a missing value",
+      edited([...RUN, "front", "headline", "metrics", 6, "delta"], "↗ 1.0x"),
+      "runs[0].front.headline.metrics[6].delta: expected null beside a missing or withheld value",
+    ],
+    [
+      "a delta beside a withheld value",
+      edited([...RUN, "front", "headline", "metrics", 7, "delta"], "↗ $1m"),
+      "runs[0].front.headline.metrics[7].delta: expected null beside a missing or withheld value",
+    ],
+    [
+      "a fact with an unknown key",
+      edited([...RUN, "front", "covers", "facts", 3, "extra"], 1),
+      "runs[0].front.covers.facts[3].extra: unknown field",
+    ],
+    [
+      "a part linking to a page that is not in the group",
+      edited([...RUN, "front", "parts", 0, "to"], "forecast"),
+      "runs[0].front.parts[0].to: expected one of analysis, statements, portfolio-fit or null",
+    ],
   ])("is invalid and names the failing path: %s", (_, source, reason) => {
     expect(readSlice(source)).toEqual({ kind: "invalid", reason });
   });
@@ -92,6 +132,36 @@ const TRACE_REPEAT = "expected a name no other trace control on the page has";
 describe("readSlice: no two trace controls on a page share a name (front, limitations, statements)", () => {
   it.each([
     [
+      "a fact labelled as an earlier fact",
+      edited([...RUN, "front", "covers", "facts", 1, "label"], "Currency and units"),
+      "runs[0].front.covers.facts[1].label",
+    ],
+    [
+      "a metric labelled as an earlier metric",
+      edited([...RUN, "front", "headline", "metrics", 1, "label"], "Revenue"),
+      "runs[0].front.headline.metrics[1].label",
+    ],
+    [
+      "a part titled as an earlier part",
+      edited([...RUN, "front", "parts", 1, "title"], "Analysis"),
+      "runs[0].front.parts[1].title",
+    ],
+    [
+      "a fact labelled as a metric",
+      edited([...RUN, "front", "covers", "facts", 0, "label"], "Net leverage"),
+      "runs[0].front.covers.facts[0].label",
+    ],
+    [
+      "a part titled as a fact",
+      edited([...RUN, "front", "parts", 0, "title"], "Cases"),
+      "runs[0].front.parts[0].title",
+    ],
+    [
+      "a metric labelled as the bottom line's own control",
+      edited([...RUN, "front", "headline", "metrics", 0, "label"], "the bottom line"),
+      "runs[0].front.headline.metrics[0].label",
+    ],
+    [
       "a limitation titled as an earlier limitation",
       edited([...RUN, "limitations", "items", 1, "title"], "EBITDA is the company’s own measure"),
       "runs[0].limitations.items[1].title",
@@ -99,10 +169,36 @@ describe("readSlice: no two trace controls on a page share a name (front, limita
   ])("refuses %s, naming the second one", (_, source, where) => {
     expect(readSlice(source)).toEqual({ kind: "invalid", reason: `${where}: ${TRACE_REPEAT}` });
   });
+
+  it("accepts a repeated name where one of the two draws no control", () => {
+    const source = edited([...RUN, "front", "headline", "metrics", 1, "label"], "Revenue");
+    const run = (source as { runs: { front: { headline: { metrics: { trace: unknown }[] } } }[] })
+      .runs[0];
+    if (run === undefined) throw new Error("no run");
+    const metric = run.front.headline.metrics[1];
+    if (metric === undefined) throw new Error("no metric");
+    metric.trace = null;
+    expect(readSlice(source).kind).toBe("ok");
+  });
 });
 
 describe("readSlice: lists the pages draw hold something", () => {
   it.each([
+    [
+      "no headline metric",
+      edited([...RUN, "front", "headline", "metrics"], []),
+      "runs[0].front.headline.metrics: expected at least one metric",
+    ],
+    [
+      "no fact",
+      edited([...RUN, "front", "covers", "facts"], []),
+      "runs[0].front.covers.facts: expected at least one fact",
+    ],
+    [
+      "no part",
+      edited([...RUN, "front", "parts"], []),
+      "runs[0].front.parts: expected at least one part",
+    ],
     [
       "no limitation",
       edited([...RUN, "limitations", "items"], []),
@@ -142,6 +238,18 @@ describe("readSlice: a string the page draws is never empty", () => {
       ["limitations", "notEstablished", "items", 0, "reason"],
       `${P}.limitations.notEstablished.items[0].reason`,
     ],
+    [["front", "bottomLine", "lead"], `${P}.front.bottomLine.lead`],
+    [["front", "bottomLine", "rest"], `${P}.front.bottomLine.rest`],
+    [["front", "headline", "period"], `${P}.front.headline.period`],
+    [["front", "headline", "metrics", 0, "label"], `${P}.front.headline.metrics[0].label`],
+    [
+      ["front", "headline", "metrics", 0, "definition"],
+      `${P}.front.headline.metrics[0].definition`,
+    ],
+    [["front", "covers", "facts", 0, "label"], `${P}.front.covers.facts[0].label`],
+    [["front", "covers", "facts", 0, "value"], `${P}.front.covers.facts[0].value`],
+    [["front", "parts", 0, "title"], `${P}.front.parts[0].title`],
+    [["front", "parts", 0, "text"], `${P}.front.parts[0].text`],
   ] as [(string | number)[], string][])("refuses an empty string at %j", (steps, where) => {
     expect(readSlice(edited([...RUN, ...steps], ""))).toEqual({
       kind: "invalid",
@@ -150,10 +258,28 @@ describe("readSlice: a string the page draws is never empty", () => {
   });
 });
 
+describe("readSlice: a string of spaces is as empty as no string", () => {
+  const P = "runs[0]";
+  it.each([
+    [["header", "issuerName"], `${P}.header.issuerName`, "expected a non-empty string"],
+    [
+      ["front", "headline", "metrics", 0, "label"],
+      `${P}.front.headline.metrics[0].label`,
+      "expected a non-empty string",
+    ],
+  ] as [(string | number)[], string, string][])('refuses " " at %j', (steps, where, what) => {
+    expect(readSlice(edited([...RUN, ...steps], " \t "))).toEqual({
+      kind: "invalid",
+      reason: `${where}: ${what}`,
+    });
+  });
+});
+
 describe("readSlice: an address into the library starts with #/", () => {
   const P = "runs[0]";
   const OFF = 'expected an address starting with "#/"';
   it.each([
+    [["front", "bottomLine", "trace"], `${P}.front.bottomLine.trace`, "https://example.invalid/x"],
     [["links", "report"], `${P}.links.report`, "https://example.invalid/x"],
     [["links", "evidence"], `${P}.links.evidence`, "//example.invalid/x"],
     [["links", "library"], `${P}.links.library`, "library/transdigm"],

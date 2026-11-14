@@ -6,7 +6,7 @@ export class SliceError extends Error {}
 
 export const child = (path: string, key: string): string => (path === "" ? key : `${path}.${key}`);
 
-function fail(path: string, what: string): never {
+export function fail(path: string, what: string): never {
   throw new SliceError(`${path}: ${what}`);
 }
 
@@ -16,7 +16,7 @@ export const text: Reader<string> = (value, path) => {
   return value.trim() !== "" ? value : fail(path, "expected a non-empty string");
 };
 
-const textOrNull: Reader<string | null> = (value, path) => {
+export const textOrNull: Reader<string | null> = (value, path) => {
   if (value === null) return null;
   if (typeof value !== "string") return fail(path, "expected a string or null");
   return value.trim() !== "" ? value : fail(path, "expected a non-empty string or null");
@@ -66,6 +66,19 @@ export function object<T extends object>(shape: { [K in keyof T]-?: Reader<T[K]>
       out[key] = shape[key](record[key], child(path, key));
     }
     return out as T;
+  };
+}
+
+export const yes: Reader<true> = (value, path) =>
+  value === true ? true : fail(path, "expected true");
+
+/** A value that may be null: `null` reads as null, anything else goes to `item`. */
+export function orNull<T extends string>(words: readonly T[]): Reader<T | null> {
+  const word = oneOf(words);
+  return (value, path) => {
+    if (value === null) return null;
+    if (words.some((w) => w === value)) return word(value, path);
+    return fail(path, `expected one of ${words.join(", ")} or null`);
   };
 }
 

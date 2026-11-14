@@ -8,6 +8,7 @@ export type ModelRun = {
   run: string;
   header: RunHeader;
   links: RunLinks;
+  front: FrontPage;
   limitations: LimitationsPage;
 };
 
@@ -43,3 +44,33 @@ export type Limitation = {
 };
 
 export type GapItem = { title: string; reason: string };
+
+export type FrontPage = {
+  bottomLine: { lead: string; rest: string; trace: string | null };
+  headline: { period: string; metrics: Metric[] };
+  covers: { facts: Fact[] };
+  parts: Part[];
+};
+
+/** A headline figure: the display string, or missing (`text: null`), or withheld. */
+export type MetricValue = { text: string | null } | { withheld: true };
+
+export type Metric = {
+  label: string;
+  /** What the figure measures, drawn as a tooltip; never a source. */
+  definition: string;
+  value: MetricValue;
+  /** The whole delta line, arrow included; `null` draws none. */
+  delta: string | null;
+  /** A sentence under a missing or withheld value. */
+  note: string | null;
+  trace: string | null;
+};
+
+export type Fact = { label: string; value: string; trace: string | null };
+
+/** The pages of this group a part can open. */
+export type PartPage = "analysis" | "statements" | "portfolio-fit";
+
+/** A part of the model; `to: null` is a part that could not be assessed and links nowhere. */
+export type Part = { title: string; text: string; to: PartPage | null; trace: string | null };
