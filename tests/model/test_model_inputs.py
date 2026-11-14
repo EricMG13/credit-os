@@ -19,6 +19,7 @@ from credit_os.handoff.document import parse
 from credit_os.model import inputs
 from credit_os.model.inputs import parse_inputs, read_inputs
 from credit_os.model.refusals import ForecastDeclined, ForecastRefused, RefusalKind
+from credit_os.model.value import Missing, MissingCode, Value
 
 HERE = Path(__file__).parent / "expected"
 KEY = json.loads((HERE / "pr4b.json").read_text("utf-8"))
@@ -128,7 +129,7 @@ def test_forty_one_facilities() -> None:
 @pytest.mark.parametrize("bad", ["list", "string"])
 def test_not_a_document(bad: str) -> None:
     given: Any = [] if bad == "list" else "{}"
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="^document must be a dict$"):
         parse_inputs(given)
 
 
@@ -336,3 +337,34 @@ def test_drop_rule_on_built_errors() -> None:
     assert inputs.without_echoes([length_error(1, 0)]) == [length_error(1, 0)]
     two_items = [length_error(2, 0), failed_item(0), failed_item(1), failed_item(1)]
     assert inputs.without_echoes(two_items) == two_items[1:]
+
+
+def test_missing_value_cannot_be_unwrapped() -> None:
+    missing = Value(missing=Missing(MissingCode.NOT_SOURCED, "not printed"))
+    with pytest.raises(ValueError, match="^an amount is missing$"):
+        inputs._plain(missing)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        [[["base"], ["x"]]],
+        [[["base", "debt"], "amount"]],
+        [[["facilities"], ["balance"]]],
+        [[["facilities"], [7]]],
+    ],
+)
+def test_odd_holders_at_scale_1000_reach_the_schema(ops: list[Any]) -> None:
+    document = build([[["scale"], 1000], *ops])
+    assert refusal(document).kind is RefusalKind.SCHEMA
+
+
+def test_drop_rule_names_only_length_errors() -> None:
+    not_length = {**length_error(1, 0), "type": "value_error"}
+    kept = [not_length, failed_item(0)]
+    assert inputs.without_echoes(kept) == kept
+    as_list = {
+        **length_error(1, 0),
+        "msg": "List should have at least 1 item after validation, not 0",
+    }
+    assert inputs.without_echoes([as_list, failed_item(0)]) == [failed_item(0)]
