@@ -1,42 +1,36 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
 import { EvidenceSources } from "./EvidenceSources";
 import { EvidenceSummary } from "./EvidenceSummary";
-import type { LoadedRun } from "./slice";
+import type { LoadedRun, Reader } from "./slice";
 import { EvidenceFrame, type EvidenceTab } from "./parts/EvidenceFrame";
-import { ALL, FilterSelect } from "./parts/FilterBar";
+import { useModuleFilter } from "./parts/ModuleFilter";
 import { RunFrame } from "./parts/RunFrame";
 
 /**
- * Sources with its module filter, which the frame draws at the heading's right. The filter is page
- * state, in memory; its options are the delivered module names, and what is compared is the id.
+ * A tab whose content is delivered per module draws the module filter at the heading's right. The
+ * filter is state of the tab: the caller keys this by the tab, so each starts at "All".
  */
-function SourcesPage({ run, issuer }: { run: LoadedRun; issuer: string }) {
-  const [name, setName] = useState(ALL);
-  const { evidence } = run;
-  const chosen = evidence.moduleFilter.find((option) => option.name === name) ?? null;
+function FilteredTab({
+  run,
+  issuer,
+  current,
+  children,
+}: {
+  run: LoadedRun;
+  issuer: string;
+  current: Extract<EvidenceTab, "sources">;
+  children: (module: Reader | null, clear: () => void) => ReactNode;
+}) {
+  const { chosen, clear, control } = useModuleFilter(run.evidence.moduleFilter);
   return (
     <EvidenceFrame
       issuer={issuer}
       run={run.id}
-      evidence={evidence}
-      current="sources"
-      filter={
-        <FilterSelect
-          name="Module"
-          options={evidence.moduleFilter.map((option) => option.name)}
-          value={name}
-          onChange={setName}
-        />
-      }
+      evidence={run.evidence}
+      current={current}
+      filter={control}
     >
-      <EvidenceSources
-        sources={evidence.sources}
-        module={chosen?.id ?? null}
-        moduleName={chosen?.name ?? null}
-        onClear={() => {
-          setName(ALL);
-        }}
-      />
+      {children(chosen, clear)}
     </EvidenceFrame>
   );
 }
@@ -53,20 +47,35 @@ export function Evidence({
 }) {
   return (
     <RunFrame issuer={issuer} run={run} tab="evidence">
-      {(loaded, issuerId) =>
-        page === "sources" ? (
-          <SourcesPage run={loaded} issuer={issuerId} />
-        ) : (
-          <EvidenceFrame
-            issuer={issuerId}
-            run={loaded.id}
-            evidence={loaded.evidence}
-            current="summary"
-          >
-            <EvidenceSummary evidence={loaded.evidence} issuer={issuerId} run={loaded.id} />
-          </EvidenceFrame>
-        )
-      }
+      {(loaded, issuerId) => {
+        const { evidence } = loaded;
+        switch (page) {
+          case "sources":
+            return (
+              <FilteredTab key="sources" run={loaded} issuer={issuerId} current="sources">
+                {(chosen, clear) => (
+                  <EvidenceSources
+                    sources={evidence.sources}
+                    module={chosen?.id ?? null}
+                    moduleName={chosen?.name ?? null}
+                    onClear={clear}
+                  />
+                )}
+              </FilteredTab>
+            );
+          case "summary":
+            return (
+              <EvidenceFrame
+                issuer={issuerId}
+                run={loaded.id}
+                evidence={evidence}
+                current="summary"
+              >
+                <EvidenceSummary evidence={evidence} issuer={issuerId} run={loaded.id} />
+              </EvidenceFrame>
+            );
+        }
+      }}
     </RunFrame>
   );
 }
