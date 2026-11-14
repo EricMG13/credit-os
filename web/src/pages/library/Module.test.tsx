@@ -548,13 +548,13 @@ describe("Module, the navigator", () => {
     const [first] = slice.issuers;
     if (first === undefined) throw new Error("no issuer");
     const earlier = first.runs.find((r) => r.id === "2026-03-31");
-    const later = first.runs.find((r) => r.id === "2026-09-30");
-    if (earlier === undefined || later === undefined) throw new Error("no runs");
-    // The same run and module under another issuer, whose copy lacks the section.
+    if (earlier === undefined) throw new Error("no earlier run");
+    // The same run id and module under another issuer, whose copy of the run lacks the section:
+    // the earlier run, filed under the later run's id.
     const other = structuredClone(first);
-    const otherRun = other.runs.find((r) => r.id === "2026-09-30");
-    if (otherRun === undefined) throw new Error("no run");
-    otherRun.modules = earlier.modules;
+    const slot = other.runs.findIndex((r) => r.id === "2026-09-30");
+    if (slot === -1) throw new Error("no run");
+    other.runs[slot] = { ...structuredClone(earlier), id: "2026-09-30" };
     other.id = "halden-copy";
     other.name = "Halden copy";
     slice.issuers.push(other);
