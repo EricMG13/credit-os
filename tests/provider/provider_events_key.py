@@ -98,7 +98,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         _ok(_FULL, None, _TEXT_TURN),
     ),
     "no message at all is an empty text": (
-        [usage(1, finishReason="end_turn", providerCallId="p-9"), IDLE],
+        [usage(1, finishReason="end_turn", providerCallId="p-9"), _event(9, "session.idle")],
         _ok(_NONE5, None, ("", (), "end", "p-9")),
     ),
     "an empty request id is no request id": (
@@ -146,7 +146,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         _ok(_OUT9, None, ("", (("c1", "read", {}, None),), "max_tokens", None)),
     ),
     "tool_use with no tool start": (
-        [usage(1, **_TOOLS), IDLE],
+        [usage(1, **_TOOLS), _event(9, "session.idle", aborted=False)],
         _unparsable("stop reason tool_use with no tool call", _OUT9),
     ),
     "tool starts without a tool stop reason": (
@@ -276,7 +276,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _FULL, "0.00012300000"),
     ),
     "another model on one of two usage events": (
-        [usage(1, outputTokens=9), _event(2, "assistant.usage", model="gpt-other", outputTokens=1)],
+        [_event(1, "assistant.usage", model="gpt-other", outputTokens=1), usage(2, outputTokens=9)],
         _bad("sent_usage", "ModelMismatch", _REFUSED + "ModelMismatch", _OUT10),
     ),
     "another model and nothing counted": (
@@ -288,7 +288,7 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         _bad("sent_usage", "ByokRouted", _REFUSED + "ByokRouted", _FULL),
     ),
     "an auto-routed call": (
-        [_event(1, "model.call_failure", source="top_level", isAuto=True), usage(2, **_STOP)],
+        [_event(1, "model.call_failure", isByok=False, isAuto=True), usage(2, **_STOP)],
         _bad("sent_usage", "AutoRouted", _REFUSED + "AutoRouted", _FULL),
     ),
     "a call failure that routed nowhere unusual is evidence only": (
@@ -378,7 +378,7 @@ CHARGES: tuple[tuple[Any, str | None], ...] = (
 # The charge block itself absent or of the wrong shape: no charge.
 NO_CHARGE_DATA: tuple[dict[str, Any], ...] = (
     {},
-    {"cost": 0.5},
+    {"cost": 5.0},
     {"copilotUsage": None},
     {"copilotUsage": 12300000},
     {"copilotUsage": {}},
