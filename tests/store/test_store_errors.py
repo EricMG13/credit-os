@@ -9,7 +9,16 @@ import pytest
 import store_errors_key as key
 
 from credit_os.store import errors
-from credit_os.store.errors import StoreError, StoreRefused, safe_text, store_error
+from credit_os.store.errors import (
+    StoreBusy,
+    StoreConflict,
+    StoreCorrupt,
+    StoreError,
+    StoreRefused,
+    StoreUnusable,
+    safe_text,
+    store_error,
+)
 
 Run = Callable[[sqlite3.Connection], object]
 
@@ -136,6 +145,15 @@ def test_store_refused_is_a_value_error_and_the_rest_are_not() -> None:
     for name in ("StoreBusy", "StoreConflict", "StoreCorrupt", "StoreUnusable"):
         assert issubclass(getattr(errors, name), StoreError)
         assert not issubclass(getattr(errors, name), ValueError)
+
+
+def test_mapped_store_errors_are_siblings_of_one_another() -> None:
+    mapped = {StoreBusy, StoreConflict, StoreCorrupt, StoreUnusable}
+    used = {type(store_error(_constructed(code), "x")) for code, _ in key.ERROR_CLASS_BY_CODE}
+    assert mapped == used
+    for first in mapped:
+        for second in mapped - {first}:
+            assert not issubclass(first, second), (first.__name__, second.__name__)
 
 
 @pytest.mark.parametrize(("text", "expected"), key.SAFE_TEXT)

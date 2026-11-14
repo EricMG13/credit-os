@@ -199,7 +199,8 @@ its files are written data and count toward the cap.
 | 11 | Year to date, prior year to date, LTM and prior LTM with date checks; limits; end to end |
 
 A PR that would pass 800 lines is split, not trimmed of tests; PRs 9 to 11 are the likeliest.
-PR 1 is split: 1 (#163) the value type; 1b the arithmetic.
+PR 1 is split: 1 (#163) the value type; 1b (#182) the arithmetic. `half_unit` and
+`beyond_rounding` take printed figures only (finite, at most 38 digits, exponent -200 to 200).
 
 Ruled by the controller in PR 1 and confirmed: a missing operand is returned unchanged, the
 first in operand order; refusals are `decimal.Inexact` (more than 38 significant digits),

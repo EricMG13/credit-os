@@ -12,7 +12,7 @@ A module is blocked when its Bottom line opens `Not assessable:` or its front ma
 Bottom line, so only its front matter can block it.
 """
 
-from credit_os.checks.findings import CheckContext, Finding
+from credit_os.checks.findings import CheckContext, Finding, refusal
 from credit_os.checks.text import all_sections, try_reader
 from credit_os.handoff.blocks import CodeBlock
 from credit_os.handoff.data import Register, read_registers
@@ -26,10 +26,6 @@ _PASSAGES = (
     "Contrary evidence and what would change the view",
     "Limitations",
 )
-
-
-def _refusal(check: str, line: int, quoted: str, reason: str) -> Finding:
-    return Finding(check=check, severity="refusal", line=line, quoted=quoted, reason=reason)
 
 
 def _level_three(document: HandoffDocument) -> list[Section]:
@@ -55,7 +51,7 @@ def check_format(document: HandoffDocument, context: CheckContext) -> tuple[Find
     line = level_three[0].line if level_three else document.sections[2].line
     quoted = level_three[0].title if level_three else "Findings"
     return (
-        _refusal(
+        refusal(
             "structure.format",
             line,
             quoted,
@@ -89,7 +85,7 @@ def check_reader(document: HandoffDocument, context: CheckContext) -> tuple[Find
     except HandoffError as error:
         titles = [s.title for s in _level_three(document) if s.line == error.line]
         quoted = titles[0] if titles else "Findings"
-        return (_refusal("structure.reader", error.line, quoted, error.message),)
+        return (refusal("structure.reader", error.line, quoted, error.message),)
     return ()
 
 
@@ -107,7 +103,7 @@ def check_passages(document: HandoffDocument, context: CheckContext) -> tuple[Fi
         line = found.line if found is not None else document.sections[2].line
         quoted = found.title if found is not None else "Findings"
         return (
-            _refusal(
+            refusal(
                 "structure.passages",
                 line,
                 quoted,
@@ -124,7 +120,7 @@ def check_fence(document: HandoffDocument, context: CheckContext) -> tuple[Findi
         for block in section.blocks:
             if isinstance(block, CodeBlock) and block.unclosed:
                 found.append(
-                    _refusal(
+                    refusal(
                         "structure.fence",
                         block.line,
                         block.lines[0] if block.lines else "",
@@ -194,7 +190,7 @@ def check_register_id(document: HandoffDocument, context: CheckContext) -> tuple
             continue
         if register.id in seen:
             found.append(
-                _refusal(
+                refusal(
                     "structure.register-id",
                     register.line,
                     _quoted(registers, position, by_line, document),
@@ -227,7 +223,7 @@ def check_registers(document: HandoffDocument, context: CheckContext) -> tuple[F
     if not missing:
         return ()
     return (
-        _refusal(
+        refusal(
             "structure.registers",
             document.sections[2].line,
             "Findings",

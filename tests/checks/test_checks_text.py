@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from credit_os.checks.text import passage_text, shown_text
+from credit_os.checks.text import passage_text, section_blocks, shown_text
 from credit_os.handoff.document import HandoffDocument, parse
 from credit_os.handoff.reader import read_reader
 
@@ -50,3 +50,14 @@ def test_passage_text_reader_from_equal_reparse(name: str) -> None:
     document_b = parse(data)
     passage = passage_text(document_a, read_reader(document_b))
     assert [item.line for item in passage] == case["passage"]
+
+
+def test_section_blocks_walk_nested_sections_and_skip_data_sections() -> None:
+    document = parse(KEY["case_nested"]["document"].encode("utf-8"))
+    reader = read_reader(document)
+    assert reader.bottom_line is not None
+    assert reader.key_findings is not None
+    # Bottom line (line 4) holds the paragraph at 7; its data child "Chart data" (and the
+    # section under it) gives nothing; "Detail" gives line 13. Key findings gives the item at 15.
+    assert [block.line for block in section_blocks(document, reader.bottom_line)] == [7, 13]
+    assert [block.line for block in section_blocks(document, reader.key_findings)] == [15]
