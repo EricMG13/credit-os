@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -148,6 +149,27 @@ def _comments(lines: list[str]) -> list[tuple[int, int, str]]:
             (BT + "x <!-- y --> z" + BT,),
             [(1, 1, BT)],
         ),
+        (
+            [BT * 2 + "a" + BT + " <!-- c -->"],
+            (BT * 2 + "a" + BT + " ",),
+            [(1, 1, "c")],
+        ),
+        (
+            [BT * 2 + "x <!-- c --> y" + BT],
+            (BT * 2 + "x  y" + BT,),
+            [(1, 1, "c")],
+        ),
+        (
+            [BT * 2 + " " + BT + "<!--" + BT + " " + BT * 2],
+            (BT * 2 + " " + BT + "<!--" + BT + " " + BT * 2,),
+            [],
+        ),
+        ([BT + "a <!-- x --> b" + BT], (BT + "a <!-- x --> b" + BT,), []),
+        (
+            ["<!-- a", "b --> " + BT + "c <!-- d" + BT + " <!-- e -->"],
+            ("", " " + BT + "c <!-- d" + BT + " "),
+            [(1, 2, "a\nb"), (2, 2, "e")],
+        ),
     ],
 )
 def test_comments(
@@ -156,6 +178,22 @@ def test_comments(
     result = scan(lines)
     assert result.shown == shown
     assert _comments(lines) == comments
+
+
+def test_backtick_runs_are_read_in_bounded_time() -> None:
+    lots = BT * 8000
+    started = time.perf_counter()
+    plain = scan(["x" + lots])
+    closed = scan(["x" + lots + " <!-- c -->"])
+    pairs = scan([(BT + "a") * 4000 + "<!-- c -->"])
+    elapsed = time.perf_counter() - started
+    assert plain.comments == ()
+    assert plain.shown == ("x" + lots,)
+    assert [(c.start, c.end, c.text) for c in closed.comments] == [(1, 1, "c")]
+    assert closed.shown == ("x" + lots + " ",)
+    assert [(c.start, c.end, c.text) for c in pairs.comments] == [(1, 1, "c")]
+    assert pairs.shown == ((BT + "a") * 4000,)
+    assert elapsed < 1.0
 
 
 def test_hidden_fence_and_heading_inside_a_comment_leave_the_shown_heading_only() -> None:

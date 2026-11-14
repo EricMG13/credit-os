@@ -1,0 +1,52 @@
+{
+  "counts": {
+    "fragments/CP-1C-head.md": {"from": 17, "tables": 0, "paragraphs": 0, "items": 0, "code": 0},
+    "fragments/CP-2G-forecast-block.md": {"from": 1, "tables": 0, "paragraphs": 0, "items": 0, "code": 1},
+    "synthetic-new-format/SYNTHETIC-CP-0.md": {"from": 1, "tables": 3, "paragraphs": 4, "items": 0, "code": 0},
+    "synthetic-new-format/SYNTHETIC-CP-1.md": {"from": 1, "tables": 3, "paragraphs": 4, "items": 0, "code": 0},
+    "synthetic-new-format/SYNTHETIC-CP-1A.md": {"from": 1, "tables": 3, "paragraphs": 5, "items": 5, "code": 0},
+    "synthetic-new-format/SYNTHETIC-CP-2.md": {"from": 1, "tables": 3, "paragraphs": 5, "items": 6, "code": 0},
+    "synthetic-new-format/SYNTHETIC-CP-2D.md": {"from": 1, "tables": 1, "paragraphs": 5, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-0.md": {"from": 1, "tables": 7, "paragraphs": 29, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-1.md": {"from": 1, "tables": 25, "paragraphs": 31, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-1A.md": {"from": 1, "tables": 13, "paragraphs": 22, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-1B.md": {"from": 1, "tables": 6, "paragraphs": 10, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-1C.md": {"from": 17, "tables": 9, "paragraphs": 29, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-1D.md": {"from": 17, "tables": 8, "paragraphs": 21, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-2.md": {"from": 1, "tables": 8, "paragraphs": 15, "items": 7, "code": 0},
+    "tdg-2026-11-09/CP-2A.md": {"from": 17, "tables": 9, "paragraphs": 18, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-2D.md": {"from": 17, "tables": 14, "paragraphs": 30, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-2E.md": {"from": 1, "tables": 23, "paragraphs": 34, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-2G.md": {"from": 19, "tables": 17, "paragraphs": 22, "items": 0, "code": 1},
+    "tdg-2026-11-09/CP-2H.md": {"from": 18, "tables": 8, "paragraphs": 24, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-3.md": {"from": 17, "tables": 9, "paragraphs": 31, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-3C.md": {"from": 1, "tables": 14, "paragraphs": 36, "items": 6, "code": 0},
+    "tdg-2026-11-09/CP-3D.md": {"from": 18, "tables": 17, "paragraphs": 29, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-4.md": {"from": 17, "tables": 9, "paragraphs": 24, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-4C.md": {"from": 18, "tables": 9, "paragraphs": 23, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-5.md": {"from": 17, "tables": 9, "paragraphs": 32, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-6.md": {"from": 17, "tables": 9, "paragraphs": 26, "items": 0, "code": 0},
+    "tdg-2026-11-09/CP-DR.md": {"from": 24, "tables": 15, "paragraphs": 27, "items": 0, "code": 0}
+  },
+  "tables": [
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "line": 8, "columns": ["Source", "Use"], "rows": 2, "cells": [[1, 1, "Earnings and quarterly cash."]]},
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "line": 46, "columns": ["ID", "Calculation", "Steps", "Result"], "rows": 1, "cells": [[0, 2, "Gross debt 1,700 less cash 310 gives net debt 1,390; divided by EBITDA 331"], [0, 3, "4.2x"]]},
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "line": 52, "columns": ["Gap", "Effect"], "rows": 1, "cells": [[0, 0, "No peer set supplied"]]},
+    {"file": "tdg-2026-11-09/CP-1B.md", "line": 47, "columns": ["Required element", "Available evidence", "Disposition"], "rows": 6, "row_lines": [[1, 50]], "cells": [[0, 1, "context page:1: `prior_period` is `fy-2023`; `current_period` is `fy-2024`"]]},
+    {"file": "tdg-2026-11-09/CP-1.md", "line": 70, "columns": ["Metric", "FY2024 / 2024-09-30", "FY2023 / 2023-09-30", "Unit", "Status, definition and evidence"], "rows": 30, "row_lines": [[27, 99], [29, 101]], "cells": [[27, 1, "4,216"], [27, 2, "— (reported dash)"], [29, 2, "Not calculable: no comparable event selected"]]},
+    {"file": "tdg-2026-11-09/CP-2A.md", "line": 114, "columns": ["rank", "event_date_or_window", "event", "credit_relevance", "status", "source_id", "source_locator", "as_of"], "rows": 1, "cells": [[0, 0, "Not supplied — no accepted catalyst"], [0, 4, "BLOCKED"]]},
+    {"file": "tdg-2026-11-09/CP-2G.md", "line": 226, "columns": ["driver_id", "slot_id", "case", "period_id", "fiscal_year", "value", "unit", "assumption_id", "status", "source_id", "source_locator", "as_of"], "rows": 1, "cells": [[0, 11, "2024-09-30"]]}
+  ],
+  "sequence": {"synthetic-new-format/SYNTHETIC-CP-2.md": [["paragraph", 4], ["table", 8], ["paragraph", 17], ["item", 22], ["item", 24], ["item", 26], ["paragraph", 31], ["paragraph", 34], ["item", 38], ["item", 39], ["item", 41], ["table", 46], ["table", 52], ["paragraph", 57]]},
+  "last_block": {"tdg-2026-11-09/CP-4.md": ["paragraph", 183]},
+  "texts": [
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "kind": "paragraph", "line": 17, "lines": ["Creditors are exposed to refinancing risk rather than to weak earnings: net debt of USD 1,390 million is 4.2x earnings, and the next maturities fall inside two years.", "Basis: NBG_2025-03-31_annual-report.pdf, page 41; calculation K1"]},
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "kind": "paragraph", "line": 57, "lines": ["CP-2D assesses liquidity against the maturities."]},
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "kind": "item", "line": 22, "marker": "-", "lines": ["Leverage is moderate but not low, at 4.2x net debt to EBITDA, so there is little room for an earnings miss.", "Basis: NBG_2024-12-31_Q4-results.pdf; NBG_2025-03-31_annual-report.pdf, page 41"]},
+    {"file": "synthetic-new-format/SYNTHETIC-CP-2.md", "kind": "item", "line": 38, "marker": "-", "lines": ["The Covenant package was not reviewed,  so covenant headroom is not assessed"]}
+  ],
+  "code": [
+    {"file": "tdg-2026-11-09/CP-2G.md", "line": 100, "end": 140, "info": "json", "unclosed": false, "count": 39, "first": "{", "last": "}"},
+    {"file": "fragments/CP-2G-forecast-block.md", "line": 3, "end": 43, "info": "json", "unclosed": false, "count": 39, "first": "{", "last": "}"}
+  ]
+}

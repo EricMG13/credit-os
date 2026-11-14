@@ -1,3 +1,18 @@
+"""One pass over handoff lines, in three states: normal, inside a fence, inside a comment.
+
+A heading is tested on the line as written; its title is read from the shown text.
+A fence opener is tested before comments. A closer is the same character, at least as
+long, with nothing but spaces or tabs after it. A line that began inside a comment is
+never a heading or a fence line. `shown` is the line with comments removed, and `""`
+when only whitespace is left after a removal.
+Inline code spans: backticks form maximal runs. A run of n backticks opens a span only
+when a later run of exactly n follows in the same text, and the nearest one closes it;
+a run with no such closer is ordinary text. `<!--` inside a span is literal, and text
+inside a comment is never searched for runs.
+Known limit: a fenced block that itself contains a line starting `## ` is read as
+unclosed at that line, and that line is then a level-2 heading.
+"""
+
 import re
 from collections.abc import Sequence
 
@@ -8,7 +23,7 @@ from credit_os.handoff.errors import HandoffError
 _HEADING = re.compile(r"^(#{1,6}) (.*)$")
 _FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 _LEVEL_TWO = re.compile(r"^## ")
-_CODE_SPAN = re.compile(r"(`+).+?\1")
+_BACKTICKS = re.compile(r"`+")
 _OPENER = "<!--"
 _CLOSER = "-->"
 
@@ -101,18 +116,47 @@ def _hide_continuation(state: _State, pending: _OpenComment, number: int, text: 
     return text[end + len(_CLOSER) :]
 
 
+def _closers(runs: list[tuple[int, int]]) -> list[int | None]:
+    """For each run, the index of the next run of exactly its length, if any."""
+    latest: dict[int, int] = {}
+    closers: list[int | None] = [None] * len(runs)
+    for index in range(len(runs) - 1, -1, -1):
+        length = runs[index][1] - runs[index][0]
+        closers[index] = latest.get(length)
+        latest[length] = index
+    return closers
+
+
+def _next_span(
+    runs: list[tuple[int, int]], closers: list[int | None], first: int, pos: int, at: int
+) -> tuple[int, int | None]:
+    """From run `first`, find a code span opening in `pos..at`; return (next run, span end)."""
+    index = first
+    while index < len(runs) and runs[index][0] < at:
+        closer = closers[index]
+        if runs[index][0] >= pos and closer is not None:
+            return closer + 1, runs[closer][1]
+        index += 1
+    return index, None
+
+
 def _read_comments(state: _State, number: int, text: str, removed: bool) -> str:
     kept: list[str] = []
+    runs = [(found.start(), found.end()) for found in _BACKTICKS.finditer(text)]
+    closers = _closers(runs)
     pos = 0
+    next_run = 0
+    at = -1
     while True:
-        span = _CODE_SPAN.search(text, pos)
-        at = text.find(_OPENER, pos)
+        if at < pos:
+            at = text.find(_OPENER, pos)
         if at < 0:
             kept.append(text[pos:])
             break
-        if span is not None and span.start() < at:
-            kept.append(text[pos : span.end()])
-            pos = span.end()
+        next_run, span_end = _next_span(runs, closers, next_run, pos, at)
+        if span_end is not None:
+            kept.append(text[pos:span_end])
+            pos = span_end
             continue
         kept.append(text[pos:at])
         removed = True
