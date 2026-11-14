@@ -136,6 +136,77 @@ Blocks (PR 2, #42):
   (any leading whitespace other than up to three spaces: four spaces, a tab, a no-break space)
   is refused; it is never read as a paragraph.
 - Lists are flat. `read_blocks` takes whole heading-to-heading ranges.
+- A table given a `label` has a `label_line` and the reverse; one without the other is an error.
+
+Document (PR 3, #47):
+1. Front matter exists only when line 1 is `---` (trailing spaces or tabs allowed) and ends at
+   the next such line; one that is never closed is refused at line 1.
+2. Every line between is `key: value`: key `[A-Za-z_][A-Za-z0-9_-]*`, a colon, then the end of
+   the line or whitespace and the value, stripped and never interpreted. A blank or other line
+   is refused at its line, a repeated key at the later line.
+3. The scan runs on the lines with the front matter blanked, so line numbers are the file's.
+4. `parse` takes bytes in strict UTF-8 and is the package's one entry; an invalid byte is
+   refused with its line.
+5. The skeleton is checked first. A wrong, repeated or extra level-2 heading is refused at its
+   line, a missing one at the last line of the file.
+6. One level-1 heading is allowed before `## Request` and is the document title. A second, one
+   after Request, or any other heading or text before Request is refused.
+7. A section ends before the next heading of the same or a shallower level; its parent is the
+   nearest earlier shallower heading; a skipped level is allowed.
+8. Whitespace of any kind around a heading title is ignored.
+9. An unclosed fence is a flag on its code block, not an error; nothing inside it is classified
+   by a later layer, and step 2B refuses a handoff that has one.
+
+Reader and Basis rules (PR 4, #53):
+1. Every `HandoffError` message that echoes text from the file shows at most 80 characters of
+   it, then `…`. The bound counts code points and removes no control character.
+2. The reader is a view, `read_reader(document)`; `HandoffDocument` gains no field for it
+   (PR 5 adds `comments`). Passages
+   exist only in the new format (the first level-3 section under `Findings` is `Bottom line`);
+   a repeated passage heading is refused at the second.
+3. A `Reader summary` section that does not hold its two tables in the expected shape is
+   never read as absent: `summary` is `None` and `summary_section` carries the raw section, so the summary
+   being unreadable is an explicit gap. In the new format both are `None`.
+4. `read_basis(block)` reads a block's last line; the block keeps all its lines. Items are
+   split on `; `. A page span is a pair of integers of one to nine digits beside the item's
+   exact text; only spaces may surround its dash; two or more spans need `pages`. A piece that
+   does not fit is kept as text.
+5. A source file name has a character before its extension dot; the extension is a letter and
+   up to four letters or digits.
+6. Nothing inside an unclosed fence is classified.
+
+Data views (PR 5, #78), in `handoff/data.py` unless named:
+1. Known source names come from the document's own Sources table (`source_names`: column 0
+   of the one table directly under `## Sources`) and nowhere else. `read_basis` takes them as
+   an optional sequence. A calculation id and `name (CP-X)` are read first, so a Sources row
+   naming a module is not a source file; then an item is a source when it is exactly a known
+   name or a known name followed by the page grammar, compared exactly, the longest name
+   first. A name holding `; ` stays split.
+2. A second `Reader summary` section is refused in `read_reader`, at the second heading.
+3. The parser marks no cell as a gap; the caller applies `read_value`. A paragraph that is
+   only a Basis line reads as an empty gap. An empty passage is a section with no blocks, not
+   an absent one.
+4. A register is a heading `id — title` or a `table-id` comment tag. A heading id is dotted
+   (`T4.12`), capitals then digits (`T1`, `P3`; `T2R` is not one), or a lower-case slug with
+   an underscore. A tag names the next table of its own section, prose or a code block
+   between allowed; a heading, a later tag or the section's end before a table gives `None`.
+   A repeated id is not refused here (step 2B).
+5. Typed sections (chart data, events, map, forecast inputs, confidence inputs) are found by
+   title prefix at any depth, case-sensitive; one that cannot be read gives `None`, never a
+   refusal.
+6. `Reader.blocked` is a bool in the new format (the Bottom line opens with a paragraph
+   `Not assessable:`) and `None` in the earlier format. Front matter is not read by it.
+
+Step 1A is complete with PR 5. Unbuilt by ruling: a view of the earlier format's Sources
+tables; a reader for citations inside table cells (for delivery's trace control, phase 4);
+checking Sources-table names against pinned sources (step 2B).
+
+Not read in this step: the earlier format's bracket citations at the end of a paragraph (33
+of 704 real earlier-format paragraphs, in 3 of 52 retained replies). Delivery draws no
+earlier-format paragraph unless a reader for them is added to `handoff/` first.
+
+Known real case (one retained run): a table split by a blank line, or a header and separator
+of different widths, is refused; the predecessor accepted the first and turned rows into prose.
 
 ## PR sequence
 
@@ -144,8 +215,8 @@ Blocks (PR 2, #42):
 | 1 | Fixtures and `SHA256SUMS`; lines, headings, fences, comments; error type |
 | 2 | Blocks: tables, paragraphs, list items, code blocks |
 | 3 | Front matter, section tree, skeleton check, `HandoffDocument` and `parse`; golden tests on all 27 fixture files |
-| 4 | Format detection, reader passages, Basis lines, earlier-format reader summary |
-| 5 | Gaps, confidence inputs, typed data sections, register tags, blocked flag |
+| 4 (#53) | Format detection, reader passages, Basis lines, earlier-format reader summary |
+| 5 (#78) | Gaps, confidence inputs, typed data sections, register tags, blocked flag, known source names; one synthetic new-format fixture |
 
 A PR that would pass 800 lines is split, not trimmed of tests.
 
