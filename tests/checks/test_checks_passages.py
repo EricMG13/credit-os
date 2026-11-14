@@ -18,6 +18,7 @@ KEY: dict[str, Any] = json.loads(
 )
 CASES: dict[str, dict[str, Any]] = {case["name"]: case for case in KEY["cases"]}
 _SHA = re.compile(r"\{sha:(CP-[A-Z0-9]+)\}")
+_KEY_ONLY = ("name", "findings", "front", "tail", "sources", "expect")
 
 NEW_CHECKS = (
     passages.check_register_id,
@@ -35,8 +36,19 @@ def _expand(text: str, context: CheckContext) -> str:
     return expand_digests(text)
 
 
+def _context(case: dict[str, Any]) -> CheckContext:
+    """The key's `accepted` maps a module code to a whole document's text, not to a fixture path."""
+    base = {"kind": "data", **KEY["context"]}
+    accepted = case.get("accepted", base.pop("accepted", {}))
+    plain = {name: value for name, value in case.items() if name != "accepted"}
+    context = build_context(base, plain, _KEY_ONLY)
+    fields = {name: getattr(context, name) for name in CheckContext.model_fields}
+    fields["accepted"] = {code: parse(text.encode("utf-8")) for code, text in accepted.items()}
+    return CheckContext(**fields)
+
+
 def _build(case: dict[str, Any]) -> tuple[HandoffDocument, CheckContext, list[list[Any]]]:
-    context = build_context({"kind": "data", **KEY["context"]}, case, accepted_is_text=True)
+    context = _context(case)
 
     def part(name: str) -> str:
         return _expand(case.get(name, KEY.get(name, "")), context)

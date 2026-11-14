@@ -20,7 +20,16 @@ KEY: dict[str, Any] = json.loads(
 )
 CASES: dict[str, dict[str, Any]] = {case["name"]: case for case in KEY["cases"]}
 
-_KEY_ONLY = ("name", "findings", "front", "tail", "expect", "reason_has")
+_KEY_ONLY = (
+    "name",
+    "findings",
+    "front",
+    "tail",
+    "expect",
+    "reason_has",
+    "reason_lacks",
+    "known_false_refusal",
+)
 _MACRO = re.compile(r"\{(words|z):(\d+)\}")
 
 ALL_CHECKS = (
@@ -76,6 +85,9 @@ def test_case(name: str) -> None:
     for index, texts in case.get("reason_has", {}).items():
         for text in texts:
             assert text in found[int(index)].reason
+    for index, texts in case.get("reason_lacks", {}).items():
+        for text in texts:
+            assert text not in found[int(index)].reason
 
 
 @pytest.mark.parametrize("name", list(CASES))
