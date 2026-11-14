@@ -1,6 +1,9 @@
 import { useId, type ReactNode } from "react";
 import { SECTION_HEADING, type SUBSECTION_HEADING } from "./heading";
 
+/** A heading the navigator moves focus to: not in the tab order, with the design focus ring. */
+const FOCUS = "rounded-ds-xs outline-hidden focus-visible:ring-2 focus-visible:ring-brand";
+
 /** The size each heading level takes, so a section under a module name reads as a section. */
 const SIZE = { h2: "text-h2", h3: "text-h3", h4: "text-h4" } as const;
 
@@ -25,7 +28,11 @@ export function Section({
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-6">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <Heading id={headingId} className={`font-display ${SIZE[level]} text-text-primary`}>
+        <Heading
+          id={headingId}
+          tabIndex={-1}
+          className={`font-display ${SIZE[level]} text-text-primary ${FOCUS}`}
+        >
           {title}
         </Heading>
         {note === undefined ? null : <span className="text-small text-text-tertiary">{note}</span>}

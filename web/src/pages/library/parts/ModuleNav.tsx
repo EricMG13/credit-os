@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { AlertTriangle, Flag01, InfoCircle, List, RefreshCw01 } from "@untitledui/icons";
 import { Button, Link } from "react-aria-components";
 import { STATUS_SETS } from "@/components/status/sets";
 import { StatusShape } from "@/components/status/shapes";
@@ -19,7 +20,16 @@ const ENTRY =
   "flex w-full cursor-pointer items-center gap-2 border-l-[3px] border-transparent px-4 text-left text-small font-medium text-text-tertiary outline-hidden hover:bg-surface-subtle hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset";
 const CURRENT = "border-action bg-surface-selected text-action hover:bg-surface-selected";
 
-export type NavSection = { key: string; label: string };
+/** The icon of each section a delivered module can have, in the mock's 20px slot. */
+const ICON = {
+  "bottom-line": Flag01,
+  findings: List,
+  contrary: AlertTriangle,
+  "change-view": RefreshCw01,
+  limitations: InfoCircle,
+} as const;
+
+export type NavSection = { key: keyof typeof ICON; label: string };
 export type NavModule = { id: string; name: string; state: ModuleState };
 
 /**
@@ -39,7 +49,7 @@ export function ModuleNav({
   issuer: string;
   run: string;
   sections: readonly NavSection[];
-  active: string;
+  active: string | null;
   onSection: (key: string) => void;
   modules: readonly NavModule[];
   current: string;
@@ -58,19 +68,23 @@ export function ModuleNav({
             On this page
           </span>
           <ul aria-labelledby={sectionsLabel}>
-            {sections.map((section) => (
-              <li key={section.key}>
-                <Button
-                  aria-current={section.key === active ? "location" : undefined}
-                  onPress={() => {
-                    onSection(section.key);
-                  }}
-                  className={cx(ENTRY, "py-3", section.key === active && CURRENT)}
-                >
-                  {section.label}
-                </Button>
-              </li>
-            ))}
+            {sections.map((section) => {
+              const Icon = ICON[section.key];
+              return (
+                <li key={section.key}>
+                  <Button
+                    aria-current={section.key === active ? "location" : undefined}
+                    onPress={() => {
+                      onSection(section.key);
+                    }}
+                    className={cx(ENTRY, "py-3", section.key === active && CURRENT)}
+                  >
+                    <Icon aria-hidden="true" className="size-5 flex-none opacity-75" />
+                    {section.label}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}
@@ -88,8 +102,10 @@ export function ModuleNav({
               <span className={cx("mx-1 flex", MARK[module.state])}>
                 <StatusShape shape={STATUS_SETS["Module state"][module.state].shape} />
               </span>
-              <span>{module.name}</span>
-              <span className="sr-only">, {module.state}</span>
+              <span>
+                {module.name}
+                <span className="sr-only">, {module.state}</span>
+              </span>
             </Link>
           </li>
         ))}
