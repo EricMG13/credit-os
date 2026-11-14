@@ -3,6 +3,57 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Design track: slice contract 2 (absent and pending states), states 2 rulings
+
+**Merged**, each with gates on Ubuntu and Windows and the review job green on its head, none
+cancelled, and its source diff read by the coordinator (the tests were not read line by line).
+The library and model folders on `main` equal the two heads.
+
+| PR | Head, merge | Content |
+| :--- | :--- | :--- |
+| #330 library | `0765705`, `4bae1e4` | `Overview.sides` and `changeView` may be null and are then not drawn; `Changes` gains `pending` (its own page state; never the issuer's only run; no history entry links it); an empty `none` or `pending` title or text is refused; a bad percent escape in a delivered address is refused instead of thrown (774 lines) |
+| #331 model | `8d93e91`, `5eea548` | Portfolio fit `limits` and `scatter` may each be `{ gap }`, drawn as the gap panel; the reader holds a bad run as unreadable and reads the others (the index lists or counts it, its pages say why); `published.href` is a relative path inside the library folder, `checkFigure.href` that or a `#/` address (800 lines, at the cap) |
+
+The web run on the merged tree (`5eea548`, run 43651469961) had not finished when this was
+written.
+
+**Reviews.** `mx-precise` per task: 7 pass; L2 needed one fix round (Medium: the new fixture scene
+was partly copied from another issuer), re-review pass. Sweep discovery (`mx-autonomous`,
+changed-update): 16 rows, none Medium or above, nothing repaired. Whole-branch (`mx-architect`,
+adversarial): pass, High 0, Medium 0, Low 5, Info 5; the Lows were closed in each PR's last commit
+against the reviewer's probes with no review round. Reports:
+`.superpowers/sdd/2026-11-14-slice-contract-2/` (`reviews/`, `sweep/register.md`).
+
+**Ledger** (every task `agent=mx-feature`; fix rounds, gates first pass). L1: 0, n. L2: 1, n.
+L3: 0, y. LA: 0, y. LB: 0, y. M1: 0, n. M2: 0, n. M3: 0, n/a. MB: 0, y. MC: 0, y. `n` is a first
+run that failed on format, lint or a load timeout and then passed.
+
+**Gates and live validation.** `npm --prefix web run gates` exit 0 at both heads (the library's
+at load 180; the file gate was rerun four times on its 60 s load timeout at `e3882db`). Headed
+Chrome from disk and the app's browser pane, every new state at 1440 and 1024: one `h1`, no
+horizontal scroll, clean console, visible focus; library built from `9ec67d6`, model from
+`4ce1eb6` with a scratch data file. The walk was not repeated for the last commit of each PR.
+
+**Rulings.** Owner: "Keep 'For and against' optional" (a departure from the Overview mock). Under
+the owner's instruction of 2026-11-14 to the coordinators to resolve all decisions, the roadmap
+coordinator ruled: the empty-title refusal and three address test rows go in #330; the defect that
+predates the step (`%ff` threw a `URIError` through `readSlice`) was fixed test first in #330; no
+model fixture scene for the new states; and the recommended option of every owner question of
+decision 0013 (states 2), now recorded there with the back-end coordinator's three. Other rulings
+of that date (sample links, Show sources, chart tick size, notices for copied code, the phase
+sweep's questions) are applied by the phase sweep and recorded with it.
+
+**To the phase sweep, wave 2:** the address rule duplicated across the two groups; the model gap
+drawn three ways; "could not be read" typed in three places and matched by the file gate; the run
+address template written three times; an unreachable rethrow in the model reader; the library's
+Forecast address for an id holding `/` or `%` (3B contract: ids are slugs; the store's grammar
+`[A-Za-z0-9._-]{1,128}` fits); an empty `overview.metrics` drawing an empty region; sample
+Forecast links to model runs the fixture lacks; `%00` accepted by the address rule.
+
+Not verified: the open-from-disk gate draws none of the new model states (page tests and the
+live walk only); Edge and other widths; mutation testing beyond hand-written mutants; whether
+delivery will send these states; the states 2 rulings have not been seen by a reader.
+
 ## 2026-11-14 Roadmap back end: Signal's threads, the run store's status writes; the owner's instruction
 
 **The owner's instruction, about 22:20 UTC, given in the lead coordinator's session and read
