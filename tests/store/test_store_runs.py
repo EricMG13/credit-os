@@ -4,7 +4,7 @@ import re
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +14,14 @@ import store_runs_key as key
 from credit_os.sources.pins import SourceKind, SourcePin
 from credit_os.store import location, runs
 from credit_os.store.db import Store, StoreReader, open_reader, open_store
-from credit_os.store.errors import StoreConflict, StoreCorrupt, StoreRefused, StoreUnusable
+from credit_os.store.errors import (
+    StoreConflict,
+    StoreCorrupt,
+    StoreError,
+    StoreRefused,
+    StoreUnusable,
+)
+from credit_os.store.records import Claim
 
 RUN_ID = "run-001"
 TABLES = ("runs", "run_sources", "events")
@@ -294,3 +301,149 @@ def test_a_read_that_sqlite_refuses_leaves_as_a_store_error(store: Store) -> Non
     store._live().close()
     with pytest.raises(StoreUnusable, match="^read the store: "):
         store.run(RUN_ID)
+
+
+def _raw_run(folder: Path, run_id: str, as_of: str, *pragmas: str, name: bytes = b"n") -> None:
+    sql = (
+        "INSERT INTO runs(run_id, issuer_id, issuer_name, as_of, config_id, cap_usd, request,"
+        " request_sha256, status, writer, created_at) VALUES (?, 'i', CAST(? AS TEXT), ?, 'c', '1', x'',"
+        " 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'created',"
+        " '00000000000000000000000000000000', ?)"
+    )
+    with closing(sqlite3.connect(folder / location.STATE_FILE_NAME, autocommit=True)) as raw:
+        for pragma in pragmas:
+            raw.execute(pragma)
+        raw.execute(sql, (run_id, name, as_of, key.CLOCK_FIRST_TEXT))
+
+
+def test_stored_text_that_is_not_utf8_is_corrupt_without_the_text(tmp_path: Path) -> None:
+    with open_store(tmp_path, clock=_steps()) as writer:
+        writer.create_run(**_args(pins=()))
+        issuer_name = bytes.fromhex(key.NON_UTF8_ISSUER_NAME_HEX)
+        _raw_run(tmp_path, key.NON_UTF8_RUN_ID, "2026-09-30", name=issuer_name)
+        _write_raw(
+            tmp_path,
+            "INSERT INTO run_sources(run_id, position, name, sha256, size_bytes, kind)"
+            f" VALUES (?, 0, CAST(x'{key.NON_UTF8_PIN_NAME_HEX}' AS TEXT), ?, 1, 'pdf')",
+            RUN_ID,
+            "ab" * 32,
+        )
+        with open_reader(tmp_path) as reader:
+            for handle_ in (writer, reader):
+                for method, run_id in (("run", key.NON_UTF8_RUN_ID), ("pins", RUN_ID)):
+                    with pytest.raises(StoreCorrupt) as caught:
+                        getattr(handle_, method)(run_id)
+                    assert str(caught.value) == key.NON_UTF8_MESSAGE
+                    assert "SECRET" not in repr(caught.value.__cause__)
+
+
+def test_a_stored_as_of_that_is_no_date_is_corrupt(
+    handle: Store | StoreReader, tmp_path: Path
+) -> None:
+    _raw_run(tmp_path, key.BAD_AS_OF_RUN_ID, key.BAD_AS_OF, "PRAGMA ignore_check_constraints = ON")
+    with pytest.raises(StoreCorrupt) as caught:
+        handle.run(key.BAD_AS_OF_RUN_ID)
+    assert str(caught.value) == key.BAD_AS_OF_MESSAGE
+    assert caught.value.__cause__ is None
+
+
+def test_a_stored_as_of_that_is_no_text_is_corrupt(tmp_path: Path) -> None:
+    with open_store(tmp_path) as writer:
+        writer.create_run(**_args(**key.BLOB_AS_OF_RUN))
+    file = tmp_path / location.STATE_FILE_NAME
+    data = file.read_bytes()
+    assert data.count(key.BLOB_AS_OF_HEADER) == 1
+    at = data.index(key.BLOB_AS_OF_HEADER) + key.BLOB_AS_OF_OFFSET
+    file.write_bytes(data[:at] + bytes([0x20]) + data[at + 1 :])
+    assert _query(tmp_path, "SELECT typeof(as_of) FROM runs") == [("blob",)]
+    with open_reader(tmp_path) as reader, pytest.raises(StoreCorrupt) as caught:
+        reader.run(str(key.BLOB_AS_OF_RUN["run_id"]))
+    assert str(caught.value) == key.BAD_AS_OF_MESSAGE
+    assert caught.value.__cause__ is None
+
+
+def test_an_integrity_check_that_names_a_text_that_is_not_utf8_is_corrupt(tmp_path: Path) -> None:
+    open_store(tmp_path).close()
+    name, sql = key.UNREADABLE_TABLE_NAME.hex(), key.UNREADABLE_TABLE_SQL.hex()
+    with closing(sqlite3.connect(tmp_path / location.STATE_FILE_NAME, autocommit=True)) as raw:
+        raw.execute("CREATE TABLE bad(a)")
+        raw.execute("INSERT INTO bad VALUES (NULL)")
+        raw.execute("PRAGMA writable_schema = ON")
+        raw.execute(
+            f"UPDATE sqlite_schema SET name = CAST(x'{name}' AS TEXT),"
+            f" tbl_name = CAST(x'{name}' AS TEXT), sql = CAST(x'{sql}' AS TEXT) WHERE name = 'bad'"
+        )
+        raw.execute("PRAGMA writable_schema = OFF")
+    before = (tmp_path / location.STATE_FILE_NAME).read_bytes()
+    with pytest.raises(StoreCorrupt) as caught:
+        open_store(tmp_path)
+    assert str(caught.value) == key.NON_UTF8_MESSAGE
+    assert caught.value.__cause__ is None
+    assert (tmp_path / location.STATE_FILE_NAME).read_bytes() == before
+
+
+def test_a_claim_never_shows_its_token() -> None:
+    claim = Claim(run_id="run-001", token=key.CLAIM_TOKEN)
+    assert key.CLAIM_TOKEN not in repr(claim)
+    assert key.CLAIM_TOKEN not in str(claim)
+    assert claim.token == key.CLAIM_TOKEN
+
+
+@pytest.mark.parametrize("clock", key.REFUSED_CLOCKS, ids=["none", "int", "str"])
+def test_a_clock_that_is_not_callable_is_refused_before_anything_is_created(
+    tmp_path: Path, clock: Any
+) -> None:
+    folder = tmp_path / "state"
+    with pytest.raises(StoreRefused):
+        open_store(folder, clock=clock)
+    assert not folder.exists()
+
+
+def test_the_default_clock_writes_aware_utc_time(tmp_path: Path) -> None:
+    with open_store(tmp_path) as opened:
+        before = datetime.now(UTC)
+        opened.create_run(**_args())
+        after = datetime.now(UTC)
+        created = opened.run(RUN_ID).created_at
+    assert created.utcoffset() == timedelta(0)
+    assert before <= created <= after
+
+
+def test_pins_are_stored_at_positions_from_zero(store: Store, tmp_path: Path) -> None:
+    store.create_run(**_args())
+    positions = _query(tmp_path, "SELECT position FROM run_sources ORDER BY position")
+    assert tuple(p for (p,) in positions) == key.PIN_POSITIONS
+
+
+def test_a_pin_of_the_largest_sqlite_integer_is_valid(store: Store) -> None:
+    name, sha, _, kind = key.PINS[0]
+    pins = _pins(((name, sha, key.LARGEST_PIN_SIZE_BYTES, kind),))
+    store.create_run(**_args(pins=pins))
+    assert store.pins(RUN_ID) == pins
+
+
+def test_a_sqlite_error_inside_a_read_keeps_its_cause(
+    store: Store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    error = sqlite3.DatabaseError("injected")
+    error.sqlite_errorcode = key.READ_ERROR_CODE
+
+    def boom(*args: object) -> None:
+        raise error
+
+    monkeypatch.setattr(runs, "read_run", boom)
+    with pytest.raises(StoreError) as caught:
+        store.run(RUN_ID)
+    assert type(caught.value).__name__ == key.READ_ERROR_CLASS
+    assert caught.value.__cause__ is error
+
+
+def test_a_bytes_subclass_request_is_refused_before_begin(tmp_path: Path) -> None:
+    class Subclass(bytes):
+        pass
+
+    clock, calls = _counting_clock()
+    with open_store(tmp_path, clock=clock) as opened, pytest.raises(StoreRefused):
+        opened.create_run(**_args(request=Subclass(key.BYTES_SUBCLASS_REQUEST)))
+    assert calls == []
+    _nothing_written(tmp_path)

@@ -2,7 +2,7 @@
 is in a `Claim` only; no record read from the store holds it."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -12,7 +12,7 @@ class Claim:
     """The right to write one run: `token` is 32 lowercase hex characters."""
 
     run_id: str
-    token: str
+    token: str = field(repr=False)
 
 
 @dataclass(frozen=True, slots=True)
