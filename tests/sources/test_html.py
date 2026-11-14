@@ -113,6 +113,21 @@ def test_encoding_refuses(raw: bytes, message: str, cause: type[BaseException] |
         assert isinstance(caught.value.__cause__, cause)
 
 
+@pytest.mark.parametrize(
+    ("raw", "encoding"),
+    [
+        pytest.param(b'<meta charset="ascii"><p>caf\xe9</p>', "ascii", id="ascii"),
+        pytest.param(b'<meta charset="windows-1252"><p>\x81</p>', "charmap", id="cp1252-hole"),
+    ],
+)
+def test_encoding_refusal_chains_the_declared_codecs_error(raw: bytes, encoding: str) -> None:
+    with pytest.raises(SourceUnreadable) as caught:
+        _encoding("f.html", raw)
+    cause = caught.value.__cause__
+    assert isinstance(cause, UnicodeDecodeError)
+    assert cause.encoding == encoding
+
+
 def test_encoding_refusal_shows_a_long_name_cut() -> None:
     with pytest.raises(SourceUnreadable) as caught:
         _encoding("a" * 130 + ".html", b"<p>caf\xe9</p>")
