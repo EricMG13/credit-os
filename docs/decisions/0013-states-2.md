@@ -1,7 +1,8 @@
 # 0013 States 2: how confidence, a run's end and a module's run are shown
 
-Date: 2026-11-14. Status: **draft for the owner's review; nothing here is decided**. Drafted by the
-design track's states 2 task. To be decided by: owner.
+Date: 2026-11-14. Status: **ruled by the coordinators under the owner's instruction of 2026-11-14
+("resolve all decisions"); the owner may change any row** (see Rulings). Drafted by the design
+track's states 2 task as a draft for the owner's review.
 
 ## Why
 
@@ -40,6 +41,33 @@ States 2: Topic 1 (questions 1 to 7), Topic 2 (8 to 13), Topic 3 (14 and 15).
 | 13 | Is a run refused at launch a "Rejected" run? Decision 0006 ruling 7 defines "Rejected" as a document changed after approval; the 3A plan refuses a run over 200 files or 400 MiB (D16) without saying whether that is the store's `rejected` or never a run. For the back-end coordinator | If a `rejected` run: its fixed sentence joins the reason list and "Rejected" keeps its cross. Or a message on the run start page | The first, if it is a `rejected` run | One more sentence, or a start-page message instead |
 | 14 | A module that ran restricted (only an optional producer missing) | M-A: state stays "Delivered" or "Delivered with gaps", a neutral label "Reduced inputs" and a sentence naming what it ran without. M-B: a fifth module state, no shape free. M-C: one sentence in Limitations, no mark. Word: "Reduced inputs", "Limited inputs" or another; "Restricted" stays the back end's word, beside it on Evidence | M-A with "Reduced inputs" | M-B: a new shape is needed first. M-C: the Overview list shows nothing |
 | 15 | A module not run because a module it needs was not delivered | N-A: "Not assessable", "it needs Capital structure, which was not delivered in this run." N-B: "Not run", same reason | N-A: the 3A plan calls it a blocked dependant, the design system draws a blocked module as "Not assessable" with a sentence, and under G1 the run goes on, so a live "Not run" would sit with "Queued", which shares its ring | N-B: the rule that "Not run" exists only in an ended run changes, or the live case needs a third word |
+
+## Rulings
+
+Made on 2026-11-14 under the owner's instruction to the coordinators to resolve all decisions. No
+reader has seen the mocks or the words; the owner may change any row, at the cost named in the
+table above. Where a row of the table and this section differ (questions 10, 11 and 13), this
+section stands. #303, which the text above calls open, has since closed.
+
+- Questions 1 to 9, 12, 14 and 15 (roadmap coordinator): the recommended option of each row. In
+  short: C-A; the star mark and one kit scale for Signal strength and confidence; no status words
+  on findings pages, the ceiling sentence instead; "finding" kept; a Not assessable module's score
+  on Evidence only; never delivered with a refusal, and the fixed sentence for a retained
+  earlier-format run; no run-level confidence; R-A with the proposed labels; no figure when spend
+  is not known; M-A with "Reduced inputs"; N-A.
+- Question 10 (back-end coordinator): the status is `finished` and the end reason `completed`;
+  delivery reads the status.
+- Question 11 (back-end coordinator): the store has no lock and no heartbeat, so nothing marks a
+  dead run. A run is `stopped` with end reason `interrupted` only when the operator takes it over
+  (resume or stop), which fences the earlier writer. "Interrupted" is drawn only from that stored
+  state; a `running` run may show its last activity time and no judgement.
+- Question 13 (back-end coordinator): a launch refusal is never a run: a message on the start page
+  with the count and the limit, and no row. `rejected` keeps decision 0006's meaning.
+- Question 16, raised by question 11 (roadmap coordinator): taking over a run needs a confirm
+  step, because taking over a run whose process is alive stops that process's writes. An alert
+  dialog naming the run and saying so; drawn in the build's first task.
+
+The build follows the phase sweep's second wave, since both write the library and model folders.
 
 ## What a ruling would change
 

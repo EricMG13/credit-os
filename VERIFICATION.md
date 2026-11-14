@@ -3,6 +3,142 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: 1B units, 1D HTML pages, Signal's ingest
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #320 | 1D PR 2b-3 | `60b07861` | `b0bdf99` | `sources.html_pages`, the declared-charset table |
+| #327 | 1B PR 6a | `449cc187` | `5d2187e` | unit and currency checks on the base operands |
+| #328 | 1B PR 6a2 | `87c67985` | `32cd149` | the unit forms; billions a third unit |
+| #329 | 1B PR 6a3 | `eefe53b1` | `aa6ee00` | prefix marks, the excuse rule, the ambiguous mark |
+| #333 | Signal S-8, part 1 | `a4ad55d6` | `1ca596e` | `signal/ingest.py`: one pass over the due sources |
+| #334 | Signal S-8, part 2 | `0fa8080e` | `300d403` | the ingest rules' tests |
+
+**1B units (the 6a set).** One sequence. `check_base` now refuses a named row printed in a unit
+other than the block's, and `check_currency` a foundation that nowhere names the block's currency
+(`model/foundation.py`; two new refusal kinds). Rulings R45 to R52: the refusal names the sign
+rule; billions is a third unit; only the letter codes take the no-letter-before rule; marks before
+a code (`kEUR`, `TEUR`, `MUSD`, `m EUR`), `000` after a code, `(000)` and `mm` are read; only the
+operand's header, the first header cell and a `Unit` or `Units` column excuse; `MUS$` and `M$` are
+ambiguous and refused. Whole-branch review over the set (1B worktree,
+`pr6a3/branch-set-review.md`): "Verdict: pass", "High 0, Medium 0, Low 3, Info 5". Mutation count
+of record for the set, at `b8564a49` with `src` unchanged to the head: 420 of 420; hand mutants 98
+of 98. Ledger: `1B-6a batch agent=mx-feature fix-rounds=0 gates-first-pass=y`;
+`1B-6a2 agent=mx-feature fix-rounds=1 gates-first-pass=y`;
+`1B-6a3 agent=mx-feature fix-rounds=1 gates-first-pass=y`; `R52 agent=mx-scaffold fix-rounds=0
+gates-first-pass=y`.
+
+**Found by that review, predating the set:** the unit check reads only a row's own group. On the
+retained public CP-1, 323 of 375 number cells sit in a group that names no unit, so a unit stated
+above a table is not read and a wrong-unit row can be accepted at 1000x. Nothing calls the check
+yet. Ruled R57: `handoff/` gives each table its caption line and the check reads it, as PR 6a4
+before PR 7.
+
+**1D HTML pages (#320).** `html_pages` returns the visible text in pages or a refusal. A declared
+charset is matched against a table of ten labels and refused if absent; the codec search is never
+reached with the file's text. A zero byte and a character reference of 32 or more digits are
+refused. Twenty-seven spellings the codec search used to accept are now refused: `1252`, `646`,
+`8859`, `ansi-x3-4-1968`, `ansi-x3.4-1968`, `ansi-x3.4-1986`, `cp367`, `cp65001`, `cp819`,
+`csascii`, `csisolatin1`, `ibm367`, `ibm819`, `iso-646.irv-1991`, `iso-8859-1-1987`,
+`iso-8859-1:1987`, `iso-ir-100`, `iso-ir-6`, `iso646-us`, `iso8859`, `l1`, `latin`, `u8`, `us`,
+`utf`, `utf8-ucs2`, `utf8-ucs4`. Reviews (1D worktree): security review "PASS. High 0, Medium 0,
+Low 3"; whole-branch review "PASS (the skill's verdict: CLEAN). High 0, Medium 0, Low 3, Info 3";
+sweep 0 defects. Mutation, count of record for `sources/`: 1,532 mutants, 1,420 killed, 10 at the
+time limit, 102 survived (`html.py` 70, of which 67 equivalent and 3 killed in a second phase);
+one load reading of 49.78 inside the run, every time-limit mutant and the 2 new survivors rerun
+alone. Found, predating: a charset name cut at byte 4,096 is read as its prefix (`iso-8859-15` as
+`iso-8859-1`, the euro sign as U+00A4); PR 2b-4 refuses a name that ends at the limit.
+
+**Signal's ingest (S-8).** One pass handles one source at a time, starts no thread of its own and
+makes no model call. A refused fetch or an unreadable feed is a failed check with its reason; a
+refusal by the lookup cap records nothing and stops the pass; any other exception is logged and
+recorded by type only, a documented fail-open so one source cannot starve the rest;
+`StoreUnusable` is never caught. Each entry is stored, matched and posted in one transaction.
+Verdict lines (shared notes, `s8/`): task review "Spec: PASS", "Quality: PASS"; security review
+"PASS. No High or Medium introduced. One Medium predates"; whole-branch review "PASS. No High, no
+Medium introduced by this change. 3 Low, 4 Info. Status: complete." No counted fix round. Ledger:
+`S-8 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`.
+
+**Signal's mutation counts of record,** reruns in a slot with one worker (ruled accepted, each
+with its limit): threads 166 of 173 at `3f89b9a7`, load 8.3 to 12.3, seven survivors rated
+equivalent or precedence-only; ingest 74 of 81 at `bf48371f`, load 10.9 to 8.9, whose seven
+survivors have tests added later that no run of record shows caught; feed view 91 of 91 and 19 of
+22, load 8.7 to 15.7, in probes with no forced-failure or known-killed control.
+
+**Rulings on Signal's predating items.** Fixed in their own PRs: the feed view's cost, a cap of
+2,000 new stories per source per pass with the rest counted in the check's note, the store's read
+of every same-title story under the write lock. Kept and recorded: writes for an invented name
+(decision 0009, no accounts), a locked database ending one pass, `new_count` ignoring filters, two
+processes on one root, the service's header and descriptor limits.
+
+**Machine incident, 22:41 UTC, no panic.** A reviewer's loopback probe opened thousands of
+connections in a row and exhausted the ephemeral ports (`Errno 49`) for about a minute. Rule 7 in
+the shared slots file: at most 1,000 connections per run, `SO_LINGER (1, 0)` or one reused
+connection, stop at the first `Errno 49`.
+
+**1D PR 3b-2, a rule broken and redone.** The first fix commit on #335 was the Opus planner's
+prototype copied by the implementer; the owner's rule is that Opus agents write no code. Ruled:
+the source change is reverted by a commit, a fresh `mx-feature` reimplements from the written plan
+without reading the prototype, and every measurement is retaken. Not merged yet.
+
+Not verified: 1D's ledger line for PR 2b-3 was not in its ready message; that the 1B count at
+`b8564a49` holds at the head rests on `src` being unchanged, read in the diff, not a rerun; the
+ingest survivors' new tests under a run of record; Windows other than through CI.
+
+## 2026-11-14 Design track: slice contract 2 (absent and pending states), states 2 rulings
+
+**Merged**, each with gates on Ubuntu and Windows and the review job green on its head, none
+cancelled, and its source diff read by the coordinator (the tests were not read line by line).
+The library and model folders on `main` equal the two heads.
+
+| PR | Head, merge | Content |
+| :--- | :--- | :--- |
+| #330 library | `0765705`, `4bae1e4` | `Overview.sides` and `changeView` may be null and are then not drawn; `Changes` gains `pending` (its own page state; never the issuer's only run; no history entry links it); an empty `none` or `pending` title or text is refused; a bad percent escape in a delivered address is refused instead of thrown (774 lines) |
+| #331 model | `8d93e91`, `5eea548` | Portfolio fit `limits` and `scatter` may each be `{ gap }`, drawn as the gap panel; the reader holds a bad run as unreadable and reads the others (the index lists or counts it, its pages say why); `published.href` is a relative path inside the library folder, `checkFigure.href` that or a `#/` address (800 lines, at the cap) |
+
+The web run on the merged tree (`5eea548`, run 43651469961) had not finished when this was
+written.
+
+**Reviews.** `mx-precise` per task: six tasks passed, L2 after one fix round (Medium: the new
+fixture scene was partly copied from another issuer). Sweep discovery (`mx-autonomous`,
+changed-update): 16 rows, none Medium or above, nothing repaired. Whole-branch (`mx-architect`,
+adversarial): pass, High 0, Medium 0, Low 5, Info 5; the Lows were closed in each PR's last commit
+against the reviewer's probes with no review round. Reports:
+`.superpowers/sdd/2026-11-14-slice-contract-2/` (`reviews/`, `sweep/register.md`).
+
+**Ledger** (every task `agent=mx-feature`; fix rounds, gates first pass). L1: 0, n. L2: 1, n.
+L3: 0, y. LA: 0, y. LB: 0, y. M1: 0, n. M2: 0, n. M3: 0, n/a. MB: 0, y. MC: 0, y. `n` is a first
+run that failed on format, lint or a load timeout and then passed.
+
+**Gates and live validation.** `npm --prefix web run gates` exit 0 at both heads (the library's
+at load 180; the file gate was rerun four times on its 60 s load timeout at `e3882db`). Headed
+Chrome from disk and the app's browser pane, every new state at 1440 and 1024: one `h1`, no
+horizontal scroll, clean console, visible focus; library built from `9ec67d6`, model from
+`4ce1eb6` with a scratch data file. The walk was not repeated for the last commit of each PR.
+
+**Rulings.** Owner: "Keep 'For and against' optional" (a departure from the Overview mock). Under
+the owner's instruction of 2026-11-14 to the coordinators to resolve all decisions, the roadmap
+coordinator ruled: the empty-title refusal and three address test rows go in #330; the defect that
+predates the step (`%ff` threw a `URIError` through `readSlice`) was fixed test first in #330; no
+model fixture scene for the new states; and the recommended option of every owner question of
+decision 0013 (states 2), now recorded there with the back-end coordinator's three. Other rulings
+of that date (sample links, Show sources, chart tick size, notices for copied code, the phase
+sweep's questions) are applied by the phase sweep and recorded with it.
+
+**To the phase sweep, wave 2:** the address rule duplicated across the two groups; the model gap
+drawn three ways; "could not be read" typed in three places and matched by the file gate; the run
+address template written three times; an unreachable rethrow in the model reader; the library's
+Forecast address for an id holding `/` or `%` (3B contract: ids are slugs; the store's grammar
+`[A-Za-z0-9._-]{1,128}` fits); an empty `overview.metrics` drawing an empty region; sample
+Forecast links to model runs the fixture lacks; `%00` accepted by the address rule.
+
+Not verified: the open-from-disk gate draws none of the new model states (page tests and the
+live walk only); Edge and other widths; mutation testing beyond hand-written mutants; whether
+delivery will send these states; the states 2 rulings have not been seen by a reader.
+
 ## 2026-11-14 Roadmap back end: Signal's threads, the run store's status writes; the owner's instruction
 
 **The owner's instruction, about 22:20 UTC, given in the lead coordinator's session and read
