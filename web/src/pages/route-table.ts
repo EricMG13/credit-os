@@ -5,9 +5,18 @@ import { readSlice as readModel, routes as modelRoutes } from "./model/routes";
 import { readSlice as readRun, routes as runRoutes } from "./run/routes";
 import { readSlice as readSignal, routes as signalRoutes } from "./signal/routes";
 
-/** `path` is a pattern with `:name` segments, for example `/library/:issuer/:run/overview`. */
+/**
+ * `path` is a pattern with `:name` segments, for example `/library/:issuer/:run/overview`.
+ * `home` is a concrete address that `path` matches; the group's bare address (`#/signal`, or `#/`
+ * for the library) draws the group's first route with a home as if it were that address, for
+ * example path `/signal/:space/feed/:tab` with home `/signal/main/feed/for-you`.
+ * `layout: "bleed"` draws the page edge to edge with no App header and no padding on `main`;
+ * the page then draws its own header. Absent means the padded layout with the title as the h1.
+ */
 export type Route = {
   path: string;
+  home?: string;
+  layout?: "bleed";
   title: string;
   render: (params: Record<string, string>) => ReactElement;
 };
@@ -61,6 +70,23 @@ export function matchRoute(
     if (params !== null) return { route, params };
   }
   return null;
+}
+
+/** One message per route whose `home` has a `:` segment, is not matched to that route, or leaves its group. */
+export function homeProblems(routes: readonly Route[]): string[] {
+  const problems: string[] = [];
+  for (const route of routes) {
+    const home = route.home;
+    if (home === undefined) continue;
+    const group = route.path.split("/")[1] ?? "";
+    if (home.split("/").some((segment) => segment.startsWith(":")))
+      problems.push(`${route.path}: home ${home} has a : segment`);
+    else if (!home.startsWith(`/${group}/`))
+      problems.push(`${route.path}: home ${home} is outside /${group}/`);
+    else if (matchRoute(home, routes)?.route !== route)
+      problems.push(`${route.path}: home ${home} is not matched to this route`);
+  }
+  return problems;
 }
 
 export const routeTable: RouteTable = {

@@ -2,11 +2,12 @@
 // helpers open-from-disk.mjs passes in.
 import { cpSync } from "node:fs";
 import path from "node:path";
-import { declaredPaths, fillParams } from "./route-paths.mjs";
+import { declaredPaths, fillParams, groupDeclaresHome } from "./route-paths.mjs";
 import { GROUPS, readFixture, writeDataFile } from "./fixture-data.mjs";
 
 const pagesDir = path.resolve(import.meta.dirname, "..", "src", "pages");
 const NOT_FOUND = "Page not found";
+const NOT_BUILT = "Not built yet";
 const UNREADABLE = "This part of the library could not be read";
 
 function visitsFor(group) {
@@ -26,6 +27,11 @@ function visitsFor(group) {
         hash: `#${hash}`,
       });
     }
+  }
+  // A group that declares a home also owns its bare address, which must draw that page.
+  if (groupDeclaresHome(path.join(pagesDir, group))) {
+    const bare = group === "library" ? "/" : `/${group}`;
+    visits.push({ label: `bare address ${bare}`, hash: `#${bare}` });
   }
   return { visits, failures };
 }
@@ -49,7 +55,9 @@ export function checkRoutes({ browser, folder, work, dumpPage, problems }) {
   for (const { group, label, hash } of visits) {
     const { dom, log } = dumpPage(browser, copy, hash);
     const found = problems(log);
-    const present = ["<style", NOT_FOUND, UNREADABLE].filter((text) => dom.includes(text));
+    const present = ["<style", NOT_FOUND, NOT_BUILT, UNREADABLE].filter((text) =>
+      dom.includes(text),
+    );
     const rendered = dom.includes("<main");
     const ok = found.length === 0 && present.length === 0 && rendered;
     console.log(`${ok ? "PASS" : "FAIL"} route ${group} ${label}`);

@@ -51,8 +51,17 @@ function areaOf(routePath: string): SliceKey {
   return SLICE_KEYS.find((key) => key === first) ?? "library";
 }
 
+/** A group's bare address is its first route with a `home`, drawn as if that address were typed. */
+function bareHome(route: string, table: RouteTable): string | null {
+  const bare = route.endsWith("/") ? route.slice(0, -1) : route;
+  const group = bare === "" || bare === "/library" ? "library" : bare.slice(1);
+  if (!SLICE_KEYS.some((key) => key === group)) return null;
+  if (group !== "library" && bare !== `/${group}`) return null;
+  return table.routes.find((r) => areaOf(r.path) === group && r.home !== undefined)?.home ?? null;
+}
+
 function Page({ result, table, route }: { result: LoadResult; table: RouteTable; route: string }) {
-  const matched = matchRoute(route, table.routes);
+  const matched = matchRoute(bareHome(route, table) ?? route, table.routes);
   if (matched !== null && result.kind === "ok") {
     const area = areaOf(matched.route.path);
     const slice = table.readers[area](result.data[area]);
@@ -62,6 +71,15 @@ function Page({ result, table, route }: { result: LoadResult; table: RouteTable;
           <PageHeader title={matched.route.title} />
           <p className="mt-6 text-text-secondary">This part of the library could not be read</p>
           <p className="mt-2 text-text-secondary">{slice.reason}</p>
+        </Shell>
+      );
+    }
+    if (matched.route.layout === "bleed") {
+      return (
+        <Shell current={area} bleed>
+          <SourceContext.Provider value={result.data}>
+            {matched.route.render(matched.params)}
+          </SourceContext.Provider>
         </Shell>
       );
     }

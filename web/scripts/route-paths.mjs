@@ -13,6 +13,15 @@ export function pathsIn(source) {
   return [...withoutComments(source).matchAll(/\bpath:\s*"(\/[^"]*)"/g)].map((match) => match[1]);
 }
 
+/** True when a route object in the source declares `home: "/…"`; the group then has a bare address. */
+export function declaresHome(source) {
+  return /\bhome:\s*"\//.test(withoutComments(source));
+}
+
+export function groupDeclaresHome(groupDir) {
+  return declaresHome(readFileSync(path.join(groupDir, "routes.tsx"), "utf8"));
+}
+
 export function declaredPaths(groupDir) {
   return pathsIn(readFileSync(path.join(groupDir, "routes.tsx"), "utf8"));
 }

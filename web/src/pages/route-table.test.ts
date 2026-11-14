@@ -1,7 +1,7 @@
 import path from "node:path";
-import { declaredPaths, fillParams, pathsIn } from "../../scripts/route-paths.mjs";
+import { declaredPaths, declaresHome, fillParams, pathsIn } from "../../scripts/route-paths.mjs";
 import { SLICE_KEYS } from "../data";
-import { matchRoute, routeTable, type Route } from "./route-table";
+import { homeProblems, matchRoute, routeTable, type Route } from "./route-table";
 
 function route(pathPattern: string): Route {
   return { path: pathPattern, title: pathPattern, render: () => null as never };
@@ -61,6 +61,14 @@ describe("pathsIn", () => {
   });
 });
 
+describe("declaresHome", () => {
+  it("sees a home property and skips comments", () => {
+    expect(declaresHome('{ path: "/run/a", home: "/run/a", title: "A" }')).toBe(true);
+    expect(declaresHome('// home: "/run/a"\n{ path: "/run/a" }')).toBe(false);
+    expect(declaresHome("export const routes = [];")).toBe(false);
+  });
+});
+
 describe("fillParams", () => {
   it("replaces the whole segment after a colon, as matchRoute reads it", () => {
     const pattern = "/library/:issuer-id/:run_2/overview";
@@ -94,4 +102,25 @@ describe("the real page groups", () => {
       expect(routeTable.readers[group](undefined)).toEqual({ kind: "absent" });
     },
   );
+});
+
+describe("declared homes", () => {
+  const sig = "/signal/:space/feed/:tab";
+  const withHome = (path: string, home: string) => ({ ...route(path), home });
+
+  it.each([
+    ["a concrete address its path matches", withHome(sig, "/signal/main/feed/for-you"), 0],
+    ["a route with no home", route(sig), 0],
+    ["a home with a : segment", withHome(sig, "/signal/:space/feed/for-you"), 1],
+    ["a home its path does not match", withHome(sig, "/signal/main/other"), 1],
+    ["a home another route matches first", withHome("/signal/b/c", "/signal/b/c"), 1],
+    ["a home outside the group", withHome("/signal/x", "/model/x"), 1],
+  ])("%s: %i problem(s)", (_, candidate, count) => {
+    const earlier = candidate.path === "/signal/b/c" ? [route("/signal/:p/c")] : [];
+    expect(homeProblems([...earlier, candidate])).toHaveLength(count);
+  });
+
+  it("finds no problem in the real route table", () => {
+    expect(homeProblems(routeTable.routes)).toEqual([]);
+  });
 });
