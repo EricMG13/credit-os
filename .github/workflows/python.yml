@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# A newer push to the same pull request cancels its older run. Each push to main has its own
+# group, so a run on main is never cancelled and never replaced while it waits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
