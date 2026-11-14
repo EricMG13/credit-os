@@ -181,6 +181,27 @@ def test_a_pin_size_sqlite_cannot_hold_is_refused_before_anything_happens(tmp_pa
     _nothing_written(tmp_path)
 
 
+@pytest.mark.parametrize(
+    ("override", "field"),
+    [(o, f) for _, o, f in key.FORGED_PINS] + [(None, "name")],
+    ids=[label for label, _, _ in key.FORGED_PINS] + ["renamed copy"],
+)
+def test_a_pin_the_model_never_checked_is_refused_before_begin(
+    tmp_path: Path, override: dict[str, object] | None, field: str
+) -> None:
+    valid = _pins()[1]
+    if override is None:
+        forged = valid.model_copy(update={"name": key.RENAMED_PIN_NAME})
+    else:
+        forged = SourcePin.model_construct(**{**valid.model_dump(), **override})
+    clock, calls = _counting_clock()
+    with open_store(tmp_path, clock=clock) as opened, pytest.raises(StoreRefused) as caught:
+        opened.create_run(**_args(pins=(_pins()[0], forged)))
+    assert str(caught.value) == key.FORGED_PIN_MESSAGE.format(field)
+    assert calls == []
+    _nothing_written(tmp_path)
+
+
 def test_a_failure_after_the_run_row_leaves_the_whole_database_unchanged(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

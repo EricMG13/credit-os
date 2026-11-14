@@ -76,8 +76,8 @@ def _update(db: sqlite3.Connection, columns: Row) -> None:
     db.execute(*_update_sql(columns))
 
 
-def _snapshot(db: sqlite3.Connection) -> list[list[tuple[Any, ...]]]:
-    return [db.execute(f"SELECT * FROM {t} ORDER BY rowid").fetchall() for t in TABLES]
+def _snapshot(db: sqlite3.Connection) -> list[set[tuple[Any, ...]]]:
+    return [set(db.execute(f"SELECT * FROM {t}").fetchall()) for t in TABLES]
 
 
 def _refused(
@@ -116,7 +116,7 @@ def test_accepted_row(raw: sqlite3.Connection, label: str, table: str, columns: 
     after = _snapshot(raw)
     index = TABLES.index(table)
     assert len(after[index]) == len(before[index]) + 1
-    assert after[index][:-1] == before[index]
+    assert before[index] < after[index]
 
 
 @pytest.mark.parametrize(("label", "table", "columns"), INSERTS, ids=[r[0] for r in INSERTS])
@@ -234,7 +234,7 @@ def test_orphan_is_refused_without_foreign_keys(
 ) -> None:
     db = connect(foreign_keys=False)
     _refused(db, (sql, params), (message,))
-    assert _snapshot(db) == [[], [], []]
+    assert _snapshot(db) == [set(), set(), set()]
 
 
 def test_events_index_columns(raw: sqlite3.Connection) -> None:

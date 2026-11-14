@@ -4,6 +4,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
+import pytest
 import store_schema_key as key
 
 from credit_os.store import location, schema
@@ -69,3 +70,60 @@ def test_schema_matches_the_key(tmp_path: Path) -> None:
         ).fetchall()
         assert tuple(sorted(n for n, strict in tables if strict)) == key.STRICT_TABLES_AT_1
         assert all(strict for _, strict in tables)
+        without_rowid = raw_db.execute(
+            f"SELECT name FROM pragma_table_list WHERE schema = 'main' AND wr AND {SYSTEM} ORDER BY name"
+        ).fetchall()
+        assert tuple(n for (n,) in without_rowid) == key.WITHOUT_ROWID_TABLES_AT_1
+
+
+def _raw(foreign_keys: bool) -> sqlite3.Connection:
+    raw_db = sqlite3.connect(":memory:", autocommit=True)
+    raw_db.execute(f"PRAGMA foreign_keys = {'ON' if foreign_keys else 'OFF'}")
+    for statement in schema.MIGRATION_1:
+        raw_db.execute(statement)
+    for statement, values in key.SEED:
+        raw_db.execute(statement, values)
+    return raw_db
+
+
+def _rows(raw_db: sqlite3.Connection) -> list[set[tuple[Any, ...]]]:
+    return [
+        set(raw_db.execute(f"SELECT * FROM {table}").fetchall())
+        for table in ("events", "run_sources", "runs")
+    ]
+
+
+@pytest.mark.parametrize("foreign_keys", [True, False], ids=["fk-on", "fk-off"])
+@pytest.mark.parametrize(
+    ("statement", "values", "message"),
+    [(statement, values, message) for _, statement, values, message in key.ROWID_STATEMENTS],
+    ids=[label for label, _, _, _ in key.ROWID_STATEMENTS],
+)
+def test_no_statement_reaches_a_hidden_rowid(
+    statement: str, values: tuple[object, ...], message: str, foreign_keys: bool
+) -> None:
+    with closing(_raw(foreign_keys)) as raw_db:
+        before = _rows(raw_db)
+        with pytest.raises(sqlite3.OperationalError) as caught:
+            raw_db.execute(statement, values)
+        assert str(caught.value) == message
+        assert _rows(raw_db) == before
+
+
+@pytest.mark.parametrize("status", list(key.STATUS_UPDATES))
+def test_a_pin_is_added_only_while_its_run_is_created(status: str) -> None:
+    insert = "INSERT INTO run_sources(run_id, position, name, sha256, size_bytes, kind) VALUES (?, ?, ?, ?, ?, ?)"
+    with closing(_raw(True)) as raw_db:
+        for statement, values in key.STATUS_UPDATES[status]:
+            raw_db.execute(statement, values)
+        before = _rows(raw_db)
+        if status == "created":
+            raw_db.execute(insert, key.LATE_PIN)
+            after = _rows(raw_db)
+            assert after[1] > before[1] and len(after[1]) == len(before[1]) + 1
+            assert after[0] == before[0] and after[2] == before[2]
+        else:
+            with pytest.raises(sqlite3.IntegrityError) as caught:
+                raw_db.execute(insert, key.LATE_PIN)
+            assert str(caught.value) == key.LATE_PIN_MESSAGE
+            assert _rows(raw_db) == before

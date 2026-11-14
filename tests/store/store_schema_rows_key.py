@@ -235,7 +235,7 @@ START_FIXED_MESSAGE = "runs: the first start time never changes"
 # (AUTOINCREMENT), which a raw connection shows through `sqlite_sequence`.
 FIRST_SEQ = 1
 
-# Rows and statements added by ruling R28 (the PR 2a task reviews), against migration 1 version 3 (version 2 plus the re-review Lows).
+# Rows and statements added after the PR 2a task reviews (the ruling to adopt every fix), against migration 1 version 3 (version 2 plus the re-review Lows); they hold unchanged on version 4.
 
 _FIXED = "runs: identity, cap and request never change"
 _BAD_TIMES: tuple[tuple[str, object], ...] = (

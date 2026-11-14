@@ -49,6 +49,21 @@ def check_identifier(name: str, value: object) -> str:
     return value
 
 
+def _checked_pins(pins: object) -> tuple[SourcePin, ...]:
+    """A snapshot of `pins`, each revalidated by the source model; a pin it refuses is StoreRefused."""
+    if not isinstance(pins, tuple | list) or not all(isinstance(pin, SourcePin) for pin in pins):
+        raise StoreRefused("pins must be a tuple or list of SourcePin")
+    checked: list[SourcePin] = []
+    for position, pin in enumerate(tuple(pins)):
+        try:
+            checked.append(SourcePin.model_validate(pin))
+        except ValidationError as error:
+            raise StoreRefused(
+                f"pin {position} is refused by the source model: {_failed_fields(error)}"
+            ) from None
+    return tuple(checked)
+
+
 def check_new_run(
     *,
     run_id: object,
@@ -67,11 +82,10 @@ def check_new_run(
         raise StoreRefused("as_of must be a date or None")
     if type(request) is not bytes:
         raise StoreRefused("request must be bytes")
-    if not isinstance(pins, tuple | list) or not all(isinstance(pin, SourcePin) for pin in pins):
-        raise StoreRefused("pins must be a tuple or list of SourcePin")
-    if any(pin.size_bytes > _SQLITE_MAX_INTEGER for pin in pins):
+    checked_pins = _checked_pins(pins)
+    if any(pin.size_bytes > _SQLITE_MAX_INTEGER for pin in checked_pins):
         raise StoreRefused("pin size_bytes must be at most 9223372036854775807")
-    if len({pin.name for pin in pins}) != len(pins):
+    if len({pin.name for pin in checked_pins}) != len(checked_pins):
         raise StoreRefused("pin names must be distinct")
     cap_text = money_to_text(cap_usd) if isinstance(cap_usd, Decimal) else None
     if cap_text is None:
@@ -85,7 +99,7 @@ def check_new_run(
         cap_usd=cap_text,
         request=request,
         request_sha256=hashlib.sha256(request).hexdigest(),
-        pins=tuple(pins),
+        pins=checked_pins,
     )
 
 
