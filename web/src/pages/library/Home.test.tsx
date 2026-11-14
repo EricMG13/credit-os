@@ -3,6 +3,7 @@ import path from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { LibraryData } from "@/data";
 import { SourceContext } from "../source";
+import { appliedLabel } from "./parts/FilterBar";
 import { routes } from "./routes";
 
 type Json = Record<string, unknown>;
@@ -246,5 +247,47 @@ describe("Library home, other states", () => {
     ).toBeVisible();
     expect(screen.getByRole("link", { name: "Start a run" })).toHaveAttribute("href", "#/run");
     expect(screen.queryByRole("textbox", { name: "Search issuers" })).toBeNull();
+  });
+});
+
+describe("carried fixes from task 1", () => {
+  it("throws for a filter count with no delivered label, and returns the label otherwise", () => {
+    expect(appliedLabel(["none", "one"], 1)).toBe("one");
+    expect(() => appliedLabel(["none", "one"], 2)).toThrow(RangeError);
+  });
+
+  it("lists plain option text while the closed control keeps its prefix", () => {
+    renderHome(fixture.slice);
+    const trigger = screen.getByRole("button", { name: /Sector: All/ });
+    const select = trigger.closest("div")?.querySelector("select");
+    const options = Array.from(select?.options ?? []).map((o) => o.textContent);
+    // React Aria's native select leads with one blank placeholder option.
+    expect(options.slice(1)).toEqual([
+      "All",
+      "Aerospace components",
+      "Cable and broadband",
+      "Outpatient clinics",
+      "Packaged food",
+      "Rigid packaging",
+    ]);
+    pick(/Sector: All/, "Packaged food");
+    expect(screen.getByRole("button", { name: /Sector: Packaged food/ })).toBeInTheDocument();
+  });
+
+  it("sizes the selects to their content and caps the search at its own width", () => {
+    renderHome(fixture.slice);
+    const search = screen.getByRole("textbox", { name: "Search issuers" });
+    expect(search.closest(".max-w-full")?.className).toMatch(/w-\[280px\]/);
+    for (const name of [/Sector: All/, /Pathway: All/, /State: All/]) {
+      const root = screen.getByRole("button", { name }).closest("div");
+      expect(root?.className).not.toMatch(/\bw-(60|72)\b/);
+    }
+  });
+
+  it("draws the loading card with the mock's pills and thin bar", () => {
+    renderHome(fixture.slice);
+    const loading = screen.getByLabelText("Loading issuer");
+    expect(loading.querySelectorAll(".rounded-full")).toHaveLength(3);
+    expect(loading.querySelectorAll(".h-2")).toHaveLength(1);
   });
 });
