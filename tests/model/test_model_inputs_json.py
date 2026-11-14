@@ -341,3 +341,26 @@ def _nested(levels: int) -> st.SearchStrategy[Any]:
 def test_round_trip(value: dict[str, Any]) -> None:
     for ascii_only in (True, False):
         assert_same(read_object(json.dumps(value, ensure_ascii=ascii_only)), value)
+
+
+def test_length_is_checked_before_nesting() -> None:
+    text = "[" * 65 + " " * (200_001 - 65)
+    assert len(text) == 200_001
+    refused_by(lambda: read_object(text), RefusalKind.JSON, "too_long", {})
+
+
+def test_length_counts_characters_not_bytes() -> None:
+    text = '{"a": "' + "é" * 199_991 + '"}'
+    assert len(text) == 200_000
+    assert len(text.encode("utf-8")) > 200_000
+    assert read_object(text) == {"a": "é" * 199_991}
+
+
+def test_only_a_json_decode_error_becomes_a_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
+    def planted(token: str) -> int:
+        raise ValueError("planted")
+
+    monkeypatch.setattr("credit_os.model.inputs_json._integer", planted)
+    with pytest.raises(ValueError, match="^planted$") as caught:
+        read_object('{"a": 1}')
+    assert not isinstance(caught.value, ForecastRefused)
