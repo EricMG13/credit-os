@@ -15,6 +15,8 @@ The contract (0012, with the controller's readings marked):
   percent-encoded (the percent itself up to twice), in NFC or NFD; any letter case (no case map
   that changes length). Each separator is any run of up to 16 of `/`, `\\`, `%2F`, `%5C`, the
   percent of the last two also encoded up to twice (reading: a separator is a character too).
+  Case applies before the encoding, and a character's case forms are every character
+  `re.IGNORECASE` holds the same letter, final sigma included (owner, 2026-11-14; PR 2h-2).
 - Not guaranteed, and pinned here as the net alone gives it: another user's home; 8.3 short names;
   a case map that changes length; a bare user name; a value split across strings; octal, HTML or
   base64; the text of an ok reply.
@@ -39,6 +41,11 @@ _PE, _PFE, _PD = (
     "/srv/people/%252Fj\u00f6rg",
 )
 _JP = "D:" + B * 2 + "Profiles" + B * 2  # D:\Profiles\ as JSON writes it
+_NIKOS = "D:\\Profiles\\\u039d\u0399\u039a\u039f\u03a3"  # ends in a capital sigma
+_ODOS = "/srv/\u039f\u0394\u039f\u03a3/\u0391\u0398\u0397\u039d\u0391"
+_ODOS_UTF8 = (
+    "\\xce\\xbf\\xce\\xb4\\xce\\xbf\\xcf\\x82/\\xce\\xb1\\xce\\xb8\\xce\\xb7\\xce\\xbd\\xce\\xb1"
+)
 
 # (exact values, known paths, text, expected message)
 MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
@@ -173,6 +180,19 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), (_PE,), "x D:\\Profiles\\%5c" + B * 3 + "u00e9lise y", "x <home> y"),
     ((), (_PE,), "x D:\\Profiles\\%5c" + B * 7 + "u00e9lise y", "x <home> y"),
     ((), (_PE,), "x D:\\Profiles\\%5c" + B * 8 + "u00e9lise y", "x <home> y"),
+    # --- PR 2h-2, whole-branch review L2 (owner: inside): every letter re.IGNORECASE holds the same
+    (
+        (),
+        (_NIKOS,),
+        "x d:" + B * 2 + "profiles" + B * 2 + "\\u03bd\\u03b9\\u03ba\\u03bf\\u03c2 y",
+        "x <home> y",
+    ),
+    ((), (_NIKOS,), "x d%3A%5CpROFILES%5C%CE%BD%CE%B9%CE%BA%CE%BF%CF%82 y", "x <home> y"),
+    ((), (_ODOS,), "x /srv/" + _ODOS_UTF8 + " y", "x <home> y"),
+    ((), ("D:\\Profiles\\Jens",), "x " + _JP + "Jen\\u017f y", "x <home> y"),
+    ((), ("D:\\Profiles\\Kai",), "x D%3A%5CProfiles%5C%E2%84%AAai y", "x <home> y"),
+    ((), ("D:\\Profiles\\Ilse",), "x " + _JP + "\\u0130lse y", "x <home> y"),
+    ((), ("D:\\Profiles\\Gro\u00df",), "x D%3A%5CProfiles%5CGRO%E1%BA%9E y", "x <home> y"),
     # --- not guaranteed: pinned as the net alone gives it
     (
         (),
@@ -250,6 +270,11 @@ EVENTS: tuple[tuple[tuple[str, ...], list[dict[str, object]], str, str], ...] = 
 
 # Time: message() on each text, known paths (H2, _RT), at most SECONDS each (inputs <= 10^5).
 SECONDS = 1.0
+# The first Redactor with known paths in a fresh interpreter (one subprocess), its case forms
+# included: tracemalloc peak, and profile events (sys.setprofile "call" and "c_call") as the time
+# row. 07453780 builds _RT_WIN in 72,955 events; a scan of every code point takes over 2 million.
+PEAK_BYTES = 16_000_000
+BUILD_EVENTS = 250_000
 TIMING: tuple[tuple[str, str], ...] = (
     ("backslashes", B * 100_000),
     ("escapes", "\\u00e9" * 16_000),
