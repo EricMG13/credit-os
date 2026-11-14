@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useSource } from "../source";
 import { SignalFrame, sceneHref, type SignalCurrent } from "./SignalFrame";
-import { FeedPage, type FeedEntry } from "./FeedPage";
+import { FeedPage, type FeedEntries, type FeedEntry } from "./FeedPage";
 import { PageTitle } from "./parts/PageTitle";
-import { readSlice, type SignalScene } from "./slice";
+import { readSlice, type SignalFeedView, type SignalScene } from "./slice";
 
 export type SignalPageKind = "feed" | "topic" | "group" | "thread" | "digest" | "settings";
 
@@ -53,13 +53,26 @@ function ordered(scene: SignalScene, ids: string[]): FeedEntry[] {
   });
 }
 
+/** All the entries a view supplies: both orders, the waiting ones and the older ones. */
+function entriesOf(scene: SignalScene, view: SignalFeedView): FeedEntries {
+  return {
+    top: ordered(scene, view.top),
+    latest: ordered(scene, view.latest),
+    waiting:
+      view.waiting === null
+        ? null
+        : { label: view.waiting.label, entries: ordered(scene, view.waiting.ids) },
+    older: ordered(scene, view.older),
+  };
+}
+
 /** The reader gives every channel topic an order; a missing one is a wiring fault, so it is loud. */
-function topicOrder(scene: SignalScene, id: string): string[] {
+function topicView(scene: SignalScene, id: string): SignalFeedView {
   const { topics } = scene.snapshot.feed;
   const order = Object.hasOwn(topics, id) ? topics[id] : undefined;
   if (order === undefined)
     throw new Error(`the slice reader let through topic "${id}" with no order`);
-  return order.top;
+  return order;
 }
 
 /** The route pattern guarantees these segments; a missing one is a wiring fault, so it is loud. */
@@ -106,8 +119,11 @@ function Body({
         current: { kind: "view", id },
         body: (
           <FeedPage
+            key={`${scene.id}/feed/${id}`}
             title={VIEWS[id]}
-            entries={ordered(scene, scene.snapshot.feed.views[id].top)}
+            freshness={scene.snapshot.feed.freshness}
+            entries={entriesOf(scene, scene.snapshot.feed.views[id])}
+            startOn={id === "latest" ? "latest" : "top"}
             writer={scene.snapshot.viewer.role === "writer"}
           />
         ),
@@ -129,8 +145,11 @@ function Body({
         current: { kind: "topic", id: topic.id },
         body: (
           <FeedPage
+            key={`${scene.id}/topic/${topic.id}`}
             title={topic.name}
-            entries={ordered(scene, topicOrder(scene, topic.id))}
+            freshness={scene.snapshot.feed.freshness}
+            entries={entriesOf(scene, topicView(scene, topic.id))}
+            startOn="top"
             writer={scene.snapshot.viewer.role === "writer"}
           />
         ),

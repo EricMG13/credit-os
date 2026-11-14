@@ -66,7 +66,7 @@ export type SignalDigestCard = {
  * ranks nothing. `waiting` is the delivered pill label ("4 new stories") with the entries it reveals;
  * `older` holds the entries Show older reveals (none: no button). `top` and `latest` hold the same ids; `waiting` and `older` hold others, and no id repeats (the reader checks).
  */
-type SignalFeedView = {
+export type SignalFeedView = {
   top: string[];
   latest: string[];
   waiting: { label: string; ids: string[] } | null;
