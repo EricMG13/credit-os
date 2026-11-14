@@ -11,7 +11,7 @@ and reads each into pages of text, for PDF, docx, HTML, xlsx, csv and plain text
 passing both review steps, opened one at a time.
 
 **This is sensitive code** (security: it parses untrusted files). Each reader task also gets
-an `mx-adversary` review, and changed files get mutation testing (`mutmut`), survivors killed
+an `mx-adversary` review, and changed files get mutation testing (`mutmut`, run with `uvx` and not added to `pyproject.toml`), survivors killed
 or justified in the PR.
 
 ## Files this step may touch

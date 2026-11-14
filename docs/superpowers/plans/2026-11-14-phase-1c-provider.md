@@ -13,7 +13,7 @@ passing both review steps, opened one at a time.
 
 **This is sensitive code** (money: the billed cost of a call; security: credentials and
 redaction). Each task touching cost, credentials or redaction also gets an `mx-adversary`
-review, and changed files get mutation testing (`mutmut`), survivors killed or justified in
+review, and changed files get mutation testing (`mutmut`, run with `uvx` and not added to `pyproject.toml`), survivors killed or justified in
 the PR.
 
 ## Files this step may touch
