@@ -111,9 +111,9 @@ class CopilotDriver:
         waits = (abort_timeout_s, close_read_timeout_s, disconnect_timeout_s)
         self._bounds = dict(zip(steps, (*waits, stop_timeout_s, force_stop_timeout_s)))
         self.config_id = config_id
-        runtime = environ.get("COPILOT_CLI_PATH", "")
-        known = [home, runtime] if runtime.strip() else [home]
+        known = [home, *(p for p in [environ.get("COPILOT_CLI_PATH", "")] if p.strip())]
         self._redactor = Redactor.from_environ(environ, known_paths=known)
+        self._text = self._redactor.message
         self._used: set[str] = set()
         self._kept: list[tuple[ClientLike, SessionLike]] = []
         self._closed = False
@@ -251,6 +251,3 @@ class CopilotDriver:
         if exc is not None:
             _log.warning("release step %s failed: %s", name, type(exc).__name__)
         return exc is None
-
-    def _text(self, value: str) -> str:
-        return self._redactor.message(value)
