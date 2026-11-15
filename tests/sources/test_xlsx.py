@@ -1279,3 +1279,30 @@ def test_control_formula_over_cap_by_1() -> None:
     raw = formula_book(SMILE * (1_048_576 - 22) + "\n")
     assert len(raw) < 1_048_576
     assert peak_of_read(raw)[0] == FORMULA_CAP_REFUSED
+
+
+def test_shared_cache_after_large() -> None:
+    # (ruling 43, R3) the byte floor of a shared string is its own bytes: string 2 reads after a
+    # 4-megabyte string 1
+    raw = book(
+        '<row r="1"><c r="A1" t="s"><f>1</f><v>2</v></c></row>',
+        strings="<si><t>a</t></si><si><t>" + SMILE * 1_048_570 + "</t></si><si><t>x</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    assert xlsx_pages("b.xlsx", raw).pages[0].text.endswith("\nA1='=1' cache=x")
+
+
+def test_inline_astral_early() -> None:
+    # (ruling 43, R1; ruling 36) an inline string of astral characters under the cell cap is
+    # refused before its repr is built, so the peak stays under 15 MiB
+    raw = book(
+        '<row r="1"><c r="A1" t="inlineStr"><is><t>'
+        + chr(0xE0001) * 1_048_570
+        + "</t></is></c></row>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    outcome, peak = peak_of_read(raw)
+    assert outcome == FORMULA_CAP_REFUSED
+    assert peak < 15 * 1024 * 1024
