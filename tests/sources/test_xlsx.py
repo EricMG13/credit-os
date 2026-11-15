@@ -570,6 +570,54 @@ TEXT_ROWS = [
         book('<row r="1048575"><c><v>1</v></c></row><row><c><v>2</v></c></row>'),
         one_page("A1048575=1\nA1048576=2"),
     ),
+    # (finding M-1) a hidden range whose max is negative hides nothing; a later cell still reads
+    (
+        "hidden-negative-max",
+        book(
+            '<row r="1"><c r="A1"><v>1</v></c><c r="C1"><v>3</v></c></row>',
+            before='<cols><col min="1" max="-2" hidden="1"/></cols>',
+        ),
+        one_page("A1=1 | C1=3"),
+    ),
+    # (finding M-1) a negative max does not move the flags an earlier range set
+    (
+        "hidden-negative-max-after-range",
+        book(
+            '<row r="1"><c r="A1"><v>1</v></c><c r="O1"><v>15</v></c><c r="CV1"><v>100</v></c></row>',
+            before=(
+                '<cols><col min="100" max="100" hidden="1"/>'
+                '<col min="1" max="-16300" hidden="1"/></cols>'
+            ),
+        ),
+        one_page("A1=1 | O1=15 | CV1=100 [hidden column]"),
+    ),
+    # (finding M-1, survivors hide_columns m20) column 1 hidden
+    (
+        "hidden-a",
+        book(
+            '<row r="1"><c r="A1"><v>1</v></c></row>',
+            before='<cols><col min="1" max="1" hidden="1"/></cols>',
+        ),
+        one_page("A1=1 [hidden column]"),
+    ),
+    # (finding M-1, survivors hide_columns m26, m27) two ranges, the higher first
+    (
+        "hidden-two-ranges",
+        book(
+            '<row r="1"><c r="B1"><v>2</v></c><c r="D1"><v>4</v></c><c r="E1"><v>5</v></c></row>',
+            before='<cols><col min="5" max="5" hidden="1"/><col min="2" max="2" hidden="1"/></cols>',
+        ),
+        one_page("B1=2 [hidden column] | D1=4 | E1=5 [hidden column]"),
+    ),
+    # (finding M-1, survivor hide_columns m37) an inverted range hides nothing
+    (
+        "hidden-inverted",
+        book(
+            '<row r="1"><c r="I1"><v>9</v></c></row>',
+            before='<cols><col min="9" max="8" hidden="1"/></cols>',
+        ),
+        one_page("I1=9"),
+    ),
 ]
 
 
@@ -935,6 +983,20 @@ def test_page_text_cap_applies_within_a_row(monkeypatch: pytest.MonkeyPatch) -> 
     raw = book(
         '<row><c t="s"><v>0</v></c><c t="s"><v>0</v></c></row>',
         strings="<si><t>" + "x" * 40_000 + "</t></si>",
+    )
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", raw)
+    assert str(caught.value) == "b.xlsx: page text longer than 65,536 characters"
+
+
+def test_page_text_cap_is_met_before_a_later_style_fault(monkeypatch: pytest.MonkeyPatch) -> None:
+    # (finding M-2) on the pre-fix reader this row is refused for the style index instead
+    # ("cell C1: a style index out of range"), so it fails for H1's cause
+    monkeypatch.setattr(xlsx, "MAX_TEXT_CHARACTERS", 65_536)
+    raw = book(
+        '<row><c t="s"><v>0</v></c><c t="s"><v>0</v></c><c s="5"><v>1</v></c></row>',
+        strings="<si><t>" + "x" * 40_000 + "</t></si>",
+        styles='<cellXfs count="1"><xf/></cellXfs>',
     )
     with pytest.raises(SourceUnreadable) as caught:
         xlsx_pages("b.xlsx", raw)
