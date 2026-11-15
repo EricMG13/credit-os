@@ -452,3 +452,30 @@ def test_a_search_page_is_driven_from_the_full_text_table_not_a_scan_of_stories(
 def test_a_view_error_is_a_value_error_and_not_a_store_error() -> None:
     assert issubclass(ViewError, ValueError)
     assert not issubclass(ViewError, StoreError)
+
+
+def test_a_text_after_is_quoted_in_the_error_and_other_types_are_named(
+    grid: sqlite3.Connection,
+) -> None:
+    text: Any = "x"
+    number: Any = 1.5
+    with pytest.raises(ViewError, match=r"^invalid after: 'x'$"):
+        new_count(grid, "ak", "latest", text)
+    with pytest.raises(ViewError, match=r"^invalid after: float$"):
+        new_count(grid, "ak", "latest", number)
+
+
+def test_the_quoted_input_ends_in_dots_only_when_it_was_cut_at_120_characters(
+    grid: sqlite3.Connection,
+) -> None:
+    with pytest.raises(ViewError) as whole:
+        feed(grid, "ak", "a" * 120)
+    assert str(whole.value) == "unknown view '" + "a" * 120 + "'"
+    with pytest.raises(ViewError) as cut:
+        feed(grid, "ak", "a" * 121)
+    assert str(cut.value) == "unknown view '" + "a" * 120 + "'..."
+
+
+def test_a_cursor_is_split_at_its_last_bar(grid: sqlite3.Connection) -> None:
+    with pytest.raises(ViewError, match=r"^malformed cursor time '2026-11-13T09:00:00\+00:00\|1'$"):
+        feed(grid, "ak", "latest", before=STAMP + "|1|2")
