@@ -63,7 +63,10 @@ def test_python_workflow_skips_front_end_only_changes() -> None:
         '    paths:\n      - "**"\n      - "!web/**"\n'
         '      - "web/package.json"\n      - "web/package-lock.json"\n'
     )
-    assert text.count(paths) == 2
+    assert text.count(paths) == 1
+    assert "  push:" not in text
+    assert '    - cron: "17 */3 * * *"' in text
+    assert "  workflow_dispatch:" in text
     assert "gitleaks" not in text
     assert "Changed lines at most 800" not in text
 
@@ -80,6 +83,29 @@ def test_review_workflow_runs_on_every_pull_request() -> None:
 def test_web_workflow_still_filters_on_web() -> None:
     text = Path(".github/workflows/web.yml").read_text(encoding="utf-8")
     assert '- "web/**"' in text
+    assert "  push:" not in text
+    assert '    - cron: "47 */3 * * *"' in text
+    assert "  workflow_dispatch:" in text
+
+
+WINDOWS_LEG = (
+    "        os: ${{ fromJSON((github.event_name == 'pull_request' && "
+    "github.event.pull_request.draft) && '[\"ubuntu-latest\"]' || "
+    '\'["ubuntu-latest","windows-latest"]\') }}\n'
+)
+PR_TYPES = "    types: [opened, synchronize, reopened, ready_for_review]\n"
+
+
+@pytest.mark.parametrize("name", ["python.yml", "web.yml"])
+def test_windows_leg_waits_for_a_ready_pull_request(name: str) -> None:
+    text = Path(".github/workflows", name).read_text(encoding="utf-8")
+    assert text.count("  pull_request:\n" + PR_TYPES + "    paths:\n") == 1
+    assert text.count(WINDOWS_LEG) == 1
+    assert "os: [ubuntu-latest, windows-latest]" not in text
+    assert (
+        "group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref"
+        in text
+    )
 
 
 def _marker(*parts: str) -> str:
