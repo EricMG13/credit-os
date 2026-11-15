@@ -1,6 +1,9 @@
 """`Redactor.message` tests, compared with the controller's answer key (provider_message_key)."""
 
+import subprocess
+import sys
 import time
+from pathlib import Path
 
 import provider_message_key as key
 import pytest
@@ -152,3 +155,37 @@ def test_message_masks_what_either_pass_masks(
         assert name not in out
     if keyed and secret not in Redactor().text(text):
         assert secret not in out
+
+
+_BUILD_PROBE = """
+import sys, tracemalloc
+sys.path.insert(0, sys.argv[1])
+import provider_message_key as key
+from credit_os.provider.redact import Redactor
+
+events = 0
+def counter(frame, event, arg):
+    global events
+    if event in ("call", "c_call"):
+        events += 1
+
+tracemalloc.start()
+sys.setprofile(counter)
+Redactor(known_paths=(key._RT_WIN,))
+sys.setprofile(None)
+print(tracemalloc.get_traced_memory()[1], events)
+"""
+
+
+def test_the_first_build_with_known_paths_stays_within_memory_and_event_bounds() -> None:
+    """One subprocess, one build: its case forms come from no per-code-point table."""
+    here = str(Path(__file__).parent)
+    done = subprocess.run(
+        [sys.executable, "-c", _BUILD_PROBE, here],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    peak, events = (int(n) for n in done.stdout.split())
+    assert peak <= key.PEAK_BYTES
+    assert events <= key.BUILD_EVENTS
