@@ -489,6 +489,13 @@ yes by the roadmap coordinator, not yet built):
 - R22 (PR 3): display names are the predecessor's `MODULE_NAMES` at `8e3954a`, character for
   character. The web fixture's names differ for CP-1A, CP-1 and CP-2E and it holds two codes that
   do not exist; it is sample data and follows in slice contract 3.
+- R23 (PR 5): the wording file's entries for Home, History, Changes and Overview as the 3B
+  controller proposed (W0 to W12): digits, not number words; "latest report"; history text from
+  counts and state words only; a card note only for a newer run in progress; no state word for a
+  stopped run with unknown spend, a charge above its hold or an operator stop, nor for
+  `failed`/`provider_raised`. R23a: the history `empty` sentence adds the next action ("Start a new
+  run to write the first report."). Later PRs add their own entries. Every sentence is one JSON
+  entry the owner can change; PR 5's body lists them.
 
 ## Not verified
 

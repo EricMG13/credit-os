@@ -37,7 +37,11 @@ Asked whether to adopt its recommendation, the owner answered "Adopt, rework #18
 5. **What is not guaranteed**, and is stated wherever the guarantee is: another user's home
    (the net, best effort); Windows 8.3 short names; a case mapping that changes length (`ß`
    to `SS`); a bare user name (masking it would rewrite ordinary words); a value split across
-   strings; other encodings (octal, HTML references, base64); the text of an `ok` reply.
+   strings; other encodings (octal, HTML references, base64); the text of an `ok` reply; U+0345
+   (ypogegrammeni) composing under NFC after alpha, eta or omega; and (coordinator ruling 26,
+   2026-11-15) a known name given in NFD that ends in a combining mark may leave that one mark
+   visible after the mask, in each encoding and for the last two folders. No letter of the name
+   is left.
 6. **Severity.** A miss inside the guarantee is a defect. A miss outside it is Info and opens
    no fix round.
 7. **Shown surfaces.** A surface an analyst sees may carry only the failure's class and a

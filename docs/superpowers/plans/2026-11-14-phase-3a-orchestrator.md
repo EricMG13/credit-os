@@ -421,3 +421,13 @@ The coordinator's. The first four and the last restate or clarify merged store (
   PR 5 takes the list as a required argument; PRs 6b, 7c and 8 wait for the column.
 - D1: CP-1 is keyed `scored` True, from `docs/legacy/methodology-updates.md` row 1 (read at the
   predecessor commit that file names); every other catalogue fact is read at `8e3954a`.
+- D24, departure: PR 9a is two PRs. 9a-1 ports the loader's guards (UTF-8, duplicate keys, JSON
+  constants, depth, line separators, schema id), the whole shape as frozen strict models, and
+  `amount` ("" is missing, never zero), reviewed by `mx-adversary` (a file from disk). 9a-2 ports
+  the value rules and `ASSUMPTION_LIMITS` inside the same `load_context`. The context is sent
+  whole to every module as a source, so the rules stay in 3A and are not left to 5C. 9b needs 9a-1;
+  PR 7c needs 9a-2.
+- D1 (PR 1, merged as #347): no PR passes its own `catalogue=` table to `plan`, `producers` or
+  `edge_rule` outside tests until the coordinator rules on an optional producer missing from such a
+  table. The first of 9b, 8 or 11 to serialise `producers()` builds it in catalogue order. The
+  PR 1 key was read at `8e3954a` (the plan's key row names `9d040f8`; the facts are the same).
