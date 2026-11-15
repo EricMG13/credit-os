@@ -251,6 +251,17 @@ MESSAGE += tuple(
     if (i, m) != ("i", "\u0307")
 )
 
+# 2h-2 round 3 (12 rows): a known name in NFD, its I or i under a mark of a lower class than U+0307;
+# the text writes the letter as \u0130, whose U+0307 moves behind that mark (NFD) or stays after the
+# letter and mark composed (NFC). Every row masks whole.
+_LOW_MARKS = {"\u0328": "\u012e", "\u0330": "\u1e2c", "\u0323": "\u1eca"}
+MESSAGE += tuple(
+    ((), ("D:\\Profiles\\ab" + i + m + "cd",), "x D:\\Profiles\\ab" + t + "cd y", "x <home> y")
+    for m, composed in _LOW_MARKS.items()
+    for i in ("I", "i")
+    for t in ("I" + m + "\u0307", composed + "\u0307")
+)
+
 # Known paths with no folder name: Redactor(known_paths=(p,)) raises ValueError.
 REFUSED: tuple[str, ...] = (
     "",
