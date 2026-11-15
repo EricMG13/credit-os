@@ -1,0 +1,462 @@
+"""Answer key for 1B PR 6b (facility terms printed, facility totals against base debt), by the controller.
+
+Every figure, name and text is invented. Rows hold inputs only, as in `make_pr5.py`; this script
+loads `make_pr6a.py` (and through it `make_pr5.py`) for the cell, unit and currency steps and the
+foundation's text. Worked here, in `fractions.Fraction`: whether each stated balance and rate
+term is printed in that text, the balances against 1.25 times base debt, the running totals of
+the three-year schedule (each year repays a facility's amortisation, at most what is left), a
+case `debt_repayment` beside facilities, and each outcome in the order base, facilities,
+currency. Run this file to write `pr6b.json` next to it.
+"""
+
+import importlib.util
+import json
+import re
+from fractions import Fraction
+from pathlib import Path
+from typing import Any
+
+HERE = Path(__file__).resolve().parent
+SPEC = importlib.util.spec_from_file_location("make_pr6a", HERE / "make_pr6a.py")
+assert SPEC is not None and SPEC.loader is not None
+PR6A: Any = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PR6A)
+PR5: Any = PR6A.PR5
+
+MESSAGES = {
+    "balance": "facility {name} balance {balance} is not printed in CP-1",
+    "rate": "facility {name} {field} {value}% is not printed in CP-1",
+    "balances": "facility balances total {total}, more than 1.25 times base debt {debt}{divided}; "
+    "check the unit",
+    "schedule": "scheduled repayments through forecast year {year} total {total}, more than base "
+    "debt {debt}{divided}",
+    "case": "{name} states debt_repayment, which is not used when facilities are stated",
+}
+RATES = ["fixed_rate_pct", "spread_pct", "floor_pct"]
+Doc = dict[str, Any]
+
+
+def text(value: Fraction) -> str:
+    """A terminating fraction as plain decimal text, no trailing zeros, zero as 0."""
+    places = 0
+    while (value * 10**places).denominator != 1:
+        places += 1
+    digits = str(abs(value.numerator * 10**places // value.denominator)).rjust(places + 1, "0")
+    whole, tail = digits[: len(digits) - places], digits[len(digits) - places :].rstrip("0")
+    return ("-" if value < 0 else "") + whole + (f".{tail}" if tail else "")
+
+
+def printed(lines: list[str], amount: str) -> bool:
+    whole, dot, fraction = amount.lstrip("-").partition(".")
+    forms = {f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}"}
+    pattern = "|".join(rf"(?<![0-9.,]){re.escape(form)}(?![0-9]|[.,][0-9])" for form in forms)
+    return any(re.search(pattern, line) for line in lines)
+
+
+def printed_percent(lines: list[str], value: str) -> bool:
+    return any(re.search(rf"(?<![0-9.,]){re.escape(value)} ?%", line) for line in lines)
+
+
+def millions(amount: str, scale: int) -> Fraction:
+    return Fraction(amount) / scale
+
+
+def facility_problem(block: Doc, lines: list[str]) -> list[str] | None:
+    facilities, scale = block["facilities"], block["scale"]
+    for number, facility in enumerate(facilities, 1):
+        name, subject = PR5.echo(facility["name"]), f"facility {number}"
+        if not printed(lines, facility["balance"]):
+            message = MESSAGES["balance"].format(name=name, balance=facility["balance"])
+            return ["facility", subject, message]
+        for field in (field for field in RATES if facility[field] is not None):
+            if not printed_percent(lines, facility[field]):
+                message = MESSAGES["rate"].format(name=name, field=field, value=facility[field])
+                return ["facility", subject, message]
+    debt_text = block["base"]["debt"]["amount"]
+    if debt_text is not None:
+        debt = millions(debt_text, scale)
+        divided = (
+            f", in {block['currency']} millions after dividing by scale 1000"
+            if scale == 1000
+            else ""
+        )
+        balances = sum((millions(f["balance"], scale) for f in facilities), Fraction(0))
+        if balances > Fraction(5, 4) * debt:
+            message = MESSAGES["balances"].format(
+                total=text(balances), debt=text(debt), divided=divided
+            )
+            return ["facility", "facilities", message]
+        left = [millions(f["balance"], scale) for f in facilities]
+        cut = [
+            Fraction(0)
+            if f["annual_amortisation"] is None
+            else millions(f["annual_amortisation"], scale)
+            for f in facilities
+        ]
+        running = Fraction(0)
+        for year in (1, 2, 3):
+            for index, amortisation in enumerate(cut):
+                repaid = min(amortisation, left[index])
+                left[index] -= repaid
+                running += repaid
+            if running > debt:
+                message = MESSAGES["schedule"].format(
+                    year=year, total=text(running), debt=text(debt), divided=divided
+                )
+                return ["repayment", "facilities", message]
+    for name in ("upside_drivers", "downside_drivers"):
+        case = block[name]
+        if case is not None and case.get("debt_repayment") is not None:
+            return ["facility", name, MESSAGES["case"].format(name=name)]
+    return None
+
+
+def outcome(row: Doc) -> list[str] | None:
+    """The 6a outcome with the facility step between the base step and the currency step."""
+    foundation: str = row.get("foundation", "foundation.md")
+    source: str = row.get("source", "forward-model.md")
+    row = {**row, "source": source}
+    first: list[str] | None = PR6A.outcome(row)
+    if first is not None and first[0] in ("cell", "unit", "HandoffError"):
+        return first
+    block = PR5.block(source, row.get("ops", []))
+    lines = PR6A.text_lines(PR6A.edited(foundation, row.get("edits", [])))
+    if block["facilities"] is not None and (problem := facility_problem(block, lines)):
+        return problem
+    return first
+
+
+CALC = "Net debt is Total Debt less Cash & Equivalents.\n"
+TABLE = "| Line item | FY2024 |\n| --- | --- |\n"
+PASSAGE = "each tied to the reports read.\n"
+SOURCES = "| Interim report | Nine-month statements. |\n"
+NO_FLOOR = ["Reference rate + 3.25%, floor 0.75%;", "Reference rate + 3.25%;"]
+LONG = "Term loan B of the invented group, drawn in two tranches and repaid in equal instalments"
+DRIVER = {
+    "values": ["10", "10", "10"],
+    "category": "Analyst Interpretation",
+    "rationale": "Invented.",
+    "limitation": None,
+}
+
+
+def debt(cell: str, amount: str) -> Doc:
+    """Base debt named at a Calculations row printing `cell`."""
+    edit = [CALC, f"{CALC}\n{TABLE}| Debt check | {cell} |\n"]
+    ops = [[["base", "debt", "row"], "Debt check"], [["base", "debt", "amount"], amount]]
+    return {"edits": [edit], "ops": ops}
+
+
+def amortising(tlb: str, notes: str, cell: str, amount: str) -> Doc:
+    row = debt(cell, amount)
+    row["ops"] += [
+        [["facilities", 0, "annual_amortisation"], tlb],
+        [["facilities", 1, "annual_amortisation"], notes],
+    ]
+    return row
+
+
+def with_ops(row: Doc, *ops: list[Any]) -> Doc:
+    return {**row, "ops": row["ops"] + list(ops)}
+
+
+def prose(line: str) -> Doc:
+    """One prose line added under Calculations."""
+    return {"edits": [[CALC, f"{CALC}\n{line}\n"]]}
+
+
+def floor_in(old: str, new: str) -> Doc:
+    return {"edits": [NO_FLOOR, [old, new]]}
+
+
+ROWS: list[Doc] = [
+    {"label": "the forward model's facilities are printed and within base debt"},
+    {
+        "label": "at scale 1000 the stated thousands balances are printed with commas",
+        "foundation": "foundation-thousands.md",
+        "source": "forward-model-thousands.md",
+    },
+    {
+        "label": "a rate printed with a space before the percent sign",
+        "edits": [["Fixed 7.125%", "Fixed 7.125 %"]],
+    },
+    {
+        "label": "base debt missing: neither bound is tested",
+        "ops": [
+            [
+                ["base", "debt"],
+                {
+                    "amount": None,
+                    "reason": "Not read.",
+                    "row": None,
+                    "period": None,
+                    "column": None,
+                },
+            ],
+            [["facilities", 0, "annual_amortisation"], "640"],
+            [["facilities", 1, "annual_amortisation"], "450"],
+        ],
+    },
+    {
+        "label": "scheduled repayments equal to base debt by year 3",
+        **amortising("214", "150", "1,090", "1090"),
+    },
+    {"label": "balances exactly 1.25 times base debt", **debt("872", "872")},
+    {
+        "label": "a floor printed in Calculations prose",
+        **floor_in(CALC, f"{CALC}\nThe floor is 0.75%.\n"),
+    },
+    {"label": "a balance that is not printed", "ops": [[["facilities", 1, "balance"], "451"]]},
+    {
+        "label": "a balance printed only inside longer numbers",
+        "ops": [[["facilities", 1, "balance"], "45"]],
+    },
+    {
+        "label": "at scale 1000 a balance not printed is named as stated",
+        "foundation": "foundation-thousands.md",
+        "source": "forward-model-thousands.md",
+        "ops": [[["facilities", 0, "balance"], "640001"]],
+    },
+    {
+        "label": "a fixed rate printed only as the start of a longer one",
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "7.12"]],
+    },
+    {
+        "label": "a spread stated with a trailing zero the foundation does not print",
+        "ops": [[["facilities", 0, "spread_pct"], "3.250"]],
+    },
+    {
+        "label": "a floor printed only in a reader passage",
+        **floor_in(PASSAGE, f"{PASSAGE}The floor is 0.75%.\n"),
+    },
+    {
+        "label": "a floor printed only under Sources",
+        **floor_in(SOURCES, f"{SOURCES}\nThe floor is 0.75%.\n"),
+    },
+    {
+        "label": "a floor printed only in a heading",
+        **floor_in("### Debt facilities", "### Debt facilities (floor 0.75%)"),
+    },
+    {"label": "a floor printed only in code", **floor_in(CALC, f"{CALC}\n```\nfloor 0.75%\n```\n")},
+    {
+        "label": "facility 1 is checked whole before facility 2",
+        "ops": [[["facilities", 0, "spread_pct"], "3.3"], [["facilities", 1, "balance"], "451"]],
+    },
+    {
+        "label": "a long facility name is cut at 80 characters",
+        "ops": [[["facilities", 0, "name"], LONG], [["facilities", 0, "balance"], "641"]],
+    },
+    {"label": "balances over 1.25 times base debt", **debt("871.9999", "871.9999")},
+    {
+        "label": "at scale 1000 the balances bound is worded in millions",
+        "foundation": "foundation-thousands.md",
+        "source": "forward-model-thousands.md",
+        **debt("871,999.9", "871999.9"),
+    },
+    {
+        "label": "base debt 0 with facilities: the balances bound refuses",
+        **with_ops(debt("0", "0"), [["base_drivers", "debt_repayment", "values"], ["0", "0", "0"]]),
+    },
+    {
+        "label": "scheduled repayments over base debt in year 1",
+        **amortising("640", "450", "1,000", "1000"),
+    },
+    {
+        "label": "scheduled repayments one unit of the last place over",
+        **amortising("214", "150", "1,089.9999", "1089.9999"),
+    },
+    {
+        "label": "scheduled repayments over only in year 3, equal in year 2",
+        **amortising("300", "150", "900", "900"),
+    },
+    {
+        "label": "at scale 1000 the schedule bound is worded in millions",
+        "foundation": "foundation-thousands.md",
+        "source": "forward-model-thousands.md",
+        **amortising("300000", "150000", "900,000", "900000"),
+    },
+    {
+        "label": "an upside debt_repayment beside facilities",
+        "ops": [[["upside_drivers", "debt_repayment"], DRIVER]],
+    },
+    {
+        "label": "both cases: the upside case is named",
+        "ops": [
+            [["upside_drivers", "debt_repayment"], DRIVER],
+            [["downside_drivers", "debt_repayment"], DRIVER],
+        ],
+    },
+    {
+        "label": "the printed terms before the bounds",
+        **with_ops(
+            amortising("640", "450", "1,000", "1000"), [["facilities", 1, "balance"], "451"]
+        ),
+    },
+    {
+        "label": "the base cell before the facilities",
+        "ops": [[["base", "revenue", "amount"], "1457"], [["facilities", 1, "balance"], "451"]],
+    },
+    {
+        "label": "the facilities before the currency",
+        "ops": [[["currency"], "GBP"], [["facilities", 1, "balance"], "451"]],
+    },
+    {"label": "the layer-1 block states no facilities to check", "source": "foundation.md"},
+    {
+        "label": "the spread is checked before the floor",
+        "ops": [[["facilities", 0, "spread_pct"], "3.3"], [["facilities", 0, "floor_pct"], "0.8"]],
+    },
+    {
+        "label": "the balance is checked before the rates",
+        "ops": [[["facilities", 0, "balance"], "641"], [["facilities", 0, "spread_pct"], "3.3"]],
+    },
+    {
+        "label": "the balances bound before a case debt_repayment",
+        **with_ops(debt("871.9999", "871.9999"), [["upside_drivers", "debt_repayment"], DRIVER]),
+    },
+    {
+        "label": "the schedule bound before a case debt_repayment",
+        **with_ops(
+            amortising("640", "450", "1,000", "1000"),
+            [["upside_drivers", "debt_repayment"], DRIVER],
+        ),
+    },
+    {
+        "label": "a case debt_repayment with base debt missing",
+        "ops": [
+            [
+                ["base", "debt"],
+                {
+                    "amount": None,
+                    "reason": "Not read.",
+                    "row": None,
+                    "period": None,
+                    "column": None,
+                },
+            ],
+            [["upside_drivers", "debt_repayment"], DRIVER],
+        ],
+    },
+    {
+        "label": "a balance printed only after a comma",
+        "ops": [[["facilities", 1, "balance"], "456"]],
+    },
+    {
+        "label": "a balance printed only after a point",
+        "ops": [[["facilities", 1, "balance"], "125"]],
+    },
+    {
+        "label": "a balance printed only after a digit",
+        "ops": [[["facilities", 1, "balance"], "56"]],
+    },
+    {
+        "label": "a balance printed only before a point and a digit",
+        "ops": [[["facilities", 1, "balance"], "7"]],
+    },
+    {
+        "label": "a fixed rate printed only after a point",
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "25"]],
+    },
+    {
+        "label": "a fixed rate printed only after a digit",
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "5"]],
+    },
+    # 6b fix round 1: the adversary's Medium 1 to 3 and Low 1 to 3.
+    {
+        "label": "a balance printed only before a comma and a digit",
+        **prose("Shares issued: 457,000."),
+        "ops": [[["facilities", 1, "balance"], "457"]],
+    },
+    {
+        "label": "a balance printed at the end of a sentence",
+        **prose("The drawn amount was 458."),
+        "ops": [[["facilities", 1, "balance"], "458"]],
+    },
+    {
+        "label": "a fractional balance printed with a point",
+        **prose("The notes stand at 459.5."),
+        "ops": [[["facilities", 1, "balance"], "459.5"]],
+    },
+    {
+        "label": "a fractional balance printed only with a letter for the point",
+        **prose("Reference 459x5."),
+        "ops": [[["facilities", 1, "balance"], "459.5"]],
+    },
+    {
+        "label": "a balance over 999 printed without commas",
+        **with_ops(
+            {
+                "edits": [
+                    *debt("2,000", "2000")["edits"],
+                    [CALC, f"{CALC}\nNotes of 1450 outstanding.\n"],
+                ],
+                "ops": debt("2,000", "2000")["ops"],
+            },
+            [["facilities", 1, "balance"], "1450"],
+        ),
+    },
+    {
+        "label": "a balance printed in a cell beside other words",
+        "edits": [["| Senior notes 2029 | 450 |", "| Senior notes 2029 | 450 outstanding |"]],
+    },
+    {
+        "label": "a fixed rate printed only inside a longer number",
+        "edits": [["Fixed 7.125%", "Fixed 17.125%"]],
+    },
+    {
+        "label": "a fixed rate printed only after a comma",
+        **prose("A rate of 2,5% applies elsewhere."),
+        "ops": [[["facilities", 1, "fixed_rate_pct"], "5"]],
+    },
+    {
+        "label": "a rate printed with a no-break space before the percent sign",
+        "edits": [["Fixed 7.125%", "Fixed 7.125\u00a0%"]],
+    },
+    {
+        "label": "a rate printed with two spaces before the percent sign",
+        "edits": [["Fixed 7.125%", "Fixed 7.125  %"]],
+    },
+    {
+        "label": "a rate printed only with a letter for the point",
+        "edits": [["Fixed 7.125%", "Fixed 7x125%"]],
+    },
+    {
+        "label": "a downside debt_repayment beside facilities",
+        "ops": [[["downside_drivers", "debt_repayment"], DRIVER]],
+    },
+    {
+        "label": "the printed terms before a case debt_repayment",
+        "ops": [
+            [["facilities", 1, "balance"], "451"],
+            [["upside_drivers", "debt_repayment"], DRIVER],
+        ],
+    },
+    {
+        "label": "a long facility name is cut at 80 characters in the rate message",
+        "ops": [[["facilities", 0, "name"], LONG], [["facilities", 0, "spread_pct"], "3.3"]],
+    },
+    {
+        "label": "the running total is exact: equal to base debt by year 3 at ten-thousandths",
+        **amortising("200.0001", "90.6666", "872.0001", "872.0001"),
+    },
+]
+
+
+def render() -> str:
+    rows = [{**row, "source": row.get("source", "forward-model.md")} for row in ROWS]
+    rows = [{**row, "outcome": outcome(row)} for row in rows]
+    key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
+    labels = [row["label"] for row in rows]
+    accepted = [row for row in rows if row["outcome"] is None]
+    assert len(labels) == len(set(labels)) == 57 and len(accepted) == 13
+    lines = ["{"]
+    for name, value in key.items():
+        if name == "rows":
+            body = ",\n".join("  " + json.dumps(row, ensure_ascii=True) for row in value)
+            lines.append(f' "rows": [\n{body}\n ]')
+        else:
+            lines.append(f' "{name}": {json.dumps(value, ensure_ascii=True)},')
+    return "\n".join(lines + ["}"]) + "\n"
+
+
+if __name__ == "__main__":
+    Path(__file__).with_name("pr6b.json").write_text(render(), "utf-8")

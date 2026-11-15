@@ -12,6 +12,7 @@ class RefusalKind(StrEnum):
     CELL = "cell"
     UNIT = "unit"
     CURRENCY = "currency"
+    FACILITY = "facility"
 
 
 class ForecastRefused(Exception):
