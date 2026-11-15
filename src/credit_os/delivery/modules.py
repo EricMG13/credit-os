@@ -8,7 +8,7 @@ body is the passages `passages` selects, the records `records` writes and the tr
 R24 condition 1: a run is left out (`DeliveryRefused`, naming the rule only and never input text)
 when a module has no kind in the catalogue (7b-19; CP-8 is the one fixed prose entry), a handoff is in the earlier format or
 cannot be read, a handoff is blocked only by its front matter, a delivered body has no finding or
-no limitation (R1, until a later round exempts data modules), a store reason holds a module,
+no limitation when it is a prose module (R1; a data module is delivered with what it holds), a store reason holds a module,
 table or digest code (C14), or a passage or record the builders refuse. The caller leaves that run
 out with the reason. An accepted module with no document or no traced entry, or a traced entry
 that does not match the items shown, is a caller defect and raises `ValueError`.
@@ -104,8 +104,8 @@ def _delivered(
     found = passages.findings(reader, known)
     contrary, change = passages.contrary_and_change(reader, known)
     limits = passages.limitations(document, known)
-    if not found or not limits:
-        raise _refuse("R1: a delivered module has no finding or no limitation")
+    if _KINDS[code] == "prose" and (not found or not limits):
+        raise _refuse("R1: a prose module has no finding or no limitation")
     finding_keys = _keys(traced.get("findings"), len(found), "findings")
     limit_keys = _keys(traced.get("limitations"), len(limits), "limitations")
     return {
