@@ -30,6 +30,7 @@ def _run(given: dict[str, Any]) -> tuple[Reply, Fake, CopilotDriver]:
         clock=fake.clock,
         idle_timeout_s=case["idle"],
         overall_timeout_s=case["overall"],
+        settle_s=case["settle"],
     )
     if case["before"] == "close":
         driver.close()
@@ -60,8 +61,9 @@ def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
     assert tuple(fake.steps) == want["calls"]
     if "open_session" in want["calls"]:
         system = want.get("system", "You are careful.")
-        args = (key.MODEL, case["effort"], case["exchange_id"], system)
-        assert fake.opened == dict(zip(("model", "effort", "session_id", "system"), args))
+        tools = tuple(ToolSpec(*t) for t in case["tools"])
+        args = (key.MODEL, case["effort"], case["exchange_id"], system, tools)
+        assert fake.opened == dict(zip(("model", "effort", "session_id", "system", "tools"), args))
     assert fake.sent == (key.PROMPT if "send" in want["calls"] else None)
     assert all(fake.bounds[s] == v for s, v in want.get("bounds", {}).items())
     assert min(fake.given, default=0) >= 0
@@ -127,3 +129,10 @@ def test_an_exception_that_cannot_print_is_named_by_class_only() -> None:
 def test_a_home_with_no_folder_name_is_refused_when_made(home: str) -> None:
     with pytest.raises(ValueError, match="folder name"):
         _run({"home": home})
+
+
+def test_close_aborts_a_kept_session_whose_tool_call_was_invoked() -> None:
+    case, steps = key._PARKED
+    reply, fake, driver = _run(key.CASES[case][1])
+    fake.steps.clear()
+    assert (reply.kind, driver.close(), tuple(fake.steps)) == ("ok", (), steps)
