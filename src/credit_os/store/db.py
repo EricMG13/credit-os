@@ -13,6 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Self
 
+from credit_os.provider.types import Compaction
 from credit_os.sources.pins import SourcePin
 from credit_os.store import attempts, codec, location, runs, schema, txn
 from credit_os.store.errors import (
@@ -217,6 +218,17 @@ class Store(_Handle):
             return attempts.open_call(
                 connection, held.run_id, module, number, exchange, index, hold, self._now
             )
+
+    def record_compactions(self, claim: Claim, compactions: Sequence[Compaction]) -> None:
+        """Record compactions that belong to no call (from `Model.close()`), each at the run's
+        next position, in order. An event id the run already holds is a no-op when the
+        compaction is the same, and StoreConflict when it differs or the stored id holds a
+        backslash (a lone surrogate escaped may meet a literal `\\ud800`, U12); nothing of a
+        refused call is written. No clock call and no event."""
+        held, rows = attempts.check_compactions(claim, compactions)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.insert_compactions(connection, held.run_id, rows, None)
 
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:

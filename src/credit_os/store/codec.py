@@ -29,7 +29,8 @@ DetailValue = str | int | None
 
 
 def money_to_text(value: Decimal | None) -> str | None:
-    """Return the plain, unrounded text of a finite unsigned Decimal; None stays None."""
+    """Return the plain, unrounded text of a finite unsigned Decimal; None stays None. Every zero
+    is "0", whatever its exponent (U22). `Decimal("-0")` is signed and refused."""
     if value is None:
         return None
     if type(value) is not Decimal:
@@ -38,6 +39,8 @@ def money_to_text(value: Decimal | None) -> str | None:
         raise StoreRefused("money must be finite")
     if value.is_signed():
         raise StoreRefused("money must be unsigned")
+    if not value:
+        return "0"
     _, digits, exponent = value.as_tuple()
     if len(digits) > _MONEY_MAXIMUM_DIGITS or exponent not in _MONEY_EXPONENTS:
         raise StoreRefused("money has more than 64 digits or an exponent outside -62..63")

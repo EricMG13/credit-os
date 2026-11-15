@@ -1,9 +1,12 @@
 import itertools
+import sqlite3
+from collections import deque
 from collections.abc import Callable, Iterator
+from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import store_attempts_key as key
@@ -13,7 +16,8 @@ from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, invariant, rule, run_state_machine_as_test
 from test_store_status import RUN_ID, Ticker, _call, _create, _dump, _outcome, _query
 
-from credit_os.store import runs
+from credit_os.provider.types import Compaction, ProviderDataError, Usage
+from credit_os.store import location, runs
 from credit_os.store.db import Store, open_store
 from credit_os.store.errors import StoreError
 from credit_os.store.records import Claim
@@ -314,3 +318,200 @@ def test_the_store_follows_the_model(tmp_path: Path) -> None:
         lambda: _Machine(tmp_path / f"m{next(folders)}"),
         settings=settings(max_examples=50, stateful_step_count=20, deadline=None),
     )
+
+
+COMPACTION_COLUMNS = (
+    "SELECT position, event_id, module_id, attempt, call_index, input_tokens, cached_read_tokens,"
+    " cache_write_tokens, output_tokens, billed_usd, outcome, supersedes FROM compactions"
+    " WHERE run_id = ? ORDER BY position"
+)
+
+
+def _raw(folder: Path, run_id: str = RUN_ID) -> list[tuple[Any, ...]]:
+    with closing(sqlite3.connect(folder / location.STATE_FILE_NAME)) as raw:
+        return raw.execute(COMPACTION_COLUMNS, (run_id,)).fetchall()
+
+
+def _stored(position: int, c: Compaction, text: str | None) -> tuple[Any, ...]:
+    """The row a compaction is stored as, by the key's rules."""
+    u = c.usage
+    counts = (u.input_tokens, u.cached_read_tokens, u.cache_write_tokens, u.output_tokens)
+    supersedes = None if c.supersedes is None else key.stored_text(c.supersedes)
+    return (
+        position,
+        key.stored_text(c.event_id),
+        None,
+        None,
+        None,
+        *counts,
+        text,
+        c.outcome,
+        supersedes,
+    )
+
+
+def _text(c: Compaction) -> str | None:
+    return None if c.billed_usd is None else key.money_text(c.billed_usd)
+
+
+def _record(store: Store, claim: Claim, compactions: Any) -> str | None:
+    return _outcome(lambda: store.record_compactions(claim, compactions))
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "error"),
+    [row[1:] for row in key.REPEATS],
+    ids=[row[0] for row in key.REPEATS],
+)
+def test_a_repeated_compaction(
+    tmp_path: Path,
+    store: Store,
+    ticker: Ticker,
+    first: Compaction,
+    second: Compaction,
+    error: str | None,
+) -> None:
+    claim = _running(store)
+    assert _record(store, claim, (first,)) is None
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _record(store, claim, (second,)) == error
+    assert _raw(tmp_path) == [_stored(0, first, _text(first))]
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+def test_a_call_that_collides_with_itself_writes_nothing(
+    tmp_path: Path, store: Store, ticker: Ticker
+) -> None:
+    claim = _running(store)
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _record(store, claim, key.SELF_COLLISION) == "StoreConflict"
+    assert (ticker.calls, _dump(tmp_path), _raw(tmp_path)) == (0, before, [])
+
+
+def test_a_conflict_rolls_back_the_compactions_before_it(tmp_path: Path, store: Store) -> None:
+    claim = _running(store)
+    assert _record(store, claim, (key.FINISHED,)) is None
+    other = Compaction(Usage(input_tokens=9), None, "done", "d-1", None)
+    assert _record(store, claim, (key.UNFINISHED, other)) == "StoreConflict"
+    assert _raw(tmp_path) == [_stored(0, key.FINISHED, "0.002")]
+
+
+def test_compactions_are_numbered_in_order(tmp_path: Path, store: Store, ticker: Ticker) -> None:
+    claim = _running(store)
+    ticker.calls = 0
+    assert _record(store, claim, key.IN_ORDER) is None
+    assert ticker.calls == 0
+    assert _raw(tmp_path) == [_stored(n, c, _text(c)) for n, c in enumerate(key.IN_ORDER)]
+
+
+def test_a_second_call_continues_the_numbers(tmp_path: Path, store: Store) -> None:
+    claim = _running(store)
+    assert _record(store, claim, (key.UNFINISHED,)) is None
+    assert _record(store, claim, (key.UNFINISHED, key.FINISHED)) is None
+    assert [row[:2] for row in _raw(tmp_path)] == [(0, "u-1"), (1, "d-1")]
+
+
+def test_positions_and_repeats_are_per_run(tmp_path: Path, store: Store) -> None:
+    claims = {"A": _running(store)}
+    second = store.create_run(**_create(run_id=key.SECOND_RUN_ID))
+    store.start_run(second)
+    claims["B"] = second
+    for run, compactions, error in key.TWO_RUNS_COMPACTIONS:
+        assert _record(store, claims[run], compactions) == error
+    for run, run_id in (("A", RUN_ID), ("B", key.SECOND_RUN_ID)):
+        assert [(r[0], r[1], r[9]) for r in _raw(tmp_path, run_id)] == list(
+            key.AFTER_TWO_RUNS_COMPACTIONS[run]
+        )
+
+
+@pytest.mark.parametrize(
+    ("charge", "text"),
+    [row[1:] for row in key.STORED_CHARGES],
+    ids=[row[0] for row in key.STORED_CHARGES],
+)
+def test_a_charge_is_stored_as_the_exact_text(
+    tmp_path: Path, store: Store, charge: Any, text: str
+) -> None:
+    claim = _running(store)
+    assert _record(store, claim, (Compaction(Usage(), charge, "done", "c-1", None),)) is None
+    assert [row[9] for row in _raw(tmp_path)] == [text]
+
+
+def test_a_missing_charge_stays_missing(tmp_path: Path, store: Store) -> None:
+    claim = _running(store)
+    assert _record(store, claim, (key.UNFINISHED,)) is None
+    assert [row[9] for row in _raw(tmp_path)] == [None]
+
+
+def test_a_negative_zero_charge_is_not_a_compaction() -> None:
+    with pytest.raises(ProviderDataError):
+        Compaction(Usage(), key.NEGATIVE_ZERO, "done", "c-1", None)
+
+
+@pytest.mark.parametrize(
+    "compaction",
+    [row[1] for row in key.UNSTORABLE_COMPACTIONS],
+    ids=[row[0] for row in key.UNSTORABLE_COMPACTIONS],
+)
+def test_a_compaction_the_column_cannot_hold_is_refused(
+    tmp_path: Path, store: Store, ticker: Ticker, compaction: Compaction
+) -> None:
+    claim = _running(store)
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _record(store, claim, (compaction,)) == "StoreRefused"
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [row[1] for row in key.REFUSED_COMPACTIONS],
+    ids=[row[0] for row in key.REFUSED_COMPACTIONS],
+)
+def test_refused_compaction_arguments(
+    tmp_path: Path, store: Store, ticker: Ticker, args: Any
+) -> None:
+    claim = _running(store)
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _outcome(lambda: store.record_compactions(claim, **args)) == "StoreRefused"
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+def test_a_claim_that_is_not_a_claim_is_refused(tmp_path: Path, store: Store) -> None:
+    _running(store)
+    before = _dump(tmp_path)
+    assert _record(store, cast(Claim, "not a claim"), (key.FINISHED,)) == "StoreRefused"
+    assert _dump(tmp_path) == before
+
+
+@pytest.mark.parametrize("status", key.NOT_RUNNING)
+def test_a_run_that_is_not_running_takes_no_compaction(
+    tmp_path: Path, store: Store, ticker: Ticker, status: str
+) -> None:
+    claim = store.create_run(**_create())
+    if status == "rejected":
+        store.reject_run(claim, reason="x")
+    elif status != "created":
+        store.start_run(claim)
+        store.end_run(claim, status=status, reason="x")
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _record(store, claim, key.NOT_RUNNING_COMPACTION) == "StoreConflict"
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+def test_no_compactions_write_nothing(tmp_path: Path, store: Store, ticker: Ticker) -> None:
+    claim = _running(store)
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _record(store, claim, ()) is None
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+def test_a_list_of_compactions_is_taken(tmp_path: Path, store: Store) -> None:
+    claim = _running(store)
+    assert _record(store, claim, [key.FINISHED]) is None
+    assert len(_raw(tmp_path)) == 1
+
+
+def test_a_sequence_that_is_neither_list_nor_tuple_is_refused(tmp_path: Path, store: Store) -> None:
+    claim = _running(store)
+    assert _record(store, claim, deque([key.FINISHED])) == "StoreRefused"
+    assert _raw(tmp_path) == []
