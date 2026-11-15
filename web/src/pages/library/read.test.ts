@@ -411,6 +411,23 @@ describe("readSlice, run frame", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
   });
 
+  it.each([
+    ["a run id with a space", "halden-aerostructures", "r 50%"],
+    ["a run id of dots", "halden-aerostructures", ".."],
+    ["a run id over 128 characters", "halden-aerostructures", "r".repeat(129)],
+    ["an issuer id with a space", "halden aero", "2026-09-30"],
+    ["an issuer id of one dot", ".", "2026-09-30"],
+  ])("rejects its own Forecast address when %s breaks the id rule", (_name, issuer, run) => {
+    const slice = JSON.parse(
+      JSON.stringify(fresh()).replaceAll("halden-aerostructures", issuer),
+    ) as ReturnType<typeof fresh>;
+    for (const other of [1, 2, 3]) runOf(slice, 0, other).head["forecastHref"] = null;
+    const target = runOf(slice, 0, 0);
+    target["id"] = run;
+    target.head["forecastHref"] = `#/model/${issuer}/${run}/forecast`;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
+  });
+
   it("reads the model page of the run's own issuer and run, or null", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);

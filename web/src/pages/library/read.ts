@@ -416,13 +416,24 @@ function readTrace(value: unknown, path: string): Trace {
   };
 }
 
+/** The delivery's id rule: 1 to 128 of letters, digits, `.`, `_`, `-`, and not `.` or `..`. */
+const ID_RULE = /^[A-Za-z0-9._-]{1,128}$/;
+
+function followsIdRule(id: string): boolean {
+  return ID_RULE.test(id) && id !== "." && id !== "..";
+}
+
 /**
  * The Forecast address of a run: delivered, and either absent (`null`) or the model page of this
- * run's own issuer and run, exactly. The page builds no address it was not given.
+ * run's own issuer and run, exactly, both ids following the delivery's id rule so the address
+ * names a route. The page builds no address it was not given.
  */
 function forecastHrefOf(h: Rec, path: string, issuer: string, run: string): string | null {
   const href = strOrNull(h, "forecastHref", path);
-  if (href !== null && href !== `#/model/${issuer}/${run}/forecast`) {
+  if (
+    href !== null &&
+    (!followsIdRule(issuer) || !followsIdRule(run) || href !== `#/model/${issuer}/${run}/forecast`)
+  ) {
     throw new SliceError(child(path, "forecastHref"), `null or #/model/${issuer}/${run}/forecast`);
   }
   return href;
