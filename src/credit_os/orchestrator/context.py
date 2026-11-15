@@ -38,6 +38,7 @@ SCHEMA = "context/1"
 MAX_DEPTH = 32
 MAX_BYTES = 1048576
 MAX_VALUES = 5000
+MAX_KEY = 64
 _SEPARATORS = ("\u0085", " ", " ")
 _AMOUNT = re.compile(r"-?[0-9]+(\.[0-9]+)?", re.ASCII)
 
@@ -288,18 +289,19 @@ def _too_deep(root: Any) -> bool:
     return False
 
 
-def _value_count(root: Any) -> int:
-    """How many JSON values `root` holds: every object, array and scalar, keys excluded."""
+def _value_count(root: Any) -> tuple[int, int]:
+    """The JSON values `root` holds (objects, arrays, scalars; keys excluded), the longest key."""
     stack = [root]
-    count = 0
+    count = longest = 0
     while stack:
         node = stack.pop()
         count += 1
         if isinstance(node, dict):
+            longest = max([longest, *map(len, node)])
             stack.extend(node.values())
         elif isinstance(node, list):
             stack.extend(node)
-    return count
+    return count, longest
 
 
 def _join(path: tuple[str | int, ...]) -> str:
@@ -338,8 +340,11 @@ def load_context(raw: bytes) -> RunContext:
         raise ContextRefused(("$: the top level must be an object.",))
     if _too_deep(obj):
         raise ContextRefused((f"$: nested too deeply (more than {MAX_DEPTH} levels).",))
-    if _value_count(obj) > MAX_VALUES:
+    values, longest = _value_count(obj)
+    if values > MAX_VALUES:
         raise ContextRefused((f"$: too many values (more than {MAX_VALUES}).",))
+    if longest > MAX_KEY:
+        raise ContextRefused((f"$: a key is longer than {MAX_KEY} characters.",))
     problems: list[str] = []
     if obj.pop("schema", None) != SCHEMA:
         problems.append(f"schema: must be '{SCHEMA}'.")
