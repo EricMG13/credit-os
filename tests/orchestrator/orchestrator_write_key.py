@@ -131,6 +131,14 @@ REPEAT_RECORD = (
     'package was not reviewed, so covenant headroom is not assessed.", "reason": "Replace this '
     'limitation with one specific to this module; it repeats one already given."}'
 )
+AS_OF_RECORD = (
+    '{"check": "request.as-of", "line": 3, "column": 1, "quoted": "Request", "reason": "State '
+    'the as-of date 2025-03-31 in ## Request."}'
+)
+ISSUER_RECORD = (
+    '{"check": "request.issuer", "line": 3, "column": 1, "quoted": "Request", "reason": "Name the '
+    'selected issuer in the title or in ## Request: Northbridge Synthetic Group."}'
+)
 FIX = {"old": "CP-DR gives no cash forecast, so the module", "new": "The module"}
 
 
@@ -145,7 +153,8 @@ def _e(*edits: Any) -> tuple[str, dict[str, Any], None]:
 Step = tuple[tuple[str, dict[str, Any], str | None], str]
 # name -> (accepted earlier modules by name, the calls with each exact result, the attempts as
 # (number, accepted)). The writer is module "CP-2D", kind prose, not scored, no pins, no other
-# sources, no upstream, required registers (). `"LIMITED"` in the accepted tuple names the
+# sources, no upstream, required registers (), as of 2025-03-31, issuer names ("Northbridge
+# Synthetic Group", "nbg") (PR 10a; it sets hashes_required itself, and CP-2D is blocked). `"LIMITED"` in the accepted tuple names the
 # parsed `LIMITED` document under module "CP-2".
 SCENARIOS: dict[str, tuple[tuple[str, ...], tuple[Step, ...], tuple[tuple[int, bool], ...]]] = {
     "accepted_then_closed": (
@@ -186,6 +195,22 @@ SCENARIOS: dict[str, tuple[tuple[str, ...], tuple[Step, ...], tuple[tuple[int, b
         ((1, False), (2, True)),
     ),
     "edit_without_draft": ((), ((_e(FIX), E_NO_DRAFT),), ()),
+    # PR 10a (D20, D21): the writer passes the run's as-of date and the issuer's names.
+    "as_of_not_in_request": (
+        (),
+        ((_w(LIMITED.replace(", as of 2025-03-31", "")), refused(2, AS_OF_RECORD)),),
+        ((1, False),),
+    ),
+    "issuer_not_named": (
+        (),
+        (
+            (
+                _w(LIMITED.replace("Northbridge Synthetic Group (nbg)", "Someone Else")),
+                refused(2, ISSUER_RECORD),
+            ),
+        ),
+        ((1, False),),
+    ),
     # An edit error writes nothing and leaves the draft as it was.
     "edit_errors_write_nothing": (
         (),

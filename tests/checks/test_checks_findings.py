@@ -19,6 +19,8 @@ EXPECTED_CHECKS = [
     "structure.fence",
     "structure.register-id",
     "structure.registers",
+    "request.as-of",
+    "request.issuer",
     "prose.bottom-line",
     "prose.bottom-line-length",
     "prose.module-code",
@@ -32,6 +34,7 @@ EXPECTED_CHECKS = [
     "sources.table",
     "sources.name",
     "sources.sha256",
+    "sources.sha256-required",
     "sources.type",
     "figure.form",
     "figure.not-held",
@@ -69,7 +72,7 @@ def _context(**values: Any) -> CheckContext:
 
 def test_checks_closed_tuple() -> None:
     assert list(CHECKS) == EXPECTED_CHECKS
-    assert len(set(CHECKS)) == 32
+    assert len(set(CHECKS)) == 35
 
 
 def test_message() -> None:
