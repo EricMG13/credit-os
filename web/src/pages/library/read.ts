@@ -117,6 +117,22 @@ function oneOf<T extends string>(o: Rec, key: string, path: string, allowed: rea
   return found;
 }
 
+/** A word of the list or null; the refusal names both, at the same path as `oneOf`. */
+function oneOfOrNull<T extends string>(
+  o: Rec,
+  key: string,
+  path: string,
+  allowed: readonly T[],
+): T | null {
+  const value = own(o, key);
+  if (value === null) return null;
+  const found = allowed.find((word) => word === value);
+  if (found === undefined) {
+    throw new SliceError(child(path, key), `null or one of ${allowed.join(", ")}`);
+  }
+  return found;
+}
+
 function list<T>(
   o: Rec,
   key: string,
@@ -1723,7 +1739,7 @@ function readGapGroup(value: unknown, path: string, seats: Seats): GapTable["gro
       `${String(rows.length)}, the number of rows it holds`,
     );
   }
-  const severity = own(g, "severity") === null ? null : oneOf(g, "severity", path, GAP_SEVERITIES);
+  const severity = oneOfOrNull(g, "severity", path, GAP_SEVERITIES);
   return { severity, count, rows };
 }
 

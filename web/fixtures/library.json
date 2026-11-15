@@ -5176,10 +5176,14 @@
                   "changeView": null,
                   "records": [],
                   "limitations": {
-                    "count": "1",
+                    "count": "2",
                     "gapsLink": { "label": "See this module’s gaps in Evidence" },
                     "items": [
-                      { "text": "Hedge expiries are not established for this run.", "trace": null }
+                      { "text": "Hedge expiries are not established for this run.", "trace": null },
+                      {
+                        "text": "The lease maturity schedule is not in the files, so leases appear in the stack but not by year.",
+                        "trace": null
+                      }
                     ]
                   }
                 }

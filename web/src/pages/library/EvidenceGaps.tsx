@@ -143,7 +143,7 @@ export function EvidenceGaps({
                 <th scope="rowgroup" colSpan={5} className="px-5 py-2 text-left font-semibold">
                   <span className="flex items-center gap-2">
                     {group.severity === null ? (
-                      "Not ranked"
+                      <span className="text-small font-medium text-text-secondary">Not ranked</span>
                     ) : (
                       <StatusBadge set="Gap severity" state={group.severity} />
                     )}

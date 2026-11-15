@@ -265,7 +265,11 @@ describe("Evidence, Gaps", () => {
     const unranked = groups[2] as HTMLElement;
     expect(unranked.querySelector("svg")).toBeNull();
     expect(within(unranked).getByText("1")).toBeVisible();
-    expect(unranked.querySelectorAll("span")).toHaveLength(2);
+    // The wrapper, the words and the count badge; the words draw as the ranked badges' labels do.
+    expect(unranked.querySelectorAll("span")).toHaveLength(3);
+    const words = within(unranked).getByText("Not ranked");
+    expect(words.tagName).toBe("SPAN");
+    expect(words).toHaveClass("text-small", "font-medium", "text-text-secondary");
     expect(groups[1]?.querySelector("svg")).not.toBeNull();
   });
 

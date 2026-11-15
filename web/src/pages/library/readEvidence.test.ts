@@ -709,6 +709,14 @@ describe("readSlice, gaps", () => {
     });
   });
 
+  it("names null among the words a refused severity should have been", () => {
+    const slice = fresh();
+    (gapGroups(evidenceOf(slice))[0] as Json)["severity"] = "Critical";
+    expect(invalidReason(slice)).toContain(
+      `${at(0)}.gaps.groups[0].severity: expected null or one of High, Medium, Low`,
+    );
+  });
+
   it("is invalid for an Overview link that names another number of gaps, with its path", () => {
     const slice = fresh();
     const limits = (
