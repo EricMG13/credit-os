@@ -3,6 +3,80 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-15 Design track: a data module's empty body, phase sweep wave 2 of `web/`
+
+**Merged**, each with gates on Ubuntu and Windows and the review job green on its merged head,
+none cancelled, and its source diff read by the coordinator. #404 was merged by the owner (the
+coordinator's merge was refused by its permission check), #417 to #421 by the owner, and #422 by
+the coordinator on the owner's instruction.
+
+| PR | Head, merge | Content |
+| :--- | :--- | :--- |
+| #404 | `1a798075`, `cd231bfc` | A data module may deliver no findings and no limitations (ruled): +229/-40 |
+| #417 | `ec375ca2`, `74aa478d` | Model pages re-render and duplicate less: +98/-104 |
+| #418 | `f3b08f06`, `3544f2b8` | One path-segment check in the kit, library duplicates removed: +318/-269 |
+| #419 | `4df1c193`, `9faf00c5` | Ruled library, model and App defects: +214/-102 |
+| #420 | `79abb424`, `e9559bff` | Kit chart scaffolding and placement complexity: +415/-315 |
+| #421 | `f0c7ce34`, `824da72b` | Gaps link beside the state when there is no Limitations section (ruled): +52/-2 |
+| #422 | `b93197e9`, `4358e7b7` | Third-party notices for Untitled UI and HyperUI, shipped as `web/public/THIRD-PARTY-NOTICES.md`: +110/-0 |
+
+**Costs reduced** (same command before and after, from `web/`): jscpd on `src` 102 clones, 968
+lines (1.62%) to 88 clones (1.37%) on the combined tree; production code only: model 4 clones, 48
+lines to 0, 0; library 3, 41 to 0, 0; kit 10, 93 to 3, 33 (what remains is PathChart against
+TrendChart); library against model 1 clone to 0. Complexity over 15: LimitsChart's Column 25 to
+under 10; RangeStripChart's check 20 to under 10. Statements re-renders per switch (Stack, Columns,
+Comparison, counted with the Profiler) 1, 2, 1 to 0, 0, 0; clock time was not measured. Drawn
+output (headless Chrome, 61 to 62 routes, per-load ids normalised, base against a repeat of base 0
+differ): the structural PRs are identical; the ruled PRs differ only as ruled.
+
+**Deferred:** P2-S11 and P2-S12 (test-file duplication in library and model) to the next phase
+sweep, because the ruled defect PRs edit the same test files; P2-K3 (`button.tsx` complexity 22);
+P1-C2 (one browser process for the open-from-disk gate, see the entry below).
+
+**Rulings** (roadmap coordinator, under the owner's "resolve all decisions"):
+- `moduleKind`: every delivered module body carries `moduleKind` of `data` or `prose`, written by
+  delivery from the catalogue. Only a data module (CP-0, CP-1, CP-1C) may deliver empty findings
+  and limitations; a prose module keeps at least one of each. A data body with none draws no
+  Findings and no Limitations section.
+- SW-07: link only to a held, non-loading run; wording "No report for this issuer is held in this
+  library yet."
+- F7: the Rating row of `docs/design/component-map.md` reads "its source uses Radix UI or Base UI,
+  rebuilt on React Aria" and no longer needs a ruling (edited in this entry's commit).
+- P2-1: the model keeps its own session-wide Show-sources state, not shared with the library.
+- P1-17: the two NOT_BUILT test cases are deleted with the entries.
+- P2-4: the run-id slug rule is the one 3B's ids follow (`[A-Za-z0-9._-]{1,128}`, not `.` or `..`).
+- P2-6: the shared helper refuses control-character escapes `%00` to `%1F` and `%7F`.
+- P2-11: the Forecast hint reads "No forecast for this run".
+- Notices: ruled and shipped; the file moved to `web/public/` so the built library carries it beside
+  the font licences (W2-A5b).
+- P2-8 and P2-9: to slice contract 3.
+- A1: draw the module's gaps link beside the state when no Limitations section is drawn.
+- W2-A1: the reader accepts an empty `overview.metrics` and the Overview draws no Headline figures
+  region then (P2-5, the controller's choice, was reversed).
+- W2-A4: the mismatch between 3B's NUL-only check and the web's `%00` to `%1F`, `%7F` refusal goes
+  to the back end to rule.
+
+**Reviews.** Task reviews by `mx-precise`: model, defects and gaps link each failed on one Medium,
+fixed, scoped re-review pass; the rest passed. Whole-branch reviews by `mx-architect` (Fable 5.2)
+running adversarial-reviewer (its limit had reset): #404 alone PASS; #417 to #422 FAIL on W2-A1
+(Medium), fixed in one round, scoped re-review PASS.
+
+**Ledger** (agent `mx-feature` unless named; fix rounds, gates first pass; affected tests ran,
+full gates via CI, so first pass is n/a): model structural 1, n/a; data-module body 0, n/a;
+library structural 0, n/a; ruled defects 1, n/a; kit charts 0, n/a; gaps link 1, n/a; notices
+(`mx-scaffold`) 0, n/a.
+
+**Rule notes.** Under the owner's throttle the sweep stopped at about 08:5x UTC, after #404 merged;
+#417 to #422 were left to the owner and the coordinator to merge. The controller moved to a new worktree after the app restart and kept the wave-2 records there.
+
+Pre-existing, for the owner: X-1 (`App.test.tsx` hash leak under shuffle, reproduces at base with
+seed 77), P-1 (History draws no run entries when `history.latest` is null) and #404's P1 (the
+bottom-line reader accepts an empty label, lead or rest).
+
+Not verified: the merged tree's push CI on `4358e7b7` (queued at writing); the combined tree's
+browser and open-from-disk gates (CI runs each head, not the combination); Edge; screen readers;
+Windows per-test times; clock-time savings; 27 kit files against upstream Untitled UI.
+
 ## 2026-11-15 Roadmap back end: 3A tools and writer, 2A migration 2, 3B writer, Signal service
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the

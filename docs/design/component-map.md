@@ -91,7 +91,7 @@ Reading the pages overturned assumptions carried from the predecessor's map:
 | F3 | A change between two runs | Stat with a "from" value, then cause and effect | HUI [Stats](https://www.hyperui.dev/components/application/stats) (title, value, from value) | Before and after read left to right; the cause is one line away |
 | F4 | Progress toward a stated total (modules delivered of modules planned, spend against the cap) | Progress bar with its label "n of N"; never used where no total is stated | UUI [Progress indicators](https://www.untitledui.com/react/components/progress-indicators) | A cap or a count is a part of a whole, not a trend |
 | F6 | A move from one grade to another (a rating action) | Badge group: badge, arrow, badge | UUI [Badge groups](https://www.untitledui.com/react/components/badge-groups) | From and to read in one glance, in the order they happened |
-| F7 | A strength on a short scale (signal strength; needs ruling) | Rating, read-only, three marks with a word | SB [Rating](https://www.shadcnblocks.com/components/rating), built on React Aria | Three marks sort a feed faster than a number; the word keeps it honest |
+| F7 | A strength on a short scale (signal strength) | Rating, read-only, three marks with a word | SB [Rating](https://www.shadcnblocks.com/components/rating) (its source uses Radix UI or Base UI), rebuilt on React Aria | Three marks sort a feed faster than a number; the word keeps it honest |
 | F5 | A small trend inside a row or tile | Sparkline, bar or line, no axes | SB [Sparkline](https://www.shadcnblocks.com/components/sparkline), its look copied, drawn with Recharts | Direction at a glance where a full chart would crowd the row |
 
 ### 2.4 Records
