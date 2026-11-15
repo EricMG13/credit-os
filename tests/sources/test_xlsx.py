@@ -1118,3 +1118,28 @@ def test_pieces_memory() -> None:
     assert len(pages.pages) == 1
     assert pages.pages[0].text == H + "A1='" + chr(0x100) * (1_048_576 - 5) + "'"
     assert peak < 24 * 1024 * 1024
+
+
+def test_cache_floor_memory() -> None:
+    # (ruling 39) a formula near the cap and a long shared-string cache is refused at the cache
+    # before the formula label is built, so the peak stays under 16 MiB
+    smile = chr(0x1F600)
+    cap = 1_048_576
+    raw = book(
+        '<row><c t="s"><f>' + smile * (cap - 21) + "</f><v>0</v></c></row>",
+        strings="<si><t>" + smile * (cap - 250) + "</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    with pytest.raises(SourceUnreadable):
+        xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        with pytest.raises(SourceUnreadable) as caught:
+            xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
+    assert peak < 16 * 1024 * 1024
