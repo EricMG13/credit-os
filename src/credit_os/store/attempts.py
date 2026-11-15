@@ -9,9 +9,9 @@ import sqlite3
 from collections.abc import Callable, Sequence
 from decimal import Decimal
 
-from credit_os.provider.types import Compaction
+from credit_os.provider.types import Compaction, Reply
 from credit_os.store import runs
-from credit_os.store.codec import money_from_text, money_to_text
+from credit_os.store.codec import money_from_text, money_to_text, time_to_text
 from credit_os.store.errors import StoreConflict, StoreRefused, safe_text
 from credit_os.store.records import Claim
 
@@ -53,6 +53,77 @@ def check_open_call(
     if hold is None:
         raise StoreRefused("hold_usd must be a Decimal")
     return held, module, number, exchange, index, hold
+
+
+ReplyColumns = tuple[object, ...]
+
+
+def _optional_text(text: str | None) -> str | None:
+    return None if text is None else safe_text(text)
+
+
+def _reply_columns(reply: Reply) -> ReplyColumns:
+    """The reply's call columns, in the order `close_call` writes them (store_reply_key's keys):
+    kind, error class, message, the five counts, charge, two times, stop reason, reported model,
+    request id, raw. Every codec refusal is StoreRefused."""
+    usage, turn = reply.usage, reply.turn
+    counts: tuple[int | None, ...] = (None,) * 5
+    if usage is not None:
+        counts = (
+            usage.input_tokens,
+            usage.cached_read_tokens,
+            usage.cache_write_tokens,
+            usage.output_tokens,
+            usage.reasoning_tokens,
+        )
+    for count in counts:
+        if count is not None:
+            _check_count("a reply count", count, 0)
+    if reply.raw is not None and type(reply.raw) is not bytes:
+        raise StoreRefused("raw must be bytes or None")
+    return (
+        reply.kind,
+        _optional_text(reply.error_class),
+        _optional_text(reply.message),
+        *counts,
+        money_to_text(reply.billed_usd),
+        time_to_text(reply.started_at),
+        time_to_text(reply.finished_at),
+        None if turn is None else turn.stop_reason,
+        None if turn is None else _optional_text(turn.reported_model),
+        None if turn is None else _optional_text(turn.request_id),
+        reply.raw,
+    )
+
+
+def check_close_call(
+    claim: object, module_id: object, attempt: object, call_index: object, reply: object
+) -> tuple[
+    Claim,
+    str,
+    int,
+    int,
+    ReplyColumns,
+    tuple[tuple[str, str | None, tuple[int | None, ...], str | None, str], ...],
+]:
+    """Check a `close_call` call; returns the claim, module id, attempt, call index, the reply's
+    call columns and its compactions as stored fields, all built before BEGIN. A reply the codecs
+    cannot store is StoreRefused, so the call stays open."""
+    held = runs.check_claim(claim)
+    module = runs.check_identifier("module_id", module_id)
+    number = _check_count("attempt", attempt, 1)
+    index = _check_count("call_index", call_index, 0)
+    if type(reply) is not Reply:
+        raise StoreRefused("reply must be a Reply")
+    columns = _reply_columns(reply)
+    return (
+        held,
+        module,
+        number,
+        index,
+        columns,
+        tuple(_compaction_fields(item) for item in reply.compactions),
+    )
 
 
 def open_attempt(
@@ -226,3 +297,47 @@ def insert_compactions(
                 supersedes,
             ),
         )
+
+
+def close_call(
+    connection: sqlite3.Connection,
+    run_id: str,
+    module_id: str,
+    attempt: int,
+    call_index: int,
+    columns: ReplyColumns,
+    compactions: Sequence[tuple[str, str | None, tuple[int | None, ...], str | None, str]],
+    now: Callable[[], str],
+) -> None:
+    """Close the call with the reply's columns and `closed_at`, after inserting the reply's
+    compactions with the call's key. The attempt and the call must exist (StoreRefused); the call
+    must be open and the attempt open (StoreConflict). A compaction conflict raises before the
+    call's columns are written, and the caller's transaction rolls everything back. The one clock
+    call (`closed_at`) follows the compactions, so a refused call never reads the clock. No event."""
+    states = connection.execute(
+        "SELECT state FROM attempts WHERE run_id = ? AND module_id = ? AND attempt = ?",
+        (run_id, module_id, attempt),
+    ).fetchall()
+    if not states:
+        raise StoreRefused("the run has no such attempt")
+    calls = connection.execute(
+        "SELECT closed_at FROM calls"
+        " WHERE run_id = ? AND module_id = ? AND attempt = ? AND call_index = ?",
+        (run_id, module_id, attempt, call_index),
+    ).fetchall()
+    if not calls:
+        raise StoreRefused("the attempt has no such call")
+    if calls[0][0] is not None:
+        raise StoreConflict("the call is already closed")
+    if states[0][0] != "open":
+        raise StoreConflict("the attempt is not open")
+    insert_compactions(connection, run_id, compactions, (module_id, attempt, call_index))
+    closed_at = now()
+    connection.execute(
+        "UPDATE calls SET closed_at = ?, kind = ?, error_class = ?, message = ?,"
+        " input_tokens = ?, cached_read_tokens = ?, cache_write_tokens = ?, output_tokens = ?,"
+        " reasoning_tokens = ?, billed_usd = ?, started_at = ?, finished_at = ?, stop_reason = ?,"
+        " reported_model = ?, request_id = ?, raw = ?"
+        " WHERE run_id = ? AND module_id = ? AND attempt = ? AND call_index = ?",
+        (closed_at, *columns, run_id, module_id, attempt, call_index),
+    )
