@@ -269,7 +269,7 @@ ACCEPTED: dict[str, tuple[bytes, dict[str, Any]]] = {
             "deal_terms.0.margin_bps": "375",
             "deal_terms.0.coupon_pct": "",
             "quotes.0.kind": "indicative_talk",
-            "valuation.user_multiple.basis": "NTM",
+            "valuation.peer_source": "user_comps",
             "assumptions.cp2a.scenarios.0.interest_increase_pct": "2.5",
             "assumptions.cp2e.rate_shocks_bps": ("100", "200"),
             "attachments.legal_documents": "executed",
