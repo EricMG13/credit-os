@@ -554,6 +554,12 @@ describe("readSlice, overview", () => {
     expect(full.overview.limitations.count).toBe("4");
   });
 
+  it("refuses an overview with no headline figure", () => {
+    const slice = fresh();
+    ovOf(slice).metrics = [];
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].overview.metrics");
+  });
+
   it.each([
     [
       "a malformed metric value",
