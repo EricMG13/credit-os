@@ -99,6 +99,10 @@
     "evidence.gaps.column.shownAs": {"placeholders": [], "text": "Shown as"},
     "evidence.gaps.where.module": {"placeholders": ["module"], "text": "Shown on the {module} page"},
     "evidence.gaps.effect_unstated": {"placeholders": [], "text": "The module did not state an effect."},
-    "overview.metric_note": {"placeholders": ["period", "unit"], "text": "{period} \u00b7 {unit}"}
+    "overview.metric_note": {"placeholders": ["period", "unit"], "text": "{period} \u00b7 {unit}"},
+    "module.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 0, "one": "See this module\u2019s {count} gap in Evidence", "other": "See this module\u2019s {count} gaps in Evidence"},
+    "module.blocked_note": {"placeholders": [], "text": "Nothing from this module is shown."},
+    "module.failed_reason": {"placeholders": [], "text": "The module did not complete."},
+    "module.not_run_reason": {"placeholders": [], "text": "The run ended before this module started."}
   }
 }
