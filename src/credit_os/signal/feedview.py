@@ -97,19 +97,11 @@ _FILTER_KEYS = frozenset({"kind", "query", "before", "shared"})
 # `foryou` is a followed topic or a thread in a group the user is a member of (membership, not
 # mere visibility). `:shared` is a thread in a group the user is a member of that another person
 # started. The cursor is (published_at, id) strictly below `:stamp`, `:cursor_id`.
-# The stories with a thread in a group the user is a member of, as an uncorrelated list: SQLite
-# builds it once per statement (one pass over the user's memberships and their threads), and the
-# story scan tests each story against it. A per-story EXISTS over the memberships cost stories x
-# memberships (R70 item 1). `story_id IS NOT NULL` keeps a topic thread's NULL out of the list.
-_MY_THREAD_STORIES = (
-    " (SELECT mt.story_id FROM group_members mm JOIN threads mt ON mt.group_id = mm.group_id"
-    "  WHERE mm.user_name = :user AND mt.story_id IS NOT NULL)"
-)
-_MY_THREAD_STORIES_STARTED_BY_OTHERS = (
-    " (SELECT mt.story_id FROM group_members mm JOIN threads mt ON mt.group_id = mm.group_id"
-    "  WHERE mm.user_name = :user AND mt.story_id IS NOT NULL"
-    "  AND mt.started_by IS NOT NULL AND mt.started_by <> :user)"
-)
+# The membership clauses below are an uncorrelated `s.id IN (SELECT mt.story_id FROM group_members
+# mm JOIN threads mt ...)`: SQLite builds the list once per statement (one pass over the user's
+# memberships and their threads) and the story scan tests each story against it. A per-story
+# EXISTS over the memberships cost stories x memberships (R70 item 1). `story_id IS NOT NULL`
+# keeps a topic thread's NULL out of the list. Each statement is one literal (bandit B608).
 _PAGE_HEAD = (
     "SELECT s.id, s.title, s.link, s.summary, s.published_at, src.name AS source,"
     " src.kind AS kind,"
@@ -121,7 +113,9 @@ _PAGE_HEAD = (
     "  OR (:view = 'foryou' AND ("
     "   EXISTS(SELECT 1 FROM topic_stories ts JOIN topic_follows f ON f.topic_id = ts.topic_id"
     "    WHERE ts.story_id = s.id AND f.user_name = :user)"
-    "   OR s.id IN" + _MY_THREAD_STORIES + "))"
+    "   OR s.id IN (SELECT mt.story_id FROM group_members mm"
+    "    JOIN threads mt ON mt.group_id = mm.group_id"
+    "    WHERE mm.user_name = :user AND mt.story_id IS NOT NULL)))"
     "  OR (:view = 'saved'"
     "   AND EXISTS(SELECT 1 FROM saves v WHERE v.story_id = s.id AND v.user_name = :user))"
     "  OR (:view = 'topic'"
@@ -131,7 +125,10 @@ _PAGE_HEAD = (
 )
 _MATCH = " AND s.id IN (SELECT rowid FROM stories_fts WHERE stories_fts MATCH :match)"
 _PAGE_TAIL = (
-    " AND (:shared = 0 OR s.id IN" + _MY_THREAD_STORIES_STARTED_BY_OTHERS + ")"
+    " AND (:shared = 0 OR s.id IN (SELECT mt.story_id FROM group_members mm"
+    "  JOIN threads mt ON mt.group_id = mm.group_id"
+    "  WHERE mm.user_name = :user AND mt.story_id IS NOT NULL"
+    "  AND mt.started_by IS NOT NULL AND mt.started_by <> :user))"
     " AND (:stamp IS NULL OR s.published_at < :stamp"
     "  OR (s.published_at = :stamp AND s.id < :cursor_id))"
     " ORDER BY s.published_at DESC, s.id DESC LIMIT :limit"
@@ -146,7 +143,9 @@ _COUNT = (
     "  OR (:view = 'foryou' AND ("
     "   EXISTS(SELECT 1 FROM topic_stories ts JOIN topic_follows f ON f.topic_id = ts.topic_id"
     "    WHERE ts.story_id = s.id AND f.user_name = :user)"
-    "   OR s.id IN" + _MY_THREAD_STORIES + "))"
+    "   OR s.id IN (SELECT mt.story_id FROM group_members mm"
+    "    JOIN threads mt ON mt.group_id = mm.group_id"
+    "    WHERE mm.user_name = :user AND mt.story_id IS NOT NULL)))"
     "  OR (:view = 'saved'"
     "   AND EXISTS(SELECT 1 FROM saves v WHERE v.story_id = s.id AND v.user_name = :user))"
     "  OR (:view = 'topic'"
