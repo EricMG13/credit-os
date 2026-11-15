@@ -145,11 +145,36 @@ def test_path_wrong_type() -> None:
         check(5)
 
 
-def test_refusal_message_is_short() -> None:
+ABSOLUTE = (
+    "/Users/someone/Documents/lib/x.md",
+    "C:\\Users\\someone\\lib\\x.md",
+    "C:/Users/someone/lib/x.md",
+    "\\\\server\\someone\\x.md",
+    "file:///C:/Users/someone/x.md",
+)
+LEAKY_CALLS: dict[str, Callable[[str], object]] = {
+    "check_relative_path": names.check_relative_path,
+    "check_id": names.check_id,
+    "hash_address": lambda v: names.hash_address("library", v),
+    "folder_delivery": lambda v: names.folder("nbg", "r-0001", v),
+    "folder_issuer": lambda v: names.folder(v, "r-0001", D1),
+    "folder_run": lambda v: names.folder("nbg", v, D1),
+    "module": names.module,
+    "forecast_href": lambda v: names.forecast_href(v, "r-0001"),
+    "archive_name": lambda v: names.archive_name(v, "r-0001", D1),
+    "module_download_code": lambda v: names.module_download("nbg", "r-0001", D1, v),
+    "module_download_delivery": lambda v: names.module_download("nbg", "r-0001", v, "CP-8"),
+}
+
+
+@pytest.mark.parametrize("label", list(LEAKY_CALLS), ids=list(LEAKY_CALLS))
+@pytest.mark.parametrize("value", ABSOLUTE, ids=idx(ABSOLUTE))
+def test_refusal_message_holds_no_input(label: str, value: str) -> None:
     with pytest.raises(DeliveryRefused) as info:
-        names.check_id("a" * 129)
-    assert "a" * 41 not in str(info.value)
-    assert "/Users" not in str(info.value)
+        LEAKY_CALLS[label](value)
+    message = str(info.value)
+    for banned in (value, "Users", "someone", "C:", "server", "file:"):
+        assert banned not in message
 
 
 ID_TEXT = st.text(

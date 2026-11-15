@@ -57,19 +57,18 @@ _ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
 _DELIVERY = re.compile(r"[0-9a-f]{64}")
 _SEGMENT = re.compile(r"(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+")
 _ESCAPES = re.compile(r"(?:%[0-9A-Fa-f]{2})+")
-_SHOWN = 40
 
 
-def _refuse(rule: str, value: str) -> DeliveryRefused:
-    shown = value if len(value) <= _SHOWN else value[:_SHOWN] + "..."
-    return DeliveryRefused(f"{rule}: {shown!r}")
+def _refuse(rule: str) -> DeliveryRefused:
+    """A refusal naming only the rule: no part of the input is ever echoed."""
+    return DeliveryRefused(rule)
 
 
 def module(code: str) -> Module:
     """Return the module with exactly this code."""
     found = _BY_CODE.get(code)
     if found is None:
-        raise _refuse("unknown module code", code)
+        raise _refuse("unknown module code")
     return found
 
 
@@ -78,7 +77,7 @@ def check_id(text: str) -> str:
     if not isinstance(text, str):
         raise TypeError("id must be a str")
     if _ID.fullmatch(text) is None or text in (".", ".."):
-        raise _refuse("id outside [A-Za-z0-9._-]{1,128}", text)
+        raise _refuse("id outside [A-Za-z0-9._-]{1,128}, or . or ..")
     return text
 
 
@@ -87,7 +86,7 @@ def folder(issuer: str, run: str, delivery: str) -> str:
     check_id(issuer)
     check_id(run)
     if not isinstance(delivery, str) or _DELIVERY.fullmatch(delivery) is None:
-        raise _refuse("delivery is not 64 lower-case hex characters", str(delivery))
+        raise _refuse("delivery is not 64 lower-case hex characters")
     return hashlib.sha256(f"{issuer}/{run}/{delivery}".encode()).hexdigest()[:20]
 
 
@@ -114,12 +113,12 @@ def module_download(issuer: str, run: str, delivery: str, code: str) -> str:
     return check_relative_path(f"downloads/{folder(issuer, run, delivery)}/{slug}.md")
 
 
-def _decode_escapes(segment: str, whole: str) -> str:
+def _decode_escapes(segment: str, number: int) -> str:
     def one(match: re.Match[str]) -> str:
         try:
             return bytes.fromhex(match.group().replace("%", "")).decode("utf-8")
         except UnicodeDecodeError:
-            raise _refuse("escape is not strict UTF-8", whole) from None
+            raise _refuse(f"path segment {number}: escape is not strict UTF-8") from None
 
     return _ESCAPES.sub(one, segment)
 
@@ -129,13 +128,13 @@ def check_relative_path(href: str) -> str:
     if not isinstance(href, str):
         raise TypeError("path must be a str")
     if not href:
-        raise _refuse("path is empty", href)
-    for segment in href.split("/"):
+        raise _refuse("path is empty")
+    for number, segment in enumerate(href.split("/"), start=1):
         if _SEGMENT.fullmatch(segment) is None:
-            raise _refuse("path segment empty or outside the allowed characters", href)
-        decoded = _decode_escapes(segment, href)
+            raise _refuse(f"path segment {number}: empty or outside the allowed characters")
+        decoded = _decode_escapes(segment, number)
         if segment in (".", "..") or decoded in (".", ".."):
-            raise _refuse("path segment is a dot segment", href)
+            raise _refuse(f"path segment {number}: dot segment")
         if "/" in decoded or "\\" in decoded or "\x00" in decoded:
-            raise _refuse("path segment decodes to a separator or NUL", href)
+            raise _refuse(f"path segment {number}: decodes to a separator or NUL")
     return href
