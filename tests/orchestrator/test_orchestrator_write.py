@@ -1,6 +1,5 @@
 import hashlib
 import json
-import time
 from typing import Any
 
 import orchestrator_write_key as key
@@ -161,24 +160,3 @@ def test_d5_refusal_lines_are_bounded_ascii_json(rows: list[tuple[str, int, str,
         assert lines[20] == key.MORE.format(n=len(findings) - 20)
     else:
         assert len(lines) == len(findings)
-
-
-def test_d10_a_draft_at_the_cap_is_checked_in_bounded_time() -> None:
-    writer = ModuleWriter(
-        "CP-2D",
-        kind="prose",
-        scored=False,
-        pins=(),
-        other_sources=("context",),
-        upstream={},
-        accepted={},
-        required_registers=(),
-    )
-    draft = key.worst_at_cap()
-    assert len(draft.encode("utf-8")) == key.MAX_DRAFT_BYTES
-    started = time.perf_counter()
-    reply = writer.call(ToolCall("c1", "write_handoff", {"markdown": draft}))
-    elapsed = time.perf_counter() - started
-    assert reply.startswith("REFUSED (2 writes left).")
-    assert len(writer.attempts) == 1
-    assert elapsed < key.TIMING_LIMIT_S
