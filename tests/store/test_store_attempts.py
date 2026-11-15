@@ -515,3 +515,23 @@ def test_a_sequence_that_is_neither_list_nor_tuple_is_refused(tmp_path: Path, st
     claim = _running(store)
     assert _record(store, claim, deque([key.FINISHED])) == "StoreRefused"
     assert _raw(tmp_path) == []
+
+
+def test_an_old_claim_records_no_compaction(tmp_path: Path, store: Store, ticker: Ticker) -> None:
+    old = _running(store)
+    assert _record(store, old, (key.FINISHED,)) is None
+    claims = {1: old, 2: store.claim_run(RUN_ID)}
+    for label, number, compactions, error in key.FENCED_COMPACTIONS:
+        before, ticker.calls = _dump(tmp_path), 0
+        assert _record(store, claims[number], compactions) == error, label
+        if error is not None:
+            assert (ticker.calls, _dump(tmp_path)) == (0, before), label
+    assert [(r[0], r[1], r[9]) for r in _raw(tmp_path)] == list(key.AFTER_FENCED_COMPACTIONS)
+
+
+def test_a_missing_run_records_no_compaction(tmp_path: Path, store: Store, ticker: Ticker) -> None:
+    _running(store)
+    before, ticker.calls = _dump(tmp_path), 0
+    claim = Claim(key.MISSING_RUN_ID, status_key.FOREIGN_TOKEN)
+    assert _record(store, claim, key.MISSING_RUN_COMPACTIONS) == "StoreRefused"
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
