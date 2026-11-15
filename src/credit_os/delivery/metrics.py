@@ -6,8 +6,14 @@ and reporting unit as the note. A chart that cannot be read with certainty (no s
 missing column, a period that cannot be ordered, a unit that reads as a gap) gives no figure,
 never a guessed one. Python does no arithmetic here: periods are only ordered.
 
-A refusal means the run cannot be written (R24 condition 1): a chart name used twice, or a
-source name or a module, table or digest code in a shown figure, period or unit. The caller
+A figure cell is read strictly (7a-15): "—" is null; a gap must read `Not supplied: <reason>`,
+and every other gap form (empty, "Insufficient Information", "Not reconstructed", "Not
+calculable ...", "Not supplied" without a colon or a reason) is refused; any other text is read
+by `passages.cell`.
+
+A refusal means the run cannot be written (R24 condition 1): a chart name used twice, a loose
+gap form in a figure cell, or a source name or a module, table or digest code in a shown
+figure, period or unit. The caller
 leaves that run out with the reason and never aborts the whole library. A message names the
 rule, never the input text.
 
@@ -38,6 +44,8 @@ _FIXED: tuple[tuple[str, str, str | None], ...] = (
 _YEAR = re.compile(r"FY([0-9]{4})", re.ASCII)
 _DAY = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})", re.ASCII)
 _BOTH = re.compile(r"FY([0-9]{4}) / ([0-9]{4})-([0-9]{2})-([0-9]{2})", re.ASCII)
+_DASH = "—"
+_STRICT_GAP = re.compile(r"Not supplied: \S")
 _FORM_YEAR = 1
 _FORM_DATE = 2
 
@@ -108,6 +116,13 @@ def _columns(table: Table, held: str) -> tuple[int, int, int] | None:
     return period, unit, figure
 
 
+def _value(text: str) -> dict[str, object] | None:
+    """The held cell as shown: "—" is null; a gap must be `Not supplied: <reason>`, else refused."""
+    if text != _DASH and isinstance(read_value(text), Gap) and _STRICT_GAP.match(text) is None:
+        raise _refuse("a figure cell is a gap in a form other than Not supplied with a reason")
+    return cell(text)[0]
+
+
 def _shown(value: dict[str, object] | None) -> list[str]:
     if value is None:
         return []
@@ -130,7 +145,7 @@ def _metric(
     period, unit = row.cells[period_at], row.cells[unit_at]
     if isinstance(read_value(unit), Gap):
         return None
-    value = cell(row.cells[held_at])[0]
+    value = _value(row.cells[held_at])
     if any(narrative_leaks(text, known) for text in [period, unit, *_shown(value)]):
         raise _refuse("source name or code in shown text")
     note = wording.fill("overview.metric_note", {"period": period, "unit": unit})
