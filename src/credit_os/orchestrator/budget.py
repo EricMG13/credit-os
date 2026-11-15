@@ -232,13 +232,16 @@ def _stop(
 @dataclass(frozen=True, slots=True)
 class PriceRow:
     """One configuration's published prices, USD per million tokens, and the token counts a
-    hold prices: the whole context ceiling in, and at least `output_floor_tokens` out."""
+    hold prices: the whole context ceiling in, and at least `output_floor_tokens` out.
+    `cache_write_rate` is USD per 1M tokens, charged on top of the input rate for a token
+    written to cache, and 0 where the provider publishes none."""
 
     config_id: str
     input_rates: tuple[Decimal, ...]
     output_rates: tuple[Decimal, ...]
     context_tokens: int
     output_floor_tokens: int
+    cache_write_rate: Decimal = Decimal(0)
 
     def __post_init__(self) -> None:
         _check_name(self.config_id, "config_id")
@@ -249,6 +252,7 @@ class PriceRow:
                 _check_amount(rate, what)
         _check_count(self.context_tokens, "context_tokens", least=1)
         _check_count(self.output_floor_tokens, "output_floor_tokens", least=0)
+        _check_amount(self.cache_write_rate, "cache_write_rate")
 
 
 def _check_count(value: object, what: str, *, least: int) -> None:
@@ -257,14 +261,16 @@ def _check_count(value: object, what: str, *, least: int) -> None:
 
 
 def call_hold(price: PriceRow, *, max_output_tokens: int) -> Decimal:
-    """What one call holds: the whole context at the dearest input rate plus the larger of
+    """What one call holds: the whole context at the dearest input rate plus the cache-write
+    rate (the additive reading: it may overstate and never understates) plus the larger of
     `max_output_tokens` and the row's floor at the dearest output rate, per million tokens.
     Exact, never rounded; a hold of zero or one the money bounds refuse is `BudgetDataError`."""
     _check_count(max_output_tokens, "max_output_tokens", least=0)
     held_output = max(max_output_tokens, price.output_floor_tokens)
     with localcontext(_context()) as context:
         try:
-            held_in = context.multiply(Decimal(price.context_tokens), max(price.input_rates))
+            in_rate = context.add(max(price.input_rates), price.cache_write_rate)
+            held_in = context.multiply(Decimal(price.context_tokens), in_rate)
             held_out = context.multiply(Decimal(held_output), max(price.output_rates))
             hold = context.add(held_in, held_out).scaleb(-6, context)
         except (Inexact, Rounded) as error:
@@ -273,3 +279,14 @@ def call_hold(price: PriceRow, *, max_output_tokens: int) -> Decimal:
     if not hold:
         raise BudgetDataError("a hold of zero bounds nothing")
     return hold
+
+
+# Published gpt-6-sol prices, default tier: decision 0016.
+COPILOT_SOL_MEDIUM = PriceRow(
+    config_id="copilot-sol-medium",
+    input_rates=(Decimal("2.00"), Decimal("0.20")),
+    output_rates=(Decimal("10.00"),),
+    context_tokens=272000,
+    output_floor_tokens=32000,
+    cache_write_rate=Decimal("2.50"),
+)
