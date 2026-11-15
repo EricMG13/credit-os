@@ -13,20 +13,23 @@ message names the rule and the builder, never passage text or a name.
 Values are plain dicts with the slice's own camelCase keys; `trace` is None here, attached later.
 """
 
+import unicodedata
 from collections.abc import Sequence
 from decimal import Decimal
 
-from credit_os.checks.figures import CODE, read_figures
+from credit_os.checks.figures import CODE, Figure, read_figures
 from credit_os.checks.passages import limitation_texts, normalise_limitation
 from credit_os.delivery.errors import DeliveryRefused
 from credit_os.handoff.basis import read_basis
 from credit_os.handoff.blocks import ListItem, Paragraph
 from credit_os.handoff.data import Gap, read_value
 from credit_os.handoff.document import HandoffDocument, Section
+from credit_os.handoff.errors import HandoffError
 from credit_os.handoff.lead import read_lead
-from credit_os.handoff.reader import Reader
+from credit_os.handoff.reader import Reader, read_reader
 
 _DASH = "—"
+_UNRECOGNISED = "unrecognised"
 _NOT_ASSESSABLE = "Not assessable:"
 
 
@@ -170,6 +173,14 @@ def limitations(document: HandoffDocument, names: Sequence[str]) -> tuple[dict[s
     A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
     run out with the reason, as R1 does, and never aborts the whole library.
     """
+    try:
+        section = read_reader(document).limitations
+    except HandoffError as error:
+        raise _refuse("limitations", "passages unreadable") from error
+    if section is not None and (
+        section.sections or not all(isinstance(b, Paragraph | ListItem) for b in section.blocks)
+    ):
+        raise _refuse("limitations", "table, code block or sub-heading in passage")
     seen: set[str] = set()
     out: list[dict[str, object]] = []
     for text in limitation_texts(document):
@@ -201,13 +212,45 @@ def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
     return reason
 
 
+def _identity(figure: Figure) -> tuple[Decimal, bool, str | None, str | None]:
+    return figure.value, figure.negative, figure.unit, figure.currency
+
+
+def _outside_is_plain(text: str, figure: Figure) -> bool:
+    start = figure.column - 1
+    outside = text[:start] + text[start + len(figure.shown) :]
+    if figure.currency is not None:
+        outside = outside.replace(figure.currency, "", 1)
+    if any(char.isalpha() for char in outside):
+        return False
+    return figure.currency is not None or not any(
+        unicodedata.category(char) == "Sc" for char in outside
+    )
+
+
+def _single_figure(text: str) -> Figure | None:
+    """The one figure both read modes agree on, when its unit, currency and surroundings are clear."""
+    written = read_figures(text, passage=False)
+    masked = read_figures(text, passage=True)
+    if len(written) != 1 or len(masked) != 1:
+        return None
+    figure = written[0]
+    if _identity(figure) != _identity(masked[0]):
+        return None
+    if _UNRECOGNISED in (figure.unit, figure.currency):
+        return None
+    return figure if _outside_is_plain(text, figure) else None
+
+
 def cell(
     text: str,
 ) -> tuple[dict[str, object] | None, tuple[str | None, str | None] | None]:
     """One table cell as the slice's Cell, and the (unit, currency) of the figure behind `at`.
 
     `at` is set only when the text read as written and the text read with dates and period labels
-    masked each hold exactly one figure and it is the same figure; otherwise `at` is None.
+    masked each hold exactly one figure and it is the same figure; otherwise `at` is None. It is
+    also None when the figure's unit or currency is unrecognised, or when text outside the figure
+    holds a letter (once its currency code is removed) or a currency symbol the figure did not read.
     """
     if not isinstance(text, str):
         raise TypeError("a cell is read from a str")
@@ -215,19 +258,8 @@ def cell(
         return None, None
     if isinstance(read_value(text), Gap):
         return {"kind": "gap", "reason": text}, None
-    written = read_figures(text, passage=False)
-    masked = read_figures(text, passage=True)
-    if len(written) != 1 or len(masked) != 1:
-        return {"kind": "value", "text": text, "at": None}, None
-    figure = written[0]
-    other = masked[0]
-    same = (figure.value, figure.negative, figure.unit, figure.currency) == (
-        other.value,
-        other.negative,
-        other.unit,
-        other.currency,
-    )
-    if not same:
+    figure = _single_figure(text)
+    if figure is None:
         return {"kind": "value", "text": text, "at": None}, None
     at: Decimal = figure.value.copy_negate() if figure.negative else figure.value
     return {"kind": "value", "text": text, "at": at}, (figure.unit, figure.currency)
