@@ -207,6 +207,13 @@ def _tracked(text: str, *, bare: bool) -> list[_Tracked]:
     return sorted(found, key=lambda tracked: tracked.column)
 
 
+def _clean_label(cleaned: dict[str, str], raw: str) -> str:
+    found = cleaned.get(raw)
+    if found is None:
+        found = cleaned[raw] = echo(_one_line(raw))
+    return found
+
+
 def lost_values(
     previous: HandoffDocument, new: HandoffDocument, named: Sequence[Finding]
 ) -> tuple[LostValue, ...]:
@@ -216,6 +223,7 @@ def lost_values(
     tables = _tables(previous)
     seen: set[Hashable] = set()
     lost: list[LostValue] = []
+    cleaned: dict[str, str] = {}
     for line, text in sorted(nodes(previous, comments=False), key=lambda node: node[0]):
         label: str | None = None
         for tracked in _tracked(text, bare=(line, text) in tables.cells):
@@ -225,7 +233,8 @@ def lost_values(
                 continue
             seen.add(tracked.key)
             if label is None:
-                # Cleaned and cut once per node; the field's own cut leaves a cut label as it is.
-                label = echo(_one_line(tables.labels.get(line, text)))
+                # Cleaned and cut once per distinct label, so a row's cells share one pass;
+                # the field's own cut leaves a cut label as it is.
+                label = _clean_label(cleaned, tables.labels.get(line, text))
             lost.append(LostValue(line=line, value=tracked.value, label=label))
     return tuple(lost)
