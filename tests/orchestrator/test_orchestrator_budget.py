@@ -3,7 +3,7 @@
 
 from decimal import Decimal
 from fractions import Fraction
-from typing import Any
+from typing import Any, cast
 
 import orchestrator_budget_key as key
 import pytest
@@ -40,7 +40,7 @@ def _line(row: key.Line) -> CallLine | CompactionLine:
         return CallLine(
             call=call,
             state=state,
-            hold_usd=_money(hold),  # type: ignore[arg-type]
+            hold_usd=cast(Decimal, _money(hold)),
             billed_usd=_money(billed),
         )
     _, call, event_id, outcome, supersedes, billed = row
@@ -137,8 +137,9 @@ def test_d6_bad_sets_are_refused(name: str) -> None:
 
 
 def test_d9_a_foreign_item_in_the_lines_is_refused() -> None:
+    foreign: list[Any] = [("call", "CP-0/0", "ok", Decimal(1), Decimal(1))]
     with pytest.raises(BudgetDataError):
-        total([("call", "CP-0/0", "ok", Decimal(1), Decimal(1))])  # type: ignore[list-item]
+        total(foreign)
 
 
 def test_d9_the_valid_key_rows_build() -> None:
