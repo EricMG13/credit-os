@@ -41,15 +41,16 @@ pass, no High or Medium.
 
 **Ledger** (wave 1; agent `mx-feature` unless named; fix rounds, gates first pass): T1 0, n; T1b 0,
 y; T1c 0, y; T2 0, y; T3 0, n; T4 0, n; T5 0, y; T5b 0, y; T7 0, y; T7b 0, n/a; T7c 1, n/a; T7d 2,
-n/a (dropped); T8 0, y. Gap severity: task 1 0, y; fix round 1, y.
+n/a (dropped); T8 0, y. Gap severity: task 1 0, n (lint failed
+once on the first run); fix round 1, y.
 
 **Owner rules applied this night** (relayed by the lead coordinator): coordinators resolve all
 decisions (rulings in decision 0013 and the coordinators' rulings files); fast tests per task, full
 gates once per PR (a green CI run on the pushed head stands in, by the back end's slot rule 10);
 heavy runs two at a time with step 2A first; sub-session leads on Opus 5.5 at xhigh; every Low and
-Info finding waits for one batch after the final roadmap phase (the design track's running list
-holds 23); throttle to the critical path until the 2026-11-18 reset. Sweep wave 2, slice contract
-3 and the states 2 build wait for the reset.
+Info finding waits for one batch after the final roadmap phase; throttle to the critical path until the 2026-11-18 reset. Sweep wave 2, slice contract
+3 and the states 2 build wait for the reset. The design track's running list of held Lows
+and Infos has 23 rows (coordinator's count).
 
 **Rule breaches recorded:** five hand-mutant runs in the sweep ran before the machine-wide slot
 queue covered them; one implementer created and deleted a stray file under `/tmp`; the gap severity
