@@ -1662,8 +1662,14 @@ describe("Module, where the gaps link is drawn", () => {
     expect(links).toHaveLength(1);
     const link = links[0] as HTMLElement;
     expect(link.getAttribute("href")).toBe("#/library/brevane-marine/r-0412/evidence/gaps");
-    const row = link.parentElement as HTMLElement;
-    expect(within(row).getByText("Delivered")).toBeVisible();
+    // The heading row holds the module's name; the state and the link are one group inside it.
+    const row = screen.getByRole("heading", { level: 2, name: "Source readiness" })
+      .parentElement as HTMLElement;
+    const state = within(row).getByText("Delivered");
+    expect(state).toBeVisible();
+    const group = link.parentElement as HTMLElement;
+    expect(group.parentElement).toBe(row);
+    expect(group).toContainElement(state);
     expect(screen.queryByRole("region", { name: /Limitations/ })).toBeNull();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
