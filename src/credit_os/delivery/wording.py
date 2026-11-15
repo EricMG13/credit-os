@@ -43,6 +43,7 @@ ENTRY_KEYS = frozenset(
         "overview.metrics_label",
         "overview.modules_summary",
         "overview.gaps_link",
+        "records.chart_gap",
     }
 )
 STATE_WORDS = frozenset(
