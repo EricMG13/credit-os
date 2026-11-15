@@ -44,15 +44,42 @@ MODULES: tuple[tuple[str, str, str], ...] = (
 UNKNOWN_CODES: tuple[str, ...] = ("CP-9", "cp-1", "CP-1 ", "", "CP-1a")
 
 # check_id: accepted as given (grammar [A-Za-z0-9._-]{1,128}, not "." or "..").
-IDS_ACCEPTED: tuple[str, ...] = ("nbg", "r-0001", "2025-03-31", "a.", "CON", "nul.md", "Ab", "a" * 128, "_", "-", "...")
+IDS_ACCEPTED: tuple[str, ...] = (
+    "nbg",
+    "r-0001",
+    "2025-03-31",
+    "a.",
+    "CON",
+    "nul.md",
+    "Ab",
+    "a" * 128,
+    "_",
+    "-",
+    "...",
+)
 # check_id: refused with DeliveryRefused.
-IDS_REFUSED: tuple[str, ...] = (".", "..", "", "a/b", "a\\b", "a%2e", "a b", "a\n", "\u00e9", "a" * 129, "a:b", "#a")
+IDS_REFUSED: tuple[str, ...] = (
+    ".",
+    "..",
+    "",
+    "a/b",
+    "a\\b",
+    "a%2e",
+    "a b",
+    "a\n",
+    "\u00e9",
+    "a" * 129,
+    "a:b",
+    "#a",
+)
 
 # Two invented delivery SHA-256 values (64 lower-case hex each).
 D1 = "ab" * 32
 D2 = "cd" * 32
 WINDOWS_RESERVED: frozenset[str] = frozenset(
-    {"con", "prn", "aux", "nul"} | {f"com{n}" for n in range(1, 10)} | {f"lpt{n}" for n in range(1, 10)}
+    {"con", "prn", "aux", "nul"}
+    | {f"com{n}" for n in range(1, 10)}
+    | {f"lpt{n}" for n in range(1, 10)}
 )
 
 # (issuer, run, delivery) -> the 20-character folder, by shasum. Rows 0 and 1: two deliveries of one
@@ -67,19 +94,39 @@ FOLDERS: tuple[tuple[str, str, str, str], ...] = (
     ("a" * 128, "z", D1, "afec31244d0085b1a6e6"),
 )
 # folder refuses a delivery that is not exactly 64 characters of [0-9a-f] (DeliveryRefused).
-DELIVERIES_REFUSED: tuple[str, ...] = ("ab" * 31 + "a", "ab" * 32 + "a", "AB" * 32, "gh" * 32, "", " " + "ab" * 31 + "a", "ab" * 31 + "a\n")
+DELIVERIES_REFUSED: tuple[str, ...] = (
+    "ab" * 31 + "a",
+    "ab" * 32 + "a",
+    "AB" * 32,
+    "gh" * 32,
+    "",
+    " " + "ab" * 31 + "a",
+    "ab" * 31 + "a\n",
+)
 
 # hash_address(*segments) -> "#/" + "/".join(segments).
 HASH_ADDRESSES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("library", "home"), "#/library/home"),
     (("library", "nbg", "history"), "#/library/nbg/history"),
     (("library", "nbg", "r-0001", "overview"), "#/library/nbg/r-0001/overview"),
-    (("library", "nbg", "r-0001", "modules", "liquidity"), "#/library/nbg/r-0001/modules/liquidity"),
-    (("library", "CON", "a.", "evidence", "trace", "T-0001"), "#/library/CON/a./evidence/trace/T-0001"),
+    (
+        ("library", "nbg", "r-0001", "modules", "liquidity"),
+        "#/library/nbg/r-0001/modules/liquidity",
+    ),
+    (
+        ("library", "CON", "a.", "evidence", "trace", "T-0001"),
+        "#/library/CON/a./evidence/trace/T-0001",
+    ),
     (("model", "nbg", "r-0001", "front"), "#/model/nbg/r-0001/front"),
 )
 # hash_address refusals (DeliveryRefused): no segment (a bare "#/"), and any segment check_id refuses.
-HASH_REFUSED: tuple[tuple[str, ...], ...] = ((), ("library", ".."), ("library", ""), ("library", "a/b"), ("model", "%00"))
+HASH_REFUSED: tuple[tuple[str, ...], ...] = (
+    (),
+    ("library", ".."),
+    ("library", ""),
+    ("library", "a/b"),
+    ("model", "%00"),
+)
 
 # forecast_href(issuer, run): exactly C5's form.
 FORECAST_HREFS: tuple[tuple[str, str, str], ...] = (
