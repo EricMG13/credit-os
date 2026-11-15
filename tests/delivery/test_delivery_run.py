@@ -162,6 +162,4 @@ def test_an_as_of_that_is_not_plain_iso_is_not_a_real_date(as_of: str) -> None:
 def test_output_ignores_the_mapping_order(order: list[str]) -> None:
     documents = documents_of(MAIN)
     shuffled = {code: documents[code] for code in order}
-    assert run.build_run(facts_of(MAIN), shuffled, W) == run.build_run(
-        facts_of(MAIN), documents, W
-    )
+    assert run.build_run(facts_of(MAIN), shuffled, W) == run.build_run(facts_of(MAIN), documents, W)
