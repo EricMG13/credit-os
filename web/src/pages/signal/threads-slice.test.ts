@@ -1,17 +1,7 @@
 // The reader's rules for threads and their comments (mock frames "Thread panel" and "Thread archived").
 import fixture from "../../../fixtures/signal.json";
 import { readSlice, type SignalThread } from "./slice";
-
-type Scene = (typeof fixture.slice.scenes)[number];
-
-/** A copy of the fixture whose "main" scene (index 0) is changed by `change`. */
-function withMain(change: (scene: Scene) => void): unknown {
-  const copy = structuredClone(fixture.slice);
-  const main = copy.scenes[0];
-  if (main === undefined) throw new Error("the fixture has a first scene");
-  change(main);
-  return copy;
-}
+import { withMain, type Scene } from "./test-helpers";
 
 /** The scene's threads; the fixture's empty lists in other scenes type as never[], so the type is stated. */
 const threadsOf = (scene: Scene) => scene.snapshot.threads as SignalThread[];

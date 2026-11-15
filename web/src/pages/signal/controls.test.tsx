@@ -3,19 +3,9 @@
 // lists (main For you: top corvane, tessaly, halvorsen, brightwell; latest corvane, tessaly,
 // brightwell, halvorsen; waiting oakhaven, pellant, brightwell-clearance, oakhaven-affirm; older
 // lenmark, karsten).
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
+import { show } from "./test-helpers";
 
 /** A copy of the fixture slice with scene `id`'s freshness replaced. */
 function withFreshness(id: string, freshness: Record<string, unknown>): unknown {
@@ -60,10 +50,6 @@ const search = () => screen.getByRole("textbox", { name: "Search stories" });
 const type = (value: string) => fireEvent.change(search(), { target: { value } });
 
 describe("the freshness line", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("says Sources checked with the delivered time, with a filled circle", () => {
     const { container } = show("/signal/reader/feed/for-you");
     expect(screen.getByText("Sources checked 6 min ago")).toBeInTheDocument();
@@ -163,10 +149,6 @@ describe("the freshness line", () => {
 });
 
 describe("Top or Latest", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("starts on Top for For you, and Latest reorders by the view's latest ids", () => {
     show("/signal/main/feed/for-you");
     const group = screen.getByRole("radiogroup", { name: "Order of stories" });
@@ -224,10 +206,6 @@ describe("Top or Latest", () => {
 });
 
 describe("the kind tabs", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("offers All, Regulators, News, Ratings and Research, All selected", () => {
     show("/signal/main/feed/for-you");
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
@@ -286,10 +264,6 @@ describe("the kind tabs", () => {
 });
 
 describe("the search", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("is a field named Search stories with that placeholder", () => {
     show("/signal/main/feed/for-you");
     expect(search()).toHaveAttribute("placeholder", "Search stories");
@@ -366,10 +340,6 @@ describe("the search", () => {
 });
 
 describe("new stories and Show older", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("draws the pill with the delivered label; Show puts the waiting entries on top and removes it", () => {
     show("/signal/main/feed/for-you");
     expect(screen.getByText("4 new stories")).toBeInTheDocument();
@@ -416,10 +386,6 @@ describe("new stories and Show older", () => {
 });
 
 describe("focus after the list grows", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   const headingOf = (headline: string) => screen.getByRole("heading", { level: 2, name: headline });
 
   it("moves to the first older story after Show older", () => {

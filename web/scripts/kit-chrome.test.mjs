@@ -111,3 +111,19 @@ test("a first line that is not a port from 1 to 65535 is not ready", async () =>
   writeFileSync(portFile, "65535\n/x");
   assert.equal(await readDebugPort(profile, { wait: script(), tries: 3 }), "65535");
 });
+
+test("the last allowed wait is followed by one more read", async () => {
+  const wait = script(undefined, undefined, put("9222\n/x"));
+  assert.equal(await readDebugPort(profile, { wait, tries: 3 }), "9222");
+  assert.equal(wait.calls, 3);
+});
+
+test("a first line that is a number but not whole digits is not ready", async () => {
+  for (const line of ["1e3", "0x50", "+80"]) {
+    writeFileSync(portFile, `${line}\n/x`);
+    await assert.rejects(
+      readDebugPort(profile, { wait: script(), tries: 3 }),
+      new RegExp(`debugging port \\(last seen: first line "${line.replace("+", "\\+")}"\\)`),
+    );
+  }
+});

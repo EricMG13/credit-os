@@ -117,6 +117,22 @@ function oneOf<T extends string>(o: Rec, key: string, path: string, allowed: rea
   return found;
 }
 
+/** A word of the list or null; the refusal names both, at the same path as `oneOf`. */
+function oneOfOrNull<T extends string>(
+  o: Rec,
+  key: string,
+  path: string,
+  allowed: readonly T[],
+): T | null {
+  const value = own(o, key);
+  if (value === null) return null;
+  const found = allowed.find((word) => word === value);
+  if (found === undefined) {
+    throw new SliceError(child(path, key), `null or one of ${allowed.join(", ")}`);
+  }
+  return found;
+}
+
 function list<T>(
   o: Rec,
   key: string,
@@ -1723,10 +1739,15 @@ function readGapGroup(value: unknown, path: string, seats: Seats): GapTable["gro
       `${String(rows.length)}, the number of rows it holds`,
     );
   }
-  return { severity: oneOf(g, "severity", path, GAP_SEVERITIES), count, rows };
+  const severity = oneOfOrNull(g, "severity", path, GAP_SEVERITIES);
+  return { severity, count, rows };
 }
 
-/** A run with no gap has no group. Groups run High, Medium, Low as delivered, none twice; a gap's id is the run's own, in one group only. */
+/** Where a group stands in the order: High, Medium, Low, then the one group with no severity. */
+const gapRank = (severity: GapSeverity | null): number =>
+  severity === null ? GAP_SEVERITIES.length : GAP_SEVERITIES.indexOf(severity);
+
+/** A run with no gap has no group. Groups run High, Medium, Low as delivered, none twice, then at most one with no severity, last; a gap's id is the run's own, in one group only. */
 function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
   const t = rec(value, path);
   const columnsPath = child(path, "columns");
@@ -1736,10 +1757,7 @@ function readGapTable(value: unknown, path: string, seats: Seats): GapTable {
   const seen = new Set<string>();
   groups.forEach((group, g) => {
     const before = groups[g - 1];
-    if (
-      before !== undefined &&
-      GAP_SEVERITIES.indexOf(group.severity) <= GAP_SEVERITIES.indexOf(before.severity)
-    ) {
+    if (before !== undefined && gapRank(group.severity) <= gapRank(before.severity)) {
       throw new SliceError(
         child(nth(groupsPath, g), "severity"),
         "a severity after the one before it",

@@ -519,12 +519,12 @@ export type GapRow = {
   where: { page: "overview" | "module"; label: string };
 };
 
-/** The Gaps tab: its title, sentence and heads, then groups by severity as delivered; `count` is delivered text. */
+/** The Gaps tab: its title, sentence and heads, then groups by severity as delivered, the group with no severity (`null`) last; `count` is delivered text. */
 export type GapTable = {
   title: string;
   description: string;
   columns: Record<"id" | "gap" | "module" | "reason" | "shownAs", string>;
-  groups: readonly { severity: GapSeverity; count: string; rows: readonly GapRow[] }[];
+  groups: readonly { severity: GapSeverity | null; count: string; rows: readonly GapRow[] }[];
 };
 
 /** Five column heads, as the reader guarantees them. */

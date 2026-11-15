@@ -2,20 +2,8 @@
 // written out; each case changes the fixture's main scene (AI off) or ai-on in one place.
 import fixture from "../../../fixtures/signal.json";
 import { readSlice } from "./slice";
+import { change, type Json, type Members } from "./test-helpers";
 
-type Json = { [key: string]: Json } | Json[] | string | number | boolean | null;
-type Members = { [key: string]: Json };
-
-/** A copy of the fixture slice with scene `scene` changed at `path` (`undefined` deletes the member). */
-function change(scene: number, path: (string | number)[], value: Json | undefined): unknown {
-  const copy = structuredClone(fixture.slice) as { scenes: Json[] };
-  let at: Json = copy.scenes[scene] ?? null;
-  for (const step of path.slice(0, -1)) at = (at as Members)[step] ?? null;
-  const last = path[path.length - 1] ?? "";
-  if (value === undefined) Reflect.deleteProperty(at as Members, last);
-  else (at as Members)[last] = value;
-  return copy;
-}
 const invalid = (reason: string) => ({ kind: "invalid", reason });
 const MAIN = 0;
 const AI_ON = 2;

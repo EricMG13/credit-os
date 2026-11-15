@@ -12,6 +12,7 @@ from credit_os.sources import html as reader
 from credit_os.sources.html import _encoding, _LineText, html_pages
 
 _NO_CHARSET = "not valid UTF-8 and declares no charset in its first 4,096 bytes"
+_CUT = "declares a charset whose name may be cut at byte 4,096"
 _E_ACUTE = b"\xc3\xa9"
 
 _ACCEPTED_ROWS = [
@@ -197,6 +198,23 @@ def test_a_declared_name_outside_the_table_is_never_looked_up(
     assert str(caught.value) == "f.html: declares a charset that is not accepted: 'klingon'"
     assert caught.value.__cause__ is None
     assert "klingon" not in names
+
+
+def test_a_cut_name_is_refused_before_any_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
+    real = codecs.lookup
+    names: list[str] = []
+
+    def recording(name: str) -> codecs.CodecInfo:
+        names.append(name)
+        return real(name)
+
+    monkeypatch.setattr(codecs, "lookup", recording)
+    with pytest.raises(SourceUnreadable) as caught:
+        _encoding("f.html", b" " * 4071 + b'<meta charset="iso-8859-15"><p>price \xa4 100</p>')
+    assert str(caught.value) == "f.html: " + _CUT
+    assert caught.value.__cause__ is None
+    # only the UTF-8 trial decode looks a codec up; the declared name never is
+    assert names == ["utf-8"]
 
 
 def test_constants() -> None:
@@ -403,6 +421,13 @@ _ONE_PAGE_ROWS = [
     ),
     pytest.param(b"<p>&#" + b"0" * 29 + b"65;</p>", "A\n", "utf-8", id="d1"),
     pytest.param(b"<p>&#x" + b"0" * 29 + b"41;</p>", "A\n", "utf-8", id="d2"),
+    # cut-control: the name ends at byte 4,095, one before the limit, and is read
+    pytest.param(
+        b" " * 4070 + b'<meta charset="iso-8859-1"><p>price \xa4 100</p>',
+        "price \N{CURRENCY SIGN} 100\n",
+        "iso-8859-1",
+        id="cut-control",
+    ),
 ]
 
 
@@ -461,6 +486,21 @@ _HTML_REFUSALS = [
     pytest.param(b"<p>caf\xe9\x00</p>", _NO_CHARSET, id="order-decoding-first"),
     pytest.param(
         b"<p>a\x00&#" + b"1" * 32 + b";</p>", "control character U+0000", id="order-nul-before-long"
+    ),
+    # cut-1: the name runs past byte 4,096, and the window holds iso-8859-1
+    pytest.param(
+        b" " * 4071 + b'<meta charset="iso-8859-15"><p>price \xa4 100</p>', _CUT, id="cut-1"
+    ),
+    # cut-2: the window holds latin1
+    pytest.param(b" " * 4075 + b'<meta charset="latin10"><p>price \xa4 100</p>', _CUT, id="cut-2"),
+    # cut-3: an accepted name that ends exactly at byte 4,096 is refused too, because the
+    # window is the same as cut-1's
+    pytest.param(
+        b" " * 4071 + b'<meta charset="iso-8859-1"><p>price \xa4 100</p>', _CUT, id="cut-3"
+    ),
+    # cut-4: the whole name ends at byte 4,096
+    pytest.param(
+        b" " * 4070 + b'<meta charset="iso-8859-15"><p>price \xa4 100</p>', _CUT, id="cut-4"
     ),
 ]
 

@@ -1,21 +1,10 @@
 // The regulatory case's stage tracker, the rating move and the digest card (mock feed frames 1, 3
 // and 4, digests frame 2). Expected wording is the mock's, not read from the code.
 import { render, screen, within } from "@testing-library/react";
-import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
 import { NumberedPanel } from "./parts/NumberedPanel";
 import { StageProgress } from "./parts/StageProgress";
 import { Tags } from "./parts/Tags";
-import type { LoadResult } from "../../data";
-
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
+import { show } from "./test-helpers";
 
 function card(headline: string) {
   const heading = screen.getByRole("heading", { level: 2, name: headline });
@@ -33,10 +22,6 @@ const WEEKLY = "Leveraged credit: the week to 13 November";
 const DAILY = "Rating actions: 12 November";
 const NOTHING = "Rating actions: 11 November";
 const STAGES = ["Opened", "Initial review", "In-depth review", "Decision"];
-
-afterEach(() => {
-  window.location.hash = "";
-});
 
 describe("the stage tracker", () => {
   it("draws the current stage, the delivered label, the track and the four stage names", () => {

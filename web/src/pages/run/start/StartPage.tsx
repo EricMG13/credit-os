@@ -1,7 +1,6 @@
 import { useId } from "react";
-import { Button, styles } from "@/components/base/buttons/button";
+import { Button } from "@/components/base/buttons/button";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
 import { TextLink } from "../TextLink";
 import { readSlice, type StartDraft } from "../slice";
@@ -14,31 +13,6 @@ import { Start, Submit } from "./Start";
 import { Started } from "./Started";
 import { Stepper } from "./Stepper";
 
-function LinkButton({
-  href,
-  primary,
-  children,
-}: {
-  href: string;
-  primary?: boolean;
-  children: string;
-}) {
-  return (
-    <a
-      href={href}
-      className={cx(
-        styles.common.root,
-        styles.sizes.md.root,
-        styles.colors[primary === true ? "primary" : "secondary"].root,
-      )}
-    >
-      <span data-text className="px-0.5">
-        {children}
-      </span>
-    </a>
-  );
-}
-
 function Actions({ draft }: { draft: StartDraft }) {
   const reasonId = useId();
   const { previous, next, nextBlocked } = draft;
@@ -49,7 +23,9 @@ function Actions({ draft }: { draft: StartDraft }) {
           Previous
         </Button>
       ) : (
-        <LinkButton href={`#/run/start/${previous}`}>Previous</LinkButton>
+        <Button href={`#/run/start/${previous}`} color="secondary">
+          Previous
+        </Button>
       )}
       <span className="text-sm text-text-tertiary">{draft.position}</span>
       <div className="flex flex-wrap items-center gap-3">
@@ -71,9 +47,7 @@ function Actions({ draft }: { draft: StartDraft }) {
                 {draft.nextLabel}
               </Button>
             ) : (
-              <LinkButton primary href={`#/run/start/${next}`}>
-                {draft.nextLabel}
-              </LinkButton>
+              <Button href={`#/run/start/${next}`}>{draft.nextLabel}</Button>
             )}
           </>
         )}
@@ -93,7 +67,9 @@ function Empty({ title, action }: { title: string; action?: boolean }) {
       </EmptyState.Content>
       {action === true ? (
         <EmptyState.Footer>
-          <LinkButton href="#/run">Go to Run</LinkButton>
+          <Button href="#/run" color="secondary">
+            Go to Run
+          </Button>
         </EmptyState.Footer>
       ) : null}
     </EmptyState>

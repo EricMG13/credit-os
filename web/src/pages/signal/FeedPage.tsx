@@ -6,10 +6,9 @@ import { useEffect, useRef, useState, type Ref } from "react";
 import { Star01 } from "@untitledui/icons";
 import { Alert } from "@/components/alert/Alert";
 import { Button } from "@/components/base/buttons/button";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { DigestCard } from "./DigestCard";
 import { FeedControls, OrderToggle, type FeedKind, type FeedOrder } from "./FeedControls";
-import { FeedAlert, FeedEmpty, FeedSkeleton, type EmptyContext } from "./FeedStates";
+import { EmptyNote, FeedAlert, FeedEmpty, FeedSkeleton, type EmptyContext } from "./FeedStates";
 import { FreshnessBadge } from "./parts/FreshnessBadge";
 import { PageTitle } from "./parts/PageTitle";
 import { Pill } from "./parts/Pill";
@@ -93,20 +92,6 @@ function visible(entries: FeedEntry[], kind: FeedKind, query: string): FeedEntry
   });
 }
 
-function NoMatch({ title, hint }: { title: string; hint: string }) {
-  return (
-    <EmptyState className="mt-4 py-12">
-      <EmptyState.Header>
-        <EmptyState.FeaturedIcon />
-      </EmptyState.Header>
-      <EmptyState.Content>
-        <EmptyState.Title>{title}</EmptyState.Title>
-        <EmptyState.Description>{hint}</EmptyState.Description>
-      </EmptyState.Content>
-    </EmptyState>
-  );
-}
-
 /** The entries in the order given; none means nothing is drawn yet. */
 function EntryList({
   entries,
@@ -145,6 +130,39 @@ function EntryList({
       )}
     </div>
   );
+}
+
+/** The stories that pass the filter; when none does, the words for why: the search, the kind, or an empty view. */
+function ShownOrNone({
+  shown,
+  kind,
+  needle,
+  empty,
+  ...list
+}: {
+  shown: FeedEntry[];
+  kind: FeedKind;
+  needle: string;
+  empty: EmptyContext;
+  scene: SignalScene;
+  writer: boolean;
+  save: SignalSave;
+  onShared: () => void;
+  listRef: Ref<HTMLDivElement>;
+}) {
+  if (shown.length > 0) return <EntryList entries={shown} {...list} />;
+  if (needle !== "") {
+    return (
+      <EmptyNote
+        title={`No story matches ${needle}`}
+        hint="Check the spelling or clear the search."
+      />
+    );
+  }
+  if (kind !== "all") {
+    return <EmptyNote title="No stories of this kind here" hint="Choose All to see every kind." />;
+  }
+  return <FeedEmpty context={empty} />;
 }
 
 export function FeedPage({
@@ -250,9 +268,12 @@ export function FeedPage({
       >
         {loading ? (
           <FeedSkeleton />
-        ) : shown.length > 0 ? (
-          <EntryList
-            entries={shown}
+        ) : (
+          <ShownOrNone
+            shown={shown}
+            kind={kind}
+            needle={needle}
+            empty={empty}
             scene={scene}
             writer={writer}
             save={save}
@@ -261,15 +282,6 @@ export function FeedPage({
             }}
             listRef={list}
           />
-        ) : needle !== "" ? (
-          <NoMatch
-            title={`No story matches ${needle}`}
-            hint="Check the spelling or clear the search."
-          />
-        ) : kind !== "all" ? (
-          <NoMatch title="No stories of this kind here" hint="Choose All to see every kind." />
-        ) : (
-          <FeedEmpty context={empty} />
         )}
         {loading || older.length === 0 || olderShown ? null : (
           <div className="mt-4 flex justify-center">

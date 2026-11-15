@@ -1,28 +1,12 @@
 // Settings, Topics (mock frame 4) and Digests (frame 5). Expected wording and sample values are the
 // mock frames'; the safety reasons are decision 0006 ruling 21 and decision 0003 ruling 9.
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { fireEvent, screen, within } from "@testing-library/react";
+import { show, page } from "./test-helpers";
 
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
-
-const page = () => within(document.getElementById("signal-content") as HTMLElement);
 const tags = (name: string) =>
   within(page().getByRole("list", { name }))
     .getAllByRole("listitem")
     .map((li) => li.textContent);
-
-afterEach(() => {
-  window.location.hash = "";
-});
 
 describe("Topics (frame 4)", () => {
   it("draws each topic with its week line, keywords and kinds as tags", () => {
