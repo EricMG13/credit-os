@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from credit_os.checks.figures import CODE
@@ -96,6 +96,9 @@ def test_refused_names_the_rule_only(row: dict[str, Any]) -> None:
     with pytest.raises(DeliveryRefused) as raised:
         run_row(row)
     message = str(raised.value)
+    if "rule" in row:
+        assert message == row["rule"]
+        return
     assert message
     assert CODE.search(message) is None
     for doc in row["documents"].values():
@@ -173,6 +176,7 @@ def keys_of(value: object) -> list[str]:
 REASONS = st.text(alphabet="abcdefghijklmnopqrstuvwxyz .,", min_size=1, max_size=80)
 
 
+@example(reason="id")
 @given(reason=REASONS)
 def test_failed_reason_is_word_for_word_and_never_a_key(reason: str) -> None:
     facts = RunFacts(
@@ -189,7 +193,18 @@ def test_failed_reason_is_word_for_word_and_never_a_key(reason: str) -> None:
     assert body["kind"] == "blocked"
     assert body["reason"] == reason
     assert modules.module_items(got)[0]["lead"] == reason
-    assert reason not in keys_of(list(got))
+    assert keys_of(list(got)) == [
+        "id",
+        "name",
+        "state",
+        "body",
+        "kind",
+        "reason",
+        "note",
+        "gapsLink",
+        "label",
+    ]
+    assert keys_of(modules.module_items(got)) == ["title", "lead", "state", "module"]
 
 
 def test_reason_with_a_code_is_refused_whatever_the_outcome() -> None:

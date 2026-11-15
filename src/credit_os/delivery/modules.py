@@ -6,7 +6,7 @@ body is the passages `passages` selects, the records `records` writes and the tr
 `traces` gave each item, placed. Output follows `facts.modules` order, never a mapping's order.
 
 R24 condition 1: a run is left out (`DeliveryRefused`, naming the rule only and never input text)
-when a module code is unknown or outside the catalogue, a handoff is in the earlier format or
+when a module has no kind in the catalogue (7b-19; CP-8 is the one fixed prose entry), a handoff is in the earlier format or
 cannot be read, a handoff is blocked only by its front matter, a delivered body has no finding or
 no limitation (R1, until a later round exempts data modules), a store reason holds a module,
 table or digest code (C14), or a passage or record the builders refuse. The caller leaves that run
@@ -36,7 +36,8 @@ _DELIVERED_WITH_GAPS = "Delivered with gaps"
 _NOT_ASSESSABLE = "Not assessable"
 _NOT_RUN = "Not run"
 
-_KINDS = {module.id: module.kind for module in CATALOGUE}
+# Ruling 7b-19: CP-8 has no catalogue kind but writes a Bottom line, so it is delivered as prose.
+_KINDS = {module.id: module.kind for module in CATALOGUE} | {"CP-8": "prose"}
 
 
 def _refuse(rule: str) -> DeliveryRefused:
@@ -155,7 +156,7 @@ def _module(
 ) -> dict[str, object]:
     module = names.module(facts.code)
     if facts.code not in _KINDS:
-        raise _refuse("a module code outside the catalogue")
+        raise _refuse(f"a module with no kind in the catalogue: {facts.code}")
     count = gap_rows.get(facts.code, 0)
     if facts.outcome == "accepted":
         state, body = _accepted(facts, documents, traced, count, wording)
