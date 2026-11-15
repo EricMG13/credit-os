@@ -223,6 +223,14 @@ describe("Limitations page", () => {
   });
 
   describe("trace controls", () => {
+    // The Show sources store lives for the session, so each test starts from off through the switch.
+    beforeEach(() => {
+      const { unmount } = renderAt(fixtureSlice());
+      const sw = screen.getByRole("switch", { name: "Show sources" });
+      if ((sw as HTMLInputElement).checked) fireEvent.click(sw);
+      unmount();
+    });
+
     it("draws one per limitation, named by what it traces, hidden until revealed", () => {
       renderAt(fixtureSlice());
       const controls = LIMITATIONS.map(([title]) =>
