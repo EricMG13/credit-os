@@ -38,7 +38,8 @@ Asked whether to adopt its recommendation, the owner answered "Adopt, rework #18
    (the net, best effort); Windows 8.3 short names; a case mapping that changes length (`ß`
    to `SS`); a bare user name (masking it would rewrite ordinary words); a value split across
    strings; other encodings (octal, HTML references, base64); the text of an `ok` reply; U+0345
-   (ypogegrammeni) composing under NFC after alpha, eta or omega; and (coordinator ruling 26,
+   (ypogegrammeni) standing for an iota before a mark, or composing after alpha, eta or omega, in
+   NFC and in NFD alike; and (coordinator ruling 26,
    2026-11-15) a known name given in NFD that ends in a combining mark may leave that one mark
    visible after the mask, in each encoding and for the last two folders. No letter of the name
    is left.

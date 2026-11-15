@@ -355,7 +355,7 @@ are test inputs, not stand-ins in source. A PR also follows the rulings (R1 to R
 | 3 | The module table, ids, `#/` addresses, download names, the folder key, the Python check of C5 and C6 | Merged code | Now | P, A |
 | 4a | `handoff/`: the lead-label reader | Merged code | Now | P |
 | 4b | Passages and cells: bottom line, findings, contrary and change view, limitations, blocked body; D1's scan | 4a | After 4a | P, A |
-| 5 | The wording file with its schema, the templates, display dates, the state table (the states that have a word only, R6) | Merged code (R6, R15) | Now | P |
+| 5 | The wording file with its schema, the templates, display dates, the state table (the worded states, and the four R6 pairs with the word null, WB5-5) | Merged code (R6, R15) | Now | P |
 | 6 | Traces, the Evidence trace table and the jump list; no gap rows | 4b | After 4b | P, A |
 | 6b | Gap rows, groups and their trace and jump entries | 6; slice contract 3's `severity: null` part (R4) | Waits for the gap-severity PR (R4a) | P, A |
 | 7 | `RunFacts`; modules, states, the Overview | 3, 4b, 5, 6; the lead-module table from 3A PR 1 (R2) | Waits for 3A PR 1 | P |
@@ -431,7 +431,7 @@ all decisions"). The owner can overturn any.
 | R3 | A `chartTable` block for a `Chart data:` section whose fixed header names a chart kind; a `gap` block for one with no readable table; nothing else until the methods write a mark (phase 6). The plain-table record kind the coordinator asked for is slice contract 3's, written by PR 8c | Module tables with no kind are only in the handoff download |
 | R4 | Delivery never ranks a gap. The methods add a severity column in phase 6. PR 6 ships traces and the jump list; the gap rows are PR 6b, which waits for the design track's gap-severity PR (R4a: a gap group may carry `severity: null`, drawn after the ranked groups). No library folder is written before PR 6b has merged: PR 12a's end-to-end case, PR 14 and any delivered file wait for it, so a run whose modules wrote gaps never reads "0" on a screen | No library is delivered until the gap-severity PR and PR 6b have merged |
 | R5 | A module is "Delivered with gaps" when its `## Gaps` table has at least one row | One rule; a module with a gap cell and no Gaps row reads "Delivered" |
-| R6 | Until PR 15, a run stopped for unknown spend, a charge above its hold, or by the operator gets no history entry and no card of its own; the delivery result names it. If it is the issuer's only run, the issuer is not in the library. PR 5's state table and PR 10's key hold the other states only. Never the nearest state | Such a run is invisible in the library until states 2 |
+| R6 | Until PR 15, a run stopped for unknown spend, a charge above its hold, or by the operator gets no history entry and no card of its own; the delivery result names it. If it is the issuer's only run, the issuer is not in the library. PR 5's state table and PR 10's key hold the other states; the table also holds the four R6 pairs (stopped with `spend_unknown`, `hold_exceeded` or `operator`; failed with `provider_raised`) with the word null, so a lookup names them and never refuses (WB5-5). Never the nearest state | Such a run is invisible in the library until states 2 |
 | R7 | Until slice contract 3 widens `SectionGap` to the sections with no source and fixes the case rule, no model run is written for a run that cannot fill a required section, so `forecastHref` is `null` (D7). The holdings `strips` have no source in any run, so that is every run. PR 13a waits for slice contract 3. PR 13a therefore starts after slice contract 3 and writes every case the kernel gives, two to four (R7a). Legacy owner tables (the fixed `ROW_CHARTS` headers) are the source where a module writes one | The Forecast tab is absent for every run until slice contract 3 |
 | R8 | Every derived number that needs arithmetic (elapsed minutes, sums of tokens, shares, positions, ticks, axis maxima) is a function in `model/display.py`, exact `Decimal` or `Fraction`, with hand-worked keys. A file size is read as an integer and only its display is computed (PR 1b: bytes to megabytes, half-up to one decimal, as the mock shows it). Counts are counted, not arithmetic. PR 1 splits into 1a (display text, JSON number) and 1b (positions and scales) | `model/` holds display functions that are not financial; one more PR |
 | R9 | Bytes come from a delivered folder checked against the 2A receipt. Its writer is to be 3A: 3A's plan on main names no `admit_delivery` call and no folder writer yet, so the coordinator adds both to that plan before PR 12b's brief. 3B writes the openable library folder itself; 4X copies the built front end around it and never rewrites `data.js` | 3A gains a folder writer; another target would move the atomic replace into 4X |
@@ -498,13 +498,54 @@ yes by the roadmap coordinator, not yet built):
   with `provider_failed` keeps the word Failed (key row 10's failed run is that one). R23a: the history `empty` sentence adds the next action ("Start a new
   run to write the first report."). Later PRs add their own entries. Every sentence is one JSON
   entry the owner can change; PR 5's body lists them.
-- W5a (PR 5, open as #377; whole-branch finding WB5-1): the store gives every rejected run an end
+- W5a (PR 5, merged as #377; whole-branch finding WB5-1; ruling 3B-W5a): the store gives every rejected run an end
   reason, any name `[a-z][a-z0-9_]*` up to 64 characters, and no plan closes the set. So
   `rejected` reads Rejected whatever its reason: its wording row has the end reason `"*"`, and
   `rejected` with no end reason is refused when the file loads. `*` stands only as a whole end
   reason (no store name can be `*`) and never beside an exact row of the same status; a state word
   is the exact pair's, else the status's `*` row. `finished`, `stopped` and `failed` are checked
-  the same way in PR 5, which says per status which reasons are closed and which take `*`.
+  the same way in PR 5, which says per status which reasons are closed and which take `*`. As
+  merged: `finished` {completed}, `stopped` {capped, interrupted, spend_unknown, hold_exceeded,
+  operator} and `failed` {provider_failed, provider_raised} are closed by 3A's plan (G3) and have
+  exact rows only; `created` and `running` carry no end reason. A pair no row matches is
+  `DeliveryRefused` naming the status and the end reason, never a crash and never a nearest state.
+- WB5-5 (PR 5, whole-branch note): the state table holds the four R6 pairs with the word null as
+  well as the worded states. The plan's PR table row 5 and R6 said "the states that have a word
+  only"; both now say what PR 5 merged (#377).
+- W2-a to W2-d (PR 2, #387; the coordinator): W2-a, `envelope` returns `schema`, `issuers`,
+  `library`, `model` in that order and never `run` or `signal` (D12). W2-b, the bytes are
+  `window.CREDIT_OS_DATA = JSON.parse("<literal>");` and a newline; the outer literal is the inner
+  compact JSON as a JSON string with every non-ASCII character a lowercase `\uXXXX` escape (a
+  surrogate pair above U+FFFF), `"` and `\` escaped and `<` as `\u003c`, so the file is ASCII only.
+  W2-c, value types: a mapping with `str` keys in the order it holds them (D5), tuples and lists as
+  arrays, `str`, booleans (tested before `int`), `None`, an `int` of absolute value at most
+  2^53 - 1 and a `Decimal` as `json_number` gives it (S7); a float, a non-`str` key, a lone
+  surrogate or an out-of-range value is `DeliveryRefused` naming the rule, never a value or a key
+  (S11). W2-d, `MAX_BYTES` is 16 MiB (16,777,216 bytes): a ceiling, not evidence of a real library's
+  size (the largest expected file in PR 2 is 273 bytes), and `check_size` states both numbers only.
+  The nested `tests/delivery/expected/writer/.gitattributes` (`*.js -text`) keeps the expected bytes
+  on a Windows checkout; there is no root `.gitattributes` (coordinator ruling 1).
+- 3B-4b-W1 (PR 4b, #382): the leak scan reads each field and also the shown join (`lead rest`,
+  `lead body`, `title text`), so a source name that a bold lead cuts in two is still refused.
+- W2-85 (PR 4b): the refusal of a sub-heading under the Bottom line passage stays.
+- 3B-P7a (PR 4b, spec amendment, counted `spec-amend=1`, not a fix round): `cell` reads the text with
+  dates and period labels as written and again with them masked, and sets `at` only when both reads
+  give exactly one figure and it is the same one. A period or date label (`FY2025`, `9M`, `Q3`,
+  `Q4 2024`, `H1 2025`) gives `at` null; a bare `2025` gives 2025. Found by mutation (probe
+  `4b-mut-4.py`).
+- 3B-4b-WB-M1 (PR 4b whole-branch M1): a table, code block or sub-heading under Limitations is
+  refused, as in the other passages (P1), never dropped.
+- 3B-4b-WB-M2 (PR 4b whole-branch M2): a cell's `at` is null when a letter or currency mark outside
+  the figure is not the currency it read, or when its unit or currency is unrecognised (`100 EUR`,
+  `1.7bn USD`, `5.0turns`); `EUR 100` and `€100` keep 100 in EUR. Positions of different
+  currencies or units are never drawn together.
+- R20 amendment (PR 3, #363): the folder key includes the delivery hash. S1's key row and step 7 of
+  the write order already say so; this line closes the records owed for #363.
+- Departures from the plan's review list, for the owner: PR 2 (#387) ran no `mx-precise` task
+  review and PR 4b (#382) no `mx-adversary` task review, both cut under the usage throttle. In PR 2
+  the `mx-adversary` task review ran; in PR 4b `mx-precise` ran, and the Opus whole-branch
+  adversarial review and the mutation count stood in for the cut `mx-adversary` pass on its money
+  and figures code.
 
 ## Not verified
 
