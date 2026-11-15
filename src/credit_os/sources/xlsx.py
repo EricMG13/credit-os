@@ -81,13 +81,22 @@ _PIECES = 4096  # a text's callbacks are joined into one string each time this m
 
 
 def _floor(raw: str, escape: Callable[[str], str]) -> int:
-    """Return a floor of `len(escape(raw))` without building it: the raw length for a text that
-    `escape` writes unescaped (`_plain`, or a formula without a control character), or, for a text
-    written as a `repr`, the sum of its pieces' escaped lengths, which a whole text's `repr` never
-    undercuts."""
+    """Return `len(escape(raw))` without building it: the raw length for a text that `escape`
+    writes unescaped (`_plain`, or a formula without a control character), or, for a text written
+    as a `repr`, the sum of its pieces' repr lengths, exactly. A piece holding `'` and no `"` is
+    repr'd with `"` quotes and its `'` bare; when the whole text holds both kinds, `repr` quotes it
+    with `'` and escapes each one, so those pieces' `'` are added."""
     if escape is not repr and _CONTROL.search(raw) is None:
         return len(raw)
-    return 2 + sum(len(repr(raw[at : at + _DECODE])) - 2 for at in range(0, len(raw), _DECODE))
+    escaped = "'" in raw and '"' in raw
+    total = 2
+    for at in range(0, len(raw), _DECODE):
+        piece = raw[at : at + _DECODE]
+        text = repr(piece)
+        total += len(text) - 2
+        if escaped and text[0] == '"':
+            total += piece.count("'")
+    return total
 
 
 def _equals(text: str) -> str:
