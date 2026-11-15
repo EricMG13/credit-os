@@ -215,7 +215,10 @@ def test_collisions() -> None:
             "notes/Filing.html and notes/filing.html differ only by case",
         ),
         (["a.txt", "a.txt"], "a.txt is listed twice"),
-        (["STRASSE.txt", "straße.txt"], "STRASSE.txt and straße.txt differ only by case"),
+        (
+            ["STRASSE.txt", "stra\N{LATIN SMALL LETTER SHARP S}e.txt"],
+            "STRASSE.txt and stra\N{LATIN SMALL LETTER SHARP S}e.txt differ only by case",
+        ),
         (
             ["r\u00e9sum\u00e9.txt", "re\u0301sume\u0301.txt"],
             "re\u0301sume\u0301.txt and r\u00e9sum\u00e9.txt differ only by case or Unicode form",
@@ -234,7 +237,10 @@ def test_collisions() -> None:
         ),
         (
             ["A" * 130 + ".txt", "a" * 130 + ".txt"],
-            "A" * 120 + "… and " + "a" * 120 + "… differ only by case",
+            "A" * 120
+            + "\N{HORIZONTAL ELLIPSIS} and "
+            + "a" * 120
+            + "\N{HORIZONTAL ELLIPSIS} differ only by case",
         ),
     ]
     for names, message in cases:

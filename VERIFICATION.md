@@ -3,6 +3,141 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-15 Roadmap back end: 3A tools and writer, 2A migration 2, 3B writer, Signal service
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head (read with `gh pr checks` when this entry was written):**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #381 | Records | `cc2591bd` | `a924f12` | the entry below it, three plan rulings, ports lines, `docs/low-findings.md` |
+| #376 | 3A PR 4a | `160518ef` | `8a22a0a` | `orchestrator/tools.py`: the source tools and their dispatch |
+| #377 | 3B PR 5 | `2c90039a` | `3047071` | `delivery/wording.py` and `wording.json`: wording, filler, dates, states, bands |
+| #346 | 1D PR 2b-5 | `14f16f55` | `7683fb1` | windows-1252 labels for `charset=`; C1 controls refused in the text read |
+| #348 | 2A PR 3a-2 | `6893370a` | `5aaa869` | migration 2: the attempts, calls and compactions tables |
+| #351 | 2A PR 3a-b1 | `492a4c30` | `990bb61` | migration 2 raw rows, part 1 (tests only) |
+| #352 | 2A PR 3a-b2 | `857f4ebf` | `fcdb5be` | migration 2 raw rows, part 2: triggers, orphans, rowids, take-over (tests only) |
+| #353 | 2A PR 3a-b3 | `0a57e11d` | `b187237` | migration 2 raw rows, part 3: masked constraints, U14 reply cases (tests only) |
+| #316 | 1C PR 2h | `d2891a08` | `81137f1` | redaction by known paths (decision 0012) |
+| #338 | 1C PR 2h-2 | `b2ef359b` | `6dcbc78` | case forms from every letter `re.IGNORECASE` holds the same; unit rule |
+| #380 | 3A PR 9a-1 | `90142ff1` | `26f2d69` | `orchestrator/context.py`: the context loader, its guards and caps |
+| #386 | 2A PR 3b1 | `51d34f00` | `fe4c2e7` | `store/attempts.py`: `open_attempt` and `open_call` |
+| #379 | 3A PR 5 | `eb82552f` | `0218e41` | `orchestrator/write.py`: `write_handoff`, `edit_handoff`, the 3-write bound |
+| #374 | 1B PR 6b | `7deeeb53` | `a205887` | facility checks in `check_foundation` (one set with #375) |
+| #375 | 1B PR 6b2 | `64a462de` | `bf81531` | balances stand alone (R47), Reporting unit (R56), escaped codes (R56b), 1B-M1 |
+| #382 | 3B PR 4b | `e7030b9e` | `3430ec4` | `delivery/passages.py`: passage and cell builders |
+| #387 | 3B PR 2 | `7be3e56d` | `683640a` | `delivery/writer.py`: the `data.js` writer, bytes only |
+| #364 to #369, #371 | Signal S-9, 1/7 to 7/7 | `97a8148e`, `d4eb8b76`, `cbe6d050`, `fb58ec63`, `3c20a4b7`, `5c320f01`, `58eb4e05` | `cc7596b`, `834b9f5`, `ef7919d`, `c80c602`, `09d0670`, `f52c58c`, `d9a17c9` | the Signal HTTP service, back end only |
+
+#389 (2A PR 3b2a) was still open when this entry was written and is not recorded here. #372 and
+#373 are in the entry below.
+
+**Reviews.** Whole-branch reviews ran on Opus 5.5 (`mx-architect` with a model override, or
+`mx-adversary`), standing in for Fable until its limit resets on 18 November, except #348's first
+reviewer, which stopped on the limit before a verdict.
+- #376: `mx-precise` pass; `mx-adversary` failed on M1 (a line break could forge a search hit
+  line), fixed test first, scoped re-review pass; sweep 0 confirmed; whole-branch pass (Low 2, Info 2).
+  Mutation `tools.py` 149 of 171 killed, 4 timeouts (endless loops in `_neutralise`), load 7.60 to
+  8.07; 13 survivors run only at import, which mutmut's workers never call, and the unchanged tests
+  kill them in a fresh process.
+- #377: `mx-precise` failed on M1 (a Windows line ending broke the file's hash test), fixed, re-review
+  pass; sweep 2 confirmed, fixed; whole-branch failed on WB5-1 (Medium: the rejected row could never
+  match a stored run), fixed under ruling 3B-W5a, re-review pass. No mutation: not sensitive code.
+- #346: `mx-precise` pass; `mx-adversary` failed on M1 (two property tests compared with the legacy on
+  draws it reads differently, tests only), fixed; sweep 0; whole-branch pass. Mutation `html.py`
+  578 of 649 killed, 3 at the time limit, load 5.75 to 4.78, taken at `da85fe25` and standing at the
+  final head because `src` is unchanged and the two changed tests were excluded from the run.
+- #348: `mx-precise` failed on M1 (ruff FURB157), fixed, re-review pass; `mx-invariants` pass;
+  `mx-adversary` pass (202 hand mutants); sweep 0; whole-branch pass (Low 1, Info 5). Mutation of
+  record `db.py` 462 of 514 killed (the 52 survivors are the same as #344's), `MIGRATIONS` 5 of 5
+  hand mutants, load at most 5.17; validity checks held.
+- #351 to #353: tests only. Each `mx-precise` failed on one Medium gap in the controller's key
+  (fixed, scoped re-review pass); `mx-invariants` pass on #351 and #352, failed on one Medium on
+  #353 (fixed, pass). 78 hand tightenings of the CHECKs, 4 survive (Low). The batched set review
+  passed (Info 3). No mutation: tests only.
+- #316 + #338, one set: task reviews and `mx-adversary` in four rounds on #338 (M1, N1, C1 Medium
+  and T1, the last on an `mx-autonomous` plan), round 3 re-review pass (R1 Low, ruling 26). The
+  whole-branch review failed on M1 (7 survivors left a path visible), closed by 8 key rows in
+  `b2ef359b`, scoped re-review pass. Mutation `redact.py` 634 of 694 killed, 56 survived, 4
+  timeouts, load 5.72 to 9.06; validity checks held; no fresh run at `b2ef359b` (the M1 mutants were
+  applied by hand).
+- #380: `mx-precise` pass; `mx-adversary` failed on M1 (memory to refuse a file) and M2, round 2 on
+  M3, round 3 on M4, round 4 on M5 (key rows), round 5 pass; sweep 0; whole-branch pass (Low 1, Info 3).
+  Mutation `context.py` 119 of 128 killed, 1 timeout, load 2.75 to 2.71; mutmut printed 120 kills,
+  one false (a non-ASCII parametrize id).
+- #386: `mx-precise`, `mx-invariants` and `mx-adversary` pass (`mx-invariants` ran two real
+  writers: 3,680 interleavings, then 100 rounds each of 2 threads and 2 processes); sweep 0; whole-branch pass (Low 2,
+  Info 2). Mutation `attempts.py` and `db.py` 650 of 771 killed, 1 timeout killed when rerun alone,
+  load at most 4.05; the 52 `db.py` survivors are #344's and #348's.
+- #379: `mx-precise` pass; `mx-adversary` pass, with a Medium that predates the PR (the draft's
+  size), which the coordinator ruled as the cap; the whole-branch review failed on one Medium (the cap's time bound),
+  fixed in the comment under ruling 3A-27a, scoped `mx-feature` check pass. Mutation `write.py`
+  245 of 254 killed, 0 timeouts, load 4.77 to 4.81, on `9fe3ebc0` (a later commit changes a
+  comment only); import-time code checked with 39 hand mutants, 34 killed.
+- #374 + #375, one set: `mx-precise` pass and `mx-adversary` changes required on each (three
+  Medium on #374, fixed in one round; M1 and M2 on #375, two `mx-scaffold` rounds, tests only); the
+  whole-branch review failed on one Medium (1B-M1, a balance printed only in the other unit was
+  accepted), fixed in #375, scoped re-review pass. Mutation of record for the set at `64a462de`:
+  654 of 688 `foundation` killed, 34 survived, 0 timeouts, load 1.48 to 2.60 (25 `_unit_pattern`
+  mutants are never reached by mutmut, 4 are inert, 2 unreachable, 2 label-only, 1 stricter column
+  header); validity checks held.
+- #382: `mx-precise` failed on S1 (High: a negative `at` was rounded by the thread context) and S2,
+  fixed, re-review pass; sweep W1 ruled a Medium defect, fixed, re-review pass; the whole-branch
+  review failed on M1 and M2 (rulings 3B-4b-WB-M1 and WB-M2), fixed, re-review pass; mutation at
+  `66cf37cc` failed on three Medium test gaps, answered by key rows and ruling 3B-P7a. Mutation of
+  record at `777677bb` (the final source): 320 of 457 killed, 133 survived, 4 timeouts detected,
+  load 2.11 to 2.52; one Medium gap closed at `e7030b9e` by one key row.
+- #387: `mx-adversary` task review pass (Low 4, Info 1); sweep 0 confirmed; whole-branch pass (Info
+  3). Mutation `writer.py` 107 of 132 killed, 25 survived (Low or equivalent), load 4.02 to 4.24.
+- Signal S-9: `mx-precise` and `mx-adversary` pass on tasks 1 to 3; tasks 4 and 5 `mx-precise`
+  quality failed on Q1 (Medium, unread counts by caller, fixed in #369), scoped re-review pass; the
+  sweep's one confirmed defect (a host name with an upper-case letter answered 403, fixed test
+  first in #371) has no review of its own and was read by the whole-branch review (`mx-adversary`,
+  Opus 5.5 at xhigh, stand-in). No mutation count at the final head `14b4127f` (hand-mutant kills
+  at the task heads only).
+
+**Ledger.**
+- `3A-4a task=1 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+- `3A-5 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y`
+- `3A-9a1 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=n` (M1 and M3 were code rounds; M2, M4 and M5 were key rows)
+- `3B-5 task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y wb-fix=1`
+- `3B-4b task=1 agent=mx-feature fix-rounds=2 gates-first-pass=y spec-amend=1 wb-fix=1`
+- `3B-2 task=1 agent=mx-feature fix-rounds=0 gates-first-pass=n`
+- `2A-3a2 agent=mx-feature(task)+mx-scaffold(fix) fix-rounds=1 gates-first-pass=n`
+- `3a-b1`, `3a-b2`, `3a-b3` `agent=mx-feature fix-rounds=0 gates-first-pass=n/a`
+- `2A-3b1 agent=mx-feature fix-rounds=0 gates-first-pass=n/a`
+- `1D 2b-5 task agent=mx-feature fix-rounds=0 gates-first-pass=n/a`; fix round 1 `agent=mx-scaffold fix-rounds=1 gates-first-pass=y`
+- `1C-2h-2 task=1 agent=mx-feature fix-rounds=3 gates-first-pass=n/a`; `1C-2h-2 task=wb-m1-key agent=controller fix-rounds=0 gates-first-pass=n/a`
+- `1B-6b2 task=wb-fix-1 agent=mx-feature fix-rounds=1 gates-first-pass=y` (the 6b and 6b2 task lines are in 1B's own ledger and were not in the notes this entry was written from)
+- `S-9 agent=mx-feature fix-rounds=1 gates-first-pass=y`
+
+**Rulings** (added to the plans; the owner can overturn any). 2A U4 to U23 (the 2A plan; closes
+#348's L1). 3A-27a: the draft cap stays at 238,960 bytes, four times the largest real handoff,
+though a dense draft's check takes 347 s at the cap; the 2B and 1A one-pass fix is a precondition
+for the first paid run. 9a-1's caps: 1 MiB, 5,000 values, 64-character keys. 3B: W2-a to W2-d
+(envelope order, ASCII outer literal, value types, a 16 MiB ceiling) and a nested
+`.gitattributes` in the expected folder only; W5a as merged; WB5-5 (the state table also holds the
+four R6 pairs with the word null); 3B-4b-W1, W2-85, 3B-P7a, WB-M1 and WB-M2; R20's delivery hash
+in the folder key (already in S1 and step 7). 1B: 1B-M1 (an amount printed in the other unit
+fails closed) and P1 (R18's layer-1 restriction goes to PR 7 with a `source` argument and refusal
+rows; 1B is told at the reset). 1C: decision 0012 now names U+0345 under NFC and NFD (set review
+I1); ruling 26's limit was added earlier. 1D #346: a stray byte under `charset=ascii` now reads as
+windows-1252 (ruled, no change).
+
+**Departures** (on the owner's list). The plan's task reviews were cut under the usage throttle:
+3B PR 2 ran `mx-adversary` and no `mx-precise`; 3B PR 4b ran `mx-precise` and no `mx-adversary`,
+the Opus whole-branch review and the mutation count standing in on its money and figures code.
+Signal's S-14 (#383) and S-13 (#384) were open when this entry was written.
+
+**Not verified:** Windows beyond CI, locally, for any PR above; SQLite other than 3.53.1, power
+loss and two openers migrating at once (#348); real macOS NFD paths and real Copilot failure text
+(#316, #338); the context loader against a real context file near 5,000 values (#380); a real CP-1
+foundation and any caller of `check_foundation`, R47 beyond ASCII (#374, #375); a real library's
+size against the 16 MiB ceiling, and Chrome or Edge loading it from `file://` (#387); the timing of
+a dense draft on the work PC (#379); a mutation count for Signal S-9 at its final head; the
+Signal whole-branch verdict text, which the notes this entry was written from do not quote; the
+1B task ledger lines; a fresh mutmut run on `redact.py` at the head merged.
+
 ## 2026-11-15 Design track: a Gaps group with no severity, phase sweep wave 1 of `web/`
 
 **Merged**, each with gates on Ubuntu and Windows and the review job green on its head, none
@@ -782,86 +917,3 @@ shows its 12 commits patch-identical; its controller reports the reviewer confir
 Not verified: Signal's store on SQLite builds other than the two runners'; the HTTP status
 for `StoreUnusable` (the service is not built); #288's `.gitattributes` behaviour on a
 Windows checkout other than the CI runner's.
-
-## 2026-11-14 Roadmap back end: Signal's feed reader complete, the store opens, decision 0012, CI paths
-
-**Merged**, under the owner's delegation (decision 0006), each at the head named with every
-check green on Ubuntu, Windows and the review job, and its diff read by the coordinator.
-
-| PR | Step | Head, merge | Content |
-| :--- | :--- | :--- | :--- |
-| #215 | Signal S-3a part 7a | `bbb6d42`, `5ff2a0a` | `signal/feeds.py`: the attribute count that bounds memory (R45) (105 lines) |
-| #207 | Signal S-3a part 7b | `27b9252`, `9286842` | `signal/feeds.py`: a text field read in pieces equals the whole-field reading (R46, R47); test Lows (387) |
-| #256 | 2A PR 1e | `db74bf1`, `667e1c1` | `store/db.py`: `open_store` and `open_reader`, the library check, identity, pragmas, the integrity check, the stamp (796) |
-| #259 | 1B Lows | `1621ea8`, `9f900d5` | key rows and written cases for the test gaps of #243 and #214 (105, tests only) |
-| #305 | decision 0012 | `9b6b8ac`, `c3b8249` | failure text is redacted by masking known paths; the claim is bounded; the 1C plan note (68) |
-| #307 | CI | `3d66c4c`, `620437d` | `python.yml` skips changes to front-end files alone; the review job moves to `review.yml` (88) |
-
-With #215 and #207 all eight parts of Signal's feed reader are on `main`. #207 showed a red
-Windows check twice before it merged: both runs were built at the moment its base changed,
-on the old base, and ran Python 3.12.10. Closed and reopened, it ran on the merge with
-`main` on 3.12.14 and passed. A stacked PR is retargeted first and its CI triggered after.
-
-**Reviews.** As each controller reported.
-
-| PR | Task reviews | Sweep discovery | Whole-branch (`mx-architect`, adversarial) |
-| :--- | :--- | :--- | :--- |
-| #215 | `mx-adversary` scoped re-review: pass, Low 2 (two test gaps, parked with #207's RR7-1 and RR7-2 for the next feeds change) | none (a fix ordered after the whole-branch review) | the review of the feeds stack that ordered it |
-| #207 | `mx-adversary` scoped re-review: no High or Medium; 0 differences in 140,146 piece readings | none | the same |
-| #256 | `mx-precise` pass on `85c44c6`; Low batch by `mx-scaffold` | 7 rows, 0 defects | Pass on `db74bf1`: High 0, Medium 0, Low 6, Info 6 |
-| #259 | batched `mx-feature`: pass, Info 1 | none (tests only) | none |
-| #305 | batched `mx-feature`: pass, Low 1 (fixed) | none (record) | none; the design itself is from a read-only `mx-architect` review |
-| #307 | batched `mx-feature`: pass, Low 2 (left for the next change to `tests/test_gates.py`) | none (config) | none |
-
-- #256's first whole-branch review stopped at the account's usage limit with no report; it
-  was rerun on the same model, not another, as the owner chose for #187 ("Wait for Fable", the reviewer's model).
-  Its 6 Lows ride with PR 2b.
-- #259 closes the two money test gaps of #243: 48 of 48 hand mutants killed (24 survived
-  before), and 5 of 5 of #214's.
-- #207 was reviewed on Python 3.12.14 only and fails on 3.12.10 (decision 0011).
-
-**Gates and CI.** CI green on both runners at every head above (both on CPython 3.12.14).
-`tools/gates.py` exit 0 as reported for #259 and #307. #256: the controller's local run
-fails only on the known `web/node_modules` link in its worktree; CI passes. Mutation,
-counts of record run by the reviewer with the validity checks: #256, `db.py` 284 mutants,
-233 killed, 51 survived (2 killed elsewhere, 13 equivalent, 23 wording, 8 step names, 5
-behaviour gaps parked as Lows for PR 2b).
-
-**Ledger.**
-- `S-3a part 7a (R45) agent=mx-feature fix-rounds=1 gates-first-pass=y`
-- `S-3a part 7b (R46+W-5/W-6) agent=mx-feature fix-rounds=1 gates-first-pass=y` (3.12.14; it failed Windows CI on 3.12.10, out of range by decision 0011)
-- `2A-1e task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`; `2A-1e task=2 agent=mx-scaffold fix-rounds=0 gates-first-pass=y`
-- `1B-lows task=1 agent=mx-feature fix-rounds=0 gates-first-pass=y`
-
-**The owner's answers recorded here.**
-- Redaction: "Design review first", then "Adopt, rework #187" (decision 0012).
-- 2B PR 4: "Yes, test-only round" for a fourth round; then, to the lead coordinator, "Yes,
-  keys PR" for a tests-only PR stacked on #254 (#308, not merged). A progress guard for the
-  figure reader's loop: "Own small PR after PR 4".
-
-**What went wrong on the machine, and the rules made.**
-- At about 16:08 UTC a controller's shell loop ran `rm -rf` on a path whose variable was
-  empty and emptied the sessions' shared temporary folder, every session's scratch included. No
-  committed work and nothing an open finding depends on was lost. Rule: no delete on a path
-  built from a variable; probes and reports live under `.superpowers/sdd/`.
-- A mutation run of the figure reader grew about 70 MB a second (one mutant stalls the
-  reader loop, which then appends without end). It ended by itself. Rule: mutation runs
-  have a short per-test timeout and at most 2 children.
-- Over 100 CI runs queued for more than an hour, most of them Python gates on front-end
-  pull requests; #307 is the remedy.
-
-**Open, for the owner.**
-- Signal's store (same in the predecessor, stated in #114's body): the duplicate lookup
-  reads every stored story sharing a title key under the write lock; one hostile 2 MiB feed
-  takes about 58 s. A cap per pass bounds one pass only; the read needs narrowing. Nothing
-  caps new stories per source per pass. A locked database aborts a whole ingest pass.
-- `CLAUDE.md` says CI runs the same two commands; a front-end-only pull request now runs the
-  web gates and the review job only. Its Python row still says `>=3.12,<3.13`.
-- 2A: no SQLite other than 3.53.1 was run, the 3.37 floor included.
-
-**Not verified.**
-- That GitHub skips `python.yml` on a front-end-only pull request: no such pull request has
-  run since #307.
-- #256: Windows beyond the one CI job; races beyond two processes; power loss.
-- #207, #215: feeds from real publishers; other expat builds; Python 3.12.11 to 3.12.13
-  never tried.

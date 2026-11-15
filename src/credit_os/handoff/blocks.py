@@ -2,7 +2,9 @@
 
 Blocks are read from `Scan.shown`. A fence is one code block; headings and blank lines end
 the block before them; a run of table rows is one table, labelled by a one-line bold
-paragraph directly above it. Lists are flat.
+paragraph directly above it. The paragraph directly above a table (no heading or other block
+between, blank lines allowed) is also its caption: its lines and first line number. Lists are
+flat.
 """
 
 import re
@@ -84,6 +86,12 @@ class _Reader:
             return None, None
         return found.group(1).strip(), previous.line
 
+    def caption(self) -> tuple[tuple[str, ...], int | None]:
+        previous = self.blocks[-1] if self.blocks else None
+        if self.after_heading or not isinstance(previous, Paragraph):
+            return (), None
+        return previous.lines, previous.line
+
     def table(self, first: int, last: int) -> int:
         """Read the run of table rows starting at `first`; return the line after it."""
         self.flush()
@@ -92,7 +100,8 @@ class _Reader:
             end += 1
         rows = [(number, self.shown[number - 1]) for number in range(first, end)]
         label, label_line = self.label()
-        self.add(read_table(rows, label, label_line))
+        caption, caption_line = self.caption()
+        self.add(read_table(rows, label, label_line, caption, caption_line))
         return end
 
     def text(self, number: int, shown: str) -> None:

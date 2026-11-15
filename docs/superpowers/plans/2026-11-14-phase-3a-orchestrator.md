@@ -431,13 +431,22 @@ The coordinator's. The first four and the last restate or clarify merged store (
   `edge_rule` outside tests until the coordinator rules on an optional producer missing from such a
   table. The first of 9b, 8 or 11 to serialise `producers()` builds it in catalogue order. The
   PR 1 key was read at `8e3954a` (the plan's key row names `9d040f8`; the facts are the same).
-- 3A-27 (PR 5, open as #379): `ModuleWriter` refuses a draft over a byte cap as a tool error to the
+- 3A-27 (PR 5, merged as #379): `ModuleWriter` refuses a draft over a byte cap as a tool error to the
   model ("the draft is over N bytes"), never a crash or a silent cut. The cap is set from evidence:
   at least four times the largest committed synthetic handoff and the predecessor's largest example
   handoff, both named in PR 5's body. Why: `check_handoff` takes time that grows with the square of
   a draft's size (23 s for 164 KB), and model text reaches it up to three times per module. The
   quadratic cost predates 3A (2B `checks/passages.py`, `checks/structure.py`; 1A `handoff/data.py`);
   its fix is on the owner's list, after the usage reset.
-- 9a-1 caps (open as #380): `load_context` refuses a file over 1 MiB before decoding, more than
+- 9a-1 caps (merged as #380; the controller's ruling in review, recorded by the coordinator): `load_context` refuses a file over 1 MiB before decoding, more than
   5,000 values after the depth guard, and a key over 64 characters. A context at the predecessor's
   maxima is about 1,400 values; the predecessor's only cap was its command line's 50 MiB.
+- 3A-27a (PR 5, #379; the whole-branch Medium on the cap's time bound): the cap stays at 238,960 bytes,
+  four times CP-2E's 59,740, because refusing real module output is the worse failure and the
+  largest real handoff must never be near the cap. Measured check time for one write (macOS),
+  dense shape (`5/arch-probes/arch_cap_bound.py`): 22 s at 59,740 bytes, 89 s at 119,480 and 347 s
+  at the cap; the controller's earlier shape (`probes/ctl_timing_at_cap.py`): 40.40 s at the cap,
+  probe bound 600 s. The worst case is about 17 minutes per module over three writes. The
+  timing is a probe, not a test. Precondition for the first paid run: the 2B and 1A one-pass fix
+  (one pass per line, set lookups) for the quadratic cost, on the owner's list; no model runs
+  until the owner's explicit paid-run action.

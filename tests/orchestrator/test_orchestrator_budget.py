@@ -16,8 +16,10 @@ from credit_os.orchestrator.budget import (
     BudgetStop,
     CallLine,
     CompactionLine,
+    PriceRow,
     Total,
     admit_call,
+    call_hold,
     total,
 )
 
@@ -227,3 +229,91 @@ def test_g5_admission_is_the_exact_comparison(
     assert result.over_hold == ()
     assert result.admitted is (_exact(held) + Fraction(next_hold) <= Fraction(cap))
     assert (result.stop is None) is result.admitted
+
+
+# ------------------------------------------------------------------ PR 9b: price rows, the hold
+
+
+def _resolve(value: Any) -> Any:
+    """A key value with every ("decimal", text) marker, at any depth, turned into a Decimal."""
+    if isinstance(value, tuple) and len(value) == 2 and value[0] == "decimal":
+        return Decimal(value[1])
+    if isinstance(value, tuple | list):
+        return type(value)(_resolve(item) for item in value)
+    return value
+
+
+def _rates(texts: Any) -> tuple[Decimal, ...]:
+    return tuple(Decimal(text) for text in texts)
+
+
+def _price(row: key.Price) -> PriceRow:
+    config_id, inputs, outputs, context_tokens, floor = row
+    return PriceRow(config_id, _rates(inputs), _rates(outputs), context_tokens, floor)
+
+
+@pytest.mark.parametrize("name", list(key.HOLDS), ids=list(key.HOLDS))
+def test_d8_a_hold_is_the_exact_amount_of_the_key(name: str) -> None:
+    price, output_cap, text = key.HOLDS[name]
+    assert call_hold(_price(price), max_output_tokens=output_cap) == Decimal(text)
+
+
+def test_d8_the_launch_hold_carries_the_places_of_the_key() -> None:
+    hold = call_hold(_price(key.PRICE_A), max_output_tokens=key.MAX_OUTPUT)
+    assert format(hold, "f") == key.HOLD_A_TEXT
+
+
+@pytest.mark.parametrize("name", list(key.HOLDS_REFUSED), ids=list(key.HOLDS_REFUSED))
+def test_d8_a_hold_that_is_not_an_amount_is_refused(name: str) -> None:
+    price, output_cap = key.HOLDS_REFUSED[name]
+    with pytest.raises(BudgetDataError):
+        call_hold(_price(price), max_output_tokens=output_cap)
+
+
+@pytest.mark.parametrize("name", list(key.BAD_PRICES), ids=list(key.BAD_PRICES))
+def test_d8_a_bad_price_row_is_refused(name: str) -> None:
+    field, bad = key.BAD_PRICES[name]
+    config_id, inputs, outputs, context_tokens, floor = key.PRICE_A
+    fields: dict[str, Any] = {
+        "config_id": config_id,
+        "input_rates": _rates(inputs),
+        "output_rates": _rates(outputs),
+        "context_tokens": context_tokens,
+        "output_floor_tokens": floor,
+        field: _resolve(bad),
+    }
+    with pytest.raises(BudgetDataError):
+        PriceRow(**fields)
+
+
+@pytest.mark.parametrize("name", list(key.BAD_OUTPUT_CAPS), ids=list(key.BAD_OUTPUT_CAPS))
+def test_d8_a_bad_output_cap_is_refused(name: str) -> None:
+    with pytest.raises(BudgetDataError):
+        call_hold(_price(key.PRICE_A), max_output_tokens=key.BAD_OUTPUT_CAPS[name])
+
+
+_rate = st.decimals(min_value=0, max_value=1000, places=6, allow_nan=False, allow_infinity=False)
+_count = st.integers(min_value=0, max_value=5_000_000)
+
+
+@settings(max_examples=200, deadline=None)
+@given(
+    inputs=st.lists(_rate, min_size=1, max_size=4),
+    outputs=st.lists(_rate, min_size=1, max_size=4),
+    context_tokens=st.integers(min_value=1, max_value=5_000_000),
+    floor=_count,
+    output_cap=_count,
+)
+def test_d8_a_hold_is_the_exact_formula(
+    inputs: list[Decimal], outputs: list[Decimal], context_tokens: int, floor: int, output_cap: int
+) -> None:
+    row = PriceRow("synthetic-property", tuple(inputs), tuple(outputs), context_tokens, floor)
+    expected = (
+        context_tokens * max(Fraction(rate) for rate in inputs)
+        + max(output_cap, floor) * max(Fraction(rate) for rate in outputs)
+    ) / 1_000_000
+    if expected == 0:
+        with pytest.raises(BudgetDataError):
+            call_hold(row, max_output_tokens=output_cap)
+    else:
+        assert Fraction(call_hold(row, max_output_tokens=output_cap)) == expected

@@ -108,13 +108,18 @@ def _readable(table: Table) -> bool:
 
 
 def _basis(text: str, known: Sequence[str]) -> str | None:
+    """The cell's qualifications: module, calculation and pinned-source items are citations."""
     items = read_cell(text, known)
     if not items:
         return None
-    if all(item.kind == "text" for item in items):
+    kept = [
+        item
+        for item in items
+        if item.kind == "text" or (item.kind == "source" and item.file not in known)
+    ]
+    if len(kept) == len(items):
         return text
-    kept = [item.text for item in items if item.kind == "text"]
-    return "; ".join(kept) if kept else None
+    return "; ".join(item.text for item in kept) if kept else None
 
 
 def _figure_cells(
