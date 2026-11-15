@@ -537,16 +537,20 @@ class _Sheet(_Reader):
 
     def refuse_formula(self, used: int, cache_floor: int) -> None:
         """Refuse when floors of a formula cell's label already take it over the cap: `used`
-        characters written, the formula's floor and its `=`, " cache=" and `cache_floor`. Every
-        term is a lower bound of what is written (a character is at most 4 UTF-8 bytes, and
-        `_plain` never shortens), so this refuses nothing the full count accepts. A formula with
-        no control character in any piece is floored by its pieces' lengths, not joined."""
+        characters written, the formula's floor and its fixed characters, " cache=" and
+        `cache_floor`. Every term is a lower bound of what is written (a character is at most 4
+        UTF-8 bytes, and `_plain` never shortens), so this refuses nothing the full count accepts.
+        With a control character in a piece the formula is `repr("=" + F)`, whose floor holds all
+        but the `=` (1 fixed character). Without one it is written `'=F'`, 3 fixed characters
+        (the `=` and two quotes), and is floored by its pieces' lengths, not joined."""
         pieces = self.parts["f"]
         if any(_CONTROL.search(piece) for piece in pieces):
             floor = _floor("".join(pieces), _equals)
+            fixed = 1
         else:
             floor = sum(map(len, pieces)) or len(_NO_FORMULA)
-        if used + 1 + floor + len(" cache=") + cache_floor > MAX_CELL_CHARACTERS:
+            fixed = 3
+        if used + fixed + floor + len(" cache=") + cache_floor > MAX_CELL_CHARACTERS:
             raise self.over()
 
     def describe_formula(self, label: list[str], cache: str) -> None:
