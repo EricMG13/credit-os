@@ -3,6 +3,53 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-15 Roadmap back end: 3A's budget and calculate tool, 3B's display text, names and cell citations
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #378 | Records | `a5f58fe5` | `c415c58` | the entry below, decision 0012's named limit, 3A D24, 3B R23 |
+| #373 | 3B PR 8a | `9d1e9708` | `56f7769` | `handoff/basis.py`, the cell-citation reader |
+| #363 | 3B PR 3 | `1e715a2b` | `6b342f5` | `delivery/names.py`: the module table, ids, addresses, download names |
+| #350 | 3A PR 2a | `e5cb6b22` | `b055325` | `orchestrator/budget.py`, the run budget |
+| #361 | 3B PR 1a | `e849e000` | `a52dfc9` | `model/display.py`: display text and the JSON number token |
+| #372 | 3A PR 4b | `0c2ef33f` | `c68cb33` | `orchestrator/calculate.py`, the calculate tool |
+
+#370 (a Gaps group with no severity) was merged by the roadmap coordinator and is recorded with
+the design track.
+
+**Reviews.** #373: `mx-precise`, sweep and the whole-branch review pass; no mutation (not
+sensitive code). #363: `mx-precise` (a refusal echoed its value) and `mx-adversary` (absolute
+paths in refusals, High) failed; one fix round, re-review pass; sweep and whole-branch pass;
+mutation on `names.py` 91 of 124 killed at load 2.24, 24 survivors only change a refusal's text
+(held as a Low test gap). #350: `mx-precise` and the `mx-adversary` money review failed on one
+Medium; fixed, scoped `mx-feature` re-review pass; sweep pass; whole-branch on Fable, finished
+before the limit, pass; mutation on `budget.py` 159 of 225 killed at load 3.15, 57 survivors only
+change a message, 5 equivalent, 4 killable and held as Low. #361: `mx-precise` and `mx-adversary`
+failed on two new suppressions; fixed; the whole-branch review on Fable failed on a Medium (the
+rounding quantum read the thread's decimal context); a second round fixed it and `mx-precise`
+passed it; mutation on `display.py` 56 of 73 killed, the 17 survivors equivalent. #372:
+`mx-precise`, `mx-adversary`, sweep and whole-branch pass; mutation 103 of 104 killed at load
+9.65. Whole-branch reviews not marked Fable ran on an Opus 5.5 stand-in.
+
+**Ledger.** 3B-8a `agent=mx-scaffold fix-rounds=0 gates-first-pass=y`. 3B-3 `agent=mx-feature
+fix-rounds=1 gates-first-pass=y`. 3A-2a `agent=mx-feature fix-rounds=1 gates-first-pass=y`. 3B-1a
+`agent=mx-feature fix-rounds=2 gates-first-pass=y`. 3A-4b `agent=mx-feature fix-rounds=0
+gates-first-pass=y`.
+
+**Rulings** (added to the plans; the owner can overturn any). 3A-27: PR 5 caps a draft's size
+because checking a handoff takes time that grows with the square of its size (23 s for 164 KB);
+that cost predates 3A and is on the owner's list. 9a-1's caps: 1 MiB, 5,000 values, 64-character
+keys. 3B W5a: a rejected run reads Rejected whatever its end reason.
+
+**Sessions.** 2B's six PRs are merged; its session is archived and its reports are kept by the
+coordinator outside the repository.
+
+**Not verified:** that the 9a-1 caps and W5a hold as ruled (both PRs are open); a real context
+file near 5,000 values; the 164 KB timing on the work PC.
+
 ## 2026-11-15 Roadmap back end: 3A's catalogue, 1D's XML guards, 3B's lead labels; reviews off Fable
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
