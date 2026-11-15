@@ -30,7 +30,16 @@ _ACCEPTED_ROWS = [
         id="xml-iso",
     ),
     pytest.param(
-        b'<meta charset="latin1"><p>caf\xe9</p>', ("iso8859-1", "iso-8859-1", 0), id="latin1"
+        b'<meta charset="latin1"><p>caf\xe9</p>', ("cp1252", "windows-1252", 0), id="latin1"
+    ),
+    pytest.param(b'<meta charset="l1"><p>caf\xe9</p>', ("cp1252", "windows-1252", 0), id="l1"),
+    pytest.param(
+        b'<meta charset="US_ASCII"><p>cafe\x80</p>',
+        ("cp1252", "windows-1252", 0),
+        id="us-ascii-label",
+    ),
+    pytest.param(
+        b'<meta charset="ascii"><p>caf\xe9</p>', ("cp1252", "windows-1252", 0), id="ascii"
     ),
     pytest.param(
         b'<meta charset="windows-1252"><p>caf\xc3\xa9</p>',
@@ -38,7 +47,7 @@ _ACCEPTED_ROWS = [
         id="utf-8-wins",
     ),
     pytest.param(b"x" * 8191 + _E_ACUTE, ("utf-8", "utf-8", 0), id="split-letter"),
-    pytest.param(b"charset=latin1 caf\xe9", ("iso8859-1", "iso-8859-1", 0), id="charset-first"),
+    pytest.param(b"charset=latin1 caf\xe9", ("cp1252", "windows-1252", 0), id="charset-first"),
 ]
 
 
@@ -79,22 +88,10 @@ _REFUSAL_ROWS = [
         id="long-name",
     ),
     pytest.param(
-        b'<meta charset="l1"><p>caf\xe9</p>',
-        "declares a charset that is not accepted: 'l1'",
-        None,
-        id="l1",
-    ),
-    pytest.param(
-        b'<meta charset="US_ASCII"><p>cafe\x80</p>',
+        b"<?xml version='1.0' encoding='us-ascii'?><p>caf\xe9</p>",
         "not valid ascii",
         UnicodeDecodeError,
-        id="us-ascii-label",
-    ),
-    pytest.param(
-        b'<meta charset="ascii"><p>caf\xe9</p>',
-        "not valid ascii",
-        UnicodeDecodeError,
-        id="ascii",
+        id="xml-ascii",
     ),
     pytest.param(
         b'<meta charset="windows-1252"><p>\x81</p>',
@@ -131,7 +128,9 @@ def test_encoding_refuses(raw: bytes, message: str, cause: type[BaseException] |
 @pytest.mark.parametrize(
     ("raw", "encoding"),
     [
-        pytest.param(b'<meta charset="ascii"><p>caf\xe9</p>', "ascii", id="ascii"),
+        pytest.param(
+            b"<?xml version='1.0' encoding='ascii'?><p>caf\xe9</p>", "ascii", id="xml-ascii"
+        ),
         pytest.param(b'<meta charset="windows-1252"><p>\x81</p>', "charmap", id="cp1252-hole"),
     ],
 )
@@ -425,7 +424,7 @@ _ONE_PAGE_ROWS = [
     pytest.param(
         b" " * 4070 + b'<meta charset="iso-8859-1"><p>price \xa4 100</p>',
         "price \N{CURRENCY SIGN} 100\n",
-        "iso-8859-1",
+        "windows-1252",
         id="cut-control",
     ),
 ]

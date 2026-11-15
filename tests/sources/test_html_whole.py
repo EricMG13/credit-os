@@ -7,7 +7,7 @@ from collections import Counter
 from collections.abc import Sequence
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from credit_os.sources import SourceUnreadable, cut_pages
@@ -285,22 +285,34 @@ def _reasons_of_long_tags() -> set[str]:
 _LONG_REFERENCE = re.compile(rb"&#(?:[0-9]{32}|[xX][0-9a-fA-F]{32})")
 
 
+# 2b-5: a character U+0080 to U+009F in the text read is refused, naming the first one. The legacy
+# keeps such a character. The generator writes one only as a reference the HTML Standard leaves
+# unmapped, never U+0085 (whitespace to both), so the first one in the legacy text is the first the
+# reader meets.
+_C1 = re.compile("[\x80-\x9f]")
+
+
 def _check(raw: bytes, whole: str, size: int, refusals: set[str]) -> None:
     if _LONG_REFERENCE.search(raw):
         with pytest.raises(SourceUnreadable) as caught:
             html_pages("f.html", raw)
         assert str(caught.value) == "f.html: a character reference of 32 or more digits"
         return
+    control = _C1.search(whole)
+    if control is not None:
+        refusals = refusals | {f"control character U+{ord(control.group()):04X}"}
     try:
         result = html_pages("f.html", raw)
     except SourceUnreadable as error:
         assert str(error).removeprefix("f.html: ") in refusals
         return
+    assert control is None
     assert [page.text for page in result.pages] == list(cut_pages(whole, size))
 
 
 @pytest.mark.parametrize("setting", _SETTINGS)
 @settings(max_examples=300, deadline=None)
+@example(source=random.Random(10167))
 @given(source=st.randoms(use_true_random=False))
 def test_small_pieces_equal_whole(
     setting: tuple[int, int, int, int], source: random.Random
@@ -321,6 +333,7 @@ def test_small_pieces_equal_whole(
 
 
 @settings(max_examples=300, deadline=None)
+@example(source=random.Random(10167))
 @given(source=st.randoms(use_true_random=False))
 def test_real_constants_equal_whole(source: random.Random) -> None:
     rng.use(source)
