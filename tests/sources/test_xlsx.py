@@ -265,7 +265,7 @@ TEXT_ROWS = [
         ),
         one_page("A1=1"),
     ),
-    # (ruling 3, regenerated) a formula on a shared-string cell: the cache is the string
+    # (ruling 6, regenerated) a formula on a shared-string cell: the cache is the string
     (
         "m3",
         cells('<c r="A1" t="s"><f>B1</f><v>0</v></c>', strings=STRINGS),
@@ -315,27 +315,27 @@ def dotdot() -> bytes:
 REFUSALS = [
     # no cell with text in any sheet
     ("r1", book(""), "has no text"),
-    # (ruling 6) a duplicate cell
+    # (ruling 3) a duplicate cell
     (
         "r3",
         cells('<c r="A1"><v>1</v></c><c r="A1"><v>2</v></c>'),
         ORDER + "cell A1 out of order in row 1",
     ),
-    # (ruling 6) cells right to left
+    # (ruling 3) cells right to left
     (
         "r4",
         cells('<c r="B1"><v>1</v></c><c r="A1"><v>2</v></c>'),
         ORDER + "cell A1 out of order in row 1",
     ),
-    # (ruling 6) rows out of order
+    # (ruling 3) rows out of order
     (
         "r5",
         book('<row r="2"><c r="A2"><v>1</v></c></row><row r="1"><c r="A1"><v>2</v></c></row>'),
         ORDER + "row 1 after row 2",
     ),
-    # (ruling 6) a row number twice
+    # (ruling 3) a row number twice
     ("r6", book('<row r="2"/><row r="2"/>'), ORDER + "row 2 after row 2"),
-    # (ruling 6) row zero
+    # (ruling 3) row zero
     ("r7", book('<row r="0"/>'), ORDER + "row 0 after row 0"),
     # a drive-letter target is resolved under xl/ and looked up by exact name
     ("dl1", DRIVE, "'xl/C:/xl/worksheets/sheet1.xml': the part is missing"),
