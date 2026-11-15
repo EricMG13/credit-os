@@ -165,3 +165,118 @@ ERRORS: dict[str, Row] = {
 
 # Text that must appear in no shown text and in no stored value of any ERRORS row.
 NEVER = ("/synthetic", "synthetic" + BACKSLASH, "analyst", "acme-holdings")
+
+
+# ================================================================== PR 7a-2: the launch caps
+# Added by the controller for PR 7a-2 (D13, D16, C3), by hand. No file of these sizes exists or is
+# ever written: a size is a pin's `size_bytes` or a patched listing's `st_size`.
+# - 1 MiB = 1,048,576. 16 MiB = 16,777,216. 50 MiB = 52,428,800. 400 MiB = 419,430,400 = 8 x 50 MiB.
+# - `both_over`: 8 x 52,428,800 + 193 x 1 = 419,430,593 bytes in 8 + 193 = 201 files.
+# - `TREE`: each file's size is its own power of two, so the total names the set that was counted:
+#   1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 = 255 in 8 files. All 14 files together are 16,383 bytes.
+# Shapes:
+#   COUNTS    name -> (files, total_bytes, problems)                 the pure launch rule
+#   PIN_SETS  name -> (pins as (name, size_bytes, kind), problems)   the same rule over pins
+#   CAPS      name -> (pin as (name, size_bytes, kind), shown text or None when within the cap)
+#   TREE      (name, size_bytes, first bytes, counted) written under tmp_path; TREE_COUNT
+#   LAUNCH    name -> problems                                       the fixed launch sentences
+
+MAX_FILES = 200
+MAX_TOTAL_BYTES = 419430400  # 400 MiB
+MAX_TEXT_BYTES = 16777216  # 16 MiB: text and csv (D13)
+MAX_OTHER_BYTES = 52428800  # 50 MiB: every other kind (sources.MAX_BYTES)
+
+# ------------------------------------------------------------------ D16: files and bytes
+FILES_201 = "the source folder holds 201 source files; a run takes at most 200"
+FILES_1000 = "the source folder holds 1,000 source files; a run takes at most 200"
+BYTES_PLUS_1 = (
+    "the source folder holds 419,430,401 bytes of source files; "
+    "a run takes at most 419,430,400 (400 MiB)"
+)
+BYTES_BOTH = (
+    "the source folder holds 419,430,593 bytes of source files; "
+    "a run takes at most 419,430,400 (400 MiB)"
+)
+NO_FILE = "the source folder holds no source file"  # ruling O5
+
+COUNTS: dict[str, tuple[int, int, tuple[str, ...]]] = {
+    "one_file": (1, 1, ()),
+    "files_200": (200, 200, ()),
+    "files_201": (201, 201, (FILES_201,)),
+    "files_1000": (1000, 1000, (FILES_1000,)),
+    "bytes_400_mib": (8, 419430400, ()),
+    "bytes_400_mib_plus_1": (9, 419430401, (BYTES_PLUS_1,)),
+    "both_over": (201, 419430593, (FILES_201, BYTES_BOTH)),  # files first, then bytes
+    "no_file": (0, 0, (NO_FILE,)),  # ruling O5
+}
+
+_SMALL = [(f"s{n:03}.txt", 1, "text") for n in range(201)]  # s000.txt to s200.txt, 1 byte each
+_PDFS = [(f"p{n}.pdf", 52428800, "pdf") for n in range(8)]  # 8 x 50 MiB = 400 MiB
+
+PIN_SETS: dict[str, tuple[list[Pin], tuple[str, ...]]] = {
+    "pins_200": (_SMALL[:200], ()),
+    "pins_201": (_SMALL, (FILES_201,)),
+    "pins_400_mib": (_PDFS, ()),
+    "pins_400_mib_plus_1": ([*_PDFS, ("one.txt", 1, "text")], (BYTES_PLUS_1,)),
+    "pins_both_over": ([*_PDFS, *_SMALL[:193]], (FILES_201, BYTES_BOTH)),
+}
+
+# ------------------------------------------------------------------ D13: one source's cap
+TEXT_CAP = "larger than 16,777,216 bytes, the cap for a text or csv source"
+OTHER_CAP = "larger than 52,428,800 bytes, the cap for a source of its kind"
+
+CAPS: dict[str, tuple[Pin, str | None]] = {
+    "text_16_mib": (("notes/long.txt", 16777216, "text"), None),
+    "text_16_mib_plus_1": (("notes/long.txt", 16777217, "text"), f"notes/long.txt: {TEXT_CAP}"),
+    "md_16_mib_plus_1": (("memo.md", 16777217, "text"), f"memo.md: {TEXT_CAP}"),
+    "csv_16_mib": (("data/ledger.csv", 16777216, "csv"), None),
+    "csv_16_mib_plus_1": (("data/ledger.csv", 16777217, "csv"), f"data/ledger.csv: {TEXT_CAP}"),
+    "html_16_mib_plus_1": (("filing.html", 16777217, "html"), None),  # html is not a text kind
+    "pdf_50_mib": (("filings/annual-report.pdf", 52428800, "pdf"), None),
+    "pdf_50_mib_plus_1": (
+        ("filings/annual-report.pdf", 52428801, "pdf"),
+        f"filings/annual-report.pdf: {OTHER_CAP}",
+    ),
+    "xlsx_50_mib": (("model.xlsx", 52428800, "xlsx"), None),
+    "docx_50_mib_plus_1": (("memo.docx", 52428801, "docx"), f"memo.docx: {OTHER_CAP}"),
+}
+# A refused row's stored detail: error "SourceTooLarge", source the pin's name, reason the text
+# after "<name>: ", note None.
+
+# ------------------------------------------------------------------ C3: the listing
+_ZIP = b"PK" + bytes([3, 4])
+# name, size in bytes, first bytes (the rest is b"x"), counted
+TREE: list[tuple[str, int, bytes, bool]] = [
+    ("a.txt", 1, b"", True),
+    ("b.csv", 2, b"", True),
+    ("sub/c.md", 4, b"", True),
+    ("sub/deep/d.html", 8, b"", True),
+    ("e.pdf", 16, b"%PDF-", True),
+    ("f.docx", 32, _ZIP, True),
+    ("g.xlsx", 64, _ZIP, True),
+    ("h.HTM", 128, b"", True),  # the suffix is matched in lower case
+    (".hidden.txt", 256, b"", False),  # hidden name
+    (".hid/in.txt", 512, b"", False),  # under a hidden folder, which is not entered
+    ("_excluded.txt", 1024, b"", False),  # excluded name
+    ("_dir/in.txt", 2048, b"", False),  # under an excluded folder
+    ("~$lock.docx", 4096, _ZIP, False),  # excluded name
+    ("notes.json", 8192, b"", False),  # not an accepted suffix (the predecessor took .json)
+]
+TREE_COUNT = (8, 255)  # files, total bytes; also what `pin_folder` pins from the same tree
+# Added by their own tests where the platform allows; neither changes TREE_COUNT:
+TREE_LINKS = [("link.txt", "a.txt"), ("linkdir", "sub")]  # symbolic links: never counted or entered
+TREE_FIFO = "pipe.txt"  # not a regular file
+
+# ------------------------------------------------------------------ the fixed launch sentences
+NOT_A_FOLDER = "the source folder is not a folder that can be read"
+ROOT_FOLDER = "the source folder cannot be a drive, a share or a filesystem root"
+CANNOT_LIST = "the source folder could not be listed"
+
+LAUNCH: dict[str, tuple[str, ...]] = {
+    "missing_folder": (NOT_A_FOLDER,),
+    "a_file_not_a_folder": (NOT_A_FOLDER,),
+    "filesystem_root": (ROOT_FOLDER,),
+    "listing_fails": (CANNOT_LIST,),
+    # `pin_folder` raising a SourceUnreadable whose message holds FOLDER; no file is named.
+    "pin_folder_refuses": (f"{FOLDER_LEAD}: {R_UNREADABLE}",),
+}
