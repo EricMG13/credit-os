@@ -27,11 +27,11 @@ function sectionsOf(body: DeliveredBody): NavSection[] {
   });
   return [
     named("bottom-line", "Bottom line"),
-    named("findings", "Key findings"),
+    ...(body.findings.length === 0 ? [] : [named("findings", "Key findings")]),
     ...(body.contrary === null ? [] : [named("contrary", "Contrary evidence")]),
     ...(body.changeView === null ? [] : [named("change-view", "What would change the view")]),
     ...recordSections(body.records),
-    named("limitations", "Limitations"),
+    ...(body.limitations.items.length === 0 ? [] : [named("limitations", "Limitations")]),
   ];
 }
 
@@ -57,11 +57,13 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
       <Target id="bottom-line">
         <BottomLine text={body.bottomLine} level={SUBSECTION_HEADING} />
       </Target>
-      <Target id="findings">
-        <Section title="Key findings" level={SUBSECTION_HEADING}>
-          <Findings findings={body.findings} />
-        </Section>
-      </Target>
+      {body.findings.length === 0 ? null : (
+        <Target id="findings">
+          <Section title="Key findings" level={SUBSECTION_HEADING}>
+            <Findings findings={body.findings} />
+          </Section>
+        </Target>
+      )}
       {body.contrary === null ? null : (
         <Target id="contrary">
           <Section title="Contrary evidence" level={SUBSECTION_HEADING}>
@@ -89,13 +91,15 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
         </Target>
       )}
       {body.records.length === 0 ? null : <Records blocks={body.records} />}
-      <Target id="limitations">
-        <Limitations
-          level={SUBSECTION_HEADING}
-          limitations={body.limitations}
-          gapsHref={gapsHref}
-        />
-      </Target>
+      {body.limitations.items.length === 0 ? null : (
+        <Target id="limitations">
+          <Limitations
+            level={SUBSECTION_HEADING}
+            limitations={body.limitations}
+            gapsHref={gapsHref}
+          />
+        </Target>
+      )}
     </>
   );
 }

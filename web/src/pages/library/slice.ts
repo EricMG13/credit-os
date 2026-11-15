@@ -406,6 +406,8 @@ export type RecordBlock =
 /** What a delivered module says: `contrary` and `changeView` are absent when the module has none. */
 export type DeliveredBody = {
   kind: "delivered";
+  /** A data module may deliver no findings and no limitations; a prose module delivers some of each. */
+  moduleKind: "data" | "prose";
   bottomLine: BottomLineText;
   findings: readonly Finding[];
   contrary: ChangeView | null;
