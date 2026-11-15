@@ -99,14 +99,17 @@ describe("RunFrame tabs", () => {
     expect(tabs().getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current");
   });
 
-  it("links the full run's Forecast tab to its model page, from the fixture as delivered", () => {
-    renderFrame();
+  it("links the full run's Forecast tab to its model page when the slice has the address", () => {
+    const slice = fresh();
+    (slice.issuers[0]?.runs[0] as Run).head["forecastHref"] =
+      "#/model/halden-aerostructures/2026-09-30/forecast";
+    renderFrame({ library: slice });
     expect(tabs().getByRole("link", { name: "Forecast" })).toHaveAttribute(
       "href",
       "#/model/halden-aerostructures/2026-09-30/forecast",
     );
     expect(tabs().getByRole("link", { name: "Forecast" })).not.toHaveAttribute("aria-current");
-    expect(screen.queryByText("Not built yet")).toBeNull();
+    expect(screen.queryByText("No forecast for this run")).toBeNull();
   });
 
   it("draws Forecast as disabled text with its hint when the slice has no address", () => {
@@ -115,7 +118,7 @@ describe("RunFrame tabs", () => {
     renderFrame({ library: slice });
     expect(tabs().queryByRole("link", { name: "Forecast" })).toBeNull();
     expect(tabs().getByText("Forecast")).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByText("Not built yet")).toBeInTheDocument();
+    expect(screen.getByText("No forecast for this run")).toBeInTheDocument();
   });
 
   it("draws Modules as disabled text when the run has no first module", () => {

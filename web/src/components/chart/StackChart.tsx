@@ -9,8 +9,8 @@ import {
   type BarShapeProps,
   type TooltipContentProps,
 } from "recharts";
-import { ChartFrame } from "./ChartFrame";
-import { ChartTable, type TableRowData } from "./ChartTable";
+import { type TableRowData } from "./ChartTable";
+import { ChartWithTable } from "./ChartWithTable";
 import { ReadoutRow } from "./PathChart";
 import { assignSeries, type SeriesStyle } from "./series";
 
@@ -205,19 +205,14 @@ function Chart({ title, parts }: Pick<StackChartProps, "title" | "parts">) {
 export function StackChart({ title, as, note, subtitle, actions, parts, table }: StackChartProps) {
   check({ parts, table });
   return (
-    <ChartFrame title={title} as={as} note={note} subtitle={subtitle} actions={actions}>
-      {(view) =>
-        view === "chart" ? (
-          <Chart title={title} parts={parts} />
-        ) : (
-          <ChartTable
-            caption={title}
-            head={table.head}
-            rows={table.rows}
-            endHeading={table.endHeading}
-          />
-        )
-      }
-    </ChartFrame>
+    <ChartWithTable
+      title={title}
+      as={as}
+      note={note}
+      subtitle={subtitle}
+      actions={actions}
+      table={table}
+      chart={<Chart title={title} parts={parts} />}
+    />
   );
 }

@@ -27,11 +27,11 @@ function sectionsOf(body: DeliveredBody): NavSection[] {
   });
   return [
     named("bottom-line", "Bottom line"),
-    named("findings", "Key findings"),
+    ...(body.findings.length === 0 ? [] : [named("findings", "Key findings")]),
     ...(body.contrary === null ? [] : [named("contrary", "Contrary evidence")]),
     ...(body.changeView === null ? [] : [named("change-view", "What would change the view")]),
     ...recordSections(body.records),
-    named("limitations", "Limitations"),
+    ...(body.limitations.items.length === 0 ? [] : [named("limitations", "Limitations")]),
   ];
 }
 
@@ -57,11 +57,13 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
       <Target id="bottom-line">
         <BottomLine text={body.bottomLine} level={SUBSECTION_HEADING} />
       </Target>
-      <Target id="findings">
-        <Section title="Key findings" level={SUBSECTION_HEADING}>
-          <Findings findings={body.findings} />
-        </Section>
-      </Target>
+      {body.findings.length === 0 ? null : (
+        <Target id="findings">
+          <Section title="Key findings" level={SUBSECTION_HEADING}>
+            <Findings findings={body.findings} />
+          </Section>
+        </Target>
+      )}
       {body.contrary === null ? null : (
         <Target id="contrary">
           <Section title="Contrary evidence" level={SUBSECTION_HEADING}>
@@ -89,13 +91,15 @@ function Prose({ body, gapsHref }: { body: DeliveredBody; gapsHref: string }) {
         </Target>
       )}
       {body.records.length === 0 ? null : <Records blocks={body.records} />}
-      <Target id="limitations">
-        <Limitations
-          level={SUBSECTION_HEADING}
-          limitations={body.limitations}
-          gapsHref={gapsHref}
-        />
-      </Target>
+      {body.limitations.items.length === 0 ? null : (
+        <Target id="limitations">
+          <Limitations
+            level={SUBSECTION_HEADING}
+            limitations={body.limitations}
+            gapsHref={gapsHref}
+          />
+        </Target>
+      )}
     </>
   );
 }
@@ -177,9 +181,19 @@ function ModuleView({
       <div ref={content} className="flex min-w-0 flex-col gap-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Heading className="font-display text-h2 text-text-primary">{module.name}</Heading>
-          {body.kind === "delivered" ? (
+          {body.kind !== "delivered" ? null : body.limitations.items.length === 0 ? (
+            <div className="flex items-center gap-4">
+              <StatusBadge set="Module state" state={module.state} />
+              <Link
+                href={gapsHref}
+                className={`${TEXT_LINK} text-small font-semibold text-action underline`}
+              >
+                {body.limitations.gapsLink.label}
+              </Link>
+            </div>
+          ) : (
             <StatusBadge set="Module state" state={module.state} />
-          ) : null}
+          )}
         </div>
         {body.kind === "delivered" ? (
           <Prose body={body} gapsHref={gapsHref} />

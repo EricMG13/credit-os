@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import date
 from typing import Any
 
 import orchestrator_write_key as key
@@ -13,6 +14,8 @@ from credit_os.orchestrator.write import MAX_WRITES, WRITE_TOOLS, ModuleWriter, 
 from credit_os.provider.types import ToolCall
 
 LIMITED_BYTES = key.LIMITED.encode("utf-8")
+AS_OF = date(2025, 3, 31)
+ISSUER_NAMES = ("Northbridge Synthetic Group", "nbg")
 
 
 def _writer(accepted: dict[str, Any] | None = None) -> ModuleWriter:
@@ -25,6 +28,8 @@ def _writer(accepted: dict[str, Any] | None = None) -> ModuleWriter:
         upstream={},
         accepted=accepted or {},
         required_registers=(),
+        as_of=AS_OF,
+        issuer_names=ISSUER_NAMES,
     )
 
 
@@ -81,6 +86,8 @@ def test_d18_own_module_is_never_in_the_context(field: str) -> None:
             pins=(),
             other_sources=(),
             required_registers=(),
+            as_of=AS_OF,
+            issuer_names=ISSUER_NAMES,
             **arguments,
         )
 
@@ -96,8 +103,13 @@ def test_d18_context_carries_each_argument() -> None:
         upstream={"CP-1": document},
         accepted={"CP-2": document},
         required_registers=("SYNTHETIC-REG-1",),
+        as_of=AS_OF,
+        issuer_names=ISSUER_NAMES,
     )
     context = writer.context
+    assert context.as_of == AS_OF
+    assert context.issuer_names == ISSUER_NAMES
+    assert context.hashes_required is True
     assert context.kind == "data"
     assert context.scored is True
     assert context.other_sources == ("context",)

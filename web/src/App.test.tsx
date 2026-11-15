@@ -29,8 +29,8 @@ function tableOf(routes: Route[], invalid: string[] = []): RouteTable {
   };
 }
 
-// The legacy placeholders are App's answer when no group declares a home (a group may declare one
-// in its own routes.tsx without touching this file), so their tests run on a table with none.
+// The placeholder library is App's answer when no group declares a home, so its tests run on a
+// table with none.
 const NO_HOMES = tableOf([]);
 
 describe("App", () => {
@@ -49,13 +49,6 @@ describe("App", () => {
     window.location.hash = "#/kit";
     render(<App result={{ kind: "missing" }} />);
     expect(screen.getByRole("link", { name: "Kit" })).toHaveAttribute("aria-current", "page");
-  });
-
-  it.each(["model", "run", "signal"])("says #/%s is not built yet, inside the shell", (area) => {
-    window.location.hash = `#/${area}`;
-    render(<App result={{ kind: "missing" }} table={NO_HOMES} />);
-    expect(screen.getByText("Not built yet")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Areas" })).toBeInTheDocument();
   });
 
   it("says Page not found for an unknown hash, inside the shell", () => {
@@ -136,12 +129,6 @@ describe("App bare group addresses", () => {
     expect(window.location.hash).toBe(hash);
   });
 
-  it("keeps Not built yet for a group with no home", () => {
-    window.location.hash = "#/model";
-    render(<App result={okResult} table={table} />);
-    expect(screen.getByText("Not built yet")).toBeInTheDocument();
-  });
-
   it("reads the slice of a bare address as the home route's group, so invalid shows", () => {
     window.location.hash = "#/signal";
     render(<App result={okResult} table={tableOf([sig], ["signal"])} />);
@@ -219,6 +206,25 @@ describe("App bare group addresses", () => {
     render(<App result={okResult} table={tableOf(routes)} />);
     expect(screen.getByText("FIRST {}")).toBeInTheDocument();
   });
+});
+
+describe("App bare group addresses under the real route table", () => {
+  it.each(["#/model", "#/run", "#/signal"])(
+    "%s draws its group's home route, never a placeholder",
+    (hash) => {
+      for (const result of [
+        okResult,
+        { kind: "missing" } as const,
+        { kind: "newer", schema: "credit-os-data/2" } as const,
+      ]) {
+        window.location.hash = hash;
+        const { unmount } = render(<App result={result} />);
+        expect(screen.queryByText("Not built yet")).toBeNull();
+        expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+        unmount();
+      }
+    },
+  );
 });
 
 describe("App full-bleed pages", () => {

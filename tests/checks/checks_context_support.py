@@ -5,6 +5,7 @@ A plain module, imported by its bare name as `tests/provider` does; a conftest c
 
 import re
 from collections.abc import Callable, Iterable, Mapping
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,8 @@ def build_context(
     if unknown:
         raise ValueError(f"a key's context names unknown fields: {unknown!r}")
     fields = {**base, **{name: case[name] for name in _FIELDS if name in case}}
+    if "as_of" in fields:
+        fields["as_of"] = date.fromisoformat(fields["as_of"])
     if "pins" in fields:
         fields["pins"] = tuple(
             SourcePin(name=name, sha256=expand_digests(digest), size_bytes=1, kind=_kind(name))

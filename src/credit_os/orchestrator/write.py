@@ -8,6 +8,7 @@ this module (D18). A refusal is sent back as JSON records, never as free text (D
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Literal
 
 from credit_os.checks.findings import CheckContext, Finding
@@ -183,6 +184,8 @@ class ModuleWriter:
         upstream: dict[str, HandoffDocument],
         accepted: dict[str, HandoffDocument],
         required_registers: tuple[str, ...],
+        as_of: date,
+        issuer_names: tuple[str, ...],
     ) -> None:
         if module in upstream or module in accepted:
             raise ValueError(f"{module} cannot be in its own check context")
@@ -195,6 +198,9 @@ class ModuleWriter:
             upstream=upstream,
             accepted=accepted,
             required_registers=required_registers,
+            as_of=as_of,
+            issuer_names=issuer_names,
+            hashes_required=True,
         )
         self._attempts: list[Attempt] = []
         self._draft: str | None = None

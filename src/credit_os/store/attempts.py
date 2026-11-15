@@ -5,17 +5,19 @@ transaction (`StoreRefused`); the run gate runs in `db`; then the attempt, then 
 write's one clock call."""
 
 import hashlib
+import re
 import sqlite3
 from collections.abc import Callable, Sequence
 from decimal import Decimal
 
 from credit_os.provider.types import Compaction, Reply
 from credit_os.store import runs
-from credit_os.store.codec import money_from_text, money_to_text, time_to_text
+from credit_os.store.codec import detail_to_text, money_from_text, money_to_text, time_to_text
 from credit_os.store.errors import StoreConflict, StoreRefused, safe_text
 from credit_os.store.records import Claim
 
 _SQLITE_MAX_INTEGER = 2**63 - 1
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 def _check_count(name: str, value: object, minimum: int) -> int:
@@ -340,4 +342,150 @@ def close_call(
         " reported_model = ?, request_id = ?, raw = ?"
         " WHERE run_id = ? AND module_id = ? AND attempt = ? AND call_index = ?",
         (closed_at, *columns, run_id, module_id, attempt, call_index),
+    )
+
+
+def check_record_reply(
+    claim: object, module_id: object, attempt: object, reply: object
+) -> tuple[Claim, str, int, bytes]:
+    """Check a `record_reply` call: the claim, the module id, the attempt, and `reply` exactly
+    `bytes`."""
+    held = runs.check_claim(claim)
+    module = runs.check_identifier("module_id", module_id)
+    number = _check_count("attempt", attempt, 1)
+    if type(reply) is not bytes:
+        raise StoreRefused("reply must be bytes")
+    return held, module, number, reply
+
+
+def check_record_verdict(
+    claim: object,
+    module_id: object,
+    attempt: object,
+    reply_sha256: object,
+    accepted: object,
+    issues: object,
+) -> tuple[Claim, str, int, str, bool, str]:
+    """Check a `record_verdict` call; returns the claim, module id, attempt, the reply hash,
+    the verdict and the issues as stored text: "[" + each item's `detail_to_text` joined by ","
+    + "]"."""
+    held = runs.check_claim(claim)
+    module = runs.check_identifier("module_id", module_id)
+    number = _check_count("attempt", attempt, 1)
+    if type(reply_sha256) is not str or _SHA256.fullmatch(reply_sha256) is None:
+        raise StoreRefused("reply_sha256 must be 64 lower-case hex characters")
+    if type(accepted) is not bool:
+        raise StoreRefused("accepted must be a bool")
+    if not isinstance(issues, tuple | list) or type(issues) not in (tuple, list):
+        raise StoreRefused("issues must be a tuple or a list of mappings")
+    text = "[" + ",".join(detail_to_text(item) for item in issues) + "]"
+    return held, module, number, reply_sha256, accepted, text
+
+
+def check_fail_attempt(
+    claim: object, module_id: object, attempt: object, reason: object
+) -> tuple[Claim, str, int, str]:
+    """Check a `fail_attempt` call: the claim, the module id, the attempt, and a name reason."""
+    held = runs.check_claim(claim)
+    module = runs.check_identifier("module_id", module_id)
+    number = _check_count("attempt", attempt, 1)
+    return held, module, number, runs.check_name("reason", reason)
+
+
+def _attempt_state(
+    connection: sqlite3.Connection, run_id: str, module_id: str, attempt: int
+) -> tuple[str, str | None]:
+    """The attempt's state and stored reply hash; StoreRefused when the run has no such attempt."""
+    rows = connection.execute(
+        "SELECT state, reply_sha256 FROM attempts WHERE run_id = ? AND module_id = ?"
+        " AND attempt = ?",
+        (run_id, module_id, attempt),
+    ).fetchall()
+    if not rows:
+        raise StoreRefused("the run has no such attempt")
+    return str(rows[0][0]), rows[0][1]
+
+
+def record_reply(
+    connection: sqlite3.Connection,
+    run_id: str,
+    module_id: str,
+    attempt: int,
+    reply: bytes,
+    now: Callable[[], str],
+) -> str:
+    """Move the attempt from open to replied with the reply bytes and their SHA-256, write
+    `attempt_replied`, and return the hash. The attempt must exist (StoreRefused), be open and
+    have no open call (StoreConflict). The one clock call follows those checks."""
+    state, _ = _attempt_state(connection, run_id, module_id, attempt)
+    if state != "open":
+        raise StoreConflict("the attempt is not open")
+    open_calls = connection.execute(
+        "SELECT count(*) FROM calls WHERE run_id = ? AND module_id = ? AND attempt = ?"
+        " AND closed_at IS NULL",
+        (run_id, module_id, attempt),
+    ).fetchall()[0][0]
+    if open_calls:
+        raise StoreConflict("the attempt has an open call")
+    sha = hashlib.sha256(reply).hexdigest()
+    at = now()
+    connection.execute(
+        "UPDATE attempts SET state = 'replied', reply = ?, reply_sha256 = ?, replied_at = ?"
+        " WHERE run_id = ? AND module_id = ? AND attempt = ?",
+        (reply, sha, at, run_id, module_id, attempt),
+    )
+    runs.insert_event(connection, run_id, at, "attempt_replied", {}, module_id, attempt)
+    return sha
+
+
+def record_verdict(
+    connection: sqlite3.Connection,
+    run_id: str,
+    module_id: str,
+    attempt: int,
+    reply_sha256: str,
+    accepted: bool,
+    issues: str,
+    now: Callable[[], str],
+) -> None:
+    """Move the attempt from replied to accepted or rejected with the issues text, write the
+    matching event. The attempt must exist (StoreRefused), be replied and hold that reply hash
+    (StoreConflict). The one clock call follows those checks."""
+    state, stored = _attempt_state(connection, run_id, module_id, attempt)
+    if state != "replied":
+        raise StoreConflict("the attempt is not replied")
+    if stored != reply_sha256:
+        raise StoreConflict("the attempt holds another reply")
+    at = now()
+    new_state = "accepted" if accepted else "rejected"
+    connection.execute(
+        "UPDATE attempts SET state = ?, issues = ?, closed_at = ?"
+        " WHERE run_id = ? AND module_id = ? AND attempt = ?",
+        (new_state, issues, at, run_id, module_id, attempt),
+    )
+    runs.insert_event(connection, run_id, at, f"attempt_{new_state}", {}, module_id, attempt)
+
+
+def fail_attempt(
+    connection: sqlite3.Connection,
+    run_id: str,
+    module_id: str,
+    attempt: int,
+    reason: str,
+    now: Callable[[], str],
+) -> None:
+    """Move the attempt from open to failed with the reason, write `attempt_failed`. The attempt
+    must exist (StoreRefused) and be open (StoreConflict). An open call of the attempt stays
+    open: its spend is unknown until settled (D7)."""
+    state, _ = _attempt_state(connection, run_id, module_id, attempt)
+    if state != "open":
+        raise StoreConflict("the attempt is not open")
+    at = now()
+    connection.execute(
+        "UPDATE attempts SET state = 'failed', fail_reason = ?, closed_at = ?"
+        " WHERE run_id = ? AND module_id = ? AND attempt = ?",
+        (reason, at, run_id, module_id, attempt),
+    )
+    runs.insert_event(
+        connection, run_id, at, "attempt_failed", {"reason": reason}, module_id, attempt
     )

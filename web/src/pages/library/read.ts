@@ -1,3 +1,4 @@
+import { plainSegment } from "@/components/path/plain";
 import { STATUS_SETS } from "@/components/status/sets";
 import type { SliceResult } from "../route-table";
 import type {
@@ -110,11 +111,21 @@ function numOrNull(o: Rec, key: string, path: string): number | null {
   return own(o, key) === null ? null : num(o, key, path);
 }
 
-function oneOf<T extends string>(o: Rec, key: string, path: string, allowed: readonly T[]): T {
+function pick<T extends string>(
+  o: Rec,
+  key: string,
+  path: string,
+  allowed: readonly T[],
+  wanted: string,
+): T {
   const value = own(o, key);
   const found = allowed.find((word) => word === value);
-  if (found === undefined) throw new SliceError(child(path, key), `one of ${allowed.join(", ")}`);
+  if (found === undefined) throw new SliceError(child(path, key), `${wanted}${allowed.join(", ")}`);
   return found;
+}
+
+function oneOf<T extends string>(o: Rec, key: string, path: string, allowed: readonly T[]): T {
+  return pick(o, key, path, allowed, "one of ");
 }
 
 /** A word of the list or null; the refusal names both, at the same path as `oneOf`. */
@@ -124,13 +135,7 @@ function oneOfOrNull<T extends string>(
   path: string,
   allowed: readonly T[],
 ): T | null {
-  const value = own(o, key);
-  if (value === null) return null;
-  const found = allowed.find((word) => word === value);
-  if (found === undefined) {
-    throw new SliceError(child(path, key), `null or one of ${allowed.join(", ")}`);
-  }
-  return found;
+  return own(o, key) === null ? null : pick(o, key, path, allowed, "null or one of ");
 }
 
 function list<T>(
@@ -411,13 +416,24 @@ function readTrace(value: unknown, path: string): Trace {
   };
 }
 
+/** The delivery's id rule: 1 to 128 of letters, digits, `.`, `_`, `-`, and not `.` or `..`. */
+const ID_RULE = /^[A-Za-z0-9._-]{1,128}$/;
+
+function followsIdRule(id: string): boolean {
+  return ID_RULE.test(id) && id !== "." && id !== "..";
+}
+
 /**
  * The Forecast address of a run: delivered, and either absent (`null`) or the model page of this
- * run's own issuer and run, exactly. The page builds no address it was not given.
+ * run's own issuer and run, exactly, both ids following the delivery's id rule so the address
+ * names a route. The page builds no address it was not given.
  */
 function forecastHrefOf(h: Rec, path: string, issuer: string, run: string): string | null {
   const href = strOrNull(h, "forecastHref", path);
-  if (href !== null && href !== `#/model/${issuer}/${run}/forecast`) {
+  if (
+    href !== null &&
+    (!followsIdRule(issuer) || !followsIdRule(run) || href !== `#/model/${issuer}/${run}/forecast`)
+  ) {
     throw new SliceError(child(path, "forecastHref"), `null or #/model/${issuer}/${run}/forecast`);
   }
   return href;
@@ -568,21 +584,25 @@ function readModuleItem(value: unknown, path: string): ModuleItem {
   };
 }
 
-function readLimitations(value: unknown, path: string, traces: Traces): Limitations {
+/** `mayBeEmpty` is true only for a data module's body, which has nothing owed to say. */
+function readLimitations(
+  value: unknown,
+  path: string,
+  traces: Traces,
+  mayBeEmpty = false,
+): Limitations {
   const l = rec(value, path);
   const linkPath = child(path, "gapsLink");
-  const items = some(
-    unique(
-      list(l, "items", path, (item, p) => {
-        const i = rec(item, p);
-        return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
-      }),
-      child(path, "items"),
-      (item) => item.text,
-      "text",
-    ),
+  const rows = unique(
+    list(l, "items", path, (item, p) => {
+      const i = rec(item, p);
+      return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
+    }),
     child(path, "items"),
+    (item) => item.text,
+    "text",
   );
+  const items = mayBeEmpty ? rows : some(rows, child(path, "items"));
   return {
     count: countsRows(l, "count", path, items.length),
     gapsLink: { label: str(rec(own(l, "gapsLink"), linkPath), "label", linkPath) },
@@ -1239,6 +1259,8 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   }
 }
 
+const MODULE_KINDS = ["data", "prose"] as const;
+
 function readBody(value: unknown, path: string, traces: Traces): DeliveredBody | BlockedBody {
   const b = rec(value, path);
   if (oneOf(b, "kind", path, ["delivered", "blocked"]) === "blocked") {
@@ -1250,18 +1272,20 @@ function readBody(value: unknown, path: string, traces: Traces): DeliveredBody |
       gapsLink: { label: str(rec(own(b, "gapsLink"), linkPath), "label", linkPath) },
     };
   }
+  const moduleKind = oneOf(b, "moduleKind", path, MODULE_KINDS);
+  // Only a data module may deliver no findings and no limitations; a prose module keeps both.
+  const mayBeEmpty = moduleKind === "data";
+  const findings = unique(
+    list(b, "findings", path, (f, p) => readFinding(f, p, traces)),
+    child(path, "findings"),
+    (f) => f.number,
+    "number",
+  );
   return {
     kind: "delivered",
+    moduleKind,
     bottomLine: readBottomLine(own(b, "bottomLine"), child(path, "bottomLine"), traces),
-    findings: some(
-      unique(
-        list(b, "findings", path, (f, p) => readFinding(f, p, traces)),
-        child(path, "findings"),
-        (f) => f.number,
-        "number",
-      ),
-      child(path, "findings"),
-    ),
+    findings: mayBeEmpty ? findings : some(findings, child(path, "findings")),
     contrary: optionalView(b, "contrary", path, traces),
     changeView: optionalView(b, "changeView", path, traces),
     records: unique(
@@ -1270,7 +1294,12 @@ function readBody(value: unknown, path: string, traces: Traces): DeliveredBody |
       (block) => block.title,
       "title",
     ),
-    limitations: readLimitations(own(b, "limitations"), child(path, "limitations"), traces),
+    limitations: readLimitations(
+      own(b, "limitations"),
+      child(path, "limitations"),
+      traces,
+      mayBeEmpty,
+    ),
   };
 }
 
@@ -1479,9 +1508,6 @@ function readFile(value: unknown, path: string, held: Held): SourceFile {
   };
 }
 
-/** The characters a delivered file path uses; a `%` only starts a two-digit escape. */
-const SEGMENT = /^(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+$/;
-
 /**
  * An address the page hands to an anchor: a relative path inside the library folder, or `null`.
  * Every segment must be plain (allow-list), and none may be `.` or `..` before or after
@@ -1493,17 +1519,6 @@ function insideLibrary(o: Rec, key: string, path: string): string | null {
     throw new SliceError(child(path, key), "a relative path inside the library folder");
   }
   return href;
-}
-
-function plainSegment(segment: string): boolean {
-  if (!SEGMENT.test(segment)) return false;
-  try {
-    const decoded = decodeURIComponent(segment);
-    return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
-  } catch (error) {
-    if (!(error instanceof URIError)) throw error;
-    return false; // an escape that is not UTF-8 is refused like any other odd path
-  }
 }
 
 /** An address, or the reason there is none: exactly one of the two. */

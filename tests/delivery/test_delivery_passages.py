@@ -162,6 +162,21 @@ def test_cell_never_raises_and_never_floats(text: str) -> None:
 
 
 @given(
+    st.text(alphabet="0123456789 .,-%x", min_size=1, max_size=12),
+    st.characters(categories=("Nd", "Nl", "No"), exclude_characters="0123456789").filter(
+        lambda c: c.isnumeric()
+    ),
+    st.integers(min_value=0, max_value=12),
+)
+def test_cell_with_a_numeric_character_other_than_0_to_9_has_no_at(
+    base: str, inserted: str, position: int
+) -> None:
+    at = min(position, len(base))
+    text = base[:at] + inserted + base[at:]
+    assert passages.cell(text) == ({"kind": "value", "text": text, "at": None}, None)
+
+
+@given(
     st.text(alphabet="abc xyz.", max_size=20),
     st.text(alphabet="ABCDEFGH_-.pdf", min_size=1, max_size=12),
     st.text(alphabet="abc xyz.", max_size=20),
@@ -189,3 +204,33 @@ def test_cells_exact_in_any_context(name: str, row: list[object]) -> None:
         assert got is not None
         at = cast(Decimal, got["at"])
         assert at.as_tuple() == Decimal(cast(str, want["at"])).as_tuple()
+
+
+DASH_LIKE_SIGNS = (
+    0x2010,
+    0x2011,
+    0x2012,
+    0x2013,
+    0x2014,
+    0x2015,
+    0xFE58,
+    0xFE63,
+    0xFF0D,
+    0x207B,
+    0x208B,
+    0x2796,
+    0x02D7,
+)
+
+
+@st.composite
+def _digits_with_sign(draw: st.DrawFn) -> str:
+    base = draw(st.text(alphabet="0123456789.,", min_size=1))
+    sign = chr(draw(st.sampled_from(DASH_LIKE_SIGNS)))
+    at = draw(st.integers(min_value=0, max_value=len(base)))
+    return base[:at] + sign + base[at:]
+
+
+@given(_digits_with_sign())
+def test_cell_dash_like_sign_gives_no_at(text: str) -> None:
+    assert passages.cell(text) == ({"kind": "value", "text": text, "at": None}, None)

@@ -1,6 +1,7 @@
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { PageHeader } from "@/shell/PageHeader";
 import { useSource } from "../source";
+import { runAddress } from "./runAddress";
 import { readSlice } from "./slice/read";
 
 /** The group's home: every run the slice holds, each a link to that run's front page. */
@@ -27,7 +28,7 @@ export function RunsIndexPage() {
           {runs.map((run, index) => (
             <li key={index}>
               <a
-                href={`#/model/${encodeURIComponent(run.issuer)}/${encodeURIComponent(run.run)}/front`}
+                href={`${runAddress(run.issuer, run.run)}/front`}
                 className="flex flex-col gap-1 rounded-lg border border-border-hairline bg-surface-card p-4 outline-focus focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 <span className="font-display text-h3 text-text-primary">
@@ -40,7 +41,7 @@ export function RunsIndexPage() {
           {named.map((run, index) => (
             <li key={`unreadable-${String(index)}`}>
               <a
-                href={`#/model/${encodeURIComponent(run.issuer)}/${encodeURIComponent(run.run)}/front`}
+                href={`${runAddress(run.issuer, run.run)}/front`}
                 className="flex flex-col gap-1 rounded-lg border border-border-hairline bg-surface-card p-4 outline-focus focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 <span className="font-display text-h3 text-text-primary">{run.issuer}</span>

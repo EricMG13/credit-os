@@ -5,6 +5,7 @@ import { Item } from "./parts/Item";
 import { MetricTile } from "./parts/MetricTile";
 import { RunPage } from "./parts/RunPage";
 import { TraceControl } from "./parts/TraceControl";
+import { runAddress } from "./runAddress";
 
 const SECTION_TITLE = "font-display text-h3 text-text-primary";
 
@@ -67,11 +68,7 @@ export function FrontPage({ params }: { params: Record<string, string> }) {
                     key={index}
                     title={part.title}
                     text={part.text}
-                    href={
-                      part.to === null
-                        ? null
-                        : `#/model/${encodeURIComponent(issuer)}/${encodeURIComponent(run)}/${part.to}`
-                    }
+                    href={part.to === null ? null : `${runAddress(issuer, run)}/${part.to}`}
                     trace={
                       part.trace === null ? null : (
                         <TraceControl

@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,8 @@ EXPECTED_CHECKS = [
     "structure.fence",
     "structure.register-id",
     "structure.registers",
+    "request.as-of",
+    "request.issuer",
     "prose.bottom-line",
     "prose.bottom-line-length",
     "prose.module-code",
@@ -32,6 +35,7 @@ EXPECTED_CHECKS = [
     "sources.table",
     "sources.name",
     "sources.sha256",
+    "sources.sha256-required",
     "sources.type",
     "figure.form",
     "figure.not-held",
@@ -69,7 +73,7 @@ def _context(**values: Any) -> CheckContext:
 
 def test_checks_closed_tuple() -> None:
     assert list(CHECKS) == EXPECTED_CHECKS
-    assert len(set(CHECKS)) == 32
+    assert len(set(CHECKS)) == 35
 
 
 def test_message() -> None:
@@ -165,6 +169,39 @@ def test_context_defaults() -> None:
     assert context.upstream == {}
     assert context.accepted == {}
     assert context.required_registers == ()
+    assert context.as_of is None
+    assert context.issuer_names == ()
+    assert context.hashes_required is False
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"issuer_names": ("",)},
+        {"issuer_names": ("  ",)},
+        {"issuer_names": ("Northbridge Synthetic Group", "")},
+        {"as_of": "2025-03-31"},
+        {"hashes_required": "yes"},
+    ],
+    ids=["empty name", "blank name", "second name blank", "as_of text", "hashes_required text"],
+)
+def test_context_refuses_bad_anchor_fields(values: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        _context(kind="prose", **values)
+
+
+def test_context_takes_anchor_fields() -> None:
+    context = _context(
+        kind="prose",
+        as_of=datetime.date(2025, 3, 31),
+        issuer_names=("Northbridge Synthetic Group", "nbg"),
+        hashes_required=True,
+    )
+    assert context.as_of == datetime.date(2025, 3, 31)
+    assert context.issuer_names == ("Northbridge Synthetic Group", "nbg")
+    assert context.hashes_required is True
+    with pytest.raises(ValidationError):
+        _set(context, "hashes_required", False)
 
 
 def test_context_frozen() -> None:
