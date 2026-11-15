@@ -32,7 +32,7 @@ from credit_os.sources.pages import Page, SourcePages
 # format code stay for the whole read. Cell characters: one cell or string while it is put together.
 # Column: XFD, which makes the order of cells checkable. Row: 1,048,576. Text: all pages. Block: pieces of page text
 # held before they are made one block.
-MAX_SHEETS = 10_000
+MAX_SHEETS = 1_000
 MAX_CELL_FORMATS = 65_536
 MAX_NUMBER_FORMATS = 4_096
 MAX_KEPT_CHARACTERS = 255
