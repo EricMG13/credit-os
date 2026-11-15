@@ -217,12 +217,15 @@ def lost_values(
     seen: set[Hashable] = set()
     lost: list[LostValue] = []
     for line, text in sorted(nodes(previous, comments=False), key=lambda node: node[0]):
-        label = tables.labels.get(line, text)
+        label: str | None = None
         for tracked in _tracked(text, bare=(line, text) in tables.cells):
             if tracked.key in kept or tracked.key in seen:
                 continue
             if tracked.excuse in excuses.get(line, ()):
                 continue
             seen.add(tracked.key)
+            if label is None:
+                # Cleaned and cut once per node; the field's own cut leaves a cut label as it is.
+                label = echo(_one_line(tables.labels.get(line, text)))
             lost.append(LostValue(line=line, value=tracked.value, label=label))
     return tuple(lost)
