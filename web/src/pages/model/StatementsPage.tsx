@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { CaseCards } from "./parts/CaseCards";
 import { RunPage, runKey } from "./parts/RunPage";
 import { StatementTable, type StatementView } from "./parts/StatementTable";
@@ -7,6 +7,12 @@ import { CaseComparison } from "./sections/CaseComparison";
 import { DebtSection } from "./sections/DebtSection";
 import { RecoverySection } from "./sections/RecoverySection";
 import type { ModelRun } from "./slice/types";
+
+// Only the statement table and the bridges follow the case; these sections take run data that does
+// not change with it, so a case switch leaves them as they were instead of drawing every chart again.
+const ComparisonSection = memo(CaseComparison);
+const DebtCharts = memo(DebtSection);
+const RecoveryCharts = memo(RecoverySection);
 
 /** The case and the Figures or Bars choice are in-memory page state; the first case is default. */
 function Body({ run }: { run: ModelRun }) {
@@ -25,9 +31,9 @@ function Body({ run }: { run: ModelRun }) {
       </section>
       <StatementTable page={run.statements} caseIndex={caseIndex} view={view} onView={setView} />
       <Bridges bridges={run.statements.bridges} caseIndex={caseIndex} />
-      <CaseComparison data={run.statements.comparison} cases={run.cases} />
-      <DebtSection stack={run.statements.debt.stack} maturities={run.statements.debt.maturities} />
-      <RecoverySection
+      <ComparisonSection data={run.statements.comparison} cases={run.cases} />
+      <DebtCharts stack={run.statements.debt.stack} maturities={run.statements.debt.maturities} />
+      <RecoveryCharts
         recovery={run.statements.recovery}
         gap={run.statements.gap}
         checkFigure={run.statements.checkFigure}

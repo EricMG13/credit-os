@@ -82,8 +82,11 @@ export function ScatterCard({ data }: { data: HoldingsScatter | SectionGap }) {
   );
 }
 
-/** The issuer against the range across holdings, one strip per measure on its own axis. */
-export function StripsCard({ data }: { data: HoldingsStrips }) {
+/**
+ * One strip per measure on its own axis, against the range across holdings or a five-year range;
+ * `emphasised` is the chosen case, whose marker stands out.
+ */
+export function StripsCard({ data, emphasised }: { data: HoldingsStrips; emphasised?: number }) {
   return (
     <ChartCard>
       <RangeStripChart
@@ -93,6 +96,7 @@ export function StripsCard({ data }: { data: HoldingsStrips }) {
         note={data.note}
         actions={chartTrace(data.trace, data.title)}
         rangeLabel={data.rangeLabel}
+        emphasised={emphasised}
         rows={data.rows.map((r) => ({
           label: r.label,
           rangeText: r.rangeText,

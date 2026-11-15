@@ -5,6 +5,7 @@ import { Button } from "@/components/base/buttons/button";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { PageHeader } from "@/shell/PageHeader";
 import { cx } from "@/utils/cx";
+import { runAddress } from "../runAddress";
 import type { ModelRun } from "../slice/types";
 import { ShowSources, ShowSourcesSwitch } from "./ShowSources";
 
@@ -41,7 +42,7 @@ export function ModelShell({
   current: ShellPage;
   children: ReactNode;
 }) {
-  const base = `#/model/${encodeURIComponent(run.issuer)}/${encodeURIComponent(run.run)}`;
+  const base = runAddress(run.issuer, run.run);
   const { header, links } = run;
   return (
     <ShowSources>

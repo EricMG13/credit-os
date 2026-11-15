@@ -5,7 +5,8 @@ import { Item } from "./parts/Item";
 import { Passage } from "./parts/Passage";
 import { RunPage, runKey } from "./parts/RunPage";
 import { TraceControl } from "./parts/TraceControl";
-import { CoverCard, DriversCard, PathsCard, WalkCard } from "./sections/ForecastCharts";
+import { CoverCard, PathsCard, WalkCard } from "./sections/ForecastCharts";
+import { StripsCard } from "./sections/PortfolioCharts";
 import { SectionHeading, gapReason, pairGrid } from "./sections/shared";
 import type { ModelRun } from "./slice/types";
 
@@ -24,7 +25,7 @@ function Body({ run }: { run: ModelRun }) {
         </div>
         <CaseCards cases={run.cases} chosen={chosen} onChoose={setChosen} />
       </section>
-      <DriversCard data={page.drivers} chosen={chosen} />
+      <StripsCard data={page.drivers} emphasised={chosen} />
       <div className={pairGrid(Math.max(page.interestCover.head.length, page.ebitda.head.length))}>
         <CoverCard
           data={page.interestCover}

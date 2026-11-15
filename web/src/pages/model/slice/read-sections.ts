@@ -7,6 +7,7 @@ import {
   fail,
   is,
   num,
+  nullableRecord,
   numOrNull,
   object,
   oneOf,
@@ -102,19 +103,11 @@ const addressOrFile: Reader<string> = (value, path) => {
     : fail(path, `expected an address starting with "#/" or ${WANTED}`);
 };
 
-const publishedRecord = object<Published>({
-  kind: oneOf(["markdown", "html"] as const),
-  href: filePath,
-});
 /** `null`, or a record with kind and href; anything with neither key is not a published model. */
-const published: Reader<Published | null> = (value, path) => {
-  if (value === null) return null;
-  const isRecord = typeof value === "object" && !Array.isArray(value);
-  if (!isRecord || !("kind" in value || "href" in value)) {
-    return fail(path, "expected null or an object with kind and href");
-  }
-  return publishedRecord(value, path);
-};
+const published = nullableRecord(
+  ["kind", "href"],
+  object<Published>({ kind: oneOf(["markdown", "html"] as const), href: filePath }),
+);
 
 /** The members the second half of the Model page adds to the statements page. */
 export const sections = {
