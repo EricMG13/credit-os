@@ -100,6 +100,7 @@ def test_key_constants() -> None:
         "cell",
         "unit",
         "currency",
+        "facility",
     ]
 
 

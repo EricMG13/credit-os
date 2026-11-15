@@ -1,0 +1,1 @@
+window.CREDIT_OS_DATA = JSON.parse("{\"schema\":\"credit-os-data/1\",\"issuers\":[],\"library\":{\"at\":[4.2,-0.5,100,0,0,1234567.891,-12.34],\"count\":3,\"big\":9007199254740991,\"flags\":[true,false,null]},\"model\":{\"runs\":[]}}");

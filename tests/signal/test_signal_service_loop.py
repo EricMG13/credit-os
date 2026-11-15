@@ -362,8 +362,13 @@ def test_serve_refuses_a_bad_address_with_one_line_and_exit_2(
 
 
 def test_serve_refuses_a_root_that_is_a_file_with_one_line_and_exit_2(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    def hang_guard(self: socketserver.BaseServer, poll_interval: float = 0.5) -> None:
+        pytest.fail("serve reached serve_forever: the store was never opened")
+
+    # A serve that skips opening the store fails here instead of blocking the run (R71 F3).
+    monkeypatch.setattr(socketserver.BaseServer, "serve_forever", hang_guard)
     root = tmp_path / "file"
     root.write_text("x")
     assert serve(root, "127.0.0.1", 0) == 2

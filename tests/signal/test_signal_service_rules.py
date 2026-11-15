@@ -7,7 +7,6 @@ client sockets are alive at once.
 
 from __future__ import annotations
 
-import http.client
 import json
 import socket
 import sqlite3
@@ -16,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from service_support import Live, raw, read_all
+from service_support import Live, lingering_connection, raw, read_all
 from test_signal_feedview import build_feed_db
 from test_signal_service_wire import POLICY
 
@@ -214,7 +213,7 @@ def test_nothing_in_the_request_but_the_cookie_says_who_acts(
 
 
 def test_two_cookie_lines_are_a_refusal(svc: Live) -> None:
-    connection = http.client.HTTPConnection("127.0.0.1", svc.port, timeout=10)
+    connection = lingering_connection(svc.port, 10)
     connection.putrequest("GET", "/api/feed?view=latest", skip_accept_encoding=True)
     connection.putheader("Cookie", "signal_name=Reader")
     connection.putheader("Cookie", "signal_name=Other")

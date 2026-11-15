@@ -13,8 +13,9 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Self
 
+from credit_os.provider.types import Compaction
 from credit_os.sources.pins import SourcePin
-from credit_os.store import codec, location, runs, schema, txn
+from credit_os.store import attempts, codec, location, runs, schema, txn
 from credit_os.store.errors import (
     StoreCorrupt,
     StoreRefused,
@@ -185,6 +186,49 @@ class Store(_Handle):
             runs.insert_event(
                 connection, held.run_id, self._now(), kind, detail, module_id, attempt
             )
+
+    def open_attempt(self, claim: Claim, *, module_id: str, request: bytes) -> int:
+        """Open the module's next attempt (1 when it has none) and return its number. The latest
+        attempt open with the same request bytes is returned with nothing written; the latest
+        attempt open with other bytes, replied or accepted is StoreConflict."""
+        held, module = attempts.check_open_attempt(claim, module_id, request)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            return attempts.open_attempt(connection, held.run_id, module, request, self._now)
+
+    def open_call(
+        self,
+        claim: Claim,
+        *,
+        module_id: str,
+        attempt: int,
+        exchange_id: str,
+        provider_call_index: int,
+        hold_usd: Decimal,
+    ) -> int:
+        """Record the attempt's next call, from 0, and return its index. The call is recorded
+        and committed before it is sent: a crash after it leaves an open call (spend unknown),
+        never a sent call with no record. An attempt that is not open, an attempt with an open
+        call, and an exchange id and provider call index the run has used are StoreConflict."""
+        held, module, number, exchange, index, hold = attempts.check_open_call(
+            claim, module_id, attempt, exchange_id, provider_call_index, hold_usd
+        )
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            return attempts.open_call(
+                connection, held.run_id, module, number, exchange, index, hold, self._now
+            )
+
+    def record_compactions(self, claim: Claim, compactions: Sequence[Compaction]) -> None:
+        """Record compactions that belong to no call (from `Model.close()`), each at the run's
+        next position, in order. An event id the run already holds is a no-op when the
+        compaction is the same, and StoreConflict when it differs or the stored id holds a
+        backslash (a lone surrogate escaped may meet a literal `\\ud800`, U12); nothing of a
+        refused call is written. No clock call and no event."""
+        held, rows = attempts.check_compactions(claim, compactions)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.insert_compactions(connection, held.run_id, rows, None)
 
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:
