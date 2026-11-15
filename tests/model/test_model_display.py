@@ -113,3 +113,28 @@ def test_display_within_half_unit(d: Decimal, places: int) -> None:
     assert gap <= Decimal(5).scaleb(-(places + 1))
     fraction = shown.partition(".")[2]
     assert len(fraction) == places
+
+
+AMBIENT = {
+    "up5": decimal.Context(prec=5, rounding=decimal.ROUND_UP),
+    "tight5": decimal.Context(
+        prec=1, rounding=decimal.ROUND_DOWN, traps=[], flags=[], Emax=5, Emin=-5
+    ),
+    "tight3": decimal.Context(prec=1, Emin=-3, Emax=3, traps=[], flags=[]),
+}
+
+
+@pytest.mark.parametrize("ctx", AMBIENT.values(), ids=list(AMBIENT))
+def test_display_and_json_rows_ignore_the_ambient_context(ctx: decimal.Context) -> None:
+    with decimal.localcontext(ctx):
+        for text, places, expected in TEXT["rows"]:
+            assert display_text(Value(amount=Decimal(text)), places) == expected
+        for row in TEXT["refused"]:
+            value: Any = Value(amount=Decimal("1.5")) if row["value"] == "1.5" else Decimal("1.5")
+            with pytest.raises(ERRORS[str(row["error"])]):
+                display_text(value, row["places"])
+        for text, expected in NUMBER["rows"]:
+            assert json_number(Decimal(text)) == expected
+        for row in NUMBER["refused"]:
+            with pytest.raises(ERRORS[row["error"]]):
+                json_number(Decimal(row["value"]))
