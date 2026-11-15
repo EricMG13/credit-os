@@ -6,7 +6,10 @@ foundation's text. Worked here, in `fractions.Fraction`: whether each stated bal
 term is printed in that text, the balances against 1.25 times base debt, the running totals of
 the three-year schedule (each year repays a facility's amortisation, at most what is left), a
 case `debt_repayment` beside facilities, and each outcome in the order base, facilities,
-currency. Run this file to write `pr6b.json` next to it.
+currency. 1B-M1 (the whole-branch review's fix): a balance counts as printed only in a piece that
+names no unit other than the block's, and in a table cell only when the cell, its column header,
+the first header cell and the rest of its row name none either. Run this file to write
+`pr6b.json` next to it.
 """
 
 import importlib.util
@@ -46,11 +49,38 @@ def text(value: Fraction) -> str:
     return ("-" if value < 0 else "") + whole + (f".{tail}" if tail else "")
 
 
+# R47: a balance counts only where it stands as a number of its own: not inside a longer number,
+# not glued to a letter (`FY2024`, `9M`), not part of a date (`2022-07-01`, `19/11/2031`) and not a
+# percentage (`7.125%`). A number standing alone in words (`Senior notes 2029`) still counts.
+ALONE_BEFORE = r"(?<![0-9.,A-Za-z])(?<![0-9][-/])"
+ALONE_AFTER = r"(?![0-9]|[.,][0-9]|[A-Za-z]|[-/][0-9]| ?%)"
+
+
 def printed(lines: list[str], amount: str) -> bool:
     whole, dot, fraction = amount.lstrip("-").partition(".")
     forms = {f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}"}
-    pattern = "|".join(rf"(?<![0-9.,]){re.escape(form)}(?![0-9]|[.,][0-9])" for form in forms)
+    pattern = "|".join(rf"{ALONE_BEFORE}{re.escape(form)}{ALONE_AFTER}" for form in forms)
     return any(re.search(pattern, line) for line in lines)
+
+
+# 1B-M1 (coordinator, 2026-11-15, under the plan's Scale rule: "an amount printed in the other unit
+# is refused, never converted"): a balance counts only in a piece that names no unit other than
+# the block's. Prose lines and table labels are pieces of their own. A table cell counts only when
+# it, its column header, the first header cell and every other cell of its row (6a's group, with
+# the cell itself) name no unit other than the block's. A piece or group naming both units does
+# not count. Prose naming no unit still counts (known reading until R57's caption line). Rates are
+# read from every line, as before.
+def balance_pieces(text: str, unit: str) -> list[str]:
+    def only(*pieces: str) -> bool:
+        return all(set(PR6A.units_named(piece)) <= {unit} for piece in pieces)
+
+    lines = PR6A.text_lines(text)
+    pieces = [line for line in lines if not line.lstrip(" ").startswith("|") and only(line)]
+    for _, head, body in PR5.tables(text):
+        pieces += [cell for cell in head if only(cell)]
+        for cells in body:
+            pieces += [cell for c, cell in enumerate(cells) if only(*cells, head[c], head[0])]
+    return pieces
 
 
 def printed_percent(lines: list[str], value: str) -> bool:
@@ -61,11 +91,11 @@ def millions(amount: str, scale: int) -> Fraction:
     return Fraction(amount) / scale
 
 
-def facility_problem(block: Doc, lines: list[str]) -> list[str] | None:
+def facility_problem(block: Doc, lines: list[str], pieces: list[str]) -> list[str] | None:
     facilities, scale = block["facilities"], block["scale"]
     for number, facility in enumerate(facilities, 1):
         name, subject = PR5.echo(facility["name"]), f"facility {number}"
-        if not printed(lines, facility["balance"]):
+        if not printed(pieces, facility["balance"]):
             message = MESSAGES["balance"].format(name=name, balance=facility["balance"])
             return ["facility", subject, message]
         for field in (field for field in RATES if facility[field] is not None):
@@ -120,8 +150,10 @@ def outcome(row: Doc) -> list[str] | None:
     if first is not None and first[0] in ("cell", "unit", "HandoffError"):
         return first
     block = PR5.block(source, row.get("ops", []))
-    lines = PR6A.text_lines(PR6A.edited(foundation, row.get("edits", [])))
-    if block["facilities"] is not None and (problem := facility_problem(block, lines)):
+    text = PR6A.edited(foundation, row.get("edits", []))
+    lines = PR6A.text_lines(text)
+    pieces = balance_pieces(text, "thousands" if block["scale"] == 1000 else "millions")
+    if block["facilities"] is not None and (problem := facility_problem(block, lines, pieces)):
         return problem
     return first
 
@@ -441,13 +473,211 @@ ROWS: list[Doc] = [
 ]
 
 
+# R47: (where the balance is printed, the balance, the foundation text that prints it only that
+# way, or None where the fixture already does, and the same number printed on its own).
+# The period-label row uses FY2031, not FY2024: the fixture also prints 2024 standing alone in
+# `9M 2024` and `Q3 2024`, which counts by the known reading, so 2024 is printed either way.
+R47 = [
+    ("glued after a period label", "2031", "Guidance for FY2031 is withdrawn.", "Guidance: 2031."),
+    ("as the year of an ISO date", "2022", None, "Opened in 2022."),
+    ("as the day of an ISO date", "17", "Repaid on 2031-11-17.", "Repaid: 17."),
+    ("before the slash of a date", "21", "Repaid on 21/11/2031.", "Repaid: 21."),
+    ("after the slash of a date", "23", "Repaid on 2031/11/23.", "Repaid: 23."),
+    ("glued before a letter", "9", None, "Nine is 9."),
+    ("as a percentage", "7.125", None, "The notes stand at 7.125."),
+    ("glued into a facility name", "2027", "TLB2027 was repaid.", "2027 was repaid."),
+]
+# The 6b2 adversary review: M1 pins the letter pieces for small letters too; M2 pins the point
+# before a balance, which R47's `%` piece hid in 6b's "after a point" row (`Fixed 7.125%`). These
+# rows come after the controls, so the earlier rows stay as they were.
+R47_REVIEW: list[tuple[str, str, str | None, str]] = [
+    ("glued before a small letter", "380", "Drawn 380m.", "Drawn: 380."),
+    ("glued after a small letter", "2027", "tlb2027 was repaid.", "2027 was repaid."),
+    ("after a point in a longer number", "380", "Drawn 1.380.", "Drawn: 380."),
+]
+
+
+def r47_rows() -> list[Doc]:
+    """Each R47 form refused, beside the same balance printed on its own and accepted; base debt
+    3,000 keeps both bounds out of the way."""
+    base = debt("3,000", "3000")
+    rows = []
+
+    def row(label: str, balance: str, *lines: str) -> Doc:
+        edits = [*base["edits"], *([CALC, f"{CALC}\n{line}\n"] for line in lines)]
+        ops = [*base["ops"], [["facilities", 1, "balance"], balance]]
+        return {"label": f"R47: {label}", "edits": edits, "ops": ops}
+
+    def pairs(table: list[tuple[str, str, str | None, str]]) -> None:
+        for where, balance, only, alone in table:
+            glued = [only] if only else []
+            rows.append(row(f"a balance printed only {where} is not printed", balance, *glued))
+            rows.append(
+                row(
+                    f"the same balance on its own beside it is printed ({where})",
+                    balance,
+                    *glued,
+                    alone,
+                )
+            )
+
+    pairs(R47)
+    rows.append(
+        row("known reading: a number standing alone in a name counts (Senior notes 2029)", "2029")
+    )
+    rows.append(
+        row("a bracketed balance with a trailing zero counts", "1250.0", "Drawn (1,250.0).")
+    )
+    rows.append(
+        row(
+            "a balance printed only as a percentage with a trailing zero does not count",
+            "1250.0",
+            "Drawn 1,250.0%.",
+        )
+    )
+    rows.append(
+        row(
+            "a balance printed only as a percentage after a space does not count",
+            "1250.0",
+            "Drawn 1,250.0 %.",
+        )
+    )
+    pairs(R47_REVIEW)
+    return rows
+
+
+# 1B-M1 pairs, scale 1 (the block's unit is millions): the balance printed only where the named
+# part of the rule names another unit, beside the same text naming millions. Base debt 3,000.
+SENIOR = "| Senior notes 2029 |"
+M1 = [
+    ("in prose naming thousands", "Senior notes 2029: 380, in thousands.", "thousands"),
+    ("in prose naming billions", "Senior notes 2029: 380, in billions.", "billions"),
+    (
+        "in prose naming both units",
+        "Senior notes 2029: 380, in millions and thousands.",
+        "and thousands",
+    ),
+    (
+        "in a table whose Unit cell names thousands",
+        f"| Facility | FY2024 | Unit |\n| --- | --- | --- |\n{SENIOR} 380 | USD thousands |",
+        "USD thousands",
+    ),
+    (
+        "in a table whose column header names thousands",
+        f"| Facility | FY2024 USD thousands |\n| --- | --- |\n{SENIOR} 380 |",
+        "USD thousands",
+    ),
+    (
+        "in a table whose first header cell names thousands",
+        f"| USD thousands | FY2024 |\n| --- | --- |\n{SENIOR} 380 |",
+        "USD thousands",
+    ),
+    (
+        "in a table cell that itself names thousands",
+        f"| Facility | FY2024 |\n| --- | --- |\n{SENIOR} 380 thousand |",
+        "thousand",
+    ),
+    (
+        "in a table row naming both units",
+        (
+            f"| Facility | FY2024 | Unit | Note |\n| --- | --- | --- | --- |\n"
+            f"{SENIOR} 380 | USD millions | restated from thousands |"
+        ),
+        " from thousands",
+    ),
+    (
+        "in a table label naming thousands",
+        f"**Senior notes 2029: USD 380 thousand**\n| Facility | Note |\n| --- | --- |\n{SENIOR} Drawn |",
+        "thousand",
+    ),
+]
+SAME = {"thousands": "millions", "billions": "millions", "and thousands": "", " from thousands": ""}
+TLB = "| Term loan B | 640,000 | Reference rate + 3.25%, floor 0.75%; amortises 32,000 a year | 2026-09-30 | USD thousands |"
+NOTES = "| Senior notes 2029 | 450,000 | Fixed 7.125% | 2029-03-15 | USD thousands |"
+TLB_M = (
+    TLB.replace("640,000", "640").replace("32,000", "32").replace("USD thousands", "USD millions")
+)
+NOTES_M = NOTES.replace("450,000", "450").replace("USD thousands", "USD millions")
+SCALE_1000 = {"foundation": "foundation-thousands.md", "source": "forward-model-thousands.md"}
+SMALL = [
+    [["facilities", 0, "balance"], "640"],
+    [["facilities", 1, "balance"], "450"],
+    [["facilities", 0, "annual_amortisation"], "32"],
+]
+UNCELLED = [
+    [TLB, TLB.replace("640,000", "See the note")],
+    [NOTES, NOTES.replace("450,000", "See the note")],
+]
+
+
+MISSING = next(row for row in ROWS if row["label"].startswith("base debt missing"))["ops"][0]
+
+
+def m1_rows() -> list[Doc]:
+    """1B-M1: the nine scale-1 pairs, then the cases the whole-branch review reproduced."""
+    base = debt("3,000", "3000")
+    rows = []
+
+    def row(label: str, line: str) -> Doc:
+        edits = [*base["edits"], [CALC, f"{CALC}\n{line}\n"]]
+        ops = [*base["ops"], [["facilities", 1, "balance"], "380"]]
+        return {"label": f"1B-M1: {label}", "edits": edits, "ops": ops}
+
+    for where, other, word in M1:
+        same = other.replace(word, SAME.get(word, word.replace("thousand", "million")))
+        rows.append(row(f"a balance printed only {where} is not printed", other))
+        rows.append(row(f"the same text naming millions prints it ({where})", same))
+    rows.append(
+        {
+            "label": "1B-M1: scale 1000, the facility table only in USD millions, is not printed",
+            **SCALE_1000,
+            "edits": [[TLB, TLB_M], [NOTES, NOTES_M]],
+            "ops": SMALL,
+        }
+    )
+    prose = "Term loan B of USD 640 million and Senior notes 2029 of USD 450 million were drawn."
+    rows.append(
+        {
+            "label": "1B-M1: scale 1000, the balances only in prose naming USD millions, is not printed",
+            **SCALE_1000,
+            "edits": [*UNCELLED, [CALC, f"{CALC}\n{prose}\n"]],
+            "ops": SMALL,
+        }
+    )
+    neutral = "Term loan B 640 and Senior notes 2029 450 were drawn."
+    rows.append(
+        {
+            "label": "1B-M1 known reading: scale 1000, prose naming no unit counts (640 for 640,000)",
+            **SCALE_1000,
+            "edits": [*UNCELLED, [CALC, f"{CALC}\n{neutral}\n"]],
+            "ops": SMALL,
+        }
+    )
+    rows.append(
+        {
+            "label": "1B-M1: scale 1, balances 1,000 times too large with base debt missing, is not printed",
+            "edits": [[TLB_M, TLB], [NOTES_M, NOTES]],
+            "ops": [
+                MISSING,
+                [["facilities", 0, "balance"], "640000"],
+                [["facilities", 1, "balance"], "450000"],
+                [["facilities", 0, "annual_amortisation"], "32000"],
+            ],
+        }
+    )
+    return rows
+
+
 def render() -> str:
-    rows = [{**row, "source": row.get("source", "forward-model.md")} for row in ROWS]
+    rows = [
+        {**row, "source": row.get("source", "forward-model.md")}
+        for row in [*ROWS, *r47_rows(), *m1_rows()]
+    ]
     rows = [{**row, "outcome": outcome(row)} for row in rows]
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 57 and len(accepted) == 13
+    assert len(labels) == len(set(labels)) == 105 and len(accepted) == 36
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":

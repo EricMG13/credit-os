@@ -36,7 +36,9 @@ _DOLLARS = r"(?:US\$|\$)"
 _AFTER = rf"(?:{_DOLLARS}|[€£])"
 _CAPITAL_M = "(?-i:M)"
 _AMBIGUOUS = rf"(?<![A-Za-z]){_CAPITAL_M}{_DOLLARS}"
-_UNIT_COLUMNS = ("Unit", "Units")
+_UNIT_COLUMNS = ("Unit", "Units", "Reporting unit")
+_STANDS_AFTER = r"(?<![0-9.,A-Za-z])(?<![0-9][-/])"
+_STANDS_BEFORE = r"(?![0-9A-Za-z]|[.,][0-9]|[-/][0-9]| ?%)"
 _ZEROS = r"000s?"
 _WORDS = {
     "thousands": ("thousands?",),
@@ -192,23 +194,29 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 def units_named(text: str) -> frozenset[str]:
     """The units (`thousands`, `millions`, `billions`, `ambiguous`) the text names; any number.
 
-    `ambiguous` is a capital `M` glued before `US$` or `$` (`MUS$`, `M$`): thousands in some
-    statements, millions in others, so it is read as neither. A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
+    `ambiguous` is a capital `M`, with no letter before the `M`, glued before `US$` or `$`
+    (`MUS$`, `M$`): thousands in some statements, millions in others, so it is read as neither.
+    A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
     its mark, by its mark and then a sign, or by its mark before a letter code, glued (`kEUR`,
-    `TEUR`, `MUSD`) or after one whitespace (`m EUR`). Capital `T` is a thousands mark where `k`
-    is, before a code or sign. Thousands also by `000` and `000s` after a code or sign and at
-    most one whitespace, `(000)` standing alone, and the apostrophe forms. Letters around a mark
-    hide it and emphasis marks do not. Digits do not hide it either, except directly before a mark
-    in the spaced mark-before-code form (`5m EUR` names nothing). Billions and `ambiguous` are
-    never a block's unit.
+    `TEUR`, `mUSD`) or after one whitespace (`m EUR`). Only `k`, `T` and `m` glue before a
+    letter code; capital `T` is a thousands mark where `k` is, before a code or sign.
+    Thousands also by `000` and `000s` after a code or sign and at most one whitespace, the
+    bare `000s` form (`in 000s`), `(000)` standing alone, and the apostrophe forms. Letters
+    around a mark hide it and emphasis marks do not. Digits do not hide it either, except
+    directly before a mark in the spaced mark-before-code form (`5m EUR` names nothing).
+    Billions and `ambiguous` are never a block's unit.
     """
     return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
 
 def names_currency(text: str, currency: str) -> bool:
-    """Whether the text names the code, alone, after a glued mark or with a scale suffix, or its sign."""
+    """Whether the text names the code (as text, never a pattern): alone, after a glued mark,
+    with a scale suffix, or by its sign.
+    """
     glued = "|".join(dict.fromkeys(mark for marks in _GLUED.values() for mark in marks))
-    forms = [rf"(?<![A-Za-z])(?i:{glued})?{currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
+    forms = [
+        rf"(?<![A-Za-z])(?i:{glued})?{re.escape(currency)}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"
+    ]
     if currency in _SIGNS:
         forms.append(_SIGNS[currency])
     return re.search("|".join(forms), text) is not None
@@ -376,10 +384,45 @@ def check_currency(inputs: ForecastInputs, foundation: HandoffDocument) -> None:
     raise ForecastRefused(RefusalKind.CURRENCY, "currency", message)
 
 
+def _only(text: str, unit: str) -> bool:
+    return units_named(text) <= {unit}
+
+
+def _table_pieces(table: Table, unit: str) -> list[str]:
+    """The table's label and column headers naming no other unit, and its body cells whose
+    row, column header and first header cell name no other unit (the cell is in its row).
+    """
+    found = [] if table.label is None or not _only(table.label, unit) else [table.label]
+    found.extend(column for column in table.columns if _only(column, unit))
+    head = units_named(table.columns[0])
+    for line in table.rows:
+        row = head.union(*(units_named(cell) for cell in line.cells))
+        found.extend(
+            cell
+            for column, cell in enumerate(line.cells)
+            if (row | units_named(table.columns[column])) <= {unit}
+        )
+    return found
+
+
+def balance_pieces(document: HandoffDocument, unit: str) -> tuple[str, ...]:
+    """The text a balance may be printed in: prose lines naming no unit but the block's, and
+    the table parts of `_table_pieces`. A part naming the block's unit and another does not
+    count; a part naming no unit does. An amount in the other unit is refused, never converted.
+    """
+    found: list[str] = []
+    for block in _kept(document):
+        if isinstance(block, Table):
+            found.extend(_table_pieces(block, unit))
+        elif isinstance(block, Paragraph | ListItem):
+            found.extend(line for line in block.lines if _only(line, unit))
+    return tuple(found)
+
+
 def _printed(pieces: tuple[str, ...], amount: str) -> bool:
     whole, dot, fraction = amount.removeprefix("-").partition(".")
     forms = (f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}")
-    patterns = [rf"(?<![0-9.,]){re.escape(form)}(?![0-9]|[.,][0-9])" for form in forms]
+    patterns = [f"{_STANDS_AFTER}{re.escape(form)}{_STANDS_BEFORE}" for form in forms]
     return any(re.search(pattern, piece) for piece in pieces for pattern in patterns)
 
 
@@ -388,8 +431,10 @@ def _printed_percent(pieces: tuple[str, ...], value: str) -> bool:
     return any(re.search(pattern, piece) for piece in pieces)
 
 
-def _unprinted(facility: Facility, balance: str, pieces: tuple[str, ...]) -> str | None:
-    if not _printed(pieces, balance):
+def _unprinted(
+    facility: Facility, balance: str, pieces: tuple[str, ...], counted: tuple[str, ...]
+) -> str | None:
+    if not _printed(counted, balance):
         return _BALANCE.format(name=echo(facility.name), balance=balance)
     for field in _RATES:
         value: str | None = getattr(facility, field)
@@ -403,10 +448,11 @@ def _check_terms(
     facilities: tuple[Facility, ...],
     stated: Mapping[str, str],
     pieces: tuple[str, ...],
+    counted: tuple[str, ...],
 ) -> None:
     for number, facility in enumerate(facilities, 1):
         balance = stated[f"facility {number} balance"] if inputs.scale == 1000 else facility.balance
-        message = _unprinted(facility, balance, pieces)
+        message = _unprinted(facility, balance, pieces, counted)
         if message is not None:
             raise ForecastRefused(RefusalKind.FACILITY, f"facility {number}", message)
 
@@ -443,7 +489,9 @@ def check_facilities(
     facilities = inputs.facilities
     if facilities is None:
         return
-    _check_terms(inputs, facilities, stated, foundation_text(foundation))
+    unit = "millions" if inputs.scale == 1 else "thousands"
+    pieces = foundation_text(foundation)
+    _check_terms(inputs, facilities, stated, pieces, balance_pieces(foundation, unit))
     stated_debt = inputs.base["debt"].amount
     if stated_debt is not None:
         debt = cast(Decimal, Value(amount=parse_operand(stated_debt)).amount)
