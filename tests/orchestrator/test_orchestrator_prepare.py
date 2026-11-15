@@ -26,9 +26,7 @@ def _price() -> PriceRow:
     return PriceRow(config_id, *rates, context_tokens, floor)
 
 
-def _launch(
-    raw: bytes, modules: tuple[Any, ...] | None = None, cap: Any = Decimal("20")
-) -> Prepared:
+def _launch(raw: bytes, modules: tuple[Any, ...] | None = None, cap: Any = Decimal(20)) -> Prepared:
     return prepare(
         raw, modules=modules, cap_usd=cap, price=_price(), max_output_tokens=key.LAUNCH_OUTPUT
     )
@@ -48,7 +46,7 @@ def test_d25_a_launch_gives_the_bytes_of_the_key(name: str) -> None:
     assert hashlib.sha256(prepared.request).hexdigest() == digest
     assert prepared.ordered == order
     assert prepared.config_id == key.LAUNCH_PRICE[0]
-    assert prepared.cap_usd == Decimal("20")
+    assert prepared.cap_usd == Decimal(20)
     assert prepared.hold_usd == Decimal("2.284")
     assert prepared.context.identity.issuer_id == key.ISSUER_ID
 
