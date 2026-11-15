@@ -35,7 +35,8 @@ class OddZone(tzinfo):
 # Decimal written -> the text stored.
 MONEY_WRITTEN: tuple[tuple[Decimal, str], ...] = (
     (Decimal(0), "0"),
-    (Decimal("0.00"), "0.00"),
+    (Decimal("0.00"), "0"),  # U22: every zero is "0", whatever its exponent
+    (Decimal("0E+1000000"), "0"),  # U22: a zero, however large its exponent
     (Decimal(20), "20"),
     (Decimal("0.00000000001"), "0.00000000001"),
     (Decimal("1E-11"), "0.00000000001"),
@@ -74,7 +75,6 @@ MONEY_WRITE_REFUSED: tuple[object, ...] = (
     Decimal("1E+64"),  # 65 characters
     Decimal("1E-63"),  # 65 characters
     Decimal("1E+1000000"),  # must be refused without building the text
-    Decimal("0E+1000000"),  # refused by its exponent, zero or not
     Decimal("1" * 65),
 )
 
