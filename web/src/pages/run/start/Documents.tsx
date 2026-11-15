@@ -8,10 +8,8 @@ import { ButtonUtility } from "@/components/base/buttons/button-utility";
 import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { cx } from "@/utils/cx";
+import { NOT_CONNECTED } from "../reasons";
 import type { StartDraft } from "../slice";
-
-const REASON =
-  "Not available here: this page shows a saved example and is not connected to the run service.";
 
 type Files = Extract<StartDraft, { step: "documents" }>["files"];
 
@@ -117,7 +115,7 @@ export function Documents({ files }: { files: Files }) {
       <FileUpload.Root>
         <DropZone reasonId={reasonId} />
         <p id={reasonId} className="text-sm text-text-secondary">
-          {REASON}
+          {NOT_CONNECTED}
         </p>
         {files.length === 0 ? (
           <EmptyState>
