@@ -49,6 +49,7 @@ STATE_WORDS = frozenset(
     {"Queued", "Running", "Finished", "Failed", "Capped", "Rejected", "Interrupted"}
 )
 _NAME = re.compile(r"[a-z][a-z0-9_]*")
+_STORE_NAME = re.compile(r"\*|[a-z][a-z0-9_]{0,63}")
 _NUMBER = re.compile(r"-?[0-9]+(\.[0-9]+)?")
 _ISO = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})", re.ASCII)
 _TOP = frozenset({"schema", "not_recorded", "months", "states", "measures", "templates"})
@@ -159,6 +160,15 @@ def _months(value: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
     return out[0], out[1]
 
 
+def _end_reason(reason: object, status: str) -> str | None:
+    """Null, "*" (any reason) or a store name; an ended status needs a reason."""
+    if reason is not None and (not isinstance(reason, str) or not _STORE_NAME.fullmatch(reason)):
+        _refuse("a state end_reason must be null, * or a store name", status)
+    if (reason is None) != (status in ("created", "running")):
+        _refuse("an ended status needs an end reason; created and running none", status)
+    return reason
+
+
 def _states(value: object) -> dict[tuple[str, str | None], str | None]:
     if not isinstance(value, list):
         _refuse("states must be a list")
@@ -168,15 +178,16 @@ def _states(value: object) -> dict[tuple[str, str | None], str | None]:
         if set(row) != {"status", "end_reason", "word"}:
             _refuse("a state needs status, end_reason and word")
         status = _str(row["status"], "a state status must be a string")
-        reason = row["end_reason"]
-        if reason is not None and not isinstance(reason, str):
-            _refuse("a state end_reason must be a string or null", status)
+        reason = _end_reason(row["end_reason"], status)
         word = row["word"]
         if word is not None and (not isinstance(word, str) or word not in STATE_WORDS):
             _refuse("a state word is outside the closed set", status)
         if (status, reason) in table:
             _refuse("a state pair appears twice", status)
         table[(status, reason)] = word
+    for status, reason in table:
+        if reason == "*" and any(s == status and r != "*" for s, r in table):
+            _refuse("a star end reason sits beside an exact one", status)
     return table
 
 
@@ -353,10 +364,11 @@ class Wording:
         return "".join(out)
 
     def state_word(self, status: str, end_reason: str | None) -> str | None:
-        key = (status, end_reason)
-        if key not in self._states:
-            _refuse(f"no wording for run state {status!r} with end reason {end_reason!r}")
-        return self._states[key]
+        if (status, end_reason) in self._states:
+            return self._states[(status, end_reason)]
+        if isinstance(end_reason, str) and (status, "*") in self._states:
+            return self._states[(status, "*")]
+        _refuse(f"no wording for run state {status!r} with end reason {end_reason!r}")
 
     def display_date(self, iso: str) -> str:
         day, month, year = _date_parts(iso)
