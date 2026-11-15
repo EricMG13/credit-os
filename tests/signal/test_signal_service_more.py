@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import socket
+import socketserver
 import sqlite3
 import struct
 import threading
@@ -393,3 +394,89 @@ def test_port_65535_is_a_valid_port_and_fails_only_if_it_cannot_be_bound(
     monkeypatch.setattr(service, "make_server", cannot)  # nothing is bound
     assert serve(tmp_path, "127.0.0.1", 65535) == 2
     assert capsys.readouterr().err == "cannot listen on 127.0.0.1:65535: simulated refusal\n"
+
+
+def closing(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Record each ``server_close`` of the service's server (the real one still runs)."""
+    closed: list[str] = []
+    real = service._Server.server_close
+
+    def recording(self: service._Server) -> None:
+        closed.append("closed")
+        real(self)
+
+    monkeypatch.setattr(service._Server, "server_close", recording)
+    return closed
+
+
+def interrupt(self: socketserver.BaseServer, poll_interval: float = 0.5) -> None:
+    raise KeyboardInterrupt
+
+
+def test_the_server_is_closed_when_the_store_cannot_be_opened(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def hang_guard(self: socketserver.BaseServer, poll_interval: float = 0.5) -> None:
+        pytest.fail("serve reached serve_forever: the store was never opened")
+
+    closed = closing(monkeypatch)
+    monkeypatch.setattr(socketserver.BaseServer, "serve_forever", hang_guard)
+    root = tmp_path / "file"
+    root.write_text("x")
+    assert serve(root, "127.0.0.1", 0) == 2
+    assert closed == ["closed"]
+
+
+def test_the_server_is_closed_at_shutdown_and_the_loop_thread_is_a_daemon(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    daemons: list[bool] = []
+
+    def recording(self: Loop, stop: threading.Event, tick: float) -> None:
+        daemons.append(threading.current_thread().daemon)
+
+    closed = closing(monkeypatch)
+    monkeypatch.setattr(Loop, "run_until", recording)
+    monkeypatch.setattr(socketserver.BaseServer, "serve_forever", interrupt)
+    assert serve(tmp_path, "127.0.0.1", 0, tick=0.01) == 0
+    assert closed == ["closed"] and daemons == [True]
+
+
+def test_the_database_exists_when_serve_forever_is_reached(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A first request, which may be a cross-site navigation GET, must never create the store."""
+    seen: list[bool] = []
+
+    def reached(self: socketserver.BaseServer, poll_interval: float = 0.5) -> None:
+        seen.append((tmp_path / "signal" / "signal.db").exists())
+        raise KeyboardInterrupt
+
+    def not_now(self: Loop, stop: threading.Event, tick: float) -> None:
+        return None  # the loop would open the store too: only `serve` may have
+
+    monkeypatch.setattr(Loop, "run_until", not_now)
+    monkeypatch.setattr(socketserver.BaseServer, "serve_forever", reached)
+    assert serve(tmp_path, "127.0.0.1", 0) == 0
+    assert seen == [True]
+
+
+def test_a_pass_survives_a_held_write_lock_and_the_next_one_recovers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    sources(tmp_path, "https://a.org/f")
+    loop = Loop(tmp_path, fetch_fn=good_feed)
+    monkeypatch.setattr(store, "_BUSY_SECONDS", 0.2)
+    other = store.open_db(tmp_path)
+    other.execute("BEGIN IMMEDIATE")  # a second connection holds the write lock
+    try:
+        loop.run_once(NOW)  # must not raise
+    finally:
+        other.execute("ROLLBACK")
+        other.close()
+    assert loop.last_error == FAILED_PASS
+    failed = [r for r in caplog.records if r.getMessage() == "ingest pass failed"]
+    assert len(failed) == 1 and failed[0].exc_info is not None
+    assert failed[0].exc_info[0] is sqlite3.OperationalError
+    loop.run_once(NOW + timedelta(seconds=601))
+    assert loop.last_error is None
