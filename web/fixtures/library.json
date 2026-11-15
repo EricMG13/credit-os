@@ -97,7 +97,7 @@
             "value": 5,
             "max": 13
           },
-          "href": "2026-06-30",
+          "href": null,
           "measures": {
             "leverage": {
               "text": "2.1x",
@@ -134,7 +134,7 @@
             "value": 6,
             "max": 6
           },
-          "href": "2026-09-30",
+          "href": null,
           "measures": {
             "leverage": {
               "text": "5.6x",
@@ -171,7 +171,7 @@
             "value": 13,
             "max": 13
           },
-          "href": "2026-03-31",
+          "href": null,
           "measures": {
             "leverage": {
               "text": "5.2x",
@@ -203,7 +203,7 @@
             "value": 7,
             "max": 13
           },
-          "href": "2026-09-30",
+          "href": null,
           "measures": {
             "leverage": null,
             "netLeverage": null,
@@ -314,11 +314,8 @@
               "state": "Finished",
               "pathway": "Monitoring update",
               "text": "Stable, outlook negative: leverage at 4.9x after the Corvane Fasteners purchase.",
-              "report": "2026-06-30",
-              "changes": {
-                "label": "What changed since 31 Mar 2026",
-                "run": "2026-06-30"
-              }
+              "report": null,
+              "changes": null
             },
             {
               "asOf": "31 Mar 2026",
@@ -380,7 +377,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
               "firstModule": "business-profile",
-              "forecastHref": "#/model/halden-aerostructures/2026-09-30/forecast"
+              "forecastHref": null
             },
             "loading": false,
             "overview": {
@@ -768,6 +765,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A sole-source aftermarket franchise carries a thinner, more cyclical original-equipment business.",
@@ -943,6 +941,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Demand is growing and certified supply stays tight.",
@@ -978,6 +977,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Margin is steady at 23.1% on revenue of USD 2,105m.",
@@ -1013,6 +1013,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Liquidity of USD 412m covers every maturity to March 2028.",
@@ -1048,6 +1049,7 @@
                 "state": "Delivered with gaps",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Secured debt is long-dated and covenant-light; the unsecured notes mature first and rank last.",
@@ -1524,6 +1526,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Only a springing first-lien covenant applies, and it is far from tested.",
@@ -1559,6 +1562,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A stable team under a sponsor that has used debt for purchases.",
@@ -1594,6 +1598,7 @@
                 "state": "Delivered with gaps",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "More levered than four of five peers, with the highest margin.",
@@ -1640,6 +1645,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A stable outlook that depends on the 2028 notes being refinanced.",
@@ -1675,6 +1681,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "No factor changes the credit view; supply-chain audits are the one watch item.",
@@ -1710,6 +1717,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Leverage falls to about 4.0x by the end of 2027 on the base case.",
@@ -1745,6 +1753,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A stable credit with thin headroom, summarised from the other modules.",
@@ -4205,6 +4214,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "An aftermarket franchise carries a thinner original-equipment business.",
@@ -4240,6 +4250,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Build rates are rising; pricing discipline among the large suppliers is holding.",
@@ -4297,6 +4308,7 @@
                 "state": "Delivered with gaps",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Secured debt is long-dated; the unsecured notes mature first.",
@@ -4329,6 +4341,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "One springing covenant, untested, with wide baskets.",
@@ -4364,6 +4377,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A sponsor-controlled board; a record of debt-funded purchases.",
@@ -4399,6 +4413,7 @@
                 "state": "Delivered with gaps",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "More levered than most peers, with a higher margin.",
@@ -4445,6 +4460,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Both agencies stable; one upgrade trigger is within reach by 2027.",
@@ -4480,6 +4496,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "No finding that changes the credit view.",
@@ -4526,6 +4543,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A one-page summary of this run for committee papers.",
@@ -4846,7 +4864,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
               "firstModule": "business-profile",
-              "forecastHref": "#/model/halden-aerostructures/2025-09-30/forecast"
+              "forecastHref": null
             },
             "loading": false,
             "overview": {
@@ -5018,6 +5036,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A sole-source aftermarket franchise carries a thinner original-equipment business.",
@@ -5053,6 +5072,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Build rates are rising; pricing among the large suppliers is holding.",
@@ -5088,6 +5108,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Margin is 21.8% on revenue of USD 1,967m.",
@@ -5123,6 +5144,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Liquidity of USD 398m covers every maturity before the 2028 notes.",
@@ -5158,6 +5180,7 @@
                 "state": "Delivered with gaps",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Secured debt is long-dated; the notes mature in 2028.",
@@ -5194,6 +5217,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Only a springing first-lien covenant applies, and only when the facility is more than 40% drawn.",
@@ -5229,6 +5253,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A stable team under a sponsor that has used debt for purchases.",
@@ -5264,6 +5289,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "More levered than most peers, with a higher margin.",
@@ -5299,6 +5325,7 @@
                 "state": "Delivered with gaps",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Secured lenders recover most of their claim; unsecured lenders much less.",
@@ -5334,6 +5361,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Both agencies stable, with the 2028 notes the next test.",
@@ -5369,6 +5397,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "No finding that changes the credit view.",
@@ -5404,6 +5433,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Leverage falls from 4.9x on the base case as the engine ramp lands.",
@@ -5439,6 +5469,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "A stable credit with high leverage, summarised from the other modules.",
@@ -5761,8 +5792,8 @@
         "name": "Corvane Packaging",
         "history": {
           "subtitle": "Report history: two runs since June 2026",
-          "latest": "2026-06-30",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5779,7 +5810,7 @@
               "state": "Finished",
               "pathway": "Full review",
               "text": "Improving: volume recovery and a cleared 2027 maturity leave two years of runway.",
-              "report": "2026-06-30",
+              "report": null,
               "changes": null
             }
           ]
@@ -5791,8 +5822,8 @@
         "name": "Tessaly Foods",
         "history": {
           "subtitle": "Report history: one run",
-          "latest": "2026-09-30",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5800,7 +5831,7 @@
               "state": "Finished",
               "pathway": "Monitoring update",
               "text": "Weakening: the springing covenant is likely to be tested at the December quarter end.",
-              "report": "2026-09-30",
+              "report": null,
               "changes": null
             }
           ]
@@ -5812,8 +5843,8 @@
         "name": "Ardenne Cable",
         "history": {
           "subtitle": "Report history: two runs since March 2026",
-          "latest": "2026-03-31",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5830,7 +5861,7 @@
               "state": "Finished",
               "pathway": "Full review",
               "text": "Stable: subscriber losses are offset by pricing; leverage is flat at 5.2x.",
-              "report": "2026-03-31",
+              "report": null,
               "changes": null
             }
           ]
@@ -5842,8 +5873,8 @@
         "name": "Lumora Health",
         "history": {
           "subtitle": "Report history: one run",
-          "latest": "2026-09-30",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5851,7 +5882,7 @@
               "state": "Capped",
               "pathway": "Full review",
               "text": "The run stopped at its cost cap before the modules that form the view had finished.",
-              "report": "2026-09-30",
+              "report": null,
               "changes": null
             }
           ]
@@ -5890,9 +5921,9 @@
               "asOf": "As of 31 Dec 2026",
               "pathway": "Full review",
               "state": "Finished",
-              "tabs": { "modulesCount": "1" },
+              "tabs": { "modulesCount": "2" },
               "firstModule": "business-profile",
-              "forecastHref": "#/model/brevane-marine/r-0412/forecast"
+              "forecastHref": null
             },
             "loading": false,
             "overview": {
@@ -5930,13 +5961,19 @@
                 }
               ],
               "modules": {
-                "summary": "1 of 1 delivered",
+                "summary": "2 of 2 delivered",
                 "items": [
                   {
                     "title": "Business profile",
                     "lead": "Charter cover is spread across several operators.",
                     "state": "Delivered",
                     "module": "business-profile"
+                  },
+                  {
+                    "title": "Source readiness",
+                    "lead": "The one source file was read in full and pinned to this run.",
+                    "state": "Delivered",
+                    "module": "source-readiness"
                   }
                 ]
               },
@@ -5963,6 +6000,7 @@
                 "state": "Delivered",
                 "body": {
                   "kind": "delivered",
+                  "moduleKind": "prose",
                   "bottomLine": {
                     "label": "Bottom line",
                     "lead": "Long-dated charters on a modern fleet carry a thinner spot-market business.",
@@ -5991,12 +6029,37 @@
                     ]
                   }
                 }
+              },
+              {
+                "id": "source-readiness",
+                "name": "Source readiness",
+                "state": "Delivered",
+                "body": {
+                  "kind": "delivered",
+                  "moduleKind": "data",
+                  "bottomLine": {
+                    "label": "Bottom line",
+                    "lead": "The one source file was read in full and pinned to this run.",
+                    "rest": "Nothing was left unread.",
+                    "trace": null
+                  },
+                  "findings": [],
+                  "contrary": null,
+                  "changeView": null,
+                  "records": [],
+                  "limitations": {
+                    "count": "0",
+                    "gapsLink": { "label": "See this module\u2019s gaps in Evidence" },
+                    "items": []
+                  }
+                }
               }
             ],
             "evidence": {
               "intro": "Where every figure and claim in this run comes from.",
               "moduleFilter": [
-                { "id": "business-profile", "name": "Business profile", "initials": "BP" }
+                { "id": "business-profile", "name": "Business profile", "initials": "BP" },
+                { "id": "source-readiness", "name": "Source readiness", "initials": "SR" }
               ],
               "tabs": { "trace": "0", "sources": "1", "gaps": "1" },
               "record": {
@@ -6096,7 +6159,7 @@
               "summary": {
                 "delivered": {
                   "note": null,
-                  "progress": { "text": "1 of 1", "value": 1, "max": 1 }
+                  "progress": { "text": "2 of 2", "value": 2, "max": 2 }
                 },
                 "counts": [
                   {
@@ -6252,7 +6315,8 @@
       { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "recovery" },
       { "issuer": "halden-aerostructures", "run": "2026-03-31", "module": "forecast" },
       { "issuer": "halden-aerostructures", "run": "2026-06-30", "module": "capital-structure" },
-      { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "no-such-module" }
+      { "issuer": "halden-aerostructures", "run": "2026-09-30", "module": "no-such-module" },
+      { "issuer": "brevane-marine", "run": "r-0412", "module": "source-readiness" }
     ],
     "/library/:issuer/:run/evidence": [
       { "issuer": "halden-aerostructures", "run": "2026-09-30" },

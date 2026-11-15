@@ -11,6 +11,7 @@ not dumped, copied or pickled.
 
 import unicodedata
 from collections.abc import Iterable, Mapping
+from datetime import date
 from types import MappingProxyType
 from typing import Literal
 
@@ -29,6 +30,8 @@ CHECKS = (
     "structure.fence",
     "structure.register-id",
     "structure.registers",
+    "request.as-of",
+    "request.issuer",
     "prose.bottom-line",
     "prose.bottom-line-length",
     "prose.module-code",
@@ -42,6 +45,7 @@ CHECKS = (
     "sources.table",
     "sources.name",
     "sources.sha256",
+    "sources.sha256-required",
     "sources.type",
     "figure.form",
     "figure.not-held",
@@ -115,6 +119,16 @@ class CheckContext(Node):
     upstream: Mapping[str, HandoffDocument] = Field(default_factory=dict, validate_default=True)
     accepted: Mapping[str, HandoffDocument] = Field(default_factory=dict, validate_default=True)
     required_registers: tuple[str, ...] = ()
+    as_of: date | None = Field(default=None, strict=True)
+    issuer_names: tuple[str, ...] = ()
+    hashes_required: bool = Field(default=False, strict=True)
+
+    @field_validator("issuer_names")
+    @classmethod
+    def _names_not_blank(cls, names: tuple[str, ...]) -> tuple[str, ...]:
+        if any(not name.strip() for name in names):
+            raise ValueError("an issuer name must hold a character that is not a space")
+        return names
 
     @field_validator("upstream", "accepted")
     @classmethod

@@ -421,8 +421,35 @@ def test_d20_no_end_record_found_disagrees(monkeypatch: pytest.MonkeyPatch) -> N
     _expect(ONE, _DISAGREES, "none")
 
 
-def test_directory_cap_is_four_mib() -> None:
-    assert ooxml.MAX_DIRECTORY_BYTES == 4 * 1024 * 1024
+def test_directory_cap_is_two_mib() -> None:
+    assert ooxml.MAX_DIRECTORY_BYTES == 2 * 1024 * 1024
+
+
+def _directory_zip(target: int) -> bytes:
+    """512 empty stored members; each directory entry is 46 bytes plus its name."""
+    count = 512
+    names = [f"xl/{index:079d}" for index in range(count)]
+    names[-1] += "x" * (target - count * (46 + len(names[0])))
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
+        for name in names:
+            archive.writestr(name, b"")
+    raw = buffer.getvalue()
+    end = raw.rfind(b"PK\x05\x06")
+    assert struct.unpack_from("<I", raw, end + 12)[0] == target
+    return raw
+
+
+def test_directory_at_lowered_cap_opens(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "MAX_DIRECTORY_BYTES", 65_536)
+    Package("b.xlsx", _directory_zip(65_536))
+
+
+def test_directory_over_lowered_cap_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "MAX_DIRECTORY_BYTES", 65_536)
+    with pytest.raises(SourceUnreadable) as caught:
+        Package("b.xlsx", _directory_zip(65_537))
+    assert str(caught.value) == "b.xlsx: a zip directory too large"
 
 
 def _read(raw: bytes, part: str = PART) -> bytes:

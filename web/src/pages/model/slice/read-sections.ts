@@ -1,3 +1,4 @@
+import { plainSegment } from "@/components/path/plain";
 import {
   addressOrNull,
   arrayOf,
@@ -7,6 +8,7 @@ import {
   fail,
   is,
   num,
+  nullableRecord,
   numOrNull,
   object,
   oneOf,
@@ -70,21 +72,6 @@ const columns = object<ColumnsData>({
   groups: arrayOf(object({ label: text, trace: addressOrNull })),
   series: arrayOf(object({ name: text, values: arrayOf(numOrNull), labels: arrayOf(textOrNull) })),
 });
-/** The characters a file path uses; a `%` only starts a two-digit escape. */
-const SEGMENT = /^(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+$/;
-
-/** Plain: allow-listed, and neither `.`, `..` nor a slash once percent-decoded. */
-function plainSegment(segment: string): boolean {
-  if (!SEGMENT.test(segment)) return false;
-  try {
-    const decoded = decodeURIComponent(segment);
-    return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
-  } catch (error) {
-    if (!(error instanceof URIError)) throw error;
-    return false; // an escape that is not UTF-8 is refused like any other odd path
-  }
-}
-
 const inFolder = (href: string): boolean => href.split("/").every(plainSegment);
 const WANTED = "a relative path inside the library folder";
 
@@ -102,19 +89,11 @@ const addressOrFile: Reader<string> = (value, path) => {
     : fail(path, `expected an address starting with "#/" or ${WANTED}`);
 };
 
-const publishedRecord = object<Published>({
-  kind: oneOf(["markdown", "html"] as const),
-  href: filePath,
-});
 /** `null`, or a record with kind and href; anything with neither key is not a published model. */
-const published: Reader<Published | null> = (value, path) => {
-  if (value === null) return null;
-  const isRecord = typeof value === "object" && !Array.isArray(value);
-  if (!isRecord || !("kind" in value || "href" in value)) {
-    return fail(path, "expected null or an object with kind and href");
-  }
-  return publishedRecord(value, path);
-};
+const published = nullableRecord(
+  ["kind", "href"],
+  object<Published>({ kind: oneOf(["markdown", "html"] as const), href: filePath }),
+);
 
 /** The members the second half of the Model page adds to the statements page. */
 export const sections = {

@@ -1,21 +1,10 @@
 import type { ReactNode } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  usePlotArea,
-  useXAxisScale,
-  XAxis,
-  type BarShapeProps,
-  type TooltipContentProps,
-} from "recharts";
-import { ChartFrame } from "./ChartFrame";
-import { ChartTable, type TableRowData } from "./ChartTable";
+import { Bar, usePlotArea, useXAxisScale, type BarShapeProps } from "recharts";
+import { BarCanvas, type BarTooltipProps } from "./BarCanvas";
+import { type TableRowData } from "./ChartTable";
+import { ChartWithTable } from "./ChartWithTable";
 import { topRounded } from "./ColumnsChart";
-import { useWrappedAxis, WrappedTick } from "./PathChart";
-import { BASELINE, HEIGHT, YAxisLabels, type YTick } from "./TrendChart";
+import { type YTick } from "./TrendChart";
 
 type Kind = "total" | "up" | "down";
 type PresentStep = { label: string; kind: Kind; from: number; to: number; text: string };
@@ -157,11 +146,7 @@ function MissingMarks({ steps }: { steps: WaterfallStep[] }) {
 }
 
 /** The readout for the active step: its label and the exact text, or n.a. */
-function WaterfallTooltip({
-  active,
-  label,
-  steps,
-}: TooltipContentProps & { steps: WaterfallStep[] }) {
+function WaterfallTooltip({ active, label, steps }: BarTooltipProps & { steps: WaterfallStep[] }) {
   const step = steps.find((s) => s.label === String(label));
   if (!active || step === undefined) return null;
   return (
@@ -211,52 +196,30 @@ function Chart({
     label: s.label,
     [RANGE]: s.kind === "missing" ? null : [s.from, s.to],
   }));
-  const axis = useWrappedAxis(
-    steps.map((s) => s.label),
-    yTicks,
-  );
   return (
-    <div className="flex flex-col gap-3 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-focus">
-      <ResponsiveContainer width="100%" height={HEIGHT} onResize={axis.onResize}>
-        <BarChart
-          title={title}
-          data={data}
-          margin={{ top: 24, right: 24, bottom: 0, left: 0 }}
-          barCategoryGap="20%"
-        >
-          <CartesianGrid vertical={false} stroke="var(--color-border-hairline)" />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={BASELINE}
-            tick={WrappedTick}
-            interval={0}
-            height={axis.height}
-            tickMargin={8}
-          />
-          <YAxisLabels yTicks={yTicks} />
-          <Tooltip
-            isAnimationActive={false}
-            cursor={false}
-            content={(props) => <WaterfallTooltip {...props} steps={steps} />}
-          />
-          <MissingMarks steps={steps} />
-          <Bar
-            dataKey={RANGE}
-            barSize={MAX_BAR}
-            isAnimationActive={false}
-            shape={(shape: BarShapeProps) => {
-              const step = steps[shape.originalDataIndex];
-              if (step === undefined || step.kind === "missing") {
-                throw new Error(`no present step for bar ${String(shape.originalDataIndex)}`);
-              }
-              return <StepMark shape={shape} step={step} />;
-            }}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-      <KindLegend legend={legend} />
-    </div>
+    <BarCanvas
+      title={title}
+      data={data}
+      xKey="label"
+      categories={steps.map((s) => s.label)}
+      yTicks={yTicks}
+      tooltip={(props) => <WaterfallTooltip {...props} steps={steps} />}
+      legend={<KindLegend legend={legend} />}
+    >
+      <MissingMarks steps={steps} />
+      <Bar
+        dataKey={RANGE}
+        barSize={MAX_BAR}
+        isAnimationActive={false}
+        shape={(shape: BarShapeProps) => {
+          const step = steps[shape.originalDataIndex];
+          if (step === undefined || step.kind === "missing") {
+            throw new Error(`no present step for bar ${String(shape.originalDataIndex)}`);
+          }
+          return <StepMark shape={shape} step={step} />;
+        }}
+      />
+    </BarCanvas>
   );
 }
 
@@ -274,19 +237,14 @@ export function WaterfallChart({
 }: WaterfallChartProps) {
   check({ steps, table });
   return (
-    <ChartFrame title={title} as={as} note={note} subtitle={subtitle} actions={actions}>
-      {(view) =>
-        view === "chart" ? (
-          <Chart title={title} steps={steps} yTicks={yTicks} legend={legend} />
-        ) : (
-          <ChartTable
-            caption={title}
-            head={table.head}
-            rows={table.rows}
-            endHeading={table.endHeading}
-          />
-        )
-      }
-    </ChartFrame>
+    <ChartWithTable
+      title={title}
+      as={as}
+      note={note}
+      subtitle={subtitle}
+      actions={actions}
+      table={table}
+      chart={<Chart title={title} steps={steps} yTicks={yTicks} legend={legend} />}
+    />
   );
 }

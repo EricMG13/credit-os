@@ -36,6 +36,29 @@ interface RangeStripChartProps {
   emphasised?: number;
 }
 
+/** Throws when one row's markers, range, axis or marker texts are inconsistent. */
+function checkRow(r: RangeRow, names: string[]) {
+  if (r.markers.map((m) => m.name).join("\u0000") !== names.join("\u0000")) {
+    throw new Error(`row "${r.label}": the markers must be the same names, in the same order`);
+  }
+  if (r.range !== null && !(r.range.low <= r.range.high)) {
+    throw new Error(`row "${r.label}": the range's low must not be above its high`);
+  }
+  checkAxis(r.label, r.axis.min, r.axis.max, [
+    r.range?.low ?? null,
+    r.range?.high ?? null,
+    ...r.markers.map((m) => m.value),
+  ]);
+  for (const m of r.markers) {
+    if (m.value === null && m.text !== null) {
+      throw new Error(`row "${r.label}", ${m.name}: a missing value takes no text`);
+    }
+    if (m.value !== null && (m.text === null || m.text === "")) {
+      throw new Error(`row "${r.label}", ${m.name}: a present value needs a text`);
+    }
+  }
+}
+
 /** Throws on inconsistent props; returns the marker names every row shares. */
 function check({
   rows,
@@ -51,27 +74,7 @@ function check({
       `emphasised ${String(emphasised)} is not one of the ${String(names.length)} markers`,
     );
   }
-  for (const r of rows) {
-    if (r.markers.map((m) => m.name).join("\u0000") !== names.join("\u0000")) {
-      throw new Error(`row "${r.label}": the markers must be the same names, in the same order`);
-    }
-    if (r.range !== null && !(r.range.low <= r.range.high)) {
-      throw new Error(`row "${r.label}": the range's low must not be above its high`);
-    }
-    checkAxis(r.label, r.axis.min, r.axis.max, [
-      r.range?.low ?? null,
-      r.range?.high ?? null,
-      ...r.markers.map((m) => m.value),
-    ]);
-    for (const m of r.markers) {
-      if (m.value === null && m.text !== null) {
-        throw new Error(`row "${r.label}", ${m.name}: a missing value takes no text`);
-      }
-      if (m.value !== null && (m.text === null || m.text === "")) {
-        throw new Error(`row "${r.label}", ${m.name}: a present value needs a text`);
-      }
-    }
-  }
+  for (const r of rows) checkRow(r, names);
   checkRowTable(
     rows.map((r) => r.label),
     table,

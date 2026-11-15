@@ -411,16 +411,28 @@ describe("readSlice, run frame", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
   });
 
-  it("reads the model page of the run's own issuer and run, or null", () => {
+  it.each([
+    ["a run id with a space", "halden-aerostructures", "r 50%"],
+    ["a run id of dots", "halden-aerostructures", ".."],
+    ["a run id over 128 characters", "halden-aerostructures", "r".repeat(129)],
+    ["an issuer id with a space", "halden aero", "2026-09-30"],
+    ["an issuer id of one dot", ".", "2026-09-30"],
+  ])("rejects its own Forecast address when %s breaks the id rule", (_name, issuer, run) => {
+    const slice = JSON.parse(
+      JSON.stringify(fresh()).replaceAll("halden-aerostructures", issuer),
+    ) as ReturnType<typeof fresh>;
+    for (const other of [1, 2, 3]) runOf(slice, 0, other).head["forecastHref"] = null;
+    const target = runOf(slice, 0, 0);
+    target["id"] = run;
+    target.head["forecastHref"] = `#/model/${issuer}/${run}/forecast`;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
+  });
+
+  it("reads null for every run of the fixture, the model holding none of them", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const hrefs = result.data.issuers[0]?.runs.map((run) => run.head.forecastHref);
-    expect(hrefs).toEqual([
-      "#/model/halden-aerostructures/2026-09-30/forecast",
-      null,
-      null,
-      "#/model/halden-aerostructures/2025-09-30/forecast",
-    ]);
+    expect(hrefs).toEqual([null, null, null, null]);
   });
 
   it("names the path of a malformed tree node deep in a trace", () => {
@@ -535,6 +547,16 @@ describe("readSlice, overview", () => {
     expect(full.overview.modules.items).toHaveLength(13);
     expect(capped.overview.modules.items[0]?.module).toBeNull();
     expect(full.overview.limitations.count).toBe("4");
+  });
+
+  it("reads an overview with no headline figure, as the delivery writes one with no foundation", () => {
+    const slice = fresh();
+    ovOf(slice).metrics = [];
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers[0]?.runs[0];
+    if (run?.loading !== false) throw new Error("the run is loaded");
+    expect(run.overview.metrics).toEqual([]);
   });
 
   it.each([
@@ -2109,5 +2131,66 @@ describe("readSlice, an overview without For and against or a change view", () =
     const slice = fresh();
     Reflect.deleteProperty(ovOf(slice), key);
     expect(invalidReason(slice)).toContain(`issuers[0].runs[0].overview.${key}`);
+  });
+});
+
+describe("readSlice, a data module's body", () => {
+  type Body = Json & { findings: unknown[]; limitations: { count: string; items: unknown[] } };
+  const bodyOf = (slice: ReturnType<typeof fresh>): Body => {
+    const issuer = slice.issuers.find((i) => i["id"] === "brevane-marine") as Json;
+    const run = (issuer["runs"] as { modules: { body: Body }[] }[])[0];
+    return (run as { modules: { body: Body }[] }).modules[0]?.body as Body;
+  };
+  const AT = "issuers[6].runs[0].modules[0].body";
+  const emptied = (kind: string, emptyFindings: boolean, emptyLimitations: boolean) => {
+    const slice = fresh();
+    const body = bodyOf(slice);
+    body["moduleKind"] = kind;
+    if (emptyFindings) body.findings = [];
+    if (emptyLimitations) {
+      body.limitations.items = [];
+      body.limitations.count = "0";
+    }
+    return slice;
+  };
+
+  it("accepts a data body with no findings and no limitations and carries its moduleKind", () => {
+    const result = readSlice(emptied("data", true, true));
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[6]?.runs[0];
+    if (body?.loading !== false) throw new Error("run is loaded");
+    expect(body.modules[0]?.body).toMatchObject({
+      kind: "delivered",
+      moduleKind: "data",
+      findings: [],
+      limitations: { count: "0", items: [] },
+    });
+  });
+
+  it("refuses a prose body with no findings, at its findings", () => {
+    expect(invalidReason(emptied("prose", true, false))).toBe(
+      `${AT}.findings: expected at least one item`,
+    );
+  });
+
+  it("refuses a prose body with no limitations, at its items", () => {
+    expect(invalidReason(emptied("prose", false, true))).toBe(
+      `${AT}.limitations.items: expected at least one item`,
+    );
+  });
+
+  it("refuses a body without moduleKind, at moduleKind", () => {
+    const slice = fresh();
+    Reflect.deleteProperty(bodyOf(slice), "moduleKind");
+    expect(invalidReason(slice)).toContain(`${AT}.moduleKind`);
+  });
+
+  it("refuses a moduleKind outside data and prose, at moduleKind", () => {
+    expect(invalidReason(emptied("other", false, false))).toContain(`${AT}.moduleKind`);
+  });
+
+  it("reads a prose and a data body that keep their findings and limitations", () => {
+    expect(readSlice(emptied("data", false, false)).kind).toBe("ok");
+    expect(readSlice(emptied("prose", false, false)).kind).toBe("ok");
   });
 });

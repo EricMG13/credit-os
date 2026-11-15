@@ -203,6 +203,23 @@ describe("Overview, states", () => {
     expect(screen.getByText("No such issuer")).toBeVisible();
     expect(screen.getByRole("link", { name: "Back to the library" })).toBeVisible();
   });
+
+  it("draws no Headline figures region when the delivery wrote no figure, and the rest as before", () => {
+    const slice = structuredClone(fixture.slice) as { issuers: Json[] };
+    const issuer = slice.issuers.find((i) => i["id"] === "halden-aerostructures") as {
+      runs: { id: string; overview: Json }[];
+    };
+    const run = issuer.runs.find((r) => r.id === "2026-09-30");
+    if (run === undefined) throw new Error("the run is held");
+    run.overview["metrics"] = [];
+    renderOverview("2026-09-30", slice);
+    expect(screen.queryByRole("region", { name: "Headline figures" })).toBeNull();
+    expect(screen.queryByText("Headline figures")).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Bottom line" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Key findings" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Modules" })).toBeVisible();
+  });
 });
 
 describe("Overview, fix round 1", () => {

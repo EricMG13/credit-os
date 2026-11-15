@@ -442,10 +442,9 @@ describe("Model page: the statements", () => {
     expect(cellAt("Shareholders’ equity", "LTM")).toHaveTextContent("-9,360");
   });
 
-  // Per-test limit: this test renders the whole page once and switches the case twice, and each
-  // switch re-renders every chart section (about 120 ms each here, about 70 % of the test). That is
-  // production render work the test cannot skip, and it runs several times slower on the Windows
-  // runner than here, close to the 5 s default.
+  // Per-test limit: this test renders the whole page once and switches the case twice; a switch
+  // re-renders the bridges and the statement table. Windows per-test times are not recorded, so
+  // how close this test comes to the 5 s default there is not known.
   it("describes a missing cell by its reason, shows it on focus, and draws it n.a., never 0", async () => {
     const { slice, run } = draft();
     const rows = must(run.statements.statements[3]).rows;

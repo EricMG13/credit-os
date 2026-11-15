@@ -43,6 +43,11 @@ ENTRY_KEYS = frozenset(
         "overview.metrics_label",
         "overview.modules_summary",
         "overview.gaps_link",
+        "overview.metric_note",
+        "module.gaps_link",
+        "module.blocked_note",
+        "module.failed_reason",
+        "module.not_run_reason",
         "records.chart_gap",
         "trace.title",
         "trace.subtitle",
@@ -63,6 +68,15 @@ ENTRY_KEYS = frozenset(
         "evidence.trace.column.kind",
         "evidence.trace.column.sources",
         "jump.detail",
+        "evidence.gaps.title",
+        "evidence.gaps.description",
+        "evidence.gaps.column.id",
+        "evidence.gaps.column.gap",
+        "evidence.gaps.column.module",
+        "evidence.gaps.column.reason",
+        "evidence.gaps.column.shownAs",
+        "evidence.gaps.where.module",
+        "evidence.gaps.effect_unstated",
     }
 )
 STATE_WORDS = frozenset(

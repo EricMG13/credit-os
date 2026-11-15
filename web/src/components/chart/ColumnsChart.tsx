@@ -1,21 +1,11 @@
 import type { ReactNode } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  usePlotArea,
-  useXAxisScale,
-  XAxis,
-  type BarShapeProps,
-  type TooltipContentProps,
-} from "recharts";
-import { ChartFrame } from "./ChartFrame";
-import { ChartTable, type TableRowData } from "./ChartTable";
-import { cellText, useWrappedAxis, WrappedTick } from "./PathChart";
+import { Bar, usePlotArea, useXAxisScale, type BarShapeProps } from "recharts";
+import { BarCanvas, type BarTooltipProps } from "./BarCanvas";
+import { type TableRowData } from "./ChartTable";
+import { ChartWithTable } from "./ChartWithTable";
+import { cellText } from "./PathChart";
 import { assignSeries, type SeriesStyle } from "./series";
-import { BASELINE, HEIGHT, YAxisLabels, type YTick } from "./TrendChart";
+import { type YTick } from "./TrendChart";
 
 interface ColumnsSeries {
   name: string;
@@ -223,7 +213,7 @@ function ColumnsTooltip({
   groups,
   head,
   rows,
-}: TooltipContentProps & { groups: string[]; head: string[]; rows: TableRowData[] }) {
+}: BarTooltipProps & { groups: string[]; head: string[]; rows: TableRowData[] }) {
   const index = groups.indexOf(String(label));
   const row = rows[index];
   if (!active || row === undefined) return null;
@@ -284,72 +274,55 @@ function Chart({
     group,
     ...Object.fromEntries(series.map((s, i) => [keyOf(i), s.values[index] ?? null])),
   }));
-  const axis = useWrappedAxis(groups, yTicks);
   return (
-    <div className="flex flex-col gap-3 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-focus">
-      <ResponsiveContainer width="100%" height={HEIGHT} onResize={axis.onResize}>
-        <BarChart
-          title={title}
-          data={data}
-          margin={{ top: 24, right: 24, bottom: 0, left: 0 }}
-          barGap={barGap}
-          barCategoryGap="20%"
-        >
-          <CartesianGrid vertical={false} stroke="var(--color-border-hairline)" />
-          <XAxis
-            dataKey="group"
-            tickLine={false}
-            axisLine={BASELINE}
-            tick={WrappedTick}
-            interval={0}
-            height={axis.height}
-            tickMargin={8}
-          />
-          <YAxisLabels yTicks={yTicks} />
-          <Tooltip
+    <BarCanvas
+      title={title}
+      data={data}
+      xKey="group"
+      categories={groups}
+      yTicks={yTicks}
+      barGap={barGap}
+      tooltip={(props) => (
+        <ColumnsTooltip {...props} groups={groups} head={table.head} rows={table.rows} />
+      )}
+      legend={
+        series.length >= 2 ? <BarLegend names={series.map((s) => s.name)} styles={styles} /> : null
+      }
+    >
+      <MissingMarks groups={groups} series={series} barSize={barSize} barGap={barGap} />
+      {series.map((s, i) => {
+        const style = styles.get(s.name);
+        if (style === undefined) throw new Error(`no style for series "${s.name}"`);
+        return (
+          <Bar
+            key={s.name}
+            dataKey={keyOf(i)}
+            name={s.name}
+            fill={style.color}
+            barSize={barSize}
             isAnimationActive={false}
-            cursor={false}
-            content={(props) => (
-              <ColumnsTooltip {...props} groups={groups} head={table.head} rows={table.rows} />
-            )}
+            shape={(shape: BarShapeProps) => {
+              const at = shape.originalDataIndex;
+              const group = groups[at];
+              const label = s.labels[at];
+              if (group === undefined || label === null || label === undefined) {
+                throw new Error(`series "${s.name}": no group or label for bar ${String(at)}`);
+              }
+              return (
+                <BarMark
+                  shape={shape}
+                  style={style}
+                  name={s.name}
+                  group={group}
+                  label={label}
+                  raise={narrow && i === 1 ? MIDDLE_RAISE : 0}
+                />
+              );
+            }}
           />
-          <MissingMarks groups={groups} series={series} barSize={barSize} barGap={barGap} />
-          {series.map((s, i) => {
-            const style = styles.get(s.name);
-            if (style === undefined) throw new Error(`no style for series "${s.name}"`);
-            return (
-              <Bar
-                key={s.name}
-                dataKey={keyOf(i)}
-                name={s.name}
-                fill={style.color}
-                barSize={barSize}
-                isAnimationActive={false}
-                shape={(shape: BarShapeProps) => {
-                  const at = shape.originalDataIndex;
-                  const group = groups[at];
-                  const label = s.labels[at];
-                  if (group === undefined || label === null || label === undefined) {
-                    throw new Error(`series "${s.name}": no group or label for bar ${String(at)}`);
-                  }
-                  return (
-                    <BarMark
-                      shape={shape}
-                      style={style}
-                      name={s.name}
-                      group={group}
-                      label={label}
-                      raise={narrow && i === 1 ? MIDDLE_RAISE : 0}
-                    />
-                  );
-                }}
-              />
-            );
-          })}
-        </BarChart>
-      </ResponsiveContainer>
-      {series.length >= 2 ? <BarLegend names={series.map((s) => s.name)} styles={styles} /> : null}
-    </div>
+        );
+      })}
+    </BarCanvas>
   );
 }
 
@@ -367,19 +340,14 @@ export function ColumnsChart({
 }: ColumnsChartProps) {
   check({ groups, series, table });
   return (
-    <ChartFrame title={title} as={as} note={note} subtitle={subtitle} actions={actions}>
-      {(view) =>
-        view === "chart" ? (
-          <Chart title={title} groups={groups} series={series} yTicks={yTicks} table={table} />
-        ) : (
-          <ChartTable
-            caption={title}
-            head={table.head}
-            rows={table.rows}
-            endHeading={table.endHeading}
-          />
-        )
-      }
-    </ChartFrame>
+    <ChartWithTable
+      title={title}
+      as={as}
+      note={note}
+      subtitle={subtitle}
+      actions={actions}
+      table={table}
+      chart={<Chart title={title} groups={groups} series={series} yTicks={yTicks} table={table} />}
+    />
   );
 }

@@ -57,6 +57,7 @@ _ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
 _DELIVERY = re.compile(r"[0-9a-f]{64}")
 _SEGMENT = re.compile(r"(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+")
 _ESCAPES = re.compile(r"(?:%[0-9A-Fa-f]{2})+")
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _refuse(rule: str) -> DeliveryRefused:
@@ -124,7 +125,12 @@ def _decode_escapes(segment: str, number: int) -> str:
 
 
 def check_relative_path(href: str) -> str:
-    """Return a relative path unchanged when every segment is safe (C6, C12)."""
+    """Return a relative path unchanged when every segment is safe (C6, C12).
+
+    A segment is refused when its percent-decoded text is `.` or `..`, holds `/` or `\\`, or holds a
+    control character: U+0000 to U+001F or U+007F, the set the web reader refuses. U+0080 and
+    above are accepted.
+    """
     if not isinstance(href, str):
         raise TypeError("path must be a str")
     if not href:
@@ -135,6 +141,6 @@ def check_relative_path(href: str) -> str:
         decoded = _decode_escapes(segment, number)
         if segment in (".", "..") or decoded in (".", ".."):
             raise _refuse(f"path segment {number}: dot segment")
-        if "/" in decoded or "\\" in decoded or "\x00" in decoded:
-            raise _refuse(f"path segment {number}: decodes to a separator or NUL")
+        if "/" in decoded or "\\" in decoded or _CONTROL.search(decoded) is not None:
+            raise _refuse(f"path segment {number}: decodes to a separator or a control character")
     return href

@@ -1,15 +1,36 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 import { SwitchButton, SwitchField } from "react-aria-components";
+
+// Show sources is kept in memory for the session: it survives route changes and resets on reload.
+// The library keeps its own, so the two areas do not share a switch.
+let sourcesOn = false;
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function setSourcesOn(next: boolean): void {
+  sourcesOn = next;
+  listeners.forEach((listener) => {
+    listener();
+  });
+}
 
 const ShowSourcesContext = createContext<boolean | null>(null);
 const SetShowSourcesContext = createContext<((on: boolean) => void) | null>(null);
 
-/** Holds the "Show sources" state, in memory and off by default, for the controls beneath it. */
+/** Offers the session's "Show sources" state, off until the analyst turns it on, to the controls beneath it. */
 export function ShowSources({ children }: { children: ReactNode }) {
-  const [on, setOn] = useState(false);
+  const on = useSyncExternalStore(subscribe, () => sourcesOn);
   return (
     <ShowSourcesContext.Provider value={on}>
-      <SetShowSourcesContext.Provider value={setOn}>{children}</SetShowSourcesContext.Provider>
+      <SetShowSourcesContext.Provider value={setSourcesOn}>
+        {children}
+      </SetShowSourcesContext.Provider>
     </ShowSourcesContext.Provider>
   );
 }

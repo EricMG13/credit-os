@@ -222,6 +222,9 @@ def limitations(document: HandoffDocument, names: Sequence[str]) -> tuple[dict[s
 def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
     """The reason a blocked run gives; refused when the run is not blocked or the reason is empty.
 
+    The reason paragraph's trailing Basis line is a citation, which belongs to Evidence, so it is
+    dropped as every other passage drops it; the reason is the paragraph's body.
+
     A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
     run out with the reason, as R1 does, and never aborts the whole library.
     """
@@ -231,7 +234,7 @@ def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
     first = section.blocks[0]
     if not isinstance(first, Paragraph):
         raise _refuse("blocked reason", "no reason paragraph")
-    reason = " ".join(first.lines).removeprefix(_NOT_ASSESSABLE).lstrip()
+    reason = _text(first, "blocked reason").removeprefix(_NOT_ASSESSABLE).lstrip()
     if not reason:
         raise _refuse("blocked reason", "empty reason")
     _clean("blocked reason", names, reason)
@@ -268,6 +271,14 @@ def _single_figure(text: str) -> Figure | None:
     return figure if _outside_is_plain(text, figure) else None
 
 
+_MINUS_LIKE = tuple(chr(point) for point in (0x207B, 0x208B, 0x2796, 0x02D7))
+
+
+def _other_minus(c: str) -> bool:
+    """A dash-like sign that the figure reader may not read as a minus: category Pd except '-', or one of four more."""
+    return (unicodedata.category(c) == "Pd" and c != "-") or c in _MINUS_LIKE
+
+
 def cell(
     text: str,
 ) -> tuple[dict[str, object] | None, tuple[str | None, str | None] | None]:
@@ -277,6 +288,10 @@ def cell(
     masked each hold exactly one figure and it is the same figure; otherwise `at` is None. It is
     also None when the figure's unit or currency is unrecognised, or when text outside the figure
     holds a letter (once its currency code is removed) or a currency symbol the figure did not read.
+    It is also None when the text holds a numeric character other than 0 to 9 (another script's
+    digits, fullwidth digits, superscripts, fractions, circled digits, Roman numerals).
+    It is also None when the text holds a dash-like sign other than '-' and U+2212 (a wrong sign is
+    worse than a gap).
     """
     if not isinstance(text, str):
         raise TypeError("a cell is read from a str")
@@ -284,6 +299,10 @@ def cell(
         return None, None
     if isinstance(read_value(text), Gap):
         return {"kind": "gap", "reason": text}, None
+    if any(c.isnumeric() and c not in "0123456789" for c in text):
+        return {"kind": "value", "text": text, "at": None}, None
+    if any(_other_minus(c) for c in text):
+        return {"kind": "value", "text": text, "at": None}, None
     figure = _single_figure(text)
     if figure is None:
         return {"kind": "value", "text": text, "at": None}, None
