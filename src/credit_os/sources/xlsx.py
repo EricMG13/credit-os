@@ -90,6 +90,11 @@ def _floor(raw: str, escape: Callable[[str], str]) -> int:
     return 2 + sum(len(repr(raw[at : at + _DECODE])) - 2 for at in range(0, len(raw), _DECODE))
 
 
+def _equals(text: str) -> str:
+    """Return a formula's text with its `=` first, quoted, as the label writes it."""
+    return _formula("=" + text)
+
+
 def _whole(text: str) -> bool:
     """Return whether text is a whole number in canonical form."""
     try:
@@ -470,7 +475,7 @@ class _Sheet(_Reader):
             index = self.index(value or "-1", "shared-string")
             if not 0 <= index < len(self.strings.stops):
                 raise self.refuse(f"cell {self.address}: a shared-string index out of range")
-            text = self.strings.string(index)
+            text = self.shared_text(index)
         elif self.kind == "inlineStr":
             text = "".join(self.parts.get("t", []) + self.parts.get("r", []))
         else:
@@ -512,9 +517,33 @@ class _Sheet(_Reader):
             self.put(label, " format=")
             self.escaped(label, code, repr)
 
+    def shared_text(self, index: int) -> str:
+        """Return shared string `index`; a formula cell's label is refused first when floors of it
+        already pass the cap, so a cache that would be refused is not decoded."""
+        if "f" in self.parts:
+            stops = self.strings.stops
+            size = stops[index] - (stops[index - 1] if index else 0)
+            self.refuse_formula(len(self.address) + 1, -(-size // 4) or len(_ABSENT))
+        return self.strings.string(index)
+
+    def refuse_formula(self, used: int, cache_floor: int) -> None:
+        """Refuse when floors of a formula cell's label already take it over the cap: `used`
+        characters written, the formula's floor and its `=`, " cache=" and `cache_floor`. Every
+        term is a lower bound of what is written (a character is at most 4 UTF-8 bytes, and
+        `_plain` never shortens), so this refuses nothing the full count accepts. A formula with
+        no control character in any piece is floored by its pieces' lengths, not joined."""
+        pieces = self.parts["f"]
+        if any(_CONTROL.search(piece) for piece in pieces):
+            floor = _floor("".join(pieces), _equals)
+        else:
+            floor = sum(map(len, pieces)) or len(_NO_FORMULA)
+        if used + 1 + floor + len(" cache=") + cache_floor > MAX_CELL_CHARACTERS:
+            raise self.over()
+
     def describe_formula(self, label: list[str], cache: str) -> None:
+        self.refuse_formula(self.used, _floor(cache, _plain) if cache else len(_ABSENT))
         formula = "".join(self.parts["f"]) or _NO_FORMULA
-        self.escaped(label, formula, lambda text: _formula("=" + text), extra=1)
+        self.escaped(label, formula, _equals, extra=1)
         self.put(label, " cache=")
         if cache:
             self.escaped(label, cache, _plain)
