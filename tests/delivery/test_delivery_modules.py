@@ -96,6 +96,9 @@ def test_refused_names_the_rule_only(row: dict[str, Any]) -> None:
     with pytest.raises(DeliveryRefused) as raised:
         run_row(row)
     message = str(raised.value)
+    if "rule" in row:
+        assert message == row["rule"]
+        return
     assert message
     assert CODE.search(message) is None
     for doc in row["documents"].values():
