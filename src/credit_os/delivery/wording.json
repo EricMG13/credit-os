@@ -12,7 +12,7 @@
     {"status": "stopped", "end_reason": "capped", "word": "Capped"},
     {"status": "stopped", "end_reason": "interrupted", "word": "Interrupted"},
     {"status": "failed", "end_reason": "provider_failed", "word": "Failed"},
-    {"status": "rejected", "end_reason": null, "word": "Rejected"},
+    {"status": "rejected", "end_reason": "*", "word": "Rejected"},
     {"status": "stopped", "end_reason": "spend_unknown", "word": null},
     {"status": "stopped", "end_reason": "hold_exceeded", "word": null},
     {"status": "stopped", "end_reason": "operator", "word": null},
