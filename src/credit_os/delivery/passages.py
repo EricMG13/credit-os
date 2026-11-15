@@ -200,6 +200,9 @@ def limitations(document: HandoffDocument, names: Sequence[str]) -> tuple[dict[s
 def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
     """The reason a blocked run gives; refused when the run is not blocked or the reason is empty.
 
+    The reason paragraph's trailing Basis line is a citation, which belongs to Evidence, so it is
+    dropped as every other passage drops it; the reason is the paragraph's body.
+
     A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
     run out with the reason, as R1 does, and never aborts the whole library.
     """
@@ -209,7 +212,7 @@ def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
     first = section.blocks[0]
     if not isinstance(first, Paragraph):
         raise _refuse("blocked reason", "no reason paragraph")
-    reason = " ".join(first.lines).removeprefix(_NOT_ASSESSABLE).lstrip()
+    reason = _text(first, "blocked reason").removeprefix(_NOT_ASSESSABLE).lstrip()
     if not reason:
         raise _refuse("blocked reason", "empty reason")
     _clean("blocked reason", names, reason)
