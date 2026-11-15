@@ -42,7 +42,13 @@ _BRIEF = (SYSTEM, ("system", "Be brief."), USER)
 _OTHER = {"messages": _BRIEF, "effort": "low", "exchange_id": "B_2-x"}
 PROMPT = "Say done."
 _FAKE: dict[str, Any] = {"script": [], "queued": [], "models": MODELS, "fail": {}, "takes": {}}
-_DRIVER: dict[str, Any] = {"environ": ENVIRON, "home": "/home/jane", "idle": 10.0, "overall": 100.0}
+_DRIVER: dict[str, Any] = {
+    "environ": ENVIRON,
+    "home": "/home/jane",
+    "idle": 10.0,
+    "overall": 100.0,
+    "settle": 2.0,
+}
 _REQUEST: dict[str, Any] = {"messages": (SYSTEM, USER), "tools": (), "effort": "medium"}
 DEFAULTS = {**_FAKE, **_DRIVER, **_REQUEST, "exchange_id": "ex-1", "call_index": 0, "before": None}
 
@@ -89,7 +95,9 @@ def _want(kind: str, error_class: str | None, message: Any = None, **more: Any) 
 
 
 def _ok(**more: Any) -> dict[str, Any]:
-    return _want("ok", None, usage=_FULL, charge=_CHARGE, turn=_TURN, calls=_SENT, **more)
+    return _want(
+        "ok", None, **{"usage": _FULL, "charge": _CHARGE, "turn": _TURN, "calls": _SENT, **more}
+    )
 
 
 def _figures(error_class: str, message: Any = PARSER, **more: Any) -> dict[str, Any]:
@@ -137,6 +145,56 @@ _WIN = "D:\\Profiles\\Jane Roe"
 _MUL = "C:\\Users\\M\u00fcller"
 _ESC = "C:\\\\Users\\\\M\\u00fcller\\\\proj"  # as json.dumps writes _MUL + "\\proj"
 _NOT_JSON = "an event is not an object with an id, a type and data"
+
+# --- PR 3b-1: tool-call turns at call index 0 (SDK 1.0.8: a tool declared with no handler; the
+# runtime's `external_tool.requested` is the call being invoked, answered in PR 3b-2).
+# A call that announces tool calls ends at session.idle, session.error, or when a usage event
+# has arrived, every toolRequests id has a tool.execution_start, every start of an offered tool
+# has an external_tool.requested with its toolCallId, and one more next_event, bounded by
+# `settle` (min with what is left of overall), gets nothing. An ok tool-call reply keeps its
+# session. A reply that is not ok releases it, aborting first when a call was invoked.
+_READ = ("read", "Read a file.", {"type": "object"})
+_TOOLS_GIVEN = {"tools": (_READ,)}
+_TOOL_STOP = {"model": MODEL, "finishReason": "tool_use", "apiCallId": "api-1"}
+_TOOL_USAGE = event(1, "assistant.usage", reasoningTokens=2, **_TOOL_STOP, **_NANO, **_COUNTS)
+
+
+def _asks(*ids: str) -> dict[str, Any]:
+    requests = [{"toolCallId": i, "name": "read", "arguments": {"path": i}} for i in ids]
+    message = said(2, "reading")
+    return {**message, "data": {**message["data"], "toolRequests": requests}}
+
+
+def _starts(i: str, name: str = "read", **args: Any) -> dict[str, Any]:
+    return event(
+        10, "tool.execution_start", toolCallId=i, toolName=name, arguments=args or {"path": i}
+    )
+
+
+def _invoked(i: str, name: str = "read", request: str = "r-1", **args: Any) -> dict[str, Any]:
+    data = {
+        "requestId": request,
+        "toolCallId": i,
+        "toolName": name,
+        "arguments": args or {"path": i},
+    }
+    return event(20, "external_tool.requested", **data)
+
+
+def _call(i: str) -> tuple[Any, ...]:
+    return (i, "read", {"path": i}, None)
+
+
+def _tool_turn(*calls: tuple[Any, ...]) -> tuple[Any, ...]:
+    return ("reading", calls, "tool_use", "api-1")
+
+
+_ONE_CALL = [_asks("c1"), _TOOL_USAGE, _starts("c1"), _invoked("c1")]
+_MISMATCH = "the tool calls reported, offered and invoked differ"
+_PARKED = (
+    "a call that ends in tool calls is ok and keeps its session",
+    ("abort", *("queued", "disconnect", "stop")),
+)
 
 CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     # --- a turn; the session is kept, nothing is released
@@ -216,9 +274,9 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     # --- refused before anything is opened: no client is made
     "the model is closed": (_unsent("AdapterClosed", "the model is closed"), {"before": "close"}),
     **{f"exchange id {i[:9]!r}": (_BAD_ID, {"exchange_id": i}) for i in _BAD_IDS},
-    "tool specifications wait for PR 3b": (
-        _unsent("UnsupportedCall", "tool specifications are not supported yet"),
-        {"tools": (("read", "Read a file.", {"type": "object"}),)},
+    "two tools that share a name": (
+        _unsent("InvalidToolSpec", "two tools share a name"),
+        {"tools": (_READ, ("read", "Read again.", {"type": "object"}))},
     ),
     **{f"call index {i}": (_BAD_INDEX, {"call_index": i}) for i in (1, -1)},
     **{
@@ -300,6 +358,188 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     "a path the parser's 500-character cut would have halved": (
         _figures("SessionError", "x: " + "y" * 482 + "<home> died", absent=("acme", "jane")),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error("y" * 482 + _RUNTIME + " died")]},
+    ),
+    # --- tool-call turns (PR 3b-1)
+    "a call that ends in tool calls is ok and keeps its session": (
+        _ok(turn=_tool_turn(_call("c1")), finished=T0 + 2),
+        {**_TOOLS_GIVEN, "script": _ONE_CALL},
+    ),
+    "the call waits for every tool call its message announced": (
+        _ok(turn=_tool_turn(_call("c1"), _call("c2")), finished=T0 + 5),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                _asks("c1", "c2"),
+                _TOOL_USAGE,
+                _starts("c1"),
+                _invoked("c1"),
+                ("tick", 3),
+                {**_starts("c2"), "id": "e11"},
+                {**_invoked("c2", request="r-2"), "id": "e21"},
+            ],
+        },
+    ),
+    "an event within the settle bound is read: a second usage counts": (
+        _ok(
+            usage=(24, 8, 0, 14, 4),
+            charge="0.00024600000",
+            turn=("reading", (_call("c1"),), "tool_use", "api-2"),
+            finished=T0 + 3,
+        ),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                *_ONE_CALL,
+                ("tick", 1),
+                {**_TOOL_USAGE, "id": "e5", "data": {**_TOOL_USAGE["data"], "apiCallId": "api-2"}},
+            ],
+        },
+    ),
+    "a start for a tool not offered is not waited for": (
+        _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2),
+        {**_TOOLS_GIVEN, "script": [_TOOL_USAGE, _starts("c1", "write")]},
+    ),
+    "invoked arguments that differ from the reported ones": (
+        _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2, calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [_asks("c1"), _TOOL_USAGE, _starts("c1"), _invoked("c1", path="b")],
+        },
+    ),
+    "a call invoked twice": (
+        _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2, calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [*_ONE_CALL, {**_invoked("c1", request="r-2"), "id": "e21"}],
+        },
+    ),
+    "the session goes idle with a tool call not invoked": (
+        _figures("ToolCallLost", "the session went idle with a tool call not invoked"),
+        {**_TOOLS_GIVEN, "script": [_asks("c1"), _TOOL_USAGE, _starts("c1"), _IDLE]},
+    ),
+    "a tool call id that holds a path": (
+        _figures("ToolCallIdRedacted", finished=T0 + 2, calls=_ABORTED, absent=("jane",)),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                _asks("/home/jane/c1"),
+                _TOOL_USAGE,
+                _starts("/home/jane/c1"),
+                _invoked("/home/jane/c1"),
+            ],
+        },
+    ),
+    "tool calls cut at max_tokens are refused": (
+        _figures(
+            "ToolCallsCut",
+            "tool calls cut at finishReason length or max_tokens",
+            finished=T0 + 2,
+            calls=_ABORTED,
+        ),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                _asks("c1"),
+                {**_TOOL_USAGE, "data": {**_TOOL_USAGE["data"], "finishReason": "max_tokens"}},
+                _starts("c1"),
+                _invoked("c1"),
+            ],
+        },
+    ),
+    "tool calls without a tool stop reason are refused": (
+        _figures(
+            "UnparsableReply",
+            "tool calls without a tool stop reason",
+            finished=T0 + 2,
+            calls=_ABORTED,
+        ),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                _asks("c1"),
+                {**_TOOL_USAGE, "data": {**_TOOL_USAGE["data"], **_STOP}},
+                _starts("c1"),
+                _invoked("c1"),
+            ],
+        },
+    ),
+    # --- round 1 (task review and audit, High and Medium): the driver never raises after send;
+    # an external_tool.requested whose toolCallId, toolName or requestId is not a non-empty
+    # string is an invocation that cannot be answered: ToolCallMismatch, the call counted as
+    # invoked (abort first). Other ids that are not strings are the parser's to refuse.
+    "a tool start whose id is a list, in a call with no tools": (
+        _figures("UnparsableReply", "toolCallId is not a non-empty string"),
+        {
+            "script": [
+                _USAGE,
+                {**_starts("c1"), "data": {"toolCallId": [1], "toolName": "read"}},
+                _IDLE,
+            ]
+        },
+    ),
+    "a tool start whose name is an object": (
+        _figures("UnparsableReply", "toolName is not a non-empty string"),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                _TOOL_USAGE,
+                {**_starts("c1"), "data": {"toolCallId": "c1", "toolName": {"n": 1}}},
+                _IDLE,
+            ],
+        },
+    ),
+    "an announced id that is an object": (
+        _figures("UnparsableReply", "tool requests and tool starts differ", calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                {
+                    **_asks("c1"),
+                    "data": {**_asks("c1")["data"], "toolRequests": [{"toolCallId": {"x": 1}}]},
+                },
+                _TOOL_USAGE,
+                _starts("c1"),
+                _invoked("c1"),
+                _IDLE,
+            ],
+        },
+    ),
+    "an invocation whose toolCallId is a list": (
+        _figures("ToolCallMismatch", _MISMATCH, calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                *_ONE_CALL[:3],
+                {**_invoked("c1"), "data": {**_invoked("c1")["data"], "toolCallId": ["c1"]}},
+                _IDLE,
+            ],
+        },
+    ),
+    **{
+        f"an invocation whose requestId is {label}": (
+            _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2, calls=_ABORTED),
+            {
+                **_TOOLS_GIVEN,
+                "script": [
+                    *_ONE_CALL[:3],
+                    {**_invoked("c1"), "data": {**_invoked("c1")["data"], "requestId": value}},
+                ],
+            },
+        )
+        for label, value in (("null", None), ("a number", 7), ("empty", ""))
+    },
+    "an invocation with no requestId": (
+        _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2, calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                *_ONE_CALL[:3],
+                {
+                    **_invoked("c1"),
+                    "data": {k: v for k, v in _invoked("c1")["data"].items() if k != "requestId"},
+                },
+            ],
+        },
     ),
 }
 

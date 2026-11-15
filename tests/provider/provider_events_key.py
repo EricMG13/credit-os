@@ -141,9 +141,19 @@ EVENT_CASES: dict[str, tuple[list[Any], dict[str, Any]]] = {
         [usage(1, **_TOOLS), start(2, "c1", "read", arguments="[1,2]")],
         _ok(_OUT9, None, ("", (("c1", "read", {}, '"[1,2]"'),), "tool_use", None)),
     ),
-    "a length cut with tool calls is still a turn": (
+    # A tool must never run on arguments the cut may have shortened (PR 3b-1 ruling).
+    "a length cut with tool calls is refused": (
         [usage(1, finishReason="length", outputTokens=9), start(2, "c1", "read")],
-        _ok(_OUT9, None, ("", (("c1", "read", {}, None),), "max_tokens", None)),
+        _bad(
+            "sent_usage",
+            "ToolCallsCut",
+            "tool calls cut at finishReason length or max_tokens",
+            _OUT9,
+        ),
+    ),
+    "a max_tokens cut with tool calls and nothing counted is refused": (
+        [usage(1, finishReason="max_tokens"), start(2, "c1", "read")],
+        _bad("sent_unknown", "ToolCallsCut", "tool calls cut at finishReason length or max_tokens"),
     ),
     "tool_use with no tool start": (
         [usage(1, **_TOOLS), _event(9, "session.idle", aborted=False)],
