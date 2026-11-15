@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+
 from credit_os.model.detail import (
     FACILITY_LIMIT,
     Detail,
@@ -16,7 +17,6 @@ from credit_os.model.detail import (
     facility_detail,
     facility_limits,
 )
-
 from credit_os.model.inputs import ForecastInputs
 from credit_os.model.value import Value, amount_text
 
