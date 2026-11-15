@@ -3,6 +3,41 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-14 Roadmap back end: the step 3B plan, decision 0014, plan corrections
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #337 | Records | `d444fab5` | `a778e26` | the entry below this one, the ports lines |
+| #339 | 3B PR 0 | `1c395291` | `49c3635` | the step 3B plan; amendments to the 2A and 3A plans |
+
+**The 3B plan.** Reviewed by `mx-feature` as a docs change: first verdict fail on three Medium
+(two rulings and a PR row disagreed on the model cases; three rules did not cite the ruling they
+depend on; the admission event was not in the 2A plan) and four Low; all fixed in `1c395291`, the
+scoped re-review passed. The design track accepted all four asks as slice contract 3. This PR
+closes the plan's open prior-art task: the public search is recorded in the plan with its
+decision (standard library, nothing copied, no dependency).
+
+**Decision 0014.** A call a crash left open is settled by an owner-stated line in its own
+append-only table (2A migration 3), never by rewriting the call; ruled under the owner's
+instruction of 2026-11-14 about 22:20 UTC, before 2A PR 5's brief.
+
+**3A plan corrections.** The rulings made after the 3A plan merged (the store's `finished` and
+`interrupted`, a refused launch is not a run, exact `str` names, the confidence rule; and, ruled
+but not yet built, the call hold, the refused `close_call` and decision 0014) are now in the plan.
+The 2A plan gains an amendment for the call columns, the run gate and the settlement table.
+
+**Rulings.** 1C #338: a known path's case form written in NFD is inside decision 0012's guarantee
+and is fixed there, test first, one counted round. Machine load reached 77 on 10 cores at 23:36
+UTC with three Signal worktrees running tests together: one heavy run at a time per controller,
+and anything measured above a 1-minute load of 40 is rerun alone before it counts.
+
+**Not verified:** the 3A and 3B controller sessions are not started (the app refused to start a
+session over Remote Control); nothing in the 3B plan or decision 0014 is built. The prior-art
+search read descriptions only.
+
 ## 2026-11-14 Roadmap back end: 1B units, 1D HTML pages, Signal's ingest
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the

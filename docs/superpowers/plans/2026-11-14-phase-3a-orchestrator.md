@@ -393,3 +393,25 @@ the delivered folder of a run (each accepted handoff's bytes under a fixed name)
 cap with at least one accepted module. It is a PR after PR 7c and waits for 2A PR 5b; the
 coordinator gives it a number and its rulings before it is briefed. Step 3B reads that folder
 and checks it against the receipt; 3A writes no library file.
+
+## Corrections, 2026-11-14 (ruled after this plan merged; they bind step 3A)
+
+The coordinator's. The first four and the last restate or clarify merged store (2A) and checks
+(2B) code; the two on calls are ruled for 2A PRs 3 and 5 and are not merged when this is written.
+
+- G3: a run that ended normally has status `finished` (the store's word) with end reason
+  `completed`.
+- G3: the closed end-reason set gains `interrupted`. The store has no lock and no heartbeat: a run
+  still `running` whose process has gone is never inferred. It becomes `stopped` with
+  `interrupted` only when the operator takes it over (resume or stop, PR 8), which claims the run
+  again and writes that end first.
+- D16: a launch refused for the file count or size is never a run; nothing is stored.
+- Store names are exact `str`: pass an enum's `.value` to `record_event` and the end status. A
+  stored writer that is not a token is `StoreCorrupt`.
+- Planned (2A PR 3): `open_call` takes an exchange id, the provider's call index and a hold (required, at least 0);
+  attempt and call writes are refused unless the run is `running`. A `close_call` the store
+  refuses leaves the call open: spend is unknown (D7) and the run ends; it is never retried with
+  altered values.
+- Planned (2A PR 5), D7: an open call is settled as decision 0014 says, by an owner-stated line
+  in its own table.
+- A confidence outcome is used only for a document `check_handoff` returns no refusal for.

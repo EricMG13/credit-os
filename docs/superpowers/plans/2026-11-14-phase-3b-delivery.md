@@ -74,9 +74,17 @@ needed (standard library only). A brief quotes the merged signature, never this 
   `handoff/` readers, `checks.figures.read_figures`, `checks.passages`, `model/`, `store/codec.py`.
   Read for behaviour: the predecessor's `platform_io.replace` and `write_atomic`, `checked_bytes`,
   `write_download`, `embedded_json`. Decision: adapt the rules, build the builders new.
-- Public GitHub: **not searched in this draft**. It is PR 0's open task for the coordinator:
-  generic terms (atomic file replace on Windows; deterministic zip), with the queries, findings
-  and decision recorded here before PR 2's and PR 12a's briefs.
+- Public GitHub, searched 2026-11-14 with generic terms (`gh search repos`, Python, by stars):
+  `atomic write`, `atomicwrites`, `reproducible zip`, `deterministic zip`. Found:
+  `untitaker/python-atomicwrites` (MIT; its fork calls it unmaintained), `datalib/atomicio` (MIT),
+  `bboe/deterministic_zip` (BSD-2-Clause), `drivendataorg/repro-zipfile`. Decision: build new on
+  the standard library, no dependency and no copied code. PR 2 and PR 12a: a temp file in the
+  target's folder, flush and `os.fsync`, then `os.replace` retried a bounded number of times on
+  `PermissionError` (the rule of the predecessor's `platform_io.replace`). PR 12a's archive:
+  `zipfile` with one `ZipInfo` per member, names sorted, a fixed `date_time`, fixed
+  `create_system` and `external_attr`, stored members, no extra field and no comment. Its key
+  compares the bytes on both CI runners. An empty or thin search does not prove nothing better
+  exists; no candidate's code was read beyond its description.
 
 ## Legacy: what happens to each part
 
@@ -472,7 +480,7 @@ yes by the roadmap coordinator, not yet built):
   `ForecastResult`, `History`, attempts, calls, the receipt and the admitted list are inferred
   from the plans on main. Which 3A PR records a source's read state and a module's not-run reason
   is inferred from its PR table.
-- No public search was run. An empty search would not prove nothing exists.
+- The public search read descriptions only. A thin search does not prove nothing better exists.
 - That an ASCII-only file equals the fixture writer's output after `JSON.parse` for every input;
   that Chrome and Edge load a 16 MiB `data.js` from `file://` in acceptable time.
 - That `os.replace` over an open `data.js` behaves as S9 assumes on the work PC, and what an

@@ -269,3 +269,16 @@ The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. 
 - one read through `StoreReader` of every issuer and, for an issuer, every run: `as_of` newest
   first, a run with no `as_of` after the dated ones, then `created_at`, then run id. That order
   rests on the store clock and is for display only.
+
+## Amendment, 2026-11-14 (calls and settlement)
+
+The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. It replaces D6's
+"no operator settle" and D7's "no hold column"; none of it is merged when this is written.
+
+- PR 3 (migration 2): `calls` carries an exchange id and the provider's call index (both required,
+  unique within a run with the run id) and `hold_usd` (required, money text, at least 0), written
+  at `open_call` and never changed. A call with no stated hold is `StoreRefused`.
+- PR 3: attempts, calls and compactions are written only while the run is `running`, by trigger.
+- PR 5 (migration 3) also carries the settlement table of decision 0014: append-only, one row per
+  open call, refused on a closed call, outside the run gate, read back as an owner-stated line and
+  never as `billed_usd`.
