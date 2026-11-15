@@ -16,8 +16,11 @@ class StoreError(Exception):
     `StoreUnusable`), and so the user's home folder name. Text a caller hands the store to keep
     (a source error's text, its absolute path and notes) is stored whole. A caller that shows,
     logs or stores a store error passes its message, and the text of its chained `__cause__`,
-    which can carry the same path, through `credit_os.provider.redact.home_paths` first, or shows
-    only the error's class name; a logged traceback is redacted the same way or not written."""
+    which can carry the same path, through the `message` of a
+    `credit_os.provider.redact.Redactor` built with the known paths (decision 0012) first, or
+    shows only the error's class name; a logged traceback is redacted the same way or not
+    written. Only the known paths are guaranteed (0012 point 5): another user's home is the
+    pattern net's best effort."""
 
 
 class StoreRefused(StoreError, ValueError):
