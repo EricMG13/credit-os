@@ -18,6 +18,10 @@ from credit_os.provider.types import ToolCall, ToolSpec
 from credit_os.sources.pins import SourcePin
 
 MAX_WRITES = 3
+# Four times tests/fixtures/handoffs/tdg-2026-11-09/CP-2E.md (59,740 bytes), the largest real
+# handoff. check_handoff time grows with the square of a draft's register ids and tags (42 s at
+# this size); the fix belongs to later phases, and this cap bounds the damage meanwhile.
+MAX_DRAFT_BYTES = 238960
 _SHOWN = 20
 _MAX_EDITS = 100
 
@@ -28,6 +32,7 @@ _E_CLOSED = "ERROR: this module's handoff is closed: it was accepted or has had 
 _E_WRITE_KEYS = "ERROR: write_handoff takes exactly markdown"
 _E_EDIT_KEYS = "ERROR: edit_handoff takes exactly edits"
 _E_TEXT = "ERROR: the draft must be Unicode text (a string with no lone surrogate)"
+_E_TOO_BIG = f"ERROR: the draft is over {MAX_DRAFT_BYTES} bytes"
 _E_NO_DRAFT = "ERROR: no draft to edit; submit with write_handoff first"
 _E_EDITS = "ERROR: edits must be a list of 1 to 100 objects, each with exactly old and new"
 _E_EDIT_SHAPE = "ERROR: edit {i}: old must be nonempty text and new must be text"
@@ -68,7 +73,7 @@ WRITE_TOOLS: tuple[ToolSpec, ...] = (
     ToolSpec(
         "write_handoff",
         "Submit the whole handoff Markdown; it is checked on each write, and you have at most "
-        "3 writes.",
+        "3 writes; the draft is at most 238960 bytes of UTF-8.",
         _WRITE_PARAMETERS,
     ),
     ToolSpec(
@@ -130,6 +135,12 @@ def _encodable(text: Any) -> bool:
     return True
 
 
+def _within_cap(text: str) -> str | _Rejected:
+    if not _encodable(text):
+        return _Rejected(_E_TEXT)
+    return text if len(text.encode("utf-8")) <= MAX_DRAFT_BYTES else _Rejected(_E_TOO_BIG)
+
+
 def _well_formed(edit: Any) -> bool:
     return (
         isinstance(edit, dict)
@@ -152,7 +163,7 @@ def _apply_edits(draft: str, edits: Any) -> str | _Rejected:
         text = text.replace(edit["old"], edit["new"], 1)
     if text == draft:
         return _Rejected(_E_NO_CHANGE)
-    return text if _encodable(text) else _Rejected(_E_TEXT)
+    return _within_cap(text)
 
 
 class ModuleWriter:
@@ -211,7 +222,7 @@ class ModuleWriter:
             if set(call.arguments) != {"markdown"}:
                 return _Rejected(_E_WRITE_KEYS)
             markdown = call.arguments["markdown"]
-            return markdown if _encodable(markdown) else _Rejected(_E_TEXT)
+            return _within_cap(markdown)
         if set(call.arguments) != {"edits"}:
             return _Rejected(_E_EDIT_KEYS)
         if self._draft is None:
