@@ -43,7 +43,10 @@
   {"id": "contrary-lead-splits-a-source", "file": "SYNTHETIC-CP-2.md", "replace": [["| NBG_2024-12-31_Q4-results.pdf | Earnings and quarterly cash. |", "| NBG_2024-12-31_Q4-results.pdf | Earnings and quarterly cash. |\n| Northbridge annual report.pdf | Synthetic name with spaces. |"], ["The company has not said", "**Northbridge** annual report.pdf: the company has not said"]], "builder": "contrary"},
   {"id": "bottom-line-sub-heading", "file": "SYNTHETIC-CP-2.md", "replace": [["### Key findings", "#### More\n\nMore text.\n\n### Key findings"]], "builder": "bottomLine"},
   {"id": "contrary-deeper-heading", "file": "SYNTHETIC-CP-2.md", "replace": [["The company has not said", "#### What would change the view\n\n##### Deeper\n\nThe company has not said"]], "builder": "contrary"},
-  {"id": "blocked-leaks-a-code", "file": "SYNTHETIC-CP-2D.md", "replace": [["cannot be tested.", "cannot be tested (see CP-1)."]], "builder": "blocked"}
+  {"id": "blocked-leaks-a-code", "file": "SYNTHETIC-CP-2D.md", "replace": [["cannot be tested.", "cannot be tested (see CP-1)."]], "builder": "blocked"},
+  {"id": "limitations-table", "file": "SYNTHETIC-CP-2.md", "replace": [["Basis: Financial foundation (CP-1)\n\n## Calculations", "Basis: Financial foundation (CP-1)\n\n| Part | Share |\n| --- | --- |\n| One | All |\n\n## Calculations"]], "builder": "limitations"},
+  {"id": "limitations-code-block", "file": "SYNTHETIC-CP-2.md", "replace": [["Basis: Financial foundation (CP-1)\n\n## Calculations", "Basis: Financial foundation (CP-1)\n\n```\nraw\n```\n\n## Calculations"]], "builder": "limitations"},
+  {"id": "limitations-sub-heading", "file": "SYNTHETIC-CP-2.md", "replace": [["Basis: Financial foundation (CP-1)\n\n## Calculations", "Basis: Financial foundation (CP-1)\n\n#### More\n\n- A further limitation is not stated here.\n\n## Calculations"]], "builder": "limitations"}
  ],
  "cells": [
   ["", null, null],
@@ -74,7 +77,17 @@
   ["31 Mar 2025", {"kind": "value", "text": "31 Mar 2025", "at": null}, null],
   ["Mar 2025", {"kind": "value", "text": "Mar 2025", "at": null}, null],
   ["FY2024 1,700", {"kind": "value", "text": "FY2024 1,700", "at": null}, null],
-  ["2025", {"kind": "value", "text": "2025", "at": "2025"}, [null, null]]
+  ["2025", {"kind": "value", "text": "2025", "at": "2025"}, [null, null]],
+  ["100 EUR", {"kind": "value", "text": "100 EUR", "at": null}, null],
+  ["100 USD", {"kind": "value", "text": "100 USD", "at": null}, null],
+  ["1.7bn EUR", {"kind": "value", "text": "1.7bn EUR", "at": null}, null],
+  ["1.7bn USD", {"kind": "value", "text": "1.7bn USD", "at": null}, null],
+  ["1,390 GBP", {"kind": "value", "text": "1,390 GBP", "at": null}, null],
+  ["5.0turns", {"kind": "value", "text": "5.0turns", "at": null}, null],
+  ["5.0vessels", {"kind": "value", "text": "5.0vessels", "at": null}, null],
+  ["100 \u20ac", {"kind": "value", "text": "100 \u20ac", "at": null}, null],
+  ["\u20ac100", {"kind": "value", "text": "\u20ac100", "at": "100"}, [null, "EUR"]],
+  ["EUR 100", {"kind": "value", "text": "EUR 100", "at": "100"}, [null, "EUR"]]
  ],
  "leaks": [
   ["Leverage is 4.2x.", ["NBG_2025-03-31_annual-report.pdf"], []],
