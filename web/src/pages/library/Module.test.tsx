@@ -60,6 +60,7 @@ describe("the module routes", () => {
       ["2026-03-31", "forecast"],
       ["2026-06-30", "capital-structure"],
       ["2026-09-30", "no-such-module"],
+      ["r-0412", "source-readiness"],
     ]);
     expect(fixture.params[INDEX]?.map((p) => p["run"])).toEqual(["2026-09-30", "2026-06-30"]);
   });
@@ -1606,5 +1607,46 @@ describe("the module page's remount key", () => {
     expect(moduleViewKey("a/b", "c", "d")).not.toBe(moduleViewKey("a", "b/c", "d"));
     expect(moduleViewKey("a", "b/c", "d")).not.toBe(moduleViewKey("a", "b", "c/d"));
     expect(moduleViewKey("a", "b", "c")).toBe(moduleViewKey("a", "b", "c"));
+  });
+});
+
+describe("Module, a data module that delivers no findings and no limitations", () => {
+  function emptyData(): unknown {
+    const slice = structuredClone(fixture.slice) as { issuers: Json[] };
+    const issuer = slice.issuers.find((i) => i["id"] === "brevane-marine") as Json;
+    const run = (issuer["runs"] as { modules: { body: Json }[] }[])[0];
+    const body = (run as { modules: { body: Json }[] }).modules[0]?.body as Json;
+    body["moduleKind"] = "data";
+    body["findings"] = [];
+    body["limitations"] = {
+      count: "0",
+      gapsLink: { label: "See this module's gaps in Evidence" },
+      items: [],
+    };
+    return slice;
+  }
+  const renderData = () =>
+    renderRoute(
+      PATH,
+      { issuer: "brevane-marine", run: "r-0412", module: "business-profile" },
+      emptyData(),
+    );
+
+  it("draws no Key findings and no Limitations section, and exactly one h1", () => {
+    renderData();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 2, name: "Business profile" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: /Key findings/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /Limitations/ })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Key findings" })).toBeNull();
+    expect(screen.queryByRole("region", { name: /Limitations/ })).toBeNull();
+  });
+
+  it("lists neither section in the navigator", () => {
+    renderData();
+    const entries = within(within(nav()).getAllByRole("list")[0] as HTMLElement)
+      .getAllByRole("button")
+      .map((s) => s.textContent);
+    expect(entries).toEqual(["Bottom line"]);
   });
 });

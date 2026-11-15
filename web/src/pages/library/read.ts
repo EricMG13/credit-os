@@ -568,21 +568,25 @@ function readModuleItem(value: unknown, path: string): ModuleItem {
   };
 }
 
-function readLimitations(value: unknown, path: string, traces: Traces): Limitations {
+/** `mayBeEmpty` is true only for a data module's body, which has nothing owed to say. */
+function readLimitations(
+  value: unknown,
+  path: string,
+  traces: Traces,
+  mayBeEmpty = false,
+): Limitations {
   const l = rec(value, path);
   const linkPath = child(path, "gapsLink");
-  const items = some(
-    unique(
-      list(l, "items", path, (item, p) => {
-        const i = rec(item, p);
-        return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
-      }),
-      child(path, "items"),
-      (item) => item.text,
-      "text",
-    ),
+  const rows = unique(
+    list(l, "items", path, (item, p) => {
+      const i = rec(item, p);
+      return { text: str(i, "text", p), trace: traceKey(i, "trace", p, traces) };
+    }),
     child(path, "items"),
+    (item) => item.text,
+    "text",
   );
+  const items = mayBeEmpty ? rows : some(rows, child(path, "items"));
   return {
     count: countsRows(l, "count", path, items.length),
     gapsLink: { label: str(rec(own(l, "gapsLink"), linkPath), "label", linkPath) },
@@ -1239,6 +1243,8 @@ function readRecord(value: unknown, path: string, traces: Traces): RecordBlock {
   }
 }
 
+const MODULE_KINDS = ["data", "prose"] as const;
+
 function readBody(value: unknown, path: string, traces: Traces): DeliveredBody | BlockedBody {
   const b = rec(value, path);
   if (oneOf(b, "kind", path, ["delivered", "blocked"]) === "blocked") {
@@ -1250,18 +1256,20 @@ function readBody(value: unknown, path: string, traces: Traces): DeliveredBody |
       gapsLink: { label: str(rec(own(b, "gapsLink"), linkPath), "label", linkPath) },
     };
   }
+  const moduleKind = oneOf(b, "moduleKind", path, MODULE_KINDS);
+  // Only a data module may deliver no findings and no limitations; a prose module keeps both.
+  const mayBeEmpty = moduleKind === "data";
+  const findings = unique(
+    list(b, "findings", path, (f, p) => readFinding(f, p, traces)),
+    child(path, "findings"),
+    (f) => f.number,
+    "number",
+  );
   return {
     kind: "delivered",
+    moduleKind,
     bottomLine: readBottomLine(own(b, "bottomLine"), child(path, "bottomLine"), traces),
-    findings: some(
-      unique(
-        list(b, "findings", path, (f, p) => readFinding(f, p, traces)),
-        child(path, "findings"),
-        (f) => f.number,
-        "number",
-      ),
-      child(path, "findings"),
-    ),
+    findings: mayBeEmpty ? findings : some(findings, child(path, "findings")),
     contrary: optionalView(b, "contrary", path, traces),
     changeView: optionalView(b, "changeView", path, traces),
     records: unique(
@@ -1270,7 +1278,12 @@ function readBody(value: unknown, path: string, traces: Traces): DeliveredBody |
       (block) => block.title,
       "title",
     ),
-    limitations: readLimitations(own(b, "limitations"), child(path, "limitations"), traces),
+    limitations: readLimitations(
+      own(b, "limitations"),
+      child(path, "limitations"),
+      traces,
+      mayBeEmpty,
+    ),
   };
 }
 

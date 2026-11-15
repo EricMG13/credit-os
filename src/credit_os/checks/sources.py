@@ -5,8 +5,10 @@ gap. Each check is a pure function of `(document, context)` returning refusals; 
 content and every `column` is 1.
 
 `sources.table` needs the reader view and finds nothing when `read_reader` refuses the document or
-the format is the earlier one; a blocked module needs no table. The other three read the table
-alone. A row's first cell, compared exactly, must name a pin, an `other_sources` entry or an
+the format is the earlier one; a blocked module needs no table. `sources.sha256-required` needs it
+too, finds nothing unless `context.hashes_required`, and counts a digest only when the `sha256`
+cell of a row naming a pin or `<name> (CP-X)` is stated (whether it is the right digest stays
+`sources.sha256`'s finding). The other three read the table alone. A row's first cell, compared exactly, must name a pin, an `other_sources` entry or an
 upstream module as `<name> (CP-X)`. The `sha256` and `Source type` columns are checked only when a
 column has exactly that header (the first, if two do); a digest must equal the pin's or the
 upstream document's, and a source named by `other_sources` has none. Text taken from the handoff
@@ -123,3 +125,57 @@ def check_type(document: HandoffDocument, context: CheckContext) -> tuple[Findin
         for row in table.rows
         if (cell := _stated(table, row, "Source type")) is not None and cell not in _TYPES
     )
+
+
+def _heading_refusal(document: HandoffDocument, reason: str) -> Finding:
+    return refusal("sources.sha256-required", document.sections[1].line, "Sources", reason)
+
+
+def _handoff_rows(table: Table | None, code: str) -> list[Row]:
+    if table is None:
+        return []
+    return [
+        row
+        for row in table.rows
+        if (found := _MODULE.fullmatch(row.cells[0])) is not None and found.group(2) == code
+    ]
+
+
+def _any_stated(table: Table | None, rows: list[Row]) -> bool:
+    return table is not None and any(_stated(table, row, "sha256") is not None for row in rows)
+
+
+def _handoff_missing(document: HandoffDocument, table: Table | None, code: str) -> Finding:
+    reason = (
+        f"List the current {code} handoff in the Sources table as `name ({code})` with its "
+        "exact sha256."
+    )
+    rows = _handoff_rows(table, code)
+    if not rows or table is None or "sha256" not in table.columns:
+        return _heading_refusal(document, reason)
+    return refusal("sources.sha256-required", rows[0].line, rows[0].cells[0], reason)
+
+
+def check_sha256_required(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
+    reader = try_reader(document)
+    if not context.hashes_required or reader is None or reader.format != "new":
+        return ()
+    if is_blocked(document, reader):
+        return ()
+    table = sources_table(document)
+    found = [
+        _handoff_missing(document, table, code)
+        for code in context.upstream
+        if not _any_stated(table, _handoff_rows(table, code))
+    ]
+    names = {pin.name for pin in context.pins}
+    pinned = [] if table is None else [row for row in table.rows if row.cells[0] in names]
+    if not _any_stated(table, pinned):
+        found.append(
+            _heading_refusal(
+                document,
+                "List each issuer source relied on in the Sources table with its exact name "
+                "and sha256.",
+            )
+        )
+    return tuple(found)

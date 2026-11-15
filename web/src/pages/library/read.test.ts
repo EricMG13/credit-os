@@ -2111,3 +2111,64 @@ describe("readSlice, an overview without For and against or a change view", () =
     expect(invalidReason(slice)).toContain(`issuers[0].runs[0].overview.${key}`);
   });
 });
+
+describe("readSlice, a data module's body", () => {
+  type Body = Json & { findings: unknown[]; limitations: { count: string; items: unknown[] } };
+  const bodyOf = (slice: ReturnType<typeof fresh>): Body => {
+    const issuer = slice.issuers.find((i) => i["id"] === "brevane-marine") as Json;
+    const run = (issuer["runs"] as { modules: { body: Body }[] }[])[0];
+    return (run as { modules: { body: Body }[] }).modules[0]?.body as Body;
+  };
+  const AT = "issuers[6].runs[0].modules[0].body";
+  const emptied = (kind: string, emptyFindings: boolean, emptyLimitations: boolean) => {
+    const slice = fresh();
+    const body = bodyOf(slice);
+    body["moduleKind"] = kind;
+    if (emptyFindings) body.findings = [];
+    if (emptyLimitations) {
+      body.limitations.items = [];
+      body.limitations.count = "0";
+    }
+    return slice;
+  };
+
+  it("accepts a data body with no findings and no limitations and carries its moduleKind", () => {
+    const result = readSlice(emptied("data", true, true));
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const body = result.data.issuers[6]?.runs[0];
+    if (body?.loading !== false) throw new Error("run is loaded");
+    expect(body.modules[0]?.body).toMatchObject({
+      kind: "delivered",
+      moduleKind: "data",
+      findings: [],
+      limitations: { count: "0", items: [] },
+    });
+  });
+
+  it("refuses a prose body with no findings, at its findings", () => {
+    expect(invalidReason(emptied("prose", true, false))).toBe(
+      `${AT}.findings: expected at least one item`,
+    );
+  });
+
+  it("refuses a prose body with no limitations, at its items", () => {
+    expect(invalidReason(emptied("prose", false, true))).toBe(
+      `${AT}.limitations.items: expected at least one item`,
+    );
+  });
+
+  it("refuses a body without moduleKind, at moduleKind", () => {
+    const slice = fresh();
+    Reflect.deleteProperty(bodyOf(slice), "moduleKind");
+    expect(invalidReason(slice)).toContain(`${AT}.moduleKind`);
+  });
+
+  it("refuses a moduleKind outside data and prose, at moduleKind", () => {
+    expect(invalidReason(emptied("other", false, false))).toContain(`${AT}.moduleKind`);
+  });
+
+  it("reads a prose and a data body that keep their findings and limitations", () => {
+    expect(readSlice(emptied("data", false, false)).kind).toBe("ok");
+    expect(readSlice(emptied("prose", false, false)).kind).toBe("ok");
+  });
+});
