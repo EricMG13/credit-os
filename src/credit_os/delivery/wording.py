@@ -63,6 +63,15 @@ ENTRY_KEYS = frozenset(
         "evidence.trace.column.kind",
         "evidence.trace.column.sources",
         "jump.detail",
+        "evidence.gaps.title",
+        "evidence.gaps.description",
+        "evidence.gaps.column.id",
+        "evidence.gaps.column.gap",
+        "evidence.gaps.column.module",
+        "evidence.gaps.column.reason",
+        "evidence.gaps.column.shownAs",
+        "evidence.gaps.where.module",
+        "evidence.gaps.effect_unstated",
     }
 )
 STATE_WORDS = frozenset(

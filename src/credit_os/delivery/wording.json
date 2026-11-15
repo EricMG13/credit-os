@@ -89,6 +89,15 @@
     "evidence.trace.column.module": {"placeholders": [], "text": "Module"},
     "evidence.trace.column.kind": {"placeholders": [], "text": "Kind"},
     "evidence.trace.column.sources": {"placeholders": [], "text": "Sources"},
-    "jump.detail": {"placeholders": ["module", "id"], "text": "{module} \u00b7 {id}"}
+    "jump.detail": {"placeholders": ["module", "id"], "text": "{module} \u00b7 {id}"},
+    "evidence.gaps.title": {"placeholders": [], "text": "Gaps"},
+    "evidence.gaps.description": {"placeholders": [], "text": "Each gap a module recorded, with the effect it gave."},
+    "evidence.gaps.column.id": {"placeholders": [], "text": "Gap"},
+    "evidence.gaps.column.gap": {"placeholders": [], "text": "What is missing"},
+    "evidence.gaps.column.module": {"placeholders": [], "text": "Module"},
+    "evidence.gaps.column.reason": {"placeholders": [], "text": "Effect on the view"},
+    "evidence.gaps.column.shownAs": {"placeholders": [], "text": "Shown as"},
+    "evidence.gaps.where.module": {"placeholders": ["module"], "text": "Shown on the {module} page"},
+    "evidence.gaps.effect_unstated": {"placeholders": [], "text": "The module did not state an effect."}
   }
 }
