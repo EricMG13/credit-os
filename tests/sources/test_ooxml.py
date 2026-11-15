@@ -426,8 +426,8 @@ def test_directory_cap_is_two_mib() -> None:
 
 
 def _directory_zip(target: int) -> bytes:
-    """16,384 empty stored members; each directory entry is 46 bytes plus its name."""
-    count = 16_384
+    """512 empty stored members; each directory entry is 46 bytes plus its name."""
+    count = 512
     names = [f"xl/{index:079d}" for index in range(count)]
     names[-1] += "x" * (target - count * (46 + len(names[0])))
     buffer = io.BytesIO()
@@ -440,13 +440,15 @@ def _directory_zip(target: int) -> bytes:
     return raw
 
 
-def test_directory_at_two_mib_opens() -> None:
-    Package("b.xlsx", _directory_zip(2_097_152))
+def test_directory_at_lowered_cap_opens(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "MAX_DIRECTORY_BYTES", 65_536)
+    Package("b.xlsx", _directory_zip(65_536))
 
 
-def test_directory_over_two_mib_is_refused() -> None:
+def test_directory_over_lowered_cap_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "MAX_DIRECTORY_BYTES", 65_536)
     with pytest.raises(SourceUnreadable) as caught:
-        Package("b.xlsx", _directory_zip(2_097_153))
+        Package("b.xlsx", _directory_zip(65_537))
     assert str(caught.value) == "b.xlsx: a zip directory too large"
 
 
