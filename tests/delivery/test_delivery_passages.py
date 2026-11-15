@@ -163,9 +163,9 @@ def test_cell_never_raises_and_never_floats(text: str) -> None:
 
 @given(
     st.text(alphabet="0123456789 .,-%x", min_size=1, max_size=12),
-    st.characters(
-        categories=("Nd", "Nl", "No"), exclude_characters="0123456789"
-    ).filter(lambda c: c.isnumeric()),
+    st.characters(categories=("Nd", "Nl", "No"), exclude_characters="0123456789").filter(
+        lambda c: c.isnumeric()
+    ),
     st.integers(min_value=0, max_value=12),
 )
 def test_cell_with_a_numeric_character_other_than_0_to_9_has_no_at(
