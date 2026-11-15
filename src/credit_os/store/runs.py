@@ -35,7 +35,19 @@ _IDENTIFIER = re.compile(r"[A-Za-z0-9._-]{1,128}")
 _NAME = re.compile(r"[a-z][a-z0-9_]{0,63}")
 _TOKEN = re.compile(r"[0-9a-f]{32}")
 _SQLITE_MAX_INTEGER = 2**63 - 1
-STATE_KINDS = frozenset({"run_created", "writer_replaced", "run_started", "run_ended"})
+STATE_KINDS = frozenset(
+    {
+        "run_created",
+        "writer_replaced",
+        "run_started",
+        "run_ended",
+        "attempt_opened",
+        "attempt_replied",
+        "attempt_failed",
+        "attempt_accepted",
+        "attempt_rejected",
+    }
+)
 END_STATUSES = frozenset({"finished", "stopped", "failed"})
 OPEN_STATUSES = frozenset({"created", "running", "stopped", "failed"})  # not finished or rejected
 START_STATUSES = frozenset({"created", "stopped", "failed"})

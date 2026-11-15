@@ -1,16 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
+import { show } from "./test-helpers";
 
 /** A copy of the fixture slice with the first story of scene `main` changed. */
 function withFirstStory(change: Record<string, unknown>): unknown {
@@ -37,10 +27,6 @@ const HALVORSEN = "Northgate Ratings downgrades Halvorsen Marine to B+";
 const PELLANT = "Pellant Terminals plans first bond issue";
 
 describe("the feed list and the story card", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("draws each story as an article with its headline as an h2, in the view's order", () => {
     show("/signal/main/feed/for-you");
     expect(screen.getAllByRole("article")).toHaveLength(4);

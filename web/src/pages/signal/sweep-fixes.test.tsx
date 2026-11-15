@@ -1,30 +1,15 @@
 // Page fixes the sweep confirmed (register rows S1, S5, S8). Each test is the sweep probe's case, with
 // its expected values stated here: a channel link opens its page, a repeated sentence is a fresh node,
 // two lines with one text draw without a duplicate key.
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
 import { readSlice } from "./slice";
+import { show, settled } from "./test-helpers";
 
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
-const settled = () =>
-  act(async () => {
-    for (let i = 0; i < 5; i += 1) await new Promise((r) => requestAnimationFrame(r));
-    await new Promise((r) => setTimeout(r, 50));
-  });
 const keyErrors = (spy: { mock: { calls: unknown[][] } }) =>
   spy.mock.calls.filter((call) => call.some((a) => String(a).includes("same key")));
 
 afterEach(() => {
-  window.location.hash = "";
   vi.restoreAllMocks();
 });
 

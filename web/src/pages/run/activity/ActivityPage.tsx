@@ -1,4 +1,4 @@
-import { Button, styles } from "@/components/base/buttons/button";
+import { Button } from "@/components/base/buttons/button";
 import { Badge } from "@/components/base/badges/badges";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
@@ -6,9 +6,9 @@ import { Card } from "@/components/card/Card";
 import { Skeleton } from "@/components/gap/Skeleton";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { PageHeader } from "@/shell/PageHeader";
-import { cx } from "@/utils/cx";
 import { useSource } from "../../source";
 import { TextLink } from "../TextLink";
+import { NOT_CONNECTED } from "../reasons";
 import { readSlice } from "../slice";
 import type { StartDraft } from "../slice-start";
 import type { ActivityRecord, RunRecord } from "../slice-activity";
@@ -16,9 +16,6 @@ import { Feed } from "./Feed";
 import { RunAlert } from "./RunAlert";
 import { ModuleSteps } from "./ModuleSteps";
 import { Summary } from "./Summary";
-
-const STOP_REASON =
-  "Not available here: this page shows a saved example and is not connected to the run service.";
 
 // The page draws its own padding (the shell gives a bleed page none) and its own h1.
 function Frame({ children }: { children: React.ReactNode }) {
@@ -61,14 +58,9 @@ function NoRun({ draft }: { draft: StartDraft | undefined }) {
       trail
       action={
         draft === undefined ? undefined : (
-          <a
-            href={`#/run/start/${draft.id}`}
-            className={cx(styles.common.root, styles.sizes.lg.root, styles.colors.primary.root)}
-          >
-            <span data-text className="px-0.5">
-              Start a run
-            </span>
-          </a>
+          <Button href={`#/run/start/${draft.id}`} size="lg" color="primary">
+            Start a run
+          </Button>
         )
       }
     >
@@ -168,21 +160,16 @@ function Run({ run }: { run: RunRecord }) {
         }
         actions={
           run.open !== null ? (
-            <a
-              href={run.open.href}
-              className={cx(styles.common.root, styles.sizes.lg.root, styles.colors.primary.root)}
-            >
-              <span data-text className="px-0.5">
-                {run.open.label}
-              </span>
-            </a>
+            <Button href={run.open.href} size="lg" color="primary">
+              {run.open.label}
+            </Button>
           ) : live ? (
             <div className="flex max-w-xs flex-col items-start gap-2">
               <Button color="secondary" isDisabled aria-describedby="stop-reason">
                 Stop run
               </Button>
               <span id="stop-reason" className="text-sm text-text-secondary">
-                {STOP_REASON}
+                {NOT_CONNECTED}
               </span>
             </div>
           ) : null

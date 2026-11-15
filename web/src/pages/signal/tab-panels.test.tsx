@@ -1,18 +1,8 @@
 // Whole-branch findings L4 and I1: the feed's kind tabs and Settings' section tabs each have a tab
 // panel the selected tab's aria-controls names, and an issue's data id is not a DOM id.
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { show } from "./test-helpers";
 
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
 const selected = () => {
   const tab = screen.getAllByRole("tab").find((t) => t.getAttribute("aria-selected") === "true");
   if (tab === undefined) throw new Error("a tab is selected");
@@ -29,10 +19,6 @@ function panelOf(tab: HTMLElement): HTMLElement {
 }
 
 describe("the feed's kind tabs have a panel", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("holds the filtered list in the panel the selected tab names", () => {
     show("/signal/main/feed/for-you");
     const panel = within(panelOf(selected()));
@@ -66,10 +52,6 @@ describe("the feed's kind tabs have a panel", () => {
 });
 
 describe("Settings' section tabs have a panel", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("holds the section in the panel the selected tab names", () => {
     show("/signal/main/settings/topics");
     const tab = selected();
@@ -114,10 +96,6 @@ describe("Settings' section tabs have a panel", () => {
 });
 
 describe("I1: an issue heading carries its id as data, not as a DOM id", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("marks the heading with a data attribute and leaves the id attribute off", () => {
     show("/signal/ai-on/digest/weekly-brief");
     const title = document.querySelector('[data-issue="week-6-nov"]');

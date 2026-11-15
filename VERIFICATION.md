@@ -3,6 +3,187 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-15 Design track: a Gaps group with no severity, phase sweep wave 1 of `web/`
+
+**Merged**, each with gates on Ubuntu and Windows and the review job green on its head, none
+cancelled, and its source diff read by the coordinator (Signal's file splits checked by size and
+taken on the review).
+
+| PR | Head, merge | Content |
+| :--- | :--- | :--- |
+| #370 | `99f1a00`, `85bab4e` | A gap group may carry `severity: null` (delivery may not rank a gap): at most one, last, headed "Not ranked" with no badge; the Halden 2025-09-30 run gains one unranked gap and the matching Capital structure limitation; a fixture test ties each Evidence gap to the module page it names (289 lines) |
+| #354 | `62874a5`, `80402ab` | Run reader refuses blank labels, titles and list items it draws, an empty purpose or confirm group list, and a not-met count that disagrees with its items |
+| #355 | `4de1a5d`, `56d269d` | The kit Chrome check's Tab leg can fail (it records where focus lands) |
+| #356 | `54daa0d`, `e3b2b71` | Run pages use the kit link Button; dead `data-disabled:` classes removed |
+| #357 | `f54765d`, `32a5dd1` | Shared test helpers for the run and Signal groups |
+| #358 | `6fcc8f6`, `0975057` | Signal focus hooks; StoryCard and FeedPage split under the complexity limit |
+| #359 | `1029283`, `c7879df` | Signal reader checks split under the complexity limit |
+| #360 | `713cdd7`, `c171f52` | Ruled defects: a run slice whose first draft is not at the documents step is refused; run fixture costs agree with each run's spend; the AI-off notice reworded; a focus test that kills five surviving mutants |
+
+**Costs reduced** (same command before and after): jscpd on `src/pages/signal` with tests 46
+clones, 493 lines (3.83%) to 16, 131 (1.05%); on `src/pages/run` with tests 12, 110 to 0;
+StoryCard's largest function complexity 28 to 10 or less; FeedPage 17 to 14; three Signal reader
+functions 21, 17, 17 to 10 or less each.
+
+**Deferred: one browser process for the open-from-disk gate (P1-C2).** Measured saving: browser
+starts per run 127 to 8, the step 113 to 177 s to 42 to 43 s. Two fix rounds closed three Highs
+and two Mediums of the security read; one Medium stayed open (a sandboxed child that starts a second
+document from its parent's `onload` was caught 8 times in 10 by the old runner and 0 in 10 by the
+new), so under the coordinator's fallback the change was dropped and the gate is unchanged. The work
+is on three local branches; the register holds a candidate design.
+
+**Reviews.** Gap severity: `mx-precise` task review (one Medium: the new gap pointed at a module
+page that did not show it; fixed test first in one round); whole-branch `mx-architect` adversarial
+pass, High 0, Medium 0, Low 3, Info 4, 13 hand mutants killed. Wave 1: `mx-precise` per task, all
+pass; whole-branch review by `mx-adversary` (Opus 5.5) in place of `mx-architect` (Fable 5.2), whose
+account limit was reached until 18 Nov (ruled by the roadmap coordinator, agreed with the back end):
+pass, no High or Medium.
+
+**Ledger** (wave 1; agent `mx-feature` unless named; fix rounds, gates first pass): T1 0, n; T1b 0,
+y; T1c 0, y; T2 0, y; T3 0, n; T4 0, n; T5 0, y; T5b 0, y; T7 0, y; T7b 0, n/a; T7c 1, n/a; T7d 2,
+n/a (dropped); T8 0, y. Gap severity: task 1 0, n (lint failed
+once on the first run); fix round 1, y.
+
+**Owner rules applied this night** (relayed by the lead coordinator): coordinators resolve all
+decisions (rulings in decision 0013 and the coordinators' rulings files); fast tests per task, full
+gates once per PR (a green CI run on the pushed head stands in, by the back end's slot rule 10);
+heavy runs two at a time with step 2A first; sub-session leads on Opus 5.5 at xhigh; every Low and
+Info finding waits for one batch after the final roadmap phase; throttle to the critical path
+until the 2026-11-18 reset. Sweep wave 2, slice contract 3 and the states 2 build wait for the
+reset. The design track's running list of held Lows and Infos has 23 rows (coordinator's count).
+
+**Rule breaches recorded:** five hand-mutant runs in the sweep ran before the machine-wide slot
+queue covered them; one implementer created and deleted a stray file under `/tmp`; the gap severity
+whole-branch review's first attempt started as a third heavy run before the two-run rule reached
+the coordinator (it was killed by the app quit and rerun under the loosened rule).
+
+Not verified: the gap severity whole-branch review looked at no built page (the task review's
+headless Chrome walk at 1440 and 1024 did); Edge; headed Chrome and screen readers; wave 1's local
+full gates after CI (CI stands in); the merged tree's CI run on `c171f52` (status in the next entry
+if it fails).
+
+## 2026-11-15 Roadmap back end: 3A's budget and calculate tool, 3B's display text, names and cell citations
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #378 | Records | `a5f58fe5` | `c415c58` | the entry below, decision 0012's named limit, 3A D24, 3B R23 |
+| #373 | 3B PR 8a | `9d1e9708` | `56f7769` | `handoff/basis.py`, the cell-citation reader |
+| #363 | 3B PR 3 | `1e715a2b` | `6b342f5` | `delivery/names.py`: the module table, ids, addresses, download names |
+| #350 | 3A PR 2a | `e5cb6b22` | `b055325` | `orchestrator/budget.py`, the run budget |
+| #361 | 3B PR 1a | `e849e000` | `a52dfc9` | `model/display.py`: display text and the JSON number token |
+| #372 | 3A PR 4b | `0c2ef33f` | `c68cb33` | `orchestrator/calculate.py`, the calculate tool |
+
+#370 (a Gaps group with no severity) was merged by the roadmap coordinator and is recorded with
+the design track.
+
+**Reviews.** #373: `mx-precise`, sweep and the whole-branch review pass; no mutation (not
+sensitive code). #363: `mx-precise` (a refusal echoed its value) and `mx-adversary` (absolute
+paths in refusals, High) failed; one fix round, re-review pass; sweep and whole-branch pass;
+mutation on `names.py` 91 of 124 killed at load 2.24, 24 survivors only change a refusal's text
+(held as a Low test gap). #350: `mx-precise` and the `mx-adversary` money review failed on one
+Medium; fixed, scoped `mx-feature` re-review pass; sweep pass; whole-branch on Fable, finished
+before the limit, pass; mutation on `budget.py` 159 of 225 killed at load 3.15, 57 survivors only
+change a message, 5 equivalent, 4 killable and held as Low. #361: `mx-precise` and `mx-adversary`
+failed on two new suppressions; fixed; the whole-branch review on Fable failed on a Medium (the
+rounding quantum read the thread's decimal context); a second round fixed it and `mx-precise`
+passed it; mutation on `display.py` 56 of 73 killed, the 17 survivors equivalent. #372:
+`mx-precise`, `mx-adversary`, sweep and whole-branch pass; mutation 103 of 104 killed at load
+9.65. Whole-branch reviews not marked Fable ran on an Opus 5.5 stand-in.
+
+**Ledger.** 3B-8a `agent=mx-scaffold fix-rounds=0 gates-first-pass=y`. 3B-3 `agent=mx-feature
+fix-rounds=1 gates-first-pass=y`. 3A-2a `agent=mx-feature fix-rounds=1 gates-first-pass=y`. 3B-1a
+`agent=mx-feature fix-rounds=2 gates-first-pass=y`. 3A-4b `agent=mx-feature fix-rounds=0
+gates-first-pass=y`.
+
+**Rulings** (added to the plans; the owner can overturn any). 3A-27: PR 5 caps a draft's size
+because checking a handoff takes time that grows with the square of its size (23 s for 164 KB);
+that cost predates 3A and is on the owner's list. 9a-1's caps: 1 MiB, 5,000 values, 64-character
+keys. 3B W5a: a rejected run reads Rejected whatever its end reason.
+
+**Sessions.** 2B's six PRs are merged; its session is archived and its reports are kept by the
+coordinator outside the repository.
+
+**Not verified:** that the 9a-1 caps and W5a hold as ruled (both PRs are open); a real context
+file near 5,000 values; the 164 KB timing on the work PC.
+
+## 2026-11-15 Roadmap back end: 3A's catalogue, 1D's XML guards, 3B's lead labels; reviews off Fable
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #349 | Records | `c97d0cc6` | `c8ed693` | the entry below, 3B R17 to R22, `docs/low-findings.md` |
+| #347 | 3A PR 1 | `281bddee` | `d1816aa` | the module catalogue and the run plan |
+| #314 | 1D PR 3b | `0fdb6766` | `1ba22ae` | the XML half of the OOXML guards |
+| #335 | 1D PR 3b-2 | `fe28f58c` | `a252430` | namespaces bound by the reader; token cap 524,288 |
+| #362 | 3B PR 4a | `80176bf6` | `480f6ab` | `handoff/lead.py`, the bold lead-label reader |
+| #342 | 1D PR 2b-4 | `c95f947f` | `59651d4` | a charset name cut at byte 4,096 is refused |
+
+**Reviews.** #347: `mx-precise`, sweep and `mx-architect` whole-branch pass; no mutation owed.
+#314 + #335, the fourth round the owner approved: one set, `mx-adversary` on #335 and the set's
+`mx-architect` whole-branch review pass; mutation 1,313 of 1,381 killed, timeouts rerun alone.
+#362: `mx-precise` and `mx-architect` pass. #342: `mx-precise`, `mx-adversary` and `mx-architect`
+pass; 556 of 628 killed at load 11.
+
+**Ledger.** 1D 2b-3 (#320): task 1 `agent=mx-feature fix-rounds=0 gates-first-pass=n`, task 2
+`agent=mx-feature fix-rounds=0 gates-first-pass=y`, two Low batches `agent=mx-scaffold
+fix-rounds=0 gates-first-pass=y`. 2b-4 `agent=mx-feature fix-rounds=0 gates-first-pass=y`. 3b
+rounds 1 to 3 `agent=mx-feature fix-rounds=1|2|3 gates-first-pass=y` (3 on an `mx-autonomous`
+plan); 3b-2 `agent=mx-feature fix-rounds=4 gates-first-pass=y` (a blind rewrite after a revert).
+3A-1 `agent=mx-feature fix-rounds=0 gates-first-pass=y`. 3B-4a `agent=mx-scaffold fix-rounds=0
+gates-first-pass=y`.
+
+**Reviews off Fable.** The account's Fable limit stopped every `mx-architect` review at about
+01:27 UTC (resets 18 November). Until then a fresh Opus 5.5 reviewer runs the whole-branch review
+(`mx-architect` with an Opus model override, or `mx-adversary`), same method and severities;
+each PR body names it. The weekly limit for all models was at 88%; until the owner answers, only
+2A, 3A and 3B start new work, and the other steps finish what is in review.
+
+**Rulings** (on the owner's list). 1D ruling 24: test rows an Opus planner wrote are answer keys,
+not implementation code. 1C ruling 26: a combining mark left after a masked known name is a named
+limit of decision 0012 (added here). 3A: PR 9a is two PRs (added to its plan). 3B R23: the wording
+file's sentences (added to its plan). 2A U23: rows pinning that a closed call's `billed_usd` never
+changes, whatever its kind. CI on the pushed head is a PR's once-per-PR full gates.
+
+**Not verified:** the Opus stand-in reviews are not compared with what Fable would have found.
+
+## 2026-11-15 Roadmap back end: Signal's cap, match and members fixes; the store's 3a-1; the owner's rules
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #340 | Records | `9973ed9b` | `443ca15` | decision 0014, the 3B prior art, 3A corrections |
+| #341 | Signal S-11 | `22b49c01` | `4764ffb` | one feed stores at most 2,000 new stories a pass |
+| #343 | Signal S-12 | `e8c7a6dd` | `e1989a2` | `groups.members` reads in one snapshot |
+| #345 | Signal S-10 | `56b4c02d` | `c244f5c` | `_earliest_match` bounded; migration 4 (an index) |
+| #344 | 2A PR 3a-1 | `4d3002ef` | `1a4fb6d` | a stored writer that is not a token is corrupt; exact `str` names |
+
+**Reviews.** #341 `mx-precise` pass. #343 `mx-adversary` pass. #345 `mx-precise` and
+`mx-adversary` pass, its batch re-review pass. #344 `mx-precise`, `mx-invariants` and the
+whole-branch `mx-architect` review pass. #340: docs review failed on five Medium (planned store
+behaviour written as built), fixed, re-review pass. Mutation of record: #344 857 of 1,046 killed,
+12 of 12 on its lines, load 14; #341 5 of 5, #343 6 of 6 and #345 10 of 10 hand mutants.
+
+**The owner's rules, relayed by the lead coordinator and read in its transcript.** Fast tests:
+affected tests per task, full gates once per PR, step 2A first for machine time. Every
+sub-session controller on Opus 5.5 at xhigh. Low and Info findings hold nothing and wait for one
+batch after the final phase: `docs/low-findings.md`. Steps 3A and 3B were started by the lead.
+
+**Rulings** (under the 22:20 UTC instruction; on the owner's list). A hand mutant killed by a
+failing test counts at any load. 2A reviews whole-branch once per stacked set. 1D: HTML labels
+the standard maps to windows-1252 read as such, C1 controls refused (PR 2b-5). 1C #338: a third
+round on an `mx-autonomous` plan. 2A U22: no zero a reply can carry is refused by the money
+codec. 3A: no `required_registers` column yet; CP-1 scored. 3B: R17 to R22, in its plan.
+
+**Not verified:** #345's guard query has no mutants of its own at the merged head. The machine
+restarted at about 00:08 UTC; results cut by it were discarded and rerun.
+
 ## 2026-11-14 Roadmap back end: the step 3B plan, decision 0014, plan corrections
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
@@ -684,280 +865,3 @@ behaviour gaps parked as Lows for PR 2b).
 - #256: Windows beyond the one CI job; races beyond two processes; power loss.
 - #207, #215: feeds from real publishers; other expat builds; Python 3.12.11 to 3.12.13
   never tried.
-
-## 2026-11-14 Design track: library pages (step D2b)
-
-**Merged** into `main` in stack order by the coordinator, 57 PRs as merge commits: #57, #58,
-#70, #71, #72, #76, #77, #83, #84, #85, #103, #104, #105, #106, #107, #125, #126, #127, #128,
-#129, #130, #136, #137, #138, #139, #140, #141, #142, #260, #261, #262, #263, #264, #265,
-#266, #267, #268, #270, #271, #272, #273, #274, #275, #276, #277, #278, #279, #280, #281,
-#168, #282, #283, #284, #285, #286, #287, #294. `main` after the last merge: `4a0cbdbb`.
-`git diff --quiet origin/main 3ca2f8c7 -- web/src/pages/library web/fixtures/library.json`
-exit 0: the library pages and fixture on `main` equal the final head `3ca2f8c7`. Review
-coverage: the whole-branch review read `39f34eca`; the fix round is #294; the same reviewer
-agent re-reviewed at `b32a784` (pass); the final head `3ca2f8c7` (33 lines, the re-review's
-two Lows) was gated and checked against the reviewer's probe and had no review round of its
-own, as the owner's rule for Low findings allows. No reviewer read `3ca2f8c7`.
-
-**Order of merging.** #57 was merged at 18:04:21 UTC and #287 at 18:09:09; the fix PR #294
-was merged in the same sequence, last, at 18:09:14 (`git log origin/main --merges`). The
-whole stack merged in under five minutes.
-
-- **D2b, library pages**: 57 stacked PRs, #57 on `main`, each based on the one before. The
-  stack touches only `web/src/pages/library/` and `web/fixtures/library.json` (at `39f34eca`:
-  89 files, 22,817 added lines against `main` `718a13b4`; #294 adds 604 changed lines against
-  #287). Every PR within 800 changed lines (largest 796, #57).
-- PR #168 (a contributed fix, confirmed by the owner's process) sits after #281 (task 13g),
-  not after #142 where it was first placed: it entered the working branch after task 13, and
-  after #142 it conflicts with 11a and four of its tests fail under task 12's Evidence
-  cross-checks, so the PRs from #260 to #281 would have failed their own gates. Its head is a
-  fast-forward of the contributor's branch with fix `4f35e1a` (129 lines) and a follow-up
-  (31 lines) merged in; a comment on #168 records the placement.
-
-**Delivers.** The library pages from the D1 mocks on fixture data (`web/fixtures/library.json`,
-synthetic issuers): Library home (cards and a List with the predecessor's filters, sort and
-count line), report history, the run header and tabs, the trace drawer and Show sources, the
-Overview, Changes (Cards or Table), module pages, and the Evidence pages (Summary, Trace
-register, Sources, Gaps, Record, a jump menu on Ctrl or Cmd K). The fixture holds loading,
-capped and first-run runs and the no-such issuer, run and module pages. All state is in
-memory; the missing chart kinds draw their Table side only.
-
-**Coordinator pre-check** on `39f34eca` and on the final head `3ca2f8c7`, before merge: no
-file outside `web/src/pages/library/` and `web/fixtures/library.json`; largest PR 796 changed
-lines (cap 800); no fetch, storage, raw HTML or suppression added; one timer
-(`parts/CopyToast.tsx`, dismisses the copy message, cleared on reuse; a failed copy is
-shown); one `Math.ceil` (a two-column split of a list, not a figure); `git merge-tree` with
-`main` `9f900d53` clean.
-
-**Gates** (controller's and implementers' reports; the reports are kept outside the
-repository, in the session notes folder `d2b-records/`; the D2b worktree was archived).
-- `npm --prefix web run gates` exit 0 and the Python gates exit 0 on `39f34eca` (`main`
-  `718a13b4` merged; web 120 files, 2747 tests), the controller's run. At `b32a784` the
-  fixer's `gates` exit 0 (121 files, 2772 tests); the re-reviewer ran only the library
-  folder's 21 test files (777 tests, exit 0). At `3ca2f8c7` the fixer's `gates` exit 0 (a
-  background run; no counts recorded) and the controller reran `wbr-list-vs-run.mjs` (exit 0).
-- Per task, each commit's gates exit 0 per the implementer, with exceptions. Task 1: the
-  first run failed on a shared test and a route ruling; exit 0 after the rebase. Task 2: the
-  full gates at `cea0796` exit 1 (`test:file:gates` died at its canary under machine load);
-  every step before it exited 0 and CI decided. Task 10: one run on the first commit, the
-  rest by steps after load timeouts. Task 11: commit 2 by steps. Task 12: re-cut `fba2982`
-  had typecheck and its test file only, full gates left to CI. Task 13: the final tree by
-  steps (the one-command run timed out under load); commits 4 to 7 only partly gated locally;
-  fix `9737240` by steps (one drawer test took 5.2 s against its 5 s limit under load).
-  Task 14: gates at `22f0882` and at fix `0bef3da`, not at each of the first four commits.
-  Whole-branch fix round: one gates run at `b32a784`, not per commit, for the seven commits
-  `2f032bd` to `b32a784`. Tasks 8 and 12 were re-cut to at most 800 lines per commit with a tree identical to the
-  gated one (diff checked empty).
-- CI: every PR head had `gates (ubuntu-latest)` and `review` passing and at least one passing `gates
-  (windows-latest)` job before its merge, but not every Windows job passed. #140 (run 43613667245,
-  17:23:45 to 17:43:47; duplicate run 43613667111 passed), #282, #284, #286, #287 and #294 each also
-  carry one Windows job that ended cancelled; #168's failed job was rerun and the rerun was cancelled
-  (18:04:13 to 18:24:17). Those jobs were cut off by the `web` workflow's 20-minute job limit, not by a
-  failed check; omitted here because the coordinator's pre-merge check counted only failed and pending
-  jobs. Measured on `main` `4a0cbdbb` (run 43624986501, Windows, attempt 2, the first rerun, started
-  18:49 UTC): `npm run gates` 10 min 5 s and "Open from disk in Edge" 6 min 1 s passed; "Open from disk
-  in Chrome" was cancelled after 3 min 13 s at the 20-minute mark. With all four page groups on `main`
-  the Windows job no longer fits 20 minutes on a slow runner; Linux takes about 8 minutes. #58, #70,
-  #83, #107 and #130 each have two Windows jobs cancelled within a minute at about 16:04 UTC (not the
-  limit; cause not established) and each later has two passing Windows jobs. The other exception: #168
-  was merged with one of its two Windows jobs failed: the rerun of that job (run 43622974167, attempt 2)
-  never produced a result, so on #168's commit that job has one failure and no pass. The failure was
-  `StatementsPage.test.tsx` "describes a missing cell by its reason, shows it on focus, and draws it
-  n.a., never 0" (`Test timed out in 5000ms`, 5,130 ms), a model-pages test outside this stack (see
-  "Model pages test timeout (#295)" below); the duplicate Windows job on the same commit (run
-  43622974170) passed. #168's first run (43613658822) failed "Changed lines at most 800" because it
-  still measured against its old base (10,753 lines against the old base, 296 against the new one); the
-  D2b session closed and reopened the PR with no new commit to get runs on the right base. Earlier
-  failed checks on #127 and #139 were the Windows `DevToolsActivePort` read race fixed by #156, on heads
-  the end push replaced; #71 and #83 failed once in the shared kit page check and #264 and #280 had
-  Windows gates cancelled under queue load, each rerun.
-
-**Reviews.**
-- Task review per task, `mx-precise`; scoped re-reviews by `mx-precise`, except task 5's
-  second fix and task 5b's fix (`mx-feature`). PR #168: one Medium (a test pinned a malformed
-  lead, one name repeated 7,142 times, as valid), fixed, re-review approved; one Low left
-  (the name split costs about 2 s on 13 very long near-miss names).
-- Sweep discovery, `/sweep refactoring discover changed-update` (`mx-autonomous`, register
-  `sweep/register.md`): 23 rows (Medium 3, Low 17, Info 3). Fixed in #287 (`mx-precise`:
-  approve): SW-01 (ruled), SW-02 to SW-06 and the platform-only SW-09 and SW-10, remeasured
-  live; SW-12 and SW-13a to d were already fixed at base. SW-07 and SW-11 are owner
-  questions; SW-08 and SW-14 to SW-20 (structure, duplication, `read.ts` at 2,002 lines) go
-  to the next phase sweep; SW-17 closed for two of its pairs in the fix round below.
-- Whole-branch adversarial review (`mx-architect` running `adversarial-reviewer`, a fresh
-  agent) on `39f34eca`: needs fixes, High 0, Medium 1, Low 8, Info 4. WBR-01 (Medium): the
-  Halden List row showed net leverage 2.9x and interest coverage 4.1x as reported, and
-  leverage 3.4x, against its own run's 4.6x and 2.4x on company-adjusted EBITDA and no gross
-  leverage. Ruled and fixed (the row carries the run's figures, adjusted, leverage not
-  recorded) with an agreement test that fails on the base fixture. Lows WBR-02 to WBR-09
-  rode with it (blank home measure text; names used as keys held unique; download and Open
-  addresses held to a relative path; empty run id; a changes link beside a null report;
-  `tabs.sources` and `limitations.count` tied to their rows; a Changes audit-material test;
-  `slice.ts` comments stating what the reader enforces), as did the drawer Low (its open
-  state resets on a run change). The fix round is #294.
-- Re-review by the same reviewer agent (not a fresh one) at `b32a784`: pass, High 0, Medium
-  0, Low 2, Info 4; WBR-01 to WBR-09 and the drawer Low addressed. Probes rerun:
-  `wbr-list-vs-run` 0, the drawer probe 0, the audit scan 0, `wbr-rr-base-fails` 0 (the
-  committed tests fail on the base: 21 fail). Three probes still exit 1, accepted as stale,
-  not defects: `wbr-reader.sh` (13 of 14; its WBR-02 case writes to Halden's leverage text,
-  a measure that is `null` under the ruling, so it throws before the reader runs; the rule
-  holds on two other measures per `wbr-rr-reader.sh` part A), `wbr-pages.sh` (2 of 3; its
-  WBR-04 case looks for the download link of a slice the reader now refuses; the page draws
-  the invalid notice with the path and no link, `wbr-rr-reader.sh` part C) and
-  `wbr-measure.sh` (11 of 16 period pairs refused; WBR-09 asked for comment changes only, so
-  its output is unchanged).
-- Two new Lows from the re-review, fixed in `3ca2f8c7` against the reviewer's probe with no
-  review round: RR-01 (the address rule accepted eight forms that resolve outside the
-  library folder: a leading space or tab before `https://`, `//` or `/`, a tab or newline
-  inside a scheme, `%2e%2e` segments; now an allow-list of relative paths; probe
-  `wbr-rr-reader.sh` part B exit 1 at `b32a784`, exit 0 after, 14 of 14) and RR-02 (a Home
-  test title retitled). The re-review also raised four Infos: RR-03 (module and issuer ids
-  are still read with `str`, so an empty one passes), RR-04 (a Home sort test now compares
-  the first two rows where it compared three; not a weakening), RR-05 (the run header
-  remounts with the body on a run change) and RR-06 (unchanged from the first review: SW-07
-  stands as the owner question, CI on `39f34eca` was pending).
-- Deferred Infos: WBR-10 (the model-calls table styling assumes a column order the slice
-  does not state), WBR-11 (the slice is validated on every render, twice; 0.59 ms at fixture
-  size), WBR-12 (`readTree` and `DerivationTree` recurse without a depth bound, so a very
-  deep derivation raises an uncaught error instead of `invalid`; reasoned, not run).
-
-**Live validation** (the D2b controller, 2026-11-14; no input shows a walk by the owner).
-- `file://` in headed Chrome over its debugging protocol, after tasks 1 to 3, 5, 5b, 6 and 7,
-  8 to 15 and the sweep fix batch (walks named `t1` to `t15` with `t5b`, `t67` and `t8c`,
-  and `sw1`, as the progress file names them; task 4 had no walk of its own), on that
-  task's head. On the finished stack at `39f34eca`: 18 routes at 1440 and
-  1024, 36 of 36 with one `h1`, no overflowing leaf, no horizontal scroll, no console or CSP
-  problem, no request outside `file://`.
-- `file://`, `b32a784` (walk `wbr`): the Halden List row reads n.a. (leverage not recorded),
-  4.6x adj. and 2.4x adj. with the company-adjusted description and the three count lines;
-  the trace drawer opened on 2026-09-30, closed on 2025-09-30 and still closed on return.
-  This is the only live check of the fix round and covers the Home list and the drawer only.
-- Localhost in the app's built-in browser pane (127.0.0.1:4612, owner-watchable),
-  `39f34eca`: 20 routes, one `h1` each, no horizontal scroll, no console message; not a CSP
-  proof (the content-policy and no-network checks count on `file://` only).
-
-**Ledger** (D2b; all `agent=mx-feature`). fix-rounds 0 for tasks 1, 9, 10, 11, 12, 15 and the
-sweep batch; 1 for tasks 3, 4, 5b, 6, 7, 8, 14, PR #168 and the whole-branch fix; 2 for tasks
-2, 5 and 13. gates-first-pass `n` for tasks 1 and 2; `y` for the rest as recorded by the
-controller (task 13's `y` rests on its step-by-step gates; see Gates). Machine restarts
-between about 09:30 and 09:52 UTC killed task 9's review more than once and a merged-tree
-gate run; the review then ran and approved. At 16:08 UTC another session's command emptied
-the scratch directory under `/private/tmp`, removing D2b's scratch worktree `forward-1`; its
-branch was already pushed (`39f34eca` local and remote) and all records were in the stage
-folder: nothing lost.
-
-**Rulings** (controller, each reversible; the full list is in the D2b progress ledger):
-- Mock frames govern over the component map; the page title is the route name and the run
-  header an `h2` under App's `h1`; Library home is `/library/home`.
-- Missing chart kinds (gantt, liquidity walk, peer scatter and range, headroom) draw a Table
-  side only, with no dead toggle, in one local card around the kit `ChartTable`.
-- Predecessor list rules (adj. mark, bands, sort, count line, hidden-rows heading) are built
-  on the List side; band selects count as applied filters.
-- "loading" is a slice-given state drawn as a skeleton; Forecast and download addresses come
-  from the slice, null draws disabled with its reason; the Forecast link is null or exactly
-  `#/model/<issuer>/<run>/forecast`.
-- A history agrees with its home card; the reader rejects report or changes on a Failed,
-  Rejected, Interrupted, Running or Queued entry.
-- Trace gains a visible `heading`; Show sources persists in memory across a run's pages for
-  the session; the absent-slice sentence "This data file holds no library pages" stands.
-- The capped run's many-modules state keeps its own counts (nine delivered, four not run)
-  over the mock sample's "10 modules delivered"; direction gains "flat"; the module name
-  carries a state badge for every state; half-width pairs go two-up from 1200px.
-- The module filter appears only on Evidence tabs delivered per module; an item address
-  starts its tab unfiltered. New addresses `/modules`, `/evidence`, `/evidence/trace/:item`,
-  `/evidence/gaps/:item`; the Trace register starts closed and has no Value column (`value`
-  stays in the slice as the fixture-agreement contract); Trace and Gaps are native tables.
-- Departures: Secured leverage targets T-0104 (mock T-0016); the timings table draws its
-  Module-state badge in the end column; "Ctrl K" off Apple, first jump item not highlighted
-  on open; the file note reads "7 read in full, 1 read in part, 1 unreadable". Task 9:
-  unanswered questions draw as plain rows, not empty details; pathway numbers come from the
-  list position (a CSS counter). Task 13: Trace tab counts equal the rows held (60 / 0 / 0),
-  a departure from the mock sample "148". Task 8: contrary evidence text size ("departure
-  8"; computes 16px/26px in the built CSS). The final
-  report lists more (per-file copy names, only rows with a calculation expand, local
-  `MetricTile` and statement table); those were not rechecked against task reports.
-- SW-01: "Modules N" counts the modules the run lists. SW-07 not fixed (owner question).
-  WBR-01: the Halden row carries its opened run's own figures. Task 9 to 14 PR branches were
-  pushed once, with one stack forward; the fix wave pushed only its new branch.
-
-**Open for the owner.**
-- Links into runs the slice does not hold (SW-07): four of the five home cards (Corvane
-  Packaging, Tessaly Foods, Ardenne Cable, Lumora Health) open "No such run", and two Halden
-  history links open the static loading skeleton. The Halden Forecast link opens the model
-  page's "Not found for this run" (the model fixture holds TransDigm only).
-- The ten delivered download and Open addresses under `downloads/` name files the built
-  folder does not hold, so each opens a missing file.
-- Does delivery ever write the "loading" state; the absent-slice sentence on `#` (the
-  shipped `data.js` has no library member); Corvane Fasteners has no home card.
-- The capped run compares "since 31 December 2025" while its history says those runs
-  delivered nothing; the Trace mock's T-0068 "listed under Gaps" against the Gaps mock;
-  Delivered modules holding gaps (G-04, G-06) and G-06 linked to Financial performance while
-  its n.a. cell is on Capital structure.
-- The reader accepts a module lead repeating a held name or counting more modules than held
-  (predates D2b; SW-08: 1,105 ms for one read of a
-  36,399-character lead over 13 names); mutants "none draws a mark" and "default weight
-  medium" (task 8) predate the fix.
-- Deferred to the next phase sweep: SW-14 to SW-20 (SW-18, two parallel reader kits, needs
-  the coordinator: the model folder has another owner), WBR-10 to WBR-12, RR-03.
-- Step 3B contract notes: trace `value` is required and kept though not drawn; the reader
-  refuses 11 of 16 measure period pairs (`slice.ts` states the two accepted forms); delivered
-  addresses must be relative paths inside the library folder; counts that name held rows are
-  tied by the reader (Modules, Trace, Sources, Gaps, limitations, registers).
-- Kit changes needed (final report): ChartTable node cells, per-column alignment, per-row
-  emphasis, a withheld reason and a sort affordance; a toggle-less Table-only ChartFrame;
-  Table `scope` and a detail row; MetricCard trace slot and Cell values; Callout title weight
-  and trace slot; Timeline heading level; Alert body size; PageHeader subtitle slot; Blocked
-  "Not run" wording; ProgressBar accessible name; an eslint allowance for `tabIndex` on a
-  `role=region` scroller. Built locally under `parts/`: Switch, RunFeed, TraceControl,
-  TraceDrawer, DerivationTree, avatar group, copy snippet and toast, command menu,
-  DownloadButton, details list, numbered list panel.
-
-**Not verified.** That any reviewer read `3ca2f8c7` (RR-01 and RR-02 were checked against the reviewer's probe
-only); that the re-review was by a fresh agent (it was the agent that wrote the review); a live walk on
-`3ca2f8c7` or on merged `main` (the `b32a784` walk covers the Home list and the drawer only); per-commit gating
-of the seven fix-round commits (the re-review lists it); the print preview of collapsed limitations (task 7
-walk: "Not walked"); open Infos of the sweep batch review (`modulesCount` check order, a quadratic `findIndex`
-on issuer ids, focus dropped by the body remount on a run change; its Low L1, the drawer across runs, was fixed
-in the fix round); any CI run of a PR head merged with `main` after `718a13b4` (the stack was forwarded once;
-`git merge-tree` with `9f900d53` was clean); a passing run of #168's failed Windows job on its own commit (its
-rerun was cancelled); a complete Windows run of the cancelled job on each of #140, #282, #284, #286, #287 and
-#294 (each has a passing duplicate job on the same commit); cancelled Windows jobs on earlier commits of the
-stack's PRs (only each PR's last commit was read); the full gates at `3ca2f8c7` by the controller (the fixer ran
-them); the whole-branch review did not rerun the gates (taken from the ledger), read the tests in full (about
-13k lines, sampled), compare each page with its mock frame again, run WBR-12's deep tree, or probe WBR-05 for
-issuer and module ids; the fixer's WBR-08 mutant; RR-01 in a real browser (judged by Node's URL parser); Edge
-and Windows browsers beyond CI; screen-reader announcements; print output; the Chart sides of the missing chart
-kinds; real download files; the Halden Forecast link against a model fixture holding Halden; any slice against a
-real delivered run (step 3B does not exist); whether the fixture's invented issuer names match a real company;
-any report kept only in the git-ignored `.superpowers/` folders of eight finished design-track worktrees
-(`agent-a72a…`, `agent-aeee…`, `agent-a44c…`, `agent-ac21…`, `d2c-pr-a`, `d2c-pr-b`, `d2c-split`,
-`kit-link-toggle`): the coordinator removed them at about 19:50 UTC after checking only for uncommitted tracked
-files, so such reports were deleted unread (the D2b, D2c and D2e records cited in the entries were copied to the
-notes folder before and are unaffected).
-**Corrected, the Windows web gates on the merged tree.** On `main` `4a0cbdbb`, `python` push run 43624986619
-passed; `web` push run 43624986501 passed on Linux and its Windows job was cancelled three times (the original
-run and two reruns started 18:49 and 19:11 UTC), each at the 20-minute limit, none with a failed check; in the
-second rerun gates took 11 min 50 s and the Edge check 6 min 17 s before the Chrome check was cut off. PR #311
-(back-end coordinator, merged; `web.yml` only) raised the limit to 40 minutes. The `web` push run 43632557384 on
-`main` `cb091afe` (the merge of #311; `git diff --stat 4a0cbdbb cb091afe -- web` prints nothing, checked) passed
-on both systems; on Windows `npm run gates` took 10 min 37 s, the Edge check 5 min 33 s and the Chrome check 3
-min 26 s.
-
-**Model pages test timeout (#295).** PR #295, test only
-(`web/src/pages/model/StatementsPage.test.tsx`, +16/-6), merged at about 18:04 UTC. The test
-named above ("describes a missing cell by its reason, shows it on focus, and draws it n.a.,
-never 0") failed on Windows CI at 5,239 ms (PR #230), 5,840 ms (`main` `6bc1e5aa`, run
-43609426194) and 5,130 ms (#168). Measured cause (implementer, on a loaded Mac, about 600 ms
-there): no real-time wait; about 70% of the test is three renders (the first render and two
-case switches, each re-rendering every chart section, including debt and recovery sections
-that do not depend on the case); the row and cell helpers ran a role query per row. Change:
-the helpers read the table elements directly; that one test has its own 20 s limit with the
-reason in a comment; no assertion changed; no global timeout. This closes the "Open Low" recorded in the D2c
-entry (the test running close to the 5 s limit on Windows CI). Review `mx-precise`: approve,
-High 0, Medium 0, Low 2 (the comment says "close to" the limit where the runs were over it;
-three other tests in the file estimated at 3.9 to 4.6 s on Windows), Info 1; five mutation
-probes each turned the file red (probes kept in the notes folder `pr295-review/`). Gates:
-`npm run gates` in `web/` exit 0 (100 files, 1,995 tests, the implementer's run); CI on the
-PR green on Linux and Windows. Not verified for it: Windows timing after the change beyond
-one green CI run; the speed-up from the helpers was within load noise on the Mac; the
-re-render of the debt and recovery sections on a case switch is a measured cost left for the
-phase sweep.

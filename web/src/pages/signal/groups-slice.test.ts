@@ -1,17 +1,7 @@
 // The reader's rules for groups, their threads, and the viewer's name and initials.
 import fixture from "../../../fixtures/signal.json";
 import { readSlice } from "./slice";
-
-type Scene = (typeof fixture.slice.scenes)[number];
-
-/** A copy of the fixture whose "main" scene (index 0) is changed by `change`. */
-function withMain(change: (scene: Scene) => void): unknown {
-  const copy = structuredClone(fixture.slice);
-  const main = copy.scenes[0];
-  if (main === undefined) throw new Error("the fixture has a first scene");
-  change(main);
-  return copy;
-}
+import { withMain, type Scene } from "./test-helpers";
 
 const lev = (scene: Scene) => {
   const one = scene.snapshot.groups[0];

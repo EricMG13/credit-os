@@ -1,5 +1,6 @@
 // What a feed shows instead of stories: the loading skeleton, the error alert and the empty states.
 // Wording is the predecessor's (behaviour list 2.2); the layout follows mock states frames 2 to 7.
+import type { ReactNode } from "react";
 import { Plus, Star01 } from "@untitledui/icons";
 import { Alert } from "@/components/alert/Alert";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
@@ -86,9 +87,16 @@ function wordsFor(context: EmptyContext): Words {
   return { title: "No stories yet", hint: "New stories appear here as sources are checked." };
 }
 
-export function FeedEmpty({ context }: { context: EmptyContext }) {
-  const { title, hint } = wordsFor(context);
-  const follow = context.approved && context.view === "for-you" && context.noneFollowed;
+/** The empty-state card every no-stories view draws: icon, title, an optional hint, then any footers. */
+export function EmptyNote({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint: string | null;
+  children?: ReactNode;
+}) {
   return (
     <EmptyState className="mt-4 py-12">
       <EmptyState.Header>
@@ -98,6 +106,16 @@ export function FeedEmpty({ context }: { context: EmptyContext }) {
         <EmptyState.Title>{title}</EmptyState.Title>
         {hint === null ? null : <EmptyState.Description>{hint}</EmptyState.Description>}
       </EmptyState.Content>
+      {children}
+    </EmptyState>
+  );
+}
+
+export function FeedEmpty({ context }: { context: EmptyContext }) {
+  const { title, hint } = wordsFor(context);
+  const follow = context.approved && context.view === "for-you" && context.noneFollowed;
+  return (
+    <EmptyNote title={title} hint={hint}>
       {!context.approved && context.propose !== null ? (
         <EmptyState.Footer>
           <Button color="primary" size="md" iconLeading={Plus} href={context.propose}>
@@ -124,6 +142,6 @@ export function FeedEmpty({ context }: { context: EmptyContext }) {
           ))}
         </EmptyState.Footer>
       ) : null}
-    </EmptyState>
+    </EmptyNote>
   );
 }

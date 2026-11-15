@@ -1,20 +1,8 @@
 // The Sources section (mock settings frame 3). Expected wording, order and ranks are the mock's and
 // the fixture's, not the code's.
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { fireEvent, screen, within } from "@testing-library/react";
+import { show, page } from "./test-helpers";
 
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
-
-const page = () => within(document.getElementById("signal-content") as HTMLElement);
 const table = () => page().getByRole("grid", { name: "Sources" });
 const names = () =>
   within(table())
@@ -31,10 +19,6 @@ const MOCK_ORDER = [
   "The Meridian Post",
   "Freight Monitor",
 ];
-
-afterEach(() => {
-  window.location.hash = "";
-});
 
 describe("Sources (frame 3)", () => {
   it("draws the heading, the intro line and the columns the mock draws", () => {

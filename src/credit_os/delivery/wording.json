@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "not_recorded": "Not recorded",
+  "months": {
+    "short": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "long": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  },
+  "states": [
+    {"status": "created", "end_reason": null, "word": "Queued"},
+    {"status": "running", "end_reason": null, "word": "Running"},
+    {"status": "finished", "end_reason": "completed", "word": "Finished"},
+    {"status": "stopped", "end_reason": "capped", "word": "Capped"},
+    {"status": "stopped", "end_reason": "interrupted", "word": "Interrupted"},
+    {"status": "failed", "end_reason": "provider_failed", "word": "Failed"},
+    {"status": "rejected", "end_reason": "*", "word": "Rejected"},
+    {"status": "stopped", "end_reason": "spend_unknown", "word": null},
+    {"status": "stopped", "end_reason": "hold_exceeded", "word": null},
+    {"status": "stopped", "end_reason": "operator", "word": null},
+    {"status": "failed", "end_reason": "provider_raised", "word": null}
+  ],
+  "measures": {
+    "leverage": {
+      "name": "Leverage",
+      "bands": [
+        {"label": "Below 3.0x", "min": null, "max": "3"},
+        {"label": "3.0x to under 5.0x", "min": "3", "max": "5"},
+        {"label": "5.0x and above", "min": "5", "max": null}
+      ]
+    },
+    "netLeverage": {
+      "name": "Net leverage",
+      "bands": [
+        {"label": "Below 3.0x", "min": null, "max": "3"},
+        {"label": "3.0x to under 5.0x", "min": "3", "max": "5"},
+        {"label": "5.0x and above", "min": "5", "max": null}
+      ]
+    },
+    "interestCoverage": {
+      "name": "Interest coverage",
+      "bands": [
+        {"label": "Below 2.0x", "min": null, "max": "2"},
+        {"label": "2.0x to under 4.0x", "min": "2", "max": "4"},
+        {"label": "4.0x and above", "min": "4", "max": null}
+      ]
+    }
+  },
+  "templates": {
+    "home.subtitle": {"placeholders": ["count"], "count": "count", "one": "{count} issuer, opening on its latest report", "other": "{count} issuers, each opening on its latest report"},
+    "home.applied_label": {"placeholders": ["count"], "count": "count", "zero": "No filter applied", "one": "{count} filter applied", "other": "{count} filters applied"},
+    "home.count_line": {"placeholders": ["name", "recorded", "total"], "count": "total", "one": "{name} recorded for {recorded} of {total} run", "other": "{name} recorded for {recorded} of {total} runs"},
+    "home.count_line_adjusted": {"placeholders": ["adjusted"], "text": "\u00b7 {adjusted} on adjusted EBITDA, not screened"},
+    "card.as_of": {"placeholders": ["date"], "text": "As of {date}"},
+    "card.note_newer_running": {"placeholders": ["newer_as_of", "as_of"], "text": "A new run as of {newer_as_of} is in progress. This is the run as of {as_of}."},
+    "card.progress": {"placeholders": ["delivered", "planned"], "count": "planned", "count_min": 1, "one": "{delivered} of {planned} module", "other": "{delivered} of {planned} modules"},
+    "history.subtitle": {"placeholders": ["count", "month_year"], "count": "count", "count_min": 2, "text": "Report history: {count} runs since {month_year}"},
+    "history.subtitle_one": {"placeholders": [], "text": "Report history: 1 run"},
+    "history.subtitle_unfinished": {"placeholders": ["count"], "count": "count", "count_min": 1, "one": "{count} run, not finished", "other": "{count} runs, not finished"},
+    "history.empty": {"placeholders": [], "text": "No run on this issuer has a report yet. Start a new run to write the first report."},
+    "history.text.finished": {"placeholders": ["delivered", "planned"], "count": "planned", "count_min": 1, "one": "{delivered} of {planned} module delivered.", "other": "{delivered} of {planned} modules delivered."},
+    "history.text.capped": {"placeholders": ["delivered", "planned"], "count": "planned", "count_min": 1, "one": "The run stopped at its cost cap after {delivered} of {planned} module.", "other": "The run stopped at its cost cap after {delivered} of {planned} modules."},
+    "history.text.interrupted": {"placeholders": ["delivered", "planned"], "count": "planned", "count_min": 1, "one": "Interrupted after {delivered} of {planned} module.", "other": "Interrupted after {delivered} of {planned} modules."},
+    "history.text.failed": {"placeholders": [], "text": "The run failed before it finished."},
+    "history.text.rejected": {"placeholders": [], "text": "The run did not start."},
+    "history.text.running": {"placeholders": [], "text": "In progress."},
+    "history.text.queued": {"placeholders": [], "text": "Not started yet."},
+    "changes.none.title": {"placeholders": [], "text": "No earlier run to compare"},
+    "changes.none.text": {"placeholders": ["issuer_name"], "text": "This is the first report on {issuer_name}. What changed will appear here after the next run."},
+    "changes.pending.title": {"placeholders": [], "text": "Comparison not yet run"},
+    "changes.pending.text": {"placeholders": ["issuer_name"], "text": "An earlier report exists on {issuer_name}; the comparison with it has not been run."},
+    "overview.metrics_label": {"placeholders": [], "text": "Headline figures"},
+    "overview.modules_summary": {"placeholders": ["delivered", "total"], "text": "{delivered} of {total} delivered"},
+    "overview.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 1, "one": "See the {count} gap in Evidence", "other": "See the {count} gaps in Evidence"}
+  }
+}

@@ -1,17 +1,7 @@
 // The thread panel (mock frames "Thread panel" and "Thread archived"; behaviour list 2.9; ruling 19, 20).
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
+import { show, settled } from "./test-helpers";
 
 const GROUP = "/signal/main/group/leveraged-credit";
 const CORVANE_PATH = `${GROUP}/thread/corvane-thread`;
@@ -23,15 +13,6 @@ const box = () => within(panel()).getByRole("textbox", { name: "Write a comment"
 const type = (value: string) => fireEvent.change(box(), { target: { value } });
 const send = () => fireEvent.click(within(panel()).getByRole("button", { name: "Send" }));
 
-/** Lets the animation frames after a close run, where the dialog library restores focus by itself. */
-const settled = () =>
-  act(async () => {
-    for (let i = 0; i < 5; i += 1) {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  });
-
 /** A copy of the fixture whose "main" scene is changed by `change`. */
 function withMain(change: (main: (typeof fixture.slice.scenes)[number]) => void) {
   const copy = structuredClone(fixture.slice);
@@ -42,10 +23,6 @@ function withMain(change: (main: (typeof fixture.slice.scenes)[number]) => void)
 }
 
 describe("the thread panel", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("opens over the group view as a dialog named Thread, with the group's name still the one h1", () => {
     show(CORVANE_PATH);
     expect(panel()).toBeInTheDocument();
@@ -390,10 +367,6 @@ describe("the thread panel", () => {
 });
 
 describe("the thread panel across groups", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   /** The "main" scene with a second group holding a thread that has the same id as Corvane's. */
   function twinned() {
     return withMain((main) => {
@@ -435,10 +408,6 @@ describe("the thread panel across groups", () => {
 });
 
 describe("the thread panel with a separator inside ids", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   function colliding(): unknown {
     const copy = structuredClone(fixture.slice) as { scenes: { snapshot: unknown }[] };
     const first = copy.scenes[0];

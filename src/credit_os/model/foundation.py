@@ -9,6 +9,7 @@ ambient decimal context (`Decimal(text)`, `copy_negate`, `copy_abs` and `==` do 
 import re
 from collections.abc import Mapping
 from decimal import Decimal
+from typing import cast
 
 from credit_os.handoff.blocks import Block, ListItem, Paragraph
 from credit_os.handoff.data import read_data_sections
@@ -16,8 +17,11 @@ from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.errors import echo
 from credit_os.handoff.reader import read_reader
 from credit_os.handoff.tables import Row, Table
+from credit_os.model.arithmetic import product, total
+from credit_os.model.facilities import Facility, schedule
 from credit_os.model.inputs import OPERANDS, ForecastInputs, Operand
 from credit_os.model.refusals import ForecastRefused, RefusalKind
+from credit_os.model.value import Value, amount_text, parse_operand
 
 _DIGITS = r"(?P<digits>[0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?)"
 _SIGNED = re.compile(r"(?:\+|(?P<minus>[-−]))?" + _DIGITS)
@@ -32,7 +36,9 @@ _DOLLARS = r"(?:US\$|\$)"
 _AFTER = rf"(?:{_DOLLARS}|[€£])"
 _CAPITAL_M = "(?-i:M)"
 _AMBIGUOUS = rf"(?<![A-Za-z]){_CAPITAL_M}{_DOLLARS}"
-_UNIT_COLUMNS = ("Unit", "Units")
+_UNIT_COLUMNS = ("Unit", "Units", "Reporting unit")
+_STANDS_AFTER = r"(?<![0-9.,A-Za-z])(?<![0-9][-/])"
+_STANDS_BEFORE = r"(?![0-9A-Za-z]|[.,][0-9]|[-/][0-9]| ?%)"
 _ZEROS = r"000s?"
 _WORDS = {
     "thousands": ("thousands?",),
@@ -100,6 +106,18 @@ _CURRENCY = (
     "CP-1 nowhere names `{currency}`: state `currency` as the three-letter code of the "
     "currency CP-1 reports its figures in."
 )
+_BALANCE = "facility {name} balance {balance} is not printed in CP-1"
+_RATE = "facility {name} {field} {value}% is not printed in CP-1"
+_BALANCES = (
+    "facility balances total {total}, more than 1.25 times base debt {debt}{divided}; "
+    "check the unit"
+)
+_SCHEDULE = (
+    "scheduled repayments through forecast year {year} total {total}, more than base "
+    "debt {debt}{divided}"
+)
+_CASE = "{name} states debt_repayment, which is not used when facilities are stated"
+_RATES = ("fixed_rate_pct", "spread_pct", "floor_pct")
 _OTHER = "base {key} {amount} is not CP-1's cell at {where} ({cell})"
 _NEGATIVE = "; wc is stated as the negative of its cell"
 _MAGNITUDE = "; {key} is stated as a magnitude, without a sign"
@@ -176,23 +194,29 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 def units_named(text: str) -> frozenset[str]:
     """The units (`thousands`, `millions`, `billions`, `ambiguous`) the text names; any number.
 
-    `ambiguous` is a capital `M` glued before `US$` or `$` (`MUS$`, `M$`): thousands in some
-    statements, millions in others, so it is read as neither. A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
+    `ambiguous` is a capital `M`, with no letter before the `M`, glued before `US$` or `$`
+    (`MUS$`, `M$`): thousands in some statements, millions in others, so it is read as neither.
+    A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
     its mark, by its mark and then a sign, or by its mark before a letter code, glued (`kEUR`,
-    `TEUR`, `MUSD`) or after one whitespace (`m EUR`). Capital `T` is a thousands mark where `k`
-    is, before a code or sign. Thousands also by `000` and `000s` after a code or sign and at
-    most one whitespace, `(000)` standing alone, and the apostrophe forms. Letters around a mark
-    hide it and emphasis marks do not. Digits do not hide it either, except directly before a mark
-    in the spaced mark-before-code form (`5m EUR` names nothing). Billions and `ambiguous` are
-    never a block's unit.
+    `TEUR`, `mUSD`) or after one whitespace (`m EUR`). Only `k`, `T` and `m` glue before a
+    letter code; capital `T` is a thousands mark where `k` is, before a code or sign.
+    Thousands also by `000` and `000s` after a code or sign and at most one whitespace, the
+    bare `000s` form (`in 000s`), `(000)` standing alone, and the apostrophe forms. Letters
+    around a mark hide it and emphasis marks do not. Digits do not hide it either, except
+    directly before a mark in the spaced mark-before-code form (`5m EUR` names nothing).
+    Billions and `ambiguous` are never a block's unit.
     """
     return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
 
 def names_currency(text: str, currency: str) -> bool:
-    """Whether the text names the code, alone, after a glued mark or with a scale suffix, or its sign."""
+    """Whether the text names the code (as text, never a pattern): alone, after a glued mark,
+    with a scale suffix, or by its sign.
+    """
     glued = "|".join(dict.fromkeys(mark for marks in _GLUED.values() for mark in marks))
-    forms = [rf"(?<![A-Za-z])(?i:{glued})?{currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
+    forms = [
+        rf"(?<![A-Za-z])(?i:{glued})?{re.escape(currency)}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"
+    ]
     if currency in _SIGNS:
         forms.append(_SIGNS[currency])
     return re.search("|".join(forms), text) is not None
@@ -360,9 +384,128 @@ def check_currency(inputs: ForecastInputs, foundation: HandoffDocument) -> None:
     raise ForecastRefused(RefusalKind.CURRENCY, "currency", message)
 
 
+def _only(text: str, unit: str) -> bool:
+    return units_named(text) <= {unit}
+
+
+def _table_pieces(table: Table, unit: str) -> list[str]:
+    """The table's label and column headers naming no other unit, and its body cells whose
+    row, column header and first header cell name no other unit (the cell is in its row).
+    """
+    found = [] if table.label is None or not _only(table.label, unit) else [table.label]
+    found.extend(column for column in table.columns if _only(column, unit))
+    head = units_named(table.columns[0])
+    for line in table.rows:
+        row = head.union(*(units_named(cell) for cell in line.cells))
+        found.extend(
+            cell
+            for column, cell in enumerate(line.cells)
+            if (row | units_named(table.columns[column])) <= {unit}
+        )
+    return found
+
+
+def balance_pieces(document: HandoffDocument, unit: str) -> tuple[str, ...]:
+    """The text a balance may be printed in: prose lines naming no unit but the block's, and
+    the table parts of `_table_pieces`. A part naming the block's unit and another does not
+    count; a part naming no unit does. An amount in the other unit is refused, never converted.
+    """
+    found: list[str] = []
+    for block in _kept(document):
+        if isinstance(block, Table):
+            found.extend(_table_pieces(block, unit))
+        elif isinstance(block, Paragraph | ListItem):
+            found.extend(line for line in block.lines if _only(line, unit))
+    return tuple(found)
+
+
+def _printed(pieces: tuple[str, ...], amount: str) -> bool:
+    whole, dot, fraction = amount.removeprefix("-").partition(".")
+    forms = (f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}")
+    patterns = [f"{_STANDS_AFTER}{re.escape(form)}{_STANDS_BEFORE}" for form in forms]
+    return any(re.search(pattern, piece) for piece in pieces for pattern in patterns)
+
+
+def _printed_percent(pieces: tuple[str, ...], value: str) -> bool:
+    pattern = rf"(?<![0-9.,]){re.escape(value)} ?%"
+    return any(re.search(pattern, piece) for piece in pieces)
+
+
+def _unprinted(
+    facility: Facility, balance: str, pieces: tuple[str, ...], counted: tuple[str, ...]
+) -> str | None:
+    if not _printed(counted, balance):
+        return _BALANCE.format(name=echo(facility.name), balance=balance)
+    for field in _RATES:
+        value: str | None = getattr(facility, field)
+        if value is not None and not _printed_percent(pieces, value):
+            return _RATE.format(name=echo(facility.name), field=field, value=value)
+    return None
+
+
+def _check_terms(
+    inputs: ForecastInputs,
+    facilities: tuple[Facility, ...],
+    stated: Mapping[str, str],
+    pieces: tuple[str, ...],
+    counted: tuple[str, ...],
+) -> None:
+    for number, facility in enumerate(facilities, 1):
+        balance = stated[f"facility {number} balance"] if inputs.scale == 1000 else facility.balance
+        message = _unprinted(facility, balance, pieces, counted)
+        if message is not None:
+            raise ForecastRefused(RefusalKind.FACILITY, f"facility {number}", message)
+
+
+def _check_bounds(inputs: ForecastInputs, facilities: tuple[Facility, ...], debt: Decimal) -> None:
+    divided = f", in {inputs.currency} millions after dividing by scale 1000"
+    divided = divided if inputs.scale == 1000 else ""
+    balances = cast(
+        Decimal, total([Value(amount=parse_operand(item.balance)) for item in facilities]).amount
+    )
+    limit = cast(Decimal, product([Value(amount=Decimal("1.25")), Value(amount=debt)]).amount)
+    if balances > limit:
+        message = _BALANCES.format(
+            total=amount_text(balances), debt=amount_text(debt), divided=divided
+        )
+        raise ForecastRefused(RefusalKind.FACILITY, "facilities", message)
+    running = Decimal(0)
+    for year, (_, repaid) in enumerate(schedule(facilities).totals(), 1):
+        running = cast(Decimal, total([Value(amount=running), Value(amount=repaid)]).amount)
+        if running > debt:
+            message = _SCHEDULE.format(
+                year=year, total=amount_text(running), debt=amount_text(debt), divided=divided
+            )
+            raise ForecastRefused(RefusalKind.REPAYMENT, "facilities", message)
+
+
+def check_facilities(
+    inputs: ForecastInputs, stated: Mapping[str, str], foundation: HandoffDocument
+) -> None:
+    """Refuse facility terms the foundation does not print, or facility totals past base debt.
+
+    A case that states `debt_repayment` beside facilities is refused as well.
+    """
+    facilities = inputs.facilities
+    if facilities is None:
+        return
+    unit = "millions" if inputs.scale == 1 else "thousands"
+    pieces = foundation_text(foundation)
+    _check_terms(inputs, facilities, stated, pieces, balance_pieces(foundation, unit))
+    stated_debt = inputs.base["debt"].amount
+    if stated_debt is not None:
+        debt = cast(Decimal, Value(amount=parse_operand(stated_debt)).amount)
+        _check_bounds(inputs, facilities, debt)
+    for name in ("upside_drivers", "downside_drivers"):
+        case = getattr(inputs, name)
+        if case is not None and case.debt_repayment is not None:
+            raise ForecastRefused(RefusalKind.FACILITY, name, _CASE.format(name=name))
+
+
 def check_foundation(
     inputs: ForecastInputs, stated: Mapping[str, str], foundation: HandoffDocument
 ) -> None:
-    """The base checks, then the currency check; the first refusal is raised."""
+    """The base checks, the facility checks, then the currency check; the first is raised."""
     check_base(inputs, stated, foundation)
+    check_facilities(inputs, stated, foundation)
     check_currency(inputs, foundation)

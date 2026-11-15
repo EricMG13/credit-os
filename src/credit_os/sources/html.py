@@ -72,6 +72,8 @@ _SNIFF_BYTES = 4096
 _CHARSET = re.compile(rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)""", re.IGNORECASE)
 # A declared charset, lower-cased with "_" as "-", -> its codec. The codec search is an import keyed
 # by the file's text, so only these names reach a codec; any other is refused, never looked up.
+# Only an XML declaration's "encoding=" reads a name here as written; a "charset=" first checks
+# _WINDOWS_1252, and only a name outside it reaches this table.
 _LABELS = {
     "utf-8": "utf-8",
     "utf8": "utf-8",
@@ -84,6 +86,31 @@ _LABELS = {
     "ascii": "ascii",
     "us-ascii": "ascii",
 }
+# The labels the HTML Standard (encodings.json, read 2026-11-15) gives windows-1252, in the form
+# _encoding normalises a declared name to ("iso_8859-1" and "iso-8859-1" are one name here).
+_WINDOWS_1252 = frozenset(
+    {
+        "ansi-x3.4-1968",
+        "ascii",
+        "cp1252",
+        "cp819",
+        "csisolatin1",
+        "ibm819",
+        "iso-8859-1",
+        "iso-ir-100",
+        "iso8859-1",
+        "iso88591",
+        "iso-8859-1:1987",
+        "l1",
+        "latin1",
+        "us-ascii",
+        "windows-1252",
+        "x-cp1252",
+    }
+)
+# A character the text read must not hold: a C1 control (invisible; a cp1252 byte, misread as
+# latin-1, becomes one).
+_C1 = re.compile("[\x80-\x9f]")
 # codec -> the name reported for the source.
 # Tags are read from the bytes (_visible_text, _long_tag), which is exact only for an encoding in
 # which no ASCII byte occurs inside a longer character and decoding then encoding gives the same
@@ -165,7 +192,13 @@ def _decodes(raw: bytes, start: int, codec: str) -> UnicodeDecodeError | None:
 
 
 def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
-    """Return the codec, the name reported and the first text byte, or refuse the bytes."""
+    """Return the codec, the name reported and the first text byte, or refuse the bytes.
+
+    The first declaration in the first 4,096 bytes names the encoding. Under "charset=" (meta,
+    http-equiv or bare) a label the HTML Standard gives windows-1252 (_WINDOWS_1252) decodes as
+    strict cp1252 and is reported as windows-1252; any other label reads through _LABELS. Under
+    "encoding=" (the XML declaration) only _LABELS applies, so ISO-8859-1 stays true latin-1.
+    """
     if raw.startswith(_BOM):
         error = _decodes(raw, len(_BOM), "utf-8")
         if error is not None:
@@ -182,7 +215,10 @@ def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
     if found.end(1) == _SNIFF_BYTES:
         raise _refuse(name, f"declares a charset whose name may be cut at byte {_SNIFF_BYTES:,}")
     declared = found.group(1).decode("ascii")
-    codec = _LABELS.get(declared.lower().replace("_", "-"))
+    label = declared.lower().replace("_", "-")
+    codec = _LABELS.get(label)
+    if found.group(0)[:7].lower() == b"charset" and label in _WINDOWS_1252:
+        codec = "cp1252"
     if codec is None:
         raise _refuse(name, f"declares a charset that is not accepted: {declared[:40]!r}")
     reported = _ACCEPTED[codec]
@@ -285,8 +321,13 @@ class _Visible(HTMLParser):
                 return
 
     def handle_data(self, data: str) -> None:
-        if not self._skipping:
-            self.lines.text(data)
+        if self._skipping:
+            return
+        if not data.isascii():
+            control = _C1.search(data)  # before split() in the lines, which reads U+0085 as space
+            if control is not None:
+                raise _refuse(self.name, f"control character U+{ord(control.group()):04X}")
+        self.lines.text(data)
 
     # -- html.parser waits where the whole document could read differently ----------------
 

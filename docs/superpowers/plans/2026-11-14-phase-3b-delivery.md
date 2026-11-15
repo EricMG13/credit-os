@@ -267,8 +267,9 @@ Writing, after every check has passed:
 6. A staging folder is made beside the target, on the same volume. Every byte is written in
    binary mode, flushed and synced, then read back and hashed. A download's hash must equal its
    receipt hash; an archive's and `data.js`'s must equal the hash of the bytes built.
-7. Downloads move in first, each under a name no earlier delivery used. A target that exists with
-   the same hash is kept; with a different hash it is a refusal.
+7. Downloads move in first. Each delivery has its own folder (S1, R20), so a name is never one an
+   earlier delivery used for other bytes. A target that exists with the same hash is kept; with a
+   different hash it is a refusal (an integrity check, never a replacement).
 8. `data.js` moves in last, by one atomic replace. It is the only file ever replaced.
 9. On any failure before step 8 the old `data.js` still names only files that are in place, so
    the old library opens as before. Staging is cleared file by file from delivery's own list, then
@@ -283,7 +284,7 @@ writes the same bytes.
 
 | # | Row | Rule and test |
 | :--- | :--- | :--- |
-| S1 | Path traversal in download names | A name is built only from fixed words, a module slug from the table, and a folder key that is the first 20 hex characters of the SHA-256 of issuer id and run id. No handoff text, source name or raw id is a path segment. Rows: ids `.`, `..`, `a.`, `CON`, `nul.md`, two ids differing by case |
+| S1 | Path traversal in download names | A name is built only from fixed words, a module slug from the table, and a folder key that is the first 20 hex characters of the SHA-256 of UTF-8 `<issuer>/<run>/<delivery_sha256>` (R20; the delivery hash is the store's 64 lower-case hex, checked before hashing). No handoff text, source name or raw id is a path segment. Rows: ids `.`, `..`, `a.`, `CON`, `nul.md`, two ids differing by case |
 | S2 | Addresses | Every `href` is joined from segments with `/`, never from an OS path. Each is checked against C6 in Python before it is written. `#/` addresses are built from ids checked against C5; `.` and `..` as ids are refused |
 | S3 | Script-safe JSON | The file is `window.CREDIT_OS_DATA = JSON.parse("...");` in the form `web/scripts/fixture-data.mjs` writes, but stricter: that writer escapes only `<`, U+2028 and U+2029, and delivery's output is ASCII only, with `<` and every non-ASCII character written as a backslash-u escape; a lone surrogate is refused. Rows: `</script>`, `<!--`, both separators, a quote, a backslash, a NUL |
 | S4 | No `unsafe-inline` | Delivery writes no HTML and no script but `data.js`, loaded under `script-src 'self'` (`web/index.html`). No policy is written or changed |
@@ -358,7 +359,7 @@ are test inputs, not stand-ins in source. A PR also follows the rulings (R1 to R
 | 6 | Traces, the Evidence trace table and the jump list; no gap rows | 4b | After 4b | P, A |
 | 6b | Gap rows, groups and their trace and jump entries | 6; slice contract 3's `severity: null` part (R4) | Waits for the gap-severity PR (R4a) | P, A |
 | 7 | `RunFacts`; modules, states, the Overview | 3, 4b, 5, 6; the lead-module table from 3A PR 1 (R2) | Waits for 3A PR 1 | P |
-| 8a | `handoff/`: the cell-citation reader | Merged code; the grammar quoted from the predecessor in the brief | Now | P |
+| 8a | `handoff/`: the cell-citation reader, `read_cell`, on the Basis item grammar (R21) | Merged code | Now | P |
 | 8b | Record blocks: chart tables and their gaps (R3) | 8a, 4b | After 8a | P |
 | 8c | Record blocks: the plain-table kind | 8b; slice contract 3 and the shape in its plan | Waits for slice contract 3 | P |
 | 9 | Evidence summary, sources and record | 7, 1b | After 7 | P, A |
@@ -469,6 +470,41 @@ yes by the roadmap coordinator, not yet built):
   (`claude/gap-severity-null`): the key is always present, `null` or High, Medium, Low; ranked
   groups first, then at most one `null` group, last, headed "Not ranked"; a table whose only group
   is that one is valid. PR 6b waits for that PR, not for the whole of slice contract 3.
+- R17 (PR 1a): `display_text` rounds half-up away from zero on the magnitude, groups the integer
+  part with commas, pads to the places asked (0 to 6), writes no negative zero, and gives no text
+  for a missing value. `json_number` writes a plain token with no exponent and refuses an amount
+  out of the kernel's bounds; the token is exact, and digits past about 17 are not carried by
+  `JSON.parse`, accepted because the front end computes nothing.
+- R18 (PR 4a): a lead label is exactly the text inside the bold marks at the start of a block; a
+  colon right after the closing mark is dropped; the trailing Basis line is left to `read_basis`.
+- R19 (PR 3): the module table is 25 rows (code, slug, display name); slugs are unique ignoring
+  case, none a Windows reserved name, and frozen from PR 3 on. `DeliveryRefused` lives in
+  `delivery/errors.py`.
+- R20 (PR 3): the folder key includes the delivery hash (S1, step 7). The 2A plan lets a run hold
+  several deliveries, none replaced; without the hash a resumed run's second delivery would have
+  been refused. Which delivery of a run the library shows is the latest by admission `seq` (PR 11).
+- R21 (PR 8a): `read_cell` reuses `read_basis`'s item grammar. The predecessor's cell grammar
+  (`credit_os_chips.py`: page markers, brackets, trailing register codes, aliases) is not carried:
+  it reads a format step 3A refuses. Such a form in a cell stays a text item, never a source.
+- R22 (PR 3): display names are the predecessor's `MODULE_NAMES` at `8e3954a`, character for
+  character. The web fixture's names differ for CP-1A, CP-1 and CP-2E and it holds two codes that
+  do not exist; it is sample data and follows in slice contract 3.
+- R23 (PR 5): the wording file's entries for Home, History, Changes and Overview as the 3B
+  controller proposed (W0 to W12): digits, not number words; "latest report"; history text from
+  counts and state words only; a card note only for a newer run in progress; no state word for a
+  stopped run with unknown spend, a charge above its hold or an operator stop (R6). Departure from
+  R6's and D21's wording: `failed` with end reason `provider_raised` is also given no word, because
+  3A leaves that run's call open, so its spend is unknown, which is R6's first case; a run `failed`
+  with `provider_failed` keeps the word Failed (key row 10's failed run is that one). R23a: the history `empty` sentence adds the next action ("Start a new
+  run to write the first report."). Later PRs add their own entries. Every sentence is one JSON
+  entry the owner can change; PR 5's body lists them.
+- W5a (PR 5, open as #377; whole-branch finding WB5-1): the store gives every rejected run an end
+  reason, any name `[a-z][a-z0-9_]*` up to 64 characters, and no plan closes the set. So
+  `rejected` reads Rejected whatever its reason: its wording row has the end reason `"*"`, and
+  `rejected` with no end reason is refused when the file loads. `*` stands only as a whole end
+  reason (no store name can be `*`) and never beside an exact row of the same status; a state word
+  is the exact pair's, else the status's `*` row. `finished`, `stopped` and `failed` are checked
+  the same way in PR 5, which says per status which reasons are closed and which take `*`.
 
 ## Not verified
 

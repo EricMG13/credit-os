@@ -415,3 +415,29 @@ The coordinator's. The first four and the last restate or clarify merged store (
 - Planned (2A PR 5), D7: an open call is settled as decision 0014 says, by an owner-stated line
   in its own table.
 - A confidence outcome is used only for a document `check_handoff` returns no refusal for.
+- D1, departure: the catalogue has no `required_registers` column in PR 1. In the predecessor the
+  list is derived from the method texts at run time; the PR that brings the method text (PR 11, or
+  phase 6) adds the column, derived the same way, with a hand-written key for the ten modules.
+  PR 5 takes the list as a required argument; PRs 6b, 7c and 8 wait for the column.
+- D1: CP-1 is keyed `scored` True, from `docs/legacy/methodology-updates.md` row 1 (read at the
+  predecessor commit that file names); every other catalogue fact is read at `8e3954a`.
+- D24, departure: PR 9a is two PRs. 9a-1 ports the loader's guards (UTF-8, duplicate keys, JSON
+  constants, depth, line separators, schema id), the whole shape as frozen strict models, and
+  `amount` ("" is missing, never zero), reviewed by `mx-adversary` (a file from disk). 9a-2 ports
+  the value rules and `ASSUMPTION_LIMITS` inside the same `load_context`. The context is sent
+  whole to every module as a source, so the rules stay in 3A and are not left to 5C. 9b needs 9a-1;
+  PR 7c needs 9a-2.
+- D1 (PR 1, merged as #347): no PR passes its own `catalogue=` table to `plan`, `producers` or
+  `edge_rule` outside tests until the coordinator rules on an optional producer missing from such a
+  table. The first of 9b, 8 or 11 to serialise `producers()` builds it in catalogue order. The
+  PR 1 key was read at `8e3954a` (the plan's key row names `9d040f8`; the facts are the same).
+- 3A-27 (PR 5, open as #379): `ModuleWriter` refuses a draft over a byte cap as a tool error to the
+  model ("the draft is over N bytes"), never a crash or a silent cut. The cap is set from evidence:
+  at least four times the largest committed synthetic handoff and the predecessor's largest example
+  handoff, both named in PR 5's body. Why: `check_handoff` takes time that grows with the square of
+  a draft's size (23 s for 164 KB), and model text reaches it up to three times per module. The
+  quadratic cost predates 3A (2B `checks/passages.py`, `checks/structure.py`; 1A `handoff/data.py`);
+  its fix is on the owner's list, after the usage reset.
+- 9a-1 caps (open as #380): `load_context` refuses a file over 1 MiB before decoding, more than
+  5,000 values after the depth guard, and a key over 64 characters. A context at the predecessor's
+  maxima is about 1,400 values; the predecessor's only cap was its command line's 50 MiB.

@@ -1,18 +1,10 @@
 import fixture from "../../../fixtures/signal.json";
 import { readSlice } from "./slice";
-
-type Json = { [key: string]: Json } | Json[] | string | number | boolean | null;
-type Members = { [key: string]: Json };
+import { change, type Json } from "./test-helpers";
 
 /** A copy of the fixture slice with scene 2 changed at `path` (`undefined` deletes the member). */
 function withScene(path: (string | number)[], value: Json | undefined): unknown {
-  const copy = structuredClone(fixture.slice) as { scenes: Json[] };
-  let at: Json = copy.scenes[2] ?? null;
-  for (const step of path.slice(0, -1)) at = (at as Members)[step] ?? null;
-  const last = path[path.length - 1] ?? "";
-  if (value === undefined) Reflect.deleteProperty(at as Members, last);
-  else (at as Members)[last] = value;
-  return copy;
+  return change(2, path, value);
 }
 
 const STAGES = ["Opened", "Initial review", "In-depth review", "Decision"];

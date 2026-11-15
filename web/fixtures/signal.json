@@ -60,7 +60,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": {
                 "title": "Spend in November",
@@ -929,7 +929,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -1989,7 +1989,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -2159,7 +2159,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -2294,7 +2294,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -2429,7 +2429,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -2559,7 +2559,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -2745,7 +2745,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []
@@ -2900,7 +2900,7 @@
               "state": "off",
               "notice": {
                 "title": "AI is off",
-                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent."
+                "text": "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off."
               },
               "spend": null,
               "parts": []

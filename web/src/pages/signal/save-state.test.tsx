@@ -1,28 +1,13 @@
 // Whole-branch finding M2: a pressed Save is kept per story id above the list, so the feed's own
 // filters (which unmount a card) and a move between pages of one scene do not forget it. In memory
 // only; the Saved badge and the Saved view are the slice's delivered sample values and do not change.
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { fireEvent, screen } from "@testing-library/react";
+import { show, page as content } from "./test-helpers";
 
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
-const content = () => within(document.getElementById("signal-content") as HTMLElement);
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
 const HALVORSEN = "Northgate Ratings downgrades Halvorsen Marine to B+";
 
 describe("Save is kept by story id", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("keeps a press through a search that hides the card and clears it", () => {
     show("/signal/main/feed/for-you");
     fireEvent.click(content().getByRole("button", { name: `Save: ${CORVANE}` }));
