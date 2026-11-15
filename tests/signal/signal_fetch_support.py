@@ -16,6 +16,7 @@ from typing import Any
 
 import pytest
 
+from credit_os.signal import fetch as fetch_module
 from credit_os.signal import netpin
 from credit_os.signal.fetch import Fetched, Wiring, fetch
 from credit_os.signal.netpin import ConnectionTarget
@@ -71,6 +72,24 @@ def assert_the_guard_is_active() -> None:
         with pytest.raises(pytest.fail.Exception, match="connected to"):
             sock.connect((TEST_NET, 443))
     assert socket.getaddrinfo("127.0.0.1", 443)
+
+
+def wait_for_all_lookup_slots(seconds: float = 2.0) -> None:
+    """Wait (polling every 5 ms, no thread) until all eight shared lookup slots are free, then
+    assert it. A worker started under the shared semaphore gives its slot back to whatever
+    ``_LOOKUP_SLOTS`` names when it ends, so a test that replaces it waits for them first."""
+    slots = fetch_module._LOOKUP_SLOTS
+    deadline = time.monotonic() + seconds
+    while True:
+        taken = 0
+        while slots.acquire(blocking=False):
+            taken += 1
+        for _ in range(taken):
+            slots.release()
+        if taken == 8 or time.monotonic() >= deadline:
+            assert taken == 8, f"only {taken} of 8 shared lookup slots are free"
+            return
+        time.sleep(0.005)
 
 
 def PUBLIC(host: str) -> Iterable[str]:

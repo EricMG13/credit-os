@@ -25,6 +25,9 @@ function slice(source: unknown): RunSlice {
     "run.drafts",
     "draft",
   );
+  if (drafts[0] !== undefined && drafts[0].step !== "documents")
+    fail("run.drafts[0].step", '"documents" (a new run starts from the first draft)');
+  const byId = new Map(drafts.map((d) => [d.id, d]));
   drafts.forEach((d, i) => {
     const names = (key: string, id: string | null, nullable: boolean) => {
       if (id === null ? !nullable : !ids.has(id)) {
@@ -34,7 +37,11 @@ function slice(source: unknown): RunSlice {
     };
     names("previous", d.previous, true);
     names("next", d.next, true);
-    if (d.step === "start") names("confirm.started", d.confirm.started, false);
+    if (d.step === "start") {
+      names("confirm.started", d.confirm.started, false);
+      if (byId.get(d.confirm.started)?.step !== "started")
+        fail(`run.drafts[${String(i)}].confirm.started`, "the id of a started draft in this slice");
+    }
   });
   const runs = list(root, "runs", "run", activity);
   const runIds = unique(

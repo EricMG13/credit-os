@@ -1,22 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
-
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: unknown; params: Record<string, Record<string, string>[]> };
-
-function showWith(hash: string, run: unknown) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = { kind: "ok", data: { schema: "credit-os-data/1", issuers: [], run } };
-  return render(<App result={result} />);
-}
-const show = (hash: string) => showWith(hash, fixture.slice);
-afterEach(() => {
-  window.location.hash = "";
-});
+import { screen, within } from "@testing-library/react";
+import { fixture, show, showFixture } from "../test-helpers";
 
 const LIVE_CLASSES = ".status-halo, .queued-shimmer, .animate-spin, .feed-rise";
 const STOP_REASON =
@@ -29,7 +12,7 @@ const badgeCount = (word: string) =>
   within(modulesList() as HTMLElement).getAllByText(word, { selector: "span" }).length;
 
 describe("Run activity, running", () => {
-  beforeEach(() => show("/run/activity/running"));
+  beforeEach(() => showFixture("/run/activity/running"));
 
   it("has one h1 with the issuer, the run state and the labels", () => {
     const h1 = screen.getAllByRole("heading", { level: 1 });
@@ -102,7 +85,7 @@ describe("Run activity, running", () => {
 
 describe("Run activity, other live states", () => {
   it("queued: elapsed is n.a., not zero, with its line and 13 Queued badges", () => {
-    show("/run/activity/queued");
+    showFixture("/run/activity/queued");
     expect(screen.getByText("Waiting for the model service. Nothing has been spent.")).toBeTruthy();
     expect(screen.getByText("Not started yet")).toBeTruthy();
     const elapsed = screen.getByText("Elapsed").parentElement as HTMLElement;
@@ -112,7 +95,7 @@ describe("Run activity, other live states", () => {
   });
 
   it("starting: spinner with its label, n.a. finished, no step list", () => {
-    show("/run/activity/starting");
+    showFixture("/run/activity/starting");
     expect(
       screen.getByRole("status", { name: "Starting the run. No module has reported yet." }),
     ).toBeTruthy();
@@ -129,7 +112,7 @@ describe("Run activity, other live states", () => {
     const steps = slice.runs.find((r) => r.id === "running")?.modules.steps;
     if (steps === undefined) throw new Error("fixture has no running run");
     (steps[6] as { state: string }).state = "Running";
-    showWith("/run/activity/running", slice);
+    show("/run/activity/running", slice);
     const current = stepsOf().filter((s) => s.getAttribute("aria-current") === "step");
     expect(current).toHaveLength(2);
     expect(badgeCount("Running")).toBe(2);
@@ -140,7 +123,7 @@ describe("Run activity, ended states", () => {
   it.each(["finished", "failed", "capped", "interrupted", "rejected"])(
     "%s: nothing loops and Stop run is absent",
     (id) => {
-      show(`/run/activity/${id}`);
+      showFixture(`/run/activity/${id}`);
       expect(document.querySelectorAll(LIVE_CLASSES)).toHaveLength(0);
       expect(screen.queryByRole("button", { name: "Stop run" })).toBeNull();
       expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -148,7 +131,7 @@ describe("Run activity, ended states", () => {
   );
 
   it("finished: shows its badge and no live word", () => {
-    show("/run/activity/finished");
+    showFixture("/run/activity/finished");
     expect(screen.getAllByText("Finished", { selector: "span" }).length).toBeGreaterThan(0);
     expect(badgeCount("Not assessable")).toBeGreaterThan(0);
     expect(screen.queryByText("Running", { selector: "span" })).toBeNull();
@@ -156,7 +139,7 @@ describe("Run activity, ended states", () => {
   });
 
   it("rejected: says no module ran", () => {
-    show("/run/activity/rejected");
+    showFixture("/run/activity/rejected");
     expect(screen.getByRole("heading", { name: "No module ran", level: 3 })).toBeTruthy();
     expect(modulesList()).toBeNull();
   });
@@ -182,19 +165,19 @@ describe("Run activity, every address", () => {
   });
 
   it.each(ids)("%s: one h1 and no module code", (id) => {
-    show(`/run/activity/${String(id)}`);
+    showFixture(`/run/activity/${String(id)}`);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(document.body.textContent).not.toMatch(/CP-\d/);
   });
 
   it("none: the empty state", () => {
-    show("/run/activity/none");
+    showFixture("/run/activity/none");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Run activity");
     expect(screen.getByRole("heading", { name: "No run to watch", level: 2 })).toBeTruthy();
   });
 
   it("unreadable: the issuer and the error alert", () => {
-    show("/run/activity/unreadable");
+    showFixture("/run/activity/unreadable");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("TransDigm Group");
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain("Error: ");
@@ -207,14 +190,14 @@ describe("Run activity, every address", () => {
   });
 
   it("an unknown run id says so, with a link back", () => {
-    show("/run/activity/nope");
+    showFixture("/run/activity/nope");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Run activity");
     expect(screen.getByRole("heading", { name: "No run has this address", level: 2 })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Go to Run" }).getAttribute("href")).toBe("#/run");
   });
 
   it("a slice that is absent still draws one h1", () => {
-    showWith("/run/activity/running", undefined);
+    show("/run/activity/running", undefined);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "No run data in this library" })).toBeTruthy();
   });
@@ -227,7 +210,7 @@ describe("Run activity, every address", () => {
     const step = slice.runs.find((r) => r.id === "running")?.modules.steps[5];
     if (step === undefined) throw new Error("fixture has no running run");
     step.detail = detail;
-    showWith("/run/activity/running", slice);
+    show("/run/activity/running", slice);
     expect(detail).toHaveLength(400);
     expect(within(stepsOf()[5] as HTMLElement).getByText(detail)).toBeTruthy();
   });
@@ -235,7 +218,7 @@ describe("Run activity, every address", () => {
 
 describe("Run activity, a missing figure", () => {
   it("draws n.a. and its note with no progress bar for Modules finished", () => {
-    show("/run/activity/starting");
+    showFixture("/run/activity/starting");
     expect(screen.getByText("No module has reported yet")).toBeTruthy();
     const bars = screen.getAllByRole("progressbar");
     expect(bars.map((b) => b.getAttribute("aria-valuemax"))).toEqual(["20"]);

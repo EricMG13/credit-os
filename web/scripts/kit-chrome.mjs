@@ -156,12 +156,16 @@ async function linkButton(send) {
     send,
     `(() => { const f = ${target}; if (document.activeElement !== f) return null; const c = getComputedStyle(f); return { colour: c.outlineColor, width: c.outlineWidth, style: c.outlineStyle }; })()`,
   );
-  // Tab from the enabled link must pass over the disabled one: it has no tab stop.
+  // Tab from the first link reaches the second, and the Tab after that must pass over the
+  // disabled third: it has no tab stop. Where focus lands is recorded.
   const disabledSel = `document.querySelector("section[aria-labelledby=kit-link-button] [aria-disabled=true]")`;
+  const activeName = `(() => { const a = document.activeElement; return a ? (a.textContent ?? "").trim() || a.tagName : null; })()`;
+  await press(send, "Tab", "Tab", 9);
+  const second = await evaluate(send, activeName);
   await press(send, "Tab", "Tab", 9);
   const tabStop = await evaluate(
     send,
-    `(() => { const d = ${disabledSel}; return d ? { reached: document.activeElement === d, tabIndex: d.tabIndex } : null; })()`,
+    `(() => { const d = ${disabledSel}; return d ? { reached: document.activeElement === d, tabIndex: d.tabIndex, secondLink: ${JSON.stringify(second)}, focusAfter: ${activeName} } : null; })()`,
   );
   const announcedDisabled = Boolean(
     disabled?.properties?.some((p) => p.name === "disabled" && p.value?.value === true),
@@ -218,13 +222,14 @@ export async function checkKitInChrome({ browser, folder }) {
       link.reached === "ok" &&
       link.announcedDisabled &&
       link.tabStop !== null &&
+      link.tabStop.secondLink === "Back to the library" &&
       !link.tabStop.reached &&
       link.tabStop.tabIndex < 0 &&
       link.ring?.colour === want &&
       link.ring?.width === "2px" &&
       link.ring?.style === "solid";
     console.log(
-      `${linkOk ? "PASS" : "FAIL"} kit page: the link button has role link and its label as name (disabled one too, announced disabled and skipped by Tab) and a keyboard-focused one draws a 2px ${want} outline${linkOk ? "" : ` (found: ${JSON.stringify(link)})`}`,
+      `${linkOk ? "PASS" : "FAIL"} kit page: the link button has role link and its label as name (disabled one too, announced disabled and skipped by Tab from the second link) and a keyboard-focused one draws a 2px ${want} outline${linkOk ? "" : ` (found: ${JSON.stringify(link)})`}`,
     );
     close();
     return names.length === 0 && ok && linkOk;

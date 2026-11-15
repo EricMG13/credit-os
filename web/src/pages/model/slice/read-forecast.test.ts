@@ -1,5 +1,4 @@
-import { readSlice } from "./read";
-import { edited, fixtureSlice } from "./test-fixture";
+import { edited, fixtureSlice, readRuns } from "./test-fixture";
 
 const F = ["runs", 0, "forecast"] as const;
 const P = "runs[0].forecast";
@@ -10,7 +9,7 @@ const W = [...F, "walk"] as const;
 
 describe("the forecast page of the slice", () => {
   it("reads the fixture as the mock draws it", () => {
-    const result = readSlice(fixtureSlice());
+    const result = readRuns(fixtureSlice());
     if (result.kind !== "ok") throw new Error(`${result.kind}: ${JSON.stringify(result)}`);
     const page = result.data.runs[0]?.forecast;
     expect(page?.tabs.map((t) => [t.label, t.count, t.current])).toEqual([
@@ -471,37 +470,35 @@ describe("the forecast page of the slice", () => {
       `${P}.limitations.text: expected a non-empty string`,
     ],
   ])("refuses %s", (_name, steps, value, reason) => {
-    expect(readSlice(edited(steps, value))).toEqual({ kind: "invalid", reason });
+    expect(readRuns(edited(steps, value))).toEqual({ kind: "invalid", reason });
   });
 });
 
 describe("the forecast page: the table side holds to the chart side", () => {
   it("refuses a period with a table figure and no point on any EBITDA line", () => {
-    expect(readSlice(edited([...E, "series", 0, "values", 1], null))).toEqual({
+    expect(readRuns(edited([...E, "series", 0, "values", 1], null))).toEqual({
       kind: "invalid",
       reason: `${P}.ebitda.rows[0].cells[1]: expected a point on some line in a period that has a cell`,
     });
   });
 
   it("still reads the downside line starting late: its early cells have the base line's points", () => {
-    expect(readSlice(fixtureSlice()).kind).toBe("ok");
+    expect(readRuns(fixtureSlice()).kind).toBe("ok");
   });
 
   it("refuses a driver's case cells swapped against its markers, naming the first", () => {
-    expect(readSlice(edited([...D, "rows", 0, "cells"], ["-12%", "18%", "-4.0%", "8.0%"]))).toEqual(
-      {
-        kind: "invalid",
-        reason: `${P}.drivers.rows[0].cells[2]: expected the text of marker 1, "8.0%"`,
-      },
-    );
+    expect(readRuns(edited([...D, "rows", 0, "cells"], ["-12%", "18%", "-4.0%", "8.0%"]))).toEqual({
+      kind: "invalid",
+      reason: `${P}.drivers.rows[0].cells[2]: expected the text of marker 1, "8.0%"`,
+    });
   });
 
   it("refuses a driver cell that is n.a. beside a marker with a text, and the reverse", () => {
-    expect(readSlice(edited([...D, "rows", 0, "cells"], ["-12%", "18%", null, "-4.0%"]))).toEqual({
+    expect(readRuns(edited([...D, "rows", 0, "cells"], ["-12%", "18%", null, "-4.0%"]))).toEqual({
       kind: "invalid",
       reason: `${P}.drivers.rows[0].cells[2]: expected the text of marker 1, "8.0%", not n.a.`,
     });
-    expect(readSlice(edited([...D, "rows", 4, "cells"], ["92", "118", "5", null]))).toEqual({
+    expect(readRuns(edited([...D, "rows", 4, "cells"], ["92", "118", "5", null]))).toEqual({
       kind: "invalid",
       reason: `${P}.drivers.rows[4].cells[2]: expected null beside a missing marker`,
     });

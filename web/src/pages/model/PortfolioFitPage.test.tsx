@@ -425,3 +425,68 @@ describe("Portfolio fit page", () => {
     },
   );
 });
+
+describe("Portfolio fit page: a section that is a gap with a reason", () => {
+  const LIMITS_GAP = { title: LIMITS, reason: "No holdings source was supplied for this run." };
+  const SCATTER_GAP = {
+    title: SCATTER,
+    reason: "The holdings were not supplied, so no mark is set.",
+  };
+  const headings = () => screen.getAllByRole("heading").map((h) => [h.tagName, h.textContent]);
+
+  function gapCard(title: string, reason: string): HTMLElement {
+    const heading = screen.getByRole("heading", { name: title });
+    expect(heading.tagName).toBe("H3");
+    const card = must(heading.closest<HTMLElement>(".rounded-ds-lg"));
+    expect(within(card).getByText("Not established for this run")).toBeInTheDocument();
+    expect(within(card).getByText(reason)).toBeInTheDocument();
+    expect(card.querySelector("figure, svg[role=img], table, [role=radio], a")).toBeNull();
+    return card;
+  }
+
+  it("draws a limits gap as its title and reason, and keeps the scatter drawn", () => {
+    renderAt(edited([...F, "limits"], { gap: LIMITS_GAP }));
+    gapCard(LIMITS, LIMITS_GAP.reason);
+    expect(screen.queryByRole("link", { name: `Show the sources for ${LIMITS}` })).toBeNull();
+    expect(figure(SCATTER)).toBeInTheDocument();
+    expect(figure(STRIPS)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: RATINGS })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(headings().map(([, text]) => text)).toEqual([
+      "TransDigm Group",
+      "Portfolio fit",
+      LIMITS,
+      RATINGS,
+      "Relative value",
+      SCATTER,
+      STRIPS,
+    ]);
+  });
+
+  it("draws a scatter gap as its title and reason, and keeps the limits drawn", () => {
+    renderAt(edited([...F, "scatter"], { gap: SCATTER_GAP }));
+    gapCard(SCATTER, SCATTER_GAP.reason);
+    expect(screen.queryByRole("link", { name: `Show the sources for ${SCATTER}` })).toBeNull();
+    expect(figure(LIMITS)).toBeInTheDocument();
+    expect(figure(STRIPS)).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("draws both gaps, each with its own panel and no chart of that kind", () => {
+    const slice = edited([...F, "limits"], { gap: LIMITS_GAP }) as {
+      runs: { portfolioFit: Record<string, unknown> }[];
+    };
+    must(slice.runs[0]).portfolioFit.scatter = { gap: SCATTER_GAP };
+    renderAt(slice);
+    gapCard(LIMITS, LIMITS_GAP.reason);
+    gapCard(SCATTER, SCATTER_GAP.reason);
+    expect(screen.getAllByText("Not established for this run")).toHaveLength(2);
+    expect(document.querySelectorAll("figure")).toHaveLength(1);
+  });
+
+  it("keeps the grid: a gap counts as no table columns", () => {
+    renderAt(edited([...F, "limits"], { gap: LIMITS_GAP }));
+    const card = must(screen.getByRole("heading", { name: LIMITS }).closest(".rounded-ds-lg"));
+    expect(card.parentElement?.parentElement?.className).toContain("auto-fit");
+  });
+});

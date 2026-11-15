@@ -1,0 +1,54 @@
+import { useContext } from "react";
+import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
+import { cx } from "@/utils/cx";
+import { RunContext } from "./RunContext";
+
+/** Put on the element that holds a control, so hovering the figure reveals it. */
+export const TRACE_HOST = "group/trace relative";
+
+/**
+ * The one trace control per paragraph, row or figure. Hidden at rest; shown on hover of its host,
+ * on keyboard focus, always on touch, and for every control while the frame's Show sources is on.
+ * `null` is a figure with no trace: it draws nothing.
+ */
+export function TraceControl({
+  trace,
+  label,
+  onDark = false,
+}: {
+  trace: string | null;
+  /** The accessible name, the mock's own for the item: "Show sources for this figure", "…the bottom line". */
+  label: string;
+  /** Set on the navy bottom-line band: a transparent control with a white outline. */
+  onDark?: boolean;
+}) {
+  const run = useContext(RunContext);
+  if (run === null) throw new Error("TraceControl was drawn outside a RunFrame");
+  if (trace === null) return null;
+  if (!Object.hasOwn(run.traces, trace)) {
+    throw new RangeError(`the run holds no trace "${trace}"`);
+  }
+  return (
+    <Tooltip title="Show sources" placement="top right">
+      <TooltipTrigger
+        aria-label={label}
+        onPress={() => {
+          run.open(trace);
+        }}
+        className={cx(
+          "flex size-7 flex-none cursor-pointer items-center justify-center rounded-ds-sm border opacity-0 transition-opacity duration-150 group-hover/trace:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 in-data-[sources=on]:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100",
+          onDark
+            ? "border-white/30 bg-transparent text-white hover:bg-white/10 focus-visible:ring-offset-surface-inverse"
+            : "border-border-hairline bg-surface-card text-text-tertiary hover:border-action-subtle-hover hover:bg-action-subtle hover:text-action",
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className="relative size-2.5 rounded-ds-full border-[1.5px] border-current"
+        >
+          <span className="absolute inset-0.5 rounded-ds-full bg-current" />
+        </span>
+      </TooltipTrigger>
+    </Tooltip>
+  );
+}

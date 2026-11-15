@@ -4,7 +4,7 @@ import json
 from decimal import Decimal
 from typing import Any
 
-from credit_os.provider.redact import Redactor, home_paths
+from credit_os.provider.redact import Redactor
 from credit_os.provider.types import (
     Compaction,
     CompactionOutcome,
@@ -194,7 +194,8 @@ def _early_problem(
             for p in (errors[0].get("errorType"), errors[0].get("message"))
             if p and isinstance(p, str)
         ]
-        return "SessionError", redactor.text(home_paths(": ".join(parts)))[:500]
+        # Mask first, then cut to 500 characters: the cut never splits a name.
+        return "SessionError", redactor.message(": ".join(parts))[:500]
     if any(d.get("aborted") is True for d in _of_type(events, "session.idle")):
         return "Aborted", "the session went idle after an abort"
     return _usage_problem(usage_data, model, _of_type(events, "model.call_failure"))

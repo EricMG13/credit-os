@@ -38,6 +38,7 @@ import type {
   MetricValue,
   ModelRun,
   ModelSlice,
+  UnreadableRun,
   RowKind,
   RunHeader,
   RunLinks,
@@ -315,15 +316,48 @@ const run: Reader<ModelRun> = (value, path) => {
   checkForecast(read.forecast, read.cases, child(path, "forecast"));
   return read;
 };
-const sliceFields = object<ModelSlice>({ runs: arrayOf(run) });
-/** A page finds its run by issuer and run, so two runs with the same pair would hide the second. */
+const sliceFields = object<{ runs: unknown[] }>({ runs: arrayOf((value) => value) });
+
+/** The ids an unreadable entry is named by: both read as text, else neither is given. */
+function unreadableRun(entry: unknown, reason: string): UnreadableRun {
+  if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+    const { issuer, run: runId } = entry as Record<string, unknown>;
+    try {
+      return { issuer: text(issuer, "issuer"), run: text(runId, "run"), reason };
+    } catch (error) {
+      if (!(error instanceof SliceError)) throw error;
+    }
+  }
+  return { issuer: null, run: null, reason };
+}
+
+/**
+ * Each run is read on its own, so one that fails its rules is held as unreadable with its first
+ * failing path while the others read. The slice itself is refused only when it is not an object,
+ * has an unknown or missing key, `runs` is not a list, or two runs share an issuer and run.
+ */
 const slice: Reader<ModelSlice> = (value, path) => {
-  const read = sliceFields(value, path);
-  distinct(read.runs, (r) => `${r.issuer}\u0000${r.run}`, child(path, "runs"), "run", "run");
-  return read;
+  const { runs: entries } = sliceFields(value, path);
+  const runs: ModelRun[] = [];
+  const unreadable: UnreadableRun[] = [];
+  /** A page finds its run by issuer and run, so two with the same pair would hide the second. */
+  const keys = entries.map((entry, index) => {
+    try {
+      const read = run(entry, at(child(path, "runs"), index));
+      runs.push(read);
+      return JSON.stringify([read.issuer, read.run]);
+    } catch (error) {
+      if (!(error instanceof SliceError)) throw error;
+      const held = unreadableRun(entry, error.message);
+      unreadable.push(held);
+      return held.issuer === null ? JSON.stringify(index) : JSON.stringify([held.issuer, held.run]);
+    }
+  });
+  distinct(keys, (key) => key, child(path, "runs"), "run", "run");
+  return { runs, unreadable };
 };
 
-/** `undefined` is absent; any other source is read in full or named invalid at its first bad path. */
+/** `undefined` is absent; any other source is read, a bad run held as unreadable, or named invalid. */
 export function readSlice(source: unknown): SliceResult<ModelSlice> {
   if (source === undefined) return { kind: "absent" };
   try {

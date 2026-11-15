@@ -69,7 +69,7 @@ def test_cases(want: dict[str, Any], given: dict[str, Any]) -> None:
     assert tuple(c.event_id for c in reply.compactions) == want.get("compactions", ())
     _check_turn(reply, want["turn"])
     _check_raw(reply, want, case)
-    if "send" in want["calls"] and "absent" not in want:
+    if "send" in want["calls"] and "absent" not in want and "raw" not in want:
         assert json.loads(reply.raw or b"null") == fake.read
 
 
@@ -82,7 +82,8 @@ def _check_turn(reply: Reply, turn: Any) -> None:
 
 
 def _check_raw(reply: Reply, want: dict[str, Any], case: dict[str, Any]) -> None:
-    assert type(reply.raw) is (type(None) if want["kind"] == "not_sent" else bytes)
+    none = want["kind"] == "not_sent" or ("raw" in want and want["raw"] is None)
+    assert type(reply.raw) is (type(None) if none else bytes)
     if reply.raw is not None:
         assert reply.raw == json.dumps(json.loads(reply.raw), separators=(",", ":")).encode()
         if "absent" in want:
@@ -120,3 +121,9 @@ def test_an_exception_that_cannot_print_is_named_by_class_only() -> None:
         open_client, config_id="c", model=key.MODEL, environ=key.ENVIRON, home="/h", clock=lambda: 0
     )
     assert _complete(driver, key.DEFAULTS).message == "open_client failed: Odd: <unprintable>"
+
+
+@pytest.mark.parametrize("home", key.REFUSED_HOMES, ids=repr)
+def test_a_home_with_no_folder_name_is_refused_when_made(home: str) -> None:
+    with pytest.raises(ValueError, match="folder name"):
+        _run({"home": home})

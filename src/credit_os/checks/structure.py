@@ -13,7 +13,7 @@ Bottom line, so only its front matter can block it.
 """
 
 from credit_os.checks.findings import CheckContext, Finding, refusal
-from credit_os.checks.text import all_sections, try_reader
+from credit_os.checks.text import all_sections, is_earlier, try_reader
 from credit_os.handoff.blocks import CodeBlock
 from credit_os.handoff.data import Register, read_registers
 from credit_os.handoff.document import HandoffDocument, Section
@@ -32,9 +32,8 @@ def _level_three(document: HandoffDocument) -> list[Section]:
     return [section for section in document.sections[2].sections if section.level == 3]
 
 
-def is_blocked(document: HandoffDocument, reader: Reader) -> bool:
-    if reader.blocked:
-        return True
+def front_matter_blocked(document: HandoffDocument) -> bool:
+    """True when the front matter holds `module_status` equal to `blocked`."""
     if document.front_matter is None:
         return False
     for entry in document.front_matter.entries:
@@ -43,9 +42,13 @@ def is_blocked(document: HandoffDocument, reader: Reader) -> bool:
     return False
 
 
+def is_blocked(document: HandoffDocument, reader: Reader) -> bool:
+    return bool(reader.blocked) or front_matter_blocked(document)
+
+
 def check_format(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
     reader = try_reader(document)
-    if reader is None or reader.format != "earlier":
+    if not is_earlier(reader):
         return ()
     level_three = _level_three(document)
     line = level_three[0].line if level_three else document.sections[2].line
@@ -63,7 +66,7 @@ def check_format(document: HandoffDocument, context: CheckContext) -> tuple[Find
 
 def check_reader_summary(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
     reader = try_reader(document)
-    if reader is None or reader.format != "earlier":
+    if reader is None or not is_earlier(reader):
         return ()
     section = reader.summary_section
     if section is None or reader.summary is not None:

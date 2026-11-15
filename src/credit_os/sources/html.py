@@ -1,9 +1,14 @@
-"""Reader of HTML bytes into pages: decoding without a decoded copy, and the line writer."""
+"""Reader of HTML bytes: decoding without a decoded copy, the line writer and the reading engine."""
 
 import codecs
 import re
+from array import array
+from collections.abc import Iterator
+from html import unescape
+from html.parser import HTMLParser
 
 from credit_os.sources.errors import SourceUnreadable, shown_name
+from credit_os.sources.pages import SourcePages, cut_stream, text_state_pages
 
 # Characters of one page of text.
 PAGE_CHARACTERS = 3_000
@@ -65,7 +70,52 @@ LINE_TAGS = frozenset({"p", "tr", "li", "br", "h1", "h2", "h3", "h4", "h5", "h6"
 # The legacy's: a charset is looked for in the first 4,096 bytes only.
 _SNIFF_BYTES = 4096
 _CHARSET = re.compile(rb"""(?:charset|encoding)\s*=\s*["']?\s*([A-Za-z0-9_.:\-]+)""", re.IGNORECASE)
-# codecs.lookup(...).name -> the name reported for the source
+# A declared charset, lower-cased with "_" as "-", -> its codec. The codec search is an import keyed
+# by the file's text, so only these names reach a codec; any other is refused, never looked up.
+# Only an XML declaration's "encoding=" reads a name here as written; a "charset=" first checks
+# _WINDOWS_1252, and only a name outside it reaches this table.
+_LABELS = {
+    "utf-8": "utf-8",
+    "utf8": "utf-8",
+    "windows-1252": "cp1252",
+    "cp1252": "cp1252",
+    "iso-8859-1": "iso8859-1",
+    "iso8859-1": "iso8859-1",
+    "latin1": "iso8859-1",
+    "latin-1": "iso8859-1",
+    "ascii": "ascii",
+    "us-ascii": "ascii",
+}
+# The labels the HTML Standard (encodings.json, read 2026-11-15) gives windows-1252, in the form
+# _encoding normalises a declared name to ("iso_8859-1" and "iso-8859-1" are one name here).
+_WINDOWS_1252 = frozenset(
+    {
+        "ansi-x3.4-1968",
+        "ascii",
+        "cp1252",
+        "cp819",
+        "csisolatin1",
+        "ibm819",
+        "iso-8859-1",
+        "iso-ir-100",
+        "iso8859-1",
+        "iso88591",
+        "iso-8859-1:1987",
+        "l1",
+        "latin1",
+        "us-ascii",
+        "windows-1252",
+        "x-cp1252",
+    }
+)
+# A character the text read must not hold: a C1 control (invisible; a cp1252 byte, misread as
+# latin-1, becomes one).
+_C1 = re.compile("[\x80-\x9f]")
+# codec -> the name reported for the source.
+# Tags are read from the bytes (_visible_text, _long_tag), which is exact only for an encoding in
+# which no ASCII byte occurs inside a longer character and decoding then encoding gives the same
+# bytes back. The four here are such; check that before adding one (utf-16, shift_jis and
+# gb18030 are not).
 _ACCEPTED = {
     "utf-8": "utf-8",
     "cp1252": "windows-1252",
@@ -73,6 +123,55 @@ _ACCEPTED = {
     "ascii": "ascii",
 }
 _BOM = b"\xef\xbb\xbf"
+# A character reference of 32 or more digits, which a step of the reading could cut in two.
+_LONG_REFERENCE = re.compile(rb"&#(?:[0-9]{32}|[xX][0-9a-fA-F]{32})")
+
+# HIDDEN for bytes that are ASCII: \s written out as the ASCII characters str.isspace() accepts.
+_HIDDEN_ASCII = re.compile(rb"display[\t-\r\x1c-\x1f ]*:[\t-\r\x1c-\x1f ]*none", re.IGNORECASE)
+_NOT_PLAIN = re.compile(rb"[&\x80-\xff]")  # a reference, or a character outside ASCII
+_TAG_OPEN = re.compile(r"</?[a-zA-Z]")
+_QUOTED_END_TAG = re.compile(r"""</[a-zA-Z][^>'"]*['"]""")  # a quote before its first ">"
+# html.parser.commentclose, read from html.parser's own str buffer.
+_COMMENT_CLOSE = re.compile(r"--!?>")
+# html.parser.RCDATA_CONTENT_ELEMENTS: content whose references are decoded.
+_DECODED_CONTENT = ("textarea", "title")
+# html.parser.locatetagend as bytes with its outer repeat made possessive ("*+"): the same end
+# (nothing after the repeat can fail, so it never gives an attribute back) and no state per
+# attribute.
+_TAG_END = re.compile(
+    rb"""
+  [a-zA-Z][^\t\n\r\f />]*           # tag name
+  [\t\n\r\f /]*                     # optional whitespace before attribute name
+  (?:(?<=['"\t\n\r\f /])[^\t\n\r\f />][^\t\n\r\f /=>]*  # attribute name
+    (?:[\t\n\r\f ]*=[\t\n\r\f ]*    # value indicator
+      (?:'[^']*'                    # LITA-enclosed value
+        |"[^"]*"                    # LIT-enclosed value
+        |(?!['"])[^>\t\n\r\f ]*     # bare value
+       )
+     )?
+    [\t\n\r\f /]*                   # possibly followed by a space
+   )*+
+   >?
+""",
+    re.VERBOSE,
+)
+# html.parser.tagfind_tolerant and attrfind_tolerant as bytes, unchanged.
+_TAG_NAME = re.compile(rb"([a-zA-Z][^\t\n\r\f />]*)(?:[\t\n\r\f ]|/(?!>))*")
+_ATTRIBUTE = re.compile(
+    rb"""
+  (
+    (?<=['"\t\n\r\f /])[^\t\n\r\f />][^\t\n\r\f /=>]*  # attribute name
+   )
+  ([\t\n\r\f ]*=[\t\n\r\f ]*        # value indicator
+    ('[^']*'                        # LITA-enclosed value
+    |"[^"]*"                        # LIT-enclosed value
+    |(?!['"])[^>\t\n\r\f ]*         # bare value
+    )
+   )?
+  (?:[\t\n\r\f ]|/(?!>))*           # possibly followed by a space
+""",
+    re.VERBOSE,
+)
 
 
 def _refuse(name: str, reason: str) -> SourceUnreadable:
@@ -93,7 +192,13 @@ def _decodes(raw: bytes, start: int, codec: str) -> UnicodeDecodeError | None:
 
 
 def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
-    """Return the codec, the name reported and the first text byte, or refuse the bytes."""
+    """Return the codec, the name reported and the first text byte, or refuse the bytes.
+
+    The first declaration in the first 4,096 bytes names the encoding. Under "charset=" (meta,
+    http-equiv or bare) a label the HTML Standard gives windows-1252 (_WINDOWS_1252) decodes as
+    strict cp1252 and is reported as windows-1252; any other label reads through _LABELS. Under
+    "encoding=" (the XML declaration) only _LABELS applies, so ISO-8859-1 stays true latin-1.
+    """
     if raw.startswith(_BOM):
         error = _decodes(raw, len(_BOM), "utf-8")
         if error is not None:
@@ -107,17 +212,15 @@ def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
         raise _refuse(
             name, "not valid UTF-8 and declares no charset in its first 4,096 bytes"
         ) from utf8_error
+    if found.end(1) == _SNIFF_BYTES:
+        raise _refuse(name, f"declares a charset whose name may be cut at byte {_SNIFF_BYTES:,}")
     declared = found.group(1).decode("ascii")
-    lookup_error: LookupError | None = None
-    codec = ""
-    try:
-        codec = codecs.lookup(declared).name
-    except LookupError as error:
-        lookup_error = error
-    if codec not in _ACCEPTED:
-        raise _refuse(
-            name, f"declares a charset that is not accepted: {declared[:40]!r}"
-        ) from lookup_error
+    label = declared.lower().replace("_", "-")
+    codec = _LABELS.get(label)
+    if found.group(0)[:7].lower() == b"charset" and label in _WINDOWS_1252:
+        codec = "cp1252"
+    if codec is None:
+        raise _refuse(name, f"declares a charset that is not accepted: {declared[:40]!r}")
     reported = _ACCEPTED[codec]
     codec_error = _decodes(raw, 0, codec)
     if codec_error is not None:
@@ -158,3 +261,254 @@ class _LineText:
     def take(self) -> list[str]:
         pieces, self._pieces = self._pieces, []
         return pieces
+
+
+class _Visible(HTMLParser):
+    """The legacy converter's handlers over html.parser, fed a piece at a time.
+
+    Text goes out as line pieces; the open-element stack is 2 bytes an element; html.parser waits
+    wherever its reading of what it holds could differ from its reading of the whole document.
+    """
+
+    def __init__(self, name: str) -> None:
+        super().__init__(convert_charrefs=True)
+        self.name = name
+        self.lines = _LineText()
+        # What still lies in bytes html.parser has not been given: a comment end; quote characters.
+        self.close_ahead = False
+        self.quotes_ahead = ""
+        self._ids: dict[str, int] = {}
+        self._open: list[int] = []  # open elements per name id
+        self._stack = array("H")  # per open element: name id * 2 + hidden
+        self._skipping = 0
+
+    def _break(self, tag: str) -> None:
+        if tag in LINE_TAGS:
+            self.lines.line_end()
+        elif tag in BLOCK:
+            self.lines.space()
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "body":
+            self.handle_endtag("head")
+        self._break(tag)
+        if tag in VOID:
+            return
+        hidden = tag in SKIP or any(k == "style" and HIDDEN.search(v or "") for k, v in attrs)
+        ident = self._ids.get(tag)
+        if ident is None:
+            if len(self._ids) == MAX_TAG_NAMES:
+                raise _refuse(self.name, f"more than {MAX_TAG_NAMES:,} different tag names")
+            ident = self._ids[tag] = len(self._ids)
+            self._open.append(0)
+        self._open[ident] += 1
+        self._stack.append(ident * 2 + hidden)
+        self._skipping += hidden
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._break(tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        self._break(tag)
+        ident = self._ids.get(tag)
+        if ident is None or not self._open[ident]:
+            return
+        while True:
+            entry = self._stack.pop()
+            self._open[entry >> 1] -= 1
+            self._skipping -= entry & 1
+            if entry >> 1 == ident:
+                return
+
+    def handle_data(self, data: str) -> None:
+        if self._skipping:
+            return
+        if not data.isascii():
+            control = _C1.search(data)  # before split() in the lines, which reads U+0085 as space
+            if control is not None:
+                raise _refuse(self.name, f"control character U+{ord(control.group()):04X}")
+        self.lines.text(data)
+
+    # -- html.parser waits where the whole document could read differently ----------------
+
+    def parse_comment(self, i: int, report: bool = True) -> int:
+        # html.parser ends "<!-->" at once only when no comment end follows in what it holds.
+        # Fed whole, that is the rest of the document; fed in pieces, wait while one lies ahead.
+        if self.close_ahead and not _COMMENT_CLOSE.search(self.rawdata, i + 4):
+            return -1
+        return super().parse_comment(i, report)
+
+    def _waits(self, start: int, end: int) -> bool:
+        """Whether the tag html.parser found whole in [start, end) may still grow.
+
+        html.parser reads `b = "x>` as a whole tag when what it holds has no closing quote. Fed
+        whole it would find one later in the document, so wait while one may still come.
+        """
+        held = self.rawdata
+        return end >= 0 and any(
+            held.find(quote, start, end) >= 0 and held.find(quote, end) < 0
+            for quote in self.quotes_ahead
+        )
+
+    def check_for_whole_start_tag(self, i: int) -> int:
+        end = super().check_for_whole_start_tag(i)
+        return -1 if self._waits(i, end) else end
+
+    def parse_endtag(self, i: int) -> int:
+        # An end tag ends where a start tag would (html.parser uses the same pattern for both).
+        quoted = self.quotes_ahead and _QUOTED_END_TAG.match(self.rawdata, i)
+        if quoted and self._waits(i, super().check_for_whole_start_tag(i + 1)):
+            return -1
+        return super().parse_endtag(i)
+
+    # -- what html.parser may hold between steps ------------------------------------------
+
+    def release(self) -> bool:
+        """Cut down what html.parser holds; return False when it holds a tag."""
+        held = self.rawdata
+        if self.cdata_elem is not None and not self.interesting.match(held):
+            self._release_content(held, self.cdata_elem)
+        elif not held.startswith("<"):
+            cut = held.rfind("&")  # text held for the end of a reference: no reference holds "&"
+            self.handle_data(unescape(held[:cut]))
+            self.rawdata = held[cut:]
+        elif _TAG_OPEN.match(held):
+            return False
+        else:
+            # A comment, declaration or processing instruction: its body is never read. The first 9
+            # characters decide which kind of construct it is, the last 3 can begin its end mark
+            # (-->, --!>, ]]>, ?>), and the "x" stops the two parts forming an end mark together.
+            self.rawdata = held[:9] + "x" + held[-3:]
+        return True
+
+    def _release_content(self, held: str, element: str) -> None:
+        end = len(held) - len(element) - 2  # "</" and the name may be an end tag's start
+        if element in _DECODED_CONTENT:
+            amp = held.rfind("&", max(0, end - REFERENCE_WINDOW), end)
+            if amp >= 0:
+                end = amp
+            self.handle_data(unescape(held[:end]))
+        else:
+            self.handle_data(held[:end])
+        self.rawdata = held[end:]
+
+    def replace(self, tag: str) -> None:
+        """Forget what is held and read this whole tag in its place."""
+        self.reset()
+        self.close_ahead, self.quotes_ahead = False, ""  # nothing ahead can extend a whole tag
+        self.rawdata = tag
+        self.goahead(False)
+
+
+def _bounded(raw: bytes, start: int, end: int, codec: str) -> str | None:
+    """Decode raw[start:end], or None when it is more characters than html.parser is given."""
+    if end - start <= 4 * PARSED_CHARACTERS:
+        text = raw[start:end].decode(codec)
+        if len(text) <= PARSED_CHARACTERS:
+            return text
+    return None
+
+
+def _hidden_style(name: str, raw: bytes, found: re.Match[bytes], codec: str) -> bool:
+    """Whether this attribute of a long tag is a style that hides its element."""
+    start, end = found.span(1)
+    if end - start != 5 or raw[start:end].lower() != b"style" or found.start(3) < 0:
+        return False
+    start, end = found.span(3)
+    if end - start >= 2 and raw[start] in b"'\"" and raw[start] == raw[end - 1]:
+        start, end = start + 1, end - 1
+    value = _bounded(raw, start, end, codec)
+    if value is not None:
+        return bool(HIDDEN.search(unescape(value)))
+    if _NOT_PLAIN.search(raw, start, end):
+        raise _refuse(
+            name,
+            f"a style attribute longer than {PARSED_CHARACTERS:,} characters"
+            " that is not plain ASCII",
+        )
+    return bool(_HIDDEN_ASCII.search(raw, start, end))
+
+
+def _long_tag(name: str, raw: bytes, start: int, codec: str) -> tuple[str, int]:
+    """Read a tag html.parser may not hold: the tag to give it instead, and where it ends.
+
+    The legacy reads three things from a tag: its name, whether a style hides it, and whether
+    it closes itself. They are read here from the bytes with html.parser's own patterns.
+    """
+    closing = raw.startswith(b"</", start)
+    at = start + 2 if closing else start + 1
+    found = _TAG_END.match(raw, at)
+    name_found = _TAG_NAME.match(raw, at)
+    if found is None or name_found is None or raw[found.end() - 1 : found.end()] != b">":
+        return "", len(raw)  # never closed: the legacy drops the rest of the document
+    end = found.end()
+    tag = _bounded(raw, *name_found.span(1), codec)
+    if tag is None:
+        raise _refuse(name, f"a tag name longer than {PARSED_CHARACTERS:,} characters")
+    if closing:
+        return f"</{tag}>", end
+    if tag.lower() in VOID:
+        return f"<{tag}>", end
+    hidden = False
+    at = name_found.end()
+    while at < end:
+        attribute = _ATTRIBUTE.match(raw, at)
+        if attribute is None:
+            break
+        hidden = hidden or _hidden_style(name, raw, attribute, codec)
+        at = attribute.end()
+    if raw[at:end].strip().endswith(b"/>"):
+        return f"<{tag}/>", end
+    return (f"<{tag} style=display:none>" if hidden else f"<{tag}>"), end
+
+
+def _visible_text(name: str, raw: bytes, codec: str, position: int) -> Iterator[str]:
+    """Feed html.parser the bytes from position a piece at a time; yield the lines in pieces.
+
+    The caller (html_pages) must have established, in this order: `raw` decodes in full with this
+    codec (it is decoded a second time here, so no decoding error can occur), `position` is the
+    first text byte `_encoding` returned, `raw` has no zero byte, and `raw` has no character
+    reference of 32 or more digits (a step could cut one, and the reading would then depend on
+    where steps end, or int() could raise for more than 4,300 digits).
+    """
+    last_close = max(raw.rfind(b"-->") + 3, raw.rfind(b"--!>") + 4)
+    last_quote = {"'": raw.rfind(b"'"), '"': raw.rfind(b'"')}
+    view = memoryview(raw)
+    decoder = codecs.getincrementaldecoder(codec)()
+    reader = _Visible(name)
+    while position < len(raw):
+        end = min(position + PIECE_BYTES, len(raw))
+        reader.close_ahead = last_close > end
+        reader.quotes_ahead = "".join(quote for quote, at in last_quote.items() if at >= end)
+        reader.rawdata += decoder.decode(view[position:end])
+        position = end
+        reader.goahead(False)
+        if len(reader.rawdata) > HELD_CHARACTERS and not reader.release():
+            pending = decoder.getstate()[0]
+            start = position - len(pending) - len(reader.rawdata.encode(codec))
+            tag, position = _long_tag(name, raw, start, codec)
+            decoder.reset()
+            reader.replace(tag)
+        yield from reader.lines.take()
+    reader.close_ahead, reader.quotes_ahead = False, ""
+    reader.close()
+    reader.lines.line_end()
+    yield from reader.lines.take()
+
+
+def html_pages(name: str, raw: bytes) -> SourcePages:
+    """The visible text of HTML bytes in pages of PAGE_CHARACTERS, or a refusal."""
+    codec, encoding, position = _encoding(name, raw)
+    if b"\x00" in raw:  # in all four codecs a NUL character is exactly a zero byte
+        raise _refuse(name, "control character U+0000")
+    if _LONG_REFERENCE.search(raw):
+        raise _refuse(name, f"a character reference of {REFERENCE_DIGITS} or more digits")
+    try:
+        pages = tuple(cut_stream(_visible_text(name, raw, codec, position), PAGE_CHARACTERS))
+    except AssertionError as error:
+        # html.parser's own refusal of markup it gives up on (earlier 3.12 patch levels raised it
+        # for "<![x"; 3.12.14 reaches none). Refused with the error as its cause, not hidden.
+        raise _refuse(name, "markup the parser cannot read") from error
+    if not pages:
+        raise _refuse(name, "has no visible text")
+    return text_state_pages(pages, encoding)

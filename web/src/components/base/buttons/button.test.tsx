@@ -120,7 +120,11 @@ describe("Button", () => {
       const link = screen.getByRole("link", { name: "Gone" });
       expect(link).toHaveAttribute("aria-disabled", "true");
       expect(link).not.toHaveAttribute("href");
-      expect(link).toHaveClass("data-disabled:opacity-50", "data-disabled:cursor-not-allowed");
+      // The base disabled: classes do the work: tailwindcss-react-aria-components compiles them to
+      // [data-rac][data-disabled], which the disabled link span carries.
+      expect(link).toHaveAttribute("data-rac");
+      expect(link).toHaveAttribute("data-disabled");
+      expect(link).toHaveClass("disabled:opacity-50", "disabled:cursor-not-allowed");
     });
 
     it("leaves a button without href as a button with no link attributes", () => {

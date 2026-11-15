@@ -6,6 +6,13 @@ from enum import StrEnum
 class RefusalKind(StrEnum):
     BLOCK = "block"
     JSON = "json"
+    SCHEMA = "schema"
+    SCALE = "scale"
+    REPAYMENT = "repayment"
+    CELL = "cell"
+    UNIT = "unit"
+    CURRENCY = "currency"
+    FACILITY = "facility"
 
 
 class ForecastRefused(Exception):

@@ -124,7 +124,44 @@ describe("top level", () => {
   });
 });
 
+// A consistency check on sample data, not a production figure: the expected totals are read from
+// the fixture's own strings, so the check names no figure of its own.
+describe("committed fixture module costs", () => {
+  const cents = (text: string) => Math.round(Number(text.replace(/[^0-9.]/g, "")) * 100);
+  type Mod = { state?: string; detail?: string | null; modules?: Mod[] };
+  const finishedCents = (mods: Mod[]): number[] =>
+    mods.flatMap((m) => [
+      ...(m.state === "Finished" ? [/USD (\d+\.\d\d)/.exec(m.detail ?? "")?.[1] ?? ""] : [])
+        .filter((x) => x !== "")
+        .map(cents),
+      ...finishedCents(m.modules ?? []),
+    ]);
+  const runs = (fixture.slice as { runs: Record<string, unknown>[] }).runs;
+  it.each(["finished", "many-modules"])(
+    "%s: finished modules cost no more than the run's spend, and the spend is within the cap",
+    (id) => {
+      const r = runs.find((x) => x["id"] === id) as {
+        spend: { value: string; bar: { label: string; value: number; max: number } };
+        modules: { steps: Mod[] };
+      };
+      const total = finishedCents(r.modules.steps).reduce((a, b) => a + b, 0);
+      expect(total).toBeGreaterThan(0);
+      expect(total).toBeLessThanOrEqual(cents(r.spend.value));
+      expect(cents(r.spend.value)).toBe(Math.round(r.spend.bar.value * 100));
+      expect(r.spend.bar.label).toBe(`${r.spend.value} of USD ${String(r.spend.bar.max)}.00`);
+      expect(r.spend.bar.value).toBeLessThanOrEqual(r.spend.bar.max);
+    },
+  );
+});
+
 describe("rejects", () => {
+  it("a first draft that is not at the documents step (a new run starts from the first draft)", () => {
+    const copy = structuredClone(fixture.slice) as { drafts: Node[] };
+    copy.drafts.reverse();
+    expect(reason(copy)).toBe(
+      'run.drafts[0].step: expected "documents" (a new run starts from the first draft)',
+    );
+  });
   it("a non-string where a string is required", () => {
     expect(reason(edit("documents", ["files", 4, "name"], 5))).toBe(
       "run.drafts[1].files[4].name: expected a string",
@@ -430,7 +467,7 @@ describe("committed fixture, run activity", () => {
 
   it("many modules, with two groups", () => {
     const r = run("many-modules");
-    expect(r.spend.value).toBe("USD 11.85");
+    expect(r.spend.value).toBe("USD 17.45");
     expect(r.finished).toEqual({
       value: "12 of 22",
       bar: { label: "12 of 22 modules", value: 12, max: 22 },
@@ -699,6 +736,77 @@ describe("rejects, run activity", () => {
     it("started.activity names a run record", () => {
       expect(reason(edit("started", ["activity"], "none"))).toBe(
         "run.drafts[6].activity: expected the id of a run in this slice",
+      );
+    });
+    it("confirm.started names a started draft", () => {
+      const want = "expected the id of a started draft in this slice";
+      expect(reason(edit("start", ["confirm", "started"], "documents"))).toBe(
+        `run.drafts[5].confirm.started: ${want}`,
+      );
+      expect(reason(edit("start", ["confirm", "started"], "start"))).toBe(
+        `run.drafts[5].confirm.started: ${want}`,
+      );
+    });
+    it("a label the page draws is not empty", () => {
+      const want = "expected a non-empty string";
+      expect(reason(edit("purpose", ["issuer"], ""))).toBe(`run.drafts[2].issuer: ${want}`);
+      expect(reason(edit("purpose", ["nextLabel"], ""))).toBe(`run.drafts[2].nextLabel: ${want}`);
+      expect(reason(editRun("many-modules", ["modules", "steps", 0, "showAll"], ""))).toBe(
+        `run.runs[8].modules.steps[0].showAll: ${want}`,
+      );
+      expect(reason(editRun("failed", ["alert", "action", "label"], ""))).toBe(
+        `run.runs[4].alert.action.label: ${want}`,
+      );
+    });
+    it("a title, name, label or position the page draws is not empty or blank", () => {
+      const want = "expected a non-empty string";
+      for (const blank of ["", "  "]) {
+        expect(reason(editRun("running", ["issuer"], blank))).toBe(`run.runs[0].issuer: ${want}`);
+        expect(reason(editRun("unreadable", ["issuer"], blank))).toBe(
+          `run.runs[10].issuer: ${want}`,
+        );
+      }
+      expect(reason(editRun("many-modules", ["modules", "steps", 0, "title"], ""))).toBe(
+        `run.runs[8].modules.steps[0].title: ${want}`,
+      );
+      expect(reason(edit("purpose", ["purposes", 0, "title"], ""))).toBe(
+        `run.drafts[2].purposes[0].title: ${want}`,
+      );
+      expect(reason(edit("confirm", ["groups", 0, "rows", 0, "label"], ""))).toBe(
+        `run.drafts[3].groups[0].rows[0].label: ${want}`,
+      );
+      expect(reason(edit("purpose", ["position"], ""))).toBe(`run.drafts[2].position: ${want}`);
+      expect(reason(editRun("failed", ["alert", "title"], ""))).toBe(
+        `run.runs[4].alert.title: ${want}`,
+      );
+      expect(reason(editRun("running", ["feed", 0, "who"], ""))).toBe(
+        `run.runs[0].feed[0].who: ${want}`,
+      );
+      expect(reason(editRun("running", ["feed", 0, "time"], ""))).toBe(
+        `run.runs[0].feed[0].time: ${want}`,
+      );
+      expect(reason(edit("documents", ["files", 0, "kind"], ""))).toBe(
+        `run.drafts[1].files[0].kind: ${want}`,
+      );
+      expect(reason(edit("documents", ["files", 0, "size"], ""))).toBe(
+        `run.drafts[1].files[0].size: ${want}`,
+      );
+      expect(reason(editRun("unreadable", ["labels", 0], ""))).toBe(
+        `run.runs[10].labels[0]: ${want}`,
+      );
+    });
+    it("a list the step draws for the reader to act on is not empty", () => {
+      const want = "expected a non-empty list";
+      const noChoice = edit("purpose", ["purposes"], []) as { drafts: Node[] };
+      const purposeDraft = noChoice.drafts.find((d) => d["id"] === "purpose") ?? {};
+      purposeDraft["chosen"] = null;
+      expect(reason(noChoice)).toBe(`run.drafts[2].purposes: ${want}`);
+      expect(reason(edit("confirm", ["groups"], []))).toBe(`run.drafts[3].groups: ${want}`);
+      expect(reason(edit("purpose", ["readiness", "notMet"], { count: "2", items: [] }))).toBe(
+        `run.drafts[2].readiness.notMet.items: expected a non-empty list unless the count is "0"`,
+      );
+      expect(reason(edit("purpose", ["readiness", "notMet"], { count: "0", items: ["x"] }))).toBe(
+        `run.drafts[2].readiness.notMet.items: expected an empty list when the count is "0"`,
       );
     });
     it("a run with no steps or no feed lines is invalid", () => {

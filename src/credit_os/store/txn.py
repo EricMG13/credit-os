@@ -41,10 +41,13 @@ def write_transaction(connection: sqlite3.Connection) -> Iterator[sqlite3.Connec
     `write_transaction`, `_clear_hooks` and `_run` set or clear these hooks.
 
     A documented fail-open: a KeyboardInterrupt, or another exception raised by a signal handler,
-    that arrives while a body statement runs is delivered inside the progress handler, where
-    Python's sqlite3 module clears it. The statement stops and leaves as `StoreUnusable: write
-    transaction: interrupted`, with nothing committed. So a StoreUnusable from a write transaction
-    may be an interrupt: a caller must treat it as ending its work, and never retry or swallow it."""
+    that arrives while a body statement runs is delivered inside the progress handler or the
+    authorizer, where Python's sqlite3 module clears it. The statement stops and leaves as
+    `StoreUnusable: write transaction: interrupted` (or `... not authorized`); nothing is committed
+    unless the body swallows the error and carries on: after an interrupted read its other writes
+    commit and the interrupt is lost, so a body must never catch `sqlite3.Error`. A StoreUnusable
+    from a write transaction may be an interrupt: a caller must treat it as ending its work, and
+    never retry or swallow it."""
     try:
         connection.execute("BEGIN IMMEDIATE")
     except sqlite3.Error as error:
