@@ -98,6 +98,7 @@
     "evidence.gaps.column.reason": {"placeholders": [], "text": "Effect on the view"},
     "evidence.gaps.column.shownAs": {"placeholders": [], "text": "Shown as"},
     "evidence.gaps.where.module": {"placeholders": ["module"], "text": "Shown on the {module} page"},
-    "evidence.gaps.effect_unstated": {"placeholders": [], "text": "The module did not state an effect."}
+    "evidence.gaps.effect_unstated": {"placeholders": [], "text": "The module did not state an effect."},
+    "overview.metric_note": {"placeholders": ["period", "unit"], "text": "{period} \u00b7 {unit}"}
   }
 }
