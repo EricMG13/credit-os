@@ -32,7 +32,15 @@ function go(hash: string) {
 
 const SWITCH = { name: "Show sources" };
 
-describe("Show sources is page-level state and resets on every route change", () => {
+describe("Show sources is session-wide state: it survives route changes and the case resets", () => {
+  // The store lives for the session, so each test starts from off through the switch itself.
+  beforeEach(() => {
+    const { unmount } = open(fixtureSlice(), "#/model/transdigm/2025-06-30/front");
+    const sw = screen.getByRole("switch", SWITCH);
+    if ((sw as HTMLInputElement).checked) fireEvent.click(sw);
+    unmount();
+  });
+
   it("is off by default and on after the analyst turns it on", () => {
     open(fixtureSlice(), "#/model/transdigm/2025-06-30/front");
     expect(screen.getByRole("switch", SWITCH)).not.toBeChecked();
@@ -40,21 +48,22 @@ describe("Show sources is page-level state and resets on every route change", ()
     expect(screen.getByRole("switch", SWITCH)).toBeChecked();
   });
 
-  it("turns off when the address changes to another run on the same tab", () => {
+  it("stays on when the address changes to another run on the same tab", () => {
     open(twoRuns({ issuer: "transdigm", run: "2025-12-31" }), "#/model/transdigm/2025-06-30/front");
     fireEvent.click(screen.getByRole("switch", SWITCH));
     go("#/model/transdigm/2025-12-31/front");
-    expect(screen.getByRole("switch", SWITCH)).not.toBeChecked();
+    expect(screen.getByRole("switch", SWITCH)).toBeChecked();
   });
 
-  it("turns off when the tab changes", () => {
+  it("stays on when the tab changes", () => {
     open(fixtureSlice(), "#/model/transdigm/2025-06-30/front");
     fireEvent.click(screen.getByRole("switch", SWITCH));
     go("#/model/transdigm/2025-06-30/analysis");
-    expect(screen.getByRole("switch", SWITCH)).not.toBeChecked();
+    expect(screen.getByRole("link", { name: "Analysis" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("switch", SWITCH)).toBeChecked();
   });
 
-  it("turns off between two runs whose names would join to one string (a/b + c, a + b/c)", () => {
+  it("stays on but resets the case between two runs whose names would join to one string (a/b + c, a + b/c)", () => {
     const slice = fixtureSlice() as { runs: Run[] };
     const first = must(slice.runs[0]);
     first.issuer = "a/b";
@@ -67,7 +76,7 @@ describe("Show sources is page-level state and resets on every route change", ()
     fireEvent.click(screen.getByRole("switch", SWITCH));
     fireEvent.click(screen.getByRole("radio", { name: /Downside case/ }));
     go(`#/model/a/${encodeURIComponent("b/c")}/statements`);
-    expect(screen.getByRole("switch", SWITCH)).not.toBeChecked();
+    expect(screen.getByRole("switch", SWITCH)).toBeChecked();
     expect(screen.getByRole("radio", { name: /Base case/ })).toBeChecked();
   });
 });
