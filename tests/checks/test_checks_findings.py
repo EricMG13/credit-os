@@ -37,6 +37,9 @@ EXPECTED_CHECKS = [
     "sources.sha256",
     "sources.sha256-required",
     "sources.type",
+    "table.absent",
+    "table.header",
+    "table.cell",
     "figure.form",
     "figure.not-held",
     "figure.mismatch",
@@ -73,7 +76,7 @@ def _context(**values: Any) -> CheckContext:
 
 def test_checks_closed_tuple() -> None:
     assert list(CHECKS) == EXPECTED_CHECKS
-    assert len(set(CHECKS)) == 35
+    assert len(set(CHECKS)) == 38
 
 
 def test_message() -> None:

@@ -1,0 +1,24 @@
+{
+  "about": "Answer key for OWED, the tables each module owes (step 3A, PR 10b), read by hand from the predecessor at 8e3954a (CHART_TABLES, NET_DEBT, POST_BS, OWNER_TABLES, EVENT_LANES, MAPS), in the order its checker asked for them; the Confidence inputs table is not here (2B's confidence checks). 18 modules, 41 headings. `period` names the seven that PR 10b-1 gives a specification.",
+  "period": ["Chart data: leverage", "Chart data: interest cover", "Chart data: liquidity", "Chart data: debt maturities", "Net debt data", "Chart data: revenue and EBITDA", "Chart data: refinancing need"],
+  "owed": {
+    "CP-0": ["Events: Sources"],
+    "CP-1": ["Chart data: leverage", "Chart data: interest cover", "Chart data: liquidity", "Chart data: debt maturities", "Net debt data", "Post-balance-sheet adjustments", "Chart data: revenue and EBITDA", "Chart data: debt stack", "Chart data: EBITDA bridge"],
+    "CP-1A": ["Events: Issuer history", "Map: ownership and control", "Map: operating model to credit"],
+    "CP-1B": ["Chart data: prior and current results", "Chart data: margin and KPI changes", "Events: Earnings and guidance"],
+    "CP-1C": ["Chart data: peer range — percent metrics", "Chart data: peer range — multiples"],
+    "CP-DR": ["Events: Research catalysts"],
+    "CP-2": ["Map: credit-risk transmission"],
+    "CP-2A": ["Map: stress scenario"],
+    "CP-2D": ["Chart data: liquidity bridge", "Events: Financing"],
+    "CP-2E": ["Events: Hedges"],
+    "CP-2H": ["Chart data: rating triggers", "Events: Ratings"],
+    "CP-3": ["Events: Instruments"],
+    "CP-3C": ["Chart data: refinancing need", "Events: Refinancing"],
+    "CP-3D": ["Chart data: yield against maturity"],
+    "CP-4": ["Chart data: covenant headroom", "Events: Legal", "Map: legal entities", "Map: intercreditor"],
+    "CP-4C": ["Chart data: recovery by class", "Chart data: value allocation — scenario 1", "Chart data: value allocation — scenario 2", "Chart data: value allocation — scenario 3"],
+    "CP-5": ["Map: support and contradiction"],
+    "CP-6": ["Chart data: portfolio limits", "Events: Decision and watch"]
+  }
+}
