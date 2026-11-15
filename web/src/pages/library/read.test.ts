@@ -549,10 +549,14 @@ describe("readSlice, overview", () => {
     expect(full.overview.limitations.count).toBe("4");
   });
 
-  it("refuses an overview with no headline figure", () => {
+  it("reads an overview with no headline figure, as the delivery writes one with no foundation", () => {
     const slice = fresh();
     ovOf(slice).metrics = [];
-    expect(invalidReason(slice)).toContain("issuers[0].runs[0].overview.metrics");
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers[0]?.runs[0];
+    if (run?.loading !== false) throw new Error("the run is loaded");
+    expect(run.overview.metrics).toEqual([]);
   });
 
   it.each([
