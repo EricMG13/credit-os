@@ -1176,3 +1176,54 @@ def test_astral_cache_over_cap() -> None:
     assert str(caught.value) == (
         "b.xlsx: 'xl/worksheets/sheet1.xml': a cell or string longer than 1,048,576 characters"
     )
+
+
+QUOTE_SMILE = chr(0x1F600)
+
+
+def gap_formula(address: str) -> str:
+    # (ruling 39) 65,536 "'", astral characters, '"', "\n": the pieces' repr puts the label at most
+    # at the cap, the whole text's repr (every "'" escaped) is 65,536 over
+    k = 1_048_576 - 65_558 - len(address)
+    return "'" * 65_536 + QUOTE_SMILE * k + '"' + "\n"
+
+
+def gap_cache() -> str:
+    return "'" * 65_536 + QUOTE_SMILE * 983_021 + '"' + "\n"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("=" + gap_formula("A1"), id="gap-formula"),
+        pytest.param(gap_cache(), id="gap-cache"),
+        pytest.param("'" * 70_000 + '"', id="quotes-then-double"),
+        pytest.param("a'" * 40_000 + '"\n', id="mixed-pairs"),
+        pytest.param("'" * 70_000, id="one-quote-kind"),
+    ],
+)
+def test_floor_exact_repr(text: str) -> None:
+    # (ruling 39 follow-up) the floor of a repr is Python's own repr length, whatever repr escapes
+    assert xlsx._floor(text, repr) == len(repr(text))
+
+
+def test_quote_gap_memory() -> None:
+    # (ruling 39 follow-up) a label that will be refused is never built: the peak stays under 12 MiB
+    raw = book(
+        f'<row><c r="A1"><f>{gap_formula("A1")}</f></c></row>', method=zipfile.ZIP_DEFLATED
+    )
+    assert len(raw) < 1_048_576
+    with pytest.raises(SourceUnreadable):
+        xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        with pytest.raises(SourceUnreadable) as caught:
+            xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert str(caught.value) == (
+        "b.xlsx: 'xl/worksheets/sheet1.xml': a cell or string longer than 1,048,576 characters"
+    )
+    assert peak < 12 * 1024 * 1024
