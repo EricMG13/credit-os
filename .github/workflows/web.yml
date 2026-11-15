@@ -13,8 +13,8 @@ on:
     - cron: "47 */3 * * *"
   workflow_dispatch:
 
-# A newer push to the same pull request cancels its older run. Scheduled and manual runs on
-# main are keyed by commit, so one is never cancelled.
+# A newer push to the same pull request cancels its older run. Scheduled and manual runs are
+# keyed by commit, so a running one is never cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

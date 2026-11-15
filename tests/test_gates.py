@@ -63,7 +63,10 @@ def test_python_workflow_skips_front_end_only_changes() -> None:
         '    paths:\n      - "**"\n      - "!web/**"\n'
         '      - "web/package.json"\n      - "web/package-lock.json"\n'
     )
-    assert text.count(paths) == 2
+    assert text.count(paths) == 1
+    assert "  push:" not in text
+    assert '    - cron: "17 */3 * * *"' in text
+    assert "  workflow_dispatch:" in text
     assert "gitleaks" not in text
     assert "Changed lines at most 800" not in text
 
@@ -80,6 +83,9 @@ def test_review_workflow_runs_on_every_pull_request() -> None:
 def test_web_workflow_still_filters_on_web() -> None:
     text = Path(".github/workflows/web.yml").read_text(encoding="utf-8")
     assert '- "web/**"' in text
+    assert "  push:" not in text
+    assert '    - cron: "47 */3 * * *"' in text
+    assert "  workflow_dispatch:" in text
 
 
 def _marker(*parts: str) -> str:

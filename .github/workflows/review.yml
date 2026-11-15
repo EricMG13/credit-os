@@ -2,8 +2,7 @@ name: review
 
 on: pull_request
 
-# A newer push to the same pull request cancels its older run. Each push to main has its own
-# group, so a run on main is never cancelled and never replaced while it waits.
+# A newer push to the same pull request cancels its older run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
