@@ -258,3 +258,12 @@ def test_accepted_edges_store_the_keyed_text(
     assert len(_events(store)) == events + 1
     column = "fail_reason" if call == "fail_attempt" else "issues"
     assert _query(tmp_path, f"SELECT {column} FROM attempts") == [(text,)]
+
+
+@pytest.mark.parametrize("name", THREE_WRITES)
+def test_an_old_claim_writes_nothing(
+    tmp_path: Path, store: Store, ticker: Ticker, name: str
+) -> None:
+    old = _running(store, _setup_for(name))
+    store.claim_run(RUN_ID)
+    _refused(tmp_path, store, ticker, old, name, key.STATE_CALLS[name], "StoreFenced")
