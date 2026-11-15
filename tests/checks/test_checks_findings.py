@@ -37,6 +37,9 @@ EXPECTED_CHECKS = [
     "sources.sha256",
     "sources.sha256-required",
     "sources.type",
+    "table.absent",
+    "table.header",
+    "table.cell",
     "figure.form",
     "figure.not-held",
     "figure.mismatch",
@@ -73,7 +76,7 @@ def _context(**values: Any) -> CheckContext:
 
 def test_checks_closed_tuple() -> None:
     assert list(CHECKS) == EXPECTED_CHECKS
-    assert len(set(CHECKS)) == 35
+    assert len(set(CHECKS)) == 38
 
 
 def test_message() -> None:
@@ -172,6 +175,7 @@ def test_context_defaults() -> None:
     assert context.as_of is None
     assert context.issuer_names == ()
     assert context.hashes_required is False
+    assert context.owed_tables == ()
 
 
 @pytest.mark.parametrize(
@@ -354,3 +358,33 @@ def test_refusal_helper_defaults_to_column_one() -> None:
 def test_refusal_helper_takes_a_column() -> None:
     found = refusal("prose.hash", 2, "abc", "Remove it.", column=9)
     assert (found.severity, found.line, found.column, found.quoted) == ("refusal", 2, 9, "abc")
+
+
+def test_owed_tables_kept_in_the_callers_order() -> None:
+    first = _context(kind="data", owed_tables=("Chart data: liquidity", "Net debt data"))
+    assert first.owed_tables == ("Chart data: liquidity", "Net debt data")
+    second = _context(kind="data", owed_tables=("Net debt data", "Chart data: liquidity"))
+    assert second.owed_tables == ("Net debt data", "Chart data: liquidity")
+
+
+def test_owed_tables_frozen() -> None:
+    context = _context(kind="data", owed_tables=("Net debt data",))
+    with pytest.raises(ValidationError):
+        _set(context, "owed_tables", ())
+
+
+@pytest.mark.parametrize(
+    "owed",
+    [
+        ("Liquidity",),
+        ("Chart data: Liquidity",),
+        ("### Chart data: liquidity",),
+        ("",),
+        ("Chart data: liquidity", "Chart data: cash"),
+        ("Chart data: liquidity bridge",),
+    ],
+    ids=["not a heading", "case", "marks", "empty", "second unknown", "no spec yet"],
+)
+def test_owed_tables_refuses_an_unknown_heading(owed: tuple[str, ...]) -> None:
+    with pytest.raises(ValidationError):
+        _context(kind="data", owed_tables=owed)
