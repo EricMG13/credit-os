@@ -61,6 +61,11 @@ def _nested(levels: int) -> bytes:
 MAX_BYTES = 1048576  # 1 MiB, refused before decoding (ruling on review M1, 2026-11-15)
 MAX_VALUES = 5000  # every object, array, string, number, true, false and null, the root included
 BIG, MANY = ("$: larger than 1048576 bytes.",), ("$: too many values (more than 5000).",)
+DEEP, LONG = (
+    ("$: nested too deeply (more than 32 levels).",),
+    ("$: a key is longer than 64 characters.",),
+)
+K65 = b', "' + b"k" * 65 + b'": '  # a 65-character key, spliced in before a value
 
 
 def _values(obj: Any) -> int:  # counted by recursion here, apart from the loader's walk
@@ -122,17 +127,14 @@ GUARDS: dict[str, tuple[bytes, tuple[str, ...]]] = {
     # Ruling on review M1: a byte cap first, before decoding, and a value cap after the depth guard.
     "bytes_over_cap": (_padded(MAX_BYTES + 1), BIG),
     "bytes_over_cap_before_decoding": (b"\xff" * (MAX_BYTES + 1), BIG),
-    "values_over_cap": (_guarantors(MAX_VALUES + 1), MANY),
+    "values_over_cap": (_guarantors(MAX_VALUES)[:-1] + K65 + b"1}", MANY),
     "deep_and_too_many": (
-        _guarantors(MAX_VALUES + 1)[:-1] + b', "x": ' + b"[" * 32 + b"]" * 32 + b"}",
-        ("$: nested too deeply (more than 32 levels).",),
+        _guarantors(MAX_VALUES + 1)[:-1] + K65 + b"[" * 32 + b"]" * 32 + b"}",
+        DEEP,
     ),
     # Ruling on review M3: a key over 64 characters, after the value guard.
-    "key_too_long": (changed(("k" * 65,), 1), ("$: a key is longer than 64 characters.",)),
-    "nested_key_too_long": (
-        changed(("run", "k" * 65), 1),
-        ("$: a key is longer than 64 characters.",),
-    ),
+    "key_too_long": (changed(("k" * 65,), 1), LONG),
+    "nested_key_too_long": (changed(("deal_terms",), [{"k" * 65: 1}]), LONG),
     # The top-level guard comes before the depth guard (review M2).
     "top_level_array_too_deep": (b"[" * 40 + b"]" * 40, ("$: the top level must be an object.",)),
 }
