@@ -842,7 +842,9 @@ def _wildcard(host: str) -> bool:
 
 
 def _hosts(host: str, port: int) -> frozenset[str]:
-    names = [host, "localhost"] if host == "127.0.0.1" else [host]
+    # A browser lower-cases the host of a URL (RFC 3986 3.2.2), so the configured name is kept in
+    # lower case; the request's Host header is still compared exactly.
+    names = [host.lower(), "localhost"] if host == "127.0.0.1" else [host.lower()]
     allowed = {f"{name}:{port}" for name in names}
     if port == 80:
         allowed.update(names)  # a browser leaves the default port out of Host
