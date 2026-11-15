@@ -178,7 +178,7 @@ ADMISSIONS: dict[str, tuple[list[Line], str, str, bool, str | None, list[int]]] 
     "zero_cap_zero_hold": ([], "0", "0", True, None, []),
     # 12.83 + 7.17 = 20.00 (bc)
     "cap_equal_passes": (
-        [("call", "CP-0/0", "ok", HOLD, "12.83")],
+        [("call", "CP-0/0", "ok", "12.83", "12.83")],
         "20",
         "7.17",
         True,
