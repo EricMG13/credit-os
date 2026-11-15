@@ -1118,3 +1118,191 @@ def test_pieces_memory() -> None:
     assert len(pages.pages) == 1
     assert pages.pages[0].text == H + "A1='" + chr(0x100) * (1_048_576 - 5) + "'"
     assert peak < 24 * 1024 * 1024
+
+
+def test_cache_floor_memory() -> None:
+    # (ruling 39) a formula near the cap and a long shared-string cache is refused at the cache
+    # before the formula label is built, so the peak stays under 16 MiB
+    smile = chr(0x1F600)
+    cap = 1_048_576
+    raw = book(
+        '<row><c t="s"><f>' + smile * (cap - 21) + "</f><v>0</v></c></row>",
+        strings="<si><t>" + smile * (cap - 250) + "</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    with pytest.raises(SourceUnreadable):
+        xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        with pytest.raises(SourceUnreadable) as caught:
+            xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
+    assert peak < 16 * 1024 * 1024
+
+
+def astral_cache_book(extra: int) -> tuple[bytes, str]:
+    # (ruling 39) the byte floor: a shared-string cache of astral characters is counted at
+    # 4 bytes a character, so a cache at the cap reads and one character more is refused
+    smile = chr(0x1F600)
+    cap = 1_048_576
+    k = 600_000 + extra
+    m = cap - 13 - 600_000
+    raw = book(
+        '<row r="1"><c r="A1" t="s"><f>' + "x" * m + "</f><v>0</v></c></row>",
+        strings="<si><t>" + smile * k + "</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    return raw, "A1=" + "'=" + "x" * m + "'" + " cache=" + smile * k
+
+
+def test_astral_cache_at_cap() -> None:
+    raw, label = astral_cache_book(0)
+    assert len(label) == 1_048_576
+    pages = xlsx_pages("b.xlsx", raw)
+    assert pages.pages[0].text.endswith("\n" + label)
+    assert pages.pages[0].state == "text"
+
+
+def test_astral_cache_over_cap() -> None:
+    raw, _ = astral_cache_book(1)
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", raw)
+    assert str(caught.value) == (
+        "b.xlsx: 'xl/worksheets/sheet1.xml': a cell or string longer than 1,048,576 characters"
+    )
+
+
+QUOTE_SMILE = chr(0x1F600)
+
+
+def gap_formula(address: str) -> str:
+    # (ruling 39) 65,536 "'", astral characters, '"', "\n": the pieces' repr puts the label at most
+    # at the cap, the whole text's repr (every "'" escaped) is 65,536 over
+    k = 1_048_576 - 65_558 - len(address)
+    return "'" * 65_536 + QUOTE_SMILE * k + '"' + "\n"
+
+
+def gap_cache() -> str:
+    return "'" * 65_536 + QUOTE_SMILE * 983_021 + '"' + "\n"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("=" + gap_formula("A1"), id="gap-formula"),
+        pytest.param(gap_cache(), id="gap-cache"),
+        pytest.param("'" * 70_000 + '"', id="quotes-then-double"),
+        pytest.param("a'" * 40_000 + '"\n', id="mixed-pairs"),
+        pytest.param("'" * 70_000, id="one-quote-kind"),
+    ],
+)
+def test_floor_exact_repr(text: str) -> None:
+    # (ruling 39 follow-up) the floor of a repr is Python's own repr length, whatever repr escapes
+    assert xlsx._floor(text, repr) == len(repr(text))
+
+
+def test_quote_gap_memory() -> None:
+    # (ruling 39 follow-up) a label that will be refused is never built: the peak stays under 12 MiB
+    raw = book(f'<row><c r="A1"><f>{gap_formula("A1")}</f></c></row>', method=zipfile.ZIP_DEFLATED)
+    assert len(raw) < 1_048_576
+    with pytest.raises(SourceUnreadable):
+        xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        with pytest.raises(SourceUnreadable) as caught:
+            xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert str(caught.value) == (
+        "b.xlsx: 'xl/worksheets/sheet1.xml': a cell or string longer than 1,048,576 characters"
+    )
+    assert peak < 12 * 1024 * 1024
+
+
+SMILE = chr(0x1F600)  # printable astral: repr keeps it, four bytes in a str
+FORMULA_CAP_REFUSED = "b.xlsx: " + CAP_REFUSED
+
+
+def peak_of_read(raw: bytes) -> tuple[str, int]:
+    # read once to warm up, then measure the second read; returns the outcome and the peak bytes
+    outcome = ""
+    peak = 0
+    for _ in range(2):
+        tracemalloc.start()
+        try:
+            tracemalloc.reset_peak()
+            try:
+                xlsx_pages("b.xlsx", raw)
+                outcome = "reads"
+            except SourceUnreadable as caught:
+                outcome = str(caught)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+    return outcome, peak
+
+
+@pytest.mark.parametrize("over", [1, 2], ids=["quoted-formula-over-1", "quoted-formula-over-2"])
+def test_quoted_formula_over_cap_is_refused_early(over: int) -> None:
+    # (ruling 41) a formula without a control character is written as '=F': 3 more than F, so a
+    # label 1 or 2 over the cap is refused before the quoted formula is built
+    raw = formula_book(SMILE * (1_048_576 - 21 + over))
+    assert len(raw) < 1_048_576
+    outcome, peak = peak_of_read(raw)
+    assert outcome == FORMULA_CAP_REFUSED
+    assert peak < 8 * 1024 * 1024
+
+
+def test_quoted_formula_at_cap() -> None:
+    # (ruling 41) a label of exactly the cap reads
+    raw = formula_book(SMILE * (1_048_576 - 21))
+    assert len(raw) < 1_048_576
+    assert peak_of_read(raw)[0] == "reads"
+
+
+def test_control_formula_at_cap() -> None:
+    # (ruling 37) repr("=" + F) adds 3 (the "=" and two quotes), so the cap is met at k + 5
+    raw = formula_book(SMILE * (1_048_576 - 23) + "\n")
+    assert len(raw) < 1_048_576
+    assert peak_of_read(raw)[0] == "reads"
+
+
+def test_control_formula_over_cap_by_1() -> None:
+    raw = formula_book(SMILE * (1_048_576 - 22) + "\n")
+    assert len(raw) < 1_048_576
+    assert peak_of_read(raw)[0] == FORMULA_CAP_REFUSED
+
+
+def test_shared_cache_after_large() -> None:
+    # (ruling 43, R3) the byte floor of a shared string is its own bytes: string 2 reads after a
+    # 4-megabyte string 1
+    raw = book(
+        '<row r="1"><c r="A1" t="s"><f>1</f><v>2</v></c></row>',
+        strings="<si><t>a</t></si><si><t>" + SMILE * 1_048_570 + "</t></si><si><t>x</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    assert xlsx_pages("b.xlsx", raw).pages[0].text.endswith("\nA1='=1' cache=x")
+
+
+def test_inline_astral_early() -> None:
+    # (ruling 43, R1; ruling 36) an inline string of astral characters under the cell cap is
+    # refused before its repr is built, so the peak stays under 15 MiB
+    raw = book(
+        '<row r="1"><c r="A1" t="inlineStr"><is><t>'
+        + chr(0xE0001) * 1_048_570
+        + "</t></is></c></row>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    outcome, peak = peak_of_read(raw)
+    assert outcome == FORMULA_CAP_REFUSED
+    assert peak < 15 * 1024 * 1024
