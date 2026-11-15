@@ -124,6 +124,7 @@ REFUSED_INSERTS: tuple[tuple[str, str, dict[str, object], str], ...] = (
     ("module id NUL tail", "attempts", {"module_id": "CP-3\x00x"}, CHECK),
     ("module id not ASCII", "attempts", {"module_id": "CP-é"}, CHECK),
     ("request missing", "attempts", {"request": None}, _NN + "attempts.request"),
+    ("state missing", "attempts", {"state": None}, _NN + "attempts.state"),
     (
         "request as text",
         "attempts",
@@ -187,6 +188,7 @@ REFUSED_INSERTS: tuple[tuple[str, str, dict[str, object], str], ...] = (
     ("open call with a start time", "calls", {"started_at": T2}, CHECK),
     ("event id empty", "compactions", {"event_id": ""}, CHECK),
     ("event id missing", "compactions", {"event_id": None}, _NN + "compactions.event_id"),
+    ("position missing", "compactions", {"position": None}, _NN + "compactions.position"),
     ("call key without a call index", "compactions", {"call_index": None}, CHECK),
     ("call key with only a module", "compactions", {"attempt": None, "call_index": None}, CHECK),
     *(
