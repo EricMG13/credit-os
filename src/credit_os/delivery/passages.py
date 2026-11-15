@@ -87,7 +87,7 @@ def bottom_line(reader: Reader, names: Sequence[str]) -> dict[str, object]:
     if not _joined(texts):
         raise _refuse("bottom line", "no text")
     lead, rest = _lead_and_rest(texts, section.blocks[0])
-    _clean("bottom line", names, lead, rest)
+    _clean("bottom line", names, lead, rest, _joined([lead, rest]))
     return {"label": section.title, "lead": lead, "rest": rest, "trace": None}
 
 
@@ -108,14 +108,14 @@ def findings(reader: Reader, names: Sequence[str]) -> tuple[dict[str, object], .
         if not text:
             continue
         lead, body = _lead_and_rest([text], block)
-        _clean("findings", names, lead, body)
+        _clean("findings", names, lead, body, _joined([lead, body]))
         out.append({"number": f"{len(out) + 1:02d}", "lead": lead, "body": body, "trace": None})
     return tuple(out)
 
 
 def _part(title: str, texts: Sequence[str], names: Sequence[str]) -> dict[str, object]:
     text = _joined(texts)
-    _clean("contrary evidence", names, title, text)
+    _clean("contrary evidence", names, title, text, _joined([title, text]))
     return {"title": title, "text": text, "trace": None}
 
 
