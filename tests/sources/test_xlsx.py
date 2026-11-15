@@ -1225,3 +1225,57 @@ def test_quote_gap_memory() -> None:
         "b.xlsx: 'xl/worksheets/sheet1.xml': a cell or string longer than 1,048,576 characters"
     )
     assert peak < 12 * 1024 * 1024
+
+
+SMILE = chr(0x1F600)  # printable astral: repr keeps it, four bytes in a str
+FORMULA_CAP_REFUSED = "b.xlsx: " + CAP_REFUSED
+
+
+def peak_of_read(raw: bytes) -> tuple[str, int]:
+    # read once to warm up, then measure the second read; returns the outcome and the peak bytes
+    outcome = ""
+    peak = 0
+    for _ in range(2):
+        tracemalloc.start()
+        try:
+            tracemalloc.reset_peak()
+            try:
+                xlsx_pages("b.xlsx", raw)
+                outcome = "reads"
+            except SourceUnreadable as caught:
+                outcome = str(caught)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+    return outcome, peak
+
+
+@pytest.mark.parametrize("over", [1, 2], ids=["quoted-formula-over-1", "quoted-formula-over-2"])
+def test_quoted_formula_over_cap_is_refused_early(over: int) -> None:
+    # (ruling 41) a formula without a control character is written as '=F': 3 more than F, so a
+    # label 1 or 2 over the cap is refused before the quoted formula is built
+    raw = formula_book(SMILE * (1_048_576 - 21 + over))
+    assert len(raw) < 1_048_576
+    outcome, peak = peak_of_read(raw)
+    assert outcome == FORMULA_CAP_REFUSED
+    assert peak < 8 * 1024 * 1024
+
+
+def test_quoted_formula_at_cap() -> None:
+    # (ruling 41) a label of exactly the cap reads
+    raw = formula_book(SMILE * (1_048_576 - 21))
+    assert len(raw) < 1_048_576
+    assert peak_of_read(raw)[0] == "reads"
+
+
+def test_control_formula_at_cap() -> None:
+    # (ruling 37) repr("=" + F) adds 3 (the "=" and two quotes), so the cap is met at k + 5
+    raw = formula_book(SMILE * (1_048_576 - 23) + "\n")
+    assert len(raw) < 1_048_576
+    assert peak_of_read(raw)[0] == "reads"
+
+
+def test_control_formula_over_cap_by_1() -> None:
+    raw = formula_book(SMILE * (1_048_576 - 22) + "\n")
+    assert len(raw) < 1_048_576
+    assert peak_of_read(raw)[0] == FORMULA_CAP_REFUSED
