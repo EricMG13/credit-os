@@ -19,7 +19,10 @@
   {"id": "contrary-lead-only", "file": "SYNTHETIC-CP-1A.md", "replace": [["The strongest point against concern is the steady quarterly reporting record. A refinancing announced before the first debt date would soften the view.", "**Reporting is steady.**"]], "builder": "contrary", "expected": [{"title": "Reporting is steady.", "text": "", "trace": null}, null]},
   {"id": "findings-basis-only-item", "file": "SYNTHETIC-CP-2.md", "replace": [["- Liquidity support rests", "- Basis: NBG_2024-12-31_Q4-results.pdf, page 7\n- Liquidity support rests"]], "builder": "findings", "expected": [{"number": "01", "lead": "Leverage is moderate but not low, at 4.2x net debt to EBITDA, so there is little room for an earnings miss.", "body": "", "trace": null}, {"number": "02", "lead": "A large part of the debt comes due soon: 38% of gross debt matures within 24 months, which makes refinancing access the deciding factor.", "body": "", "trace": null}, {"number": "03", "lead": "Liquidity support rests on an undrawn revolver that steps down, which narrows the cushion over time.", "body": "", "trace": null}]},
   {"id": "contrary-basis-only-paragraph", "file": "SYNTHETIC-CP-2.md", "replace": [["The company has not said", "Basis: NBG_2025-03-31_annual-report.pdf, page 41\n\nThe company has not said"]], "builder": "contrary", "expected": [{"title": "Contrary evidence and what would change the view", "text": "The strongest evidence against concern is the consistent earnings record over recent quarters. A signed refinancing of the nearest maturity would move the view towards comfort. The company has not said how it intends to fund the step-down.", "trace": null}, null]},
-  {"id": "contrary-no-text", "file": "SYNTHETIC-CP-2.md", "replace": [["The strongest evidence against concern is the consistent earnings record over recent quarters. A signed refinancing of the nearest maturity would move the view towards comfort.\nBasis: NBG_2024-12-31_Q4-results.pdf, page 7\n\nThe company has not said how it intends to fund the step-down.\n", "Basis: NBG_2024-12-31_Q4-results.pdf, page 7\n"]], "builder": "contrary", "expected": [null, null]}
+  {"id": "contrary-no-text", "file": "SYNTHETIC-CP-2.md", "replace": [["The strongest evidence against concern is the consistent earnings record over recent quarters. A signed refinancing of the nearest maturity would move the view towards comfort.\nBasis: NBG_2024-12-31_Q4-results.pdf, page 7\n\nThe company has not said how it intends to fund the step-down.\n", "Basis: NBG_2024-12-31_Q4-results.pdf, page 7\n"]], "builder": "contrary", "expected": [null, null]},
+  {"id": "bottom-line-lead-two-lines-and-second-block", "file": "SYNTHETIC-CP-2.md", "replace": [["Creditors are exposed to refinancing risk rather than to weak earnings: net debt", "**Refinancing, not earnings.** Creditors are exposed to refinancing risk rather than to weak earnings:\nnet debt"], ["page 41; calculation K1\n\n### Key findings", "page 41; calculation K1\n\nThe nearest maturity\nis the one to watch.\n\n### Key findings"]], "builder": "bottomLine", "expected": {"label": "Bottom line", "lead": "Refinancing, not earnings.", "rest": "Creditors are exposed to refinancing risk rather than to weak earnings: net debt of USD 1,390 million is 4.2x earnings, and the next maturities fall inside two years. The nearest maturity is the one to watch.", "trace": null}},
+  {"id": "contrary-lead-two-lines", "file": "SYNTHETIC-CP-2.md", "replace": [["The company has not said how it intends", "**Funding of the step-down.** The company has not said\nhow it intends"]], "builder": "contrary", "expected": [{"title": "Contrary evidence and what would change the view", "text": "The strongest evidence against concern is the consistent earnings record over recent quarters. A signed refinancing of the nearest maturity would move the view towards comfort.", "trace": null}, {"title": "Funding of the step-down.", "text": "The company has not said how it intends to fund the step-down.", "trace": null}]},
+  {"id": "blocked-two-lines", "file": "SYNTHETIC-CP-2D.md", "replace": [["no revolver drawing terms, so cash cover", "no revolver drawing terms,\nso cash cover"]], "builder": "blocked", "expected": "the documents read give no monthly cash forecast and no revolver drawing terms, so cash cover of the maturities cannot be tested."}
  ],
  "refused": [
   {"id": "bottom-line-empty", "file": "SYNTHETIC-CP-0.md", "replace": [["The two documents read are enough for a credit snapshot, but no covenant package was read, so creditor protections cannot be confirmed from the file set.\n", ""]], "builder": "bottomLine"},
@@ -39,7 +42,8 @@
   {"id": "findings-lead-splits-a-source", "file": "SYNTHETIC-CP-2.md", "replace": [["| NBG_2024-12-31_Q4-results.pdf | Earnings and quarterly cash. |", "| NBG_2024-12-31_Q4-results.pdf | Earnings and quarterly cash. |\n| Northbridge annual report.pdf | Synthetic name with spaces. |"], ["- Leverage is moderate but not low", "- **Northbridge** annual report.pdf shows leverage is moderate but not low"]], "builder": "findings"},
   {"id": "contrary-lead-splits-a-source", "file": "SYNTHETIC-CP-2.md", "replace": [["| NBG_2024-12-31_Q4-results.pdf | Earnings and quarterly cash. |", "| NBG_2024-12-31_Q4-results.pdf | Earnings and quarterly cash. |\n| Northbridge annual report.pdf | Synthetic name with spaces. |"], ["The company has not said", "**Northbridge** annual report.pdf: the company has not said"]], "builder": "contrary"},
   {"id": "bottom-line-sub-heading", "file": "SYNTHETIC-CP-2.md", "replace": [["### Key findings", "#### More\n\nMore text.\n\n### Key findings"]], "builder": "bottomLine"},
-  {"id": "contrary-deeper-heading", "file": "SYNTHETIC-CP-2.md", "replace": [["The company has not said", "#### What would change the view\n\n##### Deeper\n\nThe company has not said"]], "builder": "contrary"}
+  {"id": "contrary-deeper-heading", "file": "SYNTHETIC-CP-2.md", "replace": [["The company has not said", "#### What would change the view\n\n##### Deeper\n\nThe company has not said"]], "builder": "contrary"},
+  {"id": "blocked-leaks-a-code", "file": "SYNTHETIC-CP-2D.md", "replace": [["cannot be tested.", "cannot be tested (see CP-1)."]], "builder": "blocked"}
  ],
  "cells": [
   ["", null, null],
@@ -61,7 +65,16 @@
   ["Revenue by segment not supplied", {"kind": "value", "text": "Revenue by segment not supplied", "at": null}, null],
   ["CP-1", {"kind": "value", "text": "CP-1", "at": null}, null],
   ["(123456789012345678901234567891)", {"kind": "value", "text": "(123456789012345678901234567891)", "at": "-123456789012345678901234567891"}, [null, null]],
-  ["-1,390.25", {"kind": "value", "text": "-1,390.25", "at": "-1390.25"}, [null, null]]
+  ["-1,390.25", {"kind": "value", "text": "-1,390.25", "at": "-1390.25"}, [null, null]],
+  ["FY2025", {"kind": "value", "text": "FY2025", "at": null}, null],
+  ["9M", {"kind": "value", "text": "9M", "at": null}, null],
+  ["Q3", {"kind": "value", "text": "Q3", "at": null}, null],
+  ["Q4 2024", {"kind": "value", "text": "Q4 2024", "at": null}, null],
+  ["H1 2025", {"kind": "value", "text": "H1 2025", "at": null}, null],
+  ["31 Mar 2025", {"kind": "value", "text": "31 Mar 2025", "at": null}, null],
+  ["Mar 2025", {"kind": "value", "text": "Mar 2025", "at": null}, null],
+  ["FY2024 1,700", {"kind": "value", "text": "FY2024 1,700", "at": null}, null],
+  ["2025", {"kind": "value", "text": "2025", "at": "2025"}, [null, null]]
  ],
  "leaks": [
   ["Leverage is 4.2x.", ["NBG_2025-03-31_annual-report.pdf"], []],
