@@ -69,14 +69,20 @@ def printed(lines: list[str], amount: str) -> bool:
 # it, its column header, the first header cell and every other cell of its row (6a's group, with
 # the cell itself) name no unit other than the block's. A piece or group naming both units does
 # not count. Prose naming no unit still counts (known reading until R57's caption line). Rates are
-# read from every line, as before.
+# read from every line, as before. R59c (coordinator, 2026-11-15): a table whose caption (the lines
+# of the paragraph directly before it, `PR6A.captions`) names any unit other than the block's
+# contributes no piece at all, in its label, headers or body cells; a caption naming only the
+# block's unit, or none, changes nothing.
 def balance_pieces(text: str, unit: str) -> list[str]:
     def only(*pieces: str) -> bool:
         return all(set(PR6A.units_named(piece)) <= {unit} for piece in pieces)
 
     lines = PR6A.text_lines(text)
     pieces = [line for line in lines if not line.lstrip(" ").startswith("|") and only(line)]
-    for _, head, body in PR5.tables(text):
+    above = PR6A.captions(text)
+    for first, head, body in PR5.tables(text):
+        if not only(*above.get(first, [])):  # R59c: a caption naming another unit voids the table
+            continue
         pieces += [cell for cell in head if only(cell)]
         for cells in body:
             pieces += [cell for c, cell in enumerate(cells) if only(*cells, head[c], head[0])]
@@ -668,16 +674,96 @@ def m1_rows() -> list[Doc]:
     return rows
 
 
+# R59c (coordinator ruling: the caption in the balance filter)
+def r59c_rows() -> list[Doc]:
+    """The facility table's caption: a unit other than the block's voids its balances, the block's
+    unit or none leaves them. Base debt is missing, so the facility table's own `Total Debt` row
+    is not an operand of the unit check and only the balance filter is under test. Then the M1
+    prose rows again with a neutral paragraph between the prose and the debt table, since under
+    R59b the prose line directly above that table is its caption (the two M1 prose rows now end
+    in the unit check; see their entries)."""
+    heading = "### Debt facilities\n\n"
+    rows: list[Doc] = []
+
+    def caption(label: str, text: str, scale: int) -> Doc:
+        base: Doc = SCALE_1000 if scale == 1000 else {}
+        return {
+            "label": f"R59c: {label}",
+            **base,
+            "edits": [[heading, f"{heading}{text}\n\n"]],
+            "ops": [MISSING],
+        }
+
+    rows.append(
+        caption(
+            "scale 1, the facility table's caption names thousands: not printed",
+            "Amounts in USD thousands.",
+            1,
+        )
+    )
+    rows.append(
+        caption(
+            "scale 1, the facility table's caption names millions: printed",
+            "Amounts in USD millions.",
+            1,
+        )
+    )
+    rows.append(
+        caption(
+            "scale 1, the facility table's caption names no unit: printed",
+            "Amounts as reported.",
+            1,
+        )
+    )
+    rows.append(
+        caption(
+            "scale 1000, the facility table's caption names USD millions: not printed",
+            "Amounts in USD millions.",
+            1000,
+        )
+    )
+    rows.append(
+        caption(
+            "scale 1000, the facility table's caption names USD thousands: printed",
+            "Amounts in USD thousands.",
+            1000,
+        )
+    )
+    rows.append(
+        caption(
+            "scale 1, a caption naming both units: not printed (as a row naming both)",
+            "Amounts in USD millions, restated from USD thousands.",
+            1,
+        )
+    )
+    rows.append(caption("scale 1, a caption naming M$: not printed", "Amounts in M$.", 1))
+    rows.append(
+        caption(
+            "scale 1, a caption two paragraphs up is not read (R59d): printed",
+            "Amounts in USD thousands.\n\nSee the table below.",
+            1,
+        )
+    )
+    base = debt("3,000", "3000")
+    for where, other, word in M1[:2]:
+        line = f"{other}\n\nSee the debt table below."
+        edits = [*base["edits"], [CALC, f"{CALC}\n{line}\n"]]
+        ops = [*base["ops"], [["facilities", 1, "balance"], "380"]]
+        label = f"R59c: a balance printed only {where}, a neutral paragraph before the table"
+        rows.append({"label": label, "edits": edits, "ops": ops})
+    return rows
+
+
 def render() -> str:
     rows = [
         {**row, "source": row.get("source", "forward-model.md")}
-        for row in [*ROWS, *r47_rows(), *m1_rows()]
+        for row in [*ROWS, *r47_rows(), *m1_rows(), *r59c_rows()]
     ]
     rows = [{**row, "outcome": outcome(row)} for row in rows]
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 105 and len(accepted) == 36
+    assert len(labels) == len(set(labels)) == 115 and len(accepted) == 40
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
