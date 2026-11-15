@@ -1,4 +1,4 @@
-"""Read the Basis line that ends a paragraph or list item.
+"""Read the Basis line that ends a paragraph or list item, or the citations in a table cell.
 
 The line starts `Basis: `; its items are split on `; ` and each is a calculation id, an
 upstream module, a source file with optional pages, or plain text. Nothing is guessed: a piece
@@ -10,6 +10,11 @@ a Sources-table row naming a module is not a source file. An item equal to a nam
 a known name holding `; ` is still split, and a known name ending in a full stop never
 matches as the last item of a line, because the line's final full stop is dropped first. Page
 numbers are one to nine digits; only spaces may surround the dash of a span.
+
+`read_cell` reads the text of a table cell (for example a Source column) in the same item forms,
+through the same item reader. The earlier forms `p. 3`, `pp. 3`, `page: 3` and `[CP-1: C1]` stay
+text. Same known limit: a cell holding `; ` inside a name is split. It raises only TypeError, for
+a value that is not a str.
 """
 
 import re
@@ -91,14 +96,24 @@ def _item(piece: str, known: Sequence[str]) -> BasisItem:
     return _known_source(piece, known) or _source(piece) or BasisItem(kind="text", text=piece)
 
 
+def _items(text: str, known: Sequence[str]) -> tuple[BasisItem, ...]:
+    pieces = [piece.strip() for piece in text.split("; ")]
+    return tuple(_item(piece, known) for piece in pieces if piece)
+
+
+def read_cell(text: str, known: Sequence[str] = ()) -> tuple[BasisItem, ...]:
+    if not isinstance(text, str):
+        raise TypeError("a table cell is read from a str")
+    return _items(text.strip().removesuffix("."), known)
+
+
 def read_basis(block: Paragraph | ListItem, known: Sequence[str] = ()) -> Basis | None:
     last = block.lines[-1] if block.lines else ""
     if not last.startswith(_PREFIX):
         return None
     text = last[len(_PREFIX) :].rstrip().removesuffix(".")
-    pieces = [piece.strip() for piece in text.split("; ")]
     return Basis(
         line=block.line + len(block.lines) - 1,
         body=block.lines[:-1],
-        items=tuple(_item(piece, known) for piece in pieces if piece),
+        items=_items(text, known),
     )
