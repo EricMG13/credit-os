@@ -170,7 +170,7 @@ def test_migration_3_applies_to_a_slice_2_database_and_keeps_its_rows(
     old.close()
     monkeypatch.undo()
     new = open_db(tmp_path)
-    assert rows(new, "SELECT value FROM meta WHERE key='schema_version'") == [("3",)]
+    assert rows(new, "SELECT value FROM meta WHERE key='schema_version'") == [("4",)]
     assert count(new, "stories") == 2
     assert rows(new, "SELECT user_name, story_id FROM saves") == [("rd", 1)]
     for table in ("groups", "group_members", "group_topics", "threads", "comments"):
