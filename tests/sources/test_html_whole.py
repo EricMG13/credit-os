@@ -7,7 +7,7 @@ from collections import Counter
 from collections.abc import Sequence
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from credit_os.sources import SourceUnreadable, cut_pages
@@ -301,6 +301,7 @@ def _check(raw: bytes, whole: str, size: int, refusals: set[str]) -> None:
 
 @pytest.mark.parametrize("setting", _SETTINGS)
 @settings(max_examples=300, deadline=None)
+@example(source=random.Random(10167))
 @given(source=st.randoms(use_true_random=False))
 def test_small_pieces_equal_whole(
     setting: tuple[int, int, int, int], source: random.Random
@@ -321,6 +322,7 @@ def test_small_pieces_equal_whole(
 
 
 @settings(max_examples=300, deadline=None)
+@example(source=random.Random(10167))
 @given(source=st.randoms(use_true_random=False))
 def test_real_constants_equal_whole(source: random.Random) -> None:
     rng.use(source)
