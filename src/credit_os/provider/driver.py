@@ -32,7 +32,10 @@ _ENDS = ("session.idle", "session.error")
 _IDLE_OUT = "no session event within the idle timeout"
 _OVERALL_OUT = "the call passed its overall timeout"
 _NO_ID = "an exchange id is 1 to 128 of A-Z a-z 0-9 _ -"
-_NO_TOOLS = "tool specifications are not supported yet"
+_NO_DUPLICATE = "two tools share a name"
+_NO_MATCH = "the tool calls reported, offered and invoked differ"
+_NO_LOST = "the session went idle with a tool call not invoked"
+_NO_PATH = "a tool call id holds a path"
 _NO_INDEX = "a call index other than 0 is not supported yet"
 _NO_HISTORY = "a first call is system messages, then exactly one user message"
 _NO_REUSE = "the exchange is already open or was released"
@@ -66,14 +69,66 @@ def _stray(event: dict[str, Any]) -> bool:
     )
 
 
+def _duplicated(request: Request) -> bool:
+    names = [t.name for t in request.tools]
+    return len(set(names)) != len(names)
+
+
+def _data(events: list[Any], kind: str) -> list[dict[str, Any]]:
+    """The payloads of the dict events of one type (an envelope that is not a dict is skipped)."""
+    return [
+        e["data"]
+        for e in events
+        if isinstance(e, dict) and e.get("type") == kind and isinstance(e.get("data"), dict)
+    ]
+
+
+def _ready(events: list[Any], offered: set[str]) -> bool:
+    """A call that announces tool calls may end: a usage and a start are read, every announced
+    id has a start, and every start of an offered tool has been invoked under the same id."""
+    starts = _data(events, "tool.execution_start")
+    lists = [d.get("toolRequests") for d in _data(events, "assistant.message")]
+    announced = [
+        r.get("toolCallId") for t in lists if isinstance(t, list) for r in t if isinstance(r, dict)
+    ]
+    started = {d.get("toolCallId") for d in starts}
+    invoked = {d.get("toolCallId") for d in _data(events, "external_tool.requested")}
+    wanted = {d.get("toolCallId") for d in starts if d.get("toolName") in offered}
+    return bool(_data(events, "assistant.usage") and starts) and (
+        started.issuperset(announced) and invoked.issuperset(wanted)
+    )
+
+
+def _json(value: object) -> str:
+    return json.dumps(value, sort_keys=True)
+
+
+def _differ(reply: Reply, invoked: list[dict[str, Any]], offered: set[str]) -> bool:
+    """Whether the calls reported, offered and invoked disagree."""
+    calls = {c.call_id: c for c in (reply.turn.tool_calls if reply.turn else ())}
+    ids = [d.get("toolCallId") for d in invoked]
+    if len(set(ids)) != len(ids) or set(ids) != set(calls):
+        return True
+    if any(c.name not in offered for c in calls.values()):
+        return True
+    for d in invoked:
+        c = calls[d["toolCallId"]]
+        sent = json.loads(c.bad_arguments) if c.bad_arguments is not None else c.arguments
+        if d.get("toolName") != c.name or _json(d.get("arguments") or {}) != _json(sent or {}):
+            return True
+    return False
+
+
 @dataclass
 class _Kept:
     """A session held open after an ok reply. `pending` holds the ids of the unfinished
-    compactions delivered on that reply (`None` for a withheld one)."""
+    compactions delivered on that reply (`None` for a withheld one); `invoked` the tool calls
+    the runtime asked for in it (toolCallId to requestId)."""
 
     client: ClientLike
     session: SessionLike
     pending: list[str | None] = field(default_factory=list)
+    invoked: dict[str, str] = field(default_factory=dict)
 
 
 class _Refused(Exception):
@@ -129,7 +184,9 @@ def _has_figures(reply: Reply) -> bool:
 
 
 class CopilotDriver:
-    """A `Model`. One client and one session per exchange. Paths (the home and the runtime
+    """A `Model`. One client and one session per exchange; a call at index 0 may offer tools,
+    declared with no handler: the runtime's `external_tool.requested` is the call invoked, and
+    the reply carries the tool calls with the session kept (answers are not sent yet). Paths (the home and the runtime
     path) are masked by the one `Redactor` (decision 0012); the driver keeps no path code."""
 
     def __init__(
@@ -148,9 +205,11 @@ class CopilotDriver:
         disconnect_timeout_s: float = 5.0,
         stop_timeout_s: float = 30.0,
         force_stop_timeout_s: float = 5.0,
+        settle_s: float = 2.0,
     ) -> None:
         self._open_client, self._model, self._environ = open_client, model, environ
         self._clock, self._idle, self._overall = clock, idle_timeout_s, overall_timeout_s
+        self._settle = settle_s
         steps = ("abort", "queued", "disconnect", "stop", "force_stop")
         waits = (abort_timeout_s, close_read_timeout_s, disconnect_timeout_s)
         self._bounds = dict(zip(steps, (*waits, stop_timeout_s, force_stop_timeout_s)))
@@ -178,7 +237,7 @@ class CopilotDriver:
         out: list[Compaction] = []
         unread = False
         for k in kept:
-            left = self._release(k.client, k.session, timed_out=False)
+            left = self._release(k.client, k.session, timed_out=bool(k.invoked))
             found, failed = self._read([], left, k, closing=True)
             out += found
             unread = unread or failed
@@ -192,7 +251,7 @@ class CopilotDriver:
         checks = (
             (self._closed, "AdapterClosed", "the model is closed"),
             (not _EXCHANGE.fullmatch(exchange_id), "InvalidExchangeId", _NO_ID),
-            (bool(request.tools), "UnsupportedCall", _NO_TOOLS),
+            (_duplicated(request), "InvalidToolSpec", _NO_DUPLICATE),
             (call_index != 0, "UnsupportedCall", _NO_INDEX),
             (not history, "HistoryMismatch", _NO_HISTORY),
             (exchange_id in self._used, "ExchangeExists", _NO_REUSE),
@@ -225,7 +284,8 @@ class CopilotDriver:
                 "effort": request.effort,
                 "system": system,
             }
-            opened |= {"session_id": exchange_id, "timeout_s": self._left(end)}
+            opened |= {"session_id": exchange_id, "tools": request.tools}
+            opened["timeout_s"] = self._left(end)
             return client, self._step("open_session", client.open_session, **opened)
         except _Refused:
             self._stop(client)
@@ -246,15 +306,21 @@ class CopilotDriver:
         client, session = self._open(request, exchange_id, end)
         _, exc = _try(session.send, request.messages[-1].text, timeout_s=self._left(end))
         events: list[Any] = []
-        problem = self._collect(session, end, events) if exc is None else _send_problem(exc)
+        offered = {t.name for t in request.tools}
+        problem = (
+            self._collect(session, end, events, offered) if exc is None else _send_problem(exc)
+        )
         finished = self._clock()
-        reply = self._reply(events, problem)
+        reply = self._reply(events, problem, offered)
+        invoked = _data(events, "external_tool.requested")
         kept = _Kept(client, session)
         left: object = []
         if reply.kind == "ok":
+            kept.invoked = {str(d.get("toolCallId")): str(d.get("requestId")) for d in invoked}
             self._kept.append(kept)
         else:
-            left = self._release(client, session, timed_out=bool(problem and problem[2]))
+            aborts = bool(problem and problem[2]) or bool(invoked)
+            left = self._release(client, session, timed_out=aborts)
         found, failed = self._read(events, left, kept)
         found += [_unread("release")] * failed
         reply = replace(reply, compactions=tuple(found))
@@ -262,25 +328,55 @@ class CopilotDriver:
         raw = None if reply.raw is None else scrub_raw(reply.raw, self._text)
         return replace(reply, message=message, raw=raw, started_at=started, finished_at=finished)
 
-    def _collect(self, session: SessionLike, end: float, events: list[Any]) -> _Problem | None:
+    def _collect(
+        self, session: SessionLike, end: float, events: list[Any], offered: set[str]
+    ) -> _Problem | None:
+        settling = False  # the tool-call boundary was met: one more poll, bounded by settle_s
         while (left := self._left(end)) > 0:  # the overall bound is checked before every poll
-            envelope, exc = _try(session.next_event, timeout_s=min(self._idle, left))
+            wait = min(self._settle if settling else self._idle, left)
+            envelope, exc = _try(session.next_event, timeout_s=wait)
             if exc is not None and not isinstance(exc, TimeoutError):
                 return "AdapterError", _failure("next_event", exc), True
             if envelope is None:
-                if left <= self._idle:
-                    return "OverallTimeout", _OVERALL_OUT, True
-                return "IdleTimeout", _IDLE_OUT, True
+                return None if settling else self._silent(left)
             events.append(envelope)
             if not isinstance(envelope, dict) or envelope.get("type") in _ENDS:
                 return None
+            settling = _ready(events, offered)
         return "OverallTimeout", _OVERALL_OUT, True
 
-    def _reply(self, events: list[Any], problem: _Problem | None) -> Reply:
+    def _silent(self, left: float) -> _Problem:
+        if left <= self._idle:
+            return "OverallTimeout", _OVERALL_OUT, True
+        return "IdleTimeout", _IDLE_OUT, True
+
+    def _tool_problem(self, reply: Reply, events: list[Any], offered: set[str]) -> _Problem | None:
+        """What the reply's tool calls, the tools offered and the calls invoked say against it."""
+        invoked = _data(events, "external_tool.requested")
+        last = events[-1] if events else None
+        idle = isinstance(last, dict) and last.get("type") == "session.idle"
+        started = {
+            d.get("toolCallId")
+            for d in _data(events, "tool.execution_start")
+            if d.get("toolName") in offered
+        }
+        if idle and started - {d.get("toolCallId") for d in invoked}:
+            return "ToolCallLost", _NO_LOST, False
+        calls = reply.turn.tool_calls if reply.turn else ()
+        ids = [c.call_id for c in calls] + [d.get("toolCallId") for d in invoked]
+        if any(self._text(str(i)) != i for i in ids):
+            return "ToolCallIdRedacted", _NO_PATH, False
+        if _differ(reply, invoked, offered):
+            return "ToolCallMismatch", _NO_MATCH, False
+        return None
+
+    def _reply(self, events: list[Any], problem: _Problem | None, offered: set[str]) -> Reply:
         reply = reply_from_events(events, model=self._model, redactor=self._redactor)
         sub_agent = any(isinstance(e, dict) and e.get("agentId") is not None for e in events)
         if problem is None and reply.kind == "ok" and sub_agent:
             problem = "SubAgentEvent", "an event came from a sub-agent", False
+        if problem is None and reply.kind == "ok":
+            problem = self._tool_problem(reply, events, offered)
         if problem is None:
             return reply
         error_class, message, _ = problem

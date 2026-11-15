@@ -279,6 +279,8 @@ def _tool_problem(calls: list[ToolCall], events: list[Any], stop: str) -> _Probl
         return "UnparsableReply", "tool requests and tool starts differ"
     if stop == "tool_use" and not calls:
         return "UnparsableReply", "stop reason tool_use with no tool call"
-    if calls and stop not in ("tool_use", "max_tokens"):
+    if calls and stop == "max_tokens":
+        return "ToolCallsCut", "tool calls cut at finishReason length or max_tokens"
+    if calls and stop != "tool_use":
         return "UnparsableReply", "tool calls without a tool stop reason"
     return None

@@ -3,6 +3,8 @@ failure; `TimeoutError` means its bound was hit."""
 
 from typing import Protocol
 
+from credit_os.provider.types import ToolSpec
+
 
 class SessionLike(Protocol):
     def send(self, prompt: str, *, timeout_s: float) -> None: ...
@@ -18,7 +20,14 @@ class ClientLike(Protocol):
     def start(self, *, timeout_s: float) -> None: ...
     def list_models(self, *, timeout_s: float) -> object: ...
     def open_session(
-        self, *, model: str, effort: str, system: str, session_id: str, timeout_s: float
+        self,
+        *,
+        model: str,
+        effort: str,
+        system: str,
+        session_id: str,
+        tools: tuple[ToolSpec, ...],
+        timeout_s: float,
     ) -> SessionLike: ...
     def stop(self, *, timeout_s: float) -> None: ...
     def force_stop(self, *, timeout_s: float) -> None: ...
