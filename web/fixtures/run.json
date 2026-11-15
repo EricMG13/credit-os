@@ -580,7 +580,7 @@
               "kind": "module",
               "name": "Financial model and forecast",
               "state": "Finished",
-              "detail": "Finished in 6 min 31 s, USD 3.40"
+              "detail": "Finished in 6 min 31 s, USD 2.90"
             },
             {
               "kind": "module",
@@ -1098,8 +1098,8 @@
         "alert": null,
         "open": null,
         "spend": {
-          "value": "USD 11.85",
-          "bar": { "label": "USD 11.85 of USD 20.00", "value": 11.85, "max": 20 }
+          "value": "USD 17.45",
+          "bar": { "label": "USD 17.45 of USD 20.00", "value": 17.45, "max": 20 }
         },
         "finished": {
           "value": "12 of 22",

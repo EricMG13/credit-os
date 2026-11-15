@@ -25,6 +25,8 @@ function slice(source: unknown): RunSlice {
     "run.drafts",
     "draft",
   );
+  if (drafts[0] !== undefined && drafts[0].step !== "documents")
+    fail("run.drafts[0].step", '"documents" (a new run starts from the first draft)');
   const byId = new Map(drafts.map((d) => [d.id, d]));
   drafts.forEach((d, i) => {
     const names = (key: string, id: string | null, nullable: boolean) => {

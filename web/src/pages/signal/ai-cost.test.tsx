@@ -55,7 +55,7 @@ describe("AI and cost with AI off (frame 8)", () => {
     const alert = page().getByRole("status");
     expect(alert).toHaveTextContent("AI is off");
     expect(alert).toHaveTextContent(
-      "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent.",
+      "Stories arrive with no AI line and no signal strength, and digests are paused. Nothing more is spent while it is off.",
     );
     expect(page().getByRole("progressbar")).toHaveAccessibleName("USD 6.40 of USD 15.00");
     expect(page().queryByText("The cap resets on 1 December.")).toBeNull();
