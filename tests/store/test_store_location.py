@@ -8,7 +8,7 @@ import pytest
 import store_location_key as key
 
 from credit_os.store import errors, location
-from credit_os.store.errors import StoreCorrupt, StoreRefused, StoreUnusable
+from credit_os.store.errors import StoreCorrupt, StoreError, StoreRefused, StoreUnusable
 
 posix_only = pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes and links")
 BOTH: list[Callable[[Path], Path]] = [location.prepare, location.locate]
@@ -50,9 +50,16 @@ def test_unholdable_folder_names_are_refused(name: str, tmp_path: Path) -> None:
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("value", key.REFUSED_FOLDER_VALUES, ids=repr)
+_TEXT_FORMS: dict[str, Callable[[Path], object]] = {"str": str, "bytes": os.fsencode}
+_NOT_PATHS: list[Any] = [*key.REFUSED_FOLDER_VALUES, *key.REFUSED_FOLDER_TEXT_FORMS]
+
+
+@pytest.mark.parametrize("value", _NOT_PATHS, ids=repr)
 def test_a_folder_that_is_not_a_path_is_refused(value: object, tmp_path: Path) -> None:
+    if isinstance(value, str):
+        value = _TEXT_FORMS[value](tmp_path / "state")
     _both_raise(StoreRefused, value)
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_a_folder_that_resolves_to_a_network_path_is_refused(
@@ -112,6 +119,19 @@ def test_a_symbolic_link_as_folder_or_state_file_is_refused(tmp_path: Path) -> N
     (tmp_path / "state").mkdir()
     os.symlink(_state(real), _state(tmp_path / "state"))
     _both_raise(StoreRefused, tmp_path / "state")
+
+
+@posix_only
+def test_a_dotdot_that_reaches_a_link_to_a_folder_is_refused(tmp_path: Path) -> None:
+    other = tmp_path / "other"
+    other.mkdir()
+    kept = tmp_path / "kept"
+    kept.mkdir()
+    os.symlink(other, kept / "alink", target_is_directory=True)
+    with pytest.raises(StoreError) as raised:
+        location.prepare(kept.joinpath(*key.DOTDOT_LINK_PARTS))
+    assert type(raised.value).__name__ == key.DOTDOT_LINK_ERROR
+    assert list(other.iterdir()) == []
 
 
 def test_locate_creates_nothing_and_refuses_a_missing_folder_or_file(tmp_path: Path) -> None:

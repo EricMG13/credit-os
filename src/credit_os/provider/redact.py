@@ -8,9 +8,17 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterable, Mapping
+import sys
+import unicodedata
+from array import array
+from collections.abc import Callable, Iterable, Mapping
+from functools import cache
+from itertools import product
+from typing import Literal
 
 REPLACEMENT = "[redacted]"
+_FORMS: tuple[Literal["NFD", "NFC"], ...] = ("NFD", "NFC")
+HOME = "<home>"
 TOKEN_ENV_NAMES = ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")
 # Two rules for the left side of a key. A GitHub token shape ("ghp_" and its kin, "github_pat_")
 # is redacted after any character, inside a word included: no boundary. An "sk-" key keeps one,
@@ -159,10 +167,8 @@ def _nested_spans(text: str, homes: list[tuple[int, bool]]) -> list[tuple[int, i
     return spans
 
 
-def home_paths(text: str) -> str:
-    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
-    name that no slash or reserved character ends takes the rest of its line. It does not redact
-    keys."""
+def _net_spans(text: str) -> list[tuple[int, int]]:
+    """The spans of the pattern net: the three home patterns and the nested pass."""
     matches = [
         (m.span(), m.group("win") is not None)
         for p in (_HOME_PATH, _HOME_PATH_FWD, _HOME_PATH_PLAIN)
@@ -170,27 +176,45 @@ def home_paths(text: str) -> str:
     ]
     spans = [span for span, _ in matches]
     spans += _nested_spans(text, [(span[1], win) for span, win in matches])
-    return _replace_spans(text, spans, "<home>")
+    return spans
+
+
+def home_paths(text: str) -> str:
+    """``text`` with each home directory (and so the user name in it) replaced by ``<home>``; a
+    name that no slash or reserved character ends takes the rest of its line. It does not redact
+    keys. It is a net that claims nothing (decision 0012 point 4): ``Redactor.message`` with
+    known paths is the guarantee."""
+    return _replace_spans(text, _net_spans(text), HOME)
+
+
+def _merge(spans: list[tuple[int, int, bool]]) -> list[tuple[int, int, bool]]:
+    """The union of ``spans`` (start, end, is a path): overlaps merge, touching spans do not; a
+    merged span is a path if any span in it is."""
+    merged: list[tuple[int, int, bool]] = []
+    for start, end, path in sorted(spans):
+        if merged and start < merged[-1][1]:
+            last = merged[-1]
+            merged[-1] = (last[0], max(last[1], end), last[2] or path)
+        else:
+            merged.append((start, end, path))
+    return merged
+
+
+def _splice[T: (str, bytes)](
+    value: T, merged: list[tuple[int, int, bool]], marker: Callable[[bool], T]
+) -> T:
+    out: list[T] = []
+    pos = 0
+    for start, end, path in merged:
+        out += [value[pos:start], marker(path)]
+        pos = end
+    out.append(value[pos:])
+    return value[:0].join(out)
 
 
 def _replace_spans[T: (str, bytes)](value: T, spans: list[tuple[int, int]], marker: T) -> T:
     """Replace the union of ``spans`` (overlaps merged) in ``value``, once each."""
-    out: list[T] = []
-    pos = 0
-    cur_start = cur_end = -1
-    for start, end in sorted(spans):
-        if start < cur_end:
-            cur_end = max(cur_end, end)
-            continue
-        if cur_end >= 0:
-            out += [value[pos:cur_start], marker]
-            pos = cur_end
-        cur_start, cur_end = start, end
-    if cur_end >= 0:
-        out += [value[pos:cur_start], marker]
-        pos = cur_end
-    out.append(value[pos:])
-    return value[:0].join(out)
+    return _splice(value, _merge([(s, e, False) for s, e in spans]), lambda _: marker)
 
 
 def _with_stripped(value: str | None) -> tuple[str, ...]:
@@ -213,14 +237,266 @@ def _utf8(form: str) -> bytes | None:
         return None
 
 
+# A known path (decision 0012): its text in every encoding the guarantee names, built once. An
+# escape is one to eight backslashes then "u" or "x" and hex digits; a percent escape is "%" with
+# the percent itself encoded up to twice ("%25", "%2525"); a separator is a run of 1 to 16 of "/",
+# "\\", "%2F" and "%5C". Hex digits are lower case here: the patterns ignore case. Every
+# quantifier is bounded, and a backslash run has one parse (linear time, 0012 item 3): a separator
+# run is atomic and takes every backslash it can, a word's escape is possessive, and the first
+# escape after a separator may reuse the separator's last backslash (a lookbehind), so no failing
+# match retries another split of the run.
+_ESCAPE = r"\\{1,8}+"
+_PERCENT = r"%(?:25){0,2}"
+_SEPARATOR = rf"(?>(?:[/\\]|{_PERCENT}(?:2f|5c)){{1,16}})"
+_SHARED = "|".join(
+    rf"(?<={s}\\)" for s in (r"[/\\]", *(rf"%{p}(?:2f|5c)" for p in ("", "25", "2525")))
+)
+_DRIVE = re.compile(r"[A-Za-z]:")
+_LONG_PATH = re.compile(r"[/\\]{2}[?.](?:[/\\]|\Z)")  # "\\?\", "\\.\": a prefix, not a folder
+
+
+def _units(code: int) -> list[int]:
+    return (
+        [code] if code < 0x10000 else [0xD800 + ((code - 0x10000) >> 10), 0xDC00 + (code & 0x3FF)]
+    )
+
+
+def _escapes(kind: str, values: Iterable[int], width: int) -> str:
+    return _ESCAPE.join(f"{kind}{v:0{width}x}" for v in values)
+
+
+def _longest_first(forms: Iterable[str]) -> list[str]:
+    """``forms`` longest first, then by text: a form that is a prefix of another is tried after it,
+    since nothing follows the last character of a name to make a short match fail."""
+    return sorted(forms, key=lambda f: (-len(f), f))
+
+
+_BLOCK = 1 << 16  # code points per string: no one string, array or list of them is large
+
+
+@cache
+def _code_points() -> tuple[str, ...]:
+    """Every code point (surrogates included) in strings of ``_BLOCK``, built once from four bytes
+    each: no str object per code point and no per-code-point table."""
+    encoding = "utf-32-be" if sys.byteorder == "big" else "utf-32-le"
+    return tuple(
+        array("I", range(start, min(start + _BLOCK, sys.maxunicode + 1)))
+        .tobytes()
+        .decode(encoding, "surrogatepass")
+        for start in range(0, sys.maxunicode + 1, _BLOCK)
+    )
+
+
+@cache
+def _case_forms(char: str) -> tuple[str, ...]:
+    """Every character ``re.IGNORECASE`` holds the same letter as ``char`` (itself included), by
+    searching every code point."""
+    pattern = re.compile(re.escape(char), re.IGNORECASE)
+    return tuple(form for block in _code_points() for form in pattern.findall(block))
+
+
+def _encodings(form: str) -> tuple[set[str], set[str]]:
+    """The escaped and the plain (percent-encoded) spellings of one character."""
+    escaped = {_escapes("u", _units(ord(form)), 4)}
+    data = form.encode("utf-8", "surrogatepass")
+    escaped |= {_escapes("x", data, 2), _escapes("u", data, 4)}
+    if ord(form) < 0x100:
+        escaped.add(_escapes("x", [ord(form)], 2))
+    return escaped, {"".join(rf"{_PERCENT}{b:02x}" for b in data)}
+
+
+def _distinct(found: Iterable[str]) -> list[tuple[str, ...]]:
+    """One text per tuple of the case forms of its characters (``e`` + U+0301 and ``E`` + U+0301
+    are one, as ``re.IGNORECASE`` holds them the same), as characters, longer first: a text that
+    is a prefix of another is tried after it."""
+    one: dict[tuple[frozenset[str], ...], str] = {}
+    for n in sorted(set(found), key=lambda n: (-len(n), n)):
+        one.setdefault(tuple(frozenset(_case_forms(c)) for c in n), n)
+    return [tuple(n) for n in sorted(one.values(), key=lambda n: (-len(n), n))]
+
+
+def _variants(char: str) -> list[tuple[str, ...]]:
+    """The NFD and the NFC of each case form of ``char`` that are more than one character, or are
+    one that is no case form of it (U+F900 gives U+8C48), as characters."""
+    own = set(_case_forms(char))
+    return _distinct(
+        n
+        for form in own
+        for f in _FORMS
+        if len(n := unicodedata.normalize(f, form)) > 1 or n not in own
+    )
+
+
+def _single(char: str, lead: str, taken: bool) -> str:
+    """One character: as written, and every case form of it as ``\\uXXXX`` (a surrogate pair above
+    U+FFFF), ``\\xXX`` (below U+0100), its UTF-8 bytes as ``\\xHH`` or ``\\u00HH``, and
+    percent-encoded. The literal is one alternative: the pattern ignores case, and two
+    alternatives for one text would let a failing match retry both."""
+    plain = {re.escape(char)}
+    escaped: set[str] = set()
+    for form in _case_forms(char):
+        more_escaped, more_plain = _encodings(form)
+        escaped |= more_escaped
+        plain |= more_plain
+    body = "(?:" + "|".join(_longest_first(escaped)) + ")"
+    if taken:  # the separator run took some backslashes; a literal is not found here
+        return r"\\{0,8}+" + body
+    return "(?:" + "|".join([lead + body, *_longest_first(plain)]) + ")"
+
+
+def _render(chars: tuple[str, ...], lead: str, taken: bool) -> str:
+    """Characters in a row: the first after ``lead``, the rest each after an escape."""
+    return _single(chars[0], lead, taken) + "".join(_single(c, _ESCAPE, False) for c in chars[1:])
+
+
+def _char_pattern(char: str, lead: str, taken: bool) -> str:
+    """One character: as written, and each case form of it (every letter ``re.IGNORECASE`` holds the
+    same, itself included) written the ways ``_single`` lists, and each such form's NFD and NFC
+    variant, each of its characters written the same ways. Alternatives that can match the same
+    text appear once, so a failing match retries no other way (linear time, 0012 item 3)."""
+    found = [_render(v, lead, taken) for v in _variants(char)]
+    return "(?:" + "|".join([*found, _single(char, lead, taken)]) + ")"
+
+
+def _segments(name: str) -> list[str]:
+    """``name`` in units: a starter and what follows it, cut only where NFC and NFD of the two
+    sides join to those of the whole. An ASCII name is one unit per character."""
+    if name.isascii():
+        return list(name)
+    units: list[str] = []
+    start = 0
+    for i in range(1, len(name)):
+        if unicodedata.combining(name[i]) == 0 and all(
+            unicodedata.normalize(f, name[start:i]) + unicodedata.normalize(f, name[i:])
+            == unicodedata.normalize(f, name[start:])
+            for f in _FORMS
+        ):
+            units.append(name[start:i])
+            start = i
+    return [*units, name[start:]]
+
+
+def _whole_forms(unit: str) -> list[tuple[str, ...]]:
+    """The NFD and the NFC of each case form of a unit (a mark stays a mark) that the unit's
+    characters, one by one, do not already match."""
+    forms = [
+        [f for f in _case_forms(c) if unicodedata.combining(f) == unicodedata.combining(c)]
+        for c in unit
+    ]
+    found = {unicodedata.normalize(f, "".join(p)) for p in product(*forms) for f in _FORMS}
+    each = re.compile(
+        "".join(
+            "(?:" + "|".join(re.escape("".join(v)) for v in [*_variants(c), (c,)]) + ")"
+            for c in unit
+        ),
+        re.IGNORECASE,
+    )
+    return [n for n in _distinct(found) if not each.fullmatch("".join(n))]
+
+
+def _unit_pattern(unit: str, after_separator: bool, taken: bool) -> str:
+    """One unit: its whole forms first (at the end of a name the longer text wins, so no mark is
+    left visible), then its characters one by one."""
+    lead = rf"(?:{_ESCAPE}|{_SHARED})" if after_separator else _ESCAPE
+    each = "".join(
+        _char_pattern(c, lead if i == 0 else _ESCAPE, taken and i == 0) for i, c in enumerate(unit)
+    )
+    if len(unit) == 1:
+        return each
+    whole = [_render(n, lead, taken) for n in _whole_forms(unit)]
+    return "(?:" + "|".join([*whole, each]) + ")"
+
+
+def _name_pattern(name: str, after_separator: bool, taken: bool = False) -> str:
+    return "".join(
+        _unit_pattern(u, after_separator and i == 0, taken and i == 0)
+        for i, u in enumerate(_segments(name))
+    )
+
+
+_SEPARATOR_TOKEN = re.compile(r"%(?:25){0,2}(?:2f|5c)", re.IGNORECASE)
+
+
+def _form_patterns(form: str, after_separator: bool) -> list[str]:
+    """The patterns for one spelling of a folder name. A name that begins with a separator token
+    (``%2F``, ``%5C``, ``%252F``) is also matched from just after that token: the atomic separator
+    run before it has taken the token, so a zero-width lookbehind stands in for it. Written once
+    and never inside a backslash run, so no failing match retries another split of one."""
+    found = [_name_pattern(form, after_separator)]
+    if after_separator:
+        for width in (3, 5, 7):
+            if _SEPARATOR_TOKEN.fullmatch(form[:width]):
+                rest = _name_pattern(form[width:], False)
+                found.append(rf"{_token_lookbehinds(form[:width])}{rest}")
+                found.append(
+                    _token_lookbehinds(form[:width], range(1, 9))
+                    + _name_pattern(form[width:], False, True)
+                )
+    return found
+
+
+def _token_lookbehinds(token: str, counts: range = range(1)) -> str:
+    """Zero-width lookbehinds for a separator ``token`` as written and with its leading percent
+    encoded once and twice (``%5c`` as ``%255c``, ``%25255c``), each only where the separator run
+    still takes it as one token. With ``counts`` the token is followed by that many backslashes (one fixed-width
+    lookbehind each: ``re`` has no variable-width one); the run may have ended among them."""
+    seen = [token]
+    for depth in (1, 2):
+        encoded = "%" + "25" * depth + token[1:]
+        if _SEPARATOR_TOKEN.fullmatch(encoded):
+            seen.append(encoded)
+    return (
+        "(?:"
+        + "|".join(rf"(?<={re.escape(t)}{chr(92) * 2 * k})" for t in seen for k in counts)
+        + ")"
+    )
+
+
+def _word(part: str, after_separator: bool) -> str:
+    """A folder name, unit by unit."""
+    return "(?:" + "|".join(_longest_first(_form_patterns(part, after_separator))) + ")"
+
+
+def _run(parts: list[str], leading: bool) -> str:
+    words = [_word(p, leading or i > 0) for i, p in enumerate(parts)]
+    return (_SEPARATOR if leading else "") + _SEPARATOR.join(words)
+
+
+def _stripped(path: str) -> str:
+    """``path`` without surrounding whitespace and trailing separators, until neither is left."""
+    text = path
+    while (shorter := text.strip().rstrip("/\\")) != text:
+        text = shorter
+    return text
+
+
+def _path_patterns(path: str) -> list[str]:
+    """The patterns that find a known path: the whole path and its last two folders (the whole
+    only if it has one folder). A path with no folder name (a drive and a long-path prefix are
+    not one) is refused."""
+    text = _stripped(path)
+    parts = [p for p in re.split(r"[/\\]+", text) if p]
+    folders = [p for p in parts[1 if _LONG_PATH.match(text) else 0 :] if not _DRIVE.fullmatch(p)]
+    if not folders:
+        raise ValueError("a known path needs at least one folder name")
+    whole = _run(parts, text.startswith(("/", "\\")))
+    last = _run(folders[-2:], False)
+    return [whole] if len(folders) < 2 or last == whole else [whole, last]
+
+
 class Redactor:
     """Matches key shapes and exact values. An exact value is also matched as ``json.dumps``
     writes it inside a string, once or twice escaped (text and bytes). Not matched: other
     serialisers' escapes (upper-case ``\\uXXXX`` hex, ``\\/``, URL or HTML encodings) and deeper
     nesting. A value that is not valid UTF-8 text still matches as text; in bytes only its forms
-    that can be encoded match."""
+    that can be encoded match.
 
-    def __init__(self, exact_values: Iterable[str] = ()) -> None:
+    ``known_paths`` are the paths the launcher knows (decision 0012); ``message`` masks them with
+    the keys and the pattern net, and carries the guarantee. ``text`` and ``bytes_`` are keys only."""
+
+    def __init__(
+        self, exact_values: Iterable[str] = (), *, known_paths: Iterable[str] = ()
+    ) -> None:
         values = sorted(
             {f for v in exact_values if v for f in _json_forms(v)}, key=lambda v: (-len(v), v)
         )
@@ -236,19 +512,54 @@ class Redactor:
             self._exact_bytes = re.compile(
                 b"(?=(" + b"|".join(re.escape(b) for b in encoded) + b"))"
             )
+        # A lookahead finds every occurrence, overlapping ones included.
+        self._known = [
+            re.compile(f"(?=({p}))", re.IGNORECASE)
+            for p in dict.fromkeys(q for path in known_paths for q in _path_patterns(path))
+        ]
 
     @classmethod
-    def from_environ(cls, environ: Mapping[str, str]) -> Redactor:
+    def from_environ(
+        cls, environ: Mapping[str, str], *, known_paths: Iterable[str] = ()
+    ) -> Redactor:
         # A value read with a trailing line ending is also matched without it; the constructor
         # drops empties and duplicates.
         values = [v for name in TOKEN_ENV_NAMES for v in _with_stripped(environ.get(name))]
-        return cls(values)
+        return cls(values, known_paths=known_paths)
 
-    def text(self, value: str) -> str:
+    def _key_spans(self, value: str) -> list[tuple[int, int]]:
         spans = [m.span() for m in _KEY_PATTERN.finditer(value)]
         if self._exact is not None:
             spans += [m.span(1) for m in self._exact.finditer(value)]
-        return _replace_spans(value, spans, REPLACEMENT)
+        return spans
+
+    def text(self, value: str) -> str:
+        return _replace_spans(value, self._key_spans(value), REPLACEMENT)
+
+    def message(self, text: str) -> str:
+        """``text`` for a stored diagnostic: keys become ``[redacted]``, paths ``<home>``. The
+        spans of the keys (as ``text`` finds them), of each known path and of the pattern net
+        (``home_paths``) are all found on the unmasked text and masked once as a union; a merged
+        span holding any path is ``<home>``, one holding only keys ``[redacted]``. Mask first,
+        then cut: a cut (``events`` keeps 500 characters) never splits a name.
+
+        Guaranteed: each known path, and its last two folders under any lead, wherever it
+        occurs, with no boundary consulted, as written, as ``\\uXXXX`` or ``\\xXX`` (either hex
+        case, one to eight backslashes, UTF-8 bytes included), percent-encoded (the percent
+        itself up to twice), in NFC or NFD, each separator a run of up to 16 of ``/``, ``\\``,
+        ``%2F``, ``%5C``, in any letter case. Case applies before encoding: each character's escape,
+        UTF-8 and percent forms are built from every letter ``re.IGNORECASE`` holds the same as it.
+        Case applies before encoding, and NFC or NFD after case, a unit (a starter and its marks)
+        at a time.
+
+        Not guaranteed: another user's home (the net, best effort); Windows 8.3 short names; a
+        case mapping that changes length (``ß`` to ``SS``); a bare user name; a value split
+        across strings; other encodings (octal, HTML references, base64); the text of an ``ok``
+        reply."""
+        spans = [(start, end, False) for start, end in self._key_spans(text)]
+        spans += [(start, end, True) for start, end in _net_spans(text)]
+        spans += [(m.start(1), m.end(1), True) for p in self._known for m in p.finditer(text)]
+        return _splice(text, _merge(spans), lambda path: HOME if path else REPLACEMENT)
 
     def bytes_(self, value: bytes) -> bytes:
         spans = [m.span() for m in _KEY_PATTERN_BYTES.finditer(value)]

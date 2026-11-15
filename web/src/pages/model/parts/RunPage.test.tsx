@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { App } from "@/App";
 import type { LoadResult } from "@/data";
 import { fixtureSlice, must } from "../slice/test-fixture";
@@ -69,5 +69,41 @@ describe("Show sources is page-level state and resets on every route change", ()
     go(`#/model/a/${encodeURIComponent("b/c")}/statements`);
     expect(screen.getByRole("switch", SWITCH)).not.toBeChecked();
     expect(screen.getByRole("radio", { name: /Base case/ })).toBeChecked();
+  });
+});
+
+describe("An unreadable run's page draws why it could not be read", () => {
+  function withBadSecond() {
+    const slice = twoRuns({ issuer: "transdigm", run: "2024-12-31" }) as {
+      runs: { header: Record<string, unknown> }[];
+    };
+    must(slice.runs[1]).header["asOf"] = 5;
+    return slice;
+  }
+
+  it.each(["front", "analysis", "statements", "portfolio-fit", "limitations", "forecast"])(
+    "draws the reason on the %s page, with one h1 and the way back",
+    (page) => {
+      open(withBadSecond(), `#/model/transdigm/2024-12-31/${page}`);
+      expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual([
+        "Financial model",
+      ]);
+      expect(screen.getByText("This part of the library could not be read")).toBeInTheDocument();
+      expect(screen.getByText("runs[1].header.asOf: expected a string")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "All financial models" })).toHaveAttribute(
+        "href",
+        "#/model/runs",
+      );
+      expect(must(screen.getByRole("main").firstElementChild)).toHaveClass("p-8");
+    },
+  );
+
+  it("still draws the readable run beside it, and not found for an address naming neither", () => {
+    open(withBadSecond(), "#/model/transdigm/2025-06-30/front");
+    expect(screen.getByRole("switch", SWITCH)).toBeInTheDocument();
+    go("#/model/transdigm/1999-01-01/front");
+    expect(
+      within(screen.getByRole("main")).getByText("Not found for this run"),
+    ).toBeInTheDocument();
   });
 });

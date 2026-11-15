@@ -196,8 +196,6 @@ export const Button = ({
     styles.sizes[size].root,
     styles.colors[color].root,
     isLinkType && styles.sizes[size].linkRoot,
-    // A disabled link is a span with data-disabled, not a disabled button.
-    props.href !== undefined && "data-disabled:cursor-not-allowed data-disabled:opacity-50",
     loading && "pointer-events-none",
     // If in `loading` state, hide everything except the loading icon. Opacity, not visibility:
     // hidden text names nothing in Chrome, and the label is the button's name.

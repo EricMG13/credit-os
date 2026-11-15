@@ -32,19 +32,25 @@ function draft(): { slice: Slice; run: Slice["runs"][number] } {
   return { slice, run: must(slice.runs[0]) };
 }
 
+/**
+ * The table's rows, headers and cells are found by their elements (`tr`, `th[scope]`, `td`), which
+ * is what gives them the row, columnheader, rowheader and cell roles, and not by a role query per
+ * lookup: each role query walks the accessibility tree, and a lookup of one cell made about 35 ms
+ * of a test that needs a handful of them.
+ */
 const rowOf = (label: string): HTMLElement =>
   must(
-    within(screen.getByRole("table"))
-      .getAllByRole("row")
-      .find((r) => within(r).queryByRole("rowheader")?.textContent.startsWith(label)),
+    [...screen.getByRole("table").querySelectorAll<HTMLElement>("tbody tr")].find((r) =>
+      r.querySelector('th[scope="row"]')?.textContent.startsWith(label),
+    ),
   );
 
 /** The cell of `row` under the period column `period`. */
 function cellAt(label: string, period: string): HTMLElement {
-  const headers = within(screen.getByRole("table")).getAllByRole("columnheader");
+  const headers = [...screen.getByRole("table").querySelectorAll('thead th[scope="col"]')];
   const at = headers.findIndex((h) => h.textContent.startsWith(period));
   if (at < 1) throw new Error(`no column ${period}`);
-  return must(within(rowOf(label)).getAllByRole("cell")[at - 1]);
+  return must([...rowOf(label).querySelectorAll<HTMLElement>("td")][at - 1]);
 }
 
 const choose = (name: string) => {
@@ -436,6 +442,10 @@ describe("Model page: the statements", () => {
     expect(cellAt("Shareholders’ equity", "LTM")).toHaveTextContent("-9,360");
   });
 
+  // Per-test limit: this test renders the whole page once and switches the case twice, and each
+  // switch re-renders every chart section (about 120 ms each here, about 70 % of the test). That is
+  // production render work the test cannot skip, and it runs several times slower on the Windows
+  // runner than here, close to the 5 s default.
   it("describes a missing cell by its reason, shows it on focus, and draws it n.a., never 0", async () => {
     const { slice, run } = draft();
     const rows = must(run.statements.statements[3]).rows;
@@ -467,7 +477,7 @@ describe("Model page: the statements", () => {
     choose("Base case");
     expect(cellAt("Net leverage", "FY26E")).toHaveTextContent("5.9x");
     expect(within(cellAt("Net leverage", "FY26E")).queryByRole("button")).toBeNull();
-  });
+  }, 20_000);
 
   it("draws a missing cell without a reason as plain n.a. with no control", () => {
     renderAt(fixtureSlice());

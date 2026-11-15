@@ -1,14 +1,16 @@
-import { readSlice } from "./read";
-import { edited, fixtureSlice } from "./test-fixture";
+import type { HoldingsScatter, Limits, PortfolioFitPage } from "./types";
+import { edited, fixtureSlice, must, readRuns } from "./test-fixture";
 
 const F = ["runs", 0, "portfolioFit"] as const;
 const P = "runs[0].portfolioFit";
 
 describe("the portfolio fit page of the slice", () => {
   it("reads the fixture as the mock draws it", () => {
-    const result = readSlice(fixtureSlice());
+    const result = readRuns(fixtureSlice());
     if (result.kind !== "ok") throw new Error(result.kind);
-    const page = result.data.runs[0]?.portfolioFit;
+    // The fixture holds both charts, so neither section is a gap here.
+    const page = result.data.runs[0]?.portfolioFit as
+      (PortfolioFitPage & { limits: Limits; scatter: HoldingsScatter }) | undefined;
     expect(page?.limits.columns.map((c) => [c.label, c.exposureText, c.limitText])).toEqual([
       ["Single issuer", "2.1%", "limit 3.0%"],
       ["Aerospace and defence", "9.4%", "limit 12.0%"],
@@ -323,7 +325,7 @@ describe("the portfolio fit page of the slice", () => {
       `${P}.strips.title: expected a name no other trace control on the page has`,
     ],
   ])("refuses %s", (_name, steps, value, reason) => {
-    expect(readSlice(edited(steps, value))).toEqual({ kind: "invalid", reason });
+    expect(readRuns(edited(steps, value))).toEqual({ kind: "invalid", reason });
   });
 });
 
@@ -370,6 +372,65 @@ describe("the portfolio fit page: the table side holds to the chart side", () =>
       `${P}.limits.columns[3].cells[1]: expected null beside a missing limit`,
     ],
   ])("refuses %s", (_name, steps, value, reason) => {
-    expect(readSlice(edited(steps, value))).toEqual({ kind: "invalid", reason });
+    expect(readRuns(edited(steps, value))).toEqual({ kind: "invalid", reason });
+  });
+});
+
+describe("the portfolio fit page: a section that is a gap with a reason", () => {
+  const gap = { gap: { title: "Exposure against limits", reason: "No holdings source this run." } };
+  const scatterGap = { gap: { title: "Leverage and margin", reason: "No holdings source." } };
+  const L = [...F, "limits"] as const;
+  const S = [...F, "scatter"] as const;
+
+  function read(steps: readonly (string | number)[], value: unknown) {
+    return readRuns(edited(steps, value));
+  }
+
+  it("reads a gap for each field and for both", () => {
+    expect(read(L, gap).kind).toBe("ok");
+    expect(read(S, scatterGap).kind).toBe("ok");
+    const slice = edited(L, gap) as { runs: { portfolioFit: Record<string, unknown> }[] };
+    must(slice.runs[0]).portfolioFit.scatter = scatterGap;
+    const both = readRuns(slice);
+    if (both.kind !== "ok") throw new Error(both.kind);
+    expect(both.data.runs[0]?.portfolioFit).toMatchObject({ limits: gap, scatter: scatterGap });
+  });
+
+  it("reads an object whose gap is inherited as a chart, not as a gap", () => {
+    const result = read(S, Object.create({ gap: scatterGap.gap }));
+    expect(result.kind).toBe("invalid");
+    if (result.kind === "invalid") expect(result.reason).not.toContain(".gap");
+  });
+
+  it.each<[string, readonly (string | number)[], unknown, string]>([
+    [
+      "an empty reason",
+      L,
+      { gap: { title: "T", reason: "" } },
+      `${P}.limits.gap.reason: expected a non-empty string`,
+    ],
+    ["a missing title", S, { gap: { reason: "R" } }, `${P}.scatter.gap.title: missing`],
+    ["an extra key beside gap", L, { ...gap, title: "T" }, `${P}.limits.title: unknown field`],
+    [
+      "an extra key inside gap",
+      S,
+      { gap: { ...scatterGap.gap, more: 1 } },
+      `${P}.scatter.gap.more: unknown field`,
+    ],
+    ["a gap that is not an object", L, { gap: "no" }, `${P}.limits.gap: expected an object`],
+    [
+      "a broken chart beside no gap",
+      [...L, "columns"],
+      [],
+      `${P}.limits.columns: expected at least one column`,
+    ],
+    [
+      "a scatter gap titled like the ratings",
+      S,
+      { gap: { title: "Agency ratings", reason: "R" } },
+      `${P}.scatter.gap.title: expected a name no other trace control on the page has`,
+    ],
+  ])("refuses %s", (_name, steps, value, reason) => {
+    expect(read(steps, value)).toEqual({ kind: "invalid", reason });
   });
 });

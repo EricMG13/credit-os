@@ -1,21 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
-
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: unknown; params: Record<string, Record<string, string>[]> };
-
-function show(hash: string, run: unknown) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = { kind: "ok", data: { schema: "credit-os-data/1", issuers: [], run } };
-  return render(<App result={result} />);
-}
-afterEach(() => {
-  window.location.hash = "";
-});
+import { screen, within } from "@testing-library/react";
+import { fixture, show } from "../test-helpers";
 
 const ADDED = "At least one document added";
 const READABLE = "Every document can be read";
@@ -190,6 +174,22 @@ describe.each(FRAMES)("Run start, draft $id", (f) => {
 
   it("names no module, step id, hash or file path", () => {
     expect(document.body.textContent).not.toMatch(/CP-\d/);
+    // no hyphenated draft, purpose or run id, read from the fixture as data
+    const slice = fixture.slice as {
+      drafts: { id: string; purposes?: { id: string }[] }[];
+      runs: { id: string }[];
+    };
+    const ids = [
+      ...slice.drafts.map((d) => d.id),
+      ...slice.drafts.flatMap((d) => (d.purposes ?? []).map((p) => p.id)),
+      ...slice.runs.map((r) => r.id),
+    ].filter((i) => i.includes("-"));
+    expect(ids.length).toBeGreaterThan(0);
+    for (const i of ids) expect(document.body.textContent).not.toContain(i);
+    // no hash (a hex run or a sha256 label), no file path (drive or absolute), no route text
+    expect(document.body.textContent).not.toMatch(
+      /sha256:|\b[0-9a-f]{12,}\b|\b[A-Za-z]:\\|\/Users\/|#\/run/,
+    );
     const trail = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(within(trail).getByRole("link", { name: "Library" })).toHaveAttribute("href", "#/");
     expect(trail).toHaveTextContent("Library / TransDigm Group / New run");

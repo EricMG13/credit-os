@@ -192,9 +192,45 @@ emphasis is reported; the register-id reason points to the Basis line. Left and 
 `<anything> (CP-X)` is accepted whatever the name; a second table or a list under `## Sources`
 is unread; `normalise_limitation` keeps the predecessor's key (`+5%` and `-5%` share one).
 
+PR 4 is split 4a (#250, the reader) and 4b (#254, `figure.form` and the no-float test, which
+moved from 4a); they merge close together. Ruled for the reader (R37 to R58, in the
+controller's notes `2b-checks/pr4/`): a masked character is never whitespace (R54); the check
+judges a figure with the currency the reader reads for it, from one computation (R55); the
+month-count mask asks the reader's own currency question (R56, R57). Ruled for PR 5 (P1 to
+P9, R59 to R64, in `2b-checks/pr5/rulings-proposed.md`): which nodes hold figures, the note
+rule, equal value by `Decimal`, sign, unit and currency compatibility (`unrecognised` agrees
+with nothing, itself included); `figure.form` refuses a recognised currency directly followed
+by a minus and a digit ("Write the minus before the currency: -USD 5 million."); the three
+earlier case keys are compared with the two held checks left out, by check id in one helper,
+while `held.json` and `fixtures.json` compare everything (R63). Known readings, pinned and
+with the owner: `1.25-a` judged as `1`; an en dash before a bracketed figure is never
+refused; `In March 1.5% growth` reads 5% in passage text. The owner authorised a fourth,
+tests-only round on PR 4 for two test-strength Mediums of #250's whole-branch review.
+
+Ruled for PR 6 (#312; C1 to C10 and R65 to R70). `confidence.absent` is a refusal only when
+the context is scored (C1). Every data section of kind `confidence` counts; a second is
+`confidence.repeated` and only the first is read (C2). The section is unreadable unless it is
+a level-3 section directly under Findings, titled exactly `Confidence inputs`, with one table
+of columns `Input` and `Value` (C3). Fourteen rows, each once in any order: the eight lineage
+counts, `Fields present`, `Fields total`, `Source gate`, `CRITICAL`, `MATERIAL`, `MINOR` (C4).
+A count is 1 to 20 ASCII digits, never read as zero when it cannot be read (C5). Ranges: a
+total of 0, present above total, a gate other than pass, partial or fail; each test reads
+only the counts it needs (C6, R67, R68). A blocked module may write the one row
+`Not assessable` with `Not supplied: <reason>`; the same row elsewhere is refused (C7). The
+front matter keys `confidence_score`, `confidence_band` and `qa_status` are refused (C8). The
+checks run on the new format only and do not need the reader (C9); the earlier format is
+never scored and its outcome is `absent`. The score is exact, in `int` and
+`fractions.Fraction`, rounded half to even: 3/5 evidence plus 2/5 completeness, times the
+gate, less 40, 15 and 3 for each critical, material and minor finding, clamped to 0 to 100,
+capped at 39 by any critical and at 59 by any material (C10). Any `confidence.*` refusal
+other than `absent` makes the outcome `refused` with no value (R65); R66 fixes each quoted
+text. A confidence outcome is used only for a document `check_handoff` returns no refusal
+for: a reader error does not know the format, so a value can stand beside a refusal that is
+not a confidence one (R69). `check_handoff` runs no confidence check on the earlier format;
+`check_confidence` called directly has no such guard, which its docstring is to say (R70). The reader's progress guard merged as #318.
+
 PR 1 is split: 1a (#157) `Finding`, `CheckContext` and the text helpers; 1b (#170) the
-structure checks and `check_handoff`. PR 4 will be split: the reader with the no-float test,
-then `figure.form`.
+structure checks and `check_handoff`. PR 4 is split 4a, 4b (above).
 
 Ruled by the controller in PR 1 and confirmed: `Finding` has a 1-based `column`, used for
 ordering only; `CHECKS` is closed at 32 ids; `check_handoff` starts in PR 1b and later PRs add

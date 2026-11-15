@@ -1,0 +1,2 @@
+*.js -text
+.gitattributes text eol=lf

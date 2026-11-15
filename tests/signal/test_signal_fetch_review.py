@@ -24,10 +24,18 @@ from signal_fetch_support import (
     redirect,
     run,
     through_loopback,
+    wait_for_all_lookup_slots,
 )
 
 from credit_os.signal import fetch as fetch_module
-from credit_os.signal.fetch import MAX_LOOKUPS, FetchRefused, Wiring, check_address, fetch
+from credit_os.signal.fetch import (
+    MAX_LOOKUPS,
+    FetchRefused,
+    LookupCapRefused,
+    Wiring,
+    check_address,
+    fetch,
+)
 from credit_os.signal.netpin import ConnectionTarget
 
 _guard = no_outside_network
@@ -198,6 +206,17 @@ def test_a_lookup_never_waits_for_a_slot(monkeypatch: pytest.MonkeyPatch) -> Non
         held.release.set()
         assert slots.released.wait(5)  # the late worker gives its slot back to this semaphore
     assert slots.acquires == [(False, None), (False, None)]
+
+
+def test_a_lookup_that_overruns_is_a_plain_fetch_refusal_not_a_cap_refusal() -> None:
+    held = Held()
+    try:
+        with pytest.raises(FetchRefused, match="took too long") as overrun:
+            fetch_module._bounded(held, "feeds.example.org", 0.01)
+        assert type(overrun.value) is FetchRefused  # a slow source's own failure (R58 Q3)
+    finally:
+        held.release.set()
+    _until_a_lookup_is_free()
 
 
 def test_a_slot_is_released_when_the_late_lookup_returns() -> None:
@@ -376,4 +395,33 @@ def test_check_address_waits_for_a_lookup_once_for_its_constant_and_no_longer(
         _a_lookup_that_overruns(held)
     finally:
         held.release.set()
+    wait_for_all_lookup_slots()  # its worker has ended: it cannot release a later test's semaphore
     assert spy.timeouts == [0.25]
+
+
+def test_both_lookup_cap_refusals_raise_the_lookup_cap_subclass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert issubclass(LookupCapRefused, FetchRefused)
+    wait_for_all_lookup_slots()  # no earlier worker is left to release the semaphore patched next
+    own = threading.BoundedSemaphore(MAX_LOOKUPS)  # not the shared one
+    monkeypatch.setattr(fetch_module, "_LOOKUP_SLOTS", own)
+    held = 0
+    try:
+        while own.acquire(blocking=False):
+            held += 1
+        assert held == 8
+        with pytest.raises(LookupCapRefused) as full:
+            check_address(URL, resolve=PUBLIC)
+    finally:
+        for _ in range(held):
+            own.release()
+    assert str(full.value) == TOO_MANY
+
+    def no_thread(*args: object, **kwargs: object) -> threading.Thread:
+        raise RuntimeError("cannot start")
+
+    monkeypatch.setattr(threading, "Thread", no_thread)
+    with pytest.raises(LookupCapRefused) as unstarted:
+        check_address(URL, resolve=PUBLIC)
+    assert str(unstarted.value) == NOT_STARTED

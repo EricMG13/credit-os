@@ -195,12 +195,19 @@ Written by the controller before each task from invented values only. No databas
 PR 1 is split to hold the 800-line cap: 1a (#162) the errors, the SQLite error mapping and
 the CI version print; 1b (#169) the codecs; then 1c `location.py` (path rules), 1d `txn.py`
 (the write transaction and the migration runner) and 1e `db.py` (open). 1c (#201) is merged.
-The errors-test additions (value-free messages, the literal-SQL scan, the hooks scan) and one
-POSIX row for `prepare(kept/new/../alink)` go in a tests-only PR 1d-b, merged before 1e is
-ready. In 1d an interrupt that arrives while a body statement runs leaves as `StoreUnusable`
-with nothing committed; the owner chose to document and pin it, and a caller treats
-`StoreUnusable` as ending its work. 1e's brief says where a store error message, which
-carries the operating system's text and so the folder path, may be shown or stored.
+1d (#226), 1d-b (#246) and 1e (#256) are merged; PR 1 is complete. The remaining PRs are cut
+2a, 2b, 2c, 3a, 3b, 3c, 4a, 4b, 5a, 5b, each under 800 lines; the controller may work up to two
+PRs ahead, stacked; the key for a whole numbered PR is written before its first part; migration
+1 is never edited once merged. An interrupt during a write leaves as `StoreUnusable` (the
+owner: "Yes, document it"); a second path through the authorizer (`not authorized`) is accepted
+under the same answer. A whole-branch review that stops at a usage limit is rerun on
+`mx-architect` when the limit clears, never on another model. The errors-test additions
+(value-free messages, the literal-SQL scan, the hooks scan) and one POSIX row for
+`prepare(kept/new/../alink)` go in a tests-only PR 1d-b, merged before 1e is ready. In 1d an
+interrupt that arrives while a body statement runs leaves as `StoreUnusable` with nothing
+committed; the owner chose to document and pin it, and a caller treats `StoreUnusable` as
+ending its work. 1e's brief says where a store error message, which carries the operating
+system's text and so the folder path, may be shown or stored.
 
 Ruled by the controller in PR 1 and confirmed: a SQLite error maps by primary result code (5
 and 6 busy; 19 conflict; 11 and 26 corrupt; anything else unusable); an error message never
@@ -249,3 +256,29 @@ reads the diff and merges. The sub-session does not merge and does not edit shar
 - What step 3A needs from the resume read is inferred from the legacy loop and decision 0006;
   3A is not planned. The 2B plan was only searched for `store` (it places no duty here).
   Database size with raw bodies over a real run, and how long `quick_check` then takes.
+
+## Amendment, 2026-11-14 (from step 3B's plan, rulings R10, R10a and R11)
+
+The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. PR 5 also carries:
+
+- an event appended at each admission, in the same transaction, so the store-wide `events.seq`
+  orders admissions without the clock; a repeat of the same receipt stays a no-op and appends
+  nothing;
+- the admitted list giving each delivery's `admitted_at`, its key and that event's `seq`;
+  `admitted_at` is shown and never ordered on;
+- one read through `StoreReader` of every issuer and, for an issuer, every run: `as_of` newest
+  first, a run with no `as_of` after the dated ones, then `created_at`, then run id. That order
+  rests on the store clock and is for display only.
+
+## Amendment, 2026-11-14 (calls and settlement)
+
+The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. It replaces D6's
+"no operator settle" and D7's "no hold column"; none of it is merged when this is written.
+
+- PR 3 (migration 2): `calls` carries an exchange id and the provider's call index (both required,
+  unique within a run with the run id) and `hold_usd` (required, money text, at least 0), written
+  at `open_call` and never changed. A call with no stated hold is `StoreRefused`.
+- PR 3: attempts, calls and compactions are written only while the run is `running`, by trigger.
+- PR 5 (migration 3) also carries the settlement table of decision 0014: append-only, one row per
+  open call, refused on a closed call, outside the run gate, read back as an owner-stated line and
+  never as `billed_usd`.

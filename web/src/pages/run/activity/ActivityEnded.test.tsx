@@ -1,24 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
-
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as { slice: unknown };
-
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], run: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
-afterEach(() => {
-  window.location.hash = "";
-});
+import { screen, within } from "@testing-library/react";
+import { showFixture } from "../test-helpers";
 
 const LIVE = ".status-halo, .queued-shimmer, .animate-spin, .feed-rise";
 const steps = () =>
@@ -81,7 +62,7 @@ const CASES: Case[] = [
 ];
 
 describe.each(CASES)("Run activity, $id", (c) => {
-  beforeEach(() => show(`/run/activity/${c.id}`));
+  beforeEach(() => showFixture(`/run/activity/${c.id}`));
 
   it("says the run state in the heading", () => {
     expect(within(head() as HTMLElement).getByText(c.word)).toBeTruthy();
@@ -117,14 +98,14 @@ describe.each(CASES)("Run activity, $id", (c) => {
 
 describe("Run activity, ended modules", () => {
   it("failed: 1 Not assessable and 10 Not run, each Not run saying it did not run", () => {
-    show("/run/activity/failed");
+    showFixture("/run/activity/failed");
     expect(count("Not assessable")).toBe(1);
     expect(count("Not run")).toBe(10);
     expect(steps().getAllByText("Did not run.")).toHaveLength(10);
   });
 
   it("capped: 1 Not assessable, 3 Not run and a full spend bar", () => {
-    show("/run/activity/capped");
+    showFixture("/run/activity/capped");
     expect(count("Not assessable")).toBe(1);
     expect(count("Not run")).toBe(3);
     const spend = screen.getAllByRole("progressbar")[0] as HTMLElement;
@@ -133,13 +114,13 @@ describe("Run activity, ended modules", () => {
   });
 
   it("interrupted: 7 Not run and 1 Interrupted", () => {
-    show("/run/activity/interrupted");
+    showFixture("/run/activity/interrupted");
     expect(count("Not run")).toBe(7);
     expect(count("Interrupted")).toBe(1);
   });
 
   it("rejected: no module ran, elapsed n.a., no module list", () => {
-    show("/run/activity/rejected");
+    showFixture("/run/activity/rejected");
     expect(screen.getByRole("heading", { name: "No module ran", level: 3 })).toBeTruthy();
     expect(
       screen.getByText(
@@ -158,13 +139,13 @@ describe("Run activity, the sentence of a module that did not finish", () => {
     ["capped", "Stopped part-way when the run reached its cap."],
     ["interrupted", "Was running when the run stopped; its work so far is not kept."],
   ])("%s", (id, sentence) => {
-    show(`/run/activity/${id}`);
+    showFixture(`/run/activity/${id}`);
     expect(steps().getAllByText(sentence)).toHaveLength(1);
   });
 });
 
 describe("Run activity, finished", () => {
-  beforeEach(() => show("/run/activity/finished"));
+  beforeEach(() => showFixture("/run/activity/finished"));
 
   it("has no alert and the Open the library link in the heading", () => {
     expect(screen.queryByRole("alert")).toBeNull();
@@ -182,7 +163,7 @@ describe("Run activity, finished", () => {
 
 describe("Run activity, figures and trail", () => {
   it("draws the summary figures in the body face, not the display face", () => {
-    show("/run/activity/running");
+    showFixture("/run/activity/running");
     const figure = screen.getByText("USD 7.40");
     expect(figure.className).toContain("text-metric");
     expect(figure.className).toContain("tabular-nums");
@@ -190,7 +171,7 @@ describe("Run activity, figures and trail", () => {
   });
 
   it("gives the Runs trail link a visible focus ring", () => {
-    show("/run/activity/running");
+    showFixture("/run/activity/running");
     expect(link("Runs").className).toContain("focus-visible:outline-2");
     expect(link("Runs").className).toContain("outline-brand");
   });

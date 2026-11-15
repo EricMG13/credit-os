@@ -22,6 +22,11 @@ export function fileName(o: Obj, key: string, path: string): string {
   const v = o[key];
   return typeof v === "string" ? v : fail(`${path}.${key}`, "a string");
 }
+// A label the page draws: a string with something in it (not blank).
+export function text(o: Obj, key: string, path: string): string {
+  const v = str(o, key, path);
+  return v.trim() === "" ? fail(`${path}.${key}`, "a non-empty string") : v;
+}
 export function strOrNull(o: Obj, key: string, path: string): string | null {
   const v = o[key];
   if (v === null) return v;
@@ -58,7 +63,7 @@ export function oneOf<T extends string>(o: Obj, key: string, path: string, words
 }
 export function bar(v: unknown, path: string): Bar {
   const o = obj(v, path);
-  const label = str(o, "label", path);
+  const label = text(o, "label", path);
   const { value, max } = o;
   if (typeof max !== "number" || !Number.isFinite(max) || max <= 0)
     fail(`${path}.max`, "a number above 0");
@@ -83,5 +88,9 @@ export function orNull<T>(
   if (typeof v !== "object" || Array.isArray(v)) return fail(`${path}.${key}`, "an object or null");
   return read(v, `${path}.${key}`);
 }
+// Each item is drawn (a chip or a list line), so it is not blank; the list itself may be empty.
 export const strings = (o: Obj, key: string, path: string): string[] =>
-  list(o, key, path, (v, p) => (typeof v === "string" ? noCode(v, p) : fail(p, "a string")));
+  list(o, key, path, (v, p) => {
+    if (typeof v !== "string") return fail(p, "a string");
+    return v.trim() === "" ? fail(p, "a non-empty string") : noCode(v, p);
+  });

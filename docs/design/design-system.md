@@ -641,3 +641,36 @@ review 1.
   `list_design_systems` still returns none after it was written, so the D1 mock projects
   cannot bind it and must copy its tokens from this page. How to register one was not found.
 - The prior-art search was limited to the approved component sources.
+
+## Proposed (states 2, not ruled)
+
+Nothing here is ruled and nothing above is changed by it. These rows would be added or changed if
+the owner rules the recommended options of [States 2](states-2.md) as proposed in the draft
+[decision 0013](../decisions/0013-states-2.md). Until then the tables above stand. Detail and
+sources are in States 2.
+
+| Row | Proposed change |
+| :--- | :--- |
+| Run states | "Capped" becomes "Stopped" (the store's `stopped`, whatever the reason): triangle, warning, no new shape. "Interrupted" keeps shape and tone; it narrows to a run with no end record. The set: Queued, Running, Finished, Failed, Stopped, Rejected, Interrupted: seven states, seven shapes |
+| A reason beside a run state | Never a state. One or two label badges (word only, neutral) after the state badge, and one fixed sentence where there is room. Proposed labels: "Spending cap", "Spend not known", "Cost control", "By the analyst", "Model service" |
+| Gap states | Add "Confidence not scored", wording "Not scored": the text itself in `text-tertiary` where the scale would be, with one sentence saying why. Never 0, never a badge, never a blank beside scored modules |
+| Missing figure | Spend not known uses the existing row: "n.a.", a note saying why, no progress bar |
+| Module state | No state added. A module that ran with an optional producer missing keeps "Delivered" or "Delivered with gaps" and carries the label badge "Reduced inputs" and one sentence naming what it ran without. A module not run because a module it needs was not delivered reads "Not assessable" with a sentence naming that module; "Not run" keeps its rule |
+
+**Components.** One row would be added:
+
+| Component | Variants and states in this system | Source |
+| :--- | :--- | :--- |
+| Confidence scale | The component map's F7 with four marks, one per band (`High` four filled, `Medium` three, `Low` two, `Insufficient Information` one), then the band word and the number in tabular numerals. Filled marks, word and number `text-primary`; unfilled marks `text-tertiary`. No fill, no edge, no status colour | SB <https://www.shadcnblocks.com/components/rating>, read live 2026-11-14: 15 rating blocks, all drawing stars, among them read-only ones and "Rating With Score"; the page says "Radix UI or Base UI", not React Aria (the component map's F7 line says React Aria). The built three-mark `web/src/pages/signal/parts/Rating.tsx` becomes the kit part: no new dependency |
+
+A confidence band is not a state: it never takes a status badge or a status colour.
+
+**Contrast.** Three pairs the proposal uses are not in the table above. They were computed in the
+states 2 task with the same formula (WCAG 2.1 relative luminance), not by this system's script; the
+two marks are pairs the merged run alert already draws:
+
+| Pair | Foreground | Background | Ratio | Needs | Result |
+| :--- | :--- | :--- | ---: | ---: | :--- |
+| Secondary text on canvas | `#474A4F` | `#F6F5FF` | 8.23 | 4.5 | AAA |
+| Warning mark on card | `#997700` | `#FFFFFF` | 4.21 | 3 | Pass |
+| Error mark on card | `#A54C48` | `#FFFFFF` | 5.63 | 3 | Pass |

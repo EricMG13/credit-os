@@ -92,6 +92,10 @@ class FetchRefused(ValueError):
         super().__init__(_short(reason))
 
 
+class LookupCapRefused(FetchRefused):
+    """The refusal comes from the process-wide cap on lookup threads, not from the feed (R34 F4)."""
+
+
 @dataclass(frozen=True)
 class Fetched:
     """body is None means the server answered 304 Not Modified."""
@@ -166,7 +170,7 @@ def _bounded(resolve: Resolver, host: str, seconds: float) -> list[str]:
     An exception in the thread is raised here. A late answer lands in a record nothing reads.
     """
     if not _LOOKUP_SLOTS.acquire(blocking=False):
-        raise FetchRefused("too many lookups are still waiting for an answer")
+        raise LookupCapRefused("too many lookups are still waiting for an answer")
     outcome = _Outcome()
 
     def work() -> None:
@@ -182,7 +186,7 @@ def _bounded(resolve: Resolver, host: str, seconds: float) -> list[str]:
     except Exception as error:  # fail closed, whatever stopped the build or start: nothing ran
         _LOOKUP_SLOTS.release()
         _log.warning("could not start a lookup thread: %r", error)
-        raise FetchRefused("could not start a lookup of the feed's host") from error
+        raise LookupCapRefused("could not start a lookup of the feed's host") from error
     worker.join(max(seconds, 0.0))
     if worker.is_alive():
         raise FetchRefused("looking up the feed's host took too long")
@@ -337,9 +341,13 @@ def _redirect_url(current: str, response: ResponseLike, hops: int) -> str:
         raise FetchRefused("the redirect has no usable location") from error
 
 
-def _validator(response: ResponseLike, name: str) -> str | None:
-    value = response.getheader(name)
+def stored(value: str | None) -> str | None:
+    """The validator if it is one a server may send (what `fetch` sends and returns), else None."""
     return value if value is not None and _VALIDATOR.fullmatch(value) else None
+
+
+def _validator(response: ResponseLike, name: str) -> str | None:
+    return stored(response.getheader(name))
 
 
 def _refuse_encodings(response: ResponseLike) -> None:
@@ -379,10 +387,6 @@ def _answer(
     return Fetched(body, _validator(response, "ETag"), _validator(response, "Last-Modified"))
 
 
-def _stored(value: str | None) -> str | None:
-    return value if value is not None and _VALIDATOR.fullmatch(value) else None
-
-
 def fetch(
     url: str,
     etag: str | None,
@@ -393,8 +397,8 @@ def fetch(
 ) -> Fetched:
     """Fetch url conditionally; raise FetchRefused for any broken rule, error or bad status."""
     wiring = wiring or Wiring()
-    etag = _stored(etag)  # a stored value is held to what a server may send
-    modified = _stored(modified)
+    etag = stored(etag)  # a stored value is held to what a server may send
+    modified = stored(modified)
     budget = _Budget(
         _resolve if resolve is None else resolve,  # looked up now, so tests can replace it
         netpin.pinned_connection if wiring.connect is None else wiring.connect,

@@ -1,0 +1,210 @@
+{
+  "_about": "Answer key for step 3A PR 1, written by the controller before the code, by hand (no code run) from the predecessor's registry.dependencies, edge_rule and plan (src/deploy_vii/registry.py to line 170, at 8e3954a) over catalogue.json. Implementers do not edit it. The plan is rounds: each round takes every module whose producers have all run, in catalogue order. Producers are a module's required ones, plus its optional ones that are selected, plus for CP-5 every selected module except CP-5 and CP-6; each maps to its edge rule: an explicit edge rule wins, else required is block, else restricted. Compare order as a list and producers as a mapping.",
+  "pathways": {
+    "credit_snapshot": {
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-DR", "CP-4", "CP-2", "CP-2A", "CP-2E", "CP-2G", "CP-3", "CP-5", "CP-6"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-DR": {"CP-0": "block", "CP-1": "block"},
+        "CP-4": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted", "CP-DR": "restricted"},
+        "CP-2A": {"CP-0": "block", "CP-1": "block", "CP-2": "restricted"},
+        "CP-2E": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-2": "restricted"},
+        "CP-2G": {"CP-0": "block", "CP-1": "block", "CP-2A": "block"},
+        "CP-3": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-2G": "restricted", "CP-1A": "restricted", "CP-4": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-DR": "restricted", "CP-2": "restricted", "CP-2A": "restricted", "CP-2E": "restricted", "CP-2G": "restricted", "CP-4": "restricted", "CP-3": "restricted"},
+        "CP-6": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-3": "block", "CP-5": "block", "CP-2A": "restricted", "CP-1A": "restricted", "CP-2E": "restricted", "CP-4": "restricted"}
+      }
+    },
+    "earnings_update": {
+      "order": ["CP-0", "CP-1", "CP-1B", "CP-DR", "CP-2E", "CP-1D", "CP-5"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1B": {"CP-0": "block", "CP-1": "block"},
+        "CP-DR": {"CP-0": "block", "CP-1": "block"},
+        "CP-2E": {"CP-0": "block", "CP-1": "restricted"},
+        "CP-1D": {"CP-0": "block", "CP-1": "block", "CP-1B": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1B": "restricted", "CP-DR": "restricted", "CP-2E": "restricted", "CP-1D": "restricted"}
+      }
+    },
+    "relative_value": {
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-3D", "CP-DR", "CP-1C", "CP-2", "CP-2E", "CP-2D", "CP-3C", "CP-3", "CP-5"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-3D": {"CP-0": "block"},
+        "CP-DR": {"CP-0": "block", "CP-1": "block"},
+        "CP-1C": {"CP-0": "block", "CP-1": "block", "CP-DR": "restricted"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted", "CP-1C": "restricted", "CP-DR": "restricted"},
+        "CP-2E": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-2": "restricted"},
+        "CP-2D": {"CP-0": "block", "CP-1": "block", "CP-2": "block"},
+        "CP-3C": {"CP-0": "block", "CP-1": "block", "CP-2D": "block", "CP-1A": "restricted", "CP-3D": "restricted"},
+        "CP-3": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-1C": "restricted", "CP-1A": "restricted", "CP-3D": "restricted", "CP-3C": "restricted", "CP-2D": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-3D": "restricted", "CP-DR": "restricted", "CP-1C": "restricted", "CP-2": "restricted", "CP-2E": "restricted", "CP-2D": "restricted", "CP-3C": "restricted", "CP-3": "restricted"}
+      }
+    },
+    "covenant_refinancing": {
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-DR", "CP-4", "CP-2", "CP-2A", "CP-2E", "CP-2D", "CP-2G", "CP-3C", "CP-5"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-DR": {"CP-0": "block", "CP-1": "block"},
+        "CP-4": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted", "CP-DR": "restricted"},
+        "CP-2A": {"CP-0": "block", "CP-1": "block", "CP-2": "restricted"},
+        "CP-2E": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-2": "restricted"},
+        "CP-2D": {"CP-0": "block", "CP-1": "block", "CP-2": "block"},
+        "CP-2G": {"CP-0": "block", "CP-1": "block", "CP-2A": "block", "CP-2D": "restricted"},
+        "CP-3C": {"CP-0": "block", "CP-1": "block", "CP-2D": "block", "CP-1A": "restricted", "CP-2A": "restricted", "CP-4": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-DR": "restricted", "CP-4": "restricted", "CP-2": "restricted", "CP-2A": "restricted", "CP-2E": "restricted", "CP-2D": "restricted", "CP-2G": "restricted", "CP-3C": "restricted"}
+      }
+    },
+    "distressed_restructuring": {
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-DR", "CP-4", "CP-1C", "CP-2", "CP-2A", "CP-2E", "CP-2G", "CP-2H", "CP-4C", "CP-5"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-DR": {"CP-0": "block", "CP-1": "block"},
+        "CP-4": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted"},
+        "CP-1C": {"CP-0": "block", "CP-1": "block", "CP-DR": "restricted"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted", "CP-1C": "restricted", "CP-DR": "restricted"},
+        "CP-2A": {"CP-0": "block", "CP-1": "block", "CP-2": "restricted"},
+        "CP-2E": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-2": "restricted"},
+        "CP-2G": {"CP-0": "block", "CP-1": "block", "CP-2A": "block"},
+        "CP-2H": {"CP-0": "block", "CP-1": "block", "CP-2G": "block"},
+        "CP-4C": {"CP-0": "block", "CP-1": "block", "CP-2G": "block", "CP-4": "block", "CP-2A": "block", "CP-1C": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-DR": "restricted", "CP-4": "restricted", "CP-1C": "restricted", "CP-2": "restricted", "CP-2A": "restricted", "CP-2E": "restricted", "CP-2G": "restricted", "CP-2H": "restricted", "CP-4C": "restricted"}
+      }
+    },
+    "portfolio_decision": {
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-DR", "CP-2", "CP-2E", "CP-3", "CP-5", "CP-6"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-DR": {"CP-0": "block", "CP-1": "block"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted", "CP-DR": "restricted"},
+        "CP-2E": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-2": "restricted"},
+        "CP-3": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-1A": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-DR": "restricted", "CP-2": "restricted", "CP-2E": "restricted", "CP-3": "restricted"},
+        "CP-6": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-3": "block", "CP-5": "block", "CP-1A": "restricted", "CP-2E": "restricted"}
+      }
+    },
+    "lite_credit_assessment": {
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-2", "CP-2A"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted"},
+        "CP-2A": {"CP-0": "block", "CP-1": "block", "CP-2": "restricted"}
+      }
+    }
+  },
+  "subsets": {
+    "empty": {"requested": [], "order": [], "producers": {}},
+    "alias_of_cp0": {"requested": ["CP-PARSE"], "order": ["CP-0"], "producers": {"CP-0": {}}},
+    "alias_pulls_required": {
+      "requested": ["CP-2B"],
+      "order": ["CP-0", "CP-1", "CP-2A"],
+      "producers": {"CP-0": {}, "CP-1": {"CP-0": "block"}, "CP-2A": {"CP-0": "block", "CP-1": "block"}}
+    },
+    "alias_and_id_once": {
+      "requested": ["CP-2B", "CP-2A", "CP-2A"],
+      "order": ["CP-0", "CP-1", "CP-2A"],
+      "producers": {"CP-0": {}, "CP-1": {"CP-0": "block"}, "CP-2A": {"CP-0": "block", "CP-1": "block"}}
+    },
+    "same_selection_any_order_a": {
+      "requested": ["CP-2A", "CP-1A"],
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-2A"],
+      "producers": {"CP-0": {}, "CP-1": {"CP-0": "block"}, "CP-1A": {"CP-0": "block"}, "CP-2A": {"CP-0": "block", "CP-1": "block"}}
+    },
+    "same_selection_any_order_b": {
+      "requested": ["CP-1A", "CP-2A"],
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-2A"],
+      "producers": {"CP-0": {}, "CP-1": {"CP-0": "block"}, "CP-1A": {"CP-0": "block"}, "CP-2A": {"CP-0": "block", "CP-1": "block"}}
+    },
+    "cp5_alone": {"requested": ["CP-5"], "order": ["CP-0", "CP-5"], "producers": {"CP-0": {}, "CP-5": {"CP-0": "block"}}},
+    "cp5_fan_in": {
+      "requested": ["CP-5", "CP-1B"],
+      "order": ["CP-0", "CP-1", "CP-1B", "CP-5"],
+      "producers": {"CP-0": {}, "CP-1": {"CP-0": "block"}, "CP-1B": {"CP-0": "block", "CP-1": "block"}, "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1B": "restricted"}}
+    },
+    "cp6_pulls_its_chain": {
+      "requested": ["CP-6"],
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-2", "CP-3", "CP-5", "CP-6"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted"},
+        "CP-3": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-1A": "restricted"},
+        "CP-5": {"CP-0": "block", "CP-1": "restricted", "CP-1A": "restricted", "CP-2": "restricted", "CP-3": "restricted"},
+        "CP-6": {"CP-0": "block", "CP-1": "block", "CP-2": "block", "CP-3": "block", "CP-5": "block", "CP-1A": "restricted"}
+      }
+    },
+    "cp3c_pulls_transitively": {
+      "requested": ["CP-3C"],
+      "order": ["CP-0", "CP-1", "CP-1A", "CP-2", "CP-2D", "CP-3C"],
+      "producers": {
+        "CP-0": {},
+        "CP-1": {"CP-0": "block"},
+        "CP-1A": {"CP-0": "block"},
+        "CP-2": {"CP-0": "block", "CP-1": "block", "CP-1A": "restricted"},
+        "CP-2D": {"CP-0": "block", "CP-1": "block", "CP-2": "block"},
+        "CP-3C": {"CP-0": "block", "CP-1": "block", "CP-2D": "block", "CP-1A": "restricted"}
+      }
+    }
+  },
+  "refused": {
+    "unknown_id": {"requested": ["CP-99"], "reason": "unknown", "name": "CP-99"},
+    "unknown_case": {"requested": ["cp-0"], "reason": "unknown", "name": "cp-0"},
+    "unknown_empty": {"requested": [""], "reason": "unknown", "name": ""},
+    "not_offered_cpl10": {"requested": ["CP-L10"], "reason": "not_offered", "name": "CP-L10"},
+    "not_offered_alias": {"requested": ["CP-L20"], "reason": "not_offered", "name": "CP-L20"},
+    "not_offered_model": {"requested": ["CP-MODEL"], "reason": "not_offered", "name": "CP-MODEL"},
+    "not_offered_cp8": {"requested": ["CP-0", "CP-8"], "reason": "not_offered", "name": "CP-8"},
+    "not_offered_memo": {"requested": ["CP-MEMO"], "reason": "not_offered", "name": "CP-MEMO"},
+    "not_offered_os": {"requested": ["CP-OS"], "reason": "not_offered", "name": "CP-OS"}
+  },
+  "pathways_refused": {
+    "short_snapshot": "not_offered",
+    "no_such_pathway": "unknown"
+  },
+  "edge_rules": [
+    ["CP-2", "CP-1A", "restricted"],
+    ["CP-4", "CP-1", "restricted"],
+    ["CP-2", "CP-0", "block"],
+    ["CP-2", "CP-DR", "restricted"],
+    ["CP-6", "CP-5", "block"],
+    ["CP-5", "CP-0", "block"],
+    ["CP-5", "CP-3", "restricted"],
+    ["CP-5", "CP-DR", "restricted"],
+    ["CP-5", "CP-1D", "restricted"],
+    ["CP-5", "CP-6", null],
+    ["CP-5", "CP-5", null],
+    ["CP-1", "CP-2", null],
+    ["CP-0", "CP-0", null],
+    ["CP-2", "CP-MODEL", null],
+    ["CP-2B", "CP-0", null]
+  ],
+  "cycles": {
+    "_about": "Tables the test supplies in place of the catalogue (same row shape); plan refuses each with reason cyclic.",
+    "two": [
+      {"id": "X-A", "aliases": [], "kind": "prose", "scored": false, "required": ["X-B"], "optional": [], "edge_rules": {}},
+      {"id": "X-B", "aliases": [], "kind": "prose", "scored": false, "required": ["X-A"], "optional": [], "edge_rules": {}}
+    ],
+    "three_through_optional": [
+      {"id": "X-A", "aliases": [], "kind": "prose", "scored": false, "required": ["X-B"], "optional": [], "edge_rules": {}},
+      {"id": "X-B", "aliases": [], "kind": "prose", "scored": false, "required": ["X-C"], "optional": [], "edge_rules": {}},
+      {"id": "X-C", "aliases": [], "kind": "prose", "scored": false, "required": [], "optional": ["X-A"], "edge_rules": {}}
+    ]
+  },
+  "cycle_requests": {"two": ["X-A"], "three_through_optional": ["X-A", "X-C"]}
+}
