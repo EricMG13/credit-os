@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { plainSegment } from "./plain";
 
 describe("plainSegment", () => {
-  it.each(["run-1", "a.b", "Issuer_Name~1", "x@y+z=1,2", "a%20b", "%41"])("accepts %s", (s) => {
-    expect(plainSegment(s)).toBe(true);
-  });
+  it.each(["run-1", "a.b", "Issuer_Name~1", "x@y+z=1,2", "a%20b", "%41", "a%7Eb", "%20"])(
+    "accepts %s",
+    (s) => {
+      expect(plainSegment(s)).toBe(true);
+    },
+  );
 
   it.each([
     ["dot", "."],
@@ -19,6 +22,12 @@ describe("plainSegment", () => {
     ["space", "a b"],
     ["colon", "c:"],
     ["bare percent", "100%"],
+    ["NUL escape", "a%00b"],
+    ["low control escape, lower case", "a%1fb"],
+    ["low control escape, upper case", "a%1Fb"],
+    ["DEL escape, lower case", "a%7fb"],
+    ["DEL escape, upper case", "a%7Fb"],
+    ["tab escape", "%09"],
   ])("refuses %s", (_name, s) => {
     expect(plainSegment(s)).toBe(false);
   });
