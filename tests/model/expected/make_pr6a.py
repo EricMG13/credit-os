@@ -1,4 +1,4 @@
-"""Answer key for 1B PR 6a (units named, the currency named), 6a2 (R46) and 6a3 (R49), by the controller.
+"""Answer key for 1B PR 6a (units named, the currency named), 6a2 (R46), 6a3 (R49) and 6a4 (R59), by the controller.
 
 Every figure, name and text is invented. Rows hold inputs only, as in `make_pr5.py`, whose
 oracle this script loads for the foundation's tables, the cells, the numbers and the cell check;
@@ -17,7 +17,10 @@ letter code, glued or after one space (capital `T` for thousands as well as `k`)
 code or sign and one space, `(000)` and `MM` standing alone, and the glued marks also name the
 currency. R50: only the operand's header, the first header cell and a `Unit` or `Units` column
 excuse a group; any cell can raise an issue. R51: capital `M` glued before `US$` or `$` is an
-ambiguous unit, refused under both blocks. Run this file to write `pr6a.json` next to it.
+ambiguous unit, refused under both blocks. R57, R59a and R59b (PR 6a4): a table's caption is the
+paragraph directly before it (this script's own `captions`), and each caption line is one more
+cell of the operand's group, named `caption`, that may raise an issue but never excuses (R59f); a caption
+two paragraphs up, or past a heading, is not read. Run this file to write `pr6a.json` next to it.
 """
 
 import importlib.util
@@ -122,19 +125,67 @@ def names_currency(text: str, currency: str) -> bool:
 
 
 UNIT_COLUMNS = ("Unit", "Units", "Reporting unit")
+LIST_ITEM = re.compile(r"[ \t]*(?:[-*+]|[0-9]{1,3}[.)])[ \t]")
+TABLE_ROW = re.compile(r" {0,3}\|")
+COMMENT_LINE = re.compile(r"\s*<!--.*-->\s*")
 
 
-def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: str) -> str | None:
-    block = "thousands" if scale == 1000 else "millions"
-    kind = "period" if operand["period"] is not None else "column"
-    header = operand[kind]
+def captions(text: str) -> dict[int, list[str]]:
+    """R57, R59a: for each table's header line, the stripped lines of the paragraph directly before
+    it (blank lines and whole-line comments between are allowed; a heading, a list item, a code
+    block or another table between is not). This script's own reading; a table with no caption has
+    no entry."""
+    found: dict[int, list[str]] = {}
+    above: list[str] | None = None  # the paragraph that is the last block read, if it is one
+    held: tuple[str, list[str]] | None = None  # the block being read: its kind and lines
+    in_rows = False
+
+    def close() -> None:
+        nonlocal above, held
+        if held is not None:
+            above = held[1] if held[0] == "paragraph" else None
+            held = None
+
+    for index, line, fenced in PR5.shown_lines(text):
+        row = not fenced and TABLE_ROW.match(line) is not None
+        if row and not in_rows:
+            close()
+            if above is not None:
+                found[index] = above
+            above = None
+        elif fenced or (not row and PR5.HEADING.fullmatch(line)):
+            close()
+            above = None
+        elif not row and (not line.strip() or COMMENT_LINE.fullmatch(line)):
+            close()
+        elif not row:
+            if LIST_ITEM.match(line):
+                close()
+                held = ("item", [])
+            elif held is None:
+                held = ("paragraph", [])
+            held[1].append(
+                LIST_ITEM.sub("", line, count=1).strip() if held[0] == "item" else line.strip()
+            )
+        in_rows = row
+    return found
+
+
+def unit_issues(
+    row: str, kind: str, header: str, read: list[Any], above: dict[int, list[str]], block: str
+) -> list[tuple[str, str]]:
+    """The (what, cell) issues of the named row and header under `block`: in every group of every
+    table, unless a cell that may excuse names the block. R59b: a caption line is a group cell
+    named `caption` that may raise an issue and never excuses (R59f)."""
     issues: list[tuple[str, str]] = []
-    for _, head, body in read:
+    for first, head, body in read:
+        caption = above.get(first, [])
         for c in (i for i in range(1, len(head)) if PR5.plain(head[i]) == PR5.plain(header)):
-            for line in (r for r in body if PR5.plain(r[0]) == PR5.plain(operand["row"])):
+            for line in (r for r in body if PR5.plain(r[0]) == PR5.plain(row)):
                 group = [(f"{kind} header", head[c]), ("first header cell", head[0])]
                 group += [(PR5.plain(head[i]), cell) for i, cell in enumerate(line) if i != c]
-                excuse = [head[c], head[0]]
+                group += [("caption", cell) for cell in caption]
+                excuse = [head[c], head[0]]  # R59f: a caption never excuses
                 excuse += [
                     cell
                     for i, cell in enumerate(line)
@@ -142,6 +193,15 @@ def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: 
                 ]
                 if not any(block in units_named(cell) for cell in excuse):
                     issues += [(w, cell) for w, cell in group if set(units_named(cell)) - {block}]
+    return issues
+
+
+def unit_problem(
+    key: str, operand: Doc, read: list[Any], above: dict[int, list[str]], scale: int, currency: str
+) -> str | None:
+    block = "thousands" if scale == 1000 else "millions"
+    kind = "period" if operand["period"] is not None else "column"
+    issues = unit_issues(operand["row"], kind, operand[kind], read, above, block)
     if not issues:
         return None
     what, cell = min(issues)
@@ -180,13 +240,14 @@ def outcome(row: Doc) -> list[str] | None:
         read = PR5.tables(text)
     except PR5.Repeated as error:
         return ["HandoffError", str(error)]
+    above = captions(text)
     block = PR5.block(source, row.get("ops", []))
     scale, currency = block["scale"], block["currency"]
     for key in PR5.OPERANDS:
         operand = block["base"][key]
         if (message := PR5.problem(key, operand, read)) is not None:
             return ["cell", f"base {key}", message]
-        unit = operand["amount"] and unit_problem(key, operand, read, scale, currency)
+        unit = operand["amount"] and unit_problem(key, operand, read, above, scale, currency)
         if unit:
             return ["unit", f"base {key}", unit]
     if not any(names_currency(line, currency) for line in text_lines(text)):
@@ -751,10 +812,216 @@ def r46_rows() -> list[Doc]:
     return rows
 
 
+REASON = {"amount": None, "reason": "Not read.", "row": None, "period": None, "column": None}
+CP1 = "../handoffs/tdg-2026-11-09/CP-1.md"
+# R59: operands named from the retained public CP-1's own tables, at the places the oracle reads:
+# `revenue` at table 70 (a `Unit` column naming US$m, no caption), `ebitda` at table 139 (no unit
+# in its own cells; its caption names US$m) and `cash` at table 257 (its cells name no unit and its caption names none).
+CP1_NAMED = {
+    "revenue": ("Net Income", "FY2024 / 2024-09-30", "1715"),
+    "ebitda": ("REFINANCING COSTS", "FY2023", "56"),
+    "cash": ("Income tax provision", "FY2024", "500"),
+}
+
+
+def cp1_row(label: str, scale: int, keys: list[str]) -> Doc:
+    ops: list[Any] = []
+    for key in PR5.OPERANDS:
+        if key in keys:
+            row, period, amount = CP1_NAMED[key]
+            ops += [
+                [["base", key, "row"], row],
+                [["base", key, "period"], period],
+                [["base", key, "amount"], amount],
+            ]
+        else:
+            ops.append([["base", key], REASON])
+    source = "foundation-thousands.md" if scale == 1000 else "foundation.md"
+    return {"label": label, "foundation": CP1, "source": source, "ops": ops}
+
+
+def cap_row(
+    label: str,
+    scale: int,
+    above: str,
+    head: tuple[str, ...] = ("Line item", "FY2024"),
+    cells: tuple[str, ...] = (),
+    ops: tuple[Any, ...] = (),
+) -> Doc:
+    """`above` is the text between the Calculations paragraph and a table of `Revenue check`, with
+    a blank line on each side of it."""
+    foundation, amount = (
+        ("foundation-thousands.md", "1,456,000") if scale == 1000 else ("foundation.md", "1,456")
+    )
+    rule = "| " + " | ".join("---" for _ in head) + " |\n"
+    table = "| " + " | ".join(head) + " |\n" + rule
+    table += "| " + " | ".join(["Revenue check", amount, *cells]) + " |\n"
+    return {
+        "label": label,
+        "foundation": foundation,
+        "edits": [[CALC_TEXT, f"{CALC_TEXT}\n{above}\n{table}"]],
+        "ops": [[["base", "revenue", "row"], "Revenue check"], *ops],
+    }
+
+
+def r59_rows() -> list[Doc]:
+    """R57, R59a, R59b, R59d: the caption line in the unit check, then the retained CP-1."""
+    rows = []
+    with_unit = ("Line item", "FY2024", "Unit")
+    for scale, block, other in ((1, "millions", "thousands"), (1000, "thousands", "millions")):
+        under = f"under a {block} block"
+        names_other, names_block = f"Amounts in USD {other}.", f"Amounts in USD {block}."
+        both = f"Amounts in USD {block}, restated from USD {other}."
+        rows += [
+            cap_row(
+                f"R59: a caption naming {other} over a table naming no unit {under}",
+                scale,
+                names_other + "\n",
+            ),
+            cap_row(
+                f"R59: a caption naming {block} over a table naming no unit {under}",
+                scale,
+                names_block + "\n",
+            ),
+            cap_row(
+                f"R59: a caption naming no unit over a table naming no unit {under}",
+                scale,
+                "Amounts as reported.\n",
+            ),
+            cap_row(
+                f"R59f: a caption naming {block} does not excuse a Unit cell naming {other}: refused",
+                scale,
+                names_block + "\n",
+                with_unit,
+                (f"USD {other}",),
+            ),
+            cap_row(
+                f"R59f: a caption naming both units does not excuse a Unit cell naming {other}: refused {under}",
+                scale,
+                both + "\n",
+                with_unit,
+                (f"USD {other}",),
+            ),
+            cap_row(
+                f"R59: a caption naming M$ is refused as ambiguous {under}",
+                scale,
+                "Amounts in M$.\n",
+            ),
+            cap_row(
+                f"R59d known reading: a caption two paragraphs up is not read {under}",
+                scale,
+                names_other + "\n\nSee the note below.\n",
+            ),
+            cap_row(
+                f"R59: a heading between the paragraph and the table: not read {under}",
+                scale,
+                names_other + "\n\n#### Detail\n",
+            ),
+            cap_row(
+                f"R59: a caption naming {other} and a Unit cell naming {other}: the Unit cell "
+                f"is the issue (capital U sorts before `caption`) {under}",
+                scale,
+                names_other + "\n",
+                with_unit,
+                (f"USD {other}",),
+            ),
+            cap_row(
+                f"R59: a caption naming {other} and a `unit` cell naming {other}: the caption "
+                f"is the issue (`caption` sorts before `unit`) {under}",
+                scale,
+                names_other + "\n",
+                ("Line item", "FY2024", "unit"),
+                (f"USD {other}",),
+            ),
+            cap_row(
+                f"R59: a caption naming {other} and a first header cell naming {other}: the "
+                f"caption is the issue (`caption` before `first header cell`) {under}",
+                scale,
+                names_other + "\n",
+                (f"Line item (USD {other})", "FY2024"),
+            ),
+            cap_row(
+                f"R59: a caption naming {other} and a period header naming {other}: the "
+                f"caption is the issue (`caption` before `period header`) {under}",
+                scale,
+                names_other + "\n",
+                ("Line item", f"FY2024 USD {other}"),
+                ops=([["base", "revenue", "period"], f"FY2024 USD {other}"],),
+            ),
+            cap_row(
+                f"R59: a two-line caption: the issue is the smaller cell, on its second line "
+                f"{under}",
+                scale,
+                f"Restated in USD billions.\n{names_other}\n",
+            ),
+            cap_row(
+                f"R59f: a two-line caption: the second line naming {block} does not excuse the first: refused "
+                f"{under}",
+                scale,
+                f"{names_other}\nStated in USD {block}.\n",
+            ),
+            cap_row(
+                f"R59: a bold caption naming {other} is shown plain {under}",
+                scale,
+                f"**Amounts in USD {other}**\n",
+            ),
+        ]
+    # The retained public CP-1: `revenue` is a cell of a table with a Unit column and no caption,
+    # `ebitda` of a table whose caption alone names US$m, `cash` of a table whose caption names no unit.
+    rows += [
+        cp1_row(
+            "R59: the retained CP-1, all three operands, under a millions block",
+            1,
+            ["revenue", "ebitda", "cash"],
+        ),
+        cp1_row(
+            "R59: the retained CP-1, a Unit-column operand, under a millions block", 1, ["revenue"]
+        ),
+        cp1_row(
+            "R59: the retained CP-1, a captioned operand, under a millions block", 1, ["ebitda"]
+        ),
+        cp1_row(
+            "R59: the retained CP-1, a Unit-column operand, under a thousands block",
+            1000,
+            ["revenue"],
+        ),
+        cp1_row(
+            "R59: the retained CP-1, a captioned operand, under a thousands block", 1000, ["ebitda"]
+        ),
+        cp1_row(
+            "R59: the retained CP-1, a captioned table naming no unit, under a thousands block",
+            1000,
+            ["cash"],
+        ),
+    ]
+    # Adversary F2: the caption's every line is read, not only the first or the last.
+    for scale, block, other in ((1, "millions", "thousands"), (1000, "thousands", "millions")):
+        rows.append(
+            cap_row(
+                f"F2: a two-line caption naming {other} on line 1 and nothing on line 2 is refused "
+                f"under a {block} block",
+                scale,
+                f"Amounts in USD {other}.\nSee the table below.\n",
+            )
+        )
+    # Adversary F1 input: free prose naming millions never excuses a header naming thousands.
+    rows.append(
+        cap_row(
+            "R59f: prose naming millions in passing does not excuse a period header naming "
+            "thousands (USD 000) under a millions block",
+            1,
+            "The group added 2 million customers in FY2024.\n",
+            ("Line item", "FY2024 (USD 000)"),
+            ops=([["base", "revenue", "period"], "FY2024 (USD 000)"],),
+        )
+    )
+    return rows
+
+
 def render() -> str:
     assert all(units_named(text) == named for text, named in WORDS)
     assert all(names_currency(text, code) is named for text, code, named in CURRENCIES)
-    rows = [json.loads(line) for line in ROWS.strip().splitlines()] + r46_rows()
+    rows = [json.loads(line) for line in ROWS.strip().splitlines()] + r46_rows() + r59_rows()
     for row in json.loads(PR5.render())[
         "rows"
     ]:  # PR 5's rows: the unit and currency steps add nothing
@@ -768,7 +1035,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 132 and len(accepted) == 53
+    assert len(labels) == len(set(labels)) == 171 and len(accepted) == 65
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":

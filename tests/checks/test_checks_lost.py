@@ -61,8 +61,8 @@ def test_lost_values_match_the_key(case: dict[str, Any]) -> None:
 
 
 def test_the_key_has_every_case_named() -> None:
-    assert len(CASES) == 46
-    assert sum(len(case["lost"]) for case in CASES) == 51
+    assert len(CASES) == 48
+    assert sum(len(case["lost"]) for case in CASES) == 53
 
 
 def test_lost_value_rows() -> None:
