@@ -428,16 +428,11 @@ describe("readSlice, run frame", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
   });
 
-  it("reads the model page of the run's own issuer and run, or null", () => {
+  it("reads null for every run of the fixture, the model holding none of them", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const hrefs = result.data.issuers[0]?.runs.map((run) => run.head.forecastHref);
-    expect(hrefs).toEqual([
-      "#/model/halden-aerostructures/2026-09-30/forecast",
-      null,
-      null,
-      "#/model/halden-aerostructures/2025-09-30/forecast",
-    ]);
+    expect(hrefs).toEqual([null, null, null, null]);
   });
 
   it("names the path of a malformed tree node deep in a trace", () => {

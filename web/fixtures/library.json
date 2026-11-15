@@ -97,7 +97,7 @@
             "value": 5,
             "max": 13
           },
-          "href": "2026-06-30",
+          "href": null,
           "measures": {
             "leverage": {
               "text": "2.1x",
@@ -134,7 +134,7 @@
             "value": 6,
             "max": 6
           },
-          "href": "2026-09-30",
+          "href": null,
           "measures": {
             "leverage": {
               "text": "5.6x",
@@ -171,7 +171,7 @@
             "value": 13,
             "max": 13
           },
-          "href": "2026-03-31",
+          "href": null,
           "measures": {
             "leverage": {
               "text": "5.2x",
@@ -203,7 +203,7 @@
             "value": 7,
             "max": 13
           },
-          "href": "2026-09-30",
+          "href": null,
           "measures": {
             "leverage": null,
             "netLeverage": null,
@@ -314,11 +314,8 @@
               "state": "Finished",
               "pathway": "Monitoring update",
               "text": "Stable, outlook negative: leverage at 4.9x after the Corvane Fasteners purchase.",
-              "report": "2026-06-30",
-              "changes": {
-                "label": "What changed since 31 Mar 2026",
-                "run": "2026-06-30"
-              }
+              "report": null,
+              "changes": null
             },
             {
               "asOf": "31 Mar 2026",
@@ -380,7 +377,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
               "firstModule": "business-profile",
-              "forecastHref": "#/model/halden-aerostructures/2026-09-30/forecast"
+              "forecastHref": null
             },
             "loading": false,
             "overview": {
@@ -4846,7 +4843,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "13" },
               "firstModule": "business-profile",
-              "forecastHref": "#/model/halden-aerostructures/2025-09-30/forecast"
+              "forecastHref": null
             },
             "loading": false,
             "overview": {
@@ -5761,8 +5758,8 @@
         "name": "Corvane Packaging",
         "history": {
           "subtitle": "Report history: two runs since June 2026",
-          "latest": "2026-06-30",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5779,7 +5776,7 @@
               "state": "Finished",
               "pathway": "Full review",
               "text": "Improving: volume recovery and a cleared 2027 maturity leave two years of runway.",
-              "report": "2026-06-30",
+              "report": null,
               "changes": null
             }
           ]
@@ -5791,8 +5788,8 @@
         "name": "Tessaly Foods",
         "history": {
           "subtitle": "Report history: one run",
-          "latest": "2026-09-30",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5800,7 +5797,7 @@
               "state": "Finished",
               "pathway": "Monitoring update",
               "text": "Weakening: the springing covenant is likely to be tested at the December quarter end.",
-              "report": "2026-09-30",
+              "report": null,
               "changes": null
             }
           ]
@@ -5812,8 +5809,8 @@
         "name": "Ardenne Cable",
         "history": {
           "subtitle": "Report history: two runs since March 2026",
-          "latest": "2026-03-31",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5830,7 +5827,7 @@
               "state": "Finished",
               "pathway": "Full review",
               "text": "Stable: subscriber losses are offset by pricing; leverage is flat at 5.2x.",
-              "report": "2026-03-31",
+              "report": null,
               "changes": null
             }
           ]
@@ -5842,8 +5839,8 @@
         "name": "Lumora Health",
         "history": {
           "subtitle": "Report history: one run",
-          "latest": "2026-09-30",
-          "empty": null,
+          "latest": null,
+          "empty": "No report for this issuer is held in this library yet.",
           "entries": [
             {
               "asOf": "30 Sep 2026",
@@ -5851,7 +5848,7 @@
               "state": "Capped",
               "pathway": "Full review",
               "text": "The run stopped at its cost cap before the modules that form the view had finished.",
-              "report": "2026-09-30",
+              "report": null,
               "changes": null
             }
           ]
@@ -5892,7 +5889,7 @@
               "state": "Finished",
               "tabs": { "modulesCount": "1" },
               "firstModule": "business-profile",
-              "forecastHref": "#/model/brevane-marine/r-0412/forecast"
+              "forecastHref": null
             },
             "loading": false,
             "overview": {

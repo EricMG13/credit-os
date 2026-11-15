@@ -89,14 +89,14 @@ describe("Report history, a normal issuer", () => {
 
   it("links a finished run to its report and to what changed since the run before", () => {
     renderHistory("halden-aerostructures");
-    const first = within(entries()[1] as HTMLElement);
+    const first = within(entries()[0] as HTMLElement);
     expect(first.getByRole("link", { name: "Open report" })).toHaveAttribute(
       "href",
-      "#/library/halden-aerostructures/2026-06-30/overview",
+      "#/library/halden-aerostructures/2026-09-30/overview",
     );
-    expect(first.getByRole("link", { name: "What changed since 31 Mar 2026" })).toHaveAttribute(
+    expect(first.getByRole("link", { name: "What changed since 30 Jun 2026" })).toHaveAttribute(
       "href",
-      "#/library/halden-aerostructures/2026-06-30/changes",
+      "#/library/halden-aerostructures/2026-09-30/changes",
     );
   });
 
@@ -216,17 +216,24 @@ describe("Report history, heading levels", () => {
 });
 
 describe("Report history, fixture against the Library home cards", () => {
-  it("gives every carded issuer a history that opens the card's run, in the card's state", () => {
+  it("a card with a run names a held, non-loading run, and each carded issuer's history holds the card's state", () => {
     const cards = (fixture.slice.home["cards"] as Json[]).filter((c) => c["kind"] === "issuer");
     expect(cards.length).toBeGreaterThan(0);
     for (const card of cards) {
       const issuer = fixture.slice.issuers.find((i) => i["id"] === card["issuer"]);
-      const list = issuer?.history.entries ?? [];
-      const opened = list.find((e) => e["report"] === card["href"]);
-      expect(opened, `${String(card["issuer"])} opens ${String(card["href"])}`).toBeDefined();
-      expect(["Failed", "Running"]).not.toContain(opened?.["state"]);
+      const href = card["href"] as string | null;
+      if (href !== null) {
+        const held = (issuer?.["runs"] as Json[] | undefined)?.find(
+          (r) => r["id"] === card["href"],
+        );
+        expect(held, `${String(card["issuer"])} holds ${href}`).toBeDefined();
+        expect(held?.["loading"], `${String(card["issuer"])} run is not loading`).toBe(false);
+        const opened = (issuer?.history.entries ?? []).find((e) => e["report"] === href);
+        expect(opened, `${String(card["issuer"])} opens ${href}`).toBeDefined();
+        expect(["Failed", "Running"]).not.toContain(opened?.["state"]);
+      }
       expect(
-        list.map((e) => e["state"]),
+        (issuer?.history.entries ?? []).map((e) => e["state"]),
         String(card["issuer"]),
       ).toContain(card["state"]);
     }
