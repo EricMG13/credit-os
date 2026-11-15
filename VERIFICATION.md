@@ -48,9 +48,9 @@ once on the first run); fix round 1, y.
 decisions (rulings in decision 0013 and the coordinators' rulings files); fast tests per task, full
 gates once per PR (a green CI run on the pushed head stands in, by the back end's slot rule 10);
 heavy runs two at a time with step 2A first; sub-session leads on Opus 5.5 at xhigh; every Low and
-Info finding waits for one batch after the final roadmap phase; throttle to the critical path until the 2026-11-18 reset. Sweep wave 2, slice contract
-3 and the states 2 build wait for the reset. The design track's running list of held Lows
-and Infos has 23 rows (coordinator's count).
+Info finding waits for one batch after the final roadmap phase; throttle to the critical path
+until the 2026-11-18 reset. Sweep wave 2, slice contract 3 and the states 2 build wait for the
+reset. The design track's running list of held Lows and Infos has 23 rows (coordinator's count).
 
 **Rule breaches recorded:** five hand-mutant runs in the sweep ran before the machine-wide slot
 queue covered them; one implementer created and deleted a stray file under `/tmp`; the gap severity
