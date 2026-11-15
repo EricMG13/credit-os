@@ -4,13 +4,7 @@ import { areaOf, matchRoute, routeTable, type RouteTable } from "./pages/route-t
 import { SourceContext } from "./pages/source";
 import { useHashRoute } from "./route";
 import { PageHeader } from "./shell/PageHeader";
-import { Shell, type Area } from "./shell/Shell";
-
-const NOT_BUILT = new Map<string, { title: string; area: Area }>([
-  ["/model", { title: "Model", area: "model" }],
-  ["/run", { title: "Run", area: "run" }],
-  ["/signal", { title: "Signal", area: "signal" }],
-]);
+import { Shell } from "./shell/Shell";
 
 function Library({ result }: { result: LoadResult }) {
   return (
@@ -110,15 +104,6 @@ function Page({ result, table, route }: { result: LoadResult; table: RouteTable;
     return (
       <Shell current="kit">
         <Kit />
-      </Shell>
-    );
-  }
-  const notBuilt = NOT_BUILT.get(route);
-  if (matched === null && notBuilt !== undefined) {
-    return (
-      <Shell current={notBuilt.area}>
-        <PageHeader title={notBuilt.title} />
-        <p className="mt-6 text-text-secondary">Not built yet</p>
       </Shell>
     );
   }
