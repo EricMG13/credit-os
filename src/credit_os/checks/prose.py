@@ -204,7 +204,8 @@ def _block_nodes(section: Section) -> Iterable[tuple[int, str]]:
         yield from block_nodes(block)
 
 
-def _nodes(document: HandoffDocument) -> Iterable[tuple[int, str]]:
+def nodes(document: HandoffDocument, *, comments: bool = True) -> Iterable[tuple[int, str]]:
+    """Every text node of the document with its file line; the comments last unless left out."""
     if document.title is not None:
         yield document.title.line, document.title.title
     if document.front_matter is not None:
@@ -213,8 +214,9 @@ def _nodes(document: HandoffDocument) -> Iterable[tuple[int, str]]:
     for section in all_sections(document):
         yield section.line, section.title
         yield from _block_nodes(section)
-    for comment in document.comments:
-        yield comment.start, comment.text
+    if comments:
+        for comment in document.comments:
+            yield comment.start, comment.text
 
 
 def _marker_text(found: re.Match[str]) -> str:
@@ -226,6 +228,6 @@ def check_provider_marker(document: HandoffDocument, context: CheckContext) -> t
     reason = "Remove the model-provider citation marker from the text."
     return tuple(
         refusal("prose.provider-marker", line, _marker_text(found), reason, found.start() + 1)
-        for line, text in _nodes(document)
+        for line, text in nodes(document)
         for found in _MARKER.finditer(text)
     )
