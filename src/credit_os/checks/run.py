@@ -3,7 +3,17 @@
 Later pull requests add steps here; each step is one plain line of this function.
 """
 
-from credit_os.checks import confidence, figures, held, passages, prose, sources, structure, text
+from credit_os.checks import (
+    confidence,
+    figures,
+    held,
+    passages,
+    prose,
+    request,
+    sources,
+    structure,
+    text,
+)
 from credit_os.checks.findings import CheckContext, Finding, ordered
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import HandoffError
@@ -27,6 +37,7 @@ def _sources(document: HandoffDocument, context: CheckContext) -> tuple[Finding,
     return (
         *sources.check_name(document, context),
         *sources.check_sha256(document, context),
+        *sources.check_sha256_required(document, context),
         *sources.check_type(document, context),
     )
 
@@ -40,6 +51,8 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
                 *structure.check_reader(document, context),
                 *structure.check_fence(document, context),
                 *structure.check_register_id(document, context),
+                *request.check_as_of(document, context),
+                *request.check_issuer(document, context),
                 *_prose_text(document, context),
                 *_sources(document, context),
                 *confidence.check_confidence(document, context),
@@ -58,6 +71,8 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
             *structure.check_fence(document, context),
             *structure.check_register_id(document, context),
             *structure.check_registers(document, context),
+            *request.check_as_of(document, context),
+            *request.check_issuer(document, context),
             *prose.check_bottom_line(document, context),
             *prose.check_bottom_line_length(document, context),
             *_prose_text(document, context),

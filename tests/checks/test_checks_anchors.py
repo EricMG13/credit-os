@@ -62,8 +62,10 @@ def test_finding_shape(name: str) -> None:
     document, context = _build(CASES[name])
     for finding in check_handoff(document, context):
         assert finding.reason.count("\n") == 0
-        assert finding.reason.endswith(".")
-        assert not re.search(r"\. [A-Z]", finding.reason)
+        if finding.check != "structure.reader":  # the parser's message, no full stop
+            assert finding.reason.endswith(".")
+        if finding.check not in ("structure.reader", "request.issuer"):  # issuer text is quoted
+            assert not re.search(r"\. [A-Z]", finding.reason)
         assert finding.column == 1
 
 
