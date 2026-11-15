@@ -134,6 +134,11 @@ _DONE_BARE = Compaction(Usage(), None, "done", "c", None)
 _ZERO_COUNTS = Compaction(Usage(0, 0, 0, 0), Decimal(0), "done", "z", None)
 _BIG_COUNTS = Compaction(Usage(_BIG, _BIG, _BIG, _BIG), Decimal("1E+63"), "done", "b", None)
 _WHOLE_DOLLARS = Compaction(Usage(), Decimal("12.5"), "done", "w", None)
+# The adapter's own charge shape: nanos as Decimal((0, digits, -11)), eleven fraction digits kept.
+_ADAPTER_HALF = Compaction(Usage(0, 0, 0, 0), Decimal("0.50000000000"), "failed", "t", None)
+_ADAPTER_ZERO = Compaction(Usage(1, 0, 0, 0), Decimal("0E-11"), "done", "a", None)
+_COUNTS_NO_CHARGE = Compaction(Usage(input_tokens=5), None, "done", "x", None)
+_SMALLEST_CHARGE = Compaction(Usage(), Decimal("1E-62"), "done", "s", None)
 
 # (label, reply, CALL columns, COMPACTIONS rows in order). A COMPACTIONS row is the compaction's
 # stored columns other than run_id and the call key: event_id, position, four counts, billed_usd,
@@ -393,6 +398,57 @@ CASES: tuple[tuple[str, Reply, dict[str, object], tuple[dict[str, object], ...]]
                 "position": 2,
                 **_NO_COUNTS,
                 "billed_usd": "12.5",
+                "outcome": "done",
+                "supersedes": None,
+            },
+        ),
+    ),
+    (
+        "ok with compactions in the adapter's charge shape, without a charge, and at the smallest",
+        _ok(
+            Usage(),
+            compactions=(_ADAPTER_HALF, _ADAPTER_ZERO, _COUNTS_NO_CHARGE, _SMALLEST_CHARGE),
+        ),
+        {**_NONE, "kind": "ok", "stop_reason": "end"},
+        (
+            {
+                "event_id": "t",
+                "position": 0,
+                "input_tokens": 0,
+                "cached_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "output_tokens": 0,
+                "billed_usd": "0.50000000000",
+                "outcome": "failed",
+                "supersedes": None,
+            },
+            {
+                "event_id": "a",
+                "position": 1,
+                "input_tokens": 1,
+                "cached_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "output_tokens": 0,
+                "billed_usd": "0.00000000000",
+                "outcome": "done",
+                "supersedes": None,
+            },
+            {
+                "event_id": "x",
+                "position": 2,
+                "input_tokens": 5,
+                "cached_read_tokens": None,
+                "cache_write_tokens": None,
+                "output_tokens": None,
+                "billed_usd": None,
+                "outcome": "done",
+                "supersedes": None,
+            },
+            {
+                "event_id": "s",
+                "position": 3,
+                **_NO_COUNTS,
+                "billed_usd": "0." + "0" * 61 + "1",
                 "outcome": "done",
                 "supersedes": None,
             },
