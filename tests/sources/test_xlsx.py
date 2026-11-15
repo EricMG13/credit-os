@@ -7,7 +7,7 @@ from typing import Literal
 
 import pytest
 
-from credit_os.sources import Page, SourcePages, SourceUnreadable
+from credit_os.sources import Page, SourcePages, SourceUnreadable, xlsx
 from credit_os.sources.xlsx import xlsx_pages
 
 MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -558,6 +558,18 @@ TEXT_ROWS = [
         cells('<c r="A1"><v>1\t2</v></c>', name="A&#10;B"),
         one_page("A1='1\\t2'", header=head("'A\\nB'")),
     ),
+    # (ruling 33) the last row, stated
+    (
+        "row-max-stated",
+        book('<row r="1048576"><c r="A1048576"><v>1</v></c></row>'),
+        one_page("A1048576=1"),
+    ),
+    # (ruling 33) the last row, counted
+    (
+        "row-max-counted",
+        book('<row r="1048575"><c><v>1</v></c></row><row><c><v>2</v></c></row>'),
+        one_page("A1048575=1\nA1048576=2"),
+    ),
 ]
 
 
@@ -895,6 +907,18 @@ REFUSALS = [
         ),
         "'xl/styles.xml': a number format id that is not a number",
     ),
+    # (ruling 33) a stated row above the last
+    (
+        "row-over-stated",
+        book('<row r="1048577"><c><v>1</v></c></row>'),
+        SHEET + "a row beyond row 1,048,576",
+    ),
+    # (ruling 33) a counted row above the last
+    (
+        "row-over-counted",
+        book('<row r="1048576"><c><v>1</v></c></row><row><c><v>2</v></c></row>'),
+        SHEET + "a row beyond row 1,048,576",
+    ),
 ]
 
 
@@ -903,3 +927,15 @@ def test_refusal_rows(raw: bytes, message: str) -> None:
     with pytest.raises(SourceUnreadable) as caught:
         xlsx_pages("b.xlsx", raw)
     assert str(caught.value) == "b.xlsx: " + message
+
+
+def test_page_text_cap_applies_within_a_row(monkeypatch: pytest.MonkeyPatch) -> None:
+    # (finding H1) the cap is checked as each label is written, so one row cannot pass it
+    monkeypatch.setattr(xlsx, "MAX_TEXT_CHARACTERS", 65_536)
+    raw = book(
+        '<row><c t="s"><v>0</v></c><c t="s"><v>0</v></c></row>',
+        strings="<si><t>" + "x" * 40_000 + "</t></si>",
+    )
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", raw)
+    assert str(caught.value) == "b.xlsx: page text longer than 65,536 characters"
