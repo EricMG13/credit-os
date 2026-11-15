@@ -287,13 +287,14 @@ def _sign_clause(key: str, cell: Decimal, amount: Decimal) -> str:
 def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str, bool]]:
     """The cells of one operand's group as (what, cell, whether it may excuse the others).
 
-    Only the operand's header, the first header cell and a cell under a `Unit` or `Units` column
-    may excuse; every cell can still raise an issue.
+    Only the operand's header, the first header cell, a cell under a `Unit` or `Units` column and
+    the table's caption lines may excuse; every cell can still raise an issue.
     """
     group = [
         (f"{kind} header", table.columns[column], True),
         ("first header cell", table.columns[0], True),
     ]
+    group.extend(("caption", text, True) for text in table.caption)
     group.extend(
         (_plain(table.columns[index]), cell, _plain(table.columns[index]) in _UNIT_COLUMNS)
         for index, cell in enumerate(line.cells)
@@ -390,8 +391,12 @@ def _only(text: str, unit: str) -> bool:
 
 def _table_pieces(table: Table, unit: str) -> list[str]:
     """The table's label and column headers naming no other unit, and its body cells whose
-    row, column header and first header cell name no other unit (the cell is in its row).
+    row, column header and first header cell name no other unit (the cell is in its row). A
+    caption naming any unit but the block's removes the whole table; one that does not changes
+    nothing.
     """
+    if any(not _only(text, unit) for text in table.caption):
+        return []
     found = [] if table.label is None or not _only(table.label, unit) else [table.label]
     found.extend(column for column in table.columns if _only(column, unit))
     head = units_named(table.columns[0])
@@ -407,8 +412,9 @@ def _table_pieces(table: Table, unit: str) -> list[str]:
 
 def balance_pieces(document: HandoffDocument, unit: str) -> tuple[str, ...]:
     """The text a balance may be printed in: prose lines naming no unit but the block's, and
-    the table parts of `_table_pieces`. A part naming the block's unit and another does not
-    count; a part naming no unit does. An amount in the other unit is refused, never converted.
+    the table parts of `_table_pieces` (none from a table whose caption names another unit).
+    A part naming the block's unit and another does not count; a part naming no unit does.
+    An amount in the other unit is refused, never converted.
     """
     found: list[str] = []
     for block in _kept(document):
