@@ -192,3 +192,29 @@ def test_no_foreign_digit_is_read_as_a_figure(parts: list[str], passage: bool) -
         start = figure.column - 1 + first
         end = figure.column - 1 + last
         assert not any(start < b and a < end for a, b in foreign)
+
+
+# K8 clause 3 and the cell rows, after 3B's guard (#415): `cell` gives no `at` when the text
+# holds a decimal digit that is not ASCII. Rows 40 and 41 of tests/delivery/expected/passages.json
+# (3B's) hold cell-ai-175 and cell-near-space; these are the other two shapes of the key draft's K2
+# and the shape whose unit touches the run.
+_CELLS = [
+    ("cell-near-hyphen", chr(0x665) + "-10"),
+    ("cell-near-pct", chr(0x665) + " 5%"),
+    ("cell-unit-then-ai", "5x" + chr(0x661)),
+]
+
+
+@pytest.mark.parametrize("text", [text for _, text in _CELLS], ids=[name for name, _ in _CELLS])
+def test_cell_gives_no_at_for_a_foreign_digit(text: str) -> None:
+    shown, _ = passages.cell(text)
+    assert shown is None or shown.get("at") is None
+
+
+@settings(max_examples=200)
+@given(parts=st.lists(st.sampled_from(_ALPHABET), max_size=14))
+def test_no_cell_reads_a_foreign_digit(parts: list[str]) -> None:
+    text = "".join(parts)
+    if any(c.isdecimal() and not c.isascii() for c in text):
+        shown, _ = passages.cell(text)
+        assert shown is None or shown.get("at") is None
