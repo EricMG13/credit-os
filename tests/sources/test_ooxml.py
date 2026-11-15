@@ -632,3 +632,46 @@ def test_pin8_an_encrypted_member_raises_runtime_error() -> None:
         archive.open(PART)
     expected = "File 'xl/a.xml' is encrypted, password required for extraction"
     assert str(caught.value) == expected, sys.version
+
+
+def _entries(directory: bytes) -> list[bytes]:
+    found = []
+    at = 0
+    while at < len(directory):
+        n, m, k = struct.unpack_from("<HHH", directory, at + 28)
+        found.append(directory[at : at + 46 + n + m + k])
+        at += 46 + n + m + k
+    return found
+
+
+def _end_record(count: int, size: int, offset: int, comment: int) -> bytes:
+    return b"PK\x05\x06" + struct.pack("<HHHHIIH", 0, 0, count, count, size, offset, comment)
+
+
+def _comment_held_end_record(trailing: bytes) -> bytes:
+    """Two directories: the first names the members and ends a record whose comment holds the
+    second directory and its own end record; the second names the same first member and the
+    hidden copy of the part."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
+        archive.writestr("[Content_Types].xml", b"<Types/>")
+        archive.writestr(PART, b"<a>visible</a>")
+        archive.writestr("xl/b.xml", b"<a>hidden.</a>")
+    raw = buffer.getvalue().replace(b"xl/b.xml", PART.encode())
+    start = raw.index(b"PK\x01\x02")
+    end = raw.rindex(b"PK\x05\x06")
+    types, visible, hidden = _entries(raw[start:end])
+    members = raw[:start]
+    first = types + visible
+    second = types + hidden
+    second_at = len(members) + len(first) + 22
+    tail = second + _end_record(2, len(second), second_at, 0) + trailing
+    return members + first + _end_record(2, len(first), len(members), len(tail)) + tail
+
+
+@pytest.mark.parametrize("trailing", [b"", b"!"], ids=["no-trailing-byte", "one-trailing-byte"])
+def test_comment_held_end_record_naming_offset_zero_is_read(trailing: bytes) -> None:
+    # An end record held in the archive comment whose directory also names the member at
+    # offset 0 is read, as zipfile, Info-ZIP and bsdtar read it (coordinator's ruling on 3a S-L1).
+    raw = _comment_held_end_record(trailing)
+    assert b"".join(Package("b.xlsx", raw).pieces(PART)) == b"<a>hidden.</a>"
