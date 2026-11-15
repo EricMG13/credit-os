@@ -36,7 +36,8 @@ MAX_EXPANDED_BYTES = 209_715_200
 MAX_MEMBERS = 16_384
 # zipfile copies the whole central directory and keeps every name, extra field and comment in it
 # while the package lives.
-MAX_DIRECTORY_BYTES = 4_194_304
+MAX_DIRECTORY_BYTES = 2_097_152
+# The largest real directories measured are far under this (the PR body gives the margin).
 # The most of a part held at once.
 CHUNK_BYTES = 65_536
 # expat keeps one unfinished markup token whole and makes every attribute of a start tag before any
