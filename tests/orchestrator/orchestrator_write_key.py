@@ -132,31 +132,6 @@ REPEAT_RECORD = (
     'limitation with one specific to this module; it repeats one already given."}'
 )
 FIX = {"old": "CP-DR gives no cash forecast, so the module", "new": "The module"}
-TIMING_LIMIT_S = 240  # the slowest family below took 42 s at the cap here (load 6, 2026-11-15)
-
-
-def worst_at_cap() -> str:
-    """Review of PR 5: register ids in a table and in passage lines, the slowest family measured
-    (check time grows with their product), padded with spaces to exactly the cap."""
-    head = (
-        "# CP-2D handoff\n\n## Request\nSynthetic request.\n\n## Sources\n\n| Source | Source "
-        "type |\n| --- | --- |\n| context | Other |\n\n## Findings\n\n### Bottom line\n\nThe "
-        "issuer is adequately placed.\n\n### Key findings\n\n"
-    )
-    mid = (
-        "\n### Contrary evidence and what would change the view\n\nNothing found.\n\n### "
-        "Limitations\n\n- One limitation of this synthetic case.\n\n## Calculations\n"
-    )
-    ids = range(13000)
-    text = (
-        head
-        + "".join(f"- A{i}\n" for i in ids)
-        + mid
-        + "| id | v |\n| --- | --- |\n"
-        + "".join(f"|A{i}|x|\n" for i in ids)
-        + "\n## Gaps\n\nNone.\n\n## Next module\nNone.\n"
-    )
-    return text + " " * (MAX_DRAFT_BYTES - len(text.encode()))
 
 
 def _w(markdown: Any) -> tuple[str, dict[str, Any], None]:
