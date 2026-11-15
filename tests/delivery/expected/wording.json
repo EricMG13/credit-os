@@ -160,6 +160,8 @@
   {"id": "band-not-decimal", "old": "{\"label\": \"Below 2.0x\", \"min\": null, \"max\": \"2\"}", "new": "{\"label\": \"Below 2.0x\", \"min\": null, \"max\": \"2e0\"}"},
   {"id": "eleven-months", "old": "\"Nov\", \"Dec\"]", "new": "\"Nov\"]"},
   {"id": "duplicate-state", "old": "{\"status\": \"rejected\", \"end_reason\": null, \"word\": \"Rejected\"},", "new": "{\"status\": \"rejected\", \"end_reason\": null, \"word\": \"Rejected\"}, {\"status\": \"rejected\", \"end_reason\": null, \"word\": \"Failed\"},"},
-  {"id": "state-word-outside-set", "old": "\"word\": \"Queued\"", "new": "\"word\": \"Waiting\""}
+  {"id": "state-word-outside-set", "old": "\"word\": \"Queued\"", "new": "\"word\": \"Waiting\""},
+  {"id": "count-null-plural", "old": "\"count\": \"count\", \"one\": \"{count} issuer,", "new": "\"count\": null, \"one\": \"{count} issuer,"},
+  {"id": "count-null-count-min", "old": "\"count\": \"count\", \"count_min\": 2,", "new": "\"count\": null, \"count_min\": 2,"}
  ]
 }
