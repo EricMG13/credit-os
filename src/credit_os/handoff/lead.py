@@ -4,6 +4,9 @@ A lead is `**label**` at the very start of the block's first line, optionally fo
 `:` that belongs to the mark. The lines considered are the block's body without its Basis line.
 Nothing is guessed: only the first line is read, and anything that does not fit is no lead.
 
+The trailing Basis line is left out of `rest`; the caller reads it with `read_basis`. The label is
+exactly the text inside the marks, not trimmed or normalised afterwards.
+
 Known limits: only the `**` form counts (not `__`); a label holding `*` is no lead, so nested
 emphasis and `***x***` are refused; a bold span that does not close on the first line is no
 lead; a second bold span stays ordinary text in `rest`.

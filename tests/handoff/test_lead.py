@@ -36,7 +36,35 @@ def test_key_case(case: dict[str, Any]) -> None:
         if expected is None
         else Lead(line=7, label=expected["label"], rest=tuple(expected["rest"]))
     )
-    assert read_lead(_block(case)) == want
+    block = _block(case)
+    assert read_lead(block) == want
+    if "basis_line" in case:
+        rest = expected["rest"]
+        label = expected["label"]
+        assert [f"**{label}** {rest[0]}", *rest[1:], case["basis_line"]] == list(case["lines"])
+        assert read_basis(block) is not None
+
+
+GENERATED: list[dict[str, Any]] = json.loads(
+    (HERE / "expected" / "lead-labels.json").read_text(encoding="utf-8")
+)["generated"]
+
+
+@pytest.mark.parametrize("row", GENERATED, ids=[r["id"] for r in GENERATED])
+def test_generated_case(row: dict[str, Any]) -> None:
+    line = row["prefix"] + row["fill"] * row["count"] + row["suffix"]
+    expected = row["expected"]
+    if expected is None:
+        want = None
+    else:
+        label = expected["label_fill"] * expected["label_count"]
+        rest = (
+            tuple(expected["rest"])
+            if "rest" in expected
+            else (expected["rest_fill"] * expected["rest_count"],)
+        )
+        want = Lead(line=1, label=label, rest=rest)
+    assert read_lead(Paragraph(line=1, lines=(line,))) == want
 
 
 def test_fixture_invariants() -> None:
