@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./run.css" rel="stylesheet" />
+        <style>
+          a{color:#001AFF}
+          a:hover{color:#0015CC}
+        </style>
+      </helmet>
+      <div class="doc">
+
+        <header class="doc-head" data-screen-label="Intro">
+          <span class="caption t3">Step D1c, run mocks, 13 Nov 2026, design system 0.7. Sample content is the public TransDigm case; file names, purposes and module names are illustrative.</span>
+          <h1 class="h1">Run start</h1>
+          <p class="lead t2">Five steps, a readiness panel beside them, and one paid action. Each frame below is one state of the same page. See also <a href="./Run%20activity.dc.html">Run activity</a>.</p>
+        </header>
+
+        <sc-for list="{{ frames }}" as="f" hint-placeholder-count="9">
+          <section class="frame" data-screen-label="{{ f.label }}">
+            <div class="frame-label"><span class="frame-no">{{ f.no }}</span><span class="frame-name">{{ f.name }}</span><span class="frame-note">{{ f.note }}</span></div>
+            <div class="screen">
+
+              <nav class="rail">
+                <div class="rail-card">
+                  <div class="rail-logo"><div class="ph rail-mark" title="Logo symbol placeholder"></div></div>
+                  <div class="rail-nav">
+                    <span class="rail-item" title="Library"><span class="ico"></span></span>
+                    <span class="rail-item" title="Model"><span class="ico"></span></span>
+                    <span class="rail-item on" title="Runs"><span class="ico"></span></span>
+                    <span class="rail-item" title="Signal"><span class="ico"></span></span>
+                  </div>
+                  <div class="rail-foot"><span class="rail-item" title="Settings"><span class="ico"></span></span><span class="avatar">AN</span></div>
+                </div>
+              </nav>
+
+              <div class="pagec">
+                <div class="col" style="gap:8px">
+                  <span class="small t3">Library / TransDigm Group / New run</span>
+                  <h2 class="h1">Start a run</h2>
+                  <p class="body t2" style="max-width:640px">Add the documents, say what the run is for, approve what was read, then start. Nothing is spent before the last step.</p>
+                </div>
+
+                <div class="cols">
+                  <div class="card stp">
+
+                    <div class="stp-list">
+                      <sc-for list="{{ f.steps }}" as="s" hint-placeholder-count="5">
+                        <div class="{{ s.itemCls }}">
+                          <div class="stp-trig">
+                            <div class="{{ s.indCls }}"><sc-if value="{{ s.done }}"><span class="tick"></span></sc-if><sc-if value="{{ s.showNum }}"><span>{{ s.n }}</span></sc-if></div>
+                            <div class="stp-txt"><span class="stp-title">{{ s.title }}</span><span class="stp-desc">{{ s.desc }}</span></div>
+                          </div>
+                          <sc-if value="{{ s.hasSep }}"><div class="{{ s.sepCls }}"></div></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+
+                    <sc-if value="{{ f.isDocs }}">
+                      <div class="stp-panel">
+                        <div class="col" style="gap:4px"><h3 class="h3">Documents</h3><p class="small t2">Annual and interim reports, the credit agreement, and anything else the analysis should read.</p></div>
+                        <div class="up">
+                          <div class="dz">
+                            <div class="fi fi40"><span class="ico"></span></div>
+                            <div class="dz-txt"><div class="dz-l1"><span class="lnk">Click to upload</span><span>or drag and drop</span></div><p class="dz-hint">PDF, DOCX, HTML or XLSX, up to 50 MB each</p></div>
+                          </div>
+                          <sc-if value="{{ f.noFiles }}">
+                            <div class="es">
+                              <div class="fi fi48 es-ic"><span class="ico ico24"></span></div>
+                              <div class="es-tx"><h4 class="es-t">No documents yet</h4><p class="es-s">Add at least one annual report or set of accounts. The run reads only what you add here.</p></div>
+                              <div class="es-btn"><button class="btn btn-p"><span class="ico ico16"></span>Choose files</button></div>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{ f.hasFiles }}">
+                            <div class="fl-list">
+                              <sc-for list="{{ f.files }}" as="d" hint-placeholder-count="5">
+                                <div class="{{ d.rowCls }}">
+                                  <div class="ficon"><div class="ficon-page"></div><div class="ficon-ext">{{ d.ext }}</div></div>
+                                  <div class="fl-c">
+                                    <div class="fl-top">
+                                      <div class="fl-nm">
+                                        <p class="fl-name">{{ d.name }}</p>
+                                        <div class="fl-meta"><span class="tnum">{{ d.size }}</span><span class="fl-sep"></span><span class="{{ d.stCls }}"><span class="{{ d.shCls }}"></span>{{ d.word }}</span></div>
+                                      </div>
+                                      <span class="fl-del" title="Remove file"><span class="ico ico16"></span></span>
+                                    </div>
+                                    <sc-if value="{{ d.bar }}"><div class="fl-pg"><div class="pb"><div class="pb-f" style="{{ d.fill }}"></div></div><span class="pb-l">{{ d.pct }}</span></div></sc-if>
+                                    <sc-if value="{{ d.part }}"><p class="fl-why">{{ d.why }}</p></sc-if>
+                                    <sc-if value="{{ d.bad }}"><p class="fl-why">{{ d.why }}</p><div class="fl-again"><span class="lnk lnk-d">Replace file</span><span class="lnk lnk-g">Remove</span></div></sc-if>
+                                  </div>
+                                </div>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ f.isPurpose }}">
+                      <div class="stp-panel">
+                        <div class="col" style="gap:4px"><h3 class="h3">Purpose</h3><p class="small t2">The purpose decides which modules run, and so how much of the cap the run can use.</p></div>
+                        <div class="rg">
+                          <sc-for list="{{ purposes }}" as="p" hint-placeholder-count="3">
+                            <div class="{{ p.cls }}">
+                              <div class="ic-hd"><div class="fi fi32"><span class="ico ico16"></span></div><span class="ic-t">{{ p.title }}</span><span class="ic-ck"><sc-if value="{{ p.sel }}"><span class="tick tick-sm"></span></sc-if></span></div>
+                              <div class="ic-bd"><div class="ic-row"><p class="ic-d">{{ p.desc }}</p><span class="bdg-mod">{{ p.mods }}</span></div></div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ f.isConfirm }}">
+                      <div class="stp-panel">
+                        <div class="row between" style="align-items:flex-start">
+                          <div class="col grow" style="gap:4px"><h3 class="h3">Confirm what was read</h3><p class="small t2">This is what the documents say and what will run. Approving it costs nothing.</p></div>
+                          <span class="badge b-info"><span class="sh sh-half c-info"></span>Awaiting your approval</span>
+                        </div>
+                        <div class="dlg">
+                          <sc-for list="{{ summary }}" as="g" hint-placeholder-count="3">
+                            <div class="col" style="gap:8px">
+                              <span class="caption t3">{{ g.name }}</span>
+                              <div class="dl">
+                                <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+                                  <div class="{{ r.cls }}"><div class="dl-dt">{{ r.k }}</div><div class="{{ r.vCls }}">{{ r.v }}</div></div>
+                                </sc-for>
+                              </div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ f.isContext }}">
+                      <div class="stp-panel">
+                        <div class="col" style="gap:4px"><h3 class="h3">More context</h3><p class="small t2">Optional. Skip this step if the documents say everything.</p></div>
+                        <div class="tf">
+                          <span class="tf-label">Anything the analysis should know</span>
+                          <div class="ta"><span class="ta-ph">For example: the committee wants a view on the 2028 maturities; the scanned presentation was left out.</span></div>
+                          <span class="tf-hint">What helps: the question behind this run, events after the latest report, documents you chose to leave out. Do not paste material from a private source.</span>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ f.isStart }}">
+                      <div class="stp-panel">
+                        <div class="col" style="gap:4px"><h3 class="h3">Start</h3><p class="small t2">Everything is ready. This is the only step that spends money.</p></div>
+                        <div class="dl">
+                          <sc-for list="{{ recap }}" as="r" hint-placeholder-count="3">
+                            <div class="{{ r.cls }}"><div class="dl-dt">{{ r.k }}</div><div class="dl-dd">{{ r.v }}</div></div>
+                          </sc-for>
+                        </div>
+                        <div class="col" style="gap:4px;padding-top:16px;border-top:1px solid #E8E9EB">
+                          <span class="h4">Submit starts a paid run</span>
+                          <span class="body t2" style="max-width:560px">It can spend up to <strong class="tnum">USD 20.00</strong> and stops there. You confirm once more before anything is spent.</span>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ f.isStarted }}">
+                      <div class="stp-panel">
+                        <div class="alert">
+                          <span class="fo c-info"><span class="sh sh-ring"></span></span>
+                          <div class="a-body">
+                            <div class="a-txt"><p class="a-t">Run started</p><p class="a-s">13 modules will read 4 documents for a full credit review of TransDigm Group. Spending stops at USD 20.00.</p></div>
+                            <div class="pb-row"><div class="pb"><div class="pb-f" style="width:0%"></div></div><span class="pb-l">USD 0.00 of USD 20.00</span></div>
+                            <div class="a-act"><a class="lnk" href="./Run%20activity.dc.html">Watch run activity</a><span class="lnk lnk-g">Back to the library</span></div>
+                          </div>
+                        </div>
+                        <p class="small t3">You can close this page. The run carries on, and its library appears under TransDigm Group when it finishes.</p>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ f.showAct }}">
+                      <div class="stp-act">
+                        <button class="{{ f.prevCls }}">Previous</button>
+                        <span class="stp-count">{{ f.count }}</span>
+                        <button class="{{ f.nextCls }}"><sc-if value="{{ f.isStart }}"><span class="ico"></span></sc-if>{{ f.next }}</button>
+                      </div>
+                    </sc-if>
+                  </div>
+
+                  <aside class="card col" style="gap:20px;padding:24px">
+                    <div class="col" style="gap:4px"><h3 class="h4">Readiness</h3><p class="small t3">{{ f.readyLine }}</p></div>
+                    <div class="lg">
+                      <sc-if value="{{ f.hasNotMet }}">
+                        <div class="lg-g">
+                          <div class="lg-h"><span class="sh sh-tri c-warn"></span><span>Not met</span><span class="cnt">{{ f.notMetCount }}</span></div>
+                          <div class="lg-b"><sc-for list="{{ f.notMet }}" as="i" hint-placeholder-count="3"><div class="lg-i">{{ i }}</div></sc-for></div>
+                        </div>
+                      </sc-if>
+                      <div class="lg-g">
+                        <div class="lg-h"><span class="sh sh-dot c-ok"></span><span>Met</span><span class="cnt">{{ f.metCount }}</span></div>
+                        <div class="lg-b"><sc-for list="{{ f.met }}" as="i" hint-placeholder-count="3"><div class="lg-i">{{ i }}</div></sc-for></div>
+                      </div>
+                    </div>
+                    <div class="col" style="gap:8px">
+                      <span class="caption t3">Spending cap for this run</span>
+                      <div class="pb-colm"><div class="pb" style="flex:none"><div class="pb-f" style="width:0%"></div></div><span class="pb-l">USD 0.00 of USD 20.00</span></div>
+                    </div>
+                  </aside>
+                </div>
+              </div>
+
+              <sc-if value="{{ f.modal }}">
+                <div class="ov">
+                  <div class="md">
+                    <span class="md-x">×</span>
+                    <div class="md-h">
+                      <div class="fi fi40"><span class="sh sh-tri c-warn" style="width:16px;height:16px"></span></div>
+                      <div class="md-tx"><h4 class="md-t">Start a paid run?</h4><p class="md-s">This run can spend up to USD 20.00 and stops when it reaches that cap. Once it starts, what it has spent cannot be taken back.</p></div>
+                    </div>
+                    <div class="md-act"><button class="btn btn-s">Cancel</button><button class="btn btn-p">Start run, up to USD 20.00</button></div>
+                  </div>
+                </div>
+              </sc-if>
+
+            </div>
+          </section>
+        </sc-for>
+
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const titles = [['Documents', 'Add files'], ['Purpose', 'Choose one'], ['Confirm', 'Approve'], ['More context', 'Optional'], ['Start', 'Paid step']];
+          const steps = (cur) => titles.map((t, i) => {
+            const done = i < cur, active = i === cur, last = i === titles.length - 1;
+            return { n: i + 1, title: t[0], desc: t[1], done, showNum: !done, hasSep: !last,
+              itemCls: 'stp-item' + (last ? ' last' : ''), indCls: 'stp-ind' + (done || active ? ' on' : ''), sepCls: 'stp-sep' + (done ? ' on' : '') };
+          });
+          const R = ['At least one document added', 'Every document can be read', 'Purpose chosen', 'Summary approved', 'Model service reachable', 'Spending cap set'];
+          const ready = (notIdx) => {
+            const notMet = R.filter((_, i) => notIdx.includes(i)), met = R.filter((_, i) => !notIdx.includes(i));
+            return { notMet, met, hasNotMet: notMet.length > 0, notMetCount: String(notMet.length), metCount: String(met.length),
+              readyLine: notMet.length ? 'What still has to be true before the run can start.' : 'Everything the run needs is in place.' };
+          };
+          // file state set, design system 0.7: shape, colour, word
+          const file = (ext, name, size, state, pct, why) => {
+            const m = { full: ['sh sh-dot', 'fl-st c-ok', 'Read in full'], up: ['sh sh-half', 'fl-st c-act', 'Uploading'], part: ['sh sh-tri', 'fl-st c-warn', 'Read in part'], bad: ['sh sh-dia', 'fl-st c-err', 'Unreadable'] }[state];
+            return { ext, name, size, shCls: m[0], stCls: m[1], word: m[2], bar: state === 'full' || state === 'up', part: state === 'part', bad: state === 'bad', why,
+              pct: pct + '%', fill: { width: pct + '%' }, rowCls: 'fl' + (state === 'bad' ? ' fl-bad' : '') };
+          };
+          const files = [
+            file('PDF', 'TransDigm Group annual report FY2025.pdf', '4.8 MB', 'full', 100),
+            file('PDF', 'TransDigm Group quarterly report Q3 FY2026.pdf', '2.1 MB', 'full', 100),
+            file('PDF', 'Credit agreement, latest amendment.pdf', '1.3 MB', 'up', 62),
+            file('XLSX', 'Segment data FY2021 to FY2025.xlsx', '310 KB', 'part', 0, 'Two of five sheets were read. The other three hold charts only, with no figures to read.'),
+            file('PDF', 'Investor presentation, scanned.pdf', '18.4 MB', 'bad', 0, 'This PDF is a scan with no readable text, so the run cannot read it. Replace it with a text version, or remove it to continue.'),
+          ];
+          const purposes = [
+            { title: 'Full credit review', sel: true, mods: '13 modules', desc: 'Every module runs: business, financials, capital structure, liquidity, covenants, peers, forecast and recovery. The fullest library, and the most spend.' },
+            { title: 'Earnings update', sel: false, mods: '5 modules', desc: 'Reads the latest results against the last run and updates financials, liquidity and the forecast. Needs an earlier run on this issuer.' },
+            { title: 'Event review', sel: false, mods: '4 modules', desc: 'Looks at one event, such as a refinancing, an acquisition or a rating action, and what it changes.' },
+          ].map((p) => Object.assign(p, { cls: 'ic' + (p.sel ? ' sel' : '') }));
+          const rows = (list) => list.map((r, i) => ({ k: r[0], v: r[1], cls: 'dl-row' + (i === 0 ? ' first' : ''), vCls: 'dl-dd' + (r[1] === 'n.a.' ? ' na' : '') }));
+          const summary = [
+            { name: 'Issuer', rows: rows([['Name', 'TransDigm Group Incorporated'], ['Reporting currency', 'USD'], ['Financial year end', '30 September'], ['Latest period read', 'Q3 FY2026, nine months to 28 June 2026'], ['Guarantor group', 'n.a.']]) },
+            { name: 'Documents', rows: rows([['Read', '4 of 4 added: 3 in full, 1 in part'], ['Periods covered', 'FY2021 to FY2025, and Q3 FY2026'], ['Left out', 'Investor presentation, scanned: removed because it has no readable text']]) },
+            { name: 'Run', rows: rows([['Purpose', 'Full credit review'], ['Modules', '13'], ['Spending cap', 'USD 20.00']]) },
+          ];
+          const recap = rows([['Issuer', 'TransDigm Group Incorporated'], ['Purpose', 'Full credit review, 13 modules'], ['Documents', '4, approved today at 14:36'], ['More context', 'One note added']]);
+          const frame = (no, name, note, kind, cur, notIdx, o) => Object.assign({
+            no, name, note, label: no + ' ' + name, steps: steps(cur), modal: false,
+            isDocs: kind === 'docs', isPurpose: kind === 'purpose', isConfirm: kind === 'confirm', isContext: kind === 'context', isStart: kind === 'start', isStarted: kind === 'started',
+            noFiles: false, hasFiles: false, files, showAct: kind !== 'started',
+            prevCls: 'btn btn-s' + (cur === 0 ? ' btn-off' : ''), count: 'Step ' + (cur + 1) + ' of 5', next: 'Next', nextCls: 'btn btn-p',
+          }, ready(notIdx), o || {});
+          const submit = { next: 'Submit, spend up to USD 20.00', nextCls: 'btn btn-p btn-xl' };
+          const frames = [
+            frame('01', 'Documents, no documents yet', 'Empty state inside the uploader. Next is unavailable.', 'docs', 0, [0, 1, 2, 3], { noFiles: true, nextCls: 'btn btn-p btn-off' }),
+            frame('02', 'Documents, with an unreadable file', 'All four file states: two read in full, one uploading, one read in part, one unreadable with its reason. Next stays unavailable until the unreadable file is replaced or removed.', 'docs', 0, [1, 2, 3], { hasFiles: true, nextCls: 'btn btn-p btn-off' }),
+            frame('03', 'Purpose', 'Radio cards. Each states what it runs.', 'purpose', 1, [3]),
+            frame('04', 'Confirm, summary awaiting approval', 'Approving is free and is not the paid action.', 'confirm', 2, [3], { next: 'Approve summary' }),
+            frame('05', 'More context', 'Optional free text.', 'context', 3, []),
+            frame('06', 'Start', 'Submit is the explicit paid action: the only extra-large button on the page, and its label states the cap.', 'start', 4, [], submit),
+            frame('07', 'Start, confirmation', 'The warning modal, used for Start only.', 'start', 4, [], Object.assign({ modal: true }, submit)),
+            frame('08', 'Run started', 'The alert says what will run and its cap, and links to Run activity.', 'started', 5, []),
+          ];
+          return { frames, purposes, summary, recap };
+        }
+      }
+    </script>
+  </body>
+</html>

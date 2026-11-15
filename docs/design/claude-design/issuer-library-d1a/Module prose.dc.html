@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app srcs-on" data-screen-label="Module, prose">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Modules" sources="on" hint-size="100%,190px"></dc-import>
+          <div class="g-index">
+            <dc-import name="ModNav" module="Business profile" hint-size="240px,900px"></dc-import>
+            <div class="stack" style="gap:40px">
+              <div class="row-b"><h2 class="h2">Business profile</h2><span class="u-badge dot c-ok"><span class="sh sh-dot m-ok"></span>Delivered</span></div>
+
+              <section class="s-banner tr" aria-label="Bottom line">
+                <span class="s-banner-ic"><span class="sh sh-dot" style="width:8px;height:8px"></span></span>
+                <div class="s-banner-b">
+                  <span class="s-banner-k">Bottom line</span>
+                  <h3 class="h3">A sole-source aftermarket franchise carries a thinner, more cyclical original-equipment business.</h3>
+                  <p class="s-banner-r">The aftermarket earns most of the profit and is hard to displace. The risk is concentration: one engine programme and three customers decide whether growth arrives on time.</p>
+                </div>
+                <button class="trace" aria-label="Show sources for the bottom line"></button>
+              </section>
+
+              <section class="stack">
+                <h3 class="h3">Key findings</h3>
+                <ol class="s-lp">
+                  <sc-for list="{{ findings }}" as="f" hint-placeholder-count="4">
+                    <li class="s-lp-i tr"><span class="s-lp-n">{{ f.n }}</span><div class="s-lp-b"><span class="s-lp-t">{{ f.t }}</span><span class="s-lp-d">{{ f.d }}</span></div><button class="trace" aria-label="Show sources for this finding"></button></li>
+                  </sc-for>
+                </ol>
+              </section>
+
+              <section class="stack">
+                <h3 class="h3">Contrary evidence</h3>
+                <div class="s-alert tr" role="note">
+                  <span class="sh sh-tri"></span>
+                  <span class="s-alert-t">Two airlines have begun certifying alternative parts</span>
+                  <span class="s-alert-d">If approved, alternatives would cover about a tenth of aftermarket revenue. Management says none has passed certification; the module could not confirm this from the files provided.</span>
+                  <button class="trace" aria-label="Show sources for the contrary evidence"></button>
+                </div>
+              </section>
+
+              <section class="stack">
+                <h3 class="h3">What would change the view</h3>
+                <div class="h-standout tr" role="note">
+                  <div class="h-standout-h"><span class="ico ico-24" style="border-radius:50%"></span><strong>Loss of sole-source status on a top-ten part</strong></div>
+                  <p>One certified alternative on a top-ten part, or a third slip in the engine programme’s ramp, would move this module’s view from stable to weakening.</p>
+                  <button class="trace trace-abs" style="top:12px;right:12px" aria-label="Show sources for the trigger"></button>
+                </div>
+              </section>
+
+              <section class="stack">
+                <div class="row-b"><h3 class="h3">Risks by probability and impact</h3><span class="u-seg" role="group" aria-label="Presentation"><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span></div>
+                <div class="g-side" style="grid-template-columns:minmax(0,1fr) 240px">
+                  <div class="s-heat tr" role="table" aria-label="Risk matrix">
+                    <sc-for list="{{ heat }}" as="c" hint-placeholder-count="16">
+                      <div class="{{ c.cls }}">{{ c.t }}</div>
+                    </sc-for>
+                  </div>
+                  <div class="stack-s">
+                    <span class="caption t3">Not placed</span>
+                    <p class="small">Tariff exposure <span class="na">(probability n.a.)</span></p>
+                    <span class="caption t3" style="margin-top:12px">Reading the grid</span>
+                    <p class="small t2">Darker cells are higher probability and impact together. An empty cell holds no risk.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="stack" aria-label="Table side of the risk matrix">
+                <div class="row-b"><div><h3 class="h3">Risks by probability and impact</h3><p class="small t3">The Table side of the same toggle.</p></div><span class="u-seg" role="group" aria-label="Presentation"><span class="u-segi">Chart</span><span class="u-segi on" aria-pressed="true">Table</span></span></div>
+                <div class="h-tablewrap">
+                  <table class="h-table">
+                    <thead><tr><th>Risk</th><th>Probability</th><th>Impact</th></tr></thead>
+                    <tbody>
+                      <tr><td>Engine programme delay</td><td>Medium</td><td>High</td></tr>
+                      <tr><td>Loss of sole-source status</td><td>Low</td><td>High</td></tr>
+                      <tr><td>Customer concentration</td><td>Medium</td><td>Medium</td></tr>
+                      <tr><td>Input cost inflation</td><td>High</td><td>Low</td></tr>
+                      <tr><td>Tariff exposure</td><td><span class="na">n.a.</span></td><td>Medium</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="g2" style="gap:40px">
+                <div class="stack">
+                  <h3 class="h3">Indicators to watch</h3>
+                  <div>
+                    <sc-for list="{{ watch }}" as="w" hint-placeholder-count="4">
+                      <div class="s-tick tr"><span class="s-tick-ic" title="{{ w.kind }}"><span class="{{ w.ic }}"></span></span><span class="s-tick-s">{{ w.name }}</span><span class="s-tick-p">{{ w.level }}</span><button class="trace" aria-label="Show sources for this indicator"></button></div>
+                    </sc-for>
+                  </div>
+                  <p class="small t3 row" style="gap:8px"><span class="lead-i"></span>Leading<span class="lag-i" style="margin-left:12px"></span>Lagging</p>
+                </div>
+                <div class="stack">
+                  <h3 class="h3">Questions this module set out to answer</h3>
+                  <div class="h-acc">
+                    <details open="open">
+                      <summary><span class="q">How durable is aftermarket pricing?</span><span class="u-badge u-badge-sm dot c-ok"><span class="sh sh-dot m-ok"></span>Answered</span><span class="chev chev-u"></span></summary>
+                      <div class="a tr"><span class="grow">Durable for the parts where Halden is the only certified source, which carry about three fifths of gross profit. Price rises of 4 to 6% a year have held since 2021.</span><button class="trace" aria-label="Show sources for this answer"></button></div>
+                    </details>
+                    <details>
+                      <summary><span class="q">How exposed is revenue to one programme?</span><span class="u-badge u-badge-sm dot c-info"><span class="sh sh-half m-info"></span>Partly answered</span><span class="chev"></span></summary>
+                    </details>
+                    <details>
+                      <summary><span class="q">What share of contracts can pass through cost inflation?</span><span class="u-badge u-badge-sm dot c-neu"><span class="sh sh-ring m-neu"></span>Not answered</span><span class="chev"></span></summary>
+                    </details>
+                  </div>
+                </div>
+              </section>
+
+              <section class="stack">
+                <h3 class="h3">How a programme delay reaches the credit</h3>
+                <ol class="h-steps">
+                  <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+                    <li><span class="h-steps-n">{{ s.n }}</span><p><strong>{{ s.t }}</strong><small>{{ s.d }}</small></p></li>
+                  </sc-for>
+                </ol>
+              </section>
+
+              <section class="s-coll" aria-label="Limitations">
+                <div class="s-coll-h">
+                  <span class="s-coll-t">Limitations <span class="u-count">2</span></span>
+                  <span class="row" style="gap:16px"><a class="u-link" href="#">See this module’s gaps in Evidence</a><span class="s-coll-x" role="button" aria-label="Collapse limitations"><span class="chev chev-u"></span></span></span>
+                </div>
+                <ul class="s-coll-b">
+                  <li class="tr"><span>Customer names and contract terms come from management presentations, not from contracts. Where a presentation and the annual report disagree the module used the annual report.</span><button class="trace" aria-label="Show sources for this limitation"></button></li>
+                  <li class="tr"><span><span class="s-coll-clamp">The share of revenue under cost pass-through clauses is not established for this run. The annual report describes pass-through as applying to “most long-term agreements” without a figure, the lender presentation gives a figure for the aftermarket only, and the two segment definitions differ, so the module did not combine them. The finding on input cost inflation therefore rests on the margin record of the last four years and not on contract terms, and it would not hold if the contract mix has changed since the 2024 renewals, which the files do not show.</span><a class="u-link" href="#" style="display:inline-block;margin-top:4px">Show all</a></span><button class="trace" aria-label="Show sources for this limitation"></button></li>
+                </ul>
+              </section>
+
+              <p class="note">Mock D1a · Module, prose. “Show sources” is on, so every trace control is visible. The Table side of the risk matrix is drawn under its Chart side so both can be reviewed; in the product only one shows. Long text: passages wrap in full; only a limitation collapses after three lines, with “Show all”, and prints open.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const findings = [
+            ['The aftermarket is the franchise', 'Parts and repair bring 44% of revenue and about three fifths of gross profit. Most parts are sole-source and certified to the airframe.'],
+            ['Original equipment is thin and fixed-price', 'New-build contracts run five to seven years at fixed prices. Margin here is below every listed peer.'],
+            ['Concentration is the main exposure', 'Three customers bring 58% of revenue and one engine programme 34%. Its ramp has slipped twice.'],
+            ['Purchases have added breadth, not scale', 'Four small purchases since 2023 added product lines. None changed the competitive position.']
+          ].map((f, i) => ({ n: '0' + (i + 1), t: f[0], d: f[1] }));
+          const cell = (t, step) => ({ t, cls: 's-heat-c' + (step ? ' hm' + step : '') });
+          const lab = t => ({ t, cls: 's-heat-l' });
+          const heat = [
+            lab('High impact'), cell('Loss of sole-source status', 3), cell('Engine programme delay', 4), cell('', 0),
+            lab('Medium impact'), cell('', 0), cell('Customer concentration', 3), cell('', 0),
+            lab('Low impact'), cell('', 0), cell('', 0), cell('Input cost inflation', 2),
+            { t: '', cls: '' }, { t: 'Low probability', cls: 's-heat-x' }, { t: 'Medium probability', cls: 's-heat-x' }, { t: 'High probability', cls: 's-heat-x' }
+          ];
+          const watch = [
+            ['Engine deliveries per month', 'Below 40 for two quarters', 'Leading'],
+            ['Aftermarket price rise at renewal', 'Below 3%', 'Leading'],
+            ['Alternative parts certified', 'Any top-ten part', 'Leading'],
+            ['Aftermarket share of gross profit', 'Below 55%', 'Lagging']
+          ].map(w => ({ name: w[0], level: w[1], kind: w[2], ic: w[2] === 'Leading' ? 'lead-i' : 'lag-i' }));
+          const steps = [
+            ['Ramp slips', 'Deliveries fall short of plan'],
+            ['Inventory stays', 'Cash tied up for longer'],
+            ['Cash flow falls', 'Less debt repaid from operations'],
+            ['Leverage holds', 'Refinancing on weaker terms']
+          ].map((s, i) => ({ n: String(i + 1), t: s[0], d: s[1] }));
+          return { findings, heat, watch, steps };
+        }
+      }
+    </script>
+  </body>
+</html>

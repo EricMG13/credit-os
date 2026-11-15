@@ -1,0 +1,8 @@
+/* Late additions: the skeleton tile, and where the trace control sits in a case card, a fact row and a parts-list item. */
+.skm{display:flex;flex-direction:column;gap:12px}
+.cbx .trace{position:absolute;right:10px;bottom:10px}
+.cbx p:last-of-type{padding-right:44px}
+.dl dd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.dl .trace{margin:-4px 0}
+.item .trace{margin-left:auto}
+.item .trace+.item-e{margin-left:0}

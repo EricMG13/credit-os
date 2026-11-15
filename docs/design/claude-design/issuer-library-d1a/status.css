@@ -1,0 +1,4 @@
+/* Design system 0.7 status sets: "Delivered with gaps" is the dashed ring in the gap colours
+   (gap text, dashed gap edge, white fill). The other states use shapes already in ds.css. */
+.m-gap{color:var(--gap-text)}
+.u-badge.c-gap{background:var(--surface-card);color:var(--gap-text);border:1px dashed var(--border-gap);box-shadow:none}

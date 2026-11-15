@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+        <link rel="stylesheet" href="./states2.css" />
+      </helmet>
+      <div class="app" data-screen-label="States 2, Evidence Record">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main" style="gap:48px">
+          <div><h1 class="h1">States 2, Evidence Record</h1><p class="body t2" style="margin-top:6px">Draft for the owner's review. The audit trail of confidence and of how a run ended lives here only. Store words, check ids and module codes appear on this tab and nowhere else. Sample data.</p></div>
+
+          <section class="state" data-screen-label="E1 Confidence register">
+            <span class="state-label">E1 · Record tab, Halden Aerostructures as of 30 Sep 2026 · a new Confidence register above the registers · two rows drawn open</span>
+            <div class="u-table-card">
+              <div class="u-table-head"><div><div class="u-table-title">Confidence <span class="u-count">13</span></div><p class="u-table-desc">The outcome of each module's scoring, and the inputs as the module wrote them.</p></div></div>
+              <table class="u-table">
+                <thead><tr><th>Module<span class="u-sort"></span></th><th>Code</th><th>Outcome</th><th class="r">Score</th><th>Band</th><th>Score status</th><th>Note</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ conf }}" as="r" hint-placeholder-count="13">
+                    <tr class="{{ r.rc }}"><td class="p">{{ r.m }}</td><td class="mono">{{ r.code }}</td><td class="mono">{{ r.o }}</td><td class="r tnum"><span class="{{ r.sc }}">{{ r.s }}</span></td><td><span class="{{ r.bc }}">{{ r.b }}</span></td><td class="mono"><span class="{{ r.tc }}">{{ r.t }}</span></td><td class="small t2">{{ r.n }}</td></tr>
+                    <sc-if value="{{ r.inputs }}" hint-placeholder-val="{{ false }}">
+                      <tr class="exp"><td colspan="7"><div class="dl4">
+                        <div><b>Claims by evidence class</b>Directly Sourced 10 · Calculated 4 · Assumption-Based 4 · Analyst Inference 2 · Weak Lineage 0 · Untraced 0 · Conflicting 0 · Insufficient Information 0</div>
+                        <div><b>Fields</b>Present 17 · Total 20</div>
+                        <div><b>Source gate</b>pass</div>
+                        <div><b>Findings by severity</b>CRITICAL 0 · MATERIAL 0 · MINOR 2</div>
+                      </div></td></tr>
+                    </sc-if>
+                    <sc-if value="{{ r.refusal }}" hint-placeholder-val="{{ false }}">
+                      <tr class="exp"><td colspan="7"><div class="stack-s"><span class="mono-w">confidence.rows, line 41: Add the missing rows: Fields total, Source gate.</span><span class="small t2">Attempt 3 of 3, not accepted.</span></div></td></tr>
+                    </sc-if>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="E2 Run end, spend not known">
+            <span class="state-label">E2 · Record tab, Corvane Fasteners as of 30 Jun 2026 · how the run ended; spend not known: no bar, never a 0 or a part-total</span>
+            <div class="endline">
+              <span class="caption t3">How the run ended</span>
+              <span class="u-badge dot c-warn"><span class="sh sh-tri m-warn"></span>Stopped</span><span class="u-badge c-neu">Spend not known</span>
+              <span class="small t2 grow">The run stopped because the cost of a model call was not reported. What the run has spent is not known.</span>
+              <span class="mono-w">stopped · reason identifier</span>
+            </div>
+            <div class="g2">
+              <div class="stack"><h3 class="h3">Spend against the cap</h3>
+                <span class="metric na">n.a.</span>
+                <p class="small t2">Not known: the cost of one model call was not reported. The cap was USD 20.00.</p>
+              </div>
+              <div class="u-table-card">
+                <div class="u-table-head"><div><div class="u-table-title">Model calls <span class="u-count">6</span></div><p class="u-table-desc">Cost by module, as recorded.</p></div></div>
+                <table class="u-table">
+                  <thead><tr><th>Module</th><th>Code</th><th class="r">Cost, USD</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ callsOpen }}" as="c" hint-placeholder-count="7"><tr><td class="{{ c.cls }}">{{ c.m }}</td><td class="mono">{{ c.code }}</td><td class="r tnum"><span class="{{ c.vc }}">{{ c.v }}</span></td></tr></sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="E3 Cost stated by the owner">
+            <span class="state-label">E3 · the same run after the open call is settled: the owner states its cost; the bar returns</span>
+            <div class="g2">
+              <div class="stack"><h3 class="h3">Spend against the cap</h3>
+                <div class="u-prog" role="progressbar" aria-label="Spend against the cap"><div class="u-prog-track"><div class="u-prog-fill" style="width:40.25%"></div></div><span class="u-prog-l">USD 8.05 of USD 20.00</span></div>
+                <p class="small t2">One call's cost was stated by the owner after the run stopped.</p>
+              </div>
+              <div class="u-table-card">
+                <div class="u-table-head"><div><div class="u-table-title">Model calls <span class="u-count">6</span></div><p class="u-table-desc">Cost by module, as recorded.</p></div></div>
+                <table class="u-table">
+                  <thead><tr><th>Module</th><th>Code</th><th class="r">Cost, USD</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ callsSettled }}" as="c" hint-placeholder-count="7"><tr><td class="{{ c.cls }}">{{ c.m }}</td><td class="mono">{{ c.code }}</td><td class="r tnum"><span class="badges" style="justify-content:flex-end"><sc-if value="{{ c.owner }}" hint-placeholder-val="{{ false }}"><span class="u-badge u-badge-sm c-neu">Stated by the owner</span></sc-if><span class="{{ c.vc }}">{{ c.v }}</span></span></td></tr></sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="E4 Timings with inputs">
+            <span class="state-label">E4 · Record tab, module timings (Table side) · a new Inputs column before State; the back-end word stays beside the reader's word</span>
+            <div class="h-tablewrap">
+              <table class="h-table">
+                <thead><tr><th>Module</th><th>Inputs</th><th>State</th><th class="r">Started, min</th><th class="r">Accepted, min</th><th class="r">Took, min</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ timings }}" as="t" hint-placeholder-count="6"><tr><td>{{ t.m }}</td><td>{{ t.i }}</td><td>{{ t.s }}</td><td class="r"><span class="{{ t.c1 }}">{{ t.a }}</span></td><td class="r"><span class="{{ t.c2 }}">{{ t.b }}</span></td><td class="r"><span class="{{ t.c2 }}">{{ t.c }}</span></td></tr></sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <p class="note">Mock, states 2 · Evidence Record. Sample data: module codes, the line number, the refusal text and the call amounts are invented (the five settled calls sum to USD 6.85; with the owner's USD 1.20 the total is USD 8.05). Outcome and status words are the checks package's own (confidence.py on main), shown as written in mono: scored, blocked, absent, refused; Passed, Restricted, Blocked. "n.a." is the merged missing-figure text.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const NA = 'n.a.';
+          const conf = [
+            ['Business profile', 'CP-1A', 'scored', '89', 'High', 'Passed', ''],
+            ['Industry and competition', 'CP-1B', 'scored', '22', 'Insufficient Information', 'Passed', ''],
+            ['Financial performance', 'CP-2A', 'scored', '77', 'Medium', 'Passed', '', 'inputs'],
+            ['Cash flow and liquidity', 'CP-2B', 'scored', '69', 'Medium', 'Passed', ''],
+            ['Capital structure', 'CP-2C', 'scored', '56', 'Low', 'Passed', ''],
+            ['Covenants and documentation', 'CP-2D', 'scored', '59', 'Low', 'Restricted', 'Cannot be above 59: a material finding was recorded.'],
+            ['Management and governance', 'CP-2F', 'scored', '39', 'Insufficient Information', 'Blocked', 'Cannot be above 39: a critical finding was recorded.'],
+            ['Peer comparison', 'CP-2E', 'refused', NA, NA, NA, 'No accepted document. The scoring inputs of the last attempt could not be read.', 'refusal'],
+            ['Recovery', 'CP-3B', 'blocked', NA, NA, NA, 'The module could not make its assessment and stated no scoring inputs.'],
+            ['Rating outlook', 'CP-3C', NA, NA, NA, NA, 'The module did not run.'],
+            ['Environmental, social and governance', 'CP-3D', 'scored', '89', 'High', 'Passed', 'Scored although the module reads Not assessable: it wrote the fourteen inputs.'],
+            ['Forecast', 'CP-4A', 'absent', NA, NA, NA, 'No confidence score is asked of this module.'],
+            ['Credit snapshot', 'CP-9', 'scored', '40', 'Low', 'Passed', '']
+          ].map((r) => ({
+            m: r[0], code: r[1], o: r[2], s: r[3], b: r[4], t: r[5], n: r[6],
+            sc: r[3] === NA ? 'na' : '', bc: r[4] === NA ? 'na' : '', tc: r[5] === NA ? 'na' : '',
+            inputs: r[7] === 'inputs', refusal: r[7] === 'refusal', rc: r[7] ? 'on' : ''
+          }));
+          const calls = (settled) => [
+            ['Business profile', 'CP-1A', '1.10'], ['Industry and competition', 'CP-1B', '1.45'], ['Financial performance', 'CP-2A', '0.95'],
+            ['Cash flow and liquidity', 'CP-2B', '2.05'], ['Capital structure', 'CP-2C', '1.30'], ['Covenants and documentation', 'CP-2D', settled ? '1.20' : NA, settled],
+            ['Total', '', settled ? '8.05' : NA]
+          ].map((c) => ({ m: c[0], code: c[1], v: c[2], vc: c[2] === NA ? 'na' : '', owner: !!c[3], cls: c[0] === 'Total' ? 'p b6' : 'p' }));
+          const timings = [
+            ['Business profile', 'All', 'Delivered', '0.0', '6.0', '6.0'],
+            ['Financial performance', 'All', 'Delivered', '1.6', '9.6', '8.0'],
+            ['Peer comparison', 'All', 'Not assessable', '16.8', NA, NA],
+            ['Recovery', 'All', 'Not assessable', '14.4', NA, NA],
+            ['Rating outlook', NA, 'Not assessable', NA, NA, NA],
+            ['Credit snapshot', 'Reduced inputs (restricted): ran without Peer comparison, Recovery, Rating outlook', 'Delivered with gaps', '29.2', '36.8', '7.6']
+          ].map((t) => ({ m: t[0], i: t[1], s: t[2], a: t[3], b: t[4], c: t[5], c1: t[3] === NA ? 'na' : '', c2: t[4] === NA ? 'na' : '' }));
+          return { conf, callsOpen: calls(false), callsSettled: calls(true), timings };
+        }
+      }
+    </script>
+  </body>
+</html>

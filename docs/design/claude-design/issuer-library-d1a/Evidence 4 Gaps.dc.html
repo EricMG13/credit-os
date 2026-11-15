@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Evidence, Gaps">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Evidence" sources="off" hint-size="100%,190px"></dc-import>
+          <dc-import name="EvTabs" tab="Gaps" hint-size="100%,130px"></dc-import>
+
+          <div class="u-table-card">
+            <div class="u-table-head"><div><div class="u-table-title">Gaps <span class="u-count">7</span></div><p class="u-table-desc">What this run could not establish, by how much it bears on the view.</p></div></div>
+            <table class="u-table">
+              <thead><tr><th>Gap<span class="u-sort"></span></th><th>What is missing</th><th>Module<span class="u-sort"></span></th><th>Effect on the view</th><th>Shown as</th></tr></thead>
+              <tbody>
+                <tr class="grp"><td colspan="5"><span class="row" style="gap:8px"><span class="sh sh-dia m-err"></span>High <span class="u-count">2</span></span></td></tr>
+                <tr><td class="mono">G-01</td><td class="p">Security and intercreditor documents</td><td>Recovery</td><td>Recovery by class is not assessable; the view on the unsecured notes rests on rank alone.</td><td><span class="u-badge u-badge-sm dot c-neu"><span class="sh sh-slash"></span>Not assessable</span></td></tr>
+                <tr><td class="mono">G-02</td><td class="p">Hedge schedule</td><td>Capital structure</td><td>The fixed and floating split of interest is an estimate; hedge expiries are not drawn.</td><td><span class="gapbadge"><span class="sh sh-dash"></span>Not established for this run</span></td></tr>
+                <tr class="grp"><td colspan="5"><span class="row" style="gap:8px"><span class="sh sh-tri m-warn"></span>Medium <span class="u-count">3</span></span></td></tr>
+                <tr><td class="mono">G-03</td><td class="p">Peer figures on the same basis</td><td>Peer comparison</td><td>The comparison overstates Halden by an amount the module could not size.</td><td><span class="gapbadge"><span class="sh sh-dash"></span>Not established for this run</span></td></tr>
+                <tr><td class="mono">G-04</td><td class="p">Share of revenue under cost pass-through</td><td>Business profile</td><td>The finding on input costs rests on the margin record, not on contract terms.</td><td><span class="gapbadge"><span class="sh sh-dash"></span>Not established for this run</span></td></tr>
+                <tr><td class="mono">G-05</td><td class="p">Average cost of debt</td><td>Capital structure</td><td>None on the view: interest cover is computed from cash interest paid.</td><td><span class="withheld"><span class="redact"></span><span class="u-badge u-badge-sm c-neu">Withheld</span></span></td></tr>
+                <tr class="grp"><td colspan="5"><span class="row" style="gap:8px"><span class="sh sh-ring m-neu"></span>Low <span class="u-count">2</span></span></td></tr>
+                <tr><td class="mono">G-06</td><td class="p">EBITDA for 2022 on the current basis</td><td>Financial performance</td><td>Five-year trends start in 2023.</td><td><span class="na">n.a.</span></td></tr>
+                <tr><td class="mono">G-07</td><td class="p">Lease maturity schedule</td><td>Capital structure</td><td>Leases appear in the debt stack but not by year.</td><td><span class="na">n.a.</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="note">Mock D1a · Evidence, Gaps. Grouped by severity with the design system’s gap-severity set: High (diamond, error), Medium (triangle, warning), Low (ring, neutral). The last column shows how each gap appears on the findings pages: not assessable, not established, withheld, or n.a.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

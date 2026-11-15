@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+      </helmet>
+      <div class="app" data-screen-label="Overview">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Overview" sources="off" hint-size="100%,190px"></dc-import>
+
+          <section class="s-banner tr" aria-label="Bottom line">
+            <span class="s-banner-ic"><span class="sh sh-dot" style="width:8px;height:8px"></span></span>
+            <div class="s-banner-b">
+              <span class="s-banner-k">Bottom line</span>
+              <h2 class="h3">Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing before the engine programme pays back.</h2>
+              <p class="s-banner-r">Halden converts a strong order book into cash more slowly than its margin suggests. We see no liquidity pressure for eighteen months. The view rests on aftermarket pricing holding and on the unsecured notes being refinanced by mid 2027.</p>
+            </div>
+            <button class="trace" aria-label="Show sources for the bottom line"></button>
+          </section>
+
+          <section class="u-metrics" aria-label="Headline figures">
+            <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="6">
+              <div class="{{ m.cls }}">
+                <span class="u-metric-t">{{ m.t }}</span>
+                <span class="u-metric-v"><span class="{{ m.vcls }}">{{ m.v }}</span></span>
+                <span class="u-metric-n">{{ m.n }}</span>
+                <button class="trace" aria-label="Show sources for this figure"></button>
+                <sc-if value="{{ m.tip }}" hint-placeholder-val="{{ false }}"><span class="u-tip" role="tooltip">Show sources</span></sc-if>
+              </div>
+            </sc-for>
+          </section>
+
+          <section class="stack">
+            <div class="sec-head"><h2 class="h2">For and against</h2><span class="small t3">Three points on each side, as the modules weighed them</span></div>
+            <div class="h-grid2">
+              <sc-for list="{{ sides }}" as="s" hint-placeholder-count="2">
+                <div class="stack-s">
+                  <h3 class="h4">{{ s.name }}</h3>
+                  <sc-for list="{{ s.items }}" as="i" hint-placeholder-count="3">
+                    <div class="tile tr" style="display:flex;gap:20px;align-items:flex-start">
+                      <span class="metric">{{ i.fig }}</span>
+                      <div class="grow stack-s" style="gap:8px">
+                        <p class="body">{{ i.text }}</p>
+                        <span><span class="u-badge u-badge-sm c-neu">{{ i.tag }}</span></span>
+                      </div>
+                      <button class="trace" aria-label="Show sources for this point"></button>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="g-side">
+            <div class="stack">
+              <h2 class="h2">Key findings</h2>
+              <ol class="s-lp">
+                <sc-for list="{{ findings }}" as="f" hint-placeholder-count="5">
+                  <li class="s-lp-i tr">
+                    <span class="s-lp-n">{{ f.n }}</span>
+                    <div class="s-lp-b"><span class="s-lp-t">{{ f.t }}</span><span class="s-lp-d">{{ f.d }}</span></div>
+                    <button class="trace" aria-label="Show sources for this finding"></button>
+                  </li>
+                </sc-for>
+              </ol>
+            </div>
+            <div class="stack" style="gap:40px">
+              <div class="stack">
+                <h2 class="h2">What would change the view</h2>
+                <div class="h-standout tr" role="note">
+                  <div class="h-standout-h"><span class="ico ico-24" style="border-radius:50%"></span><strong>Two triggers, either is enough</strong></div>
+                  <p>Net leverage back above 5.0x at a year end, or no refinancing of the 2028 unsecured notes agreed by 30 June 2027. Either would move the view to negative.</p>
+                  <button class="trace trace-abs" style="top:12px;right:12px" aria-label="Show sources for the triggers"></button>
+                </div>
+              </div>
+              <div class="stack">
+                <h2 class="h2">Dates to watch</h2>
+                <ol class="h-tl">
+                  <sc-for list="{{ dates }}" as="d" hint-placeholder-count="4">
+                    <li>
+                      <span class="h-tl-d"><span class="{{ d.sh }}" title="{{ d.state }}"></span></span>
+                      <div class="h-tl-b"><time>{{ d.date }} · {{ d.state }}</time><h3>{{ d.t }}</h3><p>{{ d.p }}</p></div>
+                    </li>
+                  </sc-for>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <section class="stack">
+            <div class="sec-head"><h2 class="h2">Modules</h2><span class="small t3">12 of 13 delivered</span></div>
+            <div class="g2" style="gap:0 48px">
+              <sc-for list="{{ modCols }}" as="col" hint-placeholder-count="2">
+                <div class="s-items">
+                  <sc-for list="{{ col }}" as="m" hint-placeholder-count="6">
+                    <a class="s-item" href="#" style="color:inherit;text-decoration:none">
+                      <span class="s-item-m"><span class="ico ico-16"></span></span>
+                      <span class="s-item-c"><span class="s-item-t">{{ m.t }}</span><span class="s-item-d">{{ m.d }}</span></span>
+                      <span class="s-item-a"><span class="{{ m.bcls }}"><span class="{{ m.sh }}"></span>{{ m.state }}</span></span>
+                    </a>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="s-coll" aria-label="Limitations">
+            <div class="s-coll-h">
+              <span class="s-coll-t">Limitations <span class="u-count">4</span></span>
+              <span class="row" style="gap:16px"><a class="u-link" href="#">See the 7 gaps in Evidence</a><span class="s-coll-x" role="button" aria-label="Collapse limitations"><span class="chev chev-u"></span></span></span>
+            </div>
+            <ul class="s-coll-b">
+              <sc-for list="{{ limits }}" as="l" hint-placeholder-count="4">
+                <li class="tr"><span>{{ l }}</span><button class="trace" aria-label="Show sources for this limitation"></button></li>
+              </sc-for>
+            </ul>
+          </section>
+
+          <p class="note">Mock D1a · Overview. Synthetic issuer and figures. Trace controls show on hover and focus; one is drawn in its hover state on the Net leverage tile.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const metrics = [
+            ['Revenue, USD m', '2,105', 'Year to 30 Sep 2026'],
+            ['EBITDA margin', '23.1%', 'Company-adjusted basis'],
+            ['Net leverage', '4.6x', 'Net debt to EBITDA', true],
+            ['Interest cover', '2.4x', 'EBITDA to cash interest'],
+            ['Liquidity, USD m', '412', 'Cash and undrawn facility'],
+            ['Recovery, senior notes', 'n.a.', 'Recovery was not assessable']
+          ].map(m => ({ t: m[0], v: m[1], n: m[2], tip: !!m[3], cls: 'u-metric tr' + (m[3] ? ' hov' : ''), vcls: m[1] === 'n.a.' ? 'na' : '' }));
+          const sides = [
+            { name: 'Supports the view', items: [
+              { fig: '4.6x', text: 'Net leverage fell from 4.9x a year earlier as EBITDA grew faster than debt.', tag: 'Reported' },
+              { fig: '61%', text: 'Aftermarket share of gross profit; it held through the last two downturns in build rates.', tag: 'Company-adjusted' },
+              { fig: '18 months', text: 'No maturity above USD 50m before the 2028 notes, and the facility is undrawn.', tag: 'As of 30 Sep 2026' } ] },
+            { name: 'Against the view', items: [
+              { fig: 'USD 310m', text: 'Unsecured notes fall due in 2028 with no refinancing agreed and coupons likely to reset higher.', tag: 'Reported' },
+              { fig: '2.4x', text: 'Interest cover leaves little room if floating rates stay where they are.', tag: 'Unhedged portion estimated' },
+              { fig: '34%', text: 'Revenue from one engine programme whose ramp has slipped twice.', tag: 'Management disclosure' } ] }
+          ];
+          const findings = [
+            ['Deleveraging is real but slow', 'Leverage fell by 0.3x in the year. Almost all of it came from EBITDA growth; net debt rose after the Corvane Fasteners purchase.'],
+            ['Cash conversion lags margin', 'Working capital absorbed USD 71m as inventory was built for the engine ramp. Free cash flow covered interest but little else.'],
+            ['Pricing power sits in the aftermarket', 'Sole-source parts carry most of the profit. Original-equipment contracts are fixed-price and thinner than peers.'],
+            ['The 2028 notes are the first real test', 'The term loan and secured notes run to 2030 and 2031. The unsecured notes come first and rank behind both.'],
+            ['Documentation is permissive', 'Only a springing first-lien covenant applies, and only when the facility is more than 40% drawn. It is far from tested.']
+          ].map((f, i) => ({ n: '0' + (i + 1), t: f[0], d: f[1] }));
+          const dates = [
+            ['12 Nov 2026', 'Past', 'sh sh-dot m-neu', 'Full-year results', 'Published; figures in this run are from them.'],
+            ['11 Feb 2027', 'Next', 'sh sh-half m-act', 'First-quarter results', 'First read on engine deliveries and inventory release.'],
+            ['30 Jun 2027', 'Later', 'sh sh-ring m-neu', 'Refinancing milestone', 'Our date for an agreed refinancing of the 2028 notes.'],
+            ['15 Mar 2028', 'Later', 'sh sh-ring m-neu', 'Unsecured notes mature', 'USD 310m falls due.']
+          ].map(d => ({ date: d[0], state: d[1], sh: d[2], t: d[3], p: d[4] }));
+          const ok = ['Delivered', 'sh sh-dot m-ok', 'u-badge u-badge-sm dot c-ok'];
+          const part = ['Delivered with gaps', 'sh sh-dash m-gap', 'u-badge u-badge-sm dot c-gap'];
+          const no = ['Not assessable', 'sh sh-slash', 'u-badge u-badge-sm dot c-neu'];
+          const mods = [
+            ['Business profile', 'A sole-source aftermarket franchise carries a thinner original-equipment business.', ok],
+            ['Industry and competition', 'Build rates are rising; pricing discipline among the three large suppliers is holding.', ok],
+            ['Financial performance', 'Revenue up 7%, margin up 0.6 points, both ahead of the prior run.', ok],
+            ['Cash flow and liquidity', 'Liquidity is adequate for eighteen months; conversion is the weak point.', ok],
+            ['Capital structure', 'Secured debt is long-dated; the unsecured notes mature first.', part],
+            ['Covenants and documentation', 'One springing covenant, untested, with wide baskets.', ok],
+            ['Management and governance', 'Sponsor-controlled board; a record of debt-funded purchases.', ok],
+            ['Peer comparison', 'More levered than four of five peers, with the highest margin.', part],
+            ['Recovery', 'The security package documents were not among the files provided, so recovery by class could not be assessed.', no],
+            ['Rating outlook', 'Both agencies stable; one upgrade trigger is within reach by 2027.', ok],
+            ['Environmental, social and governance', 'No finding that changes the credit view.', ok],
+            ['Forecast', 'Base case reaches 4.1x by September 2027; downside stays at 4.8x.', ok],
+            ['Credit snapshot', 'A one-page summary of this run for committee papers.', ok]
+          ].map(m => ({ t: m[0], d: m[1], state: m[2][0], sh: m[2][1], bcls: m[2][2] }));
+          const limits = [
+            'Recovery by class was not assessable: the security and intercreditor documents were not provided.',
+            'The hedge schedule was not in the files, so the fixed and floating split of interest is an estimate and hedge expiries are not established for this run.',
+            'Peer figures for two companies are on a reported basis while Halden is company-adjusted; the comparison overstates Halden by an amount the module could not size.',
+            'EBITDA for 2022 is not available on the current basis, so five-year trends start in 2023.'
+          ];
+          return { metrics, sides, findings, dates, modCols: [mods.slice(0, 7), mods.slice(7)], limits };
+        }
+      }
+    </script>
+  </body>
+</html>

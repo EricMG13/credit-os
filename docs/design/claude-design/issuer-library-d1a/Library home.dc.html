@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Library home">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <div class="u-ph">
+            <div class="u-ph-l" style="gap:6px">
+              <h1 class="h1">Library</h1>
+              <p class="u-ph-s">Five issuers, each opening on its latest finished run</p>
+            </div>
+            <div class="u-ph-a"><a class="u-btn u-btn-p" href="#">Start a run</a></div>
+          </div>
+
+          <div class="u-fbar">
+            <span class="u-input"><span class="ico ico-16" style="border-radius:50%"></span>Search issuers<span class="u-kbd">⌘K</span></span>
+            <span class="u-chip">Sector: All<span class="chev"></span></span>
+            <span class="u-chip">Pathway: All<span class="chev"></span></span>
+            <span class="u-chip">State: All<span class="chev"></span></span>
+            <div class="u-fbar-r">
+              <span class="small t3">No filter applied</span>
+              <span class="u-seg" role="group" aria-label="Layout"><span class="u-segi on" aria-pressed="true">Cards</span><span class="u-segi">List</span></span>
+            </div>
+          </div>
+
+          <div class="g3">
+            <sc-for list="{{ issuers }}" as="c" hint-placeholder-count="5">
+              <a class="card icard" href="#">
+                <div class="icard-h">
+                  <div><h2 class="h3">{{ c.name }}</h2><span class="small t3">{{ c.sector }}</span></div>
+                  <span class="{{ c.bcls }}"><span class="{{ c.sh }}"></span>{{ c.state }}</span>
+                </div>
+                <p class="body">{{ c.lead }}</p>
+                <sc-if value="{{ c.note }}" hint-placeholder-val="{{ false }}"><p class="small t2">{{ c.note }}</p></sc-if>
+                <div class="icard-f">
+                  <div class="row" style="gap:8px"><span class="u-badge u-badge-sm c-neu">{{ c.asof }}</span><span class="u-badge u-badge-sm c-neu">{{ c.path }}</span></div>
+                  <div class="u-prog" role="progressbar" aria-label="Modules delivered"><div class="u-prog-track"><div class="u-prog-fill" style="{{ c.w }}"></div></div><span class="u-prog-l">{{ c.prog }}</span></div>
+                </div>
+              </a>
+            </sc-for>
+
+            <div class="card icard" aria-busy="true" aria-label="Loading issuer">
+              <div class="icard-h"><div class="stack-s grow"><div class="skel" style="height:24px;width:70%"></div><div class="skel" style="width:40%"></div></div><div class="skel" style="width:84px;height:22px;border-radius:999px"></div></div>
+              <div class="stack-s"><div class="skel"></div><div class="skel"></div><div class="skel" style="width:60%"></div></div>
+              <div class="icard-f"><div class="row" style="gap:8px"><div class="skel" style="width:110px;height:22px;border-radius:999px"></div><div class="skel" style="width:80px;height:22px;border-radius:999px"></div></div><div class="skel" style="height:8px"></div></div>
+            </div>
+          </div>
+
+          <p class="note">Mock D1a · Library home. Synthetic issuers. States drawn: a run in progress (second card; the badge does not pulse outside a live run page), failed and capped latest runs, a long lead sentence, a card still loading (static skeleton). The “no runs yet” state is on the States page.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const B = 'u-badge u-badge-sm dot ';
+          const st = { fin: ['Finished', 'sh sh-dot m-ok', B + 'c-ok'], run: ['Running', 'sh sh-half m-act', B + 'c-act'], fail: ['Failed', 'sh sh-dia m-err', B + 'c-err'], cap: ['Capped', 'sh sh-tri m-warn', B + 'c-warn'] };
+          const issuers = [
+            ['Halden Aerostructures', 'Aerospace components', 'fin', 'Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing before the engine programme pays back.', '', 'As of 30 Sep 2026', 'Full review', '12 of 13 modules', 92],
+            ['Corvane Packaging', 'Rigid packaging', 'run', 'Improving: volume recovery and a cleared 2027 maturity leave two years of runway.', 'A new run as of 30 Sep 2026 is in progress. This is the run as of 30 Jun 2026.', 'As of 30 Jun 2026', 'Full review', '5 of 13 modules', 38],
+            ['Tessaly Foods', 'Packaged food', 'fin', 'Weakening: private-label losses in the two largest retail accounts, a third consecutive quarter of negative free cash flow and a facility that is now 70% drawn mean the springing covenant is likely to be tested at the December quarter end, earlier than management has guided.', '', 'As of 30 Sep 2026', 'Monitoring update', '6 of 6 modules', 100],
+            ['Ardenne Cable', 'Cable and broadband', 'fail', 'Stable: subscriber losses are offset by pricing; leverage is flat at 5.2x.', 'The run as of 30 Sep 2026 failed. This is the run as of 31 Mar 2026.', 'As of 31 Mar 2026', 'Full review', '13 of 13 modules', 100],
+            ['Lumora Health', 'Outpatient clinics', 'cap', 'Not established for this run: the run stopped at its cost cap before the modules that form the view had finished.', 'Seven modules delivered; their findings can be read.', 'As of 30 Sep 2026', 'Full review', '7 of 13 modules', 54]
+          ].map(c => ({ name: c[0], sector: c[1], state: st[c[2]][0], sh: st[c[2]][1], bcls: st[c[2]][2], lead: c[3], note: c[4], asof: c[5], path: c[6], prog: c[7], w: 'width:' + c[8] + '%' }));
+          return { issuers };
+        }
+      }
+    </script>
+  </body>
+</html>

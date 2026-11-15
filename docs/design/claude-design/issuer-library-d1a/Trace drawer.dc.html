@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Trace drawer">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Overview" sources="off" hint-size="100%,190px"></dc-import>
+          <section class="u-metrics" aria-label="Headline figures">
+            <div class="u-metric"><span class="u-metric-t">Revenue, USD m</span><span class="u-metric-v">2,105</span><span class="u-metric-n">Year to 30 Sep 2026</span></div>
+            <div class="u-metric"><span class="u-metric-t">EBITDA margin</span><span class="u-metric-v">23.1%</span><span class="u-metric-n">Company-adjusted basis</span></div>
+            <div class="u-metric tr hov" style="background:var(--surface-selected)"><span class="u-metric-t">Net leverage</span><span class="u-metric-v">4.6x</span><span class="u-metric-n">Net debt to EBITDA</span><button class="trace" aria-label="Show sources for this figure"></button></div>
+          </section>
+          <section class="stack">
+            <h2 class="h2">Key findings</h2>
+            <ol class="s-lp">
+              <li class="s-lp-i"><span class="s-lp-n">01</span><div class="s-lp-b"><span class="s-lp-t">Deleveraging is real but slow</span><span class="s-lp-d">Leverage fell by 0.3x in the year. Almost all of it came from EBITDA growth; net debt rose after the Corvane Fasteners purchase.</span></div></li>
+              <li class="s-lp-i"><span class="s-lp-n">02</span><div class="s-lp-b"><span class="s-lp-t">Cash conversion lags margin</span><span class="s-lp-d">Working capital absorbed USD 71m as inventory was built for the engine ramp. Free cash flow covered interest but little else.</span></div></li>
+              <li class="s-lp-i"><span class="s-lp-n">03</span><div class="s-lp-b"><span class="s-lp-t">Pricing power sits in the aftermarket</span><span class="s-lp-d">Sole-source parts carry most of the profit. Original-equipment contracts are fixed-price and thinner than peers.</span></div></li>
+            </ol>
+          </section>
+        </main>
+
+        <div class="u-overlay"></div>
+        <aside class="u-drawer" role="dialog" aria-label="Sources for net leverage">
+          <span class="u-drawer-x" role="button" aria-label="Close"><span class="x"></span></span>
+          <div class="u-drawer-h"><span class="u-drawer-t">Net leverage 4.6x</span><span class="u-drawer-s">Capital structure · figure · as of 30 Sep 2026</span></div>
+          <div class="u-drawer-b">
+            <div class="stack-s"><span class="caption t3">The statement</span><p class="body">Net debt of USD 2,236m against company-adjusted EBITDA of USD 486m for the year to 30 September 2026.</p></div>
+            <div class="stack-s"><span class="caption t3">How it was derived</span>
+              <div class="u-tree" role="tree">
+                <sc-for list="{{ tree }}" as="n" hint-placeholder-count="7">
+                  <div class="u-tree-r" role="treeitem">
+                    <sc-for list="{{ n.sp }}" as="s" hint-placeholder-count="1"><span class="u-tree-sp"></span></sc-for>
+                    <span class="{{ n.chev }}"></span>
+                    <span><span class="u-tree-k">{{ n.k }}</span> {{ n.t }}<br /><span class="mono t3">{{ n.v }}</span></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="stack-s"><span class="caption t3">Source excerpt</span>
+              <div class="excerpt">“Adjusted EBITDA for the twelve months ended 30 September 2026 was USD 486 million (2025: USD 441 million).”</div>
+              <span class="mono t3">lender-presentation-nov-2026.pdf · p. 9</span>
+            </div>
+            <div class="stack-s"><span class="caption t3">Qualification</span><p class="small t2">EBITDA is on the company-adjusted basis. The reported figure is not established for this run.</p></div>
+          </div>
+          <div class="u-drawer-f"><a class="u-btn u-btn-s" href="#">Close</a><a class="u-btn u-btn-p" href="#">Open in Evidence</a></div>
+        </aside>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const tree = [
+            [0, 1, 'Result', 'Net leverage 4.6x', 'T-0014 · C-0412'],
+            [1, 1, 'Formula', 'Net debt ÷ EBITDA', '2,236 ÷ 486'],
+            [2, 1, 'Input', 'Net debt 2,236', 'C-0398 · gross debt − cash'],
+            [3, 0, 'Source', 'Gross debt 2,398', 'annual-report-2026.pdf · p. 112'],
+            [3, 0, 'Source', 'Cash 162', 'annual-report-2026.pdf · p. 84'],
+            [2, 1, 'Input', 'EBITDA 486', 'company-adjusted'],
+            [3, 0, 'Source', 'EBITDA 486', 'lender-presentation-nov-2026.pdf · p. 9']
+          ].map(n => ({ sp: Array(n[0]).fill(1), chev: n[1] ? 'chev' : 'u-tree-sp', k: n[2], t: n[3], v: n[4] }));
+          return { tree };
+        }
+      }
+    </script>
+  </body>
+</html>

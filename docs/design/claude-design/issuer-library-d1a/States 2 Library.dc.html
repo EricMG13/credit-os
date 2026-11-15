@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+        <link rel="stylesheet" href="./states2.css" />
+      </helmet>
+      <div class="app" data-screen-label="States 2, library">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main" style="gap:48px">
+          <div><h1 class="h1">States 2, library</h1><p class="body t2" style="margin-top:6px">Draft for the owner's review: options C-A (confidence), R-A (run end) and M-A with N-A (modules) of docs/design/states-2.md. Nothing here is ruled. All issuers, modules, dates, amounts and scores are sample data.</p></div>
+
+          <section class="state" data-screen-label="L1 L2 Home cards">
+            <span class="state-label">L1, L2 · Library home, Cards · a run stopped at its spending cap; a latest run that failed with spend not known (the card shows the last finished run)</span>
+            <div class="g3">
+              <sc-for list="{{ cards }}" as="c" hint-placeholder-count="3">
+                <a class="card icard" href="#">
+                  <div class="icard-h">
+                    <div><h2 class="h3">{{ c.name }}</h2><span class="small t3">{{ c.sector }}</span></div>
+                    <span class="badges" style="justify-content:flex-end"><span class="{{ c.st.cls }}"><span class="{{ c.st.sh }}"></span>{{ c.st.word }}</span><sc-for list="{{ c.labs }}" as="l" hint-placeholder-count="1"><span class="u-badge u-badge-sm c-neu">{{ l.w }}</span></sc-for></span>
+                  </div>
+                  <p class="body">{{ c.lead }}</p>
+                  <sc-if value="{{ c.note }}" hint-placeholder-val="{{ true }}"><p class="small t2">{{ c.note }}</p></sc-if>
+                  <div class="icard-f">
+                    <div class="row" style="gap:8px"><span class="u-badge u-badge-sm c-neu">{{ c.asof }}</span><span class="u-badge u-badge-sm c-neu">{{ c.path }}</span></div>
+                    <div class="u-prog" role="progressbar" aria-label="Modules delivered"><div class="u-prog-track"><div class="u-prog-fill" style="{{ c.w }}"></div></div><span class="u-prog-l">{{ c.prog }}</span></div>
+                  </div>
+                </a>
+              </sc-for>
+            </div>
+            <p class="small t3">No confidence appears on a card (C-A). The third card is the merged Finished card, unchanged, for comparison.</p>
+          </section>
+
+          <section class="state" data-screen-label="L3 Home list">
+            <span class="state-label">L3 · Library home, List · the State column holding a state and up to two reason labels</span>
+            <div class="u-table-card">
+              <div class="u-table-head"><div><div class="u-table-title">Issuers <span class="u-count">6</span></div><p class="u-table-desc">State filter: Finished, Running, Failed, Stopped.</p></div></div>
+              <table class="u-table">
+                <thead><tr><th>Issuer<span class="u-sort"></span></th><th>Sector</th><th>As of</th><th>State</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ list }}" as="r" hint-placeholder-count="6">
+                    <tr><td class="p">{{ r.name }}</td><td>{{ r.sector }}</td><td class="tnum">{{ r.asof }}</td><td><span class="badges"><span class="{{ r.st.cls }}"><span class="{{ r.st.sh }}"></span>{{ r.st.word }}</span><sc-for list="{{ r.labs }}" as="l" hint-placeholder-count="1"><span class="u-badge u-badge-sm c-neu">{{ l.w }}</span></sc-for></span></td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="L4 Report history">
+            <span class="state-label">L4 · Report history, Corvane Fasteners · every end once, newest first</span>
+            <div class="u-feed">
+              <sc-for list="{{ runs }}" as="r" hint-placeholder-count="9">
+                <article class="u-feed-i">
+                  <div class="u-feed-rail"><span class="{{ r.ic }}"><span class="{{ r.st.sh }}"></span></span><span class="u-feed-line"></span></div>
+                  <div class="u-feed-b">
+                    <div class="u-feed-h"><span class="u-feed-n" style="font-size:16px;line-height:24px;color:var(--text-primary)">Run as of {{ r.asof }}</span><span class="u-feed-t">Ran {{ r.ran }}</span></div>
+                    <div class="badges"><span class="{{ r.st.cls }}"><span class="{{ r.st.sh }}"></span>{{ r.st.word }}</span><sc-for list="{{ r.labs }}" as="l" hint-placeholder-count="1"><span class="u-badge u-badge-sm c-neu">{{ l.w }}</span></sc-for><span class="u-badge u-badge-sm c-neu">Full review</span></div>
+                    <p class="u-feed-p" style="max-width:64ch">{{ r.text }}</p>
+                    <sc-if value="{{ r.open }}" hint-placeholder-val="{{ true }}"><div class="row" style="gap:16px"><a class="u-link" href="#">Open report</a></div></sc-if>
+                  </div>
+                </article>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="L5 Run frame head">
+            <span class="state-label">L5 · Run frame head, any page of a stopped run · the reason line under the badges is new</span>
+            <div class="stack" style="gap:20px">
+              <div class="u-ph">
+                <div class="u-ph-l" style="gap:10px">
+                  <a class="caption" href="#">Library</a>
+                  <h1 class="h1">Corvane Fasteners</h1>
+                  <div class="badges" style="gap:8px">
+                    <span class="u-badge c-neu">As of 30 Sep 2026</span>
+                    <span class="u-badge c-neu">Full review</span>
+                    <span class="u-badge dot c-warn"><span class="sh sh-tri m-warn"></span>Stopped</span>
+                    <span class="u-badge c-neu">Spending cap</span>
+                  </div>
+                  <p class="reason">The run stopped before a model call that could have taken it past its USD 20.00 spending cap. Nine of thirteen modules were delivered and can be read.</p>
+                </div>
+                <div class="u-ph-a"><a class="u-btn u-btn-s" href="#">Report history</a><a class="u-btn u-btn-p" href="#">New run</a></div>
+              </div>
+              <nav class="u-tabs" aria-label="Run pages"><a class="u-tab on" href="#">Overview</a><a class="u-tab" href="#">Changes</a><a class="u-tab" href="#">Modules<span class="u-count">9</span></a><a class="u-tab" href="#">Forecast</a><a class="u-tab" href="#">Evidence</a></nav>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="L6 Overview modules">
+            <span class="state-label">L6 · Overview, Modules, Halden Aerostructures as of 30 Sep 2026 · two columns · 9 of 13 delivered · the scale and band word under a delivered module's lead; no number in this list</span>
+            <div class="sec-head"><h2 class="h2">Modules</h2><span class="small t3">9 of 13 delivered</span></div>
+            <div class="g2">
+              <sc-for list="{{ cols }}" as="col" hint-placeholder-count="2">
+                <div class="s-items">
+                  <sc-for list="{{ col.mods }}" as="m" hint-placeholder-count="7">
+                    <a class="s-item" href="#" style="color:inherit;text-decoration:none">
+                      <span class="s-item-m"><span class="ico ico-16"></span></span>
+                      <span class="s-item-c"><span class="s-item-t">{{ m.t }}</span><span class="s-item-d">{{ m.d }}</span>
+                        <sc-if value="{{ m.scored }}" hint-placeholder-val="{{ true }}"><span class="conf" role="img" aria-label="{{ m.aria }}"><span class="conf-m" aria-hidden="true"><sc-for list="{{ m.marks }}" as="k" hint-placeholder-count="4"><span class="{{ k.c }}"></span></sc-for></span><span aria-hidden="true">{{ m.band }}</span></span></sc-if>
+                        <sc-if value="{{ m.ns }}" hint-placeholder-val="{{ false }}"><span class="notscored">Not scored</span></sc-if>
+                      </span>
+                      <span class="s-item-a"><span class="badges" style="justify-content:flex-end"><span class="{{ m.st.cls }}"><span class="{{ m.st.sh }}"></span>{{ m.st.word }}</span><sc-if value="{{ m.lab }}" hint-placeholder-val="{{ false }}"><span class="u-badge u-badge-sm c-neu">{{ m.lab }}</span></sc-if></span><span class="chev chev-r t3"></span></span>
+                    </a>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="L6 Overview modules, one column">
+            <span class="state-label">L6 · the same list at one column (620px): does the last row's pair of badges crowd the row?</span>
+            <div class="s-items narrow">
+              <sc-for list="{{ tail }}" as="m" hint-placeholder-count="4">
+                <a class="s-item" href="#" style="color:inherit;text-decoration:none">
+                  <span class="s-item-m"><span class="ico ico-16"></span></span>
+                  <span class="s-item-c"><span class="s-item-t">{{ m.t }}</span><span class="s-item-d">{{ m.d }}</span>
+                    <sc-if value="{{ m.scored }}" hint-placeholder-val="{{ true }}"><span class="conf" role="img" aria-label="{{ m.aria }}"><span class="conf-m" aria-hidden="true"><sc-for list="{{ m.marks }}" as="k" hint-placeholder-count="4"><span class="{{ k.c }}"></span></sc-for></span><span aria-hidden="true">{{ m.band }}</span></span></sc-if>
+                    <sc-if value="{{ m.ns }}" hint-placeholder-val="{{ false }}"><span class="notscored">Not scored</span></sc-if>
+                  </span>
+                  <span class="s-item-a"><span class="badges" style="justify-content:flex-end"><span class="{{ m.st.cls }}"><span class="{{ m.st.sh }}"></span>{{ m.st.word }}</span><sc-if value="{{ m.lab }}" hint-placeholder-val="{{ false }}"><span class="u-badge u-badge-sm c-neu">{{ m.lab }}</span></sc-if></span><span class="chev chev-r t3"></span></span>
+                </a>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="L7 No module scored">
+            <span class="state-label">L7 · Overview, Modules, Tessaly Foods as of 30 Jun 2026, Monitoring update · a run where no module is scored: one line, no "Not scored" on each row</span>
+            <div class="sec-head"><h2 class="h2">Modules</h2><span class="small t3">6 of 6 delivered</span></div>
+            <p class="small t3" style="margin-top:-12px">No module in this run was scored.</p>
+            <div class="s-items narrow">
+              <sc-for list="{{ none }}" as="m" hint-placeholder-count="6">
+                <a class="s-item" href="#" style="color:inherit;text-decoration:none">
+                  <span class="s-item-m"><span class="ico ico-16"></span></span>
+                  <span class="s-item-c"><span class="s-item-t">{{ m.t }}</span><span class="s-item-d">{{ m.d }}</span></span>
+                  <span class="s-item-a"><span class="u-badge u-badge-sm dot c-ok"><span class="sh sh-dot m-ok"></span>Delivered</span><span class="chev chev-r t3"></span></span>
+                </a>
+              </sc-for>
+            </div>
+          </section>
+
+          <p class="note">Mock, states 2 · library. Sample data throughout. A state is a shape, a tone and a word; a reason is a neutral label badge (word only) after it. The confidence scale is the Signal rating (four marks here, filled #000533, unfilled #63676E); it never takes a status colour. See States 2 Module and States 2 Evidence for the Module page heads and the Evidence Record.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const B = 'u-badge u-badge-sm dot ';
+          const S = {
+            fin: ['Finished', 'sh sh-dot m-ok', 'c-ok'], stop: ['Stopped', 'sh sh-tri m-warn', 'c-warn'], fail: ['Failed', 'sh sh-dia m-err', 'c-err'],
+            rej: ['Rejected', 'sh sh-cross', 'c-neu'], intr: ['Interrupted', 'sh sh-pause m-warn', 'c-warn'], run: ['Running', 'sh sh-half m-act', 'c-act'],
+            del: ['Delivered', 'sh sh-dot m-ok', 'c-ok'], gaps: ['Delivered with gaps', 'sh sh-dash m-gap', 'c-gap'], na: ['Not assessable', 'sh sh-slash', 'c-neu']
+          };
+          const st = (k) => ({ word: S[k][0], sh: S[k][1], cls: B + S[k][2], fam: S[k][2] });
+          const labs = (a) => (a || []).map((w) => ({ w }));
+          const cards = [
+            ['Corvane Fasteners', 'Precision fasteners', 'stop', ['Spending cap'], 'Not established for this run: the run stopped before the modules that form the view had finished.', 'The run stopped before a model call that could have taken it past its USD 20.00 spending cap. Nine of thirteen modules were delivered and can be read.', 'As of 30 Sep 2026', 'Full review', '9 of 13 modules', 69],
+            ['Tessaly Foods', 'Packaged food', 'fail', ['Model service', 'Spend not known'], 'Weakening: the springing covenant is likely to be tested at the December quarter end.', 'The run as of 30 Sep 2026 failed: the model service returned an error during a call, and what that run spent is not known. This is the run as of 30 Jun 2026.', 'As of 30 Jun 2026', 'Monitoring update', '6 of 6 modules', 100],
+            ['Halden Aerostructures', 'Aerospace components', 'fin', [], 'Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing before the engine programme pays back.', '', 'As of 30 Sep 2026', 'Full review', '9 of 13 modules', 69]
+          ].map((c) => ({ name: c[0], sector: c[1], st: st(c[2]), labs: labs(c[3]), lead: c[4], note: c[5], asof: c[6], path: c[7], prog: c[8], w: 'width:' + c[9] + '%' }));
+          const list = [
+            ['Halden Aerostructures', 'Aerospace components', '30 Sep 2026', 'fin', []],
+            ['Corvane Fasteners', 'Precision fasteners', '30 Sep 2026', 'stop', ['Spending cap']],
+            ['Lumora Health', 'Outpatient clinics', '30 Sep 2026', 'stop', ['By the analyst']],
+            ['Ardenne Cable', 'Cable and broadband', '30 Sep 2026', 'fail', ['Model service']],
+            ['Tessaly Foods', 'Packaged food', '30 Sep 2026', 'fail', ['Model service', 'Spend not known']],
+            ['Corvane Packaging', 'Rigid packaging', '30 Sep 2026', 'run', []]
+          ].map((r) => ({ name: r[0], sector: r[1], asof: r[2], st: st(r[3]), labs: labs(r[4]) }));
+          const runs = [
+            ['30 Sep 2026', '11 Nov 2026', 'stop', ['Spending cap'], 'The run stopped before a model call that could have taken it past its USD 20.00 spending cap. Nine of thirteen modules were delivered and can be read.', true],
+            ['30 Sep 2026', '10 Nov 2026', 'fail', ['Model service', 'Spend not known'], 'The model service returned an error during a call. That call was left open, so what the run has spent is not known. Nothing from this run is shown.', false],
+            ['30 Sep 2026', '9 Nov 2026', 'stop', ['By the analyst'], 'The analyst stopped the run. Four of thirteen modules were delivered and can be read.', true],
+            ['30 Jun 2026', '14 Aug 2026', 'stop', ['Spend not known'], 'The run stopped because the cost of a model call was not reported. What the run has spent is not known. Six of thirteen modules were delivered and can be read.', true],
+            ['30 Jun 2026', '13 Aug 2026', 'stop', ['Cost control'], 'The run stopped because a model call cost more than the amount set aside for it, so the cap could no longer be relied on. Five of thirteen modules were delivered and can be read.', true],
+            ['30 Jun 2026', '12 Aug 2026', 'fail', ['Model service'], 'The model service failed and the run could not go on. Nothing from this run is shown.', false],
+            ['31 Mar 2026', '20 May 2026', 'rej', [], 'Not started: a document changed after the summary was approved. Nothing was spent.', false],
+            ['31 Mar 2026', '19 May 2026', 'intr', [], 'The run ended without recording why. Its last recorded activity was at 14:56. Nothing from this run is shown.', false],
+            ['31 Dec 2025', '2 Mar 2026', 'fin', [], 'Stable. First run on this issuer, so there is no earlier run to compare.', true]
+          ].map((r) => { const s = st(r[2]); return { asof: r[0], ran: r[1], st: s, ic: 'u-feed-ic ' + s.fam, labs: labs(r[3]), text: r[4], open: r[5] }; });
+          const BANDS = { 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Insufficient information' };
+          const mod = (t, d, state, filled, lab) => ({
+            t, d, st: st(state), lab: lab || '', scored: filled > 0, ns: filled === 0,
+            band: filled > 0 ? BANDS[filled] : '', aria: filled > 0 ? 'Confidence ' + BANDS[filled].toLowerCase() : '',
+            marks: [1, 2, 3, 4].map((i) => ({ c: i <= filled ? 'cm' : 'cm off' }))
+          });
+          const NONE = -1;
+          const mods = [
+            mod('Business profile', 'A sole-source aftermarket franchise carries a thinner, more cyclical original-equipment business.', 'del', 4),
+            mod('Industry and competition', 'Demand follows flight hours; two new entrants are certifying parts.', 'del', 1),
+            mod('Financial performance', 'Margins held at 34% as volumes recovered.', 'del', 3),
+            mod('Cash flow and liquidity', 'Free cash flow covers interest twice; the revolver is undrawn.', 'del', 3),
+            mod('Capital structure', 'Secured debt is long-dated; the unsecured notes mature first.', 'gaps', 2),
+            mod('Covenants and documentation', 'Incurrence-only covenants leave wide room to add debt.', 'del', 2),
+            mod('Management and governance', 'A founder-led board with no independent audit chair.', 'del', 1),
+            mod('Peer comparison', 'Its analysis did not pass its checks after three attempts.', 'na', NONE),
+            mod('Recovery', 'The security package documents were not among the files provided.', 'na', NONE),
+            mod('Rating outlook', 'It needs Peer comparison, which was not delivered in this run.', 'na', NONE),
+            mod('Environmental, social and governance', 'The sustainability report was not among the files provided.', 'na', NONE),
+            mod('Forecast', 'Leverage falls to 4.1x by 2028 in the base case.', 'del', 0),
+            mod('Credit snapshot', 'Stable credit with thin headroom; refinancing the 2028 notes is the test.', 'gaps', 2, 'Reduced inputs')
+          ];
+          mods.forEach((m) => { if (m.ns && m.st.word !== 'Delivered') { m.ns = false; } });
+          const cols = [{ mods: mods.slice(0, 7) }, { mods: mods.slice(7) }];
+          const tail = mods.slice(9);
+          const none = ['Business profile', 'Financial performance', 'Cash flow and liquidity', 'Covenants and documentation', 'Peer comparison', 'Credit snapshot'].map((t) => ({ t, d: 'Sample lead sentence for this module.' }));
+          return { cards, list, runs, cols, tail, none };
+        }
+      }
+    </script>
+  </body>
+</html>

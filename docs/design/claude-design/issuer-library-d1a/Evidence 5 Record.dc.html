@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+      </helmet>
+      <div class="app" data-screen-label="Evidence, Record">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Evidence" sources="off" hint-size="100%,190px"></dc-import>
+          <dc-import name="EvTabs" tab="Record" hint-size="100%,130px"></dc-import>
+
+          <section class="stack">
+            <div class="row-b"><div><h3 class="h3">Module timings</h3><p class="small t3">From start to accepted, 13 Nov 2026. Six of thirteen shown.</p></div><span class="u-seg"><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span></div>
+            <div class="s-gantt">
+              <div class="s-gantt-h"><span class="s-gantt-y">Minutes from the start of the run</span><span>0</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span><span>35</span></div>
+              <div class="s-gantt-b">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="6">
+                  <div class="s-gantt-r"><div class="s-gantt-bar" style="{{ b.st }}"><span class="{{ b.sh }}"></span>{{ b.name }}</div></div>
+                </sc-for>
+              </div>
+            </div>
+          </section>
+
+          <section class="stack" aria-label="Table side of module timings">
+            <div class="row-b"><div><h3 class="h3">Module timings</h3><p class="small t3">The Table side of the same toggle.</p></div><span class="u-seg"><span class="u-segi">Chart</span><span class="u-segi on" aria-pressed="true">Table</span></span></div>
+            <div class="h-tablewrap">
+              <table class="h-table">
+                <thead><tr><th>Module</th><th>State</th><th class="r">Started, min</th><th class="r">Accepted, min</th><th class="r">Took, min</th></tr></thead>
+                <tbody>
+                  <tr><td>Business profile</td><td>Delivered</td><td class="r">0.0</td><td class="r">6.0</td><td class="r">6.0</td></tr>
+                  <tr><td>Financial performance</td><td>Delivered</td><td class="r">1.6</td><td class="r">9.6</td><td class="r">8.0</td></tr>
+                  <tr><td>Capital structure</td><td>Delivered with gaps</td><td class="r">5.6</td><td class="r">16.0</td><td class="r">10.4</td></tr>
+                  <tr><td>Recovery</td><td>Not assessable</td><td class="r">14.4</td><td class="r"><span class="na">n.a.</span></td><td class="r"><span class="na">n.a.</span></td></tr>
+                  <tr><td>Peer comparison</td><td>Delivered with gaps</td><td class="r">16.8</td><td class="r">25.6</td><td class="r">8.8</td></tr>
+                  <tr><td>Forecast</td><td>Delivered</td><td class="r">26.4</td><td class="r">37.6</td><td class="r">11.2</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="g2">
+            <div class="stack-s"><h3 class="h3" style="margin-bottom:12px">Hashes and instructions</h3>
+              <span class="caption t3">Method texts</span><div class="s-snip"><div class="s-snip-h"><span class="s-snip-tab">SHA-256</span><span class="s-snip-c" role="button" aria-label="Copy hash"><span class="ico ico-16"></span></span></div><pre>71c0e5a9d3b84f2607e1c9a5d3b7f1e9058c6a4e2d0b9f7d5c3a1e9f7b5d3c1a</pre></div>
+              <span class="caption t3" style="margin-top:12px">Model configuration</span><div class="s-snip"><div class="s-snip-h"><span class="s-snip-tab">Config</span><span class="s-snip-c" role="button" aria-label="Copy configuration name"><span class="ico ico-16"></span></span></div><pre>copilot-sol-medium · gpt-6-sol</pre></div>
+            </div>
+            <div class="stack"><h3 class="h3">Spend against the cap</h3>
+              <div class="u-prog" role="progressbar" aria-label="Spend against the cap"><div class="u-prog-track"><div class="u-prog-fill" style="width:57%"></div></div><span class="u-prog-l">USD 11.40 of USD 20.00</span></div>
+              <p class="small t2">The run finished inside its cap. Spend by module is in the model calls register below.</p>
+            </div>
+          </section>
+
+          <div class="u-table-card">
+            <div class="u-table-head"><div><div class="u-table-title">Model calls <span class="u-count">41</span></div><p class="u-table-desc">Calls, tokens and cost by module.</p></div></div>
+            <table class="u-table">
+              <thead><tr><th>Module<span class="u-sort"></span></th><th>Code</th><th class="r">Calls</th><th class="r">Retries</th><th class="r">Tokens in</th><th class="r">Tokens out</th><th class="r">Cost, USD</th></tr></thead>
+              <tbody>
+                <tr><td class="p">Business profile</td><td class="mono">CP-1A</td><td class="r tnum">3</td><td class="r tnum">0</td><td class="r tnum">182,400</td><td class="r tnum">9,150</td><td class="r tnum">0.92</td></tr>
+                <tr><td class="p">Capital structure</td><td class="mono">CP-2C</td><td class="r tnum">5</td><td class="r tnum">1</td><td class="r tnum">264,900</td><td class="r tnum">14,720</td><td class="r tnum">1.38</td></tr>
+                <tr><td class="p">Recovery</td><td class="mono">CP-3B</td><td class="r tnum">2</td><td class="r tnum">1</td><td class="r tnum">58,300</td><td class="r tnum">1,040</td><td class="r tnum">0.27</td></tr>
+                <tr><td class="p">Peer comparison</td><td class="mono">CP-2E</td><td class="r tnum">4</td><td class="r tnum">0</td><td class="r tnum"><span class="na">n.a.</span></td><td class="r tnum"><span class="na">n.a.</span></td><td class="r tnum">0.81</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="u-table-card">
+            <div class="u-table-head"><div><div class="u-table-title">Registers as written <span class="u-count">5</span></div><p class="u-table-desc">The registers each module wrote, unedited.</p></div><a class="u-btn u-btn-s" href="#">Download all</a></div>
+            <table class="u-table">
+              <thead><tr><th>Register<span class="u-sort"></span></th><th>Written by</th><th class="r">Rows</th><th>File</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="p">Source register</td><td>Every module</td><td class="r tnum">212</td><td class="mono">registers/sources.md</td><td class="r"><a class="u-link" href="#">Open</a></td></tr>
+                <tr><td class="p">Calculation register</td><td>Financial kernel</td><td class="r tnum">148</td><td class="mono">registers/calculations.md</td><td class="r"><a class="u-link" href="#">Open</a></td></tr>
+                <tr><td class="p">Gap ledger</td><td>Every module</td><td class="r tnum">7</td><td class="mono">registers/gaps.md</td><td class="r"><a class="u-link" href="#">Open</a></td></tr>
+                <tr><td class="p">Assumption register</td><td>Forecast</td><td class="r tnum">23</td><td class="mono">registers/assumptions.md</td><td class="r"><a class="u-link" href="#">Open</a></td></tr>
+                <tr><td class="p">Withheld register</td><td>Delivery</td><td class="r tnum">2</td><td class="mono">registers/withheld.md</td><td class="r"><a class="u-link" href="#">Open</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="note">Mock D1a · Evidence, Record with registers. Module codes, configuration names and register file names appear only here. Module timings are spans on a time axis; the Table side of their toggle is drawn under the Chart side so both can be reviewed.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const bars = [
+            ['Business profile', 0, 15, 'sh sh-dot m-ok'], ['Financial performance', 4, 20, 'sh sh-dot m-ok'], ['Capital structure', 14, 26, 'sh sh-dash m-gap'],
+            ['Recovery', 36, 9, 'sh sh-slash m-neu'], ['Peer comparison', 42, 22, 'sh sh-dash m-gap'], ['Forecast', 66, 28, 'sh sh-dot m-ok']
+          ].map(b => ({ name: b[0], st: 'left:' + b[1] + '%;width:' + b[2] + '%', sh: b[3] }));
+          return { bars };
+        }
+      }
+    </script>
+  </body>
+</html>

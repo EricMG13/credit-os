@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <meta name="design_doc_mode" content="canvas" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+        <style>
+          body{margin:0;background:#d9dbdf;font-family:'Inter',Arial,sans-serif;font-variant-numeric:tabular-nums;color:#000533}
+          a{color:#0012b2}a:hover{color:#001aff}
+          .lbl{font:600 13px/20px 'Inter',Arial,sans-serif;color:#383b3f;margin-bottom:8px;cursor:grab}
+          .frame{position:absolute;width:1440px}
+          .side{position:absolute;width:640px}
+          .scr{position:relative;width:1440px;height:900px;background:#f4f4f5;overflow:hidden;font:14px/20px 'Inter',Arial,sans-serif}
+          .rail{position:absolute;left:0;top:0;width:56px;height:100%;background:#000533;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 8px;box-sizing:border-box}
+          .sym{width:28px;height:28px;border:1px dashed #808cff;border-radius:4px}
+          .ri{width:36px;height:36px;border-radius:8px;border:1px solid #33488f}
+          .ri.on{background:#001aff;border-color:#001aff}
+          .app{margin-left:56px;height:100%;padding:16px;box-sizing:border-box;display:flex;flex-direction:column}
+          .card{flex:1;min-height:0;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;border:1px solid #e8e9eb}
+          .hd{padding:20px 32px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+          .back{font:500 12px/16px 'Inter',Arial,sans-serif;color:#63676e}
+          .h1{margin:4px 0 0;font:600 28px/36px 'Inter',Arial,sans-serif;letter-spacing:-.015em;color:#000533}
+          .meta{margin-top:4px;font-size:14px;line-height:20px;color:#474a4f}
+          .asof{text-align:right;font-size:12px;line-height:16px;color:#63676e}
+          .asofv{display:block;font:600 14px/20px 'Inter',Arial,sans-serif;color:#000533}
+          .btn{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:8px;background:#001aff;color:#fff;font:600 14px/20px 'Inter',Arial,sans-serif;white-space:nowrap}
+          .btn2{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:8px;background:#fff;border:1px solid #d1d4d8;color:#383b3f;font:600 14px/20px 'Inter',Arial,sans-serif;white-space:nowrap}
+          .tabs{display:flex;gap:28px;padding:16px 32px 0;border-bottom:1px solid #e8e9eb;font:600 14px/20px 'Inter',Arial,sans-serif;color:#63676e}
+          .tab{padding-bottom:12px}
+          .tab.on{color:#000533;box-shadow:inset 0 -3px 0 #001aff}
+          .wb{flex:1;min-height:0;display:grid;grid-template-columns:248px minmax(0,1fr) 340px}
+          .nav{border-right:1px solid #e8e9eb;padding:20px 16px;overflow:hidden}
+          .ng{margin:16px 0 4px;font:600 11px/16px 'Inter',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#63676e}
+          .ni{padding:6px 8px;border-radius:6px;font-size:14px;line-height:20px;color:#383b3f}
+          .ni.on{background:#e5e8ff;color:#0012b2;font-weight:600}
+          .main{padding:28px 40px;overflow:hidden}
+          .eyb{font:600 12px/16px 'Inter',Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#63676e}
+          .hl{margin:8px 0 0;max-width:64ch;font:600 22px/30px 'Inter',Arial,sans-serif;letter-spacing:-.01em;color:#000533;text-wrap:pretty}
+          .p{margin:12px 0 0;max-width:66ch;font-size:15px;line-height:21px;color:#383b3f;text-wrap:pretty}
+          .basis{font:500 12px/16px 'Inter',Arial,sans-serif;color:#63676e}
+          .h3{margin:28px 0 0;font:600 15px/20px 'Inter',Arial,sans-serif;color:#000533}
+          .sub{margin-top:2px;font-size:12px;line-height:16px;color:#63676e}
+          .fig{margin-top:12px;padding:16px 20px 12px;border:1px solid #e8e9eb;border-radius:12px}
+          .plot{display:flex;align-items:flex-end;gap:28px;height:148px;border-bottom:1px solid #000533;padding:0 8px}
+          .grp{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;height:100%}
+          .bar{width:22px;border-radius:2px 2px 0 0}
+          .stk{width:44px;display:flex;flex-direction:column-reverse}
+          .xs{display:flex;gap:28px;padding:6px 8px 0;font-size:12px;line-height:16px;color:#474a4f}
+          .x{flex:1;text-align:center}
+          .leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;line-height:16px;color:#383b3f}
+          .lg{display:inline-flex;align-items:center;gap:6px}
+          .sw{width:10px;height:10px;border-radius:2px;flex:none}
+          .c1{background:#001aff}.c2{background:#1eff8f}.c3{background:#eaff00}.c4{background:#a29aff}.c5{background:#256a80}.c6{background:#ff7c56}.c7{background:#ffc600}.c8{background:#4ad4ff}
+          .insp{border-left:1px solid #e8e9eb;background:#fafafb;padding:20px;overflow:hidden}
+          .icard{margin-top:12px;padding:14px 16px;border:1px solid #e8e9eb;border-radius:12px;background:#fff}
+          .ik{font:600 11px/16px 'Inter',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#63676e}
+          .iv{margin-top:4px;font:600 28px/36px 'Inter',Arial,sans-serif;letter-spacing:-.015em;color:#000533}
+          .it{margin-top:4px;font-size:13px;line-height:20px;color:#383b3f}
+          .q{margin-top:6px;padding-left:12px;border-left:2px solid #d1d4d8;font-size:13px;line-height:20px;color:#383b3f}
+          .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font:600 12px/16px 'Inter',Arial,sans-serif;white-space:nowrap}
+          .ok{background:#e8fff4;color:#0f8048}.warn{background:#fff4cc;color:#806300}.bad{background:#fdf0f0;color:#8e413e}.neu{background:#f4f4f5;color:#474a4f}.info{background:#e5e8ff;color:#0012b2}
+          .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+          .two{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:40px;padding:28px 40px;overflow:hidden}
+          .row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #e8e9eb;font-size:14px;line-height:20px}
+          .rk{font-weight:600;color:#000533}
+          .rv{color:#383b3f}
+          .drow{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid #e8e9eb;font-size:13px;line-height:20px;color:#383b3f}
+          .dd{font-weight:600;color:#000533}
+          .steps{display:flex;align-items:center;gap:8px;margin-top:12px;font:600 14px/20px 'Inter',Arial,sans-serif;color:#63676e}
+          .st{display:inline-flex;align-items:center;gap:8px}
+          .st.on{color:#0012b2}
+          .num{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1px solid #bbbec4;font-size:12px;box-sizing:border-box}
+          .num.on{background:#001aff;border-color:#001aff;color:#fff}
+          .num.done{background:#e8e9eb;border-color:#e8e9eb;color:#383b3f}
+          .sep{color:#bbbec4}
+          .prow{display:grid;grid-template-columns:20px minmax(0,1fr) 300px;gap:16px;padding:16px 12px;border-bottom:1px solid #e8e9eb}
+          .prow.on{background:#e5e8ff;border-radius:8px;border-bottom-color:transparent}
+          .rad{width:16px;height:16px;margin-top:2px;border-radius:50%;border:1px solid #71767e;box-sizing:border-box}
+          .rad.on{border:5px solid #001aff}
+          .pt{font:600 16px/24px 'Inter',Arial,sans-serif;color:#000533}
+          .pq{font-size:14px;line-height:20px;color:#383b3f}
+          .pm{margin-top:4px;font-size:12px;line-height:16px;color:#63676e}
+          .pn{font-size:13px;line-height:20px;color:#474a4f}
+          .foot{display:flex;align-items:center;gap:12px;padding:16px 32px 20px;border-top:1px solid #e8e9eb}
+          .fs{flex:1;font-size:14px;line-height:20px;color:#63676e}
+          .mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;border-bottom:1px solid #e8e9eb}
+          .mn{font:600 13px/20px 'Inter',Arial,sans-serif;color:#000533}
+          .mw{grid-column:1/-1;font-size:12px;line-height:16px;color:#63676e}
+          .note{background:#fff;border-radius:12px;padding:28px 32px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;font-size:14px;line-height:20px;color:#383b3f}
+          .nt{grid-column:1/-1;font:600 24px/32px 'Inter',Arial,sans-serif;letter-spacing:-.015em;color:#000533}
+          .nk{font:600 12px/16px 'Inter',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#0012b2;margin-bottom:6px}
+          .board{background:#fff;border-radius:12px;padding:24px 28px}
+          .bt{font:600 18px/24px 'Inter',Arial,sans-serif;color:#000533}
+          .bp{margin:6px 0 14px;font-size:13px;line-height:20px;color:#474a4f}
+          .crow{display:grid;grid-template-columns:24px 44px 110px 1fr 1fr;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #e8e9eb;font-size:13px;line-height:20px;color:#383b3f}
+          .chip{height:24px;border-radius:4px}
+          .mono{font:500 12px/16px ui-monospace,Menlo,monospace;color:#474a4f}
+          .ln{height:3px;border-radius:2px;margin-bottom:4px}
+        </style>
+      </helmet>
+
+      <div class="frame" style="left:40px;top:40px" data-screen-label="Notes">
+        <div class="lbl" data-drags-parent="1">Brand application · what this mock-up takes from the brand guidelines</div>
+        <div class="note">
+          <div class="nt">The issuer library and run start page on the primary trio, with the brand's chart colours and type.</div>
+          <div><div class="nk">Taken</div>Navy, Ultramarine and White as the whole interface. Inter for page titles, text and figures at 140% leading on a 4px grid. One chart colour order for every chart. State colours taken from the Green, Orange, Melon and Neutral ramps at steps that pass 4.5:1 as text.</div>
+          <div><div class="nk">Left out</div>Secondary colours as large fills, the secondary trios, the gold palette, ticker stickers and the tagline: the guidelines place those in campaigns and product marketing, not client reporting. The condensed display face for page titles (owner, 12 Nov 2026).</div>
+          <div><div class="nk">To confirm</div>The chart order is read from the Color order slide, not from listed values. The issuer and its figures are invented.</div>
+        </div>
+      </div>
+
+      <div class="frame" style="left:40px;top:300px" data-screen-label="A Module page">
+        <div class="lbl" data-drags-parent="1">A · Module page · bottom line first, charts open on the page in the brand colour order</div>
+        <div class="scr">
+          <div class="rail"><div class="sym"></div><div class="ri"></div><div class="ri on"></div><div class="ri"></div><div class="ri"></div></div>
+          <div class="app"><div class="card">
+            <div class="hd">
+              <div><div class="back">‹ Issuer library</div><div class="h1">Meridian Foods Holdings plc</div><div class="meta">MFH · Packaged food · 3 runs</div></div>
+              <div class="fx ac gap16"><div class="asof">As of<span class="asofv">31 Dec 2025</span></div><div class="btn">Start a run on this issuer</div></div>
+            </div>
+            <div class="tabs"><div class="tab">Report</div><div class="tab">Overview</div><div class="tab">Changes</div><div class="tab on">Modules</div><div class="tab">Forecast</div><div class="tab">Evidence</div></div>
+            <div class="wb">
+              <div class="nav">
+                <div class="ng" style="margin-top:0">Business</div><div class="ni">Business context</div><div class="ni">Earnings quality</div>
+                <div class="ng">Liquidity and cash flow</div><div class="ni on">Liquidity</div><div class="ni">Cash flow model</div>
+                <div class="ng">Capital structure</div><div class="ni">Debt and maturities</div><div class="ni">Covenants</div><div class="ni">Refinancing</div>
+                <div class="ng">Credit view</div><div class="ni">Credit synthesis</div><div class="ni">Downside</div>
+              </div>
+              <div class="main">
+                <div class="eyb">Liquidity and cash flow · Liquidity</div>
+                <div class="hl">Liquidity is adequate for twelve months: sources cover uses 1.4 times, but the cushion rests on an undrawn revolver that matures in June 2027.</div>
+                <div class="p">Cash and the undrawn revolver total £412m against £296m of uses to December 2026. Without the revolver, cash alone covers 0.6 times. <span class="basis">Basis</span></div>
+                <div class="h3">Sources and uses, next twelve months</div><div class="sub">£m · as reported and forecast</div>
+                <div class="fig">
+                  <div class="plot">
+                    <div class="grp"><div class="bar c1" style="height:46%"></div><div class="bar c2" style="height:74%"></div><div class="bar c3" style="height:22%"></div></div>
+                    <div class="grp"><div class="bar c4" style="height:38%"></div><div class="bar c5" style="height:30%"></div><div class="bar c6" style="height:18%"></div></div>
+                    <div class="grp"><div class="bar c1" style="height:100%"></div><div class="bar c4" style="height:72%"></div></div>
+                  </div>
+                  <div class="xs"><div class="x">Sources</div><div class="x">Uses</div><div class="x">Total sources against total uses</div></div>
+                  <div class="leg"><span class="lg"><span class="sw c1"></span>Cash 170</span><span class="lg"><span class="sw c2"></span>Undrawn revolver 242</span><span class="lg"><span class="sw c3"></span>Operating cash flow 82</span><span class="lg"><span class="sw c4"></span>Debt due 124</span><span class="lg"><span class="sw c5"></span>Capital spending 98</span><span class="lg"><span class="sw c6"></span>Interest 74</span></div>
+                </div>
+                <div class="h3">Debt due by year</div><div class="sub">£m · by instrument</div>
+                <div class="fig">
+                  <div class="plot" style="height:96px">
+                    <div class="grp"><div class="stk"><div class="c1" style="height:24px"></div></div></div>
+                    <div class="grp"><div class="stk"><div class="c1" style="height:18px"></div><div class="c2" style="height:52px"></div></div></div>
+                    <div class="grp"><div class="stk"><div class="c4" style="height:40px"></div></div></div>
+                    <div class="grp"><div class="stk"><div class="c4" style="height:30px"></div><div class="c5" style="height:58px"></div></div></div>
+                  </div>
+                  <div class="xs"><div class="x">2026</div><div class="x">2027</div><div class="x">2028</div><div class="x">2029</div></div>
+                </div>
+              </div>
+              <div class="insp">
+                <div class="ik">Figure</div><div class="iv">1.4×</div><div class="it">Sources to uses, twelve months to 31 Dec 2026</div>
+                <div class="icard"><div class="ik">Calculation</div><div class="it">412 ÷ 296 = 1.39, shown as 1.4×</div></div>
+                <div class="icard"><div class="ik">Source</div><div class="it">Annual report 2025.pdf, page 142</div><div class="q">“The Group had cash of £170m and undrawn committed facilities of £242m.”</div></div>
+                <div class="icard"><div class="ik">Status</div><div class="fx gap8" style="margin-top:8px;flex-wrap:wrap"><span class="pill ok"><span class="dot"></span>Accepted</span><span class="pill warn"><span class="dot"></span>1 limitation</span></div></div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="frame" style="left:40px;top:1260px" data-screen-label="B Overview">
+        <div class="lbl" data-drags-parent="1">B · Overview · the credit view at the left, key charts and nearest dates at the right</div>
+        <div class="scr">
+          <div class="rail"><div class="sym"></div><div class="ri"></div><div class="ri on"></div><div class="ri"></div><div class="ri"></div></div>
+          <div class="app"><div class="card">
+            <div class="hd">
+              <div><div class="back">‹ Issuer library</div><div class="h1">Meridian Foods Holdings plc</div><div class="meta">MFH · Packaged food · 3 runs</div></div>
+              <div class="fx ac gap16"><div class="asof">As of<span class="asofv">31 Dec 2025</span></div><div class="btn">Start a run on this issuer</div></div>
+            </div>
+            <div class="tabs"><div class="tab">Report</div><div class="tab on">Overview</div><div class="tab">Changes</div><div class="tab">Modules</div><div class="tab">Forecast</div><div class="tab">Evidence</div></div>
+            <div class="two">
+              <div>
+                <div class="eyb">Credit view · written by Credit synthesis</div>
+                <div class="hl">A stable single-B credit: leverage of 4.6 times is falling slowly, and the 2027 revolver is the one date that matters.</div>
+                <div class="p">Earnings held through the input-cost cycle, cash conversion is ordinary, and covenants have room. The view weakens if the revolver is not extended by the end of 2026. <span class="basis">Basis</span></div>
+                <div class="h3">Bottom line by module</div>
+                <div class="row" style="margin-top:8px;border-top:1px solid #e8e9eb"><div class="rk">Earnings quality</div><div class="rv">Reported earnings are a fair guide; restructuring add-backs are 6% of the total.</div></div>
+                <div class="row"><div class="rk">Liquidity</div><div class="rv">Adequate for twelve months at 1.4 times, resting on the undrawn revolver.</div></div>
+                <div class="row"><div class="rk">Covenants</div><div class="rv">Net leverage test at 5.5 times leaves 16% room on forecast earnings.</div></div>
+                <div class="row"><div class="rk">Refinancing</div><div class="rv">The revolver due June 2027 should be extended; the notes are not due until 2029.</div></div>
+                <div class="h3">Limitations</div>
+                <div class="p" style="margin-top:8px">No management accounts after 31 December 2025 were supplied. Peer figures are from public filings only.</div>
+              </div>
+              <div>
+                <div class="fx jb ac"><div class="h3" style="margin:0">Key charts</div><div class="basis" style="color:#0012b2;font-weight:600">Chart index</div></div>
+                <div class="fig">
+                  <div class="sub" style="margin:0 0 8px">Net leverage, times</div>
+                  <div class="plot" style="height:88px;gap:16px">
+                    <div class="grp"><div class="bar c1" style="height:92%;width:36px"></div></div><div class="grp"><div class="bar c1" style="height:84%;width:36px"></div></div><div class="grp"><div class="bar c1" style="height:76%;width:36px"></div></div><div class="grp"><div class="bar c4" style="height:68%;width:36px"></div></div><div class="grp"><div class="bar c4" style="height:60%;width:36px"></div></div>
+                  </div>
+                  <div class="xs" style="gap:16px"><div class="x">2023</div><div class="x">2024</div><div class="x">2025</div><div class="x">2026</div><div class="x">2027</div></div>
+                  <div class="leg"><span class="lg"><span class="sw c1"></span>Reported</span><span class="lg"><span class="sw c4"></span>Forecast</span></div>
+                </div>
+                <div class="h3">Nearest dates</div>
+                <div class="drow" style="margin-top:8px;border-top:1px solid #e8e9eb"><div class="dd">31 Mar 2026</div><div>Covenant test, net leverage</div></div>
+                <div class="drow"><div class="dd">30 Jun 2026</div><div>Half-year results</div></div>
+                <div class="drow"><div class="dd">15 Jun 2027</div><div>Revolving facility matures</div></div>
+                <div class="drow"><div class="dd">1 Oct 2029</div><div>Senior notes mature</div></div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="frame" style="left:40px;top:2220px" data-screen-label="C Start a run">
+        <div class="lbl" data-drags-parent="1">C · Start a run · Purpose · state colours from the brand ramps</div>
+        <div class="scr">
+          <div class="rail"><div class="sym"></div><div class="ri on"></div><div class="ri"></div><div class="ri"></div></div>
+          <div class="app"><div class="card" style="display:grid;grid-template-columns:minmax(0,1fr) 340px">
+            <div class="fx col" style="min-width:0">
+              <div class="hd">
+                <div><div class="h1">Start a run</div>
+                  <div class="steps"><span class="st"><span class="num done">✓</span>Documents</span><span class="sep">›</span><span class="st on"><span class="num on">2</span>Purpose</span><span class="sep">›</span><span class="st"><span class="num">3</span>Confirm</span><span class="sep">›</span><span class="st"><span class="num">4</span>Start</span></div>
+                  <div class="meta" style="margin-top:8px">Covenant and refinancing · 12 modules</div></div>
+                <div class="btn2" style="border-color:transparent">Start over</div>
+              </div>
+              <div class="main" style="flex:1">
+                <div class="hl" style="margin:0">What do you need from this run?</div>
+                <div class="p" style="margin-top:6px">Your answer picks the pathway: the modules the run will use, in order.</div>
+                <div style="margin-top:16px;border-top:1px solid #e8e9eb">
+                  <div class="prow"><div class="rad"></div><div><div class="pt">Credit snapshot <span class="pq">A full view of the credit today</span></div><div class="pm">Business context, earnings quality, liquidity, debt, covenants, credit synthesis</div></div><div class="pn">Needs: annual report, latest interim results</div></div>
+                  <div class="prow on"><div class="rad on"></div><div><div class="pt">Covenant and refinancing <span class="pq">Can the issuer meet its tests and refinance?</span></div><div class="pm">Liquidity, cash flow model, covenants, refinancing, downside</div></div><div class="pn">Needs: the governing agreement, annual report, latest interim results</div></div>
+                  <div class="prow"><div class="rad"></div><div><div class="pt">Relative value <span class="pq">Is the debt priced fairly against peers?</span></div><div class="pm">Business context, credit synthesis, relative value</div></div><div class="pn">Needs: annual report; quotes and peers at Standard</div></div>
+                </div>
+              </div>
+              <div class="foot"><div class="btn2">‹ Documents</div><div class="fs">Covenant and refinancing · Basic · 12 modules</div><div class="btn">Confirm the details ›</div></div>
+            </div>
+            <div class="insp">
+              <div class="bt" style="font-size:16px">Run readiness</div>
+              <div class="it">Expected from your answers. A model may still find less.</div>
+              <div class="fx gap8" style="margin-top:12px;flex-wrap:wrap"><span class="pill ok"><span class="dot"></span>9 ready</span><span class="pill warn"><span class="dot"></span>2 limited</span><span class="pill bad"><span class="dot"></span>1 will refuse</span></div>
+              <div style="margin-top:12px;border-top:1px solid #e8e9eb">
+                <div class="mrow"><div class="mn">Liquidity</div><span class="pill ok">Ready</span></div>
+                <div class="mrow"><div class="mn">Cash flow model</div><span class="pill ok">Ready</span></div>
+                <div class="mrow"><div class="mn">Covenants</div><span class="pill bad">Will refuse</span><div class="mw">No governing agreement is chosen. Choose it under Legal.</div></div>
+                <div class="mrow"><div class="mn">Refinancing</div><span class="pill warn">Limited</span><div class="mw">Concludes without market quotes.</div></div>
+                <div class="mrow"><div class="mn">Downside</div><span class="pill warn">Limited</span><div class="mw">Rests on labelled analyst judgment.</div></div>
+                <div class="mrow"><div class="mn">Changes since the last run</div><span class="pill neu">First run</span></div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="side" style="left:1540px;top:40px" data-screen-label="Chart colours">
+        <div class="lbl" data-drags-parent="1">Chart colour order and state colours</div>
+        <div class="board">
+          <div class="bt">One order for every chart</div>
+          <div class="bp">Fills use the brand colour. Lines and text on white use the darker step beside it, because the bright green, yellow and cyan are too light to read as a thin line.</div>
+          <div class="crow" style="font-weight:600;color:#000533"><div>#</div><div>Fill</div><div>Colour</div><div>Fill value</div><div>Line and text</div></div>
+          <div class="crow"><div>1</div><div class="chip c1"></div><div>Ultramarine</div><div class="mono">#001AFF</div><div><div class="ln" style="background:#001aff"></div><span class="mono">#001AFF</span></div></div>
+          <div class="crow"><div>2</div><div class="chip c2"></div><div>Green</div><div class="mono">#1EFF8F</div><div><div class="ln" style="background:#0f8048"></div><span class="mono">Dark 5 #0F8048</span></div></div>
+          <div class="crow"><div>3</div><div class="chip c3"></div><div>Yellow</div><div class="mono">#EAFF00</div><div><div class="ln" style="background:#758000"></div><span class="mono">Dark 5 #758000</span></div></div>
+          <div class="crow"><div>4</div><div class="chip c4"></div><div>Violet</div><div class="mono">#A29AFF</div><div><div class="ln" style="background:#514d80"></div><span class="mono">Dark 5 #514D80</span></div></div>
+          <div class="crow"><div>5</div><div class="chip c5"></div><div>Cyan, dark</div><div class="mono">Dark 5 #256A80</div><div><div class="ln" style="background:#256a80"></div><span class="mono">#256A80</span></div></div>
+          <div class="crow"><div>6</div><div class="chip c6"></div><div>Reef</div><div class="mono">#FF7C56</div><div><div class="ln" style="background:#994a34"></div><span class="mono">Dark 4 #994A34</span></div></div>
+          <div class="crow"><div>7</div><div class="chip c7"></div><div>Orange</div><div class="mono">#FFC600</div><div><div class="ln" style="background:#806300"></div><span class="mono">Dark 5 #806300</span></div></div>
+          <div class="crow"><div>8</div><div class="chip c8"></div><div>Cyan</div><div class="mono">#4AD4FF</div><div><div class="ln" style="background:#2c7f99"></div><span class="mono">Dark 4 #2C7F99</span></div></div>
+          <div class="bt" style="margin-top:24px">State colours</div>
+          <div class="bp">Text on its tint. Each pair is 4.5:1 or better.</div>
+          <div class="fx gap8" style="flex-wrap:wrap"><span class="pill ok"><span class="dot"></span>Ready · Green Dark 5 on Light 9</span><span class="pill warn"><span class="dot"></span>Limited · Orange Dark 5 on Light 8</span><span class="pill bad"><span class="dot"></span>Will refuse · Melon Dark 4 on Light 9</span><span class="pill neu">Neutral · Neutral Dark 5 on Light 9</span><span class="pill info">Selected · Ultramarine Dark 3 on Light 9</span></div>
+        </div>
+      </div>
+
+      <div class="side" style="left:1540px;top:760px" data-screen-label="D Page titles">
+        <div class="lbl" data-drags-parent="1">D · Page titles · Inter Semibold (decided 12 Nov 2026)</div>
+        <div class="board">
+          <div class="ik">Inter Semibold 28/36, -1.5% letter spacing, sentence case</div>
+          <div class="h1" style="margin-top:8px">Meridian Foods Holdings plc</div>
+          <div class="meta">MFH · Packaged food · 3 runs</div>
+          <div class="bp" style="margin:16px 0 0">The condensed display face (Sharp Grotesk Bold 14) is not used. Page titles, section headings and everything below are Inter.</div>
+        </div>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

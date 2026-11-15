@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8" /><title>Check harness</title><style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:100%}</style></head>
+<body><iframe id="f"></iframe>
+<script>
+// Not a screen. Loads a mock page and clicks the controls named in the hash, so a headless render can show Table, Bars and downside-case views.
+var parts = decodeURIComponent(location.hash.slice(1)).split('|');
+var f = document.getElementById('f');
+f.src = './' + encodeURIComponent(parts[0]);
+f.onload = function () { setTimeout(function () { (parts[1] || '').split(',').forEach(function (s) { if (!s) return; f.contentDocument.querySelectorAll(s).forEach(function (e) { e.click(); }); }); }, 1500); };
+</script></body></html>

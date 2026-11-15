@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+        <link href="./mock3.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" data-screen-label="Model: Front page">
+        <dc-import name="Shell" tab="Front page" hint-size="100%,220px"></dc-import>
+
+        <section class="sec" data-screen-label="Bottom line">
+          <div class="ban">
+            <span class="ban-i"><i class="sh sh-dot"></i></span>
+            <div>
+              <p class="lead2">Leverage falls only if the cash is kept: net debt drops from 5.9x to 3.8x EBITDA by FY27 in the base case, and cash flow covers interest about three times throughout.</p>
+              <p>The downside case holds leverage above 5x and still funds interest from operations. Debt is not repaid in either case, and about USD 17 billion falls due between 2028 and 2030.</p>
+            </div>
+            <button class="trace" aria-label="Show the sources for the bottom line" title="Show sources">&#8599;</button>
+          </div>
+        </section>
+
+        <section class="sec" data-screen-label="Headline figures">
+          <div class="row jb"><h2 class="h2">Headline figures</h2><span class="small t3">Latest twelve months to 30 June 2025</span></div>
+          <div class="g4">
+            <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="8">
+              <div class="m">
+                <div class="m-t"><span title="{{ m.def }}">{{ m.t }}</span><button class="trace" aria-label="Show the sources for this figure" title="Show sources">&#8599;</button></div>
+                <div class="m-r">
+                  <sc-if value="{{ m.v }}" hint-placeholder-val="{{ true }}"><span class="m-v">{{ m.v }}</span></sc-if>
+                  <sc-if value="{{ m.na }}" hint-placeholder-val="{{ false }}"><span class="m-v na">n.a.</span></sc-if>
+                  <sc-if value="{{ m.w }}" hint-placeholder-val="{{ false }}"><span class="withheld" style="height:38px"><i class="redact" style="width:88px;height:16px"></i><span class="badge b-neu">Withheld</span></span></sc-if>
+                  <sc-if value="{{ m.c }}" hint-placeholder-val="{{ true }}"><span class="m-c">{{ m.c }}</span></sc-if>
+                </div>
+                <sc-if value="{{ m.why }}" hint-placeholder-val="{{ false }}"><p class="small t3">{{ m.why }}</p></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section class="g2">
+          <div class="sec" data-screen-label="What the model covers">
+            <h2 class="h2">What the model covers</h2>
+            <div class="card">
+              <dl class="dl" style="margin:0">
+                <sc-for list="{{ facts }}" as="f" hint-placeholder-count="6"><div><dt>{{ f.k }}</dt><dd><span>{{ f.v }}</span><button class="trace" aria-label="Show the sources for this fact" title="Show sources">&#8599;</button></dd></div></sc-for>
+              </dl>
+            </div>
+          </div>
+          <div class="sec" data-screen-label="Parts of the model">
+            <h2 class="h2">Parts of the model</h2>
+            <div class="items">
+              <a class="item"><span class="item-m"><i class="ico"></i></span><div><b>Analysis</b><p>Deleveraging depends on keeping the cash, not on repaying debt.</p></div><button class="trace" aria-label="Show the sources for this sentence" title="Show sources">&#8599;</button><span class="item-e">&#8250;</span></a>
+              <a class="item"><span class="item-m"><i class="ico"></i></span><div><b>Model</b><p>Statements for FY22 to FY27, two cases, bridges and the debt stack.</p></div><button class="trace" aria-label="Show the sources for this sentence" title="Show sources">&#8599;</button><span class="item-e">&#8250;</span></a>
+              <a class="item"><span class="item-m"><i class="ico"></i></span><div><b>Portfolio fit</b><p>Within every limit that could be tested, with 0.9 points of room under the single-issuer limit.</p></div><button class="trace" aria-label="Show the sources for this sentence" title="Show sources">&#8599;</button><span class="item-e">&#8250;</span></a>
+              <div class="item"><span class="item-m"><i class="ico"></i></span><div><b>Relative value</b><p>The pricing comparison failed in this run, so the model's spread view is missing.</p></div><button class="trace" aria-label="Show the sources for this sentence" title="Show sources">&#8599;</button><span class="badge b-neu item-e"><i class="sh sh-slash"></i>Not assessable</span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const M = (t, v, c, def, x) => Object.assign({ t, v, c, def, na: false, w: false, why: '' }, x || {});
+          return {
+            metrics: [
+              M('Revenue', '$8,580m', '↗ 8.1% on FY24', 'Net sales, latest twelve months'),
+              M('EBITDA as defined', '$4,560m', '↗ 9.3% on FY24', 'EBITDA as the company defines it in its credit agreement'),
+              M('EBITDA margin', '53.1%', '↗ 0.5 pts on FY24', 'EBITDA as defined divided by revenue'),
+              M('Net leverage', '5.9x', '↗ from 4.5x', 'Net debt divided by EBITDA as defined'),
+              M('Interest cover', '2.9x', '↗ from 2.8x', 'EBITDA as defined divided by cash interest'),
+              M('Free cash flow', '$1,950m', '↗ 10.3% on FY24', 'EBITDA as defined less cash interest, cash tax, working capital and capital expenditure'),
+              M('Secured net leverage', '', '', 'Secured net debt divided by EBITDA as defined', { na: true, why: 'The secured share of debt was not split out in the sources.' }),
+              M('Revolver drawn', '', '', 'Amount drawn on the revolving credit facility', { w: true, why: 'Shown to the deal team only.' })
+            ],
+            facts: [
+              ['Currency and units', 'US dollars, millions'], ['Fiscal year end', '30 September'], ['Historic periods', 'FY22 to FY24, as reported'],
+              ['Latest twelve months', 'To 30 June 2025'], ['Forecast periods', 'FY25 to FY27'], ['Cases', 'Base and downside'],
+              ['Earnings measure', 'EBITDA as the company defines it']
+            ].map(f => ({ k: f[0], v: f[1] }))
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

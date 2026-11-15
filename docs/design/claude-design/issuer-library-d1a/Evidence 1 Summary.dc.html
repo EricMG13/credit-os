@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Evidence, Summary">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Evidence" sources="off" hint-size="100%,190px"></dc-import>
+          <dc-import name="EvTabs" tab="Summary" hint-size="100%,130px"></dc-import>
+
+          <section class="card stack">
+            <div class="row-b"><h3 class="h4">Modules delivered</h3><span class="small t3">Recovery was not assessable</span></div>
+            <div class="u-prog" role="progressbar" aria-label="Modules delivered"><div class="u-prog-track"><div class="u-prog-fill" style="width:92.3%"></div></div><span class="u-prog-l">12 of 13</span></div>
+          </section>
+
+          <section class="u-metrics" aria-label="Counts">
+            <div class="u-metric"><span class="u-metric-t">Source files</span><span class="u-metric-v">9</span><span class="u-metric-n">8 read in full, 1 read in part</span></div>
+            <div class="u-metric"><span class="u-metric-t">Calculations</span><span class="u-metric-v">148</span><span class="u-metric-n">Each one traceable to its inputs</span></div>
+            <div class="u-metric"><span class="u-metric-t">Gaps</span><span class="u-metric-v">7</span><span class="u-metric-n">2 high, 3 medium, 2 low</span></div>
+          </section>
+
+          <section class="g2">
+            <div class="stack">
+              <h3 class="h3">This run</h3>
+              <div class="stack-s"><span class="caption t3">Run code</span><div class="s-snip"><div class="s-snip-h"><span class="s-snip-tab">Code</span><span class="s-snip-c" role="button" aria-label="Copy run code"><span class="ico ico-16"></span></span></div><pre>HAE-20260930-FR-0003</pre></div></div>
+              <div class="stack-s"><span class="caption t3">Hash of the handoff set</span><div class="s-snip"><div class="s-snip-h"><span class="s-snip-tab">SHA-256</span><span class="s-snip-c" role="button" aria-label="Copy hash"><span class="ico ico-16"></span></span></div><pre>9f2c41d07ab35e88c1e4f6a2b9d03c57e1a84f60b7d2c9153ea06f48d1b7c2a0</pre></div></div>
+            </div>
+            <div class="stack">
+              <h3 class="h3">Take it with you</h3>
+              <p class="body t2">The module handoffs are the record this library was written from. Download them to read a module exactly as it was delivered.</p>
+              <div class="row"><a class="u-btn u-btn-s u-btn-md" href="#">Download handoffs</a><a class="u-btn u-btn-t u-btn-md" href="#">See which files were used</a></div>
+            </div>
+          </section>
+
+          <p class="note">Mock D1a · Evidence, Summary. The first of five tabs. Run codes, hashes and file names appear from here on and nowhere on the findings pages.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+        <style>
+          .mrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px}
+          .zero{font:500 12px/16px var(--font-body);color:var(--text-secondary);align-self:flex-end}
+        </style>
+      </helmet>
+      <div class="app" data-screen-label="Module, data">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Modules" sources="off" hint-size="100%,190px"></dc-import>
+          <div class="g-index">
+            <dc-import name="ModNav" module="Capital structure" sections="Bottom line|Key findings|Headline figures|Debt stack and maturities|Headroom|Liquidity walk|Against peers|Terms and tests|Hedges|Limitations" hint-size="240px,900px"></dc-import>
+            <div class="stack" style="gap:40px">
+              <div class="row-b"><h2 class="h2">Capital structure</h2><span class="u-badge dot c-gap"><span class="sh sh-dash m-gap"></span>Delivered with gaps</span></div>
+
+              <section class="s-banner tr" aria-label="Bottom line">
+                <span class="s-banner-ic"><span class="sh sh-dot" style="width:8px;height:8px"></span></span>
+                <div class="s-banner-b">
+                  <span class="s-banner-k">Bottom line</span>
+                  <h3 class="h3">Secured debt is long-dated and covenant-light; the unsecured notes mature first and rank last.</h3>
+                  <p class="s-banner-r">Nothing above USD 50m falls due before March 2028. The structure gives time, not protection: one springing covenant, far from tested, stands between lenders and a further debt-funded purchase.</p>
+                </div>
+                <button class="trace" aria-label="Show sources for the bottom line"></button>
+              </section>
+
+              <section class="stack">
+                <h3 class="h3">Key findings</h3>
+                <ol class="s-lp">
+                  <sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
+                    <li class="s-lp-i tr"><span class="s-lp-n">{{ f.n }}</span><div class="s-lp-b"><span class="s-lp-t">{{ f.t }}</span><span class="s-lp-d">{{ f.d }}</span></div><button class="trace" aria-label="Show sources for this finding"></button></li>
+                  </sc-for>
+                </ol>
+              </section>
+
+              <section class="u-metrics" aria-label="Headline figures">
+                <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="6">
+                  <div class="u-metric tr">
+                    <span class="u-metric-t">{{ m.t }}</span>
+                    <span class="u-metric-v"><sc-if value="{{ m.held }}" hint-placeholder-val="{{ false }}"><span class="withheld" style="padding-bottom:6px"><span class="redact redact-l"></span><span class="u-badge u-badge-sm c-neu">Withheld</span></span></sc-if><span>{{ m.v }}</span></span>
+                    <span class="u-metric-n">{{ m.n }}</span>
+                    <button class="trace" aria-label="Show sources for this figure"></button>
+                  </div>
+                </sc-for>
+              </section>
+
+              <section class="mrow" aria-label="Measures and their consequence">
+                <sc-for list="{{ measures }}" as="s" hint-placeholder-count="3">
+                  <div class="s-stat tr">
+                    <span class="s-stat-l">{{ s.l }}</span>
+                    <span class="s-stat-v">{{ s.v }}</span>
+                    <span class="s-stat-d t2"><sc-if value="{{ s.arrow }}" hint-placeholder-val="{{ true }}"><span class="{{ s.arrow }}"></span></sc-if><span class="{{ s.dcls }}">{{ s.d }}</span></span>
+                    <span class="s-stat-c">{{ s.c }}</span>
+                    <button class="trace" aria-label="Show sources for this measure"></button>
+                  </div>
+                </sc-for>
+              </section>
+
+              <section class="card u-chart tr">
+                <div class="u-chart-h"><div><h3 class="u-chart-t">Debt stack</h3><p class="u-basis">USD 2,398m gross debt at 30 Sep 2026, by rank</p></div><div class="row"><span class="u-seg"><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span><button class="trace" aria-label="Show sources for the debt stack"></button></div></div>
+                <div class="s-stack" role="img" aria-label="Debt stack by rank"><sc-for list="{{ stack }}" as="d" hint-placeholder-count="5"><i class="{{ d.k }}" style="{{ d.w }}"></i></sc-for></div>
+                <ol class="s-legend"><sc-for list="{{ stack }}" as="d" hint-placeholder-count="5"><li><i class="{{ d.k }}"></i><span>{{ d.name }}</span><span class="t3">{{ d.note }}</span><b>{{ d.amt }}</b></li></sc-for></ol>
+                <p class="u-basis">Basis: drawn amounts at face value; leases as reported.</p>
+              </section>
+
+              <section class="card u-chart tr">
+                <div class="u-chart-h"><div><h3 class="u-chart-t">Maturities by year</h3><p class="u-basis">USD m, calendar years</p></div><div class="row"><span class="u-seg"><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span><button class="trace" aria-label="Show sources for maturities"></button></div></div>
+                <div class="u-pw">
+                  <div class="u-yax" aria-hidden="true"><span>1,200</span><span>900</span><span>600</span><span>300</span><span>0</span></div>
+                  <div class="grow">
+                    <div class="u-plot"><sc-for list="{{ mats }}" as="m" hint-placeholder-count="6"><div class="u-grp"><sc-if value="{{ m.bar }}" hint-placeholder-val="{{ true }}"><div class="u-col"><b>{{ m.v }}</b><div class="u-bar s1" style="{{ m.h }}"></div></div></sc-if><sc-if value="{{ m.txt }}" hint-placeholder-val="{{ false }}"><span class="{{ m.tcls }}">{{ m.v }}</span></sc-if></div></sc-for></div>
+                    <div class="u-x"><sc-for list="{{ mats }}" as="m" hint-placeholder-count="6"><span>{{ m.y }}</span></sc-for></div>
+                  </div>
+                </div>
+                <p class="u-basis">Nothing falls due in 2029, shown as 0. The lease schedule is not in the files, shown as n.a.</p>
+              </section>
+
+              <section class="card u-chart tr" aria-label="Table side of the maturities chart">
+                <div class="u-chart-h"><div><h3 class="u-chart-t">Maturities by year</h3><p class="u-basis">USD m, calendar years</p></div><div class="row"><span class="u-seg"><span class="u-segi">Chart</span><span class="u-segi on" aria-pressed="true">Table</span></span><button class="trace" aria-label="Show sources for maturities"></button></div></div>
+                <div class="h-tablewrap">
+                  <table class="h-table">
+                    <thead><tr><th>Year</th><th>Falls due</th><th class="r">Amount, USD m</th></tr></thead>
+                    <tbody>
+                      <tr><td>2027</td><td>Other debt</td><td class="r">40</td></tr>
+                      <tr><td>2028</td><td>Senior unsecured notes</td><td class="r">310</td></tr>
+                      <tr><td>2029</td><td>Nothing</td><td class="r">0</td></tr>
+                      <tr><td>2030</td><td>Term loan B</td><td class="r">1,150</td></tr>
+                      <tr><td>2031</td><td>Senior secured notes</td><td class="r">600</td></tr>
+                      <tr><td>Leases</td><td>Schedule not in the files</td><td class="r"><span class="na">n.a.</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="card u-chart tr">
+                <div class="u-chart-h"><div><h3 class="u-chart-t">Headroom against covenant and rating triggers</h3><p class="u-basis">The dashed line is the limit; the bar is where Halden stands</p></div><div class="row"><span class="u-seg"><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span><button class="trace" aria-label="Show sources for headroom"></button></div></div>
+                <div>
+                  <sc-for list="{{ bullets }}" as="b" hint-placeholder-count="4">
+                    <div class="s-bullet">
+                      <span><span class="b6">{{ b.name }}</span><br /><span class="t3">{{ b.kind }}</span></span>
+                      <sc-if value="{{ b.show }}" hint-placeholder-val="{{ true }}"><div class="s-bullet-tr"><div class="s-bullet-bar" style="{{ b.w }}"></div><span class="s-bullet-t" style="{{ b.t }}"></span></div></sc-if>
+                      <sc-if value="{{ b.held }}" hint-placeholder-val="{{ false }}"><span class="withheld"><span class="redact redact-l"></span><span class="u-badge u-badge-sm c-neu">Withheld</span></span></sc-if>
+                      <span class="s-bullet-v">{{ b.v }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+
+              <section class="card u-chart tr">
+                <div class="u-chart-h"><div><h3 class="u-chart-t">Liquidity walk, June to September 2026</h3><p class="u-basis">USD m</p></div><div class="row"><div class="u-legend"><span><i class="tot"></i>Total</span><span><i class="up"></i>Inflow</span><span><i class="down"></i>Outflow</span></div><span class="u-seg"><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span><button class="trace" aria-label="Show sources for the liquidity walk"></button></div></div>
+                <div class="u-pw">
+                  <div class="u-yax" aria-hidden="true"><span>600</span><span>450</span><span>300</span><span>150</span><span>0</span></div>
+                  <div class="grow">
+                    <div class="u-plot"><sc-for list="{{ walk }}" as="w" hint-placeholder-count="6"><div class="br-col"><b>{{ w.v }}</b><div class="{{ w.cls }}" style="{{ w.st }}"></div></div></sc-for></div>
+                    <div class="u-x"><sc-for list="{{ walk }}" as="w" hint-placeholder-count="6"><span>{{ w.l }}</span></sc-for></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="g2">
+                <div class="card u-chart tr">
+                  <div class="u-chart-h"><div><h3 class="u-chart-t">Leverage and margin against peers</h3><p class="u-basis">Five listed peers, latest financial year</p></div><button class="trace" aria-label="Show sources for the peer scatter"></button></div>
+                  <div class="scat" role="img" aria-label="Scatter of net leverage against EBITDA margin">
+                    <span class="scat-y">EBITDA margin, %</span>
+                    <sc-for list="{{ peers }}" as="p" hint-placeholder-count="5"><span class="{{ p.cls }}" style="{{ p.pos }}"></span><span class="scat-l" style="{{ p.pos }}">{{ p.n }}</span></sc-for>
+                    <span class="scat-t" style="left:0;bottom:-22px">2.0x</span><span class="scat-t" style="right:0;bottom:-22px">6.0x</span><span class="scat-t" style="left:-26px;bottom:-8px">10</span><span class="scat-t" style="left:-26px;top:-8px">30</span>
+                  </div>
+                  <p class="caption t3" style="text-align:center;margin-top:8px">Net leverage</p>
+                  <p class="u-basis">Not plotted: Peer E <span class="na">(margin n.a.)</span></p>
+                </div>
+                <div class="card u-chart tr">
+                  <div class="u-chart-h"><div><h3 class="u-chart-t">Interest cover against the peer range</h3><p class="u-basis">The band is the peer range; the dashed line is Halden</p></div><button class="trace" aria-label="Show sources for the peer range"></button></div>
+                  <div>
+                    <div class="range"><span class="range-b" style="left:22%;width:62%"></span><span class="range-m" style="left:27%"></span></div>
+                    <div class="row-b small t3 tnum"><span>1.0x</span><span>Peers 2.1x to 5.8x</span><span>7.0x</span></div>
+                  </div>
+                  <p class="body"><span class="b6">Halden 2.4x.</span> Near the bottom of the range: only one peer is lower.</p>
+                  <div>
+                    <div class="range"><span class="range-m" style="left:60%"></span></div>
+                    <p class="small t3">Secured leverage: Halden 3.3x; peer range <span class="na">n.a.</span>, so no band is drawn.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="g2" style="gap:40px">
+                <div class="stack">
+                  <h3 class="h3">Facility terms</h3>
+                  <dl class="h-dl">
+                    <sc-for list="{{ facts }}" as="g" hint-placeholder-count="2">
+                      <p class="h-dl-g">{{ g.name }}</p>
+                      <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3"><div class="tr"><dt>{{ r.k }}</dt><dd><span class="{{ r.cls }}">{{ r.v }}</span><button class="trace" aria-label="Show sources for this fact"></button></dd></div></sc-for>
+                    </sc-for>
+                  </dl>
+                </div>
+                <div class="stack">
+                  <h3 class="h3">Documentation tests</h3>
+                  <div class="s-list">
+                    <div class="s-list-g"><div class="s-list-h"><span class="sh sh-tri m-warn"></span>Not met <span class="u-count">1</span></div><div class="s-list-b"><div class="s-list-i">Compliance certificate on time<span class="v">Delivered 12 days late</span></div></div></div>
+                    <div class="s-list-g"><div class="s-list-h"><span class="sh sh-dot m-ok"></span>Met <span class="u-count">3</span></div><div class="s-list-b"><div class="s-list-i">First-lien net leverage<span class="v">3.3x against 6.5x</span></div><div class="s-list-i">Restricted payments basket<span class="v">USD 20m of USD 75m used</span></div><div class="s-list-i">Receivables facility availability<span class="v"><span class="redact"></span><span class="u-badge u-badge-sm c-neu">Withheld</span></span></div></div></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="stack">
+                <div class="row-b"><h3 class="h3">Debt and leverage by year</h3><span class="u-seg"><span class="u-segi">Bars</span><span class="u-segi on" aria-pressed="true">Figures</span></span></div>
+                <div class="h-tablewrap">
+                  <table class="h-table">
+                    <thead><tr><th>USD m, year to 30 Sep</th><th class="r">2022</th><th class="r">2023</th><th class="r">2024</th><th class="r">2025</th><th class="r">2026</th></tr></thead>
+                    <tbody>
+                      <tr><td>Gross debt</td><td class="r">2,010</td><td class="r">2,120</td><td class="r">2,190</td><td class="r">2,310</td><td class="r">2,398</td></tr>
+                      <tr><td>Cash</td><td class="r">95</td><td class="r">120</td><td class="r">88</td><td class="r">146</td><td class="r">162</td></tr>
+                      <tr><td>Net debt</td><td class="r">1,915</td><td class="r">2,000</td><td class="r">2,102</td><td class="r">2,164</td><td class="r">2,236</td></tr>
+                      <tr><td>EBITDA</td><td class="r"><span class="na">n.a.</span></td><td class="r">356</td><td class="r">398</td><td class="r">441</td><td class="r">486</td></tr>
+                      <tr><td>Net leverage</td><td class="r"><span class="na">n.a.</span></td><td class="r">5.6x</td><td class="r">5.3x</td><td class="r">4.9x</td><td class="r">4.6x</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small t3">EBITDA for 2022 is not available on the current basis, so that year’s leverage is n.a.</p>
+              </section>
+
+              <section class="stack">
+                <h3 class="h3">Hedge expiries</h3>
+                <div class="gapbox">
+                  <span class="gap-title"><span class="sh sh-dash"></span>Not established for this run</span>
+                  <p class="small">The hedge schedule was not among the files provided. The module states that interest rate swaps exist but could not establish their amounts or expiry dates, so no chart is drawn.</p>
+                </div>
+              </section>
+
+              <section class="s-coll" aria-label="Limitations">
+                <div class="s-coll-h"><span class="s-coll-t">Limitations <span class="u-count">3</span></span><span class="row" style="gap:16px"><a class="u-link" href="#">See this module’s gaps in Evidence</a><span class="s-coll-x" role="button" aria-label="Collapse limitations"><span class="chev chev-u"></span></span></span></div>
+                <ul class="s-coll-b">
+                  <sc-for list="{{ limits }}" as="l" hint-placeholder-count="3"><li class="tr"><span>{{ l }}</span><button class="trace" aria-label="Show sources for this limitation"></button></li></sc-for>
+                </ul>
+              </section>
+
+              <p class="note">Mock D1a · Module, data. States drawn in place: a gap panel (hedge expiries), withheld values (average cost of debt, receivables facility), missing as n.a. beside a true 0 (maturities, leases, 2022), a measure with no earlier period (no delta shape), a peer not plotted, a range with no band. The Table side of the maturities chart is drawn under its Chart side so both can be reviewed; in the product only one shows. The statement is drawn in its Figures view, with no trend column.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const findings = [
+            ['The first maturity is the weakest claim', 'The unsecured notes fall due in March 2028, two years before the term loan, and rank behind USD 1,750m of secured debt.'],
+            ['The covenant is a formality', 'It tests only when the facility is more than 40% drawn. The facility is undrawn and headroom is about half the limit.'],
+            ['Capacity for more debt remains', 'Baskets allow roughly USD 400m of further secured debt. The sponsor has used such capacity for purchases before.']
+          ].map((f, i) => ({ n: '0' + (i + 1), t: f[0], d: f[1] }));
+          const metrics = [
+            ['Gross debt', 'USD 2,398m', 'At 30 Sep 2026'], ['Net debt', 'USD 2,236m', 'After USD 162m cash'], ['Net leverage', '4.6x', 'Net debt to EBITDA'],
+            ['Secured leverage', '3.3x', 'First-lien net debt to EBITDA'], ['Average cost of debt', '', 'Marked confidential in the source', true], ['Next maturity', 'Mar 2028', 'USD 310m unsecured notes']
+          ].map(m => ({ t: m[0], v: m[1], n: m[2], held: !!m[3] }));
+          const measures = [
+            ['Net leverage', '4.6x', 'chev', 'Lower by 0.3x on 2025', '', 'Back inside the range both agencies set for the current rating.'],
+            ['Liquidity', 'USD 412m', 'chev', 'Lower by USD 43m on June', '', 'Covers every maturity before March 2028 more than four times.'],
+            ['Interest cover', '2.4x', '', 'Earlier period n.a.', 'na', 'Thin: a one-point rise in floating rates would take it close to 2.0x.']
+          ].map(s => ({ l: s[0], v: s[1], arrow: s[2], d: s[3], dcls: s[4], c: s[5] }));
+          const stack = [
+            ['Term loan B', 'Secured, due 2030', 'USD 1,150m', 48, 's1'], ['Senior secured notes', 'Secured, due 2031', 'USD 600m', 25, 's2'],
+            ['Senior unsecured notes', 'Unsecured, due 2028', 'USD 310m', 12.9, 's3'], ['Leases', 'Schedule n.a.', 'USD 298m', 12.4, 's4'], ['Other', 'Due 2027', 'USD 40m', 1.7, 'so']
+          ].map(d => ({ name: d[0], note: d[1], amt: d[2], w: 'flex:' + d[3], k: d[4] }));
+          const mats = [['2027', 40], ['2028', 310], ['2029', 0], ['2030', 1150], ['2031', 600], ['Leases', null]].map(m => ({
+            y: m[0], v: m[1] === null ? 'n.a.' : m[1].toLocaleString('en-US'), bar: !!m[1], txt: !m[1], tcls: m[1] === null ? 'barna' : 'zero', h: 'height:' + Math.round((m[1] || 0) / 1200 * 228) + 'px'
+          }));
+          const bullets = [
+            ['First-lien net leverage', 'Springing covenant, maximum', '3.3x against 6.5x', 41, 81],
+            ['Net leverage', 'Downgrade trigger, maximum', '4.6x against 5.5x', 57.5, 68.75],
+            ['Interest cover', 'Downgrade trigger, minimum', '2.4x against 2.0x', 60, 50],
+            ['Receivables facility', 'Availability test', '', 0, 0]
+          ].map(b => ({ name: b[0], kind: b[1], v: b[2], show: !!b[3], held: !b[3], w: 'width:' + b[3] + '%', t: 'left:' + b[4] + '%' }));
+          const walk = [
+            ['30 Jun 2026', '455', 'tot', 173, 0], ['Free cash flow', '+96', 'up', 36, 173], ['Purchase', '−140', 'down', 53, 156],
+            ['Dividends', '−20', 'down', 8, 148], ['Other', '+21', 'up', 8, 148], ['30 Sep 2026', '412', 'tot', 157, 0]
+          ].map(w => ({ l: w[0], v: w[1], cls: 'br-bar ' + w[2], st: 'height:' + w[3] + 'px;margin-bottom:' + w[4] + 'px' }));
+          const peers = [['Halden', 65, 34.5, 1], ['Peer A', 30, 52], ['Peer B', 42, 60], ['Peer C', 55, 70], ['Peer D', 80, 78]].map(p => ({ n: p[0], cls: 'scat-p' + (p[3] ? ' me' : ''), pos: 'left:' + p[1] + '%;top:' + p[2] + '%' }));
+          const facts = [
+            { name: 'Term loan B', rows: [['Amount', 'USD 1,150m'], ['Margin', 'Reference rate plus 3.25%'], ['Maturity', 'September 2030']] },
+            { name: 'Revolving facility', rows: [['Size', 'USD 250m'], ['Drawn', 'USD 0m'], ['Commitment fee', 'n.a.']] }
+          ].map(g => ({ name: g.name, rows: g.rows.map(r => ({ k: r[0], v: r[1], cls: r[1] === 'n.a.' ? 'na' : '' })) }));
+          const limits = [
+            'Hedge expiries are not established for this run: the hedge schedule was not provided.',
+            'The average cost of debt is withheld: the only source for it is marked confidential and delivery does not show it.',
+            'The lease maturity schedule is not in the files, so leases appear in the stack but not by year.'
+          ];
+          return { findings, metrics, measures, stack, mats, bullets, walk, peers, facts, limits };
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,64 @@
+/* Page layout and the pieces specific to the Model and Forecast screens. */
+.pg{max-width:1216px;margin:0 auto;padding:32px 32px 96px;display:flex;flex-direction:column;gap:64px}
+/* Decision 0003, review 2, ruling 2: judgement prose (key findings, contrary evidence, what would change the view) is the design system's 16px body. */
+.lpi p,.al p,.ts p{font:400 16px/26px var(--fb)}
+/* A half-width chart card takes the whole row while its table form is showing and that table has five or more columns, so no column hides behind a scroll. */
+.g2>.card:has(.rt:checked):has(.tb .td:nth-child(5)){grid-column:1/-1}
+/* In a table form the row label may wrap, so a narrow card keeps every column and the trace control in view. */
+.cf .tb .td:first-child{white-space:normal}
+/* Statement period columns share one width, so a bar's length means the same in every column; the label column takes the rest. */
+.stm .td:first-child{width:99%}
+.stm .td:not(:first-child):not(.tc){min-width:94px;padding-left:8px;padding-right:8px}
+.tab input{position:absolute;opacity:0}
+.tab:has(input:checked),.stm:not(:has(.sx:checked)) .l-is{color:var(--action);border-bottom-color:var(--action)}
+.tab:has(input:focus-visible){outline:2px solid var(--action);outline-offset:2px}
+.pn{display:none}
+.pn.p-is{display:block}
+.stm:has(.sx:checked) .p-is{display:none}
+.stm:has(.s-cf:checked) .p-cf,.stm:has(.s-bs:checked) .p-bs,.stm:has(.s-kp:checked) .p-kp{display:block}
+.td .gapb{margin-left:10px;font-weight:500}
+.td .withheld{justify-content:flex-end}
+.td.na .cbar{display:none!important}
+.td .note{font-weight:400}
+.td.fc{background:#FAFAFF}
+.tr:hover .td.fc{background:var(--surface-subtle)}
+.td.tc{width:36px;padding:4px 0 4px 8px}
+.fl.bdn{background:var(--down)}
+.fl.bup{background:var(--up)}
+.fl{min-height:2px}
+/* three series in one group: narrow bars, wide gaps, the middle label one line higher, so no label meets a neighbour */
+.cg:has(.b3){gap:12px}
+.cg:has(.b3) .b,.cg:has(.b3) .bna{width:12px!important;border-radius:4px 4px 0 0}
+.cg:has(.b3) .b2>span{padding-bottom:20px}
+/* a second line's labels sit clear below their markers */
+.mk.m2+.pt{transform:translate(-50%,38px)!important}
+.vline span{top:-20px;left:-1px;transform:translateX(-50%)}
+.kl{width:18px;height:0;border-top:2px solid var(--s1);flex:none}
+.kl.d{border-top:2px dashed var(--s2)}
+.hb.drv{grid-template-columns:minmax(220px,1.1fr) minmax(0,2fr) 72px;gap:18px 20px}
+.hb.wide{grid-template-columns:minmax(200px,1fr) minmax(0,1.6fr) minmax(96px,auto);gap:18px 20px}
+.hb.drv .hb-l b,.hb.wide .hb-l b{display:block;font-weight:500;color:var(--text-primary)}
+.hb.drv .hb-l span,.hb.wide .hb-l span{font-size:12px;line-height:18px;color:var(--text-tertiary)}
+.hb.drv .hb-v,.hb.wide .hb-v{text-align:right}
+.mk.e{background:#fff;box-shadow:inset 0 0 0 2px var(--s2);border-radius:1px}
+.db .dna{position:absolute;top:5px;transform:translateX(-50%);font:500 12px/18px var(--fb);color:var(--text-tertiary)}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:32px 40px}
+.split{display:flex;gap:40px;align-items:flex-start}
+.split>.col{flex:1;gap:64px}
+.statg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px 40px}
+.stat-l{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px}
+.al b,.clp-b p{display:flex;align-items:flex-start;gap:12px}
+.al b .trace,.ts strong .trace,.clp-b .trace{margin-left:auto}
+.al b .trace,.ts strong .trace{margin-top:-4px;margin-bottom:-4px}
+.lim{display:flex;flex-direction:column;gap:12px}
+.state{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;padding:24px 0;border-top:1px solid var(--border-hairline);align-items:start}
+.state:first-child{border-top:0;padding-top:0}
+.state h3{font:600 16px/24px var(--fb)}
+.xt span{padding:0 2px}
+.xt.nx{justify-content:space-between}
+.xt.nx span{flex:none;padding:0}
+.pa.plain{background:none}
+.b.lim{width:56px;max-width:60%}
+.tick.nolim{border-top:0}
+.sk{background:var(--surface-subtle);border-radius:var(--r-xs)}
+@media (max-width:900px){.split{flex-direction:column}.vm{position:static;width:100%}.state{grid-template-columns:1fr}}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+      </helmet>
+      <div class="stack" style="gap:20px">
+        <div class="row-b">
+          <div><h2 class="h2">Evidence</h2><p class="body t2" style="margin-top:4px">Where every figure and claim in this run comes from.</p></div>
+          <div class="u-fbar">
+            <span class="u-chip">Module: All<span class="chev"></span></span>
+            <span class="u-input"><span class="ico ico-16" style="border-radius:50%"></span>Jump to an item<span class="u-kbd">⌘K</span></span>
+          </div>
+        </div>
+        <nav class="u-tabs" aria-label="Evidence sections">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+            <a class="{{ t.cls }}" href="#">{{ t.name }}<sc-if value="{{ t.count }}" hint-placeholder-val="{{ false }}"><span class="u-count">{{ t.count }}</span></sc-if></a>
+          </sc-for>
+        </nav>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","default":"Summary","options":["Summary","Trace","Sources","Gaps","Record"],"tsType":"string"}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const a = this.props.tab ?? 'Summary';
+          return { tabs: [['Summary'], ['Trace', '148'], ['Sources', '9'], ['Gaps', '7'], ['Record']].map(t => ({ name: t[0], count: t[1] || '', cls: 'u-tab u-tab-sm' + (t[0] === a ? ' on' : '') })) };
+        }
+      }
+    </script>
+  </body>
+</html>

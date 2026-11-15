@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Changes">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Changes" sources="off" hint-size="100%,190px"></dc-import>
+
+          <section class="stack">
+            <div class="sec-head" style="align-items:center">
+              <div><h2 class="h2">What changed since 30 June 2026</h2><p class="body t2" style="margin-top:4px">Six changes to the credit profile, three modules with a changed finding.</p></div>
+              <span class="u-seg" role="group" aria-label="Presentation"><span class="u-segi on" aria-pressed="true">Cards</span><span class="u-segi">Chart</span><span class="u-segi">Table</span></span>
+            </div>
+            <div class="g3">
+              <sc-for list="{{ changes }}" as="c" hint-placeholder-count="6">
+                <article class="h-stat tr">
+                  <div class="row-b">
+                    <span class="u-badge u-badge-sm c-neu" style="margin-left:36px">{{ c.kind }}</span>
+                    <sc-if value="{{ c.dir }}" hint-placeholder-val="{{ true }}"><span class="h-stat-d c-neu"><span class="{{ c.arrow }}"></span>{{ c.dir }}</span></sc-if>
+                  </div>
+                  <div>
+                    <strong class="h-stat-l">{{ c.label }}</strong>
+                    <p><span class="h-stat-v">{{ c.now }}</span><span class="h-stat-f">from <span class="{{ c.fcls }}">{{ c.was }}</span></span></p>
+                  </div>
+                  <p class="h-stat-c"><span class="b6" style="color:var(--text-primary)">{{ c.cause }}</span> {{ c.effect }}</p>
+                  <button class="trace" aria-label="Show sources for this change"></button>
+                </article>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="card u-chart" aria-label="Chart side of the toggle">
+            <div class="u-chart-h">
+              <div><h3 class="u-chart-t">Earlier against current</h3><p class="u-basis">The four changes where both values are numbers. Each row has its own scale.</p></div>
+              <div class="row" style="gap:16px">
+                <div class="u-legend"><span><i style="border:2px solid var(--series-1);background:#FFFFFF;width:10px;height:10px"></i>30 Jun 2026</span><span><i class="s1" style="width:10px;height:10px"></i>30 Sep 2026</span></div>
+                <span class="u-seg"><span class="u-segi">Cards</span><span class="u-segi on" aria-pressed="true">Chart</span><span class="u-segi">Table</span></span>
+              </div>
+            </div>
+            <div>
+              <sc-for list="{{ dumb }}" as="d" hint-placeholder-count="4">
+                <div class="dumb tr">
+                  <span class="b6">{{ d.label }}</span>
+                  <div class="dumb-tr">
+                    <sc-if value="{{ d.both }}" hint-placeholder-val="{{ true }}"><span class="dumb-ln" style="{{ d.ln }}"></span><span class="dumb-m was" style="{{ d.a }}"></span></sc-if>
+                    <sc-if value="{{ d.miss }}" hint-placeholder-val="{{ false }}"><span class="dumb-na" style="{{ d.a }}">n.a.</span></sc-if>
+                    <span class="dumb-m" style="{{ d.b }}"></span>
+                  </div>
+                  <span class="dumb-v"><span class="{{ d.wcls }}">{{ d.was }}</span><span class="arrow t3"></span><span class="b6">{{ d.now }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="card u-chart" aria-label="Table side of the toggle">
+            <div class="u-chart-h">
+              <div><h3 class="u-chart-t">Earlier against current</h3><p class="u-basis">All six changes, in the order the module wrote them.</p></div>
+              <span class="u-seg"><span class="u-segi">Cards</span><span class="u-segi">Chart</span><span class="u-segi on" aria-pressed="true">Table</span></span>
+            </div>
+            <div class="h-tablewrap">
+              <table class="h-table">
+                <thead><tr><th>Change</th><th>Kind</th><th class="r">30 Jun 2026</th><th class="r">30 Sep 2026</th><th>Cause</th></tr></thead>
+                <tbody>
+                  <tr><td>Net leverage</td><td>Value</td><td class="r">4.9x</td><td class="r">4.6x</td><td>EBITDA grew 10% while net debt rose 3%.</td></tr>
+                  <tr><td>EBITDA margin</td><td>Value</td><td class="r">22.5%</td><td class="r">23.1%</td><td>Aftermarket price rises took effect in April.</td></tr>
+                  <tr><td>Liquidity</td><td>Value</td><td class="r">USD 455m</td><td class="r">USD 412m</td><td>Cash was used for the Corvane Fasteners purchase.</td></tr>
+                  <tr><td>Interest cover</td><td>Value</td><td class="r"><span class="na">n.a.</span></td><td class="r">2.4x</td><td>The earlier run did not establish cash interest.</td></tr>
+                  <tr><td>Rating outlook</td><td>Conclusion</td><td class="r">Negative</td><td class="r">Stable</td><td>Both agencies affirmed after the full-year results.</td></tr>
+                  <tr><td>Refinancing of the 2028 notes</td><td>Assumption</td><td class="r">By 31 Dec 2026</td><td class="r">By 30 Jun 2027</td><td>Management deferred the launch.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="stack">
+            <div class="sec-head"><h2 class="h2">Modules</h2><span class="small t3">3 changed, 9 unchanged, 1 not assessable</span></div>
+            <div class="s-items">
+              <sc-for list="{{ mods }}" as="m" hint-placeholder-count="5">
+                <a class="s-item" href="#" style="color:inherit;text-decoration:none">
+                  <span class="s-item-m"><span class="ico ico-16"></span></span>
+                  <span class="s-item-c"><span class="s-item-t">{{ m.t }}</span><span class="s-item-d">{{ m.d }}</span></span>
+                  <span class="s-item-a"><span class="{{ m.bcls }}"><span class="{{ m.sh }}"></span>{{ m.state }}</span></span>
+                </a>
+              </sc-for>
+            </div>
+          </section>
+
+          <p class="note">Mock D1a · Changes. The Chart and Table sides of the Cards, Chart or Table toggle are drawn under the cards so all three can be reviewed; in the product only one shows. “From n.a.” carries no direction. Nine unchanged modules collapse to one item with the count delivery wrote.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const changes = [
+            ['Value', 'Net leverage', '4.6x', '4.9x', 'Lower by 0.3x', 'down', 'EBITDA grew 10% while net debt rose 3%.', 'The outlook moves from negative to stable.'],
+            ['Value', 'EBITDA margin', '23.1%', '22.5%', 'Higher by 0.6 points', 'up', 'Aftermarket price rises took effect in April.', 'Supports the deleveraging path in the base case.'],
+            ['Value', 'Liquidity', 'USD 412m', 'USD 455m', 'Lower by USD 43m', 'down', 'Cash was used for the Corvane Fasteners purchase.', 'Still covers eighteen months of maturities.'],
+            ['Value', 'Interest cover', '2.4x', 'n.a.', '', '', 'The earlier run did not establish cash interest.', 'No comparison can be made; the figure is new.'],
+            ['Conclusion', 'Rating outlook', 'Stable', 'Negative', 'Changed', 'flat', 'Both agencies affirmed after the full-year results.', 'Removes the nearest downgrade trigger from the watch list.'],
+            ['Assumption', 'Refinancing of the 2028 notes', 'By 30 Jun 2027', 'By 31 Dec 2026', 'Later by six months', 'flat', 'Management deferred the launch to follow first-quarter results.', 'Leaves nine months before maturity instead of fifteen.']
+          ].map(c => ({ kind: c[0], label: c[1], now: c[2], was: c[3], dir: c[4], arrow: c[5] === 'up' ? 'chev chev-u' : c[5] === 'down' ? 'chev' : 'arrow', cause: c[6], effect: c[7], fcls: c[3] === 'n.a.' ? 'na' : '' }));
+          const dumb = [
+            ['Net leverage', '4.9x', '4.6x', 72, 48],
+            ['EBITDA margin', '22.5%', '23.1%', 40, 58],
+            ['Liquidity', 'USD 455m', 'USD 412m', 70, 44],
+            ['Interest cover', 'n.a.', '2.4x', 12, 52]
+          ].map(d => { const miss = d[1] === 'n.a.'; const lo = Math.min(d[3], d[4]), hi = Math.max(d[3], d[4]); return { label: d[0], was: d[1], now: d[2], both: !miss, miss, a: 'left:' + d[3] + '%', b: 'left:' + d[4] + '%', ln: 'left:' + lo + '%;width:' + (hi - lo) + '%', wcls: miss ? 'na' : 't2' }; });
+          const B = 'u-badge u-badge-sm dot ';
+          const ch = ['Changed', 'sh sh-tri m-act', B + 'c-act'];
+          const mods = [
+            ['Capital structure', 'Now: secured debt is long-dated and the unsecured notes mature first. Before: the 2028 notes were expected to be refinanced within the year.', ch],
+            ['Rating outlook', 'Now: both agencies stable. Before: one agency on negative outlook.', ch],
+            ['Cash flow and liquidity', 'Now: liquidity adequate for eighteen months. Before: adequate for twenty-four months.', ch],
+            ['9 modules unchanged', 'Business profile, Industry and competition, Financial performance, Covenants and documentation, Management and governance, Peer comparison, Environmental, social and governance, Forecast, Credit snapshot.', ['Unchanged', 'sh sh-sq', B + 'c-neu']],
+            ['Recovery', 'Not assessable in this run or the earlier one, so there is nothing to compare.', ['Not assessable', 'sh sh-slash', B + 'c-neu']]
+          ].map(m => ({ t: m[0], d: m[1], state: m[2][0], sh: m[2][1], bcls: m[2][2] }));
+          return { changes, dumb, mods };
+        }
+      }
+    </script>
+  </body>
+</html>

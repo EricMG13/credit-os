@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+    <script src="./charts.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+        <link href="./mock3.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" style="gap:40px" data-screen-label="States">
+        <div class="col"><h1 class="h1">States on the Model and Forecast</h1><p class="lead t2 prose">Each state as it is drawn on these screens, in one place. Sample data.</p></div>
+        <div class="card" style="gap:0">
+          <div class="state" data-screen-label="Gap">
+            <div><h3>A gap</h3><p class="small t3">As a block where content would be; as a badge inside a table cell.</p></div>
+            <div class="col" style="gap:16px">
+              <div class="gapbox"><b><i class="sh sh-dash"></i>Not established for this run</b><p class="small">Quarterly cash flow. The sources give annual figures only, so no quarter-by-quarter path was built.</p></div>
+              <dc-import name="Tbl" t="{{ tGap }}" hint-size="100%,120px"></dc-import>
+            </div>
+          </div>
+          <div class="state" data-screen-label="Withheld">
+            <div><h3>A withheld value</h3><p class="small t3">A striped bar and a neutral badge where the figure would be, with who can see it.</p></div>
+            <div class="g2">
+              <div class="m"><div class="m-t"><span>Revolver drawn</span></div><div class="m-r"><span class="withheld" style="height:38px"><i class="redact" style="width:88px;height:16px"></i><span class="badge b-neu">Withheld</span></span></div><p class="small t3">Shown to the deal team only.</p></div>
+              <dc-import name="Tbl" t="{{ tWh }}" hint-size="100%,120px"></dc-import>
+            </div>
+          </div>
+          <div class="state" data-screen-label="Missing is not zero">
+            <div><h3>Missing is n.a., never 0</h3><p class="small t3">In a table, a metric tile, a column chart and a line. Zero is written and drawn as 0.</p></div>
+            <div class="col" style="gap:24px">
+              <dc-import name="Tbl" t="{{ tNa }}" hint-size="100%,120px"></dc-import>
+              <div class="g2">
+                <div class="plot" style="grid-template-rows:160px auto">
+                  <div class="yt"><span>0</span><span>2,500</span><span>5,000</span></div>
+                  <div class="pa" style="background-size:100% 50%"><div class="cols">
+                    <sc-for list="{{ cols }}" as="g" hint-placeholder-count="4"><div class="cg"><sc-for list="{{ g.bars }}" as="b" hint-placeholder-count="1"><sc-if value="{{ b.ok }}" hint-placeholder-val="{{ true }}"><div class="b" style="height:{{ b.h }}"><span>{{ b.t }}</span></div></sc-if><sc-if value="{{ b.na }}" hint-placeholder-val="{{ false }}"><div class="bna">n.a.</div></sc-if></sc-for></div></sc-for>
+                  </div></div>
+                  <div></div>
+                  <div class="xt"><sc-for list="{{ cols }}" as="g" hint-placeholder-count="4"><span>{{ g.l }}</span></sc-for></div>
+                </div>
+                <div class="plot" style="grid-template-rows:160px auto">
+                  <div class="yt"><span>0</span><span>2x</span><span>4x</span></div>
+                  <div class="pa" style="background-size:100% 50%">
+                    <svg class="ln" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="l1" d="{{ line.d }}"></path></svg>
+                    <sc-for list="{{ line.pts }}" as="p" hint-placeholder-count="4"><i class="mk" style="left:{{ p.x }};bottom:{{ p.y }}"></i></sc-for>
+                    <sc-for list="{{ line.na }}" as="p" hint-placeholder-count="1"><span class="pna" style="left:{{ p.x }}">n.a.</span></sc-for>
+                  </div>
+                  <div></div>
+                  <div class="xt"><span>FY22</span><span>FY23</span><span>FY24</span><span>LTM</span><span>FY25E</span></div>
+                </div>
+              </div>
+              <div class="m" style="width:240px"><div class="m-t"><span>Secured net leverage</span></div><div class="m-r"><span class="m-v na">n.a.</span></div></div>
+              <p class="small t3">The same rule on the other chart kinds is drawn where they sit: waterfall (Forecast, Model), comparison (Model), bullet and dumbbell (Analysis), limits, scatter and range strip (Portfolio fit, Forecast).</p>
+            </div>
+          </div>
+          <div class="state" data-screen-label="Not assessable">
+            <div><h3>A failed part</h3><p class="small t3">A neutral badge with the slashed circle and one sentence saying why: in the list of parts, and at the top of its own section.</p></div>
+            <div class="col" style="gap:16px">
+              <div class="item"><span class="item-m"><i class="ico"></i></span><div><b>Relative value</b><p>The pricing comparison failed in this run, so the model's spread view is missing.</p></div><span class="badge b-neu item-e"><i class="sh sh-slash"></i>Not assessable</span></div>
+              <div class="blocked"><span class="badge b-neu"><i class="sh sh-slash"></i>Not assessable</span><p class="small t2" style="flex:1;min-width:240px">Portfolio fit could not be assessed: the portfolio's holdings were not supplied to this run.</p></div>
+            </div>
+          </div>
+          <div class="state" data-screen-label="Loading">
+            <div><h3>Still loading</h3><p class="small t3">A static skeleton in the shape of what will arrive. Nothing moves.</p></div>
+            <div class="g4">
+              <div class="m skm"><i class="sk" style="width:50%;height:14px"></i><i class="sk" style="width:70%;height:30px"></i></div>
+              <div class="m skm"><i class="sk" style="width:60%;height:14px"></i><i class="sk" style="width:45%;height:30px"></i></div>
+              <div class="m skm"><i class="sk" style="width:40%;height:14px"></i><i class="sk" style="width:65%;height:30px"></i></div>
+            </div>
+          </div>
+          <div class="state" data-screen-label="Table form">
+            <div><h3>A chart's table form</h3><p class="small t3">The other side of every Chart or Table toggle. n.a. sits in the same cell as the empty slot in the chart.</p></div>
+            <div class="cf">
+              <div class="cf-h"><div><h3 class="cf-t">Maturities by year</h3><p class="cf-s">Calendar years, USD millions</p></div><div class="bg"><span class="bgi">Chart</span><span class="bgi" style="background:var(--surface-subtle);color:var(--text-primary)">Table</span></div></div>
+              <dc-import name="Tbl" t="{{ tMat }}" hint-size="100%,260px"></dc-import>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          return {
+            tGap: CH.tbl(['Balance sheet', 'FY24', 'LTM', 'FY25E'], [['Gross debt', '24,880', '29,700', '29,700'], ['Pension deficit', 'G', 'n.a.', 'n.a.']]),
+            tWh: CH.tbl(['Cash flow', 'FY24', 'FY25E', 'FY26E'], [['Acquisitions', '-2,347', 'W', '0']]),
+            tNa: CH.tbl(['Cash flow', 'FY22', 'FY23', 'FY24', 'LTM'], [['Cash interest', '-1,010', 'n.a.', '-1,480', '-1,560'], ['Dividends and buybacks', '-1,091', '0', '-2,038', '-4,350']]),
+            cols: CH.cols([['2026', [null], ['']], ['2027', [0], ['0']], ['2028', [3600], ['3,600']], ['2029', [2750], ['2,750']]], 5000),
+            line: CH.line([2.6, null, 2.8, 2.9, 3.0], 0, 4),
+            tMat: CH.tbl(['Year', 'Term loans', 'Secured notes', 'Subordinated notes'], [['2026', 'n.a.', '0', '0'], ['2027', '0', '0', '550'], ['2028', '3,600', '2,100', '0'], ['2029', '0', '2,750', '2,650'], ['2030', '4,500', '1,450', '0'], ['2031 on', '3,200', '4,150', '4,100']])
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+        <link href="./mock3.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" data-screen-label="Model: Limitations">
+        <dc-import name="Shell" tab="Limitations" hint-size="100%,220px"></dc-import>
+        <section class="sec" data-screen-label="Limitations">
+          <div class="row jb"><div class="row"><h2 class="h2">Limitations</h2><span class="cnt">6</span></div><a class="small">See the 3 gaps in Evidence &#8599;</a></div>
+          <p class="lead t2 prose">Six qualifications apply to this model. Each is stated in full and stays open; none changes the bottom line on its own.</p>
+          <div class="lim">
+            <sc-for list="{{ lims }}" as="l" hint-placeholder-count="6">
+              <details class="clp" open="open"><summary>{{ l.t }}<span class="badge lb" style="font-size:12px;line-height:18px;padding:1px 8px">{{ l.k }}</span></summary><div class="clp-b"><p><span>{{ l.p }}</span><button class="trace" aria-label="Show the sources for this limitation" title="Show sources">&#8599;</button></p></div></details>
+            </sc-for>
+          </div>
+        </section>
+        <section class="sec" data-screen-label="Not established">
+          <div class="row"><h2 class="h2">Not established for this run</h2><span class="cnt">3</span></div>
+          <div class="g4" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+            <sc-for list="{{ gaps }}" as="g" hint-placeholder-count="3">
+              <div class="gapbox"><b><i class="sh sh-dash"></i>{{ g.t }}</b><p class="small">{{ g.p }}</p></div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          return {
+            lims: [
+              ['EBITDA is the company’s own measure', 'Earnings', 'EBITDA as defined adds back items the company chooses. No independent adjustment was made, so leverage on a stricter measure would be higher.'],
+              ['FY23 cash interest is missing', 'Data', 'Cash interest for FY23 was not split out in the sources. Interest cover and free cash flow for that year are shown as n.a., not estimated.'],
+              ['FY22 inventories are missing', 'Data', 'The FY22 balance sheet in the sources does not show inventories separately. The figure is n.a. and FY22 working capital ratios are not stated.'],
+              ['No acquisitions or shareholder returns after FY25', 'Forecast', 'Both cases assume no acquisitions and forecast no dividends or buybacks. The company has made both in most years, so cash and leverage are likely to be worse than shown.'],
+              ['The downside case is a single scenario', 'Downside case', 'One traffic shock was modelled. It does not combine lower traffic with a loss of pricing power, and it assumes the 2028 maturities can still be refinanced.'],
+              ['Revolver terms are withheld', 'Downside case', 'The amount drawn and the terms of the revolving facility are shown to the deal team only. Liquidity under the downside case could not be measured.']
+            ].map(l => ({ t: l[0], k: l[1], p: l[2] })),
+            gaps: [
+              ['Pension deficit', 'No source in this run states the funded position of the pension plans.'],
+              ['Quarterly cash flow', 'The sources give annual figures only, so no quarter-by-quarter path was built.'],
+              ['Months of liquidity, downside case', 'The revolver terms are withheld, so the chart could not be drawn.']
+            ].map(g => ({ t: g[0], p: g[1] }))
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

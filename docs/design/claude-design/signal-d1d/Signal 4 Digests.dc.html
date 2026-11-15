@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700&display=swap" />
+        <link rel="stylesheet" href="./signal.css" />
+        <script src="./signal.js"></script>
+      </helmet>
+      <div class="page">
+        <header class="ph">
+          <h1>Signal: digests</h1>
+          <p>The digest page and the digest card. A digest is written by a model, so every digest carries the AI label. The whole feature needs a paid-call ruling; see the mock record.</p>
+        </header>
+
+        <section data-screen-label="Digest page">
+          <p class="cap"><b>1. Digest page.</b> Numbered points, each with the stories behind it. Headlines link to the sources; no article text is shown.</p>
+          <sg-shell view="weekly" name="Mara L" role="Writer" digests="read">
+            <main class="mn"><div class="col">
+              <div class="meta"><span class="lb">Digest</span><span class="lb">AI</span><span>Weekly brief</span><span>Fri 13 Nov 2026</span></div>
+              <div class="vh"><h2>Leveraged credit: the week to 13 November</h2></div>
+              <p class="note">Covers 9 to 13 Nov 2026. Written by a model from 41 stories in Leveraged credit, Shipping and Packaging.</p>
+              <ol class="lp" style="margin-top:20px">
+                <li><span class="nm">1</span><div>
+                  <b>Packaging issuers are cutting capacity, not prices</b>
+                  <p>Three issuers announced plant closures this week. Each kept guidance and booked a one-off charge, which puts the cost in the same quarter as their covenant step-downs.</p>
+                  <div class="beh"><span>3 stories behind this point</span><span><a href="#">Corvane Packaging to close two plants as volumes fall</a>, Harbour Wire, 13 Nov</span><span><a href="#">Delmere Board mothballs its northern mill</a>, Credit Ledger Daily, 11 Nov</span><span><a href="#">Packaging volumes fall for a third quarter</a>, The Meridian Post, 10 Nov</span></div>
+                </div></li>
+                <li><span class="nm">2</span><div>
+                  <b>Two telecoms disposals are now in in-depth review</b>
+                  <p>Both sellers planned to repay 2027 debt from the proceeds. A review of this kind usually adds months, so the repayment dates are less certain than a week ago.</p>
+                  <div class="beh"><span>2 stories behind this point</span><span><a href="#">Competition authority opens in-depth review of Tessaly Telecom's tower sale</a>, Regulatory Gazette, 13 Nov</span><span><a href="#">Authority extends its review of the Norvik fibre sale</a>, Regulatory Gazette, 10 Nov</span></div>
+                </div></li>
+                <li><span class="nm">3</span><div>
+                  <b>Shipping downgrades cluster around 2027 maturities</b>
+                  <p>One downgrade and one outlook change, both citing refinancing due in 2027 against weaker charter rates.</p>
+                  <div class="beh"><span>2 stories behind this point</span><span><a href="#">Northgate Ratings downgrades Halvorsen Marine to B+</a>, Northgate Ratings, 12 Nov</span><span><a href="#">Halvorsen Marine hires advisers on its 2027 notes</a>, The Meridian Post, 13 Nov</span></div>
+                </div></li>
+                <li><span class="nm">4</span><div>
+                  <b>Loan extensions are clearing at a higher margin</b>
+                  <p>Brightwell Foods extended by three years for 50 basis points more. It is the fourth extension this quarter priced that way.</p>
+                  <div class="beh"><span>1 story behind this point</span><span><a href="#">Brightwell Foods extends its term loan by three years</a>, Credit Ledger Daily, 12 Nov</span></div>
+                </div></li>
+                <li><span class="nm">5</span><div>
+                  <b>A port operator is preparing a first bond</b>
+                  <p>Pellant Terminals has mandated banks while its terminal joint venture is under initial review. The two timetables now depend on each other.</p>
+                  <div class="beh"><span>2 stories behind this point</span><span><a href="#">Pellant Terminals plans first bond issue</a>, Credit Ledger Daily, 12 Nov</span><span>Notice of initial review: Oakhaven Lines and Pellant Terminals, Regulatory Gazette, 13 Nov (no link)</span></div>
+                </div></li>
+              </ol>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Digest cards">
+          <p class="cap"><b>2. Digest cards in the feed.</b> An unread digest (dot, here and on its channel item), a read digest, and a digest with nothing material to report: one sentence, no numbered list, and no model call made for it.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="fb"><div class="mt"><span>All</span><span>News</span><span>Regulatory cases</span><span>Rating actions</span><span class="on">Digests</span></div><div class="in sm"><sg-i n="search" s="16"></sg-i>Search stories</div></div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">WB</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Digest</span><span class="lb">AI</span><span>Weekly brief</span><span>Fri 13 Nov</span><i class="dot" title="Unread" style="margin-left:0"></i><span>Unread</span></div>
+                    <h3><a href="#">Leveraged credit: the week to 13 November</a></h3>
+                    <ol class="lp" style="margin-top:12px">
+                      <li><span class="nm">1</span><div><b>Packaging issuers are cutting capacity, not prices</b></div></li>
+                      <li><span class="nm">2</span><div><b>Two telecoms disposals are now in in-depth review</b></div></li>
+                      <li><span class="nm">3</span><div><b>Shipping downgrades cluster around 2027 maturities</b></div></li>
+                    </ol>
+                    <div class="row"><span>5 points from 41 stories</span></div>
+                    <div class="acts"><a class="b lk" href="#">Read the digest<sg-i n="arrow"></sg-i></a></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">DR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Digest</span><span class="lb">AI</span><span>Daily ratings</span><span>Thu 12 Nov</span></div>
+                    <h3><a href="#">Rating actions: 12 November</a></h3>
+                    <ol class="lp" style="margin-top:12px">
+                      <li><span class="nm">1</span><div><b>Halvorsen Marine cut one notch to B+ on refinancing risk</b></div></li>
+                      <li><span class="nm">2</span><div><b>Oakhaven Lines affirmed at BB, outlook to positive</b></div></li>
+                    </ol>
+                    <div class="row"><span>2 points from 7 stories</span></div>
+                    <div class="acts"><a class="b lk" href="#">Read the digest<sg-i n="arrow"></sg-i></a></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">DR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Digest</span><span>Daily ratings</span><span>Wed 11 Nov</span></div>
+                    <h3>Rating actions: 11 November</h3>
+                    <p class="sm">Nothing material to report: no rating action reached this digest's sources on 11 November.</p>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Digest page, nothing to report">
+          <p class="cap"><b>3. Digest page with nothing material to report.</b> No AI label, because no model wrote it.</p>
+          <sg-shell view="daily" name="Mara L" role="Writer" digests="read">
+            <main class="mn"><div class="col">
+              <div class="meta"><span class="lb">Digest</span><span>Daily ratings</span><span>Wed 11 Nov 2026</span></div>
+              <div class="vh"><h2>Rating actions: 11 November</h2></div>
+              <div class="em"><span class="fi"><sg-i n="doc" s="24"></sg-i></span><h4>Nothing material to report</h4><p>No rating action reached this digest's sources on 11 November. The next digest is due on Thu 12 Nov.</p><div class="ft"><span class="b s md">See earlier digests</span></div></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Digests paused">
+          <p class="cap"><b>4. Digests paused</b> (AI off, or at its cap). The channel items read Paused; earlier digests stay readable.</p>
+          <sg-shell view="weekly" name="Mara L" role="Writer" digests="paused">
+            <main class="mn"><div class="col">
+              <div class="meta"><span class="lb">Digest</span><span>Weekly brief</span></div>
+              <div class="vh"><h2>Weekly brief</h2><span class="bd neu"><i class="s pb"></i>Paused</span></div>
+              <p class="note">No new digest is written while AI is off or at its cap. Earlier digests stay readable. <a href="#">Open AI and cost</a></p>
+              <h4 class="sec">Earlier digests</h4>
+              <div class="card">
+                <article class="st"><div class="mg">WB</div><div class="stb"><div class="meta"><span class="lb">Digest</span><span class="lb">AI</span><span>Fri 13 Nov</span></div><h3><a href="#">Leveraged credit: the week to 13 November</a></h3><div class="row"><span>5 points from 41 stories</span></div></div></article>
+                <article class="st"><div class="mg">WB</div><div class="stb"><div class="meta"><span class="lb">Digest</span><span class="lb">AI</span><span>Fri 6 Nov</span></div><h3><a href="#">Leveraged credit: the week to 6 November</a></h3><div class="row"><span>5 points from 36 stories</span></div></div></article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

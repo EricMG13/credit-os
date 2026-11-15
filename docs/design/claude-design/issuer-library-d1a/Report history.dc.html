@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Report history">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <div class="u-ph">
+            <div class="u-ph-l" style="gap:10px">
+              <a class="caption" href="#">Library</a>
+              <h1 class="h1">Halden Aerostructures</h1>
+              <p class="u-ph-s">Report history: seven runs since September 2025</p>
+            </div>
+            <div class="u-ph-a"><a class="u-btn u-btn-s" href="#">Open latest report</a><a class="u-btn u-btn-p" href="#">New run</a></div>
+          </div>
+
+          <div class="u-feed">
+            <sc-for list="{{ runs }}" as="r" hint-placeholder-count="7">
+              <article class="u-feed-i">
+                <div class="u-feed-rail"><span class="{{ r.ic }}"><span class="{{ r.sh }}"></span></span><span class="u-feed-line"></span></div>
+                <div class="u-feed-b">
+                  <div class="u-feed-h"><span class="u-feed-n" style="font-size:16px;line-height:24px;color:var(--text-primary)">Run as of {{ r.asof }}</span><span class="u-feed-t">Ran {{ r.ran }}</span></div>
+                  <div class="row" style="gap:8px"><span class="{{ r.bcls }}"><span class="{{ r.sh }}"></span>{{ r.state }}</span><span class="u-badge u-badge-sm c-neu">{{ r.path }}</span></div>
+                  <p class="u-feed-p" style="max-width:64ch">{{ r.text }}</p>
+                  <sc-if value="{{ r.link }}" hint-placeholder-val="{{ true }}"><div class="row" style="gap:16px"><a class="u-link" href="#">Open report</a><a class="u-link" href="#">{{ r.link }}</a></div></sc-if>
+                </div>
+              </article>
+            </sc-for>
+          </div>
+
+          <p class="note">Mock D1a · Report history. One entry per run, newest first. Run states use the design system’s run-state set: finished, capped, rejected, failed, interrupted. The first run has no earlier run to compare, so it carries no “what changed” link.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const B = 'u-badge u-badge-sm dot ';
+          const st = {
+            fin: ['Finished', 'sh sh-dot m-ok', 'c-ok'], cap: ['Capped', 'sh sh-tri m-warn', 'c-warn'], rej: ['Rejected', 'sh sh-cross', 'c-neu'],
+            fail: ['Failed', 'sh sh-dia m-err', 'c-err'], intr: ['Interrupted', 'sh sh-pause m-warn', 'c-warn']
+          };
+          const runs = [
+            ['30 Sep 2026', '13 Nov 2026', 'fin', 'Full review', 'Stable credit with thin headroom. Twelve of thirteen modules delivered; recovery was not assessable.', 'What changed since 30 Jun 2026'],
+            ['30 Jun 2026', '14 Aug 2026', 'fin', 'Monitoring update', 'Stable, outlook negative: leverage at 4.9x after the Corvane Fasteners purchase.', 'What changed since 31 Mar 2026'],
+            ['31 Mar 2026', '20 May 2026', 'cap', 'Full review', 'The run stopped at its cost cap after nine modules. The delivered modules can be read; no overall view was formed.', 'What changed since 31 Dec 2025'],
+            ['31 Mar 2026', '19 May 2026', 'rej', 'Full review', 'Not started: the files provided did not include the annual report the run needs.', ''],
+            ['31 Dec 2025', '2 Mar 2026', 'fail', 'Full review', 'The run failed before any module was accepted. Nothing from it is shown in the library.', ''],
+            ['31 Dec 2025', '27 Feb 2026', 'intr', 'Full review', 'Interrupted after four modules and not resumed.', ''],
+            ['30 Sep 2025', '21 Nov 2025', 'fin', 'Full review', 'Stable. First run on this issuer, so there is no earlier run to compare.', '']
+          ].map(r => ({ asof: r[0], ran: r[1], state: st[r[2]][0], sh: st[r[2]][1], bcls: B + st[r[2]][2], ic: 'u-feed-ic ' + st[r[2]][2], path: r[3], text: r[4], link: r[5] }));
+          return { runs };
+        }
+      }
+    </script>
+  </body>
+</html>

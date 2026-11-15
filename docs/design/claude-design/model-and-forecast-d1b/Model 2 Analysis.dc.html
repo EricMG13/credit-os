@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+    <script src="./charts.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" data-screen-label="Model: Analysis">
+        <dc-import name="Shell" tab="Analysis" hint-size="100%,220px"></dc-import>
+        <div class="split">
+          <nav class="vm" aria-label="On this page">
+            <a class="on"><i class="ico"></i>Key findings</a><a><i class="ico"></i>Measures</a><a><i class="ico"></i>Headroom</a><a><i class="ico"></i>Segment margins</a><a><i class="ico"></i>Contrary evidence</a><a><i class="ico"></i>What would change the view</a><a><i class="ico"></i>Limitations</a>
+          </nav>
+          <div class="col">
+            <section class="sec" data-screen-label="Key findings">
+              <h2 class="h2">Key findings</h2>
+              <div class="lp">
+                <sc-for list="{{ findings }}" as="f" hint-placeholder-count="4">
+                  <div class="lpi"><span class="lpn">{{ f.n }}</span><div><b>{{ f.t }}</b><p>{{ f.p }}</p></div><button class="trace" aria-label="Show the sources for this finding" title="Show sources">&#8599;</button></div>
+                </sc-for>
+              </div>
+            </section>
+
+            <section class="sec" data-screen-label="Measures">
+              <div class="row jb"><h2 class="h2">Measures and what they mean</h2><span class="small t3">Latest twelve months against FY24</span></div>
+              <div class="card">
+                <div class="statg">
+                  <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+                    <div class="stat"><span class="stat-l">{{ s.l }}<button class="trace" aria-label="Show the sources for this measure" title="Show sources">&#8599;</button></span><span class="stat-v {{ s.k }}">{{ s.v }}</span><span class="stat-d">{{ s.d }}</span><p>{{ s.p }}</p></div>
+                  </sc-for>
+                </div>
+              </div>
+            </section>
+
+            <section class="card" data-screen-label="Headroom">
+              <div class="cf">
+                <div class="cf-h">
+                  <div><h3 class="cf-t">Headroom to covenants and rating triggers</h3><p class="cf-s">Latest twelve months; the dashed line is the level that matters</p></div>
+                  <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+                  <div class="bg"><label class="bgi d"><input type="radio" name="v-bul" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-bul" class="rt" />Table</label></div>
+                </div>
+                <div class="ch">
+                  <div class="hb wide">
+                    <sc-for list="{{ bullets }}" as="b" hint-placeholder-count="4">
+                      <div class="hb-l"><b>{{ b.l }}</b><span>{{ b.s }}</span></div>
+                      <div class="hb-t"><sc-if value="{{ b.ok }}" hint-placeholder-val="{{ true }}"><i class="hb-b" style="width:{{ b.w }}"></i></sc-if><sc-if value="{{ b.na }}" hint-placeholder-val="{{ false }}"><span class="na" style="line-height:28px;font-size:12px;font-weight:500">n.a.</span></sc-if><i class="tl" style="left:{{ b.x }}"></i></div>
+                      <div class="hb-v {{ b.k }}">{{ b.v }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div class="tb"><dc-import name="Tbl" t="{{ tBul }}" hint-size="100%,220px"></dc-import></div>
+                <p class="basis">Secured net leverage could not be measured, so no bar is drawn against its covenant.</p>
+              </div>
+            </section>
+
+            <section class="card" data-screen-label="Segment margins">
+              <div class="cf">
+                <div class="cf-h">
+                  <div><h3 class="cf-t">EBITDA margin by segment</h3><p class="cf-s">FY24 against the latest twelve months</p></div>
+                  <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+                  <div class="bg"><label class="bgi d"><input type="radio" name="v-dmb" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-dmb" class="rt" />Table</label></div>
+                </div>
+                <div class="ch">
+                  <div class="hb wide">
+                    <sc-for list="{{ dumb }}" as="d" hint-placeholder-count="4">
+                      <div class="hb-l"><b>{{ d.l }}</b></div>
+                      <div class="hb-t db"><sc-if value="{{ d.both }}" hint-placeholder-val="{{ true }}"><i class="db-line" style="left:{{ d.x0 }};width:{{ d.w }}"></i><i class="mk e" style="left:{{ d.xa }}"></i></sc-if><sc-if value="{{ d.one }}" hint-placeholder-val="{{ false }}"><span class="dna" style="left:{{ d.xn }}">n.a.</span></sc-if><i class="mk" style="left:{{ d.xb }}"></i></div>
+                      <div class="hb-v">{{ d.v }}</div>
+                    </sc-for>
+                  </div>
+                  <div class="lg h" style="margin-top:20px"><span><i class="mk e" style="position:static;margin:0"></i>FY24</span><span><i class="k" style="width:10px;height:10px"></i>Latest twelve months</span></div>
+                </div>
+                <div class="tb"><dc-import name="Tbl" t="{{ tDumb }}" hint-size="100%,220px"></dc-import></div>
+                <p class="basis">The acquired businesses were not owned in FY24: only the latest mark is drawn.</p>
+              </div>
+            </section>
+
+            <section class="sec" data-screen-label="Contrary evidence">
+              <h2 class="h2">Contrary evidence</h2>
+              <div class="al"><i class="sh sh-tri"></i><b>The cash may not stay<button class="trace" aria-label="Show the sources for the contrary evidence" title="Show sources">&#8599;</button></b><p>The company has paid out its cash build three times in five years. If it does so again, leverage stays near 6x and the base case deleveraging does not happen.</p></div>
+            </section>
+
+            <section class="sec" data-screen-label="What would change the view">
+              <h2 class="h2">What would change the view</h2>
+              <div class="ts"><strong><i class="sh sh-ring"></i>Two levels to watch<button class="trace" aria-label="Show the sources for what would change the view" title="Show sources">&#8599;</button></strong><p>Net leverage above 7.0x for two quarters, or interest cover below 2.0x, would turn this view negative. A public commitment to hold leverage below 5x would improve it.</p></div>
+            </section>
+
+            <section class="sec" data-screen-label="Limitations">
+              <div class="row jb"><div class="row"><h2 class="h2">Limitations</h2><span class="cnt">2 of 6</span></div><a class="small">See all six limitations</a></div>
+              <div class="lim">
+                <details class="clp" open="open"><summary>EBITDA is the company's own measure</summary><div class="clp-b"><p><span>EBITDA as defined adds back items the company chooses. No independent adjustment was made, so leverage on a stricter measure would be higher.</span><button class="trace" aria-label="Show the sources for this limitation" title="Show sources">&#8599;</button></p></div></details>
+                <details class="clp" open="open"><summary>FY23 cash interest is missing</summary><div class="clp-b"><p><span>Cash interest for FY23 was not split out in the sources. Interest cover and free cash flow for that year are shown as n.a., not estimated.</span><button class="trace" aria-label="Show the sources for this limitation" title="Show sources">&#8599;</button></p></div></details>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          // bullet: label, sub, value (null = missing), target, axis max, text
+          const B = [['Net leverage', 'Downgrade trigger above 7.0x', 5.9, 7.0, 8, '5.9x of 7.0x'], ['Interest cover', 'Downgrade trigger below 2.0x', 2.9, 2.0, 4, '2.9x against 2.0x'],
+            ['Free cash flow to debt', 'Upgrade trigger above 10%', 6.6, 10, 12, '6.6% of 10%'], ['Secured net leverage', 'Covenant limit 7.25x', null, 7.25, 8, 'n.a.']];
+          // dumbbell: label, FY24 (null = missing), LTM, text. Axis 30% to 60%.
+          const D = [['Power and control', 55.8, 57.5, '55.8% to 57.5%'], ['Airframe', 51.9, 53.4, '51.9% to 53.4%'], ['Non-aviation', 41.2, 38.6, '41.2% to 38.6%'], ['Acquired businesses', null, 44.0, 'n.a. to 44.0%']];
+          const x = v => CH.pct(v, 30, 60);
+          return {
+            findings: [
+              ['Deleveraging depends on keeping the cash', 'Gross debt stays at USD 29.7 billion in both cases. Net leverage falls from 5.9x to 3.8x by FY27 only because free cash flow is left on the balance sheet.'],
+              ['Earnings quality is high', 'Margins have risen every year since FY22, and aftermarket sales, the most profitable part of the business, are over half of revenue.'],
+              ['Interest is covered with room to spare', 'Cover stays between 2.3x and 3.6x across both cases. The low point is FY26 in the downside case.'],
+              ['Refinancing is concentrated in 2028 to 2030', 'About USD 17 billion, 57% of debt, falls due in those three years. The model assumes it is refinanced at current spreads.']
+            ].map((f, i) => ({ n: '0' + (i + 1), t: f[0], p: f[1] })),
+            stats: [
+              ['Net leverage', '5.9x', '↗ from 4.5x in FY24', 'The 2024 special dividend was funded with new debt; a year of earnings growth has not yet absorbed it.', ''],
+              ['Interest cover', '2.9x', '↗ from 2.8x in FY24', 'Higher earnings have more than offset the larger debt load.', ''],
+              ['Free cash flow to debt', '6.6%', '↘ from 7.1% in FY24', 'Cash generation grew more slowly than debt.', ''],
+              ['Secured net leverage', 'n.a.', '3.1x in FY24', 'The secured share of debt was not split out in the latest sources, so no change can be stated.', 'na']
+            ].map(s => ({ l: s[0], v: s[1], d: s[2], p: s[3], k: s[4] })),
+            bullets: B.map(b => ({ l: b[0], s: b[1], ok: b[2] != null, na: b[2] == null, w: b[2] == null ? '0' : b[2] / b[4] * 100 + '%', x: b[3] / b[4] * 100 + '%', v: b[5], k: b[2] == null ? 'na' : '' })),
+            dumb: D.map(d => ({ l: d[0], both: d[1] != null, one: d[1] == null, xa: d[1] == null ? '0' : x(d[1]), xb: x(d[2]), xn: '12%', v: d[3],
+              x0: d[1] == null ? '0' : x(Math.min(d[1], d[2])), w: d[1] == null ? '0' : Math.abs(d[2] - d[1]) / 30 * 100 + '%' })),
+            tBul: CH.tbl(['Measure', 'Latest twelve months', 'Level that matters'], [['Net leverage', '5.9x', 'Downgrade above 7.0x'], ['Interest cover', '2.9x', 'Downgrade below 2.0x'], ['Free cash flow to debt', '6.6%', 'Upgrade above 10%'], ['Secured net leverage', 'n.a.', 'Covenant limit 7.25x']]),
+            tDumb: CH.tbl(['Segment', 'FY24', 'Latest twelve months'], [['Power and control', '55.8%', '57.5%'], ['Airframe', '51.9%', '53.4%'], ['Non-aviation', '41.2%', '38.6%'], ['Acquired businesses', 'n.a.', '44.0%']])
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

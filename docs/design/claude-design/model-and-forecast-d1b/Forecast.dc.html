@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+    <script src="./charts.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+        <link href="./mock3.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" data-screen-label="Forecast">
+        <dc-import name="Shell" tab="Forecast" hint-size="100%,220px"></dc-import>
+
+        <section class="sec" data-screen-label="Cases">
+          <div class="row jb"><h2 class="h2">Two cases</h2><span class="small t3">Choose a case: every chart below follows it.</span></div>
+          <div class="g2" role="radiogroup" aria-label="Case">
+            <label class="cbx d"><input type="radio" name="case" class="case-b" /><span class="cbx-h">Base case<span>Management plan, trimmed</span></span><p>Aftermarket sales grow 8% a year and margins hold near 53%. Cash builds on the balance sheet.</p><p class="t3">Leaves out: acquisitions and any further special dividend.</p><button class="trace" aria-label="Show the sources for this case" title="Show sources">&#8599;</button></label>
+            <label class="cbx"><input type="radio" name="case" class="case-d" /><span class="cbx-h">Downside case<span>Traffic shock</span></span><p>Flight hours fall 10% in FY26 and recover half in FY27; prices stay flat; floating debt costs 100 basis points more.</p><p class="t3">Leaves out: covenant waivers and asset sales.</p><button class="trace" aria-label="Show the sources for this case" title="Show sources">&#8599;</button></label>
+          </div>
+        </section>
+
+        <section class="card" data-screen-label="Drivers">
+          <div class="cf">
+            <div class="cf-h">
+              <div><h3 class="cf-t">What drives each case</h3><p class="cf-s">Each FY26 assumption against the range seen over the past five years</p></div>
+              <button class="trace" aria-label="Show the sources for the drivers" title="Show sources">&#8599;</button>
+              <div class="bg"><label class="bgi d"><input type="radio" name="v-drv" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-drv" class="rt" />Table</label></div>
+            </div>
+            <div class="ch">
+              <div class="hb drv">
+                <sc-for list="{{ drivers }}" as="d" hint-placeholder-count="6">
+                  <div class="hb-l"><b>{{ d.l }}</b><span>{{ d.r }}</span></div>
+                  <div class="hb-t">
+                    <sc-if value="{{ d.hasR }}" hint-placeholder-val="{{ true }}"><i class="rng" style="left:{{ d.x0 }};width:{{ d.w }}"></i></sc-if>
+                    <sc-if value="{{ d.hasM }}" hint-placeholder-val="{{ true }}"><i class="rmk cb" style="left:{{ d.xb }}"></i><i class="rmk cdm cd" style="left:{{ d.xd }}"></i></sc-if>
+                  </div>
+                  <div class="hb-v"><span class="cb {{ d.k }}">{{ d.b }}</span><span class="cd {{ d.k }}">{{ d.d }}</span></div>
+                </sc-for>
+              </div>
+              <div class="lg h" style="margin-top:20px"><span><i class="k sq" style="background:var(--action-subtle-hover);width:18px"></i>Range over five years</span><span class="cb"><i class="k sq" style="width:4px;height:14px"></i>Base case assumption</span><span class="cd"><i class="k sq k2" style="width:4px;height:14px"></i>Downside case assumption</span></div>
+            </div>
+            <div class="tb"><dc-import name="Tbl" t="{{ tDrivers }}" hint-size="100%,260px"></dc-import></div>
+            <p class="basis">Working capital days could not be set for FY26. No five-year range exists for aftermarket share, so no strip is drawn.</p>
+          </div>
+        </section>
+
+        <section class="g2">
+          <div class="card" data-screen-label="Trend">
+            <div class="cf">
+              <div class="cf-h">
+                <div><h3 class="cf-t">Interest cover</h3><p class="cf-s">EBITDA as defined divided by cash interest, times</p></div>
+                <button class="trace" aria-label="Show the sources for interest cover" title="Show sources">&#8599;</button>
+                <div class="bg"><label class="bgi d"><input type="radio" name="v-trd" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-trd" class="rt" />Table</label></div>
+              </div>
+              <sc-for list="{{ trend }}" as="c" hint-placeholder-count="1">
+                <div class="ch {{ c.cls }}">
+                  <div class="plot">
+                    <div class="yt"><span>0</span><span>1x</span><span>2x</span><span>3x</span><span>4x</span></div>
+                    <div class="pa">
+                      <svg class="ln" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="ar" d="{{ c.area }}"></path><path class="l1" d="{{ c.d }}"></path></svg>
+                      <div class="vline" style="left:57.14%"><span>Forecast</span></div>
+                      <sc-for list="{{ c.pts }}" as="p" hint-placeholder-count="6"><i class="mk" style="left:{{ p.x }};bottom:{{ p.y }}"></i><span class="pt" style="left:{{ p.x }};bottom:{{ p.y }}">{{ p.t }}</span></sc-for>
+                      <sc-for list="{{ c.na }}" as="p" hint-placeholder-count="1"><span class="pna" style="left:{{ p.x }}">n.a.</span></sc-for>
+                    </div>
+                    <div></div>
+                    <div class="xt"><sc-for list="{{ periods }}" as="p" hint-placeholder-count="7"><span>{{ p.t }}</span></sc-for></div>
+                  </div>
+                </div>
+              </sc-for>
+              <div class="tb"><dc-import name="Tbl" t="{{ tTrend }}" hint-size="100%,160px"></dc-import></div>
+              <p class="basis">Cash interest for FY23 was not split out, so the line breaks there. It is not joined across the gap.</p>
+            </div>
+          </div>
+
+          <div class="card" data-screen-label="Paths by case">
+            <div class="cf">
+              <div class="cf-h">
+                <div><h3 class="cf-t">EBITDA by case</h3><p class="cf-s">EBITDA as defined, USD millions</p></div>
+                <button class="trace" aria-label="Show the sources for EBITDA by case" title="Show sources">&#8599;</button>
+                <div class="bg"><label class="bgi d"><input type="radio" name="v-pth" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-pth" class="rt" />Table</label></div>
+              </div>
+              <div class="ch">
+                <div class="plot">
+                  <div class="yt"><span>0</span><span>1,500</span><span>3,000</span><span>4,500</span><span>6,000</span></div>
+                  <div class="pa">
+                    <svg class="ln" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="l2" d="{{ pathD.d }}"></path><path class="l1" d="{{ pathB.d }}"></path></svg>
+                    <div class="vline" style="left:50%"><span>Last actual</span></div>
+                    <sc-for list="{{ pathD.pts }}" as="p" hint-placeholder-count="3"><i class="mk m2" style="left:{{ p.x }};bottom:{{ p.y }}"></i><span class="pt" style="left:{{ p.x }};bottom:{{ p.y }};transform:translate(-50%,22px)">{{ p.t }}</span></sc-for>
+                    <sc-for list="{{ pathB.pts }}" as="p" hint-placeholder-count="7"><i class="mk" style="left:{{ p.x }};bottom:{{ p.y }}"></i><span class="pt" style="left:{{ p.x }};bottom:{{ p.y }}">{{ p.t }}</span></sc-for>
+                  </div>
+                  <div></div>
+                  <div class="xt"><sc-for list="{{ periods }}" as="p" hint-placeholder-count="7"><span>{{ p.t }}</span></sc-for></div>
+                </div>
+                <div class="lg h" style="margin-top:16px"><span><i class="kl"></i><i class="k"></i>Actual, then base case</span><span><i class="kl d"></i><i class="k sq k2"></i>Downside case</span></div>
+              </div>
+              <div class="tb"><dc-import name="Tbl" t="{{ tPath }}" hint-size="100%,160px"></dc-import></div>
+              <p class="basis">Both cases start from the twelve months to June 2025.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec" data-screen-label="Cash flow">
+          <h2 class="h2">Cash flow in FY26</h2>
+          <div class="g2">
+            <div class="card">
+              <div class="cf">
+                <div class="cf-h">
+                  <div><h3 class="cf-t">From EBITDA to free cash flow</h3><p class="cf-s">FY26, USD millions</p></div>
+                  <button class="trace" aria-label="Show the sources for the cash flow walk" title="Show sources">&#8599;</button>
+                  <div class="bg"><label class="bgi d"><input type="radio" name="v-wlk" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-wlk" class="rt" />Table</label></div>
+                </div>
+                <sc-for list="{{ walk }}" as="c" hint-placeholder-count="1">
+                  <div class="ch {{ c.cls }}">
+                    <div class="plot">
+                      <div class="yt"><span>0</span><span>1,500</span><span>3,000</span><span>4,500</span><span>6,000</span></div>
+                      <div class="pa"><div class="cols">
+                        <sc-for list="{{ c.s }}" as="s" hint-placeholder-count="7"><div class="cg"><sc-if value="{{ s.ok }}" hint-placeholder-val="{{ true }}"><div class="fl {{ s.c }}" style="bottom:{{ s.bot }};height:{{ s.h }}"><span>{{ s.t }}</span></div></sc-if><sc-if value="{{ s.na }}" hint-placeholder-val="{{ false }}"><div class="bna">n.a.</div></sc-if></div></sc-for>
+                      </div></div>
+                      <div></div>
+                      <div class="xt"><sc-for list="{{ c.s }}" as="s" hint-placeholder-count="7"><span>{{ s.l }}</span></sc-for></div>
+                    </div>
+                  </div>
+                </sc-for>
+                <div class="ch lg h"><span><i class="k sq"></i>Total</span><span><i class="k sq kdn"></i>Cash out (minus)</span><span><i class="k sq kup"></i>Cash in (plus)</span></div>
+                <div class="tb"><dc-import name="Tbl" t="{{ tWalk }}" hint-size="100%,260px"></dc-import></div>
+                <p class="basis">Other cash items were not forecast: the slot stays empty and is not counted as zero.</p>
+              </div>
+            </div>
+            <div class="col" style="gap:24px">
+              <div class="gapbox"><b><i class="sh sh-dash"></i>Not established for this run</b><p class="small">Quarterly cash flow. The sources give annual figures only, so no quarter-by-quarter path was built.</p></div>
+              <div class="ts"><strong><i class="sh sh-ring"></i>What would change the forecast</strong><p>A second debt-funded dividend of the size paid in 2024 would add about a turn of leverage in either case and remove the cash build the base case relies on.</p></div>
+              <a class="item"><span class="item-m"><i class="ico"></i></span><div><b>Limitations of the forecast</b><p>Six qualifications apply, two of them to the downside case.</p></div><span class="item-e">&#8250;</span></a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const P = ['FY22', 'FY23', 'FY24', 'LTM', 'FY25E', 'FY26E', 'FY27E'];
+          // driver: label, range text, range low, range high, base, downside, axis min, axis max, base text, downside text
+          const D = [
+            ['Organic revenue growth', 'Past five years: -12% to 18%', -12, 18, 8, -4, -15, 20, '8.0%', '-4.0%'],
+            ['EBITDA margin', 'Past five years: 44% to 53%', 44, 53, 53.4, 46.9, 40, 56, '53.4%', '46.9%'],
+            ['Capital expenditure, share of revenue', 'Past five years: 1.6% to 2.4%', 1.6, 2.4, 2.1, 1.7, 1, 3, '2.1%', '1.7%'],
+            ['Cash interest rate on debt', 'Past five years: 5.2% to 7.1%', 5.2, 7.1, 5.3, 6.0, 4, 8, '5.3%', '6.0%'],
+            ['Working capital days', 'Past five years: 92 to 118', 92, 118, null, null, 80, 130, 'n.a.', 'n.a.'],
+            ['Aftermarket share of revenue', 'Range n.a.', null, null, 55, 52, 0, 100, '55%', '52%']
+          ];
+          const drivers = D.map(d => ({ l: d[0], r: d[1], hasR: d[2] != null, hasM: d[4] != null && d[2] != null, k: d[4] == null ? 'na' : '',
+            x0: d[2] == null ? '0' : CH.pct(d[2], d[6], d[7]), w: d[2] == null ? '0' : (d[3] - d[2]) / (d[7] - d[6]) * 100 + '%',
+            xb: d[4] == null ? '0' : CH.pct(d[4], d[6], d[7]), xd: d[5] == null ? '0' : CH.pct(d[5], d[6], d[7]), b: d[8], d: d[9] }));
+          const tv = [['2.6x', '', '2.8x', '2.9x', '3.0x', '3.3x', '3.6x'], ['2.6x', '', '2.8x', '2.9x', '2.9x', '2.3x', '2.4x']];
+          const trend = [[2.6, null, 2.8, 2.9, 3.0, 3.3, 3.6], [2.6, null, 2.8, 2.9, 2.9, 2.3, 2.4]].map((v, i) => Object.assign(CH.line(v, 0, 4, tv[i]), { cls: i ? 'cd' : 'cb' }));
+          // walk step: label, from, to, text, kind
+          const W = [
+            [['EBITDA', 0, 5080, '5,080', 'tot'], ['Interest', 5080, 3520, '-1,560', 'dn'], ['Tax', 3520, 2910, '-610', 'dn'], ['Working capital', 2910, 2740, '-170', 'dn'], ['Capex', 2740, 2540, '-200', 'dn'], ['Other', null, null, '', 'na'], ['Free cash flow', 0, 2540, '2,540', 'tot']],
+            [['EBITDA', 0, 4120, '4,120', 'tot'], ['Interest', 4120, 2330, '-1,790', 'dn'], ['Tax', 2330, 1900, '-430', 'dn'], ['Working capital', 1900, 1960, '+60', 'up'], ['Capex', 1960, 1810, '-150', 'dn'], ['Other', null, null, '', 'na'], ['Free cash flow', 0, 1810, '1,810', 'tot']]
+          ];
+          return {
+            periods: CH.ticks(P), drivers, trend,
+            pathB: CH.line([2646, 3395, 4173, 4560, 4690, 5080, 5460], 0, 6000, ['2,646', '', '', '4,560', '', '', '5,460']),
+            pathD: CH.line([null, null, null, null, 4560, 4120, 4350], 0, 6000, ['', '', '', '', '', '4,120', '4,350']),
+            walk: W.map((w, i) => ({ cls: i ? 'cd' : 'cb', s: CH.wf(w, 6000) })),
+            tDrivers: CH.tbl(['Driver, FY26', 'Range low', 'Range high', 'Base case', 'Downside case'], [
+              ['Organic revenue growth', '-12%', '18%', '8.0%', '-4.0%'], ['EBITDA margin', '44%', '53%', '53.4%', '46.9%'], ['Capital expenditure, share of revenue', '1.6%', '2.4%', '2.1%', '1.7%'],
+              ['Cash interest rate on debt', '5.2%', '7.1%', '5.3%', '6.0%'], ['Working capital days', '92', '118', 'n.a.', 'n.a.'], ['Aftermarket share of revenue', 'n.a.', 'n.a.', '55%', '52%']]),
+            tTrend: CH.tbl(['Interest cover'].concat(P), [['Base case', '2.6x', 'n.a.', '2.8x', '2.9x', '3.0x', '3.3x', '3.6x'], ['Downside case', '2.6x', 'n.a.', '2.8x', '2.9x', '2.9x', '2.3x', '2.4x']]),
+            tPath: CH.tbl(['EBITDA as defined'].concat(P), [['Base case', '2,646', '3,395', '4,173', '4,560', '4,690', '5,080', '5,460'], ['Downside case', '2,646', '3,395', '4,173', '4,560', '4,560', '4,120', '4,350']]),
+            tWalk: CH.tbl(['FY26, USD millions', 'Base case', 'Downside case'], [['EBITDA as defined', '5,080', '4,120'], ['Cash interest', '-1,560', '-1,790'], ['Cash tax', '-610', '-430'], ['Change in working capital', '-170', '60'], ['Capital expenditure', '-200', '-150'], ['Other cash items', 'n.a.', 'n.a.'], ['Free cash flow', '2,540', '1,810']])
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

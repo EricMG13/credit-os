@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700&display=swap" />
+        <link rel="stylesheet" href="./signal.css" />
+        <script src="./signal.js"></script>
+      </helmet>
+      <div class="page">
+        <header class="ph">
+          <h1>Signal: feed states</h1>
+          <p>The name dialog and every state of the feed: first visit, loading, the service out of reach, each empty state, a story with no link or no time, and AI switched off or at its cap.</p>
+        </header>
+
+        <section data-screen-label="Name dialog, no display name yet">
+          <p class="cap"><b>1. No display name yet.</b> The name dialog opens on the first visit; the name chip reads "Set your name". The feed behind it is still loading.</p>
+          <sg-shell view="foryou" role="Reader" h="700">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2></div>
+              <div class="card">
+                <div class="st"><div class="sk" style="width:80px;height:80px;border-radius:4px"></div><div class="stb" style="display:grid;gap:12px"><div class="sk" style="width:30%"></div><div class="sk" style="width:80%;height:20px"></div><div class="sk" style="width:95%"></div></div></div>
+                <div class="st"><div class="sk" style="width:80px;height:80px;border-radius:4px"></div><div class="stb" style="display:grid;gap:12px"><div class="sk" style="width:26%"></div><div class="sk" style="width:70%;height:20px"></div><div class="sk" style="width:90%"></div></div></div>
+              </div>
+            </div></main>
+            <div class="ov">
+              <div class="mo">
+                <span class="x" title="Close"><sg-i n="x"></sg-i></span>
+                <div class="mh">
+                  <span class="fi m"><sg-i n="user"></sg-i></span>
+                  <div><h4>Choose a display name</h4><p>Colleagues see this name beside your comments and shared stories. It is a label, not a login.</p></div>
+                </div>
+                <div class="mb">
+                  <div class="fld"><span class="lab">Display name</span><div class="in foc">For example Mara L</div><span class="hint">You can change it later from the name chip.</span></div>
+                </div>
+                <div class="mf"><span class="b s md">Not now</span><span class="b p md">Save name</span></div>
+              </div>
+            </div>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Loading">
+          <p class="cap"><b>2. Loading.</b> A static skeleton in the shape of the stories to come. Nothing moves.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2><div class="sk" style="width:190px;height:24px;border-radius:999px;background:#E8E9EB"></div></div>
+              <div class="fb"><div class="mt"><span class="on">All</span><span>News</span><span>Regulatory cases</span><span>Rating actions</span><span>Digests</span></div><div class="in sm"><sg-i n="search" s="16"></sg-i>Search stories</div></div>
+              <div class="card">
+                <div class="st"><div class="sk" style="width:80px;height:80px;border-radius:4px"></div><div class="stb" style="display:grid;gap:12px"><div class="sk" style="width:30%"></div><div class="sk" style="width:80%;height:20px"></div><div class="sk" style="width:95%"></div><div class="sk" style="width:60%"></div></div></div>
+                <div class="st"><div class="sk" style="width:80px;height:80px;border-radius:4px"></div><div class="stb" style="display:grid;gap:12px"><div class="sk" style="width:26%"></div><div class="sk" style="width:70%;height:20px"></div><div class="sk" style="width:90%"></div><div class="sk" style="width:44%"></div></div></div>
+                <div class="st"><div class="sk" style="width:80px;height:80px;border-radius:4px"></div><div class="stb" style="display:grid;gap:12px"><div class="sk" style="width:34%"></div><div class="sk" style="width:76%;height:20px"></div><div class="sk" style="width:88%"></div></div></div>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Service cannot be reached">
+          <p class="cap"><b>3. The service cannot be reached.</b> An alert with Retry; stories already loaded stay on screen.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2><div class="r"><div class="bg"><span class="on">Top</span><span>Latest</span></div></div></div>
+              <div class="al err">
+                <span class="ai"><i class="s di"></i></span>
+                <div><b>Signal cannot reach its service</b><p>The stories below were loaded at 09:42 and may be out of date. Saving and commenting are off until the connection returns.</p><div class="aa"><a class="b lk" href="#">Retry</a></div></div>
+              </div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">HW</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                    <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                    <p class="sm">Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.</p>
+                    <div class="acts"><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Sources not checked yet, no story yet">
+          <p class="cap"><b>4. Sources not checked yet, and no story yet.</b> The freshness line takes its neutral ring.</p>
+          <sg-shell view="latest" name="Mara L" role="Writer" saved="0">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Latest</h2><span class="bd neu"><i class="s rg"></i>Sources not checked yet</span></div>
+              <div class="em"><span class="fi"><sg-i n="clock" s="24"></sg-i></span><h4>No stories yet</h4><p>Approved sources are checked every few minutes. Stories appear here after the first check.</p></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="No approved source">
+          <p class="cap"><b>5. No approved source.</b> A writer can propose one; a reader sees the same text with no button.</p>
+          <sg-shell view="latest" name="Mara L" role="Writer" saved="0">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Latest</h2></div>
+              <div class="em"><span class="fi"><sg-i n="link" s="24"></sg-i></span><h4>No approved source yet</h4><p>Signal shows stories only from sources the owner has approved. None is approved so far.</p><div class="ft"><span class="b p md"><sg-i n="plus"></sg-i>Propose a source</span></div></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Nothing followed">
+          <p class="cap"><b>6. No topic followed (For you).</b> The empty state lists topics to follow.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer" follow="none">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="em"><span class="fi"><sg-i n="star" s="24"></sg-i></span><h4>You follow no topics yet</h4><p>For you shows stories from the topics you follow. Latest shows every story in the meantime.</p>
+                <div class="ft"><span class="b s md"><sg-i n="star"></sg-i>Shipping</span><span class="b s md"><sg-i n="star"></sg-i>Packaging</span><span class="b s md"><sg-i n="star"></sg-i>Telecoms</span><span class="b s md"><sg-i n="star"></sg-i>Rating actions</span></div>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Nothing saved">
+          <p class="cap"><b>7. Nothing saved.</b></p>
+          <sg-shell view="saved" name="Mara L" role="Writer" saved="0">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Saved</h2></div>
+              <div class="em"><span class="fi"><sg-i n="bookmark" s="24"></sg-i></span><h4>Nothing saved yet</h4><p>Save a story from any view and it stays here until you remove it.</p></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="No story of the chosen kind">
+          <p class="cap"><b>8. No story of the chosen kind.</b></p>
+          <sg-shell view="packaging" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Packaging</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="fb"><div class="mt"><span>All</span><span>News</span><span class="on">Regulatory cases</span><span>Rating actions</span><span>Digests</span></div><div class="in sm"><sg-i n="search" s="16"></sg-i>Search in Packaging</div></div>
+              <div class="em"><span class="fi"><sg-i n="lines" s="24"></sg-i></span><h4>No regulatory cases in Packaging</h4><p>This topic has stories of other kinds.</p><div class="ft"><span class="b s md">Show all kinds</span></div></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="No search match">
+          <p class="cap"><b>9. No search match.</b></p>
+          <sg-shell view="latest" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Latest</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="fb"><div class="mt"><span class="on">All</span><span>News</span><span>Regulatory cases</span><span>Rating actions</span><span>Digests</span></div><div class="in sm v foc"><sg-i n="search" s="16"></sg-i>second lien tap</div></div>
+              <div class="em"><span class="fi"><sg-i n="search" s="24"></sg-i></span><h4>No story matches "second lien tap"</h4><p>Search looks at headlines, summaries, sources and topics.</p><div class="ft"><span class="b s md">Clear search</span></div></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Story with no link, story with no time">
+          <p class="cap"><b>10. A story with no link, and a story with no time.</b> No link: a plain-text headline and no Open source. No time: the time is left out.</p>
+          <sg-shell view="latest" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Latest</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">RG</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Regulatory case</span><span>Regulatory Gazette</span><span>40 min ago</span></div>
+                    <h3>Notice of initial review: Oakhaven Lines and Pellant Terminals</h3>
+                    <p class="sm">The authority has opened an initial review of the proposed terminal joint venture.</p>
+                    <div class="pg"><div class="pl"><span>Initial review</span><span>Stage 2 of 4</span></div><div class="trk"><i style="width:50%"></i></div><div class="stg"><span>Opened</span><b>Initial review</b><span>In-depth review</span><span>Decision</span></div></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">CL</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>Credit Ledger Daily</span></div>
+                    <h3><a href="#">Pellant Terminals plans first bond issue</a></h3>
+                    <p class="sm">The port operator has mandated banks for a debut issue, the publication reports.</p>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="AI off or at its cap">
+          <p class="cap"><b>11. AI off, or at its cap.</b> Stories arrive with no AI line and no signal strength; the digests show as paused in the channel list. The alert about it sits in Settings, AI and cost.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer" digests="paused">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">HW</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                    <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                    <p class="sm">Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.</p>
+                    <div class="row"><span class="avg"><span class="av xs">C</span><span class="av xs">M</span><span class="av xs">R</span><span class="av xs">+1</span></span><span>Also in 4 other sources</span></div>
+                    <div class="row tgs"><span class="tag">Packaging</span><span class="tag">Restructuring</span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment<span class="cnt" style="margin-left:4px">3</span></span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">NR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Rating action</span><span>Northgate Ratings</span><span>Yesterday</span></div>
+                    <h3><a href="#">Northgate Ratings downgrades Halvorsen Marine to B+</a></h3>
+                    <p class="sm">The agency cites weaker charter rates and a refinancing due in 2027.</p>
+                    <div class="row"><span class="bgp"><b>BB-</b><sg-i n="arrow" s="16"></sg-i><b>B+</b><span style="padding-right:8px">Downgrade, one notch</span></span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

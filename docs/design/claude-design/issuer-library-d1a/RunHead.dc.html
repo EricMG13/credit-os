@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+      </helmet>
+      <div class="stack" style="gap:20px">
+        <div class="u-ph">
+          <div class="u-ph-l" style="gap:10px">
+            <a class="caption" href="#">Library</a>
+            <h1 class="h1">Halden Aerostructures</h1>
+            <div class="row" style="gap:8px">
+              <span class="u-badge c-neu">As of 30 Sep 2026</span>
+              <span class="u-badge c-neu">Full review</span>
+              <span class="u-badge dot c-ok"><span class="sh sh-dot m-ok"></span>Finished</span>
+            </div>
+          </div>
+          <div class="u-ph-a">
+            <span class="u-toggle"><span class="{{ track }}" role="switch" aria-checked="{{ on }}"></span>Show sources</span>
+            <a class="u-btn u-btn-s" href="#">Report history</a>
+            <a class="u-btn u-btn-p" href="#">New run</a>
+          </div>
+        </div>
+        <nav class="u-tabs" aria-label="Run pages">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+            <a class="{{ t.cls }}" href="#">{{ t.name }}<sc-if value="{{ t.count }}" hint-placeholder-val="{{ false }}"><span class="u-count">{{ t.count }}</span></sc-if></a>
+          </sc-for>
+        </nav>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","default":"Overview","options":["Overview","Changes","Modules","Forecast","Evidence"],"tsType":"string"},"sources":{"editor":"enum","default":"off","options":["off","on"],"tsType":"string"}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const a = this.props.tab ?? 'Overview';
+          const on = (this.props.sources ?? 'off') === 'on';
+          const tabs = [['Overview'], ['Changes'], ['Modules', '13'], ['Forecast'], ['Evidence']].map(t => ({ name: t[0], count: t[1] || '', cls: 'u-tab' + (t[0] === a ? ' on' : '') }));
+          return { tabs, track: 'u-track' + (on ? ' on' : ''), on: on ? 'true' : 'false' };
+        }
+      }
+    </script>
+  </body>
+</html>

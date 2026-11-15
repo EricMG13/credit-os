@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <style>
+          .s2-cap{font:500 13px/18px monospace;color:#63676E;margin:32px 0 12px}
+          .s2-note{font:400 13px/20px monospace;color:#63676E;border-top:1px dashed #7F848D;margin-top:32px;padding-top:16px}
+          .b-warn{background:#FFF9E5;color:#664F00;border-color:#FFE899}
+          .b-warn .sh{color:#997700}
+        </style>
+      </helmet>
+      <div data-screen-label="M1 Model run header, stopped">
+        <p class="s2-cap">M1 · Model, Front page · the run header of a stopped run (states 2, option R-A; draft for the owner's review; sample data). Nothing else on the Model pages changes.</p>
+        <div class="ph">
+          <nav class="rail" aria-label="Areas">
+            <div class="logo" title="Logo symbol (placeholder)"></div>
+            <a class="ri on" title="Library" aria-label="Library"><i class="ico"></i></a>
+            <a class="ri" title="Start a run" aria-label="Start a run"><i class="ico"></i></a>
+            <a class="ri" title="Run activity" aria-label="Run activity"><i class="ico"></i></a>
+            <a class="ri" title="Signal" aria-label="Signal"><i class="ico"></i></a>
+          </nav>
+          <div class="row jb">
+            <div class="crumb"><a>Library</a><span>/</span><a>Corvane Fasteners</a><span>/</span><span style="color:var(--text-primary)">Financial model</span></div>
+            <label class="sw"><input type="checkbox" class="srcs" /><span class="swt"></span>Show sources</label>
+          </div>
+          <div class="row jb" style="align-items:flex-end">
+            <div class="col">
+              <h1 class="h1">Corvane Fasteners</h1>
+              <div class="row" style="gap:8px">
+                <span class="badge lb">As of 30 Sep 2026</span>
+                <span class="badge lb">Full review</span>
+                <span class="badge b-warn"><i class="sh sh-tri"></i>Stopped</span>
+                <span class="badge lb">Spending cap</span>
+                <span class="badge lb">Sample data</span>
+              </div>
+            </div>
+            <a class="btn">Back to the report</a>
+          </div>
+          <nav class="tabs" aria-label="Pages"><a class="tab on">Front page</a><a class="tab">Analysis</a><a class="tab">Model</a><a class="tab">Portfolio fit</a><a class="tab">Limitations</a><a class="tab out">Evidence ↗</a></nav>
+        </div>
+        <p class="s2-note">Mock, states 2 · Model run header. "Stopped" (triangle, warning: #664F00 on #FFF9E5, mark #997700, the design system's Warning row) replaces "Capped"; the reason is a neutral label after it. The header carries no reason sentence: the run frame head and the run activity page carry it.</p>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

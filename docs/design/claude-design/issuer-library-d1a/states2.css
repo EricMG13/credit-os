@@ -1,0 +1,26 @@
+/* States 2 (draft for the owner's review, nothing ruled): the pieces the recommended options add.
+   Everything else on the States 2 pages is the merged mock's own CSS. */
+.conf{display:inline-flex;align-items:center;gap:8px;font:600 14px/20px var(--font-body);color:var(--text-primary);white-space:nowrap}
+.conf-m{display:inline-flex;gap:4px}
+.cm{width:16px;height:16px;flex:none;position:relative;display:inline-block;background:var(--text-primary);clip-path:polygon(50% 2%,62% 36%,98% 37%,69% 59%,80% 94%,50% 73%,20% 94%,31% 59%,2% 37%,38% 36%)}
+.cm.off{background:var(--text-tertiary)}
+.cm.off:after{content:"";position:absolute;left:4px;top:4.5px;width:8px;height:8px;background:var(--surface-card);clip-path:polygon(50% 2%,62% 36%,98% 37%,69% 59%,80% 94%,50% 73%,20% 94%,31% 59%,2% 37%,38% 36%)}
+.conf-n{font-weight:400;font-variant-numeric:tabular-nums}
+.conf-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.conf-k{display:inline-flex;align-items:center;gap:6px;font:500 13px/18px var(--font-body);color:var(--text-tertiary)}
+.info-tr{width:16px;height:16px;border-radius:50%;border:1.5px solid currentColor;display:inline-flex;align-items:center;justify-content:center;font:600 10px/1 var(--font-body)}
+.notscored{font:400 14px/20px var(--font-body);color:var(--text-tertiary)}
+.reason{font:400 14px/22px var(--font-body);color:var(--text-secondary);max-width:72ch;text-wrap:pretty}
+.badges{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tt{background:var(--surface-inverse);color:#FFFFFF;border-radius:8px;padding:8px 12px;font:400 13px/18px var(--font-body);max-width:340px;box-shadow:var(--shadow-2)}
+.narrow{max-width:620px}
+.cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}
+@media (max-width:1000px){.cmp{grid-template-columns:minmax(0,1fr)}}
+.mono-w{font:400 13px/20px var(--font-mono);color:var(--text-secondary)}
+.exp td{background:var(--surface-subtle)}
+.dl4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;font:400 13px/20px var(--font-body);color:var(--text-secondary)}
+.dl4 b{display:block;font:600 13px/18px var(--font-body);color:var(--text-primary);margin-bottom:4px}
+.endline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;border:1px solid var(--border-subtle);border-radius:var(--r-md);background:var(--surface-card)}
+.s-item-c .conf,.s-item-c .notscored{margin-top:6px}
+/* E4: the Inputs column wraps, never cut */
+.h-table td:nth-child(2){white-space:normal;max-width:320px}

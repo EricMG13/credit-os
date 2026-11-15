@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Evidence, Trace">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Evidence" sources="off" hint-size="100%,190px"></dc-import>
+          <dc-import name="EvTabs" tab="Trace" hint-size="100%,130px"></dc-import>
+
+          <div class="u-table-card">
+            <div class="u-table-head"><div><div class="u-table-title">Trace <span class="u-count">148</span></div><p class="u-table-desc">One row per traced paragraph, row or figure. Open a row to see how it was derived.</p></div><span class="u-chip">Kind: All<span class="chev"></span></span></div>
+            <table class="u-table">
+              <thead><tr><th style="width:36px"></th><th>Item<span class="u-sort"></span></th><th>Statement</th><th>Module<span class="u-sort"></span></th><th>Kind</th><th class="r">Sources</th></tr></thead>
+              <tbody>
+                <tr><td><span class="chev chev-r"></span></td><td class="mono">T-0001</td><td class="p">Stable credit with thin headroom: leverage is falling, but the 2028 notes need refinancing.</td><td>Overview</td><td><span class="u-badge u-badge-sm c-neu">Passage</span></td><td class="r tnum">6</td></tr>
+                <tr class="hov"><td><span class="chev"></span></td><td class="mono">T-0014</td><td class="p">Net leverage 4.6x</td><td>Capital structure</td><td><span class="u-badge u-badge-sm c-neu">Figure</span></td><td class="r tnum">3</td></tr>
+                <tr class="exp"><td colspan="6">
+                  <div class="u-tree" role="tree" aria-label="How net leverage was derived">
+                    <sc-for list="{{ tree }}" as="n" hint-placeholder-count="8">
+                      <div class="u-tree-r" role="treeitem">
+                        <sc-for list="{{ n.sp }}" as="s" hint-placeholder-count="1"><span class="u-tree-sp"></span></sc-for>
+                        <span class="{{ n.chev }}"></span><span class="ico ico-16" style="margin-top:2px"></span>
+                        <span><span class="u-tree-k">{{ n.k }}</span> {{ n.t }} <span class="{{ n.vcls }}">{{ n.v }}</span></span>
+                      </div>
+                    </sc-for>
+                    <div class="excerpt" style="margin:8px 0 0 104px;max-width:640px">“Adjusted EBITDA for the twelve months ended 30 September 2026 was USD 486 million (2025: USD 441 million).”</div>
+                  </div>
+                </td></tr>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+                  <tr><td><span class="chev chev-r"></span></td><td class="mono">{{ r.id }}</td><td class="p">{{ r.s }}</td><td>{{ r.m }}</td><td><span class="u-badge u-badge-sm c-neu">{{ r.k }}</span></td><td class="r tnum"><span class="{{ r.ncls }}">{{ r.n }}</span></td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="note">Mock D1a · Evidence, Trace with calculations. Dense rows by design. The second row is open and holds the calculation as a tree: result, formula, inputs, source excerpt. The last row is a claim the module made with no source: its count is 0, a real zero, and it is listed under Gaps.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const tree = [
+            [0, 1, 'Result', 'Net leverage', '4.6x · C-0412'],
+            [1, 1, 'Formula', 'Net debt ÷ EBITDA', '2,236 ÷ 486'],
+            [2, 1, 'Input', 'Net debt = gross debt − cash', '2,236 · C-0398'],
+            [3, 0, 'Source', 'Gross debt 2,398', 'annual-report-2026.pdf · p. 112, note 18'],
+            [3, 0, 'Source', 'Cash 162', 'annual-report-2026.pdf · p. 84'],
+            [2, 1, 'Input', 'EBITDA, company-adjusted', '486'],
+            [3, 0, 'Source', 'EBITDA 486', 'lender-presentation-nov-2026.pdf · p. 9']
+          ].map(n => ({ sp: Array(n[0]).fill(1), chev: n[1] ? 'chev' : 'u-tree-sp', k: n[2], t: n[3], v: n[4], vcls: 'mono t3' }));
+          const rows = [
+            ['T-0015', 'Interest cover 2.4x', 'Capital structure', 'Figure', '4'],
+            ['T-0031', 'Three customers bring 58% of revenue and one engine programme 34%.', 'Business profile', 'Passage', '2'],
+            ['T-0047', 'Maturities by year', 'Capital structure', 'Chart', '5'],
+            ['T-0052', 'Receivables facility availability', 'Capital structure', 'Row', '1'],
+            ['T-0068', 'Management says no alternative part has passed certification.', 'Business profile', 'Passage', '0']
+          ].map(r => ({ id: r[0], s: r[1], m: r[2], k: r[3], n: r[4], ncls: '' }));
+          return { tree, rows };
+        }
+      }
+    </script>
+  </body>
+</html>

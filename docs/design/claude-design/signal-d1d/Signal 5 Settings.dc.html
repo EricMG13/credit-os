@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700&display=swap" />
+        <link rel="stylesheet" href="./signal.css" />
+        <script src="./signal.js"></script>
+      </helmet>
+      <div class="page">
+        <header class="ph">
+          <h1>Signal: settings</h1>
+          <p>Seven sections: Groups, Thread rules, Sources, Topics, Digests, Notifications, AI and cost. The rules, schedules and amounts shown are sample values; none is decided.</p>
+        </header>
+
+        <section data-screen-label="Settings: Groups">
+          <p class="cap"><b>1. Groups.</b> Each group with its members and who can see it.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="Groups"><div class="sb">
+              <div class="vh" style="margin:0"><div><h4>Groups</h4><p>A group has a thread for every story shared to it.</p></div><div class="r"><span class="b p"><sg-i n="plus"></sg-i>New group</span></div></div>
+              <div style="margin-top:24px">
+                <div class="gr"><div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b>Leveraged credit</b><small>6 members</small></div></div><span class="avg"><span class="av xs">T</span><span class="av xs">I</span><span class="av xs">M</span><span class="av xs">J</span><span class="av xs">+2</span></span><div class="in sel sm">Visible to everyone<sg-i n="down" s="16"></sg-i></div><span class="b t">Edit members</span></div>
+                <div class="gr"><div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b>Shipping desk</b><small>3 members</small></div></div><span class="avg"><span class="av xs">M</span><span class="av xs">T</span><span class="av xs">A</span></span><div class="in sel sm">Members only<sg-i n="down" s="16"></sg-i></div><span class="b t">Edit members</span></div>
+                <div class="gr"><div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b>Committee prep</b><small>No members yet</small></div></div><span class="note">Add a member to start</span><div class="in sel sm">Members only<sg-i n="down" s="16"></sg-i></div><span class="b t">Edit members</span></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: Thread rules">
+          <p class="cap"><b>2. Thread rules.</b> One switch per rule. The rules are examples.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="Thread rules"><div class="sb">
+              <h4>Thread rules</h4><p>These apply to every group.</p>
+              <div class="stack">
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Comments can be edited</b><span>An edited comment is marked "edited".</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Authors can remove their own comments</b><span>The thread keeps a line saying a comment was removed.</span></div></div>
+                <div class="tgr"><span class="tg"><i></i></span><div><b>Readers can react</b><span>Off: only writers react. Readers never comment.</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Archive a thread after 30 days without a comment</b><span>An archived thread can be read but not added to.</span></div></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: Sources">
+          <p class="cap"><b>3. Sources, with health.</b> The six source states, each with its own shape and word: proposed, approved, paused in the State column; healthy, quiet, failing in the Health column. Failing shows its reason. A week with no reading leaves its bar slot empty.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="Sources"><div class="sb" style="max-width:none">
+              <div class="vh" style="margin:0"><div><h4>Sources</h4><p>Stories come only from approved sources. Anyone who writes can propose one; the owner approves.</p></div><div class="r"><span class="b p"><sg-i n="plus"></sg-i>Propose a source</span></div></div>
+              <div class="tbl" style="margin-top:24px"><table>
+                <thead><tr><th>Source</th><th>State</th><th>Health</th><th>Last check and item</th><th>Items per week, 6 weeks</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Harbour Wire</b><small>News</small></td><td><span class="bd neu"><i class="s sq"></i>Approved</span></td><td><span class="bd ok"><i class="s fc"></i>Healthy</span></td><td>6 min ago<small>Last item 2 h ago</small></td><td><span class="sp" title="31, 28, 35, 30, 26, 33"><i style="height:89%"></i><i style="height:80%"></i><i style="height:100%"></i><i style="height:86%"></i><i style="height:74%"></i><i style="height:94%"></i></span></td></tr>
+                  <tr><td><b>Regulatory Gazette</b><small>Regulatory cases</small></td><td><span class="bd neu"><i class="s sq"></i>Approved</span></td><td><span class="bd neu"><i class="s rg"></i>Quiet</span><small>No item for 9 days</small></td><td>6 min ago<small>Last item 4 Nov</small></td><td><span class="sp" title="4, 6, 3, 5, 1, 0"><i style="height:66%"></i><i style="height:100%"></i><i style="height:50%"></i><i style="height:83%"></i><i style="height:17%"></i><i style="height:2px"></i></span></td></tr>
+                  <tr><td><b>Northgate Ratings</b><small>Rating actions</small></td><td><span class="bd neu"><i class="s sq"></i>Approved</span></td><td><span class="bd err"><i class="s di"></i>Failing</span><small>The feed returned an error at the last 3 checks</small></td><td>6 min ago<small>Last item yesterday</small></td><td><span class="sp" title="9, 7, 11, 8, n.a., 6"><i style="height:82%"></i><i style="height:64%"></i><i style="height:100%"></i><i style="height:73%"></i><i style="height:0"></i><i style="height:55%"></i></span></td></tr>
+                  <tr><td><b>The Meridian Post</b><small>News</small></td><td><span class="bd neu"><i class="s pb"></i>Paused</span><small>By the owner, 2 Nov</small></td><td class="na">n.a.</td><td>2 Nov<small>Last item 2 Nov</small></td><td><span class="sp" title="18, 22, 20, 19, n.a., n.a."><i style="height:82%"></i><i style="height:100%"></i><i style="height:91%"></i><i style="height:86%"></i><i style="height:0"></i><i style="height:0"></i></span></td></tr>
+                  <tr><td><b>Freight Monitor</b><small>News</small></td><td><span class="bd info"><i class="s hc"></i>Proposed</span><small>By Tobias O, yesterday</small></td><td class="na">n.a.</td><td class="na">n.a.</td><td class="na">n.a.</td></tr>
+                </tbody>
+              </table></div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: Topics">
+          <p class="cap"><b>4. Topics.</b> A topic is its keywords and the kinds it takes, shown as tags.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="Topics"><div class="sb">
+              <div class="vh" style="margin:0"><div><h4>Topics</h4><p>A story joins a topic when its headline or summary carries one of the keywords.</p></div><div class="r"><span class="b p"><sg-i n="plus"></sg-i>New topic</span></div></div>
+              <div style="margin-top:24px">
+                <div class="gr" style="align-items:flex-start"><div style="width:160px;flex:none"><b style="font:600 14px/20px var(--fb)">Shipping</b><small class="note" style="display:block">12 stories this week</small></div><div style="flex:1;display:grid;gap:8px"><div class="tgs"><span class="tag">charter rates</span><span class="tag">tanker</span><span class="tag">container line</span><span class="tag">shipowner</span><span class="tag">Halvorsen Marine</span></div><div class="tgs"><span class="lb">News</span><span class="lb">Rating actions</span></div></div><span class="b t">Edit</span></div>
+                <div class="gr" style="align-items:flex-start"><div style="width:160px;flex:none"><b style="font:600 14px/20px var(--fb)">Packaging</b><small class="note" style="display:block">8 stories this week</small></div><div style="flex:1;display:grid;gap:8px"><div class="tgs"><span class="tag">packaging</span><span class="tag">containerboard</span><span class="tag">plant closure</span><span class="tag">Corvane</span></div><div class="tgs"><span class="lb">News</span><span class="lb">Regulatory cases</span><span class="lb">Rating actions</span></div></div><span class="b t">Edit</span></div>
+                <div class="gr" style="align-items:flex-start"><div style="width:160px;flex:none"><b style="font:600 14px/20px var(--fb)">Telecoms</b><small class="note" style="display:block">5 stories this week</small></div><div style="flex:1;display:grid;gap:8px"><div class="tgs"><span class="tag">towers</span><span class="tag">fibre</span><span class="tag">spectrum</span><span class="tag">Tessaly</span></div><div class="tgs"><span class="lb">News</span><span class="lb">Regulatory cases</span></div></div><span class="b t">Edit</span></div>
+                <div class="gr" style="align-items:flex-start"><div style="width:160px;flex:none"><b style="font:600 14px/20px var(--fb)">Rating actions</b><small class="note" style="display:block">9 stories this week</small></div><div style="flex:1;display:grid;gap:8px"><span class="note">No keywords: every story of this kind</span><div class="tgs"><span class="lb">Rating actions</span></div></div><span class="b t">Edit</span></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: Digests">
+          <p class="cap"><b>5. Digests.</b> The digest form: what it covers, its schedule, its length and a brief. "Run once now" starts a paid model call and needs a ruling.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="Digests"><div class="sb" style="max-width:640px">
+              <h4>Weekly brief</h4><p>A digest is written by a model from the stories it covers, on its schedule.</p>
+              <div class="stack">
+                <div class="fld"><span class="lab">Name</span><div class="in v">Weekly brief</div></div>
+                <div class="fld"><span class="lab">Covers</span><div class="in sel">Group: Leveraged credit<sg-i n="down" s="16"></sg-i></div><span class="hint">A group's topics, or a single topic.</span></div>
+                <div class="f2">
+                  <div class="fld"><span class="lab">Schedule</span><div class="in sel">Weekly, Friday 07:00<sg-i n="down" s="16"></sg-i></div></div>
+                  <div class="fld"><span class="lab">Length</span><div class="in sel">Up to 5 points<sg-i n="down" s="16"></sg-i></div></div>
+                </div>
+                <div class="fld"><span class="lab">Brief (optional)</span><div class="in ta v">Lead with anything that changes a refinancing date. Skip price moves.</div><span class="hint">Plain text. Tell the model what matters to this group.</span></div>
+                <div style="display:flex;gap:12px;justify-content:flex-end"><span class="b s md">Run once now</span><span class="b p md">Save digest</span></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: Notifications">
+          <p class="cap"><b>6. Notifications.</b> A grid of two switches per event. The two channels are an assumption.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="Notifications"><div class="sb" style="max-width:640px">
+              <h4>Notifications</h4><p>Choose where each event reaches you.</p>
+              <div style="display:grid;grid-template-columns:1fr 110px 110px;gap:0 16px;margin-top:24px;align-items:center">
+                <span></span><span class="lab" style="padding-bottom:8px">In Signal</span><span class="lab" style="padding-bottom:8px">On the desktop</span>
+                <div class="gr" style="grid-column:1/-1;display:grid;grid-template-columns:subgrid"><b style="font:500 16px/24px var(--fb)">A comment on a thread I am in</b><span class="tg on"><i></i></span><span class="tg on"><i></i></span></div>
+                <div class="gr" style="grid-column:1/-1;display:grid;grid-template-columns:subgrid"><b style="font:500 16px/24px var(--fb)">A story shared to one of my groups</b><span class="tg on"><i></i></span><span class="tg"><i></i></span></div>
+                <div class="gr" style="grid-column:1/-1;display:grid;grid-template-columns:subgrid"><b style="font:500 16px/24px var(--fb)">A new digest</b><span class="tg on"><i></i></span><span class="tg"><i></i></span></div>
+                <div class="gr" style="grid-column:1/-1;display:grid;grid-template-columns:subgrid"><b style="font:500 16px/24px var(--fb)">A rating action in a topic I follow</b><span class="tg"><i></i></span><span class="tg"><i></i></span></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: AI and cost">
+          <p class="cap"><b>7. AI and cost.</b> Spend against the cap, and a switch per AI part. Every amount is a sample; the cap needs a ruling.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer">
+            <main class="mn"><sg-set sec="AI and cost"><div class="sb" style="max-width:640px">
+              <h4>AI and cost</h4><p>Opening or refreshing a page never calls a model. These parts do, when a story arrives or a digest is due.</p>
+              <div class="stack">
+                <div><span class="lab">Spend in November</span><div class="pgu" style="margin-top:8px"><div class="trk u"><i style="width:43%"></i></div><span>USD 6.40 of USD 15.00</span></div><span class="hint" style="display:block;margin-top:6px">The cap resets on 1 December.</span></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>AI line on stories</b><span>One line on why a story matters, marked AI.</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Signal strength</b><span>Three marks and a word on each story.</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Digests</b><span>Scheduled briefs. A digest with nothing to report makes no call.</span></div></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: AI off">
+          <p class="cap"><b>8. AI off.</b> An alert says what stops; the switches are off.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer" digests="paused">
+            <main class="mn"><sg-set sec="AI and cost"><div class="sb" style="max-width:640px">
+              <h4>AI and cost</h4><p>Opening or refreshing a page never calls a model.</p>
+              <div class="stack">
+                <div class="al info"><span class="ai"><i class="s rg"></i></span><div><b>AI is off</b><p>Stories arrive with no AI line and no signal strength, and digests are paused. Nothing is spent.</p></div></div>
+                <div><span class="lab">Spend in November</span><div class="pgu" style="margin-top:8px"><div class="trk u"><i style="width:43%"></i></div><span>USD 6.40 of USD 15.00</span></div></div>
+                <div class="tgr"><span class="tg"><i></i></span><div><b>AI line on stories</b><span>One line on why a story matters, marked AI.</span></div></div>
+                <div class="tgr"><span class="tg"><i></i></span><div><b>Signal strength</b><span>Three marks and a word on each story.</span></div></div>
+                <div class="tgr"><span class="tg"><i></i></span><div><b>Digests</b><span>Scheduled briefs.</span></div></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Settings: AI at its cap">
+          <p class="cap"><b>9. AI at its cap.</b> The switches stay on; the alert says when AI resumes.</p>
+          <sg-shell view="settings" name="Mara L" role="Writer" digests="paused">
+            <main class="mn"><sg-set sec="AI and cost"><div class="sb" style="max-width:640px">
+              <h4>AI and cost</h4><p>Opening or refreshing a page never calls a model.</p>
+              <div class="stack">
+                <div class="al warn"><span class="ai"><i class="s tr"></i></span><div><b>AI has reached its cap for November</b><p>Stories arrive with no AI line and no signal strength, and digests are paused until 1 December. Only the owner can raise the cap.</p></div></div>
+                <div><span class="lab">Spend in November</span><div class="pgu" style="margin-top:8px"><div class="trk u"><i style="width:100%"></i></div><span>USD 15.00 of USD 15.00</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>AI line on stories</b><span>One line on why a story matters, marked AI.</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Signal strength</b><span>Three marks and a word on each story.</span></div></div>
+                <div class="tgr"><span class="tg on"><i></i></span><div><b>Digests</b><span>Scheduled briefs.</span></div></div>
+              </div>
+            </div></sg-set></main>
+          </sg-shell>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

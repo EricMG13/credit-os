@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+      </helmet>
+      <div class="app" data-screen-label="Evidence, Sources">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main">
+          <dc-import name="RunHead" tab="Evidence" sources="off" hint-size="100%,190px"></dc-import>
+          <dc-import name="EvTabs" tab="Sources" hint-size="100%,130px"></dc-import>
+
+          <div class="stack-s">
+            <sc-for list="{{ files }}" as="f" hint-placeholder-count="5">
+              <div class="u-file">
+                <div class="u-file-ic ph">{{ f.type }}</div>
+                <div class="u-file-b">
+                  <p class="u-file-n">{{ f.name }}</p>
+                  <div class="u-file-m"><span>{{ f.size }}</span><i></i><span class="{{ f.scls }}" style="display:inline-flex;align-items:center;gap:6px;font-weight:500"><span class="{{ f.sh }}"></span>{{ f.state }}</span></div>
+                  <sc-if value="{{ f.why }}" hint-placeholder-val="{{ false }}"><p class="small t2" style="margin-top:6px">{{ f.why }}</p></sc-if>
+                </div>
+                <div class="stack-s" style="gap:6px;align-items:flex-start;width:200px">
+                  <span class="caption t3">Read by {{ f.n }} modules</span>
+                  <span class="u-avgrp"><sc-for list="{{ f.mods }}" as="m" hint-placeholder-count="4"><span class="u-av u-av-sm" title="{{ m.t }}">{{ m.i }}</span></sc-for></span>
+                </div>
+                <div class="s-snip" style="width:340px"><div class="s-snip-h"><span class="s-snip-tab">SHA-256</span><span class="s-snip-c" role="button" aria-label="Copy hash"><span class="ico ico-16"></span></span></div><pre>{{ f.hash }}</pre></div>
+              </div>
+            </sc-for>
+          </div>
+          <a class="u-btn u-btn-s" href="#" style="align-self:flex-start">Show the other 4 files</a>
+
+          <div class="h-toast" role="status" style="position:fixed;right:32px;bottom:32px;z-index:6">
+            <span class="sh sh-dot m-ok" style="width:20px;height:20px;margin-top:0"></span>
+            <div><strong>Copied</strong><p>The hash of annual-report-2026.pdf is on your clipboard.</p></div>
+          </div>
+
+          <p class="note">Mock D1a · Evidence, Sources. One row per file: type, name, size, how much was read, which modules read it (initials, +N), and its hash to copy. The “Copied” toast is drawn in the corner. File states use the design system’s file-state set: Read in full (filled circle), Read in part (triangle), Unreadable (diamond, with the reason in the sentence beside it).</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const st = { full: ['Read in full', 'sh sh-dot m-ok', ''], part: ['Read in part', 'sh sh-tri m-warn', ''], no: ['Unreadable', 'sh sh-dia m-err', ''] };
+          const mk = (list, more) => list.map(x => ({ i: x[0], t: x[1] })).concat(more ? [{ i: '+' + more, t: more + ' more modules' }] : []);
+          const BP = ['BP', 'Business profile'], FP = ['FP', 'Financial performance'], CS = ['CS', 'Capital structure'], CL = ['CL', 'Cash flow and liquidity'], CD = ['CD', 'Covenants and documentation'], RO = ['RO', 'Rating outlook'];
+          const files = [
+            ['PDF', 'annual-report-2026.pdf', '8.4 MB · 214 pages', 'full', '', 11, mk([BP, FP, CS, CL], 7), '3a7f0c92e15d8b46f0a1c7e39d524b8806fe1d2c4a95b7e3018f6d2ac59e4b71'],
+            ['PDF', 'lender-presentation-nov-2026.pdf', '3.1 MB · 42 pages', 'full', '', 6, mk([BP, FP, CS, CL], 2), 'c81e4d2a90b7f3561e0d9a4c7b2e8f1305a6d9c4e7b10f283d5a6c9e1f4b7a20'],
+            ['PDF', 'credit-agreement-2023.pdf', '5.7 MB · 318 pages', 'part', 'Schedules 4 to 9 are scanned images with no text layer and were not read.', 2, mk([CS, CD], 0), '5d0b9e7c3a1f48620e9d7c5b3a1f08e6d4c2b0a98f7e6d5c4b3a2918070f6e5d'],
+            ['XLSX', 'q4-2026-kpi-pack.xlsx', '412 KB · 6 sheets', 'full', '', 3, mk([FP, CL, BP], 0), 'e2f4a6c8b0d1e3f5a7c9b1d3e5f7a9c1b3d5e7f9a1c3b5d7e9f1a3c5b7d9e1f3'],
+            ['PDF', 'rating-report-oct-2026.pdf', '1.2 MB · 18 pages', 'no', 'The file is password-protected. Nothing in this run rests on it.', 0, [], '0b1c2d3e4f5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0']
+          ].map(f => ({ type: f[0], name: f[1], size: f[2], state: st[f[3]][0], sh: st[f[3]][1], scls: 't2', why: f[4], n: f[5], mods: f[6], hash: f[7] }));
+          return { files };
+        }
+      }
+    </script>
+  </body>
+</html>

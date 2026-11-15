@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./run.css" rel="stylesheet" />
+        <style>
+          a{color:#001AFF}
+          a:hover{color:#0015CC}
+          .sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px}
+          .acols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+          .head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+          .na-note{font-size:14px;line-height:20px;color:#474A4F;max-width:300px}
+          @media (max-width:1100px){.acols{grid-template-columns:minmax(0,1fr)}}
+        </style>
+      </helmet>
+      <div class="doc">
+
+        <header class="doc-head" data-screen-label="Intro">
+          <span class="caption t3">States 2, run activity. Draft for the owner's review (option R-A): nothing here is ruled. Sample data: issuers, module names, times and amounts are invented.</span>
+          <h1 class="h1">Run activity, states 2</h1>
+          <p class="lead t2">How a run ends. "Stopped" (triangle, warning) takes the place of "Capped" for every stop; why it stopped, and whether its spend is known, is a neutral label after the state and one sentence in the alert. Failed keeps its diamond. Interrupted narrows to a run that ended with no end record. See also <a href="./Run%20activity.dc.html">Run activity</a>.</p>
+          <div class="row" style="gap:8px">
+            <sc-for list="{{ legend }}" as="b" hint-placeholder-count="7"><span class="{{ b.cls }}"><span class="{{ b.sh }}"></span>{{ b.word }}</span></sc-for>
+          </div>
+          <div class="row" style="gap:8px"><span class="small t3">Reason labels:</span>
+            <sc-for list="{{ reasons }}" as="r" hint-placeholder-count="5"><span class="badge badge-label b-neu">{{ r }}</span></sc-for>
+          </div>
+        </header>
+
+        <sc-for list="{{ frames }}" as="f" hint-placeholder-count="9">
+          <section class="frame" data-screen-label="{{ f.label }}">
+            <div class="frame-label"><span class="frame-no">{{ f.no }}</span><span class="frame-name">{{ f.name }}</span><span class="frame-note">{{ f.note }}</span></div>
+            <div class="{{ f.screenCls }}">
+
+              <nav class="rail">
+                <div class="rail-card">
+                  <div class="rail-logo"><div class="ph rail-mark" title="Logo symbol placeholder"></div></div>
+                  <div class="rail-nav">
+                    <span class="rail-item" title="Library"><span class="ico"></span></span>
+                    <span class="rail-item" title="Model"><span class="ico"></span></span>
+                    <span class="rail-item on" title="Runs"><span class="ico"></span></span>
+                    <span class="rail-item" title="Signal"><span class="ico"></span></span>
+                  </div>
+                  <div class="rail-foot"><span class="rail-item" title="Settings"><span class="ico"></span></span><span class="avatar">AN</span></div>
+                </div>
+              </nav>
+
+              <div class="pagec">
+                <div class="head">
+                  <div class="col" style="gap:8px">
+                    <span class="small t3">Runs / {{ f.issuer }}</span>
+                    <h2 class="h1">{{ f.issuer }}</h2>
+                    <div class="row" style="gap:8px">
+                      <span class="{{ f.bCls }}"><span class="{{ f.shCls }}"></span>{{ f.word }}</span>
+                      <sc-for list="{{ f.labs }}" as="l" hint-placeholder-count="3"><span class="badge badge-label b-neu">{{ l.w }}</span></sc-for>
+                    </div>
+                  </div>
+                  <sc-if value="{{ f.stop }}"><button class="btn btn-s">Stop run</button></sc-if>
+                </div>
+
+                <sc-if value="{{ f.hasAlert }}">
+                  <div class="alert">
+                    <span class="{{ f.aIco }}"><span class="{{ f.aSh }}"></span></span>
+                    <div class="a-body">
+                      <div class="a-txt"><p class="a-t">{{ f.aTitle }}</p><p class="a-s">{{ f.aText }}</p></div>
+                      <div class="a-act"><span class="lnk">{{ f.aDo }}</span><sc-if value="{{ f.hasAlt }}"><span class="lnk lnk-g">{{ f.aAlt }}</span></sc-if></div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ f.readable }}">
+                  <div class="card sum">
+                    <div class="col" style="gap:8px">
+                      <span class="caption t3">Spend</span>
+                      <span class="{{ f.spendCls }}">{{ f.spend }}</span>
+                      <sc-if value="{{ f.spendBar }}"><div class="pb-colm"><div class="pb" style="flex:none"><div class="pb-f" style="{{ f.spendW }}"></div></div><span class="pb-l">{{ f.spendL }}</span></div></sc-if>
+                      <sc-if value="{{ f.spendNa }}"><span class="na-note">{{ f.spendNote }}</span></sc-if>
+                    </div>
+                    <div class="col" style="gap:8px">
+                      <span class="caption t3">Modules finished</span>
+                      <span class="metric">{{ f.done }}</span>
+                      <div class="pb-colm"><div class="pb" style="flex:none"><div class="pb-f" style="{{ f.doneW }}"></div></div><span class="pb-l">{{ f.doneL }}</span></div>
+                    </div>
+                    <div class="col" style="gap:8px">
+                      <span class="caption t3">Elapsed</span>
+                      <span class="metric">{{ f.elapsed }}</span>
+                      <span class="small t3">{{ f.elNote }}</span>
+                    </div>
+                  </div>
+
+                  <div class="acols">
+                    <div class="card col" style="gap:24px">
+                      <h3 class="h3">Modules</h3>
+                      <div>
+                        <sc-for list="{{ f.mods }}" as="m" hint-placeholder-count="8">
+                          <div class="ps-step">
+                            <div class="ps-col"><span class="{{ m.mkCls }}"><sc-if value="{{ m.tick }}"><span class="tick tick-sm"></span></sc-if><sc-if value="{{ m.dot }}"><span class="ps-in"></span></sc-if></span><span class="{{ m.lnCls }}"></span></div>
+                            <div class="{{ m.txCls }}">
+                              <div class="ps-w">
+                                <span class="{{ m.tCls }}">{{ m.title }}</span>
+                                <sc-if value="{{ m.hasSub }}"><span class="ps-s">{{ m.sub }}</span></sc-if>
+                                <sc-if value="{{ m.skel }}"><div class="ps-skel"><div class="skel" style="width:90%"></div><div class="skel" style="width:60%"></div></div></sc-if>
+                              </div>
+                              <span class="{{ m.bCls }}"><span class="{{ m.shCls }}"></span>{{ m.word }}</span>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+
+                    <div class="card col" style="gap:24px">
+                      <h3 class="h3">Activity</h3>
+                      <div>
+                        <sc-for list="{{ f.feed }}" as="e" hint-placeholder-count="4">
+                          <div class="{{ e.cls }}">
+                            <div class="af-col"><span class="{{ e.avCls }}"><span class="{{ e.shCls }}"></span></span><sc-if value="{{ e.more }}"><span class="af-dots"></span></sc-if></div>
+                            <div class="{{ e.bodyCls }}"><div class="af-hd"><span class="af-name">{{ e.name }}</span><span class="af-time">{{ e.time }}</span></div><p class="af-act">{{ e.act }}</p></div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ f.unreadable }}">
+                  <div class="card sum">
+                    <div class="col" style="gap:12px"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel" style="width:100%;height:8px"></div></div>
+                    <div class="col" style="gap:12px"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel" style="width:100%;height:8px"></div></div>
+                    <div class="col" style="gap:12px"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel" style="width:55%"></div></div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </section>
+        </sc-for>
+
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const B = {
+            queued: ['badge b-neu', 'sh sh-ring', 'Queued'], running: ['badge b-act', 'sh sh-half', 'Running'], finished: ['badge b-ok', 'sh sh-dot c-ok', 'Finished'],
+            failed: ['badge b-err', 'sh sh-dia c-err', 'Failed'], stopped: ['badge b-warn', 'sh sh-tri c-warn', 'Stopped'], rejected: ['badge b-neu', 'sh sh-cross', 'Rejected'],
+            interrupted: ['badge b-warn', 'sh sh-pause c-warn', 'Interrupted'], notrun: ['badge b-neu', 'sh sh-ring', 'Not run'], na: ['badge b-neu', 'sh sh-slash', 'Not assessable'],
+            unknown: ['badge b-gap', 'sh sh-dash c-gap', 'State not known']
+          };
+          const legend = ['queued', 'running', 'finished', 'failed', 'stopped', 'rejected', 'interrupted'].map((k) => ({ cls: B[k][0], sh: B[k][1], word: B[k][2] }));
+          const reasons = ['Spending cap', 'Spend not known', 'Cost control', 'By the analyst', 'Model service'];
+          const names = ['Documentation review', 'Business profile', 'Financial analysis', 'Capital structure', 'Liquidity', 'Covenants', 'Peer comparison', 'Management and ownership', 'Financial model and forecast', 'Recovery', 'Rating view', 'Risks and watch list', 'Credit snapshot'];
+          const cost = ['USD 1.00', 'USD 1.05', 'USD 2.35', 'USD 1.38', 'USD 1.62', 'USD 1.10', 'USD 1.90', 'USD 0.85', 'USD 3.40', 'USD 1.05', 'USD 0.80', 'USD 1.15', 'USD 0.55'];
+          const mod = (title, st, o) => {
+            o = o || {};
+            const done = st === 'finished', cur = st === 'running';
+            return { title, st, tick: done, dot: !done, mkCls: 'ps-mk ' + (done ? 'done' : cur ? 'cur' : 'todo'), tCls: 'ps-t' + (cur ? ' cur' : ''),
+              sub: o.sub, hasSub: !!o.sub, skel: !!o.skel, bCls: B[st][0], shCls: B[st][1], word: B[st][2] };
+          };
+          const chain = (list) => list.map((m, i) => Object.assign(m, { lnCls: 'ps-ln' + (i === list.length - 1 ? ' none' : m.st === 'finished' ? ' on' : ''), txCls: 'ps-tx' + (i === list.length - 1 ? ' last' : '') }));
+          const mods = (n, at, atSub) => chain(names.map((t, i) => i < n ? mod(t, 'finished', { sub: 'Finished, ' + cost[i] }) : i === n ? mod(t, at, { sub: atSub }) : mod(t, 'notrun', { sub: 'Did not run.' })));
+          const ev = (shape, color, name, time, act) => ({ shape, color, name, time, act });
+          const feedOf = (list) => list.map((e, i) => ({ name: e.name, time: e.time, act: e.act, more: i < list.length - 1, cls: 'af-item', avCls: 'af-av ' + e.color, shCls: 'sh ' + e.shape, bodyCls: 'af-body' + (i === list.length - 1 ? ' last' : '') }));
+          const labs = (a) => a.map((w) => ({ w }));
+          const w = (p) => ({ width: p + '%' });
+          const frame = (no, name, note, state, o) => Object.assign({
+            no, name, note, label: no + ' ' + name, screenCls: 'screen' + (o.live ? ' live' : ''), issuer: 'Corvane Fasteners', readable: true, unreadable: false,
+            bCls: B[state][0], shCls: B[state][1], word: B[state][2], hasAlert: !!o.aTitle, hasAlt: !!o.aAlt, stop: !!o.live,
+            spendCls: 'metric', spendBar: true, spendNa: false, labs: []
+          }, o);
+          const unknownSpend = (note) => ({ spend: 'n.a.', spendCls: 'metric na', spendBar: false, spendNa: true, spendNote: note });
+          const frames = [
+            frame('R1', 'Stopped at the spending cap', 'The next call could have passed the cap, so it was not made: the bar is short of full.', 'stopped', {
+              labs: labs(['Spending cap', 'Full review', 'As of 30 Sep 2026']),
+              aIco: 'fo c-warn', aSh: 'sh sh-tri', aTitle: 'The run stopped at its spending cap', aText: 'The next model call could have taken the run past its USD 20.00 cap, so it was not made. Nine modules were delivered and are in the library. A new run has its own cap.', aDo: 'Open what was delivered', aAlt: 'Start a new run',
+              spend: 'USD 18.40', spendW: w(92), spendL: 'USD 18.40 of USD 20.00', done: '9 of 13', doneW: w(69), doneL: '9 of 13 modules', elapsed: '41 min', elNote: 'Stopped today at 15:19',
+              mods: mods(9, 'interrupted', 'Stopped part-way.'),
+              feed: feedOf([ev('sh-tri', 'c-warn', 'Run', '15:19', 'Stopped at the spending cap. USD 18.40 spent.'), ev('sh-pause', 'c-warn', 'Recovery', '15:19', 'Stopped part-way.'), ev('sh-dot', 'c-ok', names[8], '15:17', 'Finished, USD 3.40.')]) }),
+            frame('R2', 'Stopped, spend not known', 'The cost of one call was not reported. Spend reads n.a. with its reason: no bar, never 0, never the sum of the known calls.', 'stopped', {
+              labs: labs(['Spend not known', 'Full review', 'As of 30 Jun 2026']),
+              aIco: 'fo c-warn', aSh: 'sh sh-tri', aTitle: 'The run stopped: its spend is not known', aText: 'The cost of one model call was not reported, so the run could not check its cap. Six modules were delivered and are in the library. The run cannot be resumed until the cost of that call is entered.', aDo: 'Open what was delivered',
+              ...unknownSpend('Not known: the cost of one model call was not reported.'), done: '6 of 13', doneW: w(46), doneL: '6 of 13 modules', elapsed: '27 min', elNote: 'Stopped on 14 Aug 2026 at 11:02',
+              mods: mods(6, 'interrupted', 'Its last call’s cost was not reported.'),
+              feed: feedOf([ev('sh-tri', 'c-warn', 'Run', '11:02', 'Stopped: the cost of a model call was not reported.'), ev('sh-dot', 'c-ok', names[5], '10:58', 'Finished, USD 1.10.')]) }),
+            frame('R3', 'Stopped by cost control', 'A known charge above its hold. The amounts are on Evidence, not here.', 'stopped', {
+              labs: labs(['Cost control', 'Full review', 'As of 30 Jun 2026']),
+              aIco: 'fo c-warn', aSh: 'sh sh-tri', aTitle: 'The run stopped: a call cost more than was set aside', aText: 'A model call cost more than the amount set aside for it, so the cap could no longer be relied on. Five modules were delivered and are in the library. The amounts are in Evidence.', aDo: 'Open what was delivered',
+              spend: 'USD 9.37', spendW: w(47), spendL: 'USD 9.37 of USD 20.00', done: '5 of 13', doneW: w(38), doneL: '5 of 13 modules', elapsed: '22 min', elNote: 'Stopped on 13 Aug 2026 at 16:40',
+              mods: mods(5, 'interrupted', 'Was running when the run stopped.'),
+              feed: feedOf([ev('sh-tri', 'c-warn', 'Run', '16:40', 'Stopped: a call cost more than was set aside.'), ev('sh-dot', 'c-ok', names[4], '16:33', 'Finished, USD 1.62.')]) }),
+            frame('R4', 'Stopped by the analyst', 'Taken between calls, never inside one. Finished modules are kept.', 'stopped', {
+              labs: labs(['By the analyst', 'Full review', 'As of 30 Sep 2026']),
+              aIco: 'fo c-warn', aSh: 'sh sh-tri', aTitle: 'The run was stopped', aText: 'The analyst stopped the run at 15:20. Four modules were delivered and are in the library. Resuming goes through Start and asks before it spends.', aDo: 'Review and resume', aAlt: 'Open what was delivered',
+              spend: 'USD 6.10', spendW: w(31), spendL: 'USD 6.10 of USD 20.00', done: '4 of 13', doneW: w(31), doneL: '4 of 13 modules', elapsed: '19 min', elNote: 'Stopped on 9 Nov 2026 at 15:20',
+              mods: mods(4, 'interrupted', 'Was running when the analyst stopped the run; its work so far is not kept.'),
+              feed: feedOf([ev('sh-tri', 'c-warn', 'Run', '15:20', 'Stopped by the analyst.'), ev('sh-dot', 'c-ok', names[3], '15:16', 'Finished, USD 1.38.')]) }),
+            frame('R5', 'Failed, spend known', 'Compare with R6: the label, the Spend figure and the alert’s last sentence are the three differences.', 'failed', {
+              labs: labs(['Model service', 'Full review', 'As of 30 Jun 2026']),
+              aIco: 'fo c-err', aSh: 'sh sh-dia', aTitle: 'The run failed', aText: 'The model service failed and the run could not go on. Nothing from this run is shown in the library. Starting again goes through Start and asks before it spends.', aDo: 'Review and start again',
+              spend: 'USD 3.10', spendW: w(16), spendL: 'USD 3.10 of USD 20.00', done: '2 of 13', doneW: w(15), doneL: '2 of 13 modules', elapsed: '9 min', elNote: 'Stopped on 12 Aug 2026 at 14:48',
+              mods: mods(2, 'na', 'Stopped: the model service failed.'),
+              feed: feedOf([ev('sh-dia', 'c-err', 'Run', '14:48', 'Failed: the model service failed. USD 3.10 spent.'), ev('sh-dot', 'c-ok', names[1], '14:44', 'Finished, USD 1.05.')]) }),
+            frame('R6', 'Failed, spend not known', 'The service raised during a call, which was left open. The run stays stopped until the owner enters that call’s cost.', 'failed', {
+              labs: labs(['Model service', 'Spend not known', 'Full review', 'As of 30 Sep 2026']),
+              aIco: 'fo c-err', aSh: 'sh sh-dia', aTitle: 'The run failed and its spend is not known', aText: 'The model service returned an error during a call. That call was left open, so what the run has spent is not known. This run cannot be resumed until the cost of that call is entered.', aDo: 'Back to the library',
+              ...unknownSpend('Not known: a model call was open when the service returned an error.'), done: '2 of 13', doneW: w(15), doneL: '2 of 13 modules', elapsed: '10 min', elNote: 'Stopped on 10 Nov 2026 at 09:31',
+              mods: mods(2, 'na', 'Stopped: the model service returned an error during a call.'),
+              feed: feedOf([ev('sh-dia', 'c-err', 'Run', '09:31', 'Failed: the model service returned an error during a call. Spend not known.'), ev('sh-dot', 'c-ok', names[1], '09:27', 'Finished, USD 1.05.')]) }),
+            frame('R7', 'A run with no end record (Interrupted)', 'The record shows no end. Which back-end rule tells a page this is an open question (0013, question 11).', 'interrupted', {
+              labs: labs(['Full review', 'As of 31 Mar 2026']),
+              aIco: 'fo c-warn', aSh: 'sh sh-pause', aTitle: 'The run ended without recording why', aText: 'Its last recorded activity was at 14:56, while Covenants was running. Five modules finished and are kept. Resuming goes through Start and asks before it spends.', aDo: 'Review and resume',
+              spend: 'USD 7.40', spendW: w(37), spendL: 'USD 7.40 of USD 20.00', done: '5 of 13', doneW: w(38), doneL: '5 of 13 modules', elapsed: '18 min', elNote: 'Last activity on 19 May 2026 at 14:56',
+              mods: mods(5, 'interrupted', 'Was running at the last recorded activity.'),
+              feed: feedOf([ev('sh-half', 'c-act', 'Covenants', '14:54', 'Started.'), ev('sh-dot', 'c-ok', names[4], '14:54', 'Finished, USD 1.62.')]) }),
+            frame('R7b', 'Activity cannot be read (merged, unchanged)', 'For comparison with R7: the record itself cannot be opened.', 'unknown', { issuer: 'Corvane Fasteners', readable: false, unreadable: true,
+              aIco: 'fo c-err', aSh: 'sh sh-dia', aTitle: 'Run activity cannot be read', aText: 'The run record could not be opened. This does not stop the run or change what it spends; the cap still applies.', aDo: 'Try again', aAlt: 'Back to the library' }),
+            frame('R8', 'Live run with modules that will not run', 'A module whose analysis was not accepted, and one that needs it, read Not assessable with the reason. No module code appears.', 'running', { live: true, issuer: 'Halden Aerostructures',
+              labs: labs(['Full review', 'As of 30 Sep 2026']),
+              spend: 'USD 6.85', spendW: w(34), spendL: 'USD 6.85 of USD 20.00', done: '1 of 5', doneW: w(20), doneL: '1 of 5 modules', elapsed: '24 min', elNote: 'Started today at 14:38',
+              mods: chain([mod('Business profile', 'finished', { sub: 'Finished, USD 1.10' }), mod('Peer comparison', 'na', { sub: 'Its analysis did not pass its checks after three attempts.' }), mod('Capital structure', 'running', { sub: 'Started at 15:01' }), mod('Rating outlook', 'na', { sub: 'It needs Peer comparison, which was not delivered in this run.' }), mod('Credit snapshot', 'queued', { skel: true })]),
+              feed: feedOf([ev('sh-slash', 'c-neu', 'Rating outlook', '15:01', 'Not assessable: it needs Peer comparison.'), ev('sh-half', 'c-act', 'Capital structure', '15:01', 'Started.'), ev('sh-slash', 'c-neu', 'Peer comparison', '15:00', 'Not accepted after three attempts.')]) }),
+            frame('R8b', 'The same run once it has ended', 'Credit snapshot ran with reduced inputs: its step says what it ran without.', 'finished', { issuer: 'Halden Aerostructures',
+              labs: labs(['Full review', 'As of 30 Sep 2026']),
+              spend: 'USD 11.40', spendW: w(57), spendL: 'USD 11.40 of USD 20.00', done: '3 of 5', doneW: w(60), doneL: '3 of 5 modules', elapsed: '38 min', elNote: 'Finished today at 15:16',
+              mods: chain([mod('Business profile', 'finished', { sub: 'Finished, USD 1.10' }), mod('Peer comparison', 'na', { sub: 'Its analysis did not pass its checks after three attempts.' }), mod('Capital structure', 'finished', { sub: 'Finished, USD 1.30' }), mod('Rating outlook', 'na', { sub: 'It needs Peer comparison, which was not delivered in this run.' }), mod('Credit snapshot', 'finished', { sub: 'Ran without Peer comparison, Recovery and Rating outlook.' })]),
+              feed: feedOf([ev('sh-dot', 'c-ok', 'Run', '15:16', 'Finished. 3 of 5 modules delivered, USD 11.40 spent.'), ev('sh-dot', 'c-ok', 'Credit snapshot', '15:16', 'Finished with reduced inputs.')]) })
+          ];
+          return { frames, legend, reasons };
+        }
+      }
+    </script>
+  </body>
+</html>

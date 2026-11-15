@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./run.css" rel="stylesheet" />
+        <style>
+          a{color:#001AFF}
+          a:hover{color:#0015CC}
+          .sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px}
+          .acols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+          .head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+          @media (max-width:1100px){.acols{grid-template-columns:minmax(0,1fr)}}
+        </style>
+      </helmet>
+      <div class="doc">
+
+        <header class="doc-head" data-screen-label="Intro">
+          <span class="caption t3">Step D1c, run mocks, 13 Nov 2026, design system 0.7. Sample content is the public TransDigm case; module names, times and amounts are illustrative.</span>
+          <h1 class="h1">Run activity</h1>
+          <p class="lead t2">Module progress, spend against the USD 20.00 cap and elapsed time, in every run state. Only a live run moves: the running shape pulses and a queued module shimmers. See also <a href="./Run%20start.dc.html">Run start</a>.</p>
+          <div class="row" style="gap:8px">
+            <sc-for list="{{ legend }}" as="b" hint-placeholder-count="7"><span class="{{ b.cls }}"><span class="{{ b.sh }}"></span>{{ b.word }}</span></sc-for>
+          </div>
+        </header>
+
+        <sc-for list="{{ frames }}" as="f" hint-placeholder-count="11">
+          <section class="frame" data-screen-label="{{ f.label }}">
+            <div class="frame-label"><span class="frame-no">{{ f.no }}</span><span class="frame-name">{{ f.name }}</span><span class="frame-note">{{ f.note }}</span></div>
+            <div class="{{ f.screenCls }}">
+
+              <nav class="rail">
+                <div class="rail-card">
+                  <div class="rail-logo"><div class="ph rail-mark" title="Logo symbol placeholder"></div></div>
+                  <div class="rail-nav">
+                    <span class="rail-item" title="Library"><span class="ico"></span></span>
+                    <span class="rail-item" title="Model"><span class="ico"></span></span>
+                    <span class="rail-item on" title="Runs"><span class="ico"></span></span>
+                    <span class="rail-item" title="Signal"><span class="ico"></span></span>
+                  </div>
+                  <div class="rail-foot"><span class="rail-item" title="Settings"><span class="ico"></span></span><span class="avatar">AN</span></div>
+                </div>
+              </nav>
+
+              <div class="pagec">
+
+                <sc-if value="{{ f.noRun }}">
+                  <div class="col" style="gap:8px"><span class="small t3">Runs</span><h2 class="h1">Run activity</h2></div>
+                  <div class="es">
+                    <div class="fi fi48 es-ic"><span class="ico ico24"></span></div>
+                    <div class="es-tx"><h4 class="es-t">No run to watch</h4><p class="es-s">Nothing is running and no run has been started here yet. A run appears on this page as soon as you submit it.</p></div>
+                    <div class="es-btn"><button class="btn btn-p"><span class="ico ico16"></span>Start a run</button></div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ f.hasRun }}">
+                  <div class="head">
+                    <div class="col" style="gap:8px">
+                      <span class="small t3">Runs / TransDigm Group</span>
+                      <h2 class="h1">TransDigm Group</h2>
+                      <div class="row" style="gap:8px">
+                        <span class="{{ f.bCls }}"><span class="{{ f.shCls }}"></span>{{ f.word }}</span>
+                        <span class="badge badge-label b-neu">Full credit review</span>
+                        <span class="badge badge-label b-neu">As of Q3 FY2026</span>
+                      </div>
+                      <sc-if value="{{ f.hasLine }}"><p class="body t2" style="max-width:640px">{{ f.line }}</p></sc-if>
+                    </div>
+                    <sc-if value="{{ f.stop }}"><button class="btn btn-s">Stop run</button></sc-if>
+                    <sc-if value="{{ f.open }}"><button class="btn btn-p btn-lg">Open the library</button></sc-if>
+                  </div>
+
+                  <sc-if value="{{ f.hasAlert }}">
+                    <div class="alert">
+                      <span class="{{ f.aIco }}"><span class="{{ f.aSh }}"></span></span>
+                      <div class="a-body">
+                        <div class="a-txt"><p class="a-t">{{ f.aTitle }}</p><p class="a-s">{{ f.aText }}</p></div>
+                        <div class="a-act"><span class="lnk">{{ f.aDo }}</span><sc-if value="{{ f.hasAlt }}"><span class="lnk lnk-g">{{ f.aAlt }}</span></sc-if></div>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ f.readable }}">
+                    <div class="card sum">
+                      <div class="col" style="gap:8px">
+                        <span class="caption t3">Spend</span>
+                        <span class="metric">{{ f.spend }}</span>
+                        <div class="pb-colm"><div class="pb" style="flex:none"><div class="pb-f" style="{{ f.spendW }}"></div></div><span class="pb-l">{{ f.spendL }}</span></div>
+                      </div>
+                      <div class="col" style="gap:8px">
+                        <span class="caption t3">Modules finished</span>
+                        <span class="{{ f.doneCls }}">{{ f.done }}</span>
+                        <div class="pb-colm"><div class="pb" style="flex:none"><div class="pb-f" style="{{ f.doneW }}"></div></div><span class="pb-l">{{ f.doneL }}</span></div>
+                      </div>
+                      <div class="col" style="gap:8px">
+                        <span class="caption t3">Elapsed</span>
+                        <span class="{{ f.elCls }}">{{ f.elapsed }}</span>
+                        <span class="small t3">{{ f.elNote }}</span>
+                      </div>
+                    </div>
+
+                    <div class="acols">
+                      <div class="card col" style="gap:24px">
+                        <h3 class="h3">Modules</h3>
+                        <sc-if value="{{ f.spinner }}">
+                          <div class="ld">
+                            <svg class="spin" width="48" height="48" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#E5E8FF" stroke-width="4"></circle><circle cx="16" cy="16" r="14" stroke="#001AFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="75"></circle></svg>
+                            <span class="ld-l">Starting the run. No module has reported yet.</span>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ f.nothingRan }}">
+                          <div class="es" style="padding:24px 0">
+                            <div class="fi fi48 es-ic"><span class="ico ico24"></span></div>
+                            <div class="es-tx" style="margin-bottom:0"><h4 class="es-t">No module ran</h4><p class="es-s">The run was rejected before it started, so there is nothing to show and nothing was spent.</p></div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ f.hasMods }}">
+                          <div>
+                            <sc-for list="{{ f.mods }}" as="m" hint-placeholder-count="8">
+                              <div class="ps-step">
+                                <div class="ps-col"><span class="{{ m.mkCls }}"><sc-if value="{{ m.tick }}"><span class="tick tick-sm"></span></sc-if><sc-if value="{{ m.dot }}"><span class="ps-in"></span></sc-if></span><span class="{{ m.lnCls }}"></span></div>
+                                <div class="{{ m.txCls }}">
+                                  <div class="ps-w">
+                                    <span class="{{ m.tCls }}">{{ m.title }}</span>
+                                    <sc-if value="{{ m.hasSub }}"><span class="ps-s">{{ m.sub }}</span></sc-if>
+                                    <sc-if value="{{ m.hasLink }}"><span class="lnk">{{ m.link }}</span></sc-if>
+                                    <sc-if value="{{ m.skel }}"><div class="ps-skel"><div class="skel" style="width:90%"></div><div class="skel" style="width:60%"></div></div></sc-if>
+                                  </div>
+                                  <span class="{{ m.bCls }}"><span class="{{ m.shCls }}"></span>{{ m.word }}</span>
+                                </div>
+                              </div>
+                            </sc-for>
+                          </div>
+                        </sc-if>
+                      </div>
+
+                      <div class="card col" style="gap:24px">
+                        <h3 class="h3">Activity</h3>
+                        <div>
+                          <sc-for list="{{ f.feed }}" as="e" hint-placeholder-count="6">
+                            <div class="{{ e.cls }}">
+                              <div class="af-col"><span class="{{ e.avCls }}"><span class="{{ e.shCls }}"></span></span><sc-if value="{{ e.more }}"><span class="af-dots"></span></sc-if></div>
+                              <div class="{{ e.bodyCls }}"><div class="af-hd"><span class="af-name">{{ e.name }}</span><span class="af-time">{{ e.time }}</span></div><p class="af-act">{{ e.act }}</p></div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ f.unreadable }}">
+                    <div class="card sum">
+                      <div class="col" style="gap:12px"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel" style="width:100%;height:8px"></div></div>
+                      <div class="col" style="gap:12px"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel" style="width:100%;height:8px"></div></div>
+                      <div class="col" style="gap:12px"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel" style="width:55%"></div></div>
+                    </div>
+                    <div class="acols">
+                      <div class="card col" style="gap:20px"><div class="skel" style="width:30%;height:22px"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:65%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:60%"></div></div>
+                      <div class="card col" style="gap:20px"><div class="skel" style="width:40%;height:22px"></div><div class="skel" style="width:85%"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:80%"></div></div>
+                    </div>
+                  </sc-if>
+                </sc-if>
+
+              </div>
+            </div>
+          </section>
+        </sc-for>
+
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const B = {
+            queued: ['badge b-neu', 'sh sh-ring', 'Queued'], running: ['badge b-act', 'sh sh-half', 'Running'], finished: ['badge b-ok', 'sh sh-dot c-ok', 'Finished'],
+            failed: ['badge b-err', 'sh sh-dia c-err', 'Failed'], capped: ['badge b-warn', 'sh sh-tri c-warn', 'Capped'], rejected: ['badge b-neu', 'sh sh-cross', 'Rejected'],
+            interrupted: ['badge b-warn', 'sh sh-pause c-warn', 'Interrupted'], notrun: ['badge b-neu', 'sh sh-ring', 'Not run'], na: ['badge b-neu', 'sh sh-slash', 'Not assessable'],
+            unknown: ['badge b-gap', 'sh sh-dash c-gap', 'State not known'],
+          };
+          const legend = ['queued', 'running', 'finished', 'failed', 'capped', 'rejected', 'interrupted'].map((k) => ({ cls: B[k][0], sh: B[k][1], word: B[k][2] }));
+          const names = ['Documentation review', 'Business profile', 'Financial analysis', 'Capital structure', 'Liquidity', 'Covenants', 'Peer comparison', 'Management and ownership', 'Financial model and forecast', 'Recovery', 'Rating view', 'Risks and watch list', 'Credit snapshot'];
+          const cost = ['Finished in 3 min 02 s, USD 1.00', 'Finished in 2 min 41 s, USD 1.05', 'Finished in 4 min 10 s after a second attempt, USD 2.35', 'Finished in 2 min 48 s, USD 1.38', 'Finished in 3 min 20 s, USD 1.62', 'Finished in 2 min 05 s, USD 1.10', 'Finished in 3 min 44 s, USD 1.90', 'Finished in 1 min 52 s, USD 0.85', 'Finished in 6 min 31 s, USD 3.40', 'Finished in 2 min 12 s, USD 1.05', 'Finished in 1 min 40 s, USD 0.80', 'Finished in 2 min 26 s, USD 1.15', 'Finished in 1 min 18 s, USD 0.55'];
+          // one module step: st is a key of B; o may carry title, sub, link
+          const mod = (title, st, o) => {
+            o = o || {};
+            const done = st === 'finished', cur = st === 'running';
+            return { title, st, tick: done, dot: !done, mkCls: 'ps-mk ' + (done ? 'done' : cur ? 'cur' : 'todo'), tCls: 'ps-t' + (cur ? ' cur' : ''),
+              sub: o.sub, hasSub: !!o.sub, link: o.link, hasLink: !!o.link, skel: !!o.skel, bCls: B[st][0], shCls: B[st][1], word: B[st][2] };
+          };
+          const chain = (list) => list.map((m, i) => Object.assign(m, { lnCls: 'ps-ln' + (i === list.length - 1 ? ' none' : m.st === 'finished' ? ' on' : ''), txCls: 'ps-tx' + (i === list.length - 1 ? ' last' : '') }));
+          // n finished, then one module in state `at` (or none), the rest in state `rest`
+          const mods = (n, at, atSub, rest, restSub, live) => chain(names.map((t, i) => i < n ? mod(t, 'finished', { sub: cost[i] }) : i === n && at ? mod(t, at, { sub: atSub }) : mod(t, rest, { sub: restSub, skel: live && rest === 'queued' })));
+          const ev = (shape, color, name, time, act) => ({ shape, color, name, time, act });
+          const feedOf = (list) => list.map((e, i) => ({ name: e.name, time: e.time, act: e.act, more: i < list.length - 1, cls: 'af-item' + (i === 0 ? ' enter' : ''), avCls: 'af-av ' + e.color, shCls: 'sh ' + e.shape, bodyCls: 'af-body' + (i === list.length - 1 ? ' last' : '') }));
+          const started = ev('sh-ring', 'c-neu', 'Run', '14:38', 'Started. 13 modules queued, cap USD 20.00.');
+          const fin = (i, time) => ev('sh-dot', 'c-ok', names[i], time, cost[i] + '.');
+          const base = [fin(4, '14:54'), fin(3, '14:51'), fin(2, '14:48'), fin(1, '14:44'), fin(0, '14:41'), started];
+          const w = (p) => ({ width: p + '%' });
+          const frame = (no, name, note, state, o) => Object.assign({
+            no, name, note, label: no + ' ' + name, screenCls: 'screen' + (o.live ? ' live' : ''), hasRun: true, noRun: false, readable: true, unreadable: false,
+            bCls: B[state][0], shCls: B[state][1], word: B[state][2], hasLine: !!o.line, hasAlert: !!o.aTitle, hasAlt: !!o.aAlt, stop: !!o.live, open: false,
+            spinner: false, nothingRan: false, hasMods: !!o.mods, elCls: 'metric', doneCls: 'metric',
+          }, o);
+          const frames = [
+            frame('01', 'Running', 'Live: the running shape pulses, queued modules shimmer, the newest activity line rises in once.', 'running', { live: true,
+              spend: 'USD 7.40', spendW: w(37), spendL: 'USD 7.40 of USD 20.00', done: '5 of 13', doneW: w(38), doneL: '5 of 13 modules', elapsed: '16 min 12 s', elNote: 'Started today at 14:38',
+              mods: mods(5, 'running', 'Started at 14:54', 'queued', null, true), feed: feedOf([ev('sh-half', 'c-act', 'Covenants', '14:54', 'Started.')].concat(base)) }),
+            frame('02', 'Queued', 'Live, waiting to start. Every module shimmers where its result will appear.', 'queued', { live: true, line: 'Waiting for the model service. Nothing has been spent.',
+              spend: 'USD 0.00', spendW: w(0), spendL: 'USD 0.00 of USD 20.00', done: '0 of 13', doneW: w(0), doneL: '0 of 13 modules', elapsed: 'n.a.', elCls: 'metric na', elNote: 'Not started yet',
+              mods: mods(0, null, null, 'queued', null, true), feed: feedOf([ev('sh-ring', 'c-neu', 'Run', '14:37', 'Submitted and queued. 13 modules, cap USD 20.00.')]) }),
+            frame('03', 'Running, before the first module reports', 'The only place a spinner appears: a live run with no step count yet.', 'running', { live: true, spinner: true,
+              spend: 'USD 0.00', spendW: w(0), spendL: 'USD 0.00 of USD 20.00', done: 'n.a.', doneCls: 'metric na', doneW: w(0), doneL: 'No module has reported yet', elapsed: '0 min 08 s', elNote: 'Started today at 14:38',
+              feed: feedOf([started]) }),
+            frame('04', 'Finished', 'One module could not be assessed: it keeps its place, with the reason, and the count stays true.', 'finished', { open: true,
+              spend: 'USD 16.65', spendW: w(83), spendL: 'USD 16.65 of USD 20.00', done: '12 of 13', doneW: w(92), doneL: '12 of 13 modules', elapsed: '38 min 04 s', elNote: 'Finished today at 15:16',
+              mods: chain(names.map((t, i) => i === 9 ? mod(t, 'na', { sub: 'The documents supplied do not state the security package, so recovery could not be assessed.' }) : mod(t, 'finished', { sub: cost[i] }))),
+              feed: feedOf([ev('sh-dot', 'c-ok', 'Run', '15:16', 'Finished. 12 of 13 modules delivered, USD 16.65 spent.'), fin(12, '15:16'), fin(11, '15:14'), ev('sh-slash', 'c-neu', 'Recovery', '15:09', 'Not assessable: the security package is not stated in the documents.')].concat(base.slice(0, 2))) }),
+            frame('05', 'Failed', 'The alert says what happened and what to do. Modules that did not run say so.', 'failed', {
+              aIco: 'fo c-err', aSh: 'sh sh-dia', aTitle: 'The run failed', aText: 'Financial analysis stopped after three attempts because the model service returned no usable answer. Two modules finished and are kept. Starting again goes through Start and asks before it spends.', aDo: 'Review and start again', aAlt: 'Open what finished',
+              spend: 'USD 3.10', spendW: w(16), spendL: 'USD 3.10 of USD 20.00', done: '2 of 13', doneW: w(15), doneL: '2 of 13 modules', elapsed: '9 min 47 s', elNote: 'Stopped today at 14:48',
+              mods: mods(2, 'na', 'Stopped after three attempts: the model service returned no usable answer.', 'notrun', 'Did not run.'),
+              feed: feedOf([ev('sh-dia', 'c-err', 'Run', '14:48', 'Failed. USD 3.10 spent.'), ev('sh-slash', 'c-neu', 'Financial analysis', '14:48', 'Stopped after three attempts.')].concat(base.slice(3))) }),
+            frame('06', 'Capped', 'The run reached USD 20.00 and stopped. The bar is full; nothing more is spent.', 'capped', {
+              aIco: 'fo c-warn', aSh: 'sh sh-tri', aTitle: 'The run reached its USD 20.00 cap', aText: 'Nine modules finished and are in the library. Recovery was stopped part-way and three modules did not run. A new run has its own cap.', aDo: 'Open what finished', aAlt: 'Start a new run',
+              spend: 'USD 20.00', spendW: w(100), spendL: 'USD 20.00 of USD 20.00', done: '9 of 13', doneW: w(69), doneL: '9 of 13 modules', elapsed: '31 min 20 s', elNote: 'Stopped today at 15:09',
+              mods: mods(9, 'na', 'Stopped part-way when the run reached its cap.', 'notrun', 'Did not run.'),
+              feed: feedOf([ev('sh-tri', 'c-warn', 'Run', '15:09', 'Capped at USD 20.00.'), ev('sh-slash', 'c-neu', 'Recovery', '15:09', 'Stopped part-way at the cap.'), fin(8, '15:07')].concat(base.slice(0, 2))) }),
+            frame('07', 'Rejected', 'Rejected before anything ran or was spent.', 'rejected', { nothingRan: true,
+              aIco: 'fo c-neu', aSh: 'sh sh-cross', aTitle: 'The run was rejected before it started', aText: 'One document changed after the summary was approved, so the approval no longer matches what would be read. Nothing was spent.', aDo: 'Back to Documents',
+              spend: 'USD 0.00', spendW: w(0), spendL: 'USD 0.00 of USD 20.00', done: '0 of 13', doneW: w(0), doneL: '0 of 13 modules', elapsed: 'n.a.', elCls: 'metric na', elNote: 'Rejected today at 14:37',
+              feed: feedOf([ev('sh-cross', 'c-neu', 'Run', '14:37', 'Rejected: a document changed after approval.'), ev('sh-ring', 'c-neu', 'Run', '14:37', 'Submitted.')]) }),
+            frame('08', 'Interrupted', 'Stopped from outside, not by the cap or a failure. Finished modules are kept.', 'interrupted', {
+              aIco: 'fo c-warn', aSh: 'sh sh-pause', aTitle: 'The run was interrupted', aText: 'The run stopped at 14:56 while Covenants was running. Five modules finished and are kept. Resuming goes through Start and asks before it spends.', aDo: 'Review and resume', aAlt: 'Open what finished',
+              spend: 'USD 7.40', spendW: w(37), spendL: 'USD 7.40 of USD 20.00', done: '5 of 13', doneW: w(38), doneL: '5 of 13 modules', elapsed: '18 min 03 s', elNote: 'Interrupted today at 14:56',
+              mods: mods(5, 'interrupted', 'Was running when the run stopped; its work so far is not kept.', 'notrun', 'Did not run.'),
+              feed: feedOf([ev('sh-pause', 'c-warn', 'Run', '14:56', 'Interrupted while Covenants was running.')].concat(base)) }),
+            frame('09', 'Running, many modules', '22 modules. Finished modules collapse to one step with a count that the run data gives; the next three queued show, the rest collapse.', 'running', { live: true,
+              spend: 'USD 11.85', spendW: w(59), spendL: 'USD 11.85 of USD 20.00', done: '12 of 22', doneW: w(55), doneL: '12 of 22 modules', elapsed: '29 min 40 s', elNote: 'Started today at 14:38',
+              mods: chain([mod('12 modules finished', 'finished', { link: 'Show all 12' }), mod('Recovery', 'running', { sub: 'Started at 15:06' }), mod('Rating view', 'queued', { skel: true }), mod('Risks and watch list', 'queued', { skel: true }), mod('Environmental and social factors', 'queued', { skel: true }), mod('6 more modules queued', 'queued', { link: 'Show all 6' })]),
+              feed: feedOf([ev('sh-half', 'c-act', 'Recovery', '15:06', 'Started.'), ev('sh-dot', 'c-ok', 'Financial model and forecast', '15:06', 'Finished in 6 min 31 s, USD 3.40.'), ev('sh-dot', 'c-ok', 'Customer concentration', '14:59', 'Finished in 2 min 02 s, USD 0.70.')].concat(base.slice(0, 2))) }),
+            { no: '10', name: 'No run', note: 'Nothing has been started.', label: '10 No run', screenCls: 'screen', noRun: true, hasRun: false },
+            frame('11', 'Activity cannot be read', 'The run state badge gives way to State not known, a dashed ring in the gap colours. The alert says the run itself is unaffected. The page shows a static skeleton, never a spinner.', 'unknown', { readable: false, unreadable: true, stop: false,
+              aIco: 'fo c-err', aSh: 'sh sh-dia', aTitle: 'Run activity cannot be read', aText: 'The run record could not be opened. This does not stop the run or change what it spends; the cap still applies.', aDo: 'Try again', aAlt: 'Back to the library' }),
+          ];
+          return { frames, legend };
+        }
+      }
+    </script>
+  </body>
+</html>

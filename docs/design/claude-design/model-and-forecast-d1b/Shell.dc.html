@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+      </helmet>
+      <div class="ph">
+        <nav class="rail" aria-label="Areas">
+          <div class="logo" title="Logo symbol (placeholder)"></div>
+          <sc-for list="{{ areas }}" as="a" hint-placeholder-count="4"><a class="ri {{ a.on }}" title="{{ a.n }}" aria-label="{{ a.n }}"><i class="ico"></i></a></sc-for>
+        </nav>
+        <div class="row jb">
+          <div class="crumb"><a>Library</a><span>/</span><a>TransDigm Group</a><span>/</span><span style="color:var(--text-primary)">{{ here }}</span></div>
+          <label class="sw"><input type="checkbox" class="srcs" /><span class="swt"></span>Show sources</label>
+        </div>
+        <div class="row jb" style="align-items:flex-end">
+          <div class="col">
+            <h1 class="h1">TransDigm Group</h1>
+            <div class="row" style="gap:8px">
+              <span class="badge lb">As of 30 June 2025</span>
+              <span class="badge lb">Annual review</span>
+              <span class="badge b-ok"><i class="sh sh-dot"></i>Finished</span>
+              <span class="badge lb">Sample data</span>
+            </div>
+          </div>
+          <sc-if value="{{ isForecast }}" hint-placeholder-val="{{ false }}"><a class="btn">Open the financial model</a></sc-if>
+          <sc-if value="{{ isModel }}" hint-placeholder-val="{{ true }}"><a class="btn">Back to the report</a></sc-if>
+        </div>
+        <nav class="tabs" aria-label="Pages">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5"><a class="tab {{ t.on }}">{{ t.n }}<sc-if value="{{ t.c }}" hint-placeholder-val="{{ false }}"><span class="cnt">{{ t.c }}</span></sc-if></a></sc-for>
+        </nav>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"tab": {"editor": "enum", "default": "Front page", "options": ["Front page", "Analysis", "Model", "Portfolio fit", "Limitations", "Forecast"], "tsType": "string"}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const tab = this.props.tab ?? 'Front page';
+          const isForecast = tab === 'Forecast';
+          const names = isForecast
+            ? [['Overview'], ['Changes', '5'], ['Modules', '11'], ['Forecast'], ['Evidence']]
+            : [['Front page'], ['Analysis'], ['Model'], ['Portfolio fit'], ['Limitations', '6'], ['Evidence ↗']];
+          return {
+            isForecast, isModel: !isForecast,
+            here: isForecast ? 'Forecast' : 'Financial model',
+            areas: [['Library', 1], ['Start a run', 0], ['Run activity', 0], ['Signal', 0]].map(a => ({ n: a[0], on: a[1] ? 'on' : '' })),
+            tabs: names.map(t => ({ n: t[0], c: t[1] || '', on: (t[0] === tab ? 'on' : '') + (t[0].indexOf('Evidence') === 0 && !isForecast ? ' out' : '') }))
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+    <script src="./charts.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+        <link href="./mock3.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" data-screen-label="Model: Model">
+        <dc-import name="Shell" tab="Model" hint-size="100%,220px"></dc-import>
+
+        <section class="sec" data-screen-label="Cases">
+          <div class="row jb"><h2 class="h2">Two cases</h2><span class="small t3">Choose a case: the forecast columns and every chart below follow it.</span></div>
+          <div class="g2" role="radiogroup" aria-label="Case">
+            <label class="cbx d"><input type="radio" name="case" class="case-b" /><span class="cbx-h">Base case<span>Management plan, trimmed</span></span><p>Aftermarket sales grow 8% a year and margins hold near 53%. Cash builds on the balance sheet.</p><p class="t3">Leaves out: acquisitions and any further special dividend.</p><button class="trace" aria-label="Show the sources for this case" title="Show sources">&#8599;</button></label>
+            <label class="cbx"><input type="radio" name="case" class="case-d" /><span class="cbx-h">Downside case<span>Traffic shock</span></span><p>Flight hours fall 10% in FY26 and recover half in FY27; prices stay flat; floating debt costs 100 basis points more.</p><p class="t3">Leaves out: covenant waivers and asset sales.</p><button class="trace" aria-label="Show the sources for this case" title="Show sources">&#8599;</button></label>
+          </div>
+        </section>
+
+        <section class="card stm" data-screen-label="Statements">
+          <div class="row jb">
+            <div><h2 class="h2">Statements</h2><p class="small t3">USD millions unless a unit is shown. Fiscal years end 30 September.</p></div>
+            <div class="bg"><label class="bgi d"><input type="radio" name="v-stm" class="rf" />Figures</label><label class="bgi"><input type="radio" name="v-stm" class="rb" />Bars</label></div>
+          </div>
+          <nav class="tabs" aria-label="Statement">
+            <label class="tab l-is"><input type="radio" name="stmt" class="s-is" />Income statement</label>
+            <label class="tab"><input type="radio" name="stmt" class="sx s-cf" />Cash flow</label>
+            <label class="tab"><input type="radio" name="stmt" class="sx s-bs" />Balance sheet</label>
+            <label class="tab"><input type="radio" name="stmt" class="sx s-kp" />Key measures</label>
+          </nav>
+          <sc-for list="{{ stms }}" as="s" hint-placeholder-count="1">
+            <div class="pn {{ s.k }}">
+              <div class="tw">
+                <div class="st" role="table">
+                  <div class="tr thr" role="row">
+                    <span class="td" role="columnheader">{{ s.n }}</span>
+                    <sc-for list="{{ head }}" as="h" hint-placeholder-count="7"><span class="td {{ h.k }}" role="columnheader">{{ h.t }}<br /><span class="note cb">{{ h.s }}</span><span class="note cd">{{ h.sd }}</span></span></sc-for>
+                    <span class="td tc" role="columnheader"></span>
+                  </div>
+                  <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="7">
+                    <div class="tr {{ r.k }}" role="row">
+                      <span class="td" role="rowheader">{{ r.l }}<sc-if value="{{ r.gap }}" hint-placeholder-val="{{ false }}"><span class="gapb"><i class="sh sh-dash"></i>Not established for this run</span></sc-if></span>
+                      <sc-for list="{{ r.c }}" as="c" hint-placeholder-count="7"><span class="td {{ c.k }}" role="cell"><sc-if value="{{ c.ok }}" hint-placeholder-val="{{ true }}"><span class="cb">{{ c.v }}<i class="cbar {{ c.n }}" style="width:{{ c.w }}"></i></span><span class="cd">{{ c.d }}<i class="cbar {{ c.nd }}" style="width:{{ c.wd }}"></i></span></sc-if><sc-if value="{{ c.wh }}" hint-placeholder-val="{{ false }}"><span class="withheld"><i class="redact"></i><span class="badge b-neu">Withheld</span></span></sc-if></span></sc-for>
+                      <span class="td tc" role="cell"><button class="trace" aria-label="Show the sources for this row" title="Show sources">&#8599;</button></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+          <p class="basis">n.a. means the figure is missing, not zero. A zero is written as 0. Shaded columns are forecast.</p>
+        </section>
+
+        <section class="sec" data-screen-label="Bridges">
+          <h2 class="h2">Bridges</h2>
+          <div class="g2">
+            <sc-for list="{{ bridges }}" as="b" hint-placeholder-count="2">
+              <div class="card">
+                <div class="cf">
+                  <div class="cf-h">
+                    <div><h3 class="cf-t">{{ b.title }}</h3><p class="cf-s">{{ b.sub }}</p></div>
+                    <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+                    <div class="bg"><label class="bgi d"><input type="radio" name="{{ b.id }}" class="rc" />Chart</label><label class="bgi"><input type="radio" name="{{ b.id }}" class="rt" />Table</label></div>
+                  </div>
+                  <sc-for list="{{ b.cases }}" as="c" hint-placeholder-count="1">
+                    <div class="ch {{ c.cls }}">
+                      <div class="plot">
+                        <div class="yt"><sc-for list="{{ b.yt }}" as="y" hint-placeholder-count="5"><span>{{ y.t }}</span></sc-for></div>
+                        <div class="pa"><div class="cols">
+                          <sc-for list="{{ c.s }}" as="s" hint-placeholder-count="6"><div class="cg"><sc-if value="{{ s.ok }}" hint-placeholder-val="{{ true }}"><div class="fl {{ s.c }}" style="bottom:{{ s.bot }};height:{{ s.h }}"><span>{{ s.t }}</span></div></sc-if><sc-if value="{{ s.na }}" hint-placeholder-val="{{ false }}"><div class="bna">n.a.</div></sc-if></div></sc-for>
+                        </div></div>
+                        <div></div>
+                        <div class="xt"><sc-for list="{{ c.s }}" as="s" hint-placeholder-count="6"><span>{{ s.l }}</span></sc-for></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <div class="ch lg h"><span><i class="k sq"></i>Total</span><span><i class="k sq kup"></i>Increase (plus)</span><span><i class="k sq kdn"></i>Decrease (minus)</span></div>
+                  <div class="tb"><dc-import name="Tbl" t="{{ b.t }}" hint-size="100%,240px"></dc-import></div>
+                  <p class="basis">{{ b.basis }}</p>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section class="card" data-screen-label="Case comparison">
+          <div class="cf">
+            <div class="cf-h">
+              <div><h3 class="cf-t">The two cases side by side</h3><p class="cf-s">FY27, each measure on its own scale</p></div>
+              <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+              <div class="bg"><label class="bgi d"><input type="radio" name="v-cmp" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-cmp" class="rt" />Table</label></div>
+            </div>
+            <div class="ch">
+              <div class="g3">
+                <sc-for list="{{ cmp }}" as="m" hint-placeholder-count="6">
+                  <div class="mini">
+                    <h4>{{ m.l }}</h4>
+                    <div class="hb" style="grid-template-columns:72px minmax(0,1fr) 56px">
+                      <span class="hb-l">Base</span><div class="hb-t"><i class="hb-b" style="width:{{ m.wb }}"></i></div><span class="hb-v">{{ m.b }}</span>
+                      <span class="hb-l">Downside</span><div class="hb-t"><sc-if value="{{ m.ok }}" hint-placeholder-val="{{ true }}"><i class="hb-b" style="width:{{ m.wd }};background:var(--s2)"></i></sc-if><sc-if value="{{ m.na }}" hint-placeholder-val="{{ false }}"><span class="na" style="line-height:28px;font-size:12px;font-weight:500">n.a.</span></sc-if></div><span class="hb-v">{{ m.d }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div class="lg h" style="margin-top:24px"><span><i class="k sq"></i>Base case</span><span><i class="k sq k2"></i>Downside case</span></div>
+            </div>
+            <div class="tb"><dc-import name="Tbl" t="{{ tCmp }}" hint-size="100%,260px"></dc-import></div>
+            <p class="basis">Lowest cash balance was not worked out for the downside case because the revolver terms are withheld.</p>
+          </div>
+        </section>
+
+        <section class="sec" data-screen-label="Debt">
+          <h2 class="h2">Debt</h2>
+          <div class="g2">
+            <div class="card">
+              <div class="cf">
+                <div class="cf-h">
+                  <div><h3 class="cf-t">Debt by instrument</h3><p class="cf-s">30 June 2025, USD 29,700 million in all</p></div>
+                  <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+                  <div class="bg"><label class="bgi d"><input type="radio" name="v-stk" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-stk" class="rt" />Table</label></div>
+                </div>
+                <div class="ch col" style="gap:24px">
+                  <div class="stack"><sc-for list="{{ stack }}" as="s" hint-placeholder-count="4"><i style="width:{{ s.w }};background:{{ s.col }}" title="{{ s.l }}"></i></sc-for></div>
+                  <div class="rk"><sc-for list="{{ stack }}" as="s" hint-placeholder-count="4"><i class="k sq" style="background:{{ s.col }};width:12px;height:12px"></i><span>{{ s.l }}</span><b>{{ s.v }}</b><b class="t3">{{ s.p }}</b></sc-for></div>
+                </div>
+                <div class="tb"><dc-import name="Tbl" t="{{ tStack }}" hint-size="100%,220px"></dc-import></div>
+                <p class="basis">Ranked by size. Term loans and secured notes share the same security.</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="cf">
+                <div class="cf-h">
+                  <div><h3 class="cf-t">Maturities by year</h3><p class="cf-s">Calendar years, USD millions</p></div>
+                  <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+                  <div class="bg"><label class="bgi d"><input type="radio" name="v-mat" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-mat" class="rt" />Table</label></div>
+                </div>
+                <div class="ch">
+                  <div class="plot">
+                    <div class="yt"><span>0</span><span>1,250</span><span>2,500</span><span>3,750</span><span>5,000</span></div>
+                    <div class="pa"><div class="cols">
+                      <sc-for list="{{ mat }}" as="g" hint-placeholder-count="6"><div class="cg"><sc-for list="{{ g.bars }}" as="b" hint-placeholder-count="3"><sc-if value="{{ b.ok }}" hint-placeholder-val="{{ true }}"><div class="b {{ b.c }}" style="height:{{ b.h }}"><span>{{ b.t }}</span></div></sc-if><sc-if value="{{ b.na }}" hint-placeholder-val="{{ false }}"><div class="bna">n.a.</div></sc-if></sc-for></div></sc-for>
+                    </div></div>
+                    <div></div>
+                    <div class="xt"><sc-for list="{{ mat }}" as="g" hint-placeholder-count="6"><span>{{ g.l }}</span></sc-for></div>
+                  </div>
+                  <div class="lg h" style="margin-top:16px"><span><i class="k sq"></i>Term loans</span><span><i class="k sq k2"></i>Secured notes</span><span><i class="k sq k3"></i>Subordinated notes</span></div>
+                </div>
+                <div class="tb"><dc-import name="Tbl" t="{{ tMat }}" hint-size="100%,260px"></dc-import></div>
+                <p class="basis">Nothing falls due in 2026 on the notes (0). Loan repayments for 2026 were not established (n.a.).</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="g2" data-screen-label="Recovery">
+          <div class="card">
+            <div class="cf">
+              <div class="cf-h">
+                <div><h3 class="cf-t">Recovery by class and case</h3><p class="cf-s">Share of the claim recovered if the company defaulted</p></div>
+                <button class="trace" aria-label="Show the sources for this chart" title="Show sources">&#8599;</button>
+                <div class="bg"><label class="bgi d"><input type="radio" name="v-rec" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-rec" class="rt" />Table</label></div>
+              </div>
+              <div class="ch">
+                <div class="plot">
+                  <div class="yt"><span>0</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+                  <div class="pa"><div class="cols">
+                    <sc-for list="{{ rec }}" as="g" hint-placeholder-count="3"><div class="cg"><sc-for list="{{ g.bars }}" as="b" hint-placeholder-count="2"><sc-if value="{{ b.ok }}" hint-placeholder-val="{{ true }}"><div class="b {{ b.c }}" style="height:{{ b.h }};width:44px"><span>{{ b.t }}</span></div></sc-if><sc-if value="{{ b.na }}" hint-placeholder-val="{{ false }}"><div class="bna" style="width:44px">n.a.</div></sc-if></sc-for></div></sc-for>
+                  </div></div>
+                  <div></div>
+                  <div class="xt"><sc-for list="{{ rec }}" as="g" hint-placeholder-count="3"><span>{{ g.l }}</span></sc-for></div>
+                </div>
+                <div class="lg h" style="margin-top:16px"><span><i class="k sq"></i>Base case</span><span><i class="k sq k2"></i>Downside case</span></div>
+              </div>
+              <div class="tb"><dc-import name="Tbl" t="{{ tRec }}" hint-size="100%,180px"></dc-import></div>
+              <p class="basis">Recovery on the receivables facility was not worked out for the downside case.</p>
+            </div>
+          </div>
+          <div class="col" style="gap:24px">
+            <div class="gapbox"><b><i class="sh sh-dash"></i>Not established for this run</b><p class="small">Months of liquidity under the downside case. The revolver terms are withheld, so the chart could not be drawn.</p></div>
+            <a class="item"><span class="item-m"><i class="ico"></i></span><div><b>Check a figure</b><p>Every figure here traces to its source in the run's Evidence, filtered to the model.</p></div><span class="item-e">&#8599;</span></a>
+          </div>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          // Sample data. Each row: label, row kind, unit, then FY22 FY23 FY24 LTM, base FY25E to FY27E, downside FY25E to FY27E. na = missing, W = withheld.
+          const S = {
+            'p-is|Income statement': [
+              ['Revenue', '', '', '5429 6585 7940 8580 8840 9520 10190 8650 8780 9050'],
+              ['Gross profit', 'sub', '', '3099 3840 4670 5060 5220 5640 6050 5080 5040 5250'],
+              ['EBITDA as defined', 'tot', '', '2646 3395 4173 4560 4690 5080 5460 4560 4120 4350'],
+              ['Depreciation and amortisation', 'sub', '', '-253 -268 -310 -345 -355 -370 -385 -355 -370 -385'],
+              ['Operating income', '', '', '2220 2920 3540 3880 3990 4350 4700 3860 3400 3610'],
+              ['Net interest expense', 'sub', '', '-1076 -1164 -1286 -1540 -1560 -1560 -1530 -1570 -1790 -1800'],
+              ['Income tax', 'sub', '', '-261 -417 -500 -560 -583 -670 -760 -550 -390 -430'],
+              ['Net income', 'tot', '', '866 1298 1714 1740 1810 2080 2370 1700 1180 1340']],
+            'p-cf|Cash flow': [
+              ['EBITDA as defined', '', '', '2646 3395 4173 4560 4690 5080 5460 4560 4120 4350'],
+              ['Cash interest', 'sub', '', '-1010 na -1480 -1560 -1570 -1560 -1530 -1580 -1790 -1800'],
+              ['Cash tax', 'sub', '', '-240 -390 -470 -530 -560 -610 -700 -530 -430 -400'],
+              ['Change in working capital', 'sub', '', '-260 -310 -290 -340 -230 -170 -180 -150 60 -120'],
+              ['Capital expenditure', 'sub', '', '-119 -139 -165 -180 -186 -200 -214 -170 -150 -160'],
+              ['Free cash flow', 'tot', '', '1017 na 1768 1950 2144 2540 2836 2130 1810 1870'],
+              ['Acquisitions', '', '', '-437 -762 -2347 -650 W 0 0 W 0 0'],
+              ['Dividends and buybacks', '', '', '-1091 0 -2038 -4350 0 0 0 0 0 0']],
+            'p-bs|Balance sheet': [
+              ['Cash', '', '', '3001 3472 6261 2790 3400 5940 8776 3380 5190 7060'],
+              ['Trade receivables', 'sub', '', '967 1230 1381 1460 1500 1610 1720 1470 1480 1530'],
+              ['Inventories', 'sub', '', 'na 1616 1876 2010 2060 2200 2340 2050 2000 2080'],
+              ['Goodwill and intangibles', 'sub', '', '11360 11900 14500 14900 14900 14900 14900 14900 14900 14900'],
+              ['Total assets', 'tot', '', '18107 19970 25586 23100 23900 26700 29800 23800 25600 27700'],
+              ['Gross debt', '', '', '19795 19750 24880 29700 29700 29700 29700 29700 29700 29700'],
+              ['Other liabilities', 'sub', '', '2150 2190 2680 2760 2800 2850 2900 2800 2850 2900'],
+              ['Pension deficit', 'gap', '', 'na na na na na na na na na na'],
+              ['Shareholders’ equity', 'tot', '', '-3838 -1970 -1974 -9360 -8600 -5850 -2800 -8700 -6950 -4900']],
+            'p-kp|Key measures': [
+              ['Revenue growth', '', '%', 'na 21.3 20.6 8.1 11.3 7.7 7.0 8.9 1.5 3.1'],
+              ['EBITDA margin', '', '%', '48.7 51.6 52.6 53.1 53.1 53.4 53.6 52.7 46.9 48.1'],
+              ['Net leverage', '', 'x', '6.3 4.8 4.5 5.9 5.6 4.7 3.8 5.8 5.9 5.2'],
+              ['Interest cover', '', 'x', '2.6 na 2.8 2.9 3.0 3.3 3.6 2.9 2.3 2.4'],
+              ['Free cash flow to debt', '', '%', '5.1 na 7.1 6.6 7.2 8.6 9.5 7.2 6.1 6.3'],
+              ['Capital expenditure to revenue', '', '%', '2.2 2.1 2.1 2.1 2.1 2.1 2.1 2.0 1.7 1.8']]
+          };
+          const fmt = (v, u) => v == null ? 'n.a.' : (v < 0 ? '-' : '') + (u ? Math.abs(v).toFixed(1) + u : Math.abs(v).toLocaleString('en-US'));
+          const stms = Object.keys(S).map(key => ({ k: key.split('|')[0], n: key.split('|')[1], rows: S[key].map(r => {
+            const raw = r[3].split(' '), num = raw.map(t => t === 'na' || t === 'W' ? null : parseFloat(t));
+            const mx = Math.max.apply(null, num.filter(v => v != null).map(Math.abs).concat([1]));
+            const base = num.slice(0, 7), down = num.slice(0, 4).concat(num.slice(7));
+            const c = base.map((v, i) => { const dv = down[i], wh = raw[i] === 'W';
+              return { k: (i > 3 ? 'fc' : '') + (v == null ? ' na' : ''), ok: !wh, wh, v: fmt(v, r[2]), d: fmt(dv, r[2]),
+                w: v == null ? '0' : Math.abs(v) / mx * 100 + '%', wd: dv == null ? '0' : Math.abs(dv) / mx * 100 + '%', n: v < 0 ? 'neg' : '', nd: dv < 0 ? 'neg' : '' }; });
+            return { l: r[0], k: r[1] === 'gap' ? 'sub' : r[1], gap: r[1] === 'gap', c };
+          }) }));
+          const head = [['FY22', 'Actual'], ['FY23', 'Actual'], ['FY24', 'Actual'], ['LTM', 'To June 2025'], ['FY25E', 'Base', 'Downside'], ['FY26E', 'Base', 'Downside'], ['FY27E', 'Base', 'Downside']]
+            .map((h, i) => ({ t: h[0], s: h[1], sd: h[2] || h[1], k: i > 3 ? 'fc' : '' }));
+          const cases = (b, d, max) => [{ cls: 'cb', s: CH.wf(b, max) }, { cls: 'cd', s: CH.wf(d, max) }];
+          const bridges = [
+            { id: 'v-eb', title: 'EBITDA bridge', sub: 'FY24 to FY25E, USD millions', yt: CH.ticks(['0', '1,500', '3,000', '4,500', '6,000']), basis: 'Costs include the first full year of the 2024 acquisitions.',
+              cases: cases(
+                [['FY24', 0, 4173, '4,173', 'tot'], ['Volume', 4173, 4503, '+330', 'up'], ['Price', 4503, 4793, '+290', 'up'], ['Acquisitions', 4793, 4913, '+120', 'up'], ['Costs', 4913, 4690, '-223', 'dn'], ['FY25E', 0, 4690, '4,690', 'tot']],
+                [['FY24', 0, 4173, '4,173', 'tot'], ['Volume', 4173, 4323, '+150', 'up'], ['Price', 4323, 4503, '+180', 'up'], ['Acquisitions', 4503, 4623, '+120', 'up'], ['Costs', 4623, 4560, '-63', 'dn'], ['FY25E', 0, 4560, '4,560', 'tot']], 6000),
+              t: CH.tbl(['USD millions', 'Base case', 'Downside case'], [['EBITDA as defined, FY24', '4,173', '4,173'], ['Volume', '330', '150'], ['Price', '290', '180'], ['Acquisitions', '120', '120'], ['Costs', '-223', '-63'], ['EBITDA as defined, FY25E', '4,690', '4,560']]) },
+            { id: 'v-nd', title: 'Net debt walk', sub: 'FY25E to FY27E, USD millions', yt: CH.ticks(['0', '7,500', '15,000', '22,500', '30,000']), basis: 'Acquisitions are assumed at zero (0). Shareholder returns were not forecast (n.a.) and are not counted as zero.',
+              cases: cases(
+                [['FY25E', 0, 26300, '26,300', 'tot'], ['Cash flow FY26', 26300, 23760, '-2,540', 'dn'], ['Cash flow FY27', 23760, 20924, '-2,836', 'dn'], ['Acquisitions', 20924, 20924, '0', 'up'], ['Shareholder returns', null, null, '', 'na'], ['FY27E', 0, 20924, '20,924', 'tot']],
+                [['FY25E', 0, 26320, '26,320', 'tot'], ['Cash flow FY26', 26320, 24510, '-1,810', 'dn'], ['Cash flow FY27', 24510, 22640, '-1,870', 'dn'], ['Acquisitions', 22640, 22640, '0', 'up'], ['Shareholder returns', null, null, '', 'na'], ['FY27E', 0, 22640, '22,640', 'tot']], 30000),
+              t: CH.tbl(['USD millions', 'Base case', 'Downside case'], [['Net debt, FY25E', '26,300', '26,320'], ['Free cash flow, FY26', '-2,540', '-1,810'], ['Free cash flow, FY27', '-2,836', '-1,870'], ['Acquisitions', '0', '0'], ['Shareholder returns', 'n.a.', 'n.a.'], ['Net debt, FY27E', '20,924', '22,640']]) }
+          ];
+          // comparison: label, base, downside (null = missing), base text, downside text
+          const cmp = [['Revenue, USD millions', 10190, 9050, '10,190', '9,050'], ['EBITDA as defined, USD millions', 5460, 4350, '5,460', '4,350'], ['Free cash flow, USD millions', 2836, 1870, '2,836', '1,870'],
+            ['Net leverage, times', 3.8, 5.2, '3.8x', '5.2x'], ['Interest cover, times', 3.6, 2.4, '3.6x', '2.4x'], ['Lowest cash balance, USD millions', 2790, null, '2,790', '']]
+            .map(m => { const mx = Math.max(m[1], m[2] || 0); return { l: m[0], b: m[3], d: m[4], ok: m[2] != null, na: m[2] == null, wb: m[1] / mx * 100 + '%', wd: m[2] == null ? '0' : m[2] / mx * 100 + '%' }; });
+          const stack = [['Term loans', 38.0, '11,300', '38%', 'var(--s1)'], ['Senior secured notes', 35.2, '10,450', '35%', 'var(--s2)'], ['Senior subordinated notes', 24.6, '7,300', '25%', 'var(--s3)'], ['Receivables facility', 2.2, '650', '2%', 'var(--s4)']]
+            .map(s => ({ l: s[0], w: s[1] + '%', v: s[2], p: s[3], col: s[4] }));
+          return {
+            stms, head, bridges, cmp, stack,
+            mat: CH.cols([['2026', [null, 0, 0], ['', '0', '0']], ['2027', [0, 0, 550], ['', '', '550']], ['2028', [3600, 2100, 0], ['3,600', '2,100', '']], ['2029', [0, 2750, 2650], ['', '2,750', '2,650']], ['2030', [4500, 1450, 0], ['4,500', '1,450', '']], ['2031 on', [3200, 4150, 4100], ['3,200', '4,150', '4,100']]], 5000),
+            rec: CH.cols([['Term loans and secured notes', [100, 100], ['100%', '100%']], ['Senior subordinated notes', [62, 31], ['62%', '31%']], ['Receivables facility', [100, null], ['100%', '']]], 100),
+            tCmp: CH.tbl(['FY27', 'Base case', 'Downside case'], [['Revenue, USD millions', '10,190', '9,050'], ['EBITDA as defined, USD millions', '5,460', '4,350'], ['Free cash flow, USD millions', '2,836', '1,870'], ['Net leverage', '3.8x', '5.2x'], ['Interest cover', '3.6x', '2.4x'], ['Lowest cash balance, USD millions', '2,790', 'n.a.']]),
+            tStack: CH.tbl(['Instrument', 'USD millions', 'Share'], [['Term loans', '11,300', '38%'], ['Senior secured notes', '10,450', '35%'], ['Senior subordinated notes', '7,300', '25%'], ['Receivables facility', '650', '2%']]),
+            tMat: CH.tbl(['Year', 'Term loans', 'Secured notes', 'Subordinated notes'], [['2026', 'n.a.', '0', '0'], ['2027', '0', '0', '550'], ['2028', '3,600', '2,100', '0'], ['2029', '0', '2,750', '2,650'], ['2030', '4,500', '1,450', '0'], ['2031 on', '3,200', '4,150', '4,100']]),
+            tRec: CH.tbl(['Class', 'Base case', 'Downside case'], [['Term loans and secured notes', '100%', '100%'], ['Senior subordinated notes', '62%', '31%'], ['Receivables facility', '100%', 'n.a.']])
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

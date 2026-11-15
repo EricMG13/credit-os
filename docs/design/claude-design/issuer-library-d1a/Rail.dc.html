@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+      </helmet>
+      <aside class="u-rail" aria-label="Application areas">
+        <div class="u-rail-card">
+          <div class="u-rail-logo"><div class="ph" style="width:24px;height:24px;border-radius:6px" title="Logo symbol placeholder"></div></div>
+          <nav class="u-rail-list">
+            <a class="u-rail-i on" href="#" title="Library" aria-label="Library"><span class="ico"></span></a>
+            <a class="u-rail-i" href="#" title="Model" aria-label="Model"><span class="ico" style="border-radius:50%"></span></a>
+            <a class="u-rail-i" href="#" title="Start a run" aria-label="Start a run"><span class="ico" style="border-style:dashed"></span></a>
+            <a class="u-rail-i" href="#" title="Signal" aria-label="Signal"><span class="ico" style="border-radius:10px 10px 10px 2px"></span></a>
+          </nav>
+          <div class="u-rail-foot">
+            <a class="u-rail-i" href="#" title="Settings" aria-label="Settings"><span class="ico" style="border-radius:3px"></span></a>
+            <span class="u-av u-av-md">AN</span>
+          </div>
+        </div>
+      </aside>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

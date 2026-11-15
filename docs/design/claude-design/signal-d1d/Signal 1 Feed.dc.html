@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700&display=swap" />
+        <link rel="stylesheet" href="./signal.css" />
+        <script src="./signal.js"></script>
+      </helmet>
+      <div class="page">
+        <header class="ph">
+          <h1>Signal: feed</h1>
+          <p>The feed in its four views, with the four story kinds. Sample stories are invented. Parts that need a paid model call (the AI line, signal strength, digests) are listed in the mock record.</p>
+        </header>
+
+        <section data-screen-label="Feed: For you, writer">
+          <p class="cap"><b>1. For you, as a writer.</b> All four story kinds, new stories waiting, duplicates folded, a shared story, an unread digest.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh">
+                <h2>For you</h2>
+                <span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span>
+                <div class="r"><div class="bg"><span class="on">Top</span><span>Latest</span></div></div>
+              </div>
+              <div class="fb">
+                <div class="mt"><span class="on">All</span><span>News</span><span>Regulatory cases</span><span>Rating actions</span><span>Digests</span></div>
+                <div class="in sm"><sg-i n="search" s="16"></sg-i>Search stories</div>
+              </div>
+              <div class="ctr"><span class="pill"><i></i><b>4 new stories</b>Show</span></div>
+              <div class="card">
+
+                <article class="st">
+                  <div class="mg">HW</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                    <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                    <p class="sm">Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.</p>
+                    <div class="row"><span class="an"><i>AI</i><span>The charge lands in the quarter its leverage covenant steps down.</span></span></div>
+                    <div class="row">
+                      <span class="rt"><span><sg-i n="star" f="1"></sg-i><sg-i n="star" f="1"></sg-i><sg-i n="star" f="1"></sg-i></span>Strong</span>
+                      <span class="avg"><span class="av xs">CL</span><span class="av xs">MP</span><span class="av xs">RG</span><span class="av xs">+1</span></span><span>Also in 4 other sources</span>
+                    </div>
+                    <div class="row"><span class="av xs">TO</span><span>Shared to Leveraged credit by Tobias O</span></div>
+                    <div class="row tgs"><span class="tag">Packaging</span><span class="tag">Restructuring</span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment<span class="cnt" style="margin-left:4px">3</span></span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+
+                <article class="st">
+                  <div class="mg">RG</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Regulatory case</span><span>Regulatory Gazette</span><span>5 h ago</span></div>
+                    <h3><a href="#">Competition authority opens in-depth review of Tessaly Telecom's tower sale</a></h3>
+                    <p class="sm">The authority says the sale could reduce competition for mast access in rural areas. Tessaly says it will offer remedies.</p>
+                    <div class="pg">
+                      <div class="pl"><span>In-depth review</span><span>Stage 3 of 4</span></div>
+                      <div class="trk"><i style="width:75%"></i></div>
+                      <div class="stg"><span>Opened</span><span>Initial review</span><b>In-depth review</b><span>Decision</span></div>
+                    </div>
+                    <div class="row"><span class="an"><i>AI</i><span>Sale proceeds are earmarked to repay the 2027 notes; a delay moves that date.</span></span></div>
+                    <div class="row"><span class="rt"><span><sg-i n="star" f="1"></sg-i><sg-i n="star" f="1"></sg-i><sg-i n="star"></sg-i></span>Moderate</span></div>
+                    <div class="row tgs"><span class="tag">Telecoms</span><span class="tag">Disposals</span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+
+                <article class="st">
+                  <div class="mg">NR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Rating action</span><span>Northgate Ratings</span><span>Yesterday</span></div>
+                    <h3><a href="#">Northgate Ratings downgrades Halvorsen Marine to B+</a></h3>
+                    <p class="sm">The agency cites weaker charter rates and a refinancing due in 2027.</p>
+                    <div class="row">
+                      <span class="bgp"><b>BB-</b><sg-i n="arrow" s="16"></sg-i><b>B+</b><span style="padding-right:8px">Downgrade, one notch</span></span>
+                      <span class="bgp"><b>Negative</b><sg-i n="arrow" s="16"></sg-i><b>Stable</b><span style="padding-right:8px">Outlook</span></span>
+                    </div>
+                    <div class="row"><span class="an"><i>AI</i><span>B+ is one notch above the level that raises its loan margin.</span></span></div>
+                    <div class="row"><span class="rt"><span><sg-i n="star" f="1"></sg-i><sg-i n="star" f="1"></sg-i><sg-i n="star" f="1"></sg-i></span>Strong</span></div>
+                    <div class="row tgs"><span class="tag">Shipping</span><span class="tag">Rating actions</span></div>
+                    <div class="acts"><span class="b t on"><sg-i n="bookmark" f="1"></sg-i>Saved</span><span class="b t"><sg-i n="msg"></sg-i>Comment<span class="cnt" style="margin-left:4px">1</span></span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+
+                <article class="st">
+                  <div class="mg">WB</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Digest</span><span class="lb">AI</span><span>Weekly brief</span><span>Fri 13 Nov</span><i class="dot" title="Unread" style="margin-left:0"></i><span>Unread</span></div>
+                    <h3><a href="#">Leveraged credit: the week to 13 November</a></h3>
+                    <ol class="lp" style="margin-top:12px">
+                      <li><span class="nm">1</span><div><b>Packaging issuers are cutting capacity, not prices</b></div></li>
+                      <li><span class="nm">2</span><div><b>Two telecoms disposals are now in in-depth review</b></div></li>
+                      <li><span class="nm">3</span><div><b>Shipping downgrades cluster around 2027 maturities</b></div></li>
+                    </ol>
+                    <div class="row"><span>5 points from 41 stories</span></div>
+                    <div class="acts"><a class="b lk" href="#">Read the digest<sg-i n="arrow"></sg-i></a></div>
+                  </div>
+                </article>
+
+                <article class="st">
+                  <div class="mg">CL</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>Credit Ledger Daily</span><span>Yesterday</span></div>
+                    <h3><a href="#">Brightwell Foods extends its term loan by three years</a></h3>
+                    <p class="sm">Lenders holding most of the EUR 400m loan agreed to the extension. The margin rises by 50 basis points.</p>
+                    <div class="row"><span class="rt"><span><sg-i n="star" f="1"></sg-i><sg-i n="star"></sg-i><sg-i n="star"></sg-i></span>Light</span></div>
+                    <div class="row tgs"><span class="tag">Food</span><span class="tag">Refinancing</span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+              <div class="ctr"><span class="b s">Show older</span></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Feed: Latest, reader">
+          <p class="cap"><b>2. Latest, as a reader.</b> Newest first, so no Top or Latest switch. A reader has no Comment or Share to group; nothing older exists, so no Show older.</p>
+          <sg-shell view="latest" name="Jonas W" role="Reader">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Latest</h2><span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span></div>
+              <div class="fb">
+                <div class="mt"><span class="on">All</span><span>News</span><span>Regulatory cases</span><span>Rating actions</span><span>Digests</span></div>
+                <div class="in sm"><sg-i n="search" s="16"></sg-i>Search stories</div>
+              </div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">MP</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>The Meridian Post</span><span>12 min ago</span></div>
+                    <h3><a href="#">Halvorsen Marine hires advisers on its 2027 notes</a></h3>
+                    <p class="sm">Two people familiar with the matter say the company has begun talks with noteholders.</p>
+                    <div class="row"><span class="an"><i>AI</i><span>Follows yesterday's downgrade; the notes are its largest maturity.</span></span></div>
+                    <div class="row"><span class="rt"><span><sg-i n="star" f="1"></sg-i><sg-i n="star" f="1"></sg-i><sg-i n="star"></sg-i></span>Moderate</span><span class="avg"><span class="av xs">HW</span><span class="av xs">CL</span></span><span>Also in 2 other sources</span></div>
+                    <div class="row tgs"><span class="tag">Shipping</span><span class="tag">Refinancing</span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">HW</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                    <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                    <p class="sm">Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.</p>
+                    <div class="row tgs"><span class="tag">Packaging</span><span class="tag">Restructuring</span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Feed: Saved">
+          <p class="cap"><b>3. Saved.</b> The reader's own saved stories, newest save first.</p>
+          <sg-shell view="saved" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>Saved</h2><span class="note">6 stories</span></div>
+              <div class="fb">
+                <div class="mt"><span class="on">All</span><span>News</span><span>Regulatory cases</span><span>Rating actions</span><span>Digests</span></div>
+                <div class="in sm"><sg-i n="search" s="16"></sg-i>Search saved stories</div>
+              </div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">NR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Rating action</span><span>Northgate Ratings</span><span>Yesterday</span></div>
+                    <h3><a href="#">Northgate Ratings downgrades Halvorsen Marine to B+</a></h3>
+                    <p class="sm">The agency cites weaker charter rates and a refinancing due in 2027.</p>
+                    <div class="row"><span class="bgp"><b>BB-</b><sg-i n="arrow" s="16"></sg-i><b>B+</b><span style="padding-right:8px">Downgrade, one notch</span></span></div>
+                    <div class="acts"><span class="b t on"><sg-i n="bookmark" f="1"></sg-i>Saved</span><span class="b t"><sg-i n="msg"></sg-i>Comment<span class="cnt" style="margin-left:4px">1</span></span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">RG</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Regulatory case</span><span>Regulatory Gazette</span><span>3 Nov</span></div>
+                    <h3><a href="#">Authority clears Brightwell Foods' dairy purchase with conditions</a></h3>
+                    <p class="sm">Brightwell must sell three depots within six months.</p>
+                    <div class="pg">
+                      <div class="pl"><span>Decision: cleared with conditions</span><span>Stage 4 of 4</span></div>
+                      <div class="trk"><i style="width:100%"></i></div>
+                      <div class="stg"><span>Opened</span><span>Initial review</span><span>In-depth review</span><b>Decision</b></div>
+                    </div>
+                    <div class="acts"><span class="b t on"><sg-i n="bookmark" f="1"></sg-i>Saved</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+              <div class="ctr"><span class="b s">Show older</span></div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Feed: topic view">
+          <p class="cap"><b>4. A topic.</b> One view per topic: its keywords as tags, the follow star, the kind filter set to Rating actions.</p>
+          <sg-shell view="shipping" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh">
+                <h2>Shipping</h2>
+                <span class="b s on"><sg-i n="star" f="1"></sg-i>Following</span>
+                <span class="bd ok"><i class="s fc"></i>Sources checked 6 min ago</span>
+                <div class="r"><div class="bg"><span>Top</span><span class="on">Latest</span></div></div>
+              </div>
+              <div class="tgs" style="margin-bottom:16px"><span class="tag">charter rates</span><span class="tag">tanker</span><span class="tag">container line</span><span class="tag">shipowner</span><span class="tag">Halvorsen Marine</span></div>
+              <div class="fb">
+                <div class="mt"><span>All</span><span>News</span><span>Regulatory cases</span><span class="on">Rating actions</span><span>Digests</span></div>
+                <div class="in sm"><sg-i n="search" s="16"></sg-i>Search in Shipping</div>
+              </div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">NR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Rating action</span><span>Northgate Ratings</span><span>Yesterday</span></div>
+                    <h3><a href="#">Northgate Ratings downgrades Halvorsen Marine to B+</a></h3>
+                    <p class="sm">The agency cites weaker charter rates and a refinancing due in 2027.</p>
+                    <div class="row"><span class="bgp"><b>BB-</b><sg-i n="arrow" s="16"></sg-i><b>B+</b><span style="padding-right:8px">Downgrade, one notch</span></span></div>
+                    <div class="acts"><span class="b t on"><sg-i n="bookmark" f="1"></sg-i>Saved</span><span class="b t"><sg-i n="msg"></sg-i>Comment<span class="cnt" style="margin-left:4px">1</span></span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+                <article class="st">
+                  <div class="mg">NR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="lb">Rating action</span><span>Northgate Ratings</span><span>28 Oct</span></div>
+                    <h3><a href="#">Northgate Ratings affirms Oakhaven Lines at BB, outlook to positive</a></h3>
+                    <p class="sm">The agency points to contract cover through 2028.</p>
+                    <div class="row"><span class="bgp"><b>BB</b><sg-i n="arrow" s="16"></sg-i><b>BB</b><span style="padding-right:8px">Affirmed</span></span><span class="bgp"><b>Stable</b><sg-i n="arrow" s="16"></sg-i><b>Positive</b><span style="padding-right:8px">Outlook</span></span></div>
+                    <div class="acts"><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><span class="b t"><sg-i n="msg"></sg-i>Comment</span><span class="b t"><sg-i n="share"></sg-i>Share to group</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

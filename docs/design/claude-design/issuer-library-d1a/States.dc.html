@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+      </helmet>
+      <div class="app" data-screen-label="States">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main" style="gap:48px">
+          <div><h1 class="h1">States</h1><p class="body t2" style="margin-top:6px">States that replace a whole screen or section. Gap, withheld and n.a. are drawn in place on the Module, data page.</p></div>
+
+          <section class="state" data-screen-label="No runs yet, home">
+            <span class="state-label">Library home · no runs yet (the library holds no issuer)</span>
+            <div class="frame">
+              <div class="u-ph"><div class="u-ph-l" style="gap:6px"><h2 class="h1">Library</h2><p class="u-ph-s">No issuers yet</p></div></div>
+              <div class="u-empty">
+                <span class="u-feat"><span class="ico ico-24"></span></span>
+                <div class="u-empty-c"><span class="u-empty-t">No runs yet</span><span class="u-empty-p">A run reads an issuer’s files and writes its report here. Start one to add the first issuer.</span></div>
+                <div class="u-empty-f"><a class="u-btn u-btn-p u-btn-md" href="#">Start a run</a></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="No report yet, issuer">
+            <span class="state-label">Report history · no report yet (this issuer has no finished run)</span>
+            <div class="frame">
+              <div class="u-ph"><div class="u-ph-l" style="gap:6px"><h2 class="h1">Corvane Fasteners</h2><p class="u-ph-s">One run, not finished</p></div></div>
+              <div class="u-empty" style="padding:24px 0">
+                <span class="u-feat"><span class="ico ico-24"></span></span>
+                <div class="u-empty-c"><span class="u-empty-t">No report yet</span><span class="u-empty-p">The only run on this issuer failed on 11 Nov 2026 before any module was delivered, so there is nothing to read. Start a new run to write the first report.</span></div>
+                <div class="u-empty-f"><a class="u-btn u-btn-s u-btn-md" href="#">Back to the library</a><a class="u-btn u-btn-p u-btn-md" href="#">Start a run</a></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="No earlier run">
+            <span class="state-label">Changes · no earlier run to compare</span>
+            <div class="frame">
+              <div class="u-empty" style="padding:24px 0">
+                <span class="u-feat"><span class="ico ico-24" style="border-radius:50%"></span></span>
+                <div class="u-empty-c"><span class="u-empty-t">No earlier run to compare</span><span class="u-empty-p">This is the first run on Halden Aerostructures. What changed will appear here after the next run.</span></div>
+                <div class="u-empty-f"><a class="u-btn u-btn-s u-btn-md" href="#">Open the Overview</a></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="Not assessable">
+            <span class="state-label">Module page · a failed or blocked module</span>
+            <div class="frame">
+              <h2 class="h2">Recovery</h2>
+              <div class="blocked">
+                <span class="u-badge dot c-neu"><span class="sh sh-slash"></span>Not assessable</span>
+                <p class="body grow prose">The security package documents were not among the files provided, so recovery by class could not be assessed.</p>
+              </div>
+              <p class="small t2 prose">Nothing from this module is shown and no figure elsewhere rests on it. The Overview’s recovery figure reads n.a. for the same reason.</p>
+              <div class="row"><a class="u-link" href="#">See this gap in Evidence</a></div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="Many modules">
+            <span class="state-label">Overview · many modules: a repeated state collapses to one item with its count</span>
+            <div class="s-items">
+              <sc-for list="{{ mods }}" as="m" hint-placeholder-count="4">
+                <a class="s-item" href="#" style="color:inherit;text-decoration:none">
+                  <span class="s-item-m"><span class="ico ico-16"></span></span>
+                  <span class="s-item-c"><span class="s-item-t">{{ m.t }}</span><span class="s-item-d">{{ m.d }}</span></span>
+                  <span class="s-item-a"><span class="{{ m.bcls }}"><span class="{{ m.sh }}"></span>{{ m.state }}</span><span class="chev chev-r t3"></span></span>
+                </a>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="Loading">
+            <span class="state-label">Any run page · still loading (static skeleton, no animation)</span>
+            <div class="stack" aria-busy="true">
+              <div class="skel" style="height:132px;border-radius:10px"></div>
+              <div class="u-metrics"><div class="u-metric"><div class="skel" style="width:50%"></div><div class="skel" style="height:38px;width:70%"></div><div class="skel" style="width:80%"></div></div><div class="u-metric"><div class="skel" style="width:50%"></div><div class="skel" style="height:38px;width:60%"></div><div class="skel" style="width:70%"></div></div><div class="u-metric"><div class="skel" style="width:50%"></div><div class="skel" style="height:38px;width:70%"></div><div class="skel" style="width:60%"></div></div></div>
+              <div class="s-lp"><div class="s-lp-i"><div class="skel" style="width:20px"></div><div class="s-lp-b"><div class="skel" style="width:30%"></div><div class="skel" style="width:85%"></div></div></div><div class="s-lp-i"><div class="skel" style="width:20px"></div><div class="s-lp-b"><div class="skel" style="width:36%"></div><div class="skel" style="width:70%"></div></div></div></div>
+            </div>
+          </section>
+
+          <section class="state" data-screen-label="Jump to an item">
+            <span class="state-label">Evidence · jump to an item (opens over the page from the search field)</span>
+            <div class="u-cmd" role="dialog" aria-label="Jump to an item">
+              <div class="u-cmd-s"><span class="ico" style="border-radius:50%"></span><span class="grow">leverage</span><span class="u-kbd" style="font-size:14px;line-height:20px;padding:2px 4px;background:var(--surface-subtle)">⌘K</span></div>
+              <div class="u-cmd-g"><div class="u-cmd-gh">Figures</div>
+                <div class="u-cmd-r"><div class="u-cmd-ri on"><span class="ico"></span>Net leverage 4.6x <span>Capital structure · T-0014</span></div></div>
+                <div class="u-cmd-r"><div class="u-cmd-ri"><span class="ico"></span>Secured leverage 3.3x <span>Capital structure · T-0016</span></div></div>
+              </div>
+              <div class="u-cmd-g"><div class="u-cmd-gh">Calculations</div>
+                <div class="u-cmd-r"><div class="u-cmd-ri"><span class="ico"></span>Net debt ÷ EBITDA <span>C-0412</span></div></div>
+              </div>
+              <div class="u-cmd-g" style="border-bottom:0"><div class="u-cmd-gh">Gaps</div>
+                <div class="u-cmd-r"><div class="u-cmd-ri"><span class="ico"></span>Peer figures on the same basis <span>Peer comparison · G-03</span></div></div>
+              </div>
+              <div class="u-cmd-f" style="border-top:1px solid var(--border-hairline)"><span><span class="u-key">↑↓</span>to move</span><span><span class="u-key">↵</span>to open</span><span><span class="u-key">esc</span>to close</span></div>
+            </div>
+          </section>
+
+          <p class="note">Mock D1a · States. Each block is a state of the screen named above it, not a screen of its own. “No runs yet” is the Library home state; “No report yet” is the per-issuer state.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const B = 'u-badge u-badge-sm dot ';
+          const mods = [
+            ['10 modules delivered', 'Business profile, Industry and competition, Financial performance, Cash flow and liquidity, Covenants and documentation, Management and governance, Rating outlook, Environmental, social and governance, Forecast, Credit snapshot.', 'Delivered', 'sh sh-dot m-ok', B + 'c-ok'],
+            ['Capital structure', 'Secured debt is long-dated; the unsecured notes mature first.', 'Delivered with gaps', 'sh sh-dash m-gap', B + 'c-gap'],
+            ['Peer comparison', 'More levered than four of five peers, with the highest margin.', 'Delivered with gaps', 'sh sh-dash m-gap', B + 'c-gap'],
+            ['Recovery', 'The security package documents were not among the files provided, so recovery by class could not be assessed.', 'Not assessable', 'sh sh-slash', B + 'c-neu']
+          ].map(m => ({ t: m[0], d: m[1], state: m[2], sh: m[3], bcls: m[4] }));
+          return { mods };
+        }
+      }
+    </script>
+  </body>
+</html>

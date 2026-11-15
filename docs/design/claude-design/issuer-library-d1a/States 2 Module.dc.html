@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./x.css" />
+        <link rel="stylesheet" href="./status.css" />
+        <link rel="stylesheet" href="./states2.css" />
+      </helmet>
+      <div class="app" data-screen-label="States 2, Module page heads">
+        <dc-import name="Rail" hint-size="68px,100%"></dc-import>
+        <main class="main" style="gap:48px">
+          <div><h1 class="h1">States 2, Module page heads</h1><p class="body t2" style="margin-top:6px">Draft for the owner's review: C-A (confidence), M-A with N-A (modules). Run: Halden Aerostructures as of 30 Sep 2026. Sample data. Confidence is shown only beside a delivered judgement; a module that reads Not assessable shows none, whatever its score.</p></div>
+
+          <section class="state" data-screen-label="L8 Scored">
+            <span class="state-label">L8 · Module page head, scored · Financial performance · the tooltip is drawn open beside the row</span>
+            <div class="frame">
+              <div class="row-b"><h2 class="h2">Financial performance</h2><span class="u-badge dot c-ok"><span class="sh sh-dot m-ok"></span>Delivered</span></div>
+              <div class="conf-row">
+                <span class="conf-k">Confidence <span class="info-tr" role="button" aria-label="What confidence means">i</span></span>
+                <span class="conf" role="img" aria-label="Confidence medium, 77 of 100"><span class="conf-m" aria-hidden="true"><span class="cm"></span><span class="cm"></span><span class="cm"></span><span class="cm off"></span></span><span aria-hidden="true">Medium</span><span class="conf-n" aria-hidden="true">77 of 100</span></span>
+                <a class="u-link small" href="#">How this was scored</a>
+              </div>
+              <div class="tt" role="tooltip">How far this module's material claims rest on evidence, from 0 to 100. High starts at 80, medium at 60, low at 40; below that is insufficient information.</div>
+              <section class="s-banner" aria-label="Bottom line">
+                <span class="s-banner-ic"><span class="sh sh-dot" style="width:8px;height:8px"></span></span>
+                <div class="s-banner-b"><span class="s-banner-k">Bottom line</span><h3 class="h3">Margins held at 34% as volumes recovered, and the aftermarket still earns most of the profit.</h3></div>
+              </section>
+            </div>
+          </section>
+
+          <div class="cmp">
+            <section class="state" data-screen-label="L9 Ceiling 59">
+              <span class="state-label">L9 · a ceiling of 59 · Covenants and documentation</span>
+              <div class="frame">
+                <div class="row-b"><h2 class="h2">Covenants and documentation</h2><span class="u-badge dot c-ok"><span class="sh sh-dot m-ok"></span>Delivered</span></div>
+                <div class="stack-s">
+                  <div class="conf-row">
+                    <span class="conf-k">Confidence <span class="info-tr" role="button" aria-label="What confidence means">i</span></span>
+                    <span class="conf" role="img" aria-label="Confidence low, 59 of 100"><span class="conf-m" aria-hidden="true"><span class="cm"></span><span class="cm"></span><span class="cm off"></span><span class="cm off"></span></span><span aria-hidden="true">Low</span><span class="conf-n" aria-hidden="true">59 of 100</span></span>
+                    <a class="u-link small" href="#">How this was scored</a>
+                  </div>
+                  <p class="reason">Cannot be above 59: a material finding was recorded.</p>
+                </div>
+              </div>
+            </section>
+            <section class="state" data-screen-label="L10 Ceiling 39">
+              <span class="state-label">L10 · a ceiling of 39 on a delivered module · the word "Blocked" appears nowhere</span>
+              <div class="frame">
+                <div class="row-b"><h2 class="h2">Management and governance</h2><span class="u-badge dot c-ok"><span class="sh sh-dot m-ok"></span>Delivered</span></div>
+                <div class="stack-s">
+                  <div class="conf-row">
+                    <span class="conf-k">Confidence <span class="info-tr" role="button" aria-label="What confidence means">i</span></span>
+                    <span class="conf" role="img" aria-label="Confidence insufficient information, 39 of 100"><span class="conf-m" aria-hidden="true"><span class="cm"></span><span class="cm off"></span><span class="cm off"></span><span class="cm off"></span></span><span aria-hidden="true">Insufficient information</span><span class="conf-n" aria-hidden="true">39 of 100</span></span>
+                    <a class="u-link small" href="#">How this was scored</a>
+                  </div>
+                  <p class="reason">Cannot be above 39: a critical finding was recorded.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="cmp">
+            <section class="state" data-screen-label="L11 Not scored">
+              <span class="state-label">L11 · not scored (nothing asked) · Forecast</span>
+              <div class="frame">
+                <div class="row-b"><h2 class="h2">Forecast</h2><span class="u-badge dot c-ok"><span class="sh sh-dot m-ok"></span>Delivered</span></div>
+                <div class="stack-s">
+                  <div class="conf-row">
+                    <span class="conf-k">Confidence <span class="info-tr" role="button" aria-label="What confidence means">i</span></span>
+                    <span class="notscored">Not scored</span>
+                    <a class="u-link small" href="#">How this was scored</a>
+                  </div>
+                  <p class="reason">No confidence score is asked of this module.</p>
+                </div>
+              </div>
+            </section>
+            <section class="state" data-screen-label="L12 Reduced inputs">
+              <span class="state-label">L12 · ran restricted (Reduced inputs) with a long reason · Credit snapshot</span>
+              <div class="frame">
+                <div class="row-b"><h2 class="h2">Credit snapshot</h2><span class="badges"><span class="u-badge dot c-gap"><span class="sh sh-dash m-gap"></span>Delivered with gaps</span><span class="u-badge c-neu">Reduced inputs</span></span></div>
+                <div class="stack-s">
+                  <div class="conf-row">
+                    <span class="conf-k">Confidence <span class="info-tr" role="button" aria-label="What confidence means">i</span></span>
+                    <span class="conf" role="img" aria-label="Confidence low, 40 of 100"><span class="conf-m" aria-hidden="true"><span class="cm"></span><span class="cm"></span><span class="cm off"></span><span class="cm off"></span></span><span aria-hidden="true">Low</span><span class="conf-n" aria-hidden="true">40 of 100</span></span>
+                    <a class="u-link small" href="#">How this was scored</a>
+                  </div>
+                  <p class="reason">Ran without three of its inputs: Peer comparison, Recovery and Rating outlook. Peer comparison did not pass its checks after three attempts. Recovery was not assessable because the security package documents were not among the files provided. Rating outlook needs Peer comparison, so it did not run. What this module could not establish as a result is listed under its <a href="#">limitations</a>.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="cmp">
+            <section class="state" data-screen-label="L13 Missing producer">
+              <span class="state-label">L13 · not assessable for a missing producer (N-A) · Rating outlook · the merged blocked form, new words only</span>
+              <div class="frame">
+                <h2 class="h2">Rating outlook</h2>
+                <div class="blocked">
+                  <span class="u-badge dot c-neu"><span class="sh sh-slash"></span>Not assessable</span>
+                  <p class="body grow prose">It needs Peer comparison, which was not delivered in this run.</p>
+                </div>
+                <p class="small t2 prose">Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.</p>
+                <div class="row"><a class="u-link" href="#">See this gap in Evidence</a></div>
+              </div>
+            </section>
+            <section class="state" data-screen-label="L14 Not assessable, scored">
+              <span class="state-label">L14 · not assessable although scored · the score of 89 is on Evidence only (E1)</span>
+              <div class="frame">
+                <h2 class="h2">Environmental, social and governance</h2>
+                <div class="blocked">
+                  <span class="u-badge dot c-neu"><span class="sh sh-slash"></span>Not assessable</span>
+                  <p class="body grow prose">The sustainability report was not among the files provided, so the assessment could not be made.</p>
+                </div>
+                <p class="small t2 prose">Nothing from this module is shown. Figures that rest on it are withheld until it is delivered.</p>
+                <div class="row"><a class="u-link" href="#">See this gap in Evidence</a></div>
+              </div>
+            </section>
+          </div>
+
+          <p class="note">Mock, states 2 · Module page heads. Sample data. The score status words (Passed, Restricted, Blocked) are never shown on a findings page: a ceiling is said as a sentence (L9, L10). "How this was scored" opens the Confidence register on the Evidence Record tab (States 2 Evidence, E1). Reduced inputs is a label, not a state: the module state stays Delivered or Delivered with gaps.</p>
+        </main>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

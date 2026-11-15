@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+    <script src="./charts.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+      </helmet>
+      <div class="tw">
+        <div class="st" role="table">
+          <div class="tr thr" role="row">
+            <sc-for list="{{ head }}" as="h" hint-placeholder-count="4"><span class="td {{ h.k }}" role="columnheader">{{ h.v }}</span></sc-for>
+            <span class="td tc" role="columnheader"></span>
+          </div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="3">
+            <div class="tr" role="row">
+              <sc-for list="{{ r.c }}" as="c" hint-placeholder-count="4"><span class="td {{ c.k }}" role="cell">{{ c.v }}<sc-if value="{{ c.w }}" hint-placeholder-val="{{ false }}"><span class="withheld"><i class="redact"></i><span class="badge b-neu">Withheld</span></span></sc-if><sc-if value="{{ c.g }}" hint-placeholder-val="{{ false }}"><span class="gapb"><i class="sh sh-dash"></i>Not established for this run</span></sc-if></span></sc-for>
+              <span class="td tc" role="cell"><button class="trace" aria-label="Show the sources for this row" title="Show sources">&#8599;</button></span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"t": {"editor": null, "default": null, "tsType": "{head: any[], rows: any[]}"}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const t = this.props.t || CH.tbl(['Measure', 'FY24', 'LTM'], [['Net leverage', '6.4x', '5.9x'], ['Secured leverage', 'n.a.', 'W']]);
+          return { head: t.head, rows: t.rows };
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,129 @@
+/* Design system 0.6 tokens and the pieces written in the system itself.
+   Source components (Untitled UI, HyperUI, shadcnblocks) are in src.css. */
+:root{
+  --surface-canvas:#F6F5FF;--surface-card:#FFFFFF;--surface-subtle:#F4F4F5;--surface-selected:#E5E8FF;--surface-inverse:#000533;
+  --text-primary:#000533;--text-secondary:#474A4F;--text-tertiary:#63676E;--text-disabled:#A4A9B1;--text-on-action:#FFFFFF;--text-link:#001AFF;
+  --border-subtle:#E3E1FF;--border-hairline:#E8E9EB;--border-control:#7F848D;--border-gap:#827BCC;--border-strong:#000533;
+  --action:#001AFF;--action-hover:#0015CC;--action-pressed:#001099;--action-subtle:#E5E8FF;--action-subtle-hover:#CCD1FF;--action-disabled:#E8E9EB;
+  --focus:#001AFF;
+  --success-bg:#E8FFF4;--success-text:#0C6639;--success-mark:#0F8048;--success-border:#A5FFD2;
+  --warning-bg:#FFF9E5;--warning-text:#664F00;--warning-mark:#997700;--warning-border:#FFE899;
+  --error-bg:#FDF0F0;--error-text:#8E413E;--error-mark:#A54C48;--error-border:#F7C5C2;
+  --info-bg:#EDFBFF;--info-text:#1E5566;--info-mark:#2C7F99;--info-border:#B7EEFF;
+  --gap-text:#514D80;
+  --series-1:#001AFF;--series-2:#827BCC;--series-3:#994A34;--series-4:#B28B00;--series-5:#0F8048;--series-6:#8C9900;--series-other:#7F848D;
+  --mag-1:#99A3FF;--mag-2:#6676FF;--mag-3:#3348FF;--mag-4:#001AFF;--mag-5:#0012B2;
+  --r-xs:6px;--r-sm:12px;--r-md:20px;--r-lg:28px;--r-full:999px;
+  --shadow-1:0 1px 2px rgba(0,5,51,.06);--shadow-2:0 6px 16px rgba(0,5,51,.08),0 1px 2px rgba(0,5,51,.04);
+  --font-display:'Schibsted Grotesk',system-ui,sans-serif;--font-body:'Geist',system-ui,sans-serif;--font-mono:'Geist Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-canvas);color:var(--text-primary);font:400 16px/26px var(--font-body);-webkit-font-smoothing:antialiased}
+a{color:var(--text-link);text-underline-offset:3px;text-decoration:none}
+a:hover{color:var(--action-hover);text-decoration:underline}
+p,h1,h2,h3,h4,ul,ol,dl,dd,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+
+/* Type scale */
+.display{font:700 48px/52px var(--font-display);letter-spacing:-.02em;text-wrap:balance}
+.h1{font:700 36px/42px var(--font-display);letter-spacing:-.02em}
+.h2{font:600 28px/34px var(--font-display);letter-spacing:-.015em}
+.h3{font:600 22px/30px var(--font-display);letter-spacing:-.01em}
+.h4{font:600 18px/26px var(--font-body)}
+.lead{font:400 20px/32px var(--font-body);text-wrap:pretty}
+.body{font:400 16px/26px var(--font-body);text-wrap:pretty}
+.small{font:400 14px/22px var(--font-body)}
+.caption{font:500 13px/18px var(--font-body)}
+.metric{font:600 40px/44px var(--font-body);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.mono{font:400 13px/20px var(--font-mono)}
+.t2{color:var(--text-secondary)}
+.t3{color:var(--text-tertiary)}
+.tnum{font-variant-numeric:tabular-nums}
+.r{text-align:right}
+.prose{max-width:72ch}
+.b6{font-weight:600}
+
+/* Page layout */
+.app{min-height:100vh;padding-left:68px}
+.main{max-width:1264px;margin:0 auto;padding:32px 32px 96px;display:flex;flex-direction:column;gap:32px}
+.stack{display:flex;flex-direction:column;gap:24px}
+.stack-s{display:flex;flex-direction:column;gap:12px}
+.stack-l{display:flex;flex-direction:column;gap:64px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row-b{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.g-side{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+.g-index{display:grid;grid-template-columns:240px minmax(0,1fr);gap:40px;align-items:start}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media (max-width:1000px){.g2,.g3,.g-side,.g-index{grid-template-columns:minmax(0,1fr)}}
+
+/* Card and tile (this system) */
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:32px;box-shadow:var(--shadow-1);min-width:0}
+.tile{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:24px;min-width:0}
+
+/* Status shapes: ten, 10px, drawn in CSS */
+.sh{width:10px;height:10px;flex:none;display:inline-block;background:currentColor}
+.sh-dot{border-radius:50%}
+.sh-half{border-radius:50%;border:1.5px solid currentColor;background:linear-gradient(90deg,currentColor 50%,transparent 50%)}
+.sh-ring{border-radius:50%;background:none;border:2px solid currentColor}
+.sh-dash{border-radius:50%;background:none;border:1.5px dashed currentColor}
+.sh-slash{border-radius:50%;border:1.5px solid currentColor;background:linear-gradient(135deg,transparent 42%,currentColor 42%,currentColor 58%,transparent 58%)}
+.sh-tri{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.sh-dia{transform:rotate(45deg);width:8px;height:8px;margin:0 1px}
+.sh-sq{border-radius:2px}
+.sh-cross{background:linear-gradient(45deg,transparent 41%,currentColor 41%,currentColor 59%,transparent 59%),linear-gradient(135deg,transparent 41%,currentColor 41%,currentColor 59%,transparent 59%)}
+.sh-pause{background:none;border-left:3px solid currentColor;border-right:3px solid currentColor}
+
+/* Status colour families (applied to a source badge or alert) */
+.c-ok{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
+.c-warn{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
+.c-err{background:var(--error-bg);color:var(--error-text);border-color:var(--error-border)}
+.c-info{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border)}
+.c-neu{background:var(--surface-subtle);color:var(--text-secondary);border-color:var(--border-hairline)}
+.c-act{background:var(--action-subtle);color:var(--action);border-color:var(--action-subtle-hover)}
+.m-ok{color:var(--success-mark)}.m-warn{color:var(--warning-mark)}.m-err{color:var(--error-mark)}.m-info{color:var(--info-mark)}.m-neu{color:var(--text-tertiary)}.m-act{color:var(--action)}
+
+/* Gap states (this system) */
+.gapbox{border:1px dashed var(--border-gap);border-radius:var(--r-md);padding:24px;background:repeating-linear-gradient(135deg,#FFFFFF 0,#FFFFFF 10px,#F6F5FF 10px,#F6F5FF 20px);color:var(--gap-text);display:flex;flex-direction:column;gap:8px}
+.gap-title{display:flex;align-items:center;gap:10px;font:600 16px/24px var(--font-body)}
+.gapbadge{display:inline-flex;align-items:center;gap:8px;padding:3px 10px;border-radius:var(--r-full);border:1px dashed var(--border-gap);background:var(--surface-card);color:var(--gap-text);font:500 13px/18px var(--font-body);white-space:nowrap}
+.na{color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.withheld{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
+.redact{display:inline-block;width:56px;height:12px;border-radius:var(--r-full);background:repeating-linear-gradient(90deg,#BBBEC4 0,#BBBEC4 4px,#DDDFE2 4px,#DDDFE2 8px)}
+.redact-l{width:96px;height:20px}
+.blocked{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+
+/* Skeleton: static, no animation */
+.skel{height:14px;border-radius:var(--r-xs);background:var(--surface-subtle)}
+
+/* Trace control: icon only; shown on hover and keyboard focus, or with Show sources on */
+.tr{position:relative}
+.trace{width:28px;height:28px;border-radius:var(--r-sm);border:1px solid var(--border-hairline);background:var(--surface-card);display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--text-tertiary);cursor:pointer;opacity:0;padding:0}
+.trace:before{content:"";width:10px;height:10px;border-radius:50%;border:1.5px solid currentColor;box-shadow:inset 0 0 0 2px var(--surface-card),inset 0 0 0 6px currentColor}
+.tr:hover .trace,.trace:focus-visible,.tr.hov .trace,.srcs-on .trace{opacity:1}
+.trace:hover,.tr.hov .trace{color:var(--action);border-color:var(--action-subtle-hover);background:var(--action-subtle)}
+.trace:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (hover:none){.trace{opacity:1}}
+.trace-abs{position:absolute;top:0;right:0}
+
+/* Placeholders (logo symbol, icons) */
+.ph{background:repeating-linear-gradient(135deg,#E8E9EB 0,#E8E9EB 6px,#F4F4F5 6px,#F4F4F5 12px);display:flex;align-items:center;justify-content:center;font:400 9px/11px var(--font-mono);color:var(--text-tertiary);text-align:center;flex:none}
+.ico{width:20px;height:20px;border-radius:6px;border:1.5px solid currentColor;flex:none;display:inline-block;opacity:.75}
+.ico-16{width:16px;height:16px;border-radius:5px}
+.ico-24{width:24px;height:24px;border-radius:7px}
+.chev{width:8px;height:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);display:inline-block;flex:none;margin:0 4px 3px}
+.chev-r{transform:rotate(-45deg);margin:0 4px}
+.chev-u{transform:rotate(-135deg);margin:3px 4px 0}
+.arrow{display:inline-block;width:14px;height:1.5px;background:currentColor;position:relative;flex:none;margin:0 4px}
+.arrow:after{content:"";position:absolute;right:0;top:-3px;width:6px;height:6px;border-right:1.5px solid currentColor;border-top:1.5px solid currentColor;transform:rotate(45deg)}
+
+/* Chart marks (this system): 4px rounded tops, 2px gap, 1px baseline, no gridlines beyond a faint zero line */
+.s1{background:var(--series-1)}.s2{background:var(--series-2)}.s3{background:var(--series-3)}.s4{background:var(--series-4)}.s5{background:var(--series-5)}.s6{background:var(--series-6)}.so{background:var(--series-other)}
+.key{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.barna{font:500 12px/16px var(--font-body);color:var(--text-tertiary);align-self:flex-end}
+
+/* Mock annotation, outside the product UI */
+.note{border-top:1px dashed var(--border-control);margin-top:32px;padding-top:16px;font:400 13px/20px var(--font-mono);color:var(--text-tertiary)}
+.state-label{font:500 13px/18px var(--font-mono);color:var(--text-tertiary);margin-bottom:-12px}

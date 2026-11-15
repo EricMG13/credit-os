@@ -1,0 +1,74 @@
+/* Page-level pieces written in the design system: issuer card, composed charts, and the
+   rulings of review 2 applied over src.css. */
+.tile>.metric{width:200px;flex:none}
+.h-dl dd .trace{margin:-4px 0}
+.state{display:flex;flex-direction:column;gap:20px;padding-top:32px;border-top:1px solid var(--border-subtle)}
+.state:first-of-type{border-top:0;padding-top:0}
+.frame{border-radius:var(--r-lg);border:1px solid var(--border-subtle);padding:32px;display:flex;flex-direction:column;gap:24px}
+
+/* Review 2, ruling 2: judgement prose (key findings, contrary evidence, what would change the
+   view) in the system's 16/26 body. Layout, radius, border and padding stay the source's. */
+.s-lp-i{font:400 16px/26px var(--font-body)}
+.s-lp-n{font:500 16px/26px var(--font-body);width:26px}
+.s-lp-t{font:600 16px/26px var(--font-body)}
+.s-lp-d{font:400 16px/26px var(--font-body);max-width:72ch}
+.s-alert{font:400 16px/26px var(--font-body)}
+.s-alert .sh{margin-top:8px}
+.s-alert-t{font-weight:600;letter-spacing:0}
+.s-alert-d{line-height:26px;max-width:72ch}
+.h-standout-h strong{font:600 16px/26px var(--font-body)}
+.h-standout p{font:400 16px/26px var(--font-body)}
+
+/* Review 2, ruling 5: metric tiles are separate cards, as the source draws them */
+.u-metrics{background:none;box-shadow:none;overflow:visible;border-radius:0;gap:16px}
+.u-metric{border-radius:12px;background:var(--surface-card);box-shadow:inset 0 0 0 1px var(--border-subtle),var(--u-xs)}
+.g-index .u-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+/* Review 2, ruling 5: charts follow the source: faint solid horizontal gridlines, no axis
+   line, 6px top corners, 12px tick labels */
+.u-pw{display:flex;gap:8px}
+.u-pw>.grow{min-width:0}
+.u-yax{width:40px;flex:none;height:249px;margin-bottom:-9px;padding-top:3px;display:flex;flex-direction:column;justify-content:space-between;text-align:right;font:400 12px/18px var(--font-body);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.u-plot{border-bottom:1px solid var(--border-hairline);background-image:repeating-linear-gradient(to bottom,var(--border-hairline) 0,var(--border-hairline) 1px,transparent 1px,transparent 57px);background-position:0 12px;background-repeat:no-repeat}
+.u-bar{border-radius:6px 6px 0 0}
+.scat{border-left:0;border-bottom:1px solid var(--border-hairline);background-image:repeating-linear-gradient(to bottom,var(--border-hairline) 0,var(--border-hairline) 1px,transparent 1px,transparent 70px)}
+
+/* Review 2, ruling 5: what would change the view is the source toast in the info colours */
+.h-standout{border-left-color:var(--info-mark);background:var(--info-bg)}
+.h-standout-h{color:var(--info-mark)}
+.h-standout-h strong,.h-standout p{color:var(--info-text)}
+
+/* Issuer card (R10): the system's card with header, content, footer */
+.icard{display:flex;flex-direction:column;gap:20px;color:inherit;text-decoration:none}
+.icard:hover{text-decoration:none;color:inherit;border-color:var(--action-subtle-hover)}
+.icard-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.icard-f{margin-top:auto;display:flex;flex-direction:column;gap:14px;padding-top:20px;border-top:1px solid var(--border-hairline)}
+
+/* Dumbbell (C11), composed: 2px line, 12px marks */
+.dumb{display:grid;grid-template-columns:200px minmax(0,1fr) 190px;gap:24px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border-hairline);font:400 14px/20px var(--font-body)}
+.dumb:last-child{border-bottom:0}
+.dumb-tr{position:relative;height:24px}
+.dumb-ln{position:absolute;top:11px;height:2px;background:var(--series-1)}
+.dumb-m{position:absolute;top:6px;width:12px;height:12px;border-radius:50%;margin-left:-6px;background:var(--series-1)}
+.dumb-m.was{background:var(--surface-card);border:2px solid var(--series-1)}
+.dumb-na{position:absolute;top:2px;font:500 12px/20px var(--font-body);color:var(--text-tertiary)}
+.dumb-v{text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:800px){.dumb{grid-template-columns:minmax(0,1fr)}.dumb-v{text-align:left}}
+
+/* Bridge (C10) and scatter (C9), composed in the chart frame */
+.br-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;flex:1;gap:4px}
+.br-col b{font:500 12px/16px var(--font-body);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.br-bar{width:32px;border-radius:6px 6px 0 0;flex:none}
+.up{background:#6676FF}.down{background:#994A34}.tot{background:#001AFF}
+.scat{position:relative;height:280px;margin:0 0 0 44px}
+.scat-p{position:absolute;width:12px;height:12px;border-radius:50%;margin:-6px 0 0 -6px;background:var(--series-2)}
+.scat-p.me{background:var(--series-1);width:14px;height:14px;margin:-7px 0 0 -7px}
+.scat-l{position:absolute;font:500 12px/16px var(--font-body);color:var(--text-secondary);transform:translate(10px,-8px);white-space:nowrap}
+.scat-y{position:absolute;left:-44px;top:50%;transform:rotate(-90deg) translate(0,-8px);transform-origin:left top;font:500 12px/16px var(--font-body);color:var(--text-tertiary);white-space:nowrap;margin-top:60px}
+.scat-t{position:absolute;font:400 12px/16px var(--font-body);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.range{position:relative;height:28px}
+.range-b{position:absolute;top:8px;height:12px;border-radius:999px;background:var(--action-subtle-hover)}
+.range-m{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--text-primary)}
+
+/* Evidence */
+.excerpt{border-radius:8px;background:var(--surface-subtle);padding:12px 16px;font:400 14px/22px var(--font-body);color:var(--text-secondary)}

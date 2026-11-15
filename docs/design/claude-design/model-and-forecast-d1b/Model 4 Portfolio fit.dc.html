@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+    <script src="./charts.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Schibsted+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet" />
+        <link href="./mock.css" rel="stylesheet" />
+        <link href="./mock2.css" rel="stylesheet" />
+      </helmet>
+      <div class="pg" data-screen-label="Model: Portfolio fit">
+        <dc-import name="Shell" tab="Portfolio fit" hint-size="100%,220px"></dc-import>
+
+        <section class="g2">
+          <div class="card" data-screen-label="Exposure against limits">
+            <div class="cf">
+              <div class="cf-h">
+                <div><h3 class="cf-t">Exposure against limits</h3><p class="cf-s">Share of the portfolio after the proposed position; each limit on its own scale</p></div>
+                <button class="trace" aria-label="Show sources" title="Show sources">&#8599;</button>
+                <div class="bg"><label class="bgi d"><input type="radio" name="v-lim" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-lim" class="rt" />Table</label></div>
+              </div>
+              <div class="ch">
+                <div class="plot" style="grid-template-columns:0 minmax(0,1fr) 0;column-gap:0">
+                  <div></div>
+                  <div class="pa plain"><div class="cols">
+                    <sc-for list="{{ limits }}" as="l" hint-placeholder-count="5">
+                      <div class="cg">
+                        <sc-if value="{{ l.ok }}" hint-placeholder-val="{{ true }}"><div class="b lim" style="height:{{ l.h }}"><span>{{ l.t }}</span></div></sc-if>
+                        <sc-if value="{{ l.na }}" hint-placeholder-val="{{ false }}"><div class="bna">n.a.</div></sc-if>
+                        <div class="tick {{ l.tk }}" style="bottom:{{ l.y }}"><span>{{ l.lt }}</span></div>
+                      </div>
+                    </sc-for>
+                  </div></div>
+                  <div></div>
+                  <div class="xt"><sc-for list="{{ limits }}" as="l" hint-placeholder-count="5"><span>{{ l.l }}</span></sc-for></div>
+                </div>
+              </div>
+              <div class="tb"><dc-import name="Tbl" t="{{ tLim }}" hint-size="100%,240px"></dc-import></div>
+              <p class="basis">No country limit is set (limit n.a.). Exposure to subordinated debt was not measured, so no bar is drawn.</p>
+            </div>
+          </div>
+
+          <div class="col" style="gap:24px">
+            <div class="sec" data-screen-label="Agency ratings">
+              <div class="row jb"><h2 class="h2">Agency ratings</h2><button class="trace" aria-label="Show sources" title="Show sources">&#8599;</button></div>
+              <div class="pair">
+                <div class="m"><div class="m-t"><span>Moody's, corporate family</span></div><div class="m-r"><span class="m-v">B1</span><span class="m-c">Stable outlook</span></div></div>
+                <div class="m"><div class="m-t"><span>S&amp;P, issuer credit</span></div><div class="m-r"><span class="m-v">B+</span><span class="m-c">Stable outlook</span></div></div>
+              </div>
+            </div>
+            <div class="sec" data-screen-label="Not assessable">
+              <h2 class="h2">Relative value</h2>
+              <div class="item" style="align-items:flex-start"><span class="item-m"><i class="ico"></i></span><div><b>Spread against holdings</b><p>The pricing comparison failed in this run, so the spread paid for this risk could not be set against the rest of the portfolio.</p></div><span class="badge b-neu item-e"><i class="sh sh-slash"></i>Not assessable</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="g2">
+          <div class="card" data-screen-label="Scatter">
+            <div class="cf">
+              <div class="cf-h">
+                <div><h3 class="cf-t">Leverage and margin against holdings</h3><p class="cf-s">Latest twelve months, one mark per issuer held</p></div>
+                <button class="trace" aria-label="Show sources" title="Show sources">&#8599;</button>
+                <div class="bg"><label class="bgi d"><input type="radio" name="v-sct" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-sct" class="rt" />Table</label></div>
+              </div>
+              <div class="ch">
+                <div style="display:flex;gap:8px">
+                  <span class="yl note">EBITDA margin</span>
+                  <div class="plot" style="flex:1">
+                    <div class="yt"><span>0</span><span>15%</span><span>30%</span><span>45%</span><span>60%</span></div>
+                    <div class="pa">
+                      <sc-for list="{{ pts }}" as="p" hint-placeholder-count="9"><i class="mk m2" style="left:{{ p.x }};bottom:{{ p.y }}" title="{{ p.n }}"></i></sc-for>
+                      <i class="mk big" style="left:{{ me.x }};bottom:{{ me.y }}"></i><span class="pt" style="left:{{ me.x }};bottom:{{ me.y }};transform:translate(-110%,6px)">TransDigm</span>
+                    </div>
+                    <div></div>
+                    <div class="xt nx"><span>2x</span><span>3x</span><span>4x</span><span>5x</span><span>6x</span><span>7x</span><span>8x</span></div>
+                    <div class="xl">Net leverage</div>
+                  </div>
+                </div>
+                <div class="lg h" style="margin-top:12px"><span><i class="k" style="width:12px;height:12px"></i>TransDigm</span><span><i class="k sq k2" style="width:10px;height:10px"></i>Other holdings</span></div>
+                <p class="note" style="margin-top:12px">Not plotted: Holding J (EBITDA margin n.a.), Holding K (net leverage n.a.).</p>
+              </div>
+              <div class="tb"><dc-import name="Tbl" t="{{ tSct }}" hint-size="100%,400px"></dc-import></div>
+              <p class="basis">Holdings are shown without names in this sample.</p>
+            </div>
+          </div>
+
+          <div class="card" data-screen-label="Range strip">
+            <div class="cf">
+              <div class="cf-h">
+                <div><h3 class="cf-t">Where the issuer sits in the portfolio</h3><p class="cf-s">The issuer against the range across holdings</p></div>
+                <button class="trace" aria-label="Show sources" title="Show sources">&#8599;</button>
+                <div class="bg"><label class="bgi d"><input type="radio" name="v-rng" class="rc" />Chart</label><label class="bgi"><input type="radio" name="v-rng" class="rt" />Table</label></div>
+              </div>
+              <div class="ch">
+                <div class="hb wide" style="grid-template-columns:minmax(150px,1fr) minmax(0,1.4fr) 56px">
+                  <sc-for list="{{ strips }}" as="d" hint-placeholder-count="4">
+                    <div class="hb-l"><b>{{ d.l }}</b><span>{{ d.r }}</span></div>
+                    <div class="hb-t"><i class="rng" style="left:{{ d.x0 }};width:{{ d.w }}"></i><sc-if value="{{ d.ok }}" hint-placeholder-val="{{ true }}"><i class="rmk" style="left:{{ d.x }}"></i></sc-if></div>
+                    <div class="hb-v {{ d.k }}">{{ d.v }}</div>
+                  </sc-for>
+                </div>
+                <div class="lg h" style="margin-top:20px"><span><i class="k sq" style="background:var(--action-subtle-hover);width:18px"></i>Range across holdings</span><span><i class="k sq" style="width:4px;height:14px"></i>TransDigm</span></div>
+              </div>
+              <div class="tb"><dc-import name="Tbl" t="{{ tRng }}" hint-size="100%,220px"></dc-import></div>
+              <p class="basis">The issuer has the highest margin held and sits near the top of the leverage range. Its spread is missing because the pricing comparison failed.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() {
+          // limit: label, exposure (null = missing), limit (null = missing), exposure text, limit text. Each column is drawn on its own scale.
+          const L = [['Single issuer', 2.1, 3.0, '2.1%', 'limit 3.0%'], ['Aerospace and defence', 9.4, 12.0, '9.4%', 'limit 12.0%'], ['Rated single B', 31.0, 35.0, '31.0%', 'limit 35.0%'],
+            ['United States', 58.0, null, '58.0%', 'limit n.a.'], ['Subordinated debt', null, 10.0, '', 'limit 10.0%']];
+          const H = [[3.1, 22, 'A'], [4.2, 31, 'B'], [2.6, 14, 'C'], [5.1, 27, 'D'], [6.8, 19, 'E'], [3.8, 41, 'F'], [4.6, 9, 'G'], [5.6, 36, 'H'], [2.4, 18, 'I']];
+          // strip: label, range text, low, high, issuer (null = missing), axis min, axis max, text
+          const R = [['Net leverage', 'Holdings: 2.4x to 6.8x', 2.4, 6.8, 5.9, 0, 8, '5.9x'], ['Interest cover', 'Holdings: 1.6x to 6.2x', 1.6, 6.2, 2.9, 0, 8, '2.9x'],
+            ['EBITDA margin', 'Holdings: 9% to 53%', 9, 53.1, 53.1, 0, 60, '53.1%'], ['Spread over benchmark', 'Holdings: 180 to 520 basis points', 180, 520, null, 0, 600, 'n.a.']];
+          return {
+            limits: L.map(l => ({ l: l[0], ok: l[1] != null, na: l[1] == null, t: l[3], lt: l[4], tk: l[2] == null ? 'nolim' : '',
+              h: l[1] == null ? '0' : (l[2] == null ? 70 : l[1] / (l[2] * 1.25) * 100) + '%', y: l[2] == null ? '86%' : '80%' })),
+            pts: H.map(h => ({ x: CH.pct(h[0], 2, 8), y: CH.pct(h[1], 0, 60), n: 'Holding ' + h[2] })),
+            me: { x: CH.pct(5.9, 2, 8), y: CH.pct(53.1, 0, 60) },
+            strips: R.map(d => ({ l: d[0], r: d[1], x0: CH.pct(d[2], d[5], d[6]), w: (d[3] - d[2]) / (d[6] - d[5]) * 100 + '%', ok: d[4] != null, x: d[4] == null ? '0' : CH.pct(d[4], d[5], d[6]), v: d[7], k: d[4] == null ? 'na' : '' })),
+            tLim: CH.tbl(['Limit', 'Exposure', 'Limit'], [['Single issuer', '2.1%', '3.0%'], ['Aerospace and defence', '9.4%', '12.0%'], ['Rated single B', '31.0%', '35.0%'], ['United States', '58.0%', 'n.a.'], ['Subordinated debt', 'n.a.', '10.0%']]),
+            tSct: CH.tbl(['Issuer', 'Net leverage', 'EBITDA margin'], [['TransDigm', '5.9x', '53.1%']].concat(H.map(h => ['Holding ' + h[2], h[0].toFixed(1) + 'x', h[1] + '%'])).concat([['Holding J', '4.4x', 'n.a.'], ['Holding K', 'n.a.', '24%']])),
+            tRng: CH.tbl(['Measure', 'Lowest held', 'Highest held', 'TransDigm'], [['Net leverage', '2.4x', '6.8x', '5.9x'], ['Interest cover', '1.6x', '6.2x', '2.9x'], ['EBITDA margin', '9%', '53%', '53.1%'], ['Spread over benchmark', '180 bp', '520 bp', 'n.a.']])
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

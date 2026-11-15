@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <meta name="design_doc_mode" content="canvas" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+        <style>
+          body{margin:0;background:#d9dbdf;font-family:'Inter',Arial,sans-serif;font-variant-numeric:tabular-nums;color:#000533}
+          .lbl{font:600 13px/20px 'Inter',Arial,sans-serif;color:#383b3f;margin-bottom:8px;cursor:grab}
+          .frame{position:absolute;width:1440px}
+          .side{position:absolute;width:640px}
+          .scr{position:relative;width:1440px;height:900px;background:#f4f4f5;overflow:hidden;font:14px/20px 'Inter',Arial,sans-serif}
+          .rail{position:absolute;left:0;top:0;width:56px;height:100%;background:#000533;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 8px;box-sizing:border-box}
+          .sym{width:28px;height:28px;border:1px dashed #808cff;border-radius:4px}
+          .ri{width:36px;height:36px;border-radius:8px;border:1px solid #33488f}
+          .ri.on{background:#001aff;border-color:#001aff}
+          .app{margin-left:56px;height:100%;padding:16px;box-sizing:border-box;display:flex;flex-direction:column}
+          .card{flex:1;min-height:0;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;border:1px solid #e8e9eb}
+          .hd{padding:20px 32px 20px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;border-bottom:1px solid #e8e9eb}
+          .h1{margin:0;font:600 28px/36px 'Inter',Arial,sans-serif;letter-spacing:-.015em;color:#000533}
+          .meta{margin-top:4px;font-size:14px;line-height:20px;color:#474a4f}
+          .stats{display:flex;gap:40px}
+          .stt{font:400 14px/22px 'Inter',Arial,sans-serif;color:#63676e}
+          .stv{font:600 24px/32px 'Inter',Arial,sans-serif;color:#000533}
+          .two{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:32px;padding:24px 32px;overflow:hidden}
+          .h2{margin:0 0 12px;font:600 16px/24px 'Inter',Arial,sans-serif;color:#000533}
+          .run{margin-bottom:16px;border-radius:12px;box-shadow:inset 0 0 0 1px #e8e9eb,0 1px 2px rgba(0,0,0,.05);background:#fff}
+          .rh{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 20px 0}
+          .rr{display:flex;gap:8px;align-items:center;flex:none}
+          .rt{font:600 16px/24px 'Inter',Arial,sans-serif;color:#000533}
+          .rm{margin-top:2px;font-size:14px;line-height:20px;color:#63676e}
+          .code{font:500 12px/16px ui-monospace,Menlo,monospace;color:#474a4f;white-space:nowrap}
+          .tag{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:4px;border:1px solid #d1d4d8;background:#f4f4f5;font:400 12px/20px 'Inter',Arial,sans-serif;color:#383b3f;box-sizing:border-box;white-space:nowrap}
+          .bd{display:inline-flex;align-items:center;gap:6px;height:22px;padding:2px 6px;border-radius:6px;font:500 12px/18px 'Inter',Arial,sans-serif;white-space:nowrap;box-sizing:border-box}
+          .bd.md{height:24px;padding:2px 8px 2px 6px;font:500 14px/20px 'Inter',Arial,sans-serif}
+          .ok{background:#e8fff4;color:#0f8048;box-shadow:inset 0 0 0 1px #b4f0d1}.warn{background:#fff4cc;color:#806300;box-shadow:inset 0 0 0 1px #f2dc8c}.neu{background:#f4f4f5;color:#474a4f;box-shadow:inset 0 0 0 1px #e8e9eb}.info{background:#e5e8ff;color:#0012b2;box-shadow:inset 0 0 0 1px #c2c9ff}
+          .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+          .pg{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:12px;align-items:center;padding:16px 20px 0}
+          .trk{height:8px;border-radius:6px;background:#e8e9eb;overflow:hidden}
+          .fil{height:100%;border-radius:6px;background:#001aff}
+          .pv{font:600 14px/20px 'Inter',Arial,sans-serif;color:#000533;text-align:right}
+          .chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px 0}
+          .fr{margin:16px 0 0;border-top:1px solid #e8e9eb;padding:12px 20px;font:400 14px/22px 'Inter',Arial,sans-serif;color:#383b3f;display:flex;flex-direction:row;gap:8px;align-items:center}
+          .chev{color:#63676e}
+          .fn{margin-left:auto;color:#63676e}
+          .tbl{border-radius:12px;box-shadow:inset 0 0 0 1px #e8e9eb,0 1px 2px rgba(0,0,0,.05);overflow:hidden}
+          .th{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:12px;height:44px;align-items:center;padding:0 20px;background:#fafafb;border-bottom:1px solid #e8e9eb;font:600 12px/18px 'Inter',Arial,sans-serif;color:#63676e}
+          .tr{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:12px;padding:14px 20px;border-bottom:1px solid #e8e9eb;font-size:14px;line-height:20px;color:#383b3f}
+          .tr:last-child{border-bottom:0}
+          .tn{font-weight:500;color:#000533}
+          .ts{font-size:12px;line-height:18px;color:#63676e}
+          .alert{margin-bottom:12px;padding:8px 12px;border:1px solid #f2dc8c;border-radius:8px;background:#fff4cc;font:400 14px/22px 'Inter',Arial,sans-serif;color:#806300}
+          .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
+          .eic{width:48px;height:48px;border-radius:10px;box-shadow:inset 0 0 0 1px #d1d4d8,0 1px 2px rgba(0,0,0,.05);display:grid;place-items:center;margin-bottom:12px;color:#474a4f;font-size:20px}
+          .et{font:600 16px/24px 'Inter',Arial,sans-serif;color:#000533}
+          .ex{max-width:352px;font:400 14px/20px 'Inter',Arial,sans-serif;color:#63676e}
+          .btn{display:inline-flex;align-items:center;height:40px;padding:10px 14px;border-radius:8px;background:#001aff;color:#fff;font:600 14px/20px 'Inter',Arial,sans-serif;white-space:nowrap;box-sizing:border-box;margin-top:20px}
+          .board{background:#fff;border-radius:12px;padding:24px 28px;font-size:13px;line-height:20px;color:#383b3f}
+          .bt{font:600 18px/24px 'Inter',Arial,sans-serif;color:#000533;margin-bottom:8px}
+          .brow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid #e8e9eb}
+          .bk{font-weight:600;color:#000533}
+        </style>
+      </helmet>
+
+      <div class="frame" style="left:40px;top:40px" data-screen-label="E Run activity">
+        <div class="lbl" data-drags-parent="1">E · Run activity · what is running and what is waiting, with module progress at a glance</div>
+        <div class="scr">
+          <div class="rail"><div class="sym"></div><div class="ri"></div><div class="ri"></div><div class="ri on"></div><div class="ri"></div></div>
+          <div class="app"><div class="card">
+            <div class="hd">
+              <div><div class="h1">Run activity</div><div class="meta">Updated 12 Nov 2026 14:32:10</div></div>
+              <div class="stats"><div><div class="stt">Running</div><div class="stv">2</div></div><div><div class="stt">Waiting</div><div class="stv">3</div></div></div>
+            </div>
+            <div class="two">
+              <div>
+                <div class="h2">Running</div>
+                <div class="run">
+                  <div class="rh">
+                    <div><div class="rt">Meridian Foods Holdings plc</div><div class="rm">submitted by Dana Reyes · started 12 Nov 2026 14:02 · <span class="code">meridian-foods-2026-11</span></div></div>
+                    <div class="rr"><span class="tag">Covenant and refinancing</span><span class="bd md info"><span class="dot"></span>Running</span></div>
+                  </div>
+                  <div class="pg"><div class="trk"><div class="fil" style="width:50%"></div></div><div class="pv">3 of 6 done</div></div>
+                  <div class="chips"><span class="bd ok">✓ Liquidity</span><span class="bd ok">✓ Cash flow model</span><span class="bd ok">✓ Covenants</span><span class="bd info"><span class="dot"></span>Refinancing</span><span class="bd neu">Downside</span><span class="bd neu">Report</span></div>
+                  <div class="fr"><span class="chev">›</span><span>14 files read</span></div>
+                </div>
+                <div class="run">
+                  <div class="rh">
+                    <div><div class="rt">Northgate Telecom Finance plc</div><div class="rm">submitted by Sam Okafor · started 12 Nov 2026 12:48 · <span class="code">northgate-2026-q3</span></div></div>
+                    <div class="rr"><span class="tag">Credit snapshot</span><span class="bd md warn"><span class="dot"></span>Running · stalled</span></div>
+                  </div>
+                  <div class="pg"><div class="trk"><div class="fil" style="width:29%"></div></div><div class="pv">2 of 7 done</div></div>
+                  <div class="chips"><span class="bd ok">✓ Business context</span><span class="bd ok">✓ Earnings quality</span><span class="bd info"><span class="dot"></span>Liquidity</span><span class="bd neu">Debt and maturities</span><span class="bd neu">Covenants</span><span class="bd neu">Credit synthesis</span><span class="bd neu">Report</span></div>
+                  <div class="fr"><span class="chev">›</span><span>9 files read</span><span class="fn">issuer name differs from earlier runs</span></div>
+                </div>
+              </div>
+              <div>
+                <div class="h2">Waiting</div>
+                <div class="alert">Two runs at a time. The next run starts when one finishes.</div>
+                <div class="tbl">
+                  <div class="th"><div>Issuer</div><div>Pathway</div></div>
+                  <div class="tr"><div><div class="tn">Harbour Packaging Group</div><div class="ts">submitted by Dana Reyes · <span class="code">harbour-2026-11</span></div></div><div>Relative value</div></div>
+                  <div class="tr"><div><div class="tn">Castell Energy SA</div><div class="ts">submitted by Priya Nair · <span class="code">castell-2026-h1</span></div></div><div>Credit snapshot</div></div>
+                  <div class="tr"><div><div class="tn">Lindqvist Retail AB</div><div class="ts"><span class="code">lindqvist-2026-10</span></div></div><div>Covenant and refinancing</div></div>
+                </div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="frame" style="left:40px;top:1000px" data-screen-label="E2 Nothing running">
+        <div class="lbl" data-drags-parent="1">E2 · Run activity · nothing running or waiting</div>
+        <div class="scr" style="height:520px">
+          <div class="rail"><div class="sym"></div><div class="ri"></div><div class="ri"></div><div class="ri on"></div><div class="ri"></div></div>
+          <div class="app"><div class="card">
+            <div class="hd"><div><div class="h1">Run activity</div><div class="meta">Updated 12 Nov 2026 14:32:10</div></div></div>
+            <div class="empty"><div class="eic">≡</div><div class="et">No run in progress</div><div class="ex">No run is running or waiting. Finished runs are in the Issuer library.</div><div class="btn">Issuer library</div></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="side" style="left:1540px;top:40px" data-screen-label="Components used">
+        <div class="lbl" data-drags-parent="1">Components used · sizes read from the live pages on 12 Nov 2026</div>
+        <div class="board">
+          <div class="bt">What each part follows</div>
+          <div class="brow"><div class="bk">Run card</div><div>Untitled UI table card: 12px radius, 1px ring, soft shadow.</div></div>
+          <div class="brow"><div class="bk">Status</div><div>Untitled UI badge with dot, 24px, 500 14/20, 6px radius. Stalled uses the caution pair and says so in words.</div></div>
+          <div class="brow"><div class="bk">Pathway</div><div>Ant Design Tag: 22px, 0 7px, 12/20, 4px radius, 1px border.</div></div>
+          <div class="brow"><div class="bk">Module progress</div><div>Untitled UI progress bar: 8px track, 6px radius, value in 600 14/20 at the right, in Ultramarine.</div></div>
+          <div class="brow"><div class="bk">Module states</div><div>Untitled UI badge, 22px, 500 12/18: done (tick, green pair), running (dot, selected pair), waiting (neutral pair).</div></div>
+          <div class="brow"><div class="bk">Files read</div><div>Ant Design Collapse header: 12px 16px, 14/22, closed by default.</div></div>
+          <div class="brow"><div class="bk">Counts</div><div>Ant Design Statistic: title 14/22, value 24px.</div></div>
+          <div class="brow"><div class="bk">Waiting</div><div>Untitled UI table: 44px header in 600 12/18, rows with a 1px rule. The held note is an Ant Design Alert: 8px 12px, 8px radius.</div></div>
+          <div class="brow"><div class="bk">Nothing running</div><div>Untitled UI empty state: 48px icon box with 10px radius, title 600 16/24, text 14/20, centred.</div></div>
+          <div class="bt" style="margin-top:20px">What changes and what stays</div>
+          <div>Removed: the run's spend (owner, 12 Nov 2026). Today's page shows "USD spent of the cap" on each run; this page does not. The cap itself still applies to the run. Kept: only runs that are running or waiting are shown, and every other word on a run is today's (submitted by, started, files read, stalled, the reason, the note that the issuer name differs). The page still reloads its data every 30 seconds. New: the two counts, the progress bar and the "done" tally, all worked out from data the page already has. Issuers here are invented.</div>
+        </div>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

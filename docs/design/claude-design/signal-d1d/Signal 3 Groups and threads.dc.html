@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700&display=swap" />
+        <link rel="stylesheet" href="./signal.css" />
+        <script src="./signal.js"></script>
+      </helmet>
+      <div class="page">
+        <header class="ph">
+          <h1>Signal: groups and threads</h1>
+          <p>A group's shared stories, the thread panel beside them, and Share to group. Colleagues' words are drawn as messages; nothing else is. Commenter names are invented.</p>
+        </header>
+
+        <section data-screen-label="Group view, writer">
+          <p class="cap"><b>1. Group view, as a writer.</b> The group and its members, then what was shared: stories with their "shared by" line and comment count, and a note with no story.</p>
+          <sg-shell view="lev" name="Mara L" role="Writer">
+            <main class="mn"><div class="col">
+              <div class="vh">
+                <div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b style="font:600 28px/34px var(--fh);letter-spacing:-.015em">Leveraged credit</b><small>6 members, visible to everyone</small></div></div>
+                <span class="avg"><span class="av xs">T</span><span class="av xs">I</span><span class="av xs">M</span><span class="av xs">J</span><span class="av xs">+2</span></span>
+                <div class="r"><span class="b s"><sg-i n="link"></sg-i>Attach story</span><span class="b p"><sg-i n="plus"></sg-i>New thread</span></div>
+              </div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">HW</div>
+                  <div class="stb">
+                    <div class="meta"><span class="av xs">TO</span><span>Shared by Tobias O, 1 h ago</span></div>
+                    <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                    <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                    <p class="sm">Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.</p>
+                    <div class="acts"><span class="b t on"><sg-i n="msg"></sg-i>3 comments</span><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+                <div class="st">
+                  <ol class="ml" style="flex:1">
+                    <li class="m"><span class="av">IK</span><article><header><cite>Ines K started a thread</cite><time>Yesterday 16:20</time></header><div class="bub">Has anyone looked at how the packaging closures read across to the two issuers we hold? Worth a slot on Thursday.</div></article></li>
+                  </ol>
+                  <span class="b t"><sg-i n="msg"></sg-i>2 comments</span>
+                </div>
+                <article class="st">
+                  <div class="mg">NR</div>
+                  <div class="stb">
+                    <div class="meta"><span class="av xs">ML</span><span>Shared by you, yesterday</span></div>
+                    <div class="meta"><span class="lb">Rating action</span><span>Northgate Ratings</span><span>Yesterday</span></div>
+                    <h3><a href="#">Northgate Ratings downgrades Halvorsen Marine to B+</a></h3>
+                    <div class="row"><span class="bgp"><b>BB-</b><sg-i n="arrow" s="16"></sg-i><b>B+</b><span style="padding-right:8px">Downgrade, one notch</span></span></div>
+                    <div class="acts"><span class="b t"><sg-i n="msg"></sg-i>1 comment</span><span class="b t on"><sg-i n="bookmark" f="1"></sg-i>Saved</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Group view, reader">
+          <p class="cap"><b>2. Group view, as a reader.</b> No New thread, no Attach story; threads can be opened and read.</p>
+          <sg-shell view="lev" name="Jonas W" role="Reader">
+            <main class="mn"><div class="col">
+              <div class="vh">
+                <div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b style="font:600 28px/34px var(--fh);letter-spacing:-.015em">Leveraged credit</b><small>6 members, visible to everyone</small></div></div>
+                <span class="avg"><span class="av xs">T</span><span class="av xs">I</span><span class="av xs">M</span><span class="av xs">J</span><span class="av xs">+2</span></span>
+              </div>
+              <div class="card">
+                <article class="st">
+                  <div class="mg">HW</div>
+                  <div class="stb">
+                    <div class="meta"><span class="av xs">TO</span><span>Shared by Tobias O, 1 h ago</span></div>
+                    <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                    <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                    <p class="sm">Corvane will shut two of its nine plants by March and take a one-off charge. It kept its full-year guidance.</p>
+                    <div class="acts"><span class="b t"><sg-i n="msg"></sg-i>3 comments</span><span class="b t"><sg-i n="bookmark"></sg-i>Save</span><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                  </div>
+                </article>
+              </div>
+            </div></main>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Thread panel">
+          <p class="cap"><b>3. Thread panel.</b> The story quoted at the top, comments with one level of replies, reactions, an edited comment, a removed comment, your own comment and the composer.</p>
+          <sg-shell view="lev" name="Mara L" role="Writer" h="1120">
+            <main class="mn"><div class="col">
+              <div class="vh"><div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b style="font:600 28px/34px var(--fh);letter-spacing:-.015em">Leveraged credit</b><small>6 members, visible to everyone</small></div></div></div>
+              <div class="card"><article class="st"><div class="mg">HW</div><div class="stb"><div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div><h3>Corvane Packaging to close two plants as volumes fall</h3></div></article></div>
+            </div></main>
+            <div class="dov">
+              <aside class="dr">
+                <span class="x" title="Close"><sg-i n="x"></sg-i></span>
+                <div class="dh"><h4>Thread</h4><p>Leveraged credit, 4 comments</p></div>
+                <div class="db">
+                  <article class="st">
+                    <div class="mg">HW</div>
+                    <div class="stb">
+                      <div class="meta"><span class="lb">News</span><span>Harbour Wire</span><span>2 h ago</span></div>
+                      <h3><a href="#">Corvane Packaging to close two plants as volumes fall</a></h3>
+                      <div class="acts"><a class="b lk" href="#">Open source<sg-i n="ext"></sg-i></a></div>
+                    </div>
+                  </article>
+                  <ol class="ml">
+                    <li class="m"><span class="av">TO</span><article><header><cite>Tobias O</cite><time>10:02</time></header><div class="bub">Sharing for Thursday. The charge is larger than the saving in year one.</div><ul class="rx"><li>Agree 2</li><li>Important 1</li></ul></article></li>
+                    <li class="m re"><span class="av">IK</span><article><header><cite>Ines K</cite><time>10:15, edited</time></header><div class="bub"><blockquote>The charge is larger than the saving in year one.</blockquote>Agreed. Their covenant test date is the thing to check.</div></article></li>
+                    <li class="m"><span class="av">JW</span><article><header><cite>Jonas W</cite><time>10:31</time></header><div class="bub rm">This comment was removed by its author.</div></article></li>
+                    <li class="m own"><article><header><cite>You</cite><time>10:40</time></header><div class="bub">I will pull the test dates from the last report before Thursday.</div><ul class="rx"><li>Seen 3</li></ul></article></li>
+                  </ol>
+                </div>
+                <div class="df">
+                  <div class="cmp"><div class="tx">Write a comment</div><div class="cf"><span><span class="av"></span>Mara L</span><a class="b lk" href="#">Send</a></div></div>
+                </div>
+              </aside>
+            </div>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Thread archived">
+          <p class="cap"><b>4. An archived thread.</b> It can be read; there is no composer and no reply control.</p>
+          <sg-shell view="lev" name="Mara L" role="Writer" h="760">
+            <main class="mn"><div class="col">
+              <div class="vh"><div class="alg md"><span class="av md"><sg-i n="users"></sg-i></span><div><b style="font:600 28px/34px var(--fh);letter-spacing:-.015em">Leveraged credit</b><small>6 members, visible to everyone</small></div></div></div>
+            </div></main>
+            <div class="dov">
+              <aside class="dr">
+                <span class="x" title="Close"><sg-i n="x"></sg-i></span>
+                <div class="dh"><h4>Thread</h4><p>Leveraged credit, 2 comments</p></div>
+                <div class="db">
+                  <span class="bd neu" style="align-self:flex-start"><i class="s sq"></i>Archived on 2 Nov 2026</span>
+                  <article class="st">
+                    <div class="mg">RG</div>
+                    <div class="stb">
+                      <div class="meta"><span class="lb">Regulatory case</span><span>Regulatory Gazette</span><span>3 Nov</span></div>
+                      <h3><a href="#">Authority clears Brightwell Foods' dairy purchase with conditions</a></h3>
+                    </div>
+                  </article>
+                  <ol class="ml">
+                    <li class="m"><span class="av">IK</span><article><header><cite>Ines K</cite><time>28 Oct 14:05</time></header><div class="bub">Decision is due next week. Depot sales look likely.</div></article></li>
+                    <li class="m"><span class="av">TO</span><article><header><cite>Tobias O</cite><time>3 Nov 09:12</time></header><div class="bub">Cleared with conditions, as expected. Closing this one.</div><ul class="rx"><li>Agree 1</li></ul></article></li>
+                  </ol>
+                </div>
+                <div class="df"><p class="note">This thread is archived. It can be read but not added to.</p></div>
+              </aside>
+            </div>
+          </sg-shell>
+        </section>
+
+        <section data-screen-label="Share to group">
+          <p class="cap"><b>5. Share to group.</b> A form modal: pick a group, add a note. It is not the warning modal used for starting a paid run.</p>
+          <sg-shell view="foryou" name="Mara L" role="Writer" h="720">
+            <main class="mn"><div class="col">
+              <div class="vh"><h2>For you</h2></div>
+              <div class="card"><article class="st"><div class="mg">RG</div><div class="stb"><div class="meta"><span class="lb">Regulatory case</span><span>Regulatory Gazette</span><span>5 h ago</span></div><h3>Competition authority opens in-depth review of Tessaly Telecom's tower sale</h3></div></article></div>
+            </div></main>
+            <div class="ov">
+              <div class="mo">
+                <span class="x" title="Close"><sg-i n="x"></sg-i></span>
+                <div class="mh">
+                  <span class="fi m"><sg-i n="share"></sg-i></span>
+                  <div><h4>Share to a group</h4><p>Competition authority opens in-depth review of Tessaly Telecom's tower sale</p></div>
+                </div>
+                <div class="mb">
+                  <div class="fld"><span class="lab">Group</span><div class="in sel">Leveraged credit<sg-i n="down" s="16"></sg-i></div><span class="hint">The story starts a thread in this group, or joins the thread it already has there.</span></div>
+                  <div class="fld"><span class="lab">Note (optional)</span><div class="in ta v">Worth reading before Thursday: the remedy offer changes the timetable.</div><span class="hint">Plain text. Members see it as your first comment.</span></div>
+                </div>
+                <div class="mf"><span class="b s md">Cancel</span><span class="b p md">Share</span></div>
+              </div>
+            </div>
+          </sg-shell>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{}'>
+      class Component extends DCLogic {
+        renderVals() { return {}; }
+      }
+    </script>
+  </body>
+</html>

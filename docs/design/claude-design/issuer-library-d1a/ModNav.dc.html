@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet data-dc-atomics>
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Schibsted+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="./ds.css" />
+        <link rel="stylesheet" href="./src.css" />
+        <link rel="stylesheet" href="./status.css" />
+      </helmet>
+      <nav class="h-vmenu" aria-label="Modules and sections">
+        <span class="h-vmenu-h">On this page</span>
+        <sc-for list="{{ secs }}" as="s" hint-placeholder-count="6">
+          <a class="{{ s.cls }}" href="#"><span class="ico" style="opacity:.75"></span><span>{{ s.name }}</span></a>
+        </sc-for>
+        <span class="h-vmenu-h" style="margin-top:16px">Modules in this run</span>
+        <sc-for list="{{ mods }}" as="m" hint-placeholder-count="13">
+          <a class="{{ m.cls }}" href="#" style="padding-top:8px;padding-bottom:8px"><span class="{{ m.sh }}" title="{{ m.state }}" style="margin:0 5px"></span><span>{{ m.name }}</span></a>
+        </sc-for>
+      </nav>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"module":{"editor":"text","default":"Business profile","tsType":"string"},"sections":{"editor":"text","default":"Bottom line|Key findings|Contrary evidence|What would change the view|Records|Limitations","tsType":"string"}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const cur = this.props.module ?? 'Business profile';
+          const secs = (this.props.sections ?? 'Bottom line|Key findings|Contrary evidence|What would change the view|Records|Limitations').split('|').map((n, i) => ({ name: n, cls: i === 0 ? 'on' : '' }));
+          const part = ['Capital structure', 'Peer comparison'];
+          const mods = ['Business profile', 'Industry and competition', 'Financial performance', 'Cash flow and liquidity', 'Capital structure', 'Covenants and documentation', 'Management and governance', 'Peer comparison', 'Recovery', 'Rating outlook', 'Environmental, social and governance', 'Forecast', 'Credit snapshot'].map(n => {
+            const st = n === 'Recovery' ? ['sh sh-slash m-neu', 'Not assessable'] : part.includes(n) ? ['sh sh-dash m-gap', 'Delivered with gaps'] : ['sh sh-dot m-ok', 'Delivered'];
+            return { name: n, sh: st[0], state: st[1], cls: n === cur ? 'on' : '' };
+          });
+          return { secs, mods };
+        }
+      }
+    </script>
+  </body>
+</html>
