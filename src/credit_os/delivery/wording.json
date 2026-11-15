@@ -69,6 +69,7 @@
     "changes.pending.text": {"placeholders": ["issuer_name"], "text": "An earlier report exists on {issuer_name}; the comparison with it has not been run."},
     "overview.metrics_label": {"placeholders": [], "text": "Headline figures"},
     "overview.modules_summary": {"placeholders": ["delivered", "total"], "text": "{delivered} of {total} delivered"},
-    "overview.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 1, "one": "See the {count} gap in Evidence", "other": "See the {count} gaps in Evidence"}
+    "overview.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 1, "one": "See the {count} gap in Evidence", "other": "See the {count} gaps in Evidence"},
+    "records.chart_gap": {"placeholders": [], "text": "The module's table for this chart could not be read."}
   }
 }
