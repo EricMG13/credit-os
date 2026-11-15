@@ -1,5 +1,10 @@
 """The figure reader and `figure.form`.
 
+Digits. Only the ASCII digits 0 to 9 are digits: a figure, date, period label or code is read from them
+alone. A run of decimal digits of any script, with a `,` or `.` allowed between two of them, that holds a
+non-ASCII digit is a foreign run: it is masked like a code on both sides (after codes), so no part of it is read as a figure,
+and `figure.form` refuses each one in passage text ("Write the number with the digits 0 to 9.").
+
 Masks. `read_figures` and `figure.form` mask a line with one function: every `CODE` match (a run of 16 or more hex
 characters holding a letter A to F: decimal digits alone are a number) is
 replaced by NUL characters of the same length (columns stay true); on the passage side (always, for
@@ -53,21 +58,23 @@ from credit_os.checks.text import passage_text, try_reader
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.scan import Node
 
-CODE = re.compile(r"\bCP-[A-Z0-9]+\b|\bT\d+[A-Z]?\.\d+\b|\b(?=[0-9]*[A-Fa-f])[0-9A-Fa-f]{16,}\b")
+CODE = re.compile(
+    r"\bCP-[A-Z0-9]+\b|\bT[0-9]+[A-Z]?\.[0-9]+\b|\b(?=[0-9]*[A-Fa-f])[0-9A-Fa-f]{16,}\b"
+)
 _MONTH = (
     r"(?:January|February|March|April|May|June|July|August|September|October|November|December"
     r"|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)"
 )
 _ORDINAL = r"(?:st|nd|rd|th)?"
 DATE = re.compile(
-    rf"\b\d{{4}}-\d{{2}}-\d{{2}}\b"
-    rf"|\b{_MONTH}\.?\s+(?:\d{{1,2}}{_ORDINAL},?\s+)?\d{{4}}\b"
-    rf"|\b{_MONTH}\.?\s+\d{{1,2}}{_ORDINAL}\b"
-    rf"|\b\d{{1,2}}{_ORDINAL}\s+{_MONTH}\b(?:,?\s+\d{{4}}\b)?"
+    rf"\b[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}\b"
+    rf"|\b{_MONTH}\.?\s+(?:[0-9]{{1,2}}{_ORDINAL},?\s+)?[0-9]{{4}}\b"
+    rf"|\b{_MONTH}\.?\s+[0-9]{{1,2}}{_ORDINAL}\b"
+    rf"|\b[0-9]{{1,2}}{_ORDINAL}\s+{_MONTH}\b(?:,?\s+[0-9]{{4}}\b)?"
 )
 PERIOD = re.compile(
-    r"\b(?:[QH][1-4]|[1-4]Q(?:\d{2}|\d{4})?|[12]H(?:\d{2}|\d{4})?|FY\d{2,4}[EA]?"
-    r"|(?:19|20)\d\d[EA]|LTM)\b"
+    r"\b(?:[QH][1-4]|[1-4]Q(?:[0-9]{2}|[0-9]{4})?|[12]H(?:[0-9]{2}|[0-9]{4})?|FY[0-9]{2,4}[EA]?"
+    r"|(?:19|20)[0-9][0-9][EA]|LTM)\b"
 )
 MONTH_COUNT = re.compile(r"(?<![\d,.])(?:1[0-2]|[1-9])M(?!\w)")
 
@@ -148,17 +155,21 @@ ISO_4217 = frozenset(_ISO_CODES.split())
 
 _FIGURE = re.compile(
     r"(?<!\w)(?<!\d[,.])(?<![A-Za-z][-−])"
-    r"(?:(?P<lead>(?<![.,])\.\d+)|(?P<int>\d{1,3}(?:,\d{3})+|\d+)(?P<dec>\.\d+)?)"
+    r"(?:(?P<lead>(?<![.,])\.[0-9]+)|(?P<int>[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?P<dec>\.[0-9]+)?)"
     r"(?!\d|[-−][A-Za-z])"
 )
 _NUMBER = re.compile(
-    r"(?P<lead>(?<![\w.,])\.\d+)|(?P<int>\d{1,3}(?:,\d{3})+(?!\d)|\d+)(?P<dec>\.\d+)?"
+    r"(?P<lead>(?<![\w.,])\.[0-9]+)|(?P<int>[0-9]{1,3}(?:,[0-9]{3})+(?!\d)|[0-9]+)(?P<dec>\.[0-9]+)?"
 )
+# A run of decimal digits (a `,` or `.` between two of them stays in the run) that holds a non-ASCII one. The
+# look-behinds start a match only at the first character of a run, so each run is scanned once.
+_FOREIGN_RUN = re.compile(r"(?<!\d)(?<!\d[,.])(?:[0-9][,.]?)*[^\D0-9](?:[,.]?\d)*")
 _DASHES = "–—"
 _BEFORE_SIGNS = "(-−–—+"
 _RATIOS = ("%", "x")
 _PLAIN = {"negative": False, "bracketed": False}
-_HYPHEN_NUMBER = re.compile(r"[-−](?:\d{1,3}(?:,\d{3})+(?!\d)|\d+)(?:\.\d+)?")
+_HYPHEN_NUMBER = re.compile(r"[-−](?:[0-9]{1,3}(?:,[0-9]{3})+(?!\d)|[0-9]+)(?:\.[0-9]+)?")
+_DIGITS = "Write the number with the digits 0 to 9."
 _MINUS = "Write the minus before the currency: -USD 5 million."
 _COMMA = "Write the number with a decimal point, and commas only between groups of three digits."
 _DECIMALS = "Round to at most two decimals."
@@ -195,6 +206,7 @@ class Figure(Node):
 class _Masked(NamedTuple):
     text: str
     hidden: bytes | bytearray
+    runs: tuple[tuple[int, int], ...] = ()
 
 
 class _After(NamedTuple):
@@ -275,11 +287,13 @@ def _hide(
 def _mask(text: str, *, passage: bool) -> _Masked:
     hidden = bytearray(len(text))
     masked = _hide(CODE, text, hidden)
+    runs = tuple(found.span() for found in _FOREIGN_RUN.finditer(masked))
+    masked = _hide(_FOREIGN_RUN, masked, hidden)
     if passage:
         masked = _hide(DATE, masked, hidden)
         masked = _hide(PERIOD, masked, hidden)
         masked = _hide(MONTH_COUNT, masked, hidden, bare_only=True)
-    return _Masked(masked, bytes(hidden))
+    return _Masked(masked, bytes(hidden), runs)
 
 
 def _after(text: str, position: int) -> _After:
@@ -496,12 +510,16 @@ def _plain(found: re.Match[str]) -> bool:
     return value < 100 or (len(digits) == 4 and 1900 <= value <= 2099)
 
 
+def _digit(character: str) -> bool:
+    return character.isascii() and character.isdecimal()
+
+
 def _comma_run(text: str, end: int) -> int | None:
     """The end of the digits, commas and points that follow a number at `end` with `,` and a digit."""
-    if text[end : end + 1] != "," or not text[end + 1 : end + 2].isdecimal():
+    if text[end : end + 1] != "," or not _digit(text[end + 1 : end + 2]):
         return None
     while end < len(text) and (
-        text[end].isdecimal() or (text[end] in ",." and text[end + 1 : end + 2].isdecimal())
+        _digit(text[end]) or (text[end] in ",." and _digit(text[end + 1 : end + 2]))
     ):
         end += 1
     return end
@@ -535,7 +553,7 @@ def _dash_before(text: str, start: int) -> int | None:
 def _is_range(masked: _Masked, dash: int, previous_end: int) -> bool:
     """The dash at `dash` touches a digit, `%`, a masked character or the end of the unit before it."""
     return dash > 0 and (
-        masked.text[dash - 1].isdecimal()
+        _digit(masked.text[dash - 1])
         or masked.text[dash - 1] == "%"
         or bool(masked.hidden[dash - 1])
         or dash == previous_end
@@ -567,6 +585,7 @@ def _currency_minus(line: int, masked: _Masked, text: str) -> tuple[Finding, ...
 def _line_findings(line: int, text: str) -> tuple[Finding, ...]:
     masked = _mask(text, passage=True)
     findings = list(_currency_minus(line, masked, text))
+    findings.extend(refusal("figure.form", line, text[a:b], _DIGITS, a + 1) for a, b in masked.runs)
     position = 0
     previous_end = -1
     while (found := _find(_FIGURE, masked, position)) is not None:

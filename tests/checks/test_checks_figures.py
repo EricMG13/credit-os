@@ -207,6 +207,8 @@ def test_a_thousand_figures_give_a_thousand_findings() -> None:
     assert len(_form(_bottom_line(line))) == 1000
 
 
+# A foreign decimal digit (Arabic-Indic one); the new lines below hold it.
+_A = chr(0x661)
 _SLOW_LINES = [
     "9" * 10000,
     "(USD 1" * 1666,
@@ -226,13 +228,26 @@ _SLOW_LINES = [
     ("1" + " " * 9 + "m") * 900,
     "1,2" * 3333,
     "\u20131" * 5000,
+    "9" * 9999 + _A,
+    _A + "9" * 9999,
+    "1," * 4999 + _A,
+    "1." * 4999 + _A,
+    (_A + ",") * 5000,
+    _A * 10000,
+    ("1" + _A + " ") * 3333,
+    ("12 " + _A + " ") * 2000,
+    ("9" * 9 + ",,") * 900 + _A,
+    ".5" * 4999 + _A,
+    ("USD-1" + _A + " ") * 1400,
+    "1," * 4999 + "1",
 ]
+_SLOW_IDS = [f"line{index}" for index in range(18)] + [f"slow-{name}" for name in "abcdefghijkl"]
 
 
 @pytest.mark.parametrize(
     "line",
     _SLOW_LINES,
-    ids=[f"line{index}" for index in range(len(_SLOW_LINES))],
+    ids=_SLOW_IDS,
 )
 def test_runs_in_bounded_time(line: str) -> None:
     for passage in (True, False):
