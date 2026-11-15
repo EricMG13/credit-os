@@ -226,6 +226,31 @@ MESSAGE: tuple[tuple[tuple[str, ...], tuple[str, ...], str, str], ...] = (
     ((), (H2,), "RDpcUHJvZmlsZXNcTcOpbGFuaWU=", "RDpcUHJvZmlsZXNcTcOpbGFuaWU="),
 )
 
+# 2h-2 re-review 2, C1 (25 rows): a known name given in NFD, its I or i followed by a mark; the text
+# writes that letter as İ in NFD (I and U+0307) before the mark. Every row masks whole.
+_C1_MARKS: tuple[str, ...] = (
+    "\u0300",
+    "\u0301",
+    "\u0302",
+    "\u0303",
+    "\u0304",
+    "\u0306",
+    "\u0307",
+    "\u0308",
+)
+_C1_MARKS += ("\u0308\u0301", "\u0309", "\u030c", "\u030f", "\u0311")
+MESSAGE += tuple(
+    (
+        (),
+        ("D:\\Profiles\\ab" + i + m + "cd",),
+        "x D:\\Profiles\\abI\u0307" + m + "cd y",
+        "x <home> y",
+    )
+    for m in _C1_MARKS
+    for i in ("I", "i")
+    if (i, m) != ("i", "\u0307")
+)
+
 # Known paths with no folder name: Redactor(known_paths=(p,)) raises ValueError.
 REFUSED: tuple[str, ...] = (
     "",
@@ -312,6 +337,7 @@ _DEEP = "C:\\" + "\\".join(_EIGHT)  # an 8-folder known path
 _RT_WIN = "C:\\Users\\jane\\AppData\\Local\\Programs\\copilot\\bin\\copilot.exe"
 # 2h-2 re-review N1: a known path of accented letters written in NFD, its last character wrong
 _ACC = "/\u00e9a/\u00e3b/\u1ec7c/\u00c9d/\u5f20e/\u00fcf/\u00f1g/\u00e5h/\u00f8i/\u00e7j"
+_ANG = "/" + "/".join(["\u212b"] * 12)  # re-review 2, T1: the Angstrom sign, A and U+030A in NFD
 # message() is linear in the text for fixed known paths (coordinator, 2026-11-14): (label, known
 # paths, text), each at most SECONDS. Inputs at most 10^5 characters.
 TIMING_PATHS: tuple[tuple[str, tuple[str, ...], str], ...] = (
@@ -331,6 +357,11 @@ TIMING_PATHS: tuple[tuple[str, tuple[str, ...], str], ...] = (
         "NFD near-miss, 10 accented folders, repeated",
         (_ACC,),
         ((unicodedata.normalize("NFD", _ACC)[:-1] + "Q ") * 5_000)[:100_000],
+    ),
+    (
+        "NFD near-miss, 12 Angstrom-sign folders, repeated",
+        (_ANG,),
+        ((unicodedata.normalize("NFD", _ANG)[:-1] + "Q ") * 5_000)[:100_000],
     ),
 )
 
