@@ -43,6 +43,7 @@ ENTRY_KEYS = frozenset(
         "overview.metrics_label",
         "overview.modules_summary",
         "overview.gaps_link",
+        "overview.metric_note",
         "records.chart_gap",
         "trace.title",
         "trace.subtitle",
