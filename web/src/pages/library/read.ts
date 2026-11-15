@@ -638,10 +638,7 @@ function readOverview(value: unknown, path: string, traces: Traces): Overview {
     bottomLine: readBottomLine(own(o, "bottomLine"), child(path, "bottomLine"), traces),
     metricsLabel: str(o, "metricsLabel", path),
     metrics: unique(
-      some(
-        list(o, "metrics", path, (m, p) => readMetric(m, p, traces)),
-        child(path, "metrics"),
-      ),
+      list(o, "metrics", path, (m, p) => readMetric(m, p, traces)),
       child(path, "metrics"),
       (m) => m.label,
       "label",
