@@ -7,6 +7,7 @@ refused call changes neither. PR 3b2 and 3c add their writes to this file. Imple
 this file or weaken a comparison against it.
 """
 
+import hashlib
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, cast
@@ -799,3 +800,424 @@ AFTER_TWO_RUNS_CLOSE: dict[str, tuple[tuple[int, str, CallKey | None, str | None
     "A": ((0, "x-1", ("CP-1", 1, 0), "0.1"), (1, "y-1", None, None)),
     "B": ((0, "x-1", None, "0.2"), (1, "y-1", ("CP-1", 1, 0), None)),
 }
+
+
+# === Added for PR 3c1: record_reply, record_verdict, fail_attempt ===========================
+# Rulings U8 (each attempt state change appends attempt_<state> with module_id and attempt, in the
+# same transaction), U9 (an attempt is failed only while the run runs; its open call stays open,
+# D7), U10, U11 (issues: "[" + each item's detail_to_text joined by "," + "]", "[]" when none;
+# NULL until accepted or rejected) and U17. Each write calls the clock once (replied_at or
+# closed_at) and appends one event; a refused write calls it zero times and changes nothing.
+# PR 3c2 adds the reads (attempts, charges).
+
+
+@dataclass
+class ReplyModel(CloseModel):
+    """CloseModel with record_reply, record_verdict and fail_attempt."""
+
+    shas: dict[tuple[str, int], str] = field(default_factory=dict)
+
+    def record_reply(
+        self, token: int, module: str, number: int, reply: bytes
+    ) -> tuple[str | None, str | None]:
+        """Open to replied; StoreConflict when the attempt is not open or a call of it is open."""
+        refused, attempt = self._attempt(token, module, number)
+        if attempt is None:
+            return refused, None
+        if attempt.state != "open" or any(call.open for call in attempt.calls):
+            return "StoreConflict", None
+        attempt.state = "replied"
+        self.shas[(module, number)] = hashlib.sha256(reply).hexdigest()
+        self._event("attempt_replied", module, number, {})
+        return None, self.shas[(module, number)]
+
+    def record_verdict(
+        self, token: int, module: str, number: int, sha: str, accepted: bool
+    ) -> str | None:
+        """Replied to accepted or rejected; StoreConflict when not replied or the hash differs."""
+        refused, attempt = self._attempt(token, module, number)
+        if attempt is None:
+            return refused
+        if attempt.state != "replied" or self.shas.get((module, number)) != sha:
+            return "StoreConflict"
+        attempt.state = "accepted" if accepted else "rejected"
+        self._event(f"attempt_{attempt.state}", module, number, {})
+        return None
+
+    def fail_attempt(self, token: int, module: str, number: int, reason: str) -> str | None:
+        """Open to failed; an open call of the attempt stays open (D7)."""
+        refused, attempt = self._attempt(token, module, number)
+        if attempt is None:
+            return refused
+        if attempt.state != "open":
+            return "StoreConflict"
+        attempt.state = "failed"
+        self._event("attempt_failed", module, number, {"reason": reason})
+        return None
+
+
+REPLIES = {n: f"reply {n}\n".encode() for n in range(1, 4)}
+# The SHA-256 of each reply, by `printf 'reply N\n' | shasum -a 256`.
+REPLY_SHA256 = {
+    1: "030f771b188d553d5be0debc26a5aec9d89dddd22d3211d38d1700da855c2ea0",
+    2: "531cd91cd07fc951089d33fa2aec26f915b51e7137b97800dd7cf71926f685d6",
+    3: "7ad6bca698425105b23d597c5ce09f99d34ca154086b426e5d1fc88179e769f0",
+}
+ISSUES_1 = ({"code": "missing_section", "line": 3}, {"code": "figure", "line": None})
+# ISSUES_1's stored text (canonical ASCII JSON, sorted keys, no spaces).
+ISSUES_TEXT_1 = '[{"code":"missing_section","line":3},{"code":"figure","line":null}]'
+OK_UNKNOWN = _ok(Usage(), None)
+
+
+def _reply_of(module: str, attempt: int, reply: int) -> dict[str, object]:
+    return {"module_id": module, "attempt": attempt, "reply": REPLIES[reply]}
+
+
+def _verdict(
+    module: str, attempt: int, sha: object, accepted: object, issues: object = ()
+) -> dict[str, object]:
+    return {
+        "module_id": module,
+        "attempt": attempt,
+        "reply_sha256": sha,
+        "accepted": accepted,
+        "issues": issues,
+    }
+
+
+def _fail(module: str, attempt: int, reason: str = "interrupted") -> dict[str, object]:
+    return {"module_id": module, "attempt": attempt, "reason": reason}
+
+
+# --- The scripted run of PR 3c1, as SCRIPT_3B1 (claims; the test's clock answers row n with second
+# n; a refused row calls it zero times and leaves the full dump unchanged; every other row calls it
+# exactly once).
+SCRIPT_3C1: tuple[tuple[str, int, dict[str, object], str | None], ...] = (
+    ("create", 1, {}, None),
+    ("start", 1, {}, None),
+    ("open_attempt", 1, _attempt("CP-1", 1), None),
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 0), None),
+    ("record_reply", 1, _reply_of("CP-1", 1, 1), "StoreConflict"),  # call 0 open
+    ("close_call", 1, _close("CP-1", 1, 0, OK_UNKNOWN), None),
+    ("record_reply", 1, _reply_of("CP-1", 1, 1), None),
+    ("record_verdict", 1, _verdict("CP-1", 1, "0" * 64, False), "StoreConflict"),  # other hash
+    ("record_verdict", 1, _verdict("CP-1", 1, REPLY_SHA256[1], False, ISSUES_1), None),
+    ("open_attempt", 1, _attempt("CP-1", 2), None),
+    ("open_call", 1, _call("CP-1", 2, "ex-1", 1), None),
+    ("close_call", 1, _close("CP-1", 2, 0, NOT_SENT), None),
+    ("open_call", 1, _call("CP-1", 2, "ex-1", 2), None),
+    ("claim", 2, {}, None),
+    ("fail_attempt", 1, _fail("CP-1", 2), "StoreFenced"),
+    ("fail_attempt", 2, _fail("CP-1", 2), None),  # its call 1 stays open (D7)
+    ("end", 2, {"status": "stopped", "reason": "interrupted"}, None),
+    ("start", 2, {}, None),
+    ("open_attempt", 2, _attempt("CP-1", 3), None),
+    ("open_call", 2, _call("CP-1", 3, "ex-2", 0), None),
+    ("close_call", 2, _close("CP-1", 3, 0, OK_PRICED), None),
+    ("record_reply", 2, _reply_of("CP-1", 3, 3), None),
+    ("record_verdict", 2, _verdict("CP-1", 3, REPLY_SHA256[3], True), None),
+    ("open_attempt", 2, _attempt("CP-1", 4), "StoreConflict"),  # attempt 3 accepted
+    ("end", 2, {"status": "finished", "reason": "completed"}, None),
+)
+# The value each row returns, for the rows that return one and are not refused.
+SCRIPT_3C1_RETURNS: dict[int, object] = {
+    3: 1,
+    4: 0,
+    7: REPLY_SHA256[1],
+    10: 2,
+    11: 0,
+    13: 1,
+    19: 3,
+    20: 0,
+    22: REPLY_SHA256[3],
+}
+AFTER_3C1_STATUS = "finished"
+AFTER_3C1_EVENTS: tuple[Event, ...] = (
+    ("run_created", None, None, {}),
+    ("run_started", None, None, {"from": "created"}),
+    ("attempt_opened", "CP-1", 1, {}),
+    ("attempt_replied", "CP-1", 1, {}),
+    ("attempt_rejected", "CP-1", 1, {}),
+    ("attempt_opened", "CP-1", 2, {}),
+    ("writer_replaced", None, None, {}),
+    ("attempt_failed", "CP-1", 2, {"reason": "interrupted"}),
+    ("run_ended", None, None, {"status": "stopped", "reason": "interrupted"}),
+    ("run_started", None, None, {"from": "stopped"}),
+    ("attempt_opened", "CP-1", 3, {}),
+    ("attempt_replied", "CP-1", 3, {}),
+    ("attempt_accepted", "CP-1", 3, {}),
+    ("run_ended", None, None, {"status": "finished", "reason": "completed"}),
+)
+AFTER_3C1_EVENT_ROWS = (1, 2, 3, 7, 9, 10, 14, 16, 17, 18, 19, 22, 23, 25)
+# Attempts after SCRIPT_3C1, read raw: (module, attempt, state, request number, reply, reply_sha256,
+# issues text, fail_reason, opened row, replied row or None, closed row or None).
+AFTER_3C1_ATTEMPTS: tuple[
+    tuple[
+        str,
+        int,
+        str,
+        int,
+        bytes | None,
+        str | None,
+        str | None,
+        str | None,
+        int,
+        int | None,
+        int | None,
+    ],
+    ...,
+] = (
+    ("CP-1", 1, "rejected", 1, REPLIES[1], REPLY_SHA256[1], ISSUES_TEXT_1, None, 3, 7, 9),
+    ("CP-1", 2, "failed", 2, None, None, None, "interrupted", 10, None, 16),
+    ("CP-1", 3, "accepted", 3, REPLIES[3], REPLY_SHA256[3], "[]", None, 19, 22, 23),
+)
+OK_UNKNOWN_COLUMNS = {
+    **OPEN_CALL_COLUMNS,
+    "kind": "ok",
+    "stop_reason": "end",
+    "reported_model": "m",
+    "request_id": "r",
+}
+OK_PRICED_COLUMNS = {
+    **OK_UNKNOWN_COLUMNS,
+    "input_tokens": 100,
+    "output_tokens": 20,
+    "billed_usd": "0.0125",
+}
+# Calls after SCRIPT_3C1, as AFTER_3B2B_CALLS. The crash-left call (CP-1, 2, 1) stays open (D7).
+AFTER_3C1_CALLS: tuple[tuple[str, int, int, str, int, int, int | None, dict[str, object]], ...] = (
+    ("CP-1", 1, 0, "ex-1", 0, 4, 6, OK_UNKNOWN_COLUMNS),
+    ("CP-1", 2, 0, "ex-1", 1, 11, 12, NOT_SENT_COLUMNS),
+    ("CP-1", 2, 1, "ex-1", 2, 13, None, OPEN_CALL_COLUMNS),
+    ("CP-1", 3, 0, "ex-2", 0, 20, 21, OK_PRICED_COLUMNS),
+)
+# No compactions are written by SCRIPT_3C1.
+
+# --- The take-over that ends first (U9), a scripted run of its own: the open attempt waits for the
+# resume's start_run. As SCRIPT_3C1.
+TAKE_OVER_END_FIRST: tuple[tuple[str, int, dict[str, object], str | None], ...] = (
+    ("create", 1, {}, None),
+    ("start", 1, {}, None),
+    ("open_attempt", 1, _attempt("CP-1", 1), None),
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 0), None),
+    ("claim", 2, {}, None),
+    ("end", 2, {"status": "stopped", "reason": "interrupted"}, None),
+    ("fail_attempt", 2, _fail("CP-1", 1), "StoreConflict"),  # the run is stopped
+    ("start", 2, {}, None),
+    ("fail_attempt", 2, _fail("CP-1", 1), None),
+    ("open_attempt", 2, _attempt("CP-1", 2), None),
+)
+TAKE_OVER_RETURNS = {3: 1, 4: 0, 10: 2}
+AFTER_TAKE_OVER_EVENTS: tuple[Event, ...] = (
+    ("run_created", None, None, {}),
+    ("run_started", None, None, {"from": "created"}),
+    ("attempt_opened", "CP-1", 1, {}),
+    ("writer_replaced", None, None, {}),
+    ("run_ended", None, None, {"status": "stopped", "reason": "interrupted"}),
+    ("run_started", None, None, {"from": "stopped"}),
+    ("attempt_failed", "CP-1", 1, {"reason": "interrupted"}),
+    ("attempt_opened", "CP-1", 2, {}),
+)
+AFTER_TAKE_OVER_EVENT_ROWS = (1, 2, 3, 5, 6, 8, 9, 10)
+# After it: attempt 1 failed (closed_at row 9) with its call 0 still open; attempt 2 open.
+AFTER_TAKE_OVER_ATTEMPTS = (("CP-1", 1, "failed", 9), ("CP-1", 2, "open", None))
+AFTER_TAKE_OVER_CALLS = (("CP-1", 1, 0, "ex-1", 0, 4, None, OPEN_CALL_COLUMNS),)
+
+# --- Attempt states. Each setup, on a fresh store with a running run (claim 1), brings CP-1
+# attempt 1 to the named state through the API: (call, arguments) in order.
+STATE_SETUPS: dict[str, tuple[tuple[str, dict[str, object]], ...]] = {
+    "open": (("open_attempt", _attempt("CP-1", 1)),),
+    "open with call 0": (
+        ("open_attempt", _attempt("CP-1", 1)),
+        ("open_call", _call("CP-1", 1, "ex-1", 0)),
+    ),
+    "replied": (
+        ("open_attempt", _attempt("CP-1", 1)),
+        ("record_reply", _reply_of("CP-1", 1, 1)),
+    ),
+    "accepted": (
+        ("open_attempt", _attempt("CP-1", 1)),
+        ("record_reply", _reply_of("CP-1", 1, 1)),
+        ("record_verdict", _verdict("CP-1", 1, REPLY_SHA256[1], True)),
+    ),
+    "rejected": (
+        ("open_attempt", _attempt("CP-1", 1)),
+        ("record_reply", _reply_of("CP-1", 1, 1)),
+        ("record_verdict", _verdict("CP-1", 1, REPLY_SHA256[1], False)),
+    ),
+    "failed": (("open_attempt", _attempt("CP-1", 1)), ("fail_attempt", _fail("CP-1", 1))),
+    "failed with call 0 open": (
+        ("open_attempt", _attempt("CP-1", 1)),
+        ("open_call", _call("CP-1", 1, "ex-1", 0)),
+        ("fail_attempt", _fail("CP-1", 1)),
+    ),
+}
+# Then one call with STATE_CALLS' arguments: (label, setup, call). Each is StoreConflict: the clock
+# never called, the full dump unchanged. close_call's reply carries no compaction, so the store's
+# own state check, not migration 2's trigger, must refuse it before the clock.
+STATE_CALLS: dict[str, dict[str, object]] = {
+    "open_call": _call("CP-1", 1, "ex-1", 1),
+    "close_call": _close("CP-1", 1, 0, NOT_SENT),
+    "record_reply": _reply_of("CP-1", 1, 2),
+    "record_verdict": _verdict("CP-1", 1, REPLY_SHA256[1], True),
+    "fail_attempt": _fail("CP-1", 1),
+}
+STATE_CONFLICTS: tuple[tuple[str, str, str], ...] = (
+    ("call on a replied attempt", "replied", "open_call"),
+    ("call on an accepted attempt", "accepted", "open_call"),
+    ("call on a rejected attempt", "rejected", "open_call"),
+    ("call on a failed attempt", "failed", "open_call"),
+    ("close on a failed attempt", "failed with call 0 open", "close_call"),
+    ("reply with call 0 open", "open with call 0", "record_reply"),
+    ("reply twice", "replied", "record_reply"),
+    ("reply on an accepted attempt", "accepted", "record_reply"),
+    ("reply on a failed attempt", "failed", "record_reply"),
+    ("verdict on an open attempt", "open", "record_verdict"),
+    ("verdict twice", "accepted", "record_verdict"),
+    ("verdict after a rejection", "rejected", "record_verdict"),
+    ("verdict on a failed attempt", "failed", "record_verdict"),
+    ("fail a replied attempt", "replied", "fail_attempt"),
+    ("fail an accepted attempt", "accepted", "fail_attempt"),
+    ("fail a failed attempt", "failed", "fail_attempt"),
+)
+# From "replied" (REPLIES[1]), record_verdict with REPLIES[2]'s hash: StoreConflict, as above.
+OTHER_HASH_VERDICT = _verdict("CP-1", 1, REPLY_SHA256[2], True)
+
+# --- open_attempt with a latest attempt (U17), from each STATE_SETUPS state: (label, setup,
+# request number, error class or None, the number returned or None, whether anything is written).
+# A conflict, or a number returned with nothing written, calls the clock zero times and leaves the
+# full dump unchanged; a new attempt calls it once and appends attempt_opened.
+OPEN_ATTEMPT_REPEATS: tuple[tuple[str, str, int, str | None, int | None, bool], ...] = (
+    ("open, same bytes", "open", 1, None, 1, False),
+    ("open, other bytes", "open", 2, "StoreConflict", None, False),
+    ("replied, same bytes", "replied", 1, "StoreConflict", None, False),
+    ("replied, other bytes", "replied", 2, "StoreConflict", None, False),
+    ("accepted, same bytes", "accepted", 1, "StoreConflict", None, False),
+    ("rejected, same bytes", "rejected", 1, None, 2, True),
+    ("rejected, other bytes", "rejected", 2, None, 2, True),
+    ("failed, same bytes", "failed", 1, None, 2, True),
+    ("failed with a call open", "failed with call 0 open", 2, None, 2, True),
+)
+
+# --- Two runs in one store: each attempt lookup is per run. A (RUN_ID) and B (SECOND_RUN_ID) are
+# created and started, A first, then the setups named for each, each with its run's claim; then the
+# calls, each with its run's claim: (label, A setup, B setup, (call, run, arguments, error class or
+# None) in order). Both orders are keyed, so a lookup that drops the run id fails whichever run it
+# finds first.
+TWO_RUNS_STATES: tuple[
+    tuple[str, str, str, tuple[tuple[str, str, dict[str, object], str | None], ...]], ...
+] = (
+    (
+        "A failed, B open",
+        "failed with call 0 open",
+        "open with call 0",
+        (
+            ("close_call", "B", _close("CP-1", 1, 0, NOT_SENT), None),
+            ("record_reply", "B", _reply_of("CP-1", 1, 1), None),
+            ("close_call", "A", _close("CP-1", 1, 0, NOT_SENT), "StoreConflict"),
+        ),
+    ),
+    (
+        "A open, B failed",
+        "open with call 0",
+        "failed with call 0 open",
+        (
+            ("close_call", "A", _close("CP-1", 1, 0, NOT_SENT), None),
+            ("record_reply", "A", _reply_of("CP-1", 1, 1), None),
+            ("close_call", "B", _close("CP-1", 1, 0, NOT_SENT), "StoreConflict"),
+        ),
+    ),
+    (
+        "A replied, B open",
+        "replied",
+        "open",
+        (
+            ("fail_attempt", "B", _fail("CP-1", 1), None),
+            ("record_verdict", "A", _verdict("CP-1", 1, REPLY_SHA256[1], True), None),
+        ),
+    ),
+)
+
+# --- Refusals, StoreRefused before BEGIN: the clock never called, the full dump unchanged. On a
+# running run whose CP-1 attempt 1 is replied with REPLIES[1] (record_verdict rows) or open with no
+# call (the others). (label, call, arguments other than the claim)
+_NOT_STR = type("S", (str,), {})
+
+
+def _r(**changes: object) -> dict[str, object]:
+    return {**_reply_of("CP-1", 1, 1), **changes}
+
+
+def _v(**changes: object) -> dict[str, object]:
+    return {**_verdict("CP-1", 1, REPLY_SHA256[1], True), **changes}
+
+
+def _f(**changes: object) -> dict[str, object]:
+    return {**_fail("CP-1", 1), **changes}
+
+
+REFUSED_ARGUMENTS_3C1: tuple[tuple[str, str, dict[str, object]], ...] = (
+    ("reply as text", "record_reply", _r(reply="text")),
+    ("reply a bytearray", "record_reply", _r(reply=bytearray(b"r"))),
+    ("reply a bytes subclass", "record_reply", _r(reply=type("B", (bytes,), {})(b"r"))),
+    ("reply attempt 0", "record_reply", _r(attempt=0)),
+    ("reply attempt too large", "record_reply", _r(attempt=_BIG)),
+    ("reply module id with a space", "record_reply", _r(module_id="CP 1")),
+    ("verdict accepted an int", "record_verdict", _v(accepted=1)),
+    ("verdict accepted None", "record_verdict", _v(accepted=None)),
+    ("verdict hash upper case", "record_verdict", _v(reply_sha256=REPLY_SHA256[1].upper())),
+    ("verdict hash 63 characters", "record_verdict", _v(reply_sha256=REPLY_SHA256[1][1:])),
+    ("verdict hash as bytes", "record_verdict", _v(reply_sha256=REPLY_SHA256[1].encode())),
+    ("verdict hash a str subclass", "record_verdict", _v(reply_sha256=_NOT_STR(REPLY_SHA256[1]))),
+    ("verdict issues a mapping", "record_verdict", _v(issues={"x": 1})),
+    ("verdict issues text", "record_verdict", _v(issues="[]")),
+    ("verdict issues None", "record_verdict", _v(issues=None)),
+    ("verdict issue not a mapping", "record_verdict", _v(issues=("x",))),
+    ("verdict issue a float", "record_verdict", _v(issues=({"x": 1.5},))),
+    ("verdict issue a bool", "record_verdict", _v(issues=({"x": True},))),
+    ("verdict issue key not text", "record_verdict", _v(issues=({1: "x"},))),
+    ("verdict issue int too large", "record_verdict", _v(issues=({"x": _BIG},))),
+    ("fail reason upper case", "fail_attempt", _f(reason="Interrupted")),
+    ("fail reason empty", "fail_attempt", _f(reason="")),
+    ("fail reason with a space", "fail_attempt", _f(reason="time out")),
+    ("fail reason 65 characters", "fail_attempt", _f(reason="a" * 65)),
+    ("fail reason a str subclass", "fail_attempt", _f(reason=_NOT_STR("x"))),
+    ("fail reason not text", "fail_attempt", _f(reason=1)),
+    ("fail attempt a bool", "fail_attempt", _f(attempt=True)),
+)
+# Accepted at the edge, from the same setups: each writes (the clock once, its event) and stores
+# the text shown as the attempt's issues or fail_reason. (label, call, arguments, stored text)
+ACCEPTED_EDGES_3C1: tuple[tuple[str, str, dict[str, object], str], ...] = (
+    ("fail reason 64 characters", "fail_attempt", _f(reason="a" * 64), "a" * 64),
+    ("issues a list", "record_verdict", _v(issues=[{"b": 1, "a": "x"}]), '[{"a":"x","b":1}]'),
+    (
+        "issue with a lone surrogate",
+        "record_verdict",
+        _v(issues=({"n": "a\ud800"},)),
+        '[{"n":"a\\\\ud800"}]',
+    ),
+    ("issue empty", "record_verdict", _v(issues=({},)), "[{}]"),
+)
+# An attempt the run does not have, on a running run with CP-1 attempt 1 open: StoreRefused,
+# nothing written, the clock never called.
+MISSING_3C1: tuple[tuple[str, str, dict[str, object]], ...] = (
+    ("reply on attempt 2", "record_reply", _reply_of("CP-1", 2, 1)),
+    ("verdict on attempt 2", "record_verdict", _verdict("CP-1", 2, REPLY_SHA256[1], True)),
+    ("fail attempt 2", "fail_attempt", _fail("CP-1", 2)),
+    ("fail another module", "fail_attempt", _fail("CP-9", 1)),
+)
+# Each with Claim(MISSING_RUN_ID, FOREIGN_TOKEN of the runs part), while run A runs: StoreRefused,
+# the clock never called, the full dump unchanged.
+MISSING_RUN_3C1: tuple[tuple[str, dict[str, object]], ...] = (
+    ("record_reply", _reply_of("CP-1", 1, 1)),
+    ("record_verdict", _verdict("CP-1", 1, REPLY_SHA256[1], True)),
+    ("fail_attempt", _fail("CP-1", 1)),
+)
+# As NOT_RUNNING_CALLS, with CP-1 attempt 1 opened while the run ran (replied first for the
+# verdict row), for each NOT_RUNNING status with an attempt ("created" and "rejected" have none):
+# StoreConflict, no clock, the dump unchanged.
+NOT_RUNNING_3C1: tuple[tuple[str, str, dict[str, object]], ...] = (
+    ("reply", "record_reply", _reply_of("CP-1", 1, 1)),
+    ("verdict", "record_verdict", _verdict("CP-1", 1, REPLY_SHA256[1], True)),
+    ("fail", "fail_attempt", _fail("CP-1", 1)),
+)
