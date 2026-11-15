@@ -46,10 +46,17 @@ def text(value: Fraction) -> str:
     return ("-" if value < 0 else "") + whole + (f".{tail}" if tail else "")
 
 
+# R47: a balance counts only where it stands as a number of its own: not inside a longer number,
+# not glued to a letter (`FY2024`, `9M`), not part of a date (`2022-07-01`, `19/11/2031`) and not a
+# percentage (`7.125%`). A number standing alone in words (`Senior notes 2029`) still counts.
+ALONE_BEFORE = r"(?<![0-9.,A-Za-z])(?<![0-9][-/])"
+ALONE_AFTER = r"(?![0-9]|[.,][0-9]|[A-Za-z]|[-/][0-9]| ?%)"
+
+
 def printed(lines: list[str], amount: str) -> bool:
     whole, dot, fraction = amount.lstrip("-").partition(".")
     forms = {f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}"}
-    pattern = "|".join(rf"(?<![0-9.,]){re.escape(form)}(?![0-9]|[.,][0-9])" for form in forms)
+    pattern = "|".join(rf"{ALONE_BEFORE}{re.escape(form)}{ALONE_AFTER}" for form in forms)
     return any(re.search(pattern, line) for line in lines)
 
 
@@ -441,13 +448,76 @@ ROWS: list[Doc] = [
 ]
 
 
+# R47: (where the balance is printed, the balance, the foundation text that prints it only that
+# way, or None where the fixture already does, and the same number printed on its own).
+# The period-label row uses FY2031, not FY2024: the fixture also prints 2024 standing alone in
+# `9M 2024` and `Q3 2024`, which counts by the known reading, so 2024 is printed either way.
+R47 = [
+    ("glued after a period label", "2031", "Guidance for FY2031 is withdrawn.", "Guidance: 2031."),
+    ("as the year of an ISO date", "2022", None, "Opened in 2022."),
+    ("as the day of an ISO date", "17", "Repaid on 2031-11-17.", "Repaid: 17."),
+    ("before the slash of a date", "21", "Repaid on 21/11/2031.", "Repaid: 21."),
+    ("after the slash of a date", "23", "Repaid on 2031/11/23.", "Repaid: 23."),
+    ("glued before a letter", "9", None, "Nine is 9."),
+    ("as a percentage", "7.125", None, "The notes stand at 7.125."),
+    ("glued into a facility name", "2027", "TLB2027 was repaid.", "2027 was repaid."),
+]
+
+
+def r47_rows() -> list[Doc]:
+    """Each R47 form refused, beside the same balance printed on its own and accepted; base debt
+    3,000 keeps both bounds out of the way."""
+    base = debt("3,000", "3000")
+    rows = []
+
+    def row(label: str, balance: str, *lines: str) -> Doc:
+        edits = [*base["edits"], *([CALC, f"{CALC}\n{line}\n"] for line in lines)]
+        ops = [*base["ops"], [["facilities", 1, "balance"], balance]]
+        return {"label": f"R47: {label}", "edits": edits, "ops": ops}
+
+    for where, balance, only, alone in R47:
+        glued = [only] if only else []
+        rows.append(row(f"a balance printed only {where} is not printed", balance, *glued))
+        rows.append(
+            row(
+                f"the same balance on its own beside it is printed ({where})",
+                balance,
+                *glued,
+                alone,
+            )
+        )
+    rows.append(
+        row("known reading: a number standing alone in a name counts (Senior notes 2029)", "2029")
+    )
+    rows.append(
+        row("a bracketed balance with a trailing zero counts", "1250.0", "Drawn (1,250.0).")
+    )
+    rows.append(
+        row(
+            "a balance printed only as a percentage with a trailing zero does not count",
+            "1250.0",
+            "Drawn 1,250.0%.",
+        )
+    )
+    rows.append(
+        row(
+            "a balance printed only as a percentage after a space does not count",
+            "1250.0",
+            "Drawn 1,250.0 %.",
+        )
+    )
+    return rows
+
+
 def render() -> str:
-    rows = [{**row, "source": row.get("source", "forward-model.md")} for row in ROWS]
+    rows = [
+        {**row, "source": row.get("source", "forward-model.md")} for row in [*ROWS, *r47_rows()]
+    ]
     rows = [{**row, "outcome": outcome(row)} for row in rows]
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 57 and len(accepted) == 13
+    assert len(labels) == len(set(labels)) == 77 and len(accepted) == 23
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
