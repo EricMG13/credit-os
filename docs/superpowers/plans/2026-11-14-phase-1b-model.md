@@ -155,6 +155,18 @@ its files are written data and count toward the cap.
     foundation" and "the forward credit model", not `CP-1` or `CP-2G` (design system: no module
     codes on screen); refusal messages, which go back to the module, keep the codes. *Cost if
     wrong:* the wording constants change in one later PR.
+11. **1B-M1** (2026-11-15, found by the set's whole-branch review of #374 and #375; under the Scale
+    rule, "an amount printed in the other unit is refused, never converted"). A prose line, table
+    label or column header prints a facility balance only if it names no unit other than the
+    block's. A table body cell prints it only if the cell, the rest of its row, its column header
+    and the first header cell name none either. A piece or group naming both units does not count
+    (fail closed). Rates are still read from every piece. *Known reading:* prose that names no unit
+    still counts, so a balance stated 1,000 times off still passes when CP-1 prints the same number
+    with no unit word, until R57's caption line (PR 6a4) widens what is read.
+12. **P1** (2026-11-15, whole-branch P1, predates 6b): R18's layer-1 restriction is not in `model/`
+    (R18 sent it to PR 5, which did not port it). It goes to PR 7, the first 1B PR with a run
+    entry, as a `source` argument, with key rows that refuse a layer-1 block stating facilities, a
+    shock or cases.
 
 ## Answer keys (implementers do not edit them or weaken a comparison)
 
