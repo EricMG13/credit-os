@@ -631,7 +631,10 @@ def m1_rows() -> list[Doc]:
 
     for where, other, word in M1:
         same = other.replace(word, SAME.get(word, word.replace("thousand", "million")))
-        rows.append(row(f"a balance printed only {where} is not printed", other))
+        said = "is not printed"
+        if where == "in prose naming both units":
+            said = "is refused as a unit issue (R59f: a caption never excuses)"
+        rows.append(row(f"a balance printed only {where} {said}", other))
         rows.append(row(f"the same text naming millions prints it ({where})", same))
     rows.append(
         {
@@ -745,12 +748,35 @@ def r59c_rows() -> list[Doc]:
         )
     )
     base = debt("3,000", "3000")
-    for where, other, word in M1[:2]:
+    for where, other, word in [*M1[:3]]:
         line = f"{other}\n\nSee the debt table below."
         edits = [*base["edits"], [CALC, f"{CALC}\n{line}\n"]]
         ops = [*base["ops"], [["facilities", 1, "balance"], "380"]]
         label = f"R59c: a balance printed only {where}, a neutral paragraph before the table"
         rows.append({"label": label, "edits": edits, "ops": ops})
+    # Adversary F2: every caption line is read (a unit on line 2 alone voids the table), and a
+    # caption naming the block's unit excuses no cell (a Unit cell naming thousands still voids it).
+    rows.append(
+        caption(
+            "F2: scale 1, a caption naming the other unit on line 2 only: not printed",
+            "Amounts as reported.\nStated in USD thousands.",
+            1,
+        )
+    )
+    rows.append(
+        {
+            **caption(
+                "F2: scale 1, a caption naming millions does not excuse a Unit cell naming "
+                "thousands on the Term loan B row: 640 not printed",
+                "Amounts in USD millions.",
+                1,
+            ),
+            "edits": [
+                [heading, f"{heading}Amounts in USD millions.\n\n"],
+                ["| 2026-09-30 | USD millions |", "| 2026-09-30 | USD thousands |"],
+            ],
+        }
+    )
     return rows
 
 
@@ -763,7 +789,7 @@ def render() -> str:
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 115 and len(accepted) == 40
+    assert len(labels) == len(set(labels)) == 118 and len(accepted) == 40
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":

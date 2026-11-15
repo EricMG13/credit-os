@@ -19,7 +19,7 @@ currency. R50: only the operand's header, the first header cell and a `Unit` or 
 excuse a group; any cell can raise an issue. R51: capital `M` glued before `US$` or `$` is an
 ambiguous unit, refused under both blocks. R57, R59a and R59b (PR 6a4): a table's caption is the
 paragraph directly before it (this script's own `captions`), and each caption line is one more
-cell of the operand's group, named `caption`, that may excuse and may raise an issue; a caption
+cell of the operand's group, named `caption`, that may raise an issue but never excuses (R59f); a caption
 two paragraphs up, or past a heading, is not read. Run this file to write `pr6a.json` next to it.
 """
 
@@ -176,7 +176,7 @@ def unit_issues(
 ) -> list[tuple[str, str]]:
     """The (what, cell) issues of the named row and header under `block`: in every group of every
     table, unless a cell that may excuse names the block. R59b: a caption line is a group cell
-    named `caption` that may excuse and may raise an issue."""
+    named `caption` that may raise an issue and never excuses (R59f)."""
     issues: list[tuple[str, str]] = []
     for first, head, body in read:
         caption = above.get(first, [])
@@ -185,7 +185,7 @@ def unit_issues(
                 group = [(f"{kind} header", head[c]), ("first header cell", head[0])]
                 group += [(PR5.plain(head[i]), cell) for i, cell in enumerate(line) if i != c]
                 group += [("caption", cell) for cell in caption]
-                excuse = [head[c], head[0], *caption]
+                excuse = [head[c], head[0]]  # R59f: a caption never excuses
                 excuse += [
                     cell
                     for i, cell in enumerate(line)
@@ -889,14 +889,14 @@ def r59_rows() -> list[Doc]:
                 "Amounts as reported.\n",
             ),
             cap_row(
-                f"R59: a caption naming {block} excuses a Unit cell naming {other}",
+                f"R59f: a caption naming {block} does not excuse a Unit cell naming {other}: refused",
                 scale,
                 names_block + "\n",
                 with_unit,
                 (f"USD {other}",),
             ),
             cap_row(
-                f"R59: a caption naming both units excuses a Unit cell naming {other} {under}",
+                f"R59f: a caption naming both units does not excuse a Unit cell naming {other}: refused {under}",
                 scale,
                 both + "\n",
                 with_unit,
@@ -955,7 +955,7 @@ def r59_rows() -> list[Doc]:
                 f"Restated in USD billions.\n{names_other}\n",
             ),
             cap_row(
-                f"R59: a two-line caption: the second line naming {block} excuses the first "
+                f"R59f: a two-line caption: the second line naming {block} does not excuse the first: refused "
                 f"{under}",
                 scale,
                 f"{names_other}\nStated in USD {block}.\n",
@@ -994,6 +994,27 @@ def r59_rows() -> list[Doc]:
             ["cash"],
         ),
     ]
+    # Adversary F2: the caption's every line is read, not only the first or the last.
+    for scale, block, other in ((1, "millions", "thousands"), (1000, "thousands", "millions")):
+        rows.append(
+            cap_row(
+                f"F2: a two-line caption naming {other} on line 1 and nothing on line 2 is refused "
+                f"under a {block} block",
+                scale,
+                f"Amounts in USD {other}.\nSee the table below.\n",
+            )
+        )
+    # Adversary F1 input: free prose naming millions never excuses a header naming thousands.
+    rows.append(
+        cap_row(
+            "R59f: prose naming millions in passing does not excuse a period header naming "
+            "thousands (USD 000) under a millions block",
+            1,
+            "The group added 2 million customers in FY2024.\n",
+            ("Line item", "FY2024 (USD 000)"),
+            ops=([["base", "revenue", "period"], "FY2024 (USD 000)"],),
+        )
+    )
     return rows
 
 
@@ -1014,7 +1035,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 168 and len(accepted) == 71
+    assert len(labels) == len(set(labels)) == 171 and len(accepted) == 65
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
