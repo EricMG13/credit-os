@@ -14,7 +14,8 @@ Used twice:
 
 Each case runs on a fresh database. Columns not in CALL are the call's own (key, naming, hold,
 opened_at). Texts are stored backslashreplace-escaped (U12); times are the codec's text of the
-epoch seconds, NULL for None (U15); money is `format(d, "f")`.
+epoch seconds, NULL for None (U15); money is `format(d, "f")`, except that every zero is "0"
+whatever its exponent (U22).
 """
 
 from decimal import Decimal
@@ -279,7 +280,7 @@ CASES: tuple[tuple[str, Reply, dict[str, object], tuple[dict[str, object], ...]]
     (
         "sent_usage, charge only",
         _failed("sent_usage", "Timeout", usage=Usage(), billed=Decimal("0.00")),
-        {**_NONE, "kind": "sent_usage", "error_class": "Timeout", "billed_usd": "0.00"},
+        {**_NONE, "kind": "sent_usage", "error_class": "Timeout", "billed_usd": "0"},  # U22
         (),
     ),
     (
@@ -429,7 +430,7 @@ CASES: tuple[tuple[str, Reply, dict[str, object], tuple[dict[str, object], ...]]
                 "cached_read_tokens": 0,
                 "cache_write_tokens": 0,
                 "output_tokens": 0,
-                "billed_usd": "0.00000000000",
+                "billed_usd": "0",  # U22: the adapter's zero, 0E-11
                 "outcome": "done",
                 "supersedes": None,
             },

@@ -227,3 +227,49 @@ def _stop(
     if _exact_sum([spent.spent_usd, next_hold_usd]) > cap_usd:
         return BudgetStop.CAPPED
     return None
+
+
+@dataclass(frozen=True, slots=True)
+class PriceRow:
+    """One configuration's published prices, USD per million tokens, and the token counts a
+    hold prices: the whole context ceiling in, and at least `output_floor_tokens` out."""
+
+    config_id: str
+    input_rates: tuple[Decimal, ...]
+    output_rates: tuple[Decimal, ...]
+    context_tokens: int
+    output_floor_tokens: int
+
+    def __post_init__(self) -> None:
+        _check_name(self.config_id, "config_id")
+        for rates, what in ((self.input_rates, "input_rates"), (self.output_rates, "output_rates")):
+            if type(rates) is not tuple or not rates:
+                raise BudgetDataError(f"{what} must be a non-empty tuple")
+            for rate in rates:
+                _check_amount(rate, what)
+        _check_count(self.context_tokens, "context_tokens", least=1)
+        _check_count(self.output_floor_tokens, "output_floor_tokens", least=0)
+
+
+def _check_count(value: object, what: str, *, least: int) -> None:
+    if type(value) is not int or value < least:
+        raise BudgetDataError(f"{what} must be an int of at least {least}")
+
+
+def call_hold(price: PriceRow, *, max_output_tokens: int) -> Decimal:
+    """What one call holds: the whole context at the dearest input rate plus the larger of
+    `max_output_tokens` and the row's floor at the dearest output rate, per million tokens.
+    Exact, never rounded; a hold of zero or one the money bounds refuse is `BudgetDataError`."""
+    _check_count(max_output_tokens, "max_output_tokens", least=0)
+    held_output = max(max_output_tokens, price.output_floor_tokens)
+    with localcontext(_context()) as context:
+        try:
+            held_in = context.multiply(Decimal(price.context_tokens), max(price.input_rates))
+            held_out = context.multiply(Decimal(held_output), max(price.output_rates))
+            hold = context.add(held_in, held_out).scaleb(-6, context)
+        except (Inexact, Rounded) as error:
+            raise BudgetDataError("the hold does not fit exactly") from error
+    _check_amount(hold, "hold")
+    if not hold:
+        raise BudgetDataError("a hold of zero bounds nothing")
+    return hold

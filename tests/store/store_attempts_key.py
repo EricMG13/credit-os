@@ -9,8 +9,11 @@ this file or weaken a comparison against it.
 
 from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import Any, cast
 
 from store_status_key import Model
+
+from credit_os.provider.types import Compaction, Reply, Turn, Usage
 
 Event = tuple[str, str | None, int | None, dict[str, object]]  # kind, module_id, attempt, detail
 _RUNNING = frozenset({"running"})
@@ -274,3 +277,525 @@ NOT_RUNNING_CALLS: tuple[tuple[str, str, dict[str, object]], ...] = (
     ("CP-1 again, same bytes", "open_attempt", _attempt("CP-1", 1)),
     ("a call on CP-1 attempt 1", "open_call", _BASE_CALL),
 )
+
+
+# === Added for PR 3b2a: record_compactions, the compaction insert, and U22's money rule =======
+# Rulings U12 (provider text is stored escaped), U13 (a per-run position 0, 1, ... with no gap),
+# U16 (compaction repeats) and U22 (every zero is written as "0", whatever its exponent; no amount
+# rounded or clipped; an amount the column cannot hold exactly is StoreRefused). record_compactions
+# has no time column and never calls the clock. PR 3b2b adds close_call to this file.
+
+
+def stored_text(text: str) -> str:
+    """The stored text of a provider id: each lone surrogate backslash-escaped (U12)."""
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
+
+
+def money_text(value: Decimal) -> str:
+    """U22: every zero is "0"; any other amount keeps its exponent, as format(value, "f")."""
+    return "0" if value == 0 else format(value, "f")
+
+
+def _counts(compaction: Compaction) -> tuple[int | None, ...]:
+    usage = compaction.usage
+    return (
+        usage.input_tokens,
+        usage.cached_read_tokens,
+        usage.cache_write_tokens,
+        usage.output_tokens,
+    )
+
+
+def same_compaction(first: Compaction, second: Compaction) -> bool:
+    """U16: the five fields equal, as Compaction values (Decimal equality, so 0.0020 is 0.002)."""
+    return (
+        _counts(first) == _counts(second)
+        and first.billed_usd == second.billed_usd
+        and first.outcome == second.outcome
+        and stored_text(first.event_id) == stored_text(second.event_id)
+        and (first.supersedes is None) == (second.supersedes is None)
+        and stored_text(first.supersedes or "") == stored_text(second.supersedes or "")
+    )
+
+
+CallKey = tuple[str, int, int]
+
+
+@dataclass
+class CompactionsModel(AttemptsModel):
+    """AttemptsModel with the run's compactions, in position order."""
+
+    compactions: list[tuple[str, CallKey | None, Compaction]] = field(default_factory=list)
+
+    def compaction_rows(self) -> list[tuple[int, str, CallKey | None, str, str | None]]:
+        """(position, stored event id, call key, outcome, billed_usd text)."""
+        return [
+            (
+                n,
+                event_id,
+                key,
+                c.outcome,
+                None if c.billed_usd is None else money_text(c.billed_usd),
+            )
+            for n, (event_id, key, c) in enumerate(self.compactions)
+        ]
+
+    def _compact(self, compactions: tuple[Compaction, ...], key: CallKey | None) -> str | None:
+        """Insert in order. A repeat (an event id whose stored text the run holds, or one earlier
+        in this list) is a no-op when it is the same compaction and its stored id has no
+        backslash; otherwise StoreConflict, and nothing of this call is kept."""
+        added: list[tuple[str, CallKey | None, Compaction]] = []
+        for compaction in compactions:
+            event_id = stored_text(compaction.event_id)
+            prior = [c for i, _, c in (*self.compactions, *added) if i == event_id]
+            if not prior:
+                added.append((event_id, key, compaction))
+            elif "\\" in event_id or not same_compaction(prior[0], compaction):
+                return "StoreConflict"
+        self.compactions += added
+        return None
+
+    def record_compactions(self, token: int, compactions: tuple[Compaction, ...]) -> str | None:
+        refused = self._gate(token, _RUNNING)
+        return refused if refused is not None else self._compact(compactions, None)
+
+
+UNFINISHED = Compaction(Usage(), None, "unfinished", "u-1", None)
+FINISHED = Compaction(Usage(input_tokens=40), Decimal("0.002"), "done", "d-1", "u-1")
+
+# --- Compaction repeats (U12, U16), each on a running run (no attempt needed) ----------------
+# record_compactions((first,)), then record_compactions((second,)): (label, first, second, error
+# class or None). After each row, error or not, the run holds exactly one compaction, at position
+# 0, read back equal to the first (its billed_usd text as the first wrote it), and the second call
+# wrote nothing and called no clock.
+SURROGATE_ID = Compaction(Usage(), None, "done", "a\ud800", None)
+LITERAL_ID = Compaction(Usage(), None, "done", "a\\ud800", None)
+STORED_SURROGATE_ID = "a\\ud800"  # both ids are stored as this text
+REPEATS: tuple[tuple[str, Compaction, Compaction, str | None], ...] = (
+    ("identical", FINISHED, FINISHED, None),
+    (
+        "equal charge with another exponent",
+        FINISHED,
+        Compaction(Usage(input_tokens=40), Decimal("0.0020"), "done", "d-1", "u-1"),
+        None,
+    ),
+    (
+        "another charge",
+        FINISHED,
+        Compaction(Usage(input_tokens=40), Decimal("0.003"), "done", "d-1", "u-1"),
+        "StoreConflict",
+    ),
+    (
+        "another count",
+        FINISHED,
+        Compaction(Usage(input_tokens=41), Decimal("0.002"), "done", "d-1", "u-1"),
+        "StoreConflict",
+    ),
+    (
+        "another outcome",
+        FINISHED,
+        Compaction(Usage(input_tokens=40), Decimal("0.002"), "failed", "d-1", "u-1"),
+        "StoreConflict",
+    ),
+    (
+        "supersedes another",
+        FINISHED,
+        Compaction(Usage(input_tokens=40), Decimal("0.002"), "done", "d-1", None),
+        "StoreConflict",
+    ),
+    ("identical, id with a backslash", LITERAL_ID, LITERAL_ID, "StoreConflict"),
+    ("surrogate, then the literal", SURROGATE_ID, LITERAL_ID, "StoreConflict"),
+)
+# record_compactions((SURROGATE_ID, LITERAL_ID)) in one call: the second collides with the first
+# after escaping, so it is a repeat whose stored id holds a backslash: StoreConflict, and neither
+# is written.
+SELF_COLLISION = (SURROGATE_ID, LITERAL_ID)
+# record_compactions((UNFINISHED, FINISHED)) in one call: positions 0 and 1, in that order.
+IN_ORDER = (UNFINISHED, FINISHED)
+
+# --- U22: charges. record_compactions((Compaction(Usage(), charge, "done", "c-1", None),)) on a
+# running run stores the text as the compaction's billed_usd: (label, charge, stored text).
+STORED_CHARGES: tuple[tuple[str, Decimal, str], ...] = (
+    ("zero", Decimal(0), "0"),
+    ("zero, exponent +64", Decimal("0E+64"), "0"),
+    ("zero, exponent -64", Decimal("0E-64"), "0"),
+    ("zero with three places", Decimal("0.000"), "0"),
+    ("zero, exponent of a million", Decimal("0E+1000000"), "0"),
+    ("the adapter's zero", Decimal("0E-11"), "0"),
+    ("64 nines", Decimal("9" * 64), "9" * 64),
+    ("the largest power", Decimal("1E+63"), "1" + "0" * 63),
+    ("the smallest", Decimal("1E-62"), "0." + "0" * 61 + "1"),
+    ("the adapter's half", Decimal("0.50000000000"), "0.50000000000"),
+)
+# The provider's constructors refuse this charge (U22: "the Reply rule that already refuses it"):
+# Compaction(Usage(), NEGATIVE_ZERO, "done", "c-1", None) raises ProviderDataError.
+NEGATIVE_ZERO = Decimal("-0")
+# Compactions the constructor accepts and the store cannot store (U14, U22): record_compactions
+# with the one compaction is StoreRefused before BEGIN, the dump unchanged. (label, compaction)
+_HUGE = 2**63
+UNSTORABLE_COMPACTIONS: tuple[tuple[str, Compaction], ...] = (
+    ("charge of 65 digits", Compaction(Usage(), Decimal("1E+64"), "done", "c-1", None)),
+    ("charge of 65 characters, small", Compaction(Usage(), Decimal("1E-63"), "done", "c-1", None)),
+    (
+        "charge, exponent of a million",
+        Compaction(Usage(), Decimal("9E+999999"), "done", "c-1", None),
+    ),
+    (
+        "charge smaller than any column",
+        Compaction(Usage(), Decimal("1E-999999"), "done", "c-1", None),
+    ),
+    ("count too large", Compaction(Usage(input_tokens=_HUGE), None, "done", "c-1", None)),
+)
+
+# --- Refusals of record_compactions, as REFUSED_ARGUMENTS (StoreRefused before BEGIN, the dump
+# unchanged), on a running run. (label, arguments other than the claim)
+REFUSED_COMPACTIONS: tuple[tuple[str, dict[str, object]], ...] = (
+    ("compactions not a sequence", {"compactions": FINISHED}),
+    ("compactions as text", {"compactions": "d-1"}),
+    ("compactions as bytes", {"compactions": b"d-1"}),
+    ("compaction not a Compaction", {"compactions": ("d-1",)}),
+    ("one good, one not a Compaction", {"compactions": (FINISHED, None)}),
+)
+# record_compactions((FINISHED,)) on a run in each NOT_RUNNING status: StoreConflict, the dump
+# unchanged. record_compactions(()) on a running run: nothing written, no error.
+NOT_RUNNING_COMPACTION = (FINISHED,)
+
+# --- Two runs in one store: positions and repeats are per run. Runs A (RUN_ID) and B
+# (SECOND_RUN_ID) are each created and started, A first; then each call with its run's claim:
+# (run, compactions, error class or None).
+SECOND_RUN_ID = "run-2"
+X_A = Compaction(Usage(input_tokens=1), Decimal("0.1"), "done", "x-1", None)
+X_B = Compaction(Usage(input_tokens=2), Decimal("0.2"), "done", "x-1", None)  # same id, other run
+TWO_RUNS_COMPACTIONS: tuple[tuple[str, tuple[Compaction, ...], str | None], ...] = (
+    ("A", (X_A,), None),
+    ("B", (X_B,), None),
+    ("B", (FINISHED,), None),
+    ("A", (X_B,), "StoreConflict"),  # A holds x-1 with another charge
+)
+# Per run, by position: (position, event_id, billed text).
+AFTER_TWO_RUNS_COMPACTIONS: dict[str, tuple[tuple[int, str, str | None], ...]] = {
+    "A": ((0, "x-1", "0.1"),),
+    "B": ((0, "x-1", "0.2"), (1, "d-1", "0.002")),
+}
+
+# --- The gate on record_compactions (U1, U6): run A (RUN_ID) is created and started (claim 1),
+# record_compactions((FINISHED,)) is accepted, then claim_run(RUN_ID) makes claim 2. Each row is
+# then record_compactions with that claim number: (label, claim number, compactions, error class or
+# None). A refused row calls the clock zero times and leaves the full dump unchanged. The gate
+# comes before the repeat lookup, so the old claim's repeat is fenced, not a no-op.
+FENCED_COMPACTIONS: tuple[tuple[str, int, tuple[Compaction, ...], str | None], ...] = (
+    ("the old claim, a new compaction", 1, (UNFINISHED,), "StoreFenced"),
+    ("the old claim, a repeat", 1, (FINISHED,), "StoreFenced"),
+    ("the new claim", 2, (UNFINISHED,), None),
+)
+# After the rows, run A holds, by position: (position, event_id, billed text).
+AFTER_FENCED_COMPACTIONS: tuple[tuple[int, str, str | None], ...] = (
+    (0, "d-1", "0.002"),
+    (1, "u-1", None),
+)
+# While run A runs, record_compactions(MISSING_RUN_COMPACTIONS) with Claim(MISSING_RUN_ID,
+# FOREIGN_TOKEN of the runs part): StoreRefused, the clock never called, the full dump unchanged.
+MISSING_RUN_COMPACTIONS = (FINISHED,)
+
+
+# === Added for PR 3b2b: close_call =========================================================
+# Rulings U13 (close_call inserts its reply's compactions, next in the run's positions and in the
+# reply's order, and then closes the call, in one transaction), U14 and U18 (a Reply the store
+# cannot store is StoreRefused before BEGIN, with the call left open: spend unknown, never a wrong
+# figure), U15 (a reply's times are its own, never the store clock), U16 (compaction repeats, the
+# call key aside: the first row is kept as written) and U22 (every zero is "0"). close_call calls
+# the clock once (closed_at) and writes no event. The reply's columns, for every Reply kind, are
+# store_reply_key's CASES; this part keys the call's life around them.
+
+
+@dataclass
+class CloseModel(CompactionsModel):
+    """CompactionsModel with close_call."""
+
+    def close_call(
+        self, token: int, module: str, number: int, index: int, reply: Reply
+    ) -> str | None:
+        """The run gate, then the attempt and the call exist (StoreRefused), then the call is open
+        and the attempt open (StoreConflict); then the reply's compactions with this call's key,
+        and the call closes only when they are all written."""
+        refused, attempt = self._attempt(token, module, number)
+        if attempt is None:
+            return refused
+        if not 0 <= index < len(attempt.calls):
+            return "StoreRefused"
+        if not attempt.calls[index].open or attempt.state != "open":
+            return "StoreConflict"
+        refused = self._compact(reply.compactions, (module, number, index))
+        if refused is None:
+            attempt.calls[index].open = False
+        return refused
+
+
+def _ok(usage: Usage, billed: Decimal | None, compactions: tuple[Compaction, ...] = ()) -> Reply:
+    turn = Turn(
+        text="t", tool_calls=(), usage=usage, stop_reason="end", reported_model="m", request_id="r"
+    )
+    return Reply(
+        kind="ok",
+        turn=turn,
+        error_class=None,
+        message=None,
+        usage=usage,
+        billed_usd=billed,
+        raw=None,
+        started_at=None,
+        finished_at=None,
+        compactions=compactions,
+    )
+
+
+def _sent_usage(billed: Decimal) -> Reply:
+    return Reply(
+        kind="sent_usage",
+        turn=None,
+        error_class="RateLimited",
+        message=None,
+        usage=Usage(),
+        billed_usd=billed,
+        raw=None,
+        started_at=None,
+        finished_at=None,
+    )
+
+
+NOT_SENT = Reply(
+    kind="not_sent",
+    turn=None,
+    error_class="ConnectionError",
+    message=None,
+    usage=None,
+    billed_usd=None,
+    raw=None,
+    started_at=None,
+    finished_at=None,
+)
+OK_ZERO = _ok(Usage(input_tokens=10, output_tokens=2), Decimal(0), (UNFINISHED,))
+OK_PRICED = _ok(Usage(input_tokens=100, output_tokens=20), Decimal("0.0125"))
+
+
+def _close(module: str, attempt: int, index: int, reply: object) -> dict[str, object]:
+    return {"module_id": module, "attempt": attempt, "call_index": index, "reply": reply}
+
+
+# The reply columns of a call (store_reply_key's names), by state. An open call has every one None.
+OPEN_CALL_COLUMNS: dict[str, object] = {
+    "kind": None,
+    "error_class": None,
+    "message": None,
+    "input_tokens": None,
+    "cached_read_tokens": None,
+    "cache_write_tokens": None,
+    "output_tokens": None,
+    "reasoning_tokens": None,
+    "billed_usd": None,
+    "started_at": None,
+    "finished_at": None,
+    "stop_reason": None,
+    "reported_model": None,
+    "request_id": None,
+    "raw": None,
+}
+NOT_SENT_COLUMNS = {**OPEN_CALL_COLUMNS, "kind": "not_sent", "error_class": "ConnectionError"}
+OK_ZERO_COLUMNS = {
+    **OPEN_CALL_COLUMNS,
+    "kind": "ok",
+    "input_tokens": 10,
+    "output_tokens": 2,
+    "billed_usd": "0",
+    "stop_reason": "end",
+    "reported_model": "m",
+    "request_id": "r",
+}
+
+# --- The scripted run of PR 3b2b, as SCRIPT_3B1 (claims, the test's clock answering row n with
+# second n, the dump). A refused row and a NO_WRITE_ROWS_3B2B row leave the full dump unchanged; a
+# refused row, a NO_WRITE row and a CLOCKLESS row call the clock zero times; every other row calls
+# it exactly once.
+SCRIPT_3B2B: tuple[tuple[str, int, dict[str, object], str | None], ...] = (
+    ("create", 1, {}, None),
+    ("start", 1, {}, None),
+    ("open_attempt", 1, _attempt("CP-1", 1), None),
+    ("open_attempt", 1, _attempt("CP-1", 1), None),  # U17
+    ("open_attempt", 1, _attempt("CP-1", 2), "StoreConflict"),
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 0), None),
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 1), "StoreConflict"),  # call 0 open
+    ("close_call", 1, _close("CP-1", 1, 0, NOT_SENT), None),
+    ("close_call", 1, _close("CP-1", 1, 0, NOT_SENT), "StoreConflict"),  # call 0 closed
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 0), "StoreConflict"),  # ex-1/0 used
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 1), None),
+    ("close_call", 1, _close("CP-1", 1, 1, OK_ZERO), None),  # UNFINISHED at position 0
+    ("open_call", 1, _call("CP-1", 1, "ex-1", 2), None),
+    ("record_compactions", 1, {"compactions": (FINISHED,)}, None),  # position 1, no clock
+    ("claim", 2, {}, None),
+    ("close_call", 1, _close("CP-1", 1, 2, OK_PRICED), "StoreFenced"),
+    ("close_call", 2, _close("CP-1", 1, 5, OK_PRICED), "StoreRefused"),  # no call 5
+    ("open_attempt", 2, _attempt("CP-2", 1), None),
+)
+# The number each row returns, for the rows that return one and are not refused.
+SCRIPT_3B2B_RETURNS = {3: 1, 4: 1, 6: 0, 11: 1, 13: 2, 18: 1}
+NO_WRITE_ROWS_3B2B = (4,)
+CLOCKLESS_ROWS_3B2B = (14,)
+AFTER_3B2B_STATUS = "running"
+AFTER_3B2B_EVENTS: tuple[Event, ...] = (
+    ("run_created", None, None, {}),
+    ("run_started", None, None, {"from": "created"}),
+    ("attempt_opened", "CP-1", 1, {}),
+    ("writer_replaced", None, None, {}),
+    ("attempt_opened", "CP-2", 1, {}),
+)
+AFTER_3B2B_EVENT_ROWS = (1, 2, 3, 15, 18)  # the row whose clock time each event has
+# (module, attempt, call_index, exchange_id, provider index, opened row, closed row or None, the
+# call's reply columns). opened_at and closed_at are those rows' clock times.
+AFTER_3B2B_CALLS: tuple[tuple[str, int, int, str, int, int, int | None, dict[str, object]], ...] = (
+    ("CP-1", 1, 0, "ex-1", 0, 6, 8, NOT_SENT_COLUMNS),
+    ("CP-1", 1, 1, "ex-1", 1, 11, 12, OK_ZERO_COLUMNS),
+    ("CP-1", 1, 2, "ex-1", 2, 13, None, OPEN_CALL_COLUMNS),
+)
+# (position, event_id, call key or None, outcome, billed_usd text or None)
+AFTER_3B2B_COMPACTIONS: tuple[tuple[int, str, CallKey | None, str, str | None], ...] = (
+    (0, "u-1", ("CP-1", 1, 1), "unfinished", None),
+    (1, "d-1", None, "done", "0.002"),
+)
+
+# --- Every Reply kind through the store. Each store_reply_key CASES row, on a fresh store with a
+# running run, CP-1 attempt 1 and its open call 0: close_call writes exactly the case's CALL columns
+# (closed_at the clock's one answer) and exactly its COMPACTIONS rows with call key ("CP-1", 1, 0),
+# in order, from position 0. (store_reply_key's own docstring, "3b, through the store".)
+
+# --- Repeats through close_call (U16; the record_compactions repeats are REPEATS above), on a
+# running run whose CP-1 attempt 1 has call 0 open. Each row: the first call, then the second, then
+# (error class of the second or None, the call-0 state after: "open" or "closed", the one row's
+# call key). After each row the run holds exactly one compaction, FINISHED as written first.
+REPEAT_FROM_CALL = _ok(Usage(), None, (FINISHED,))
+CLOSE_REPEATS: tuple[tuple[str, str, str, str | None, str, CallKey | None], ...] = (
+    # (label, first, second, error, call 0 after, the row's call key)
+    ("the call first", "close", "record", None, "closed", ("CP-1", 1, 0)),
+    ("the record first", "record", "close", None, "closed", None),
+)
+# close_call(call 0, SELF_COLLISION_REPLY): its two compactions collide after escaping, so the
+# second is a repeat whose stored id holds a backslash: StoreConflict, no compaction written, call 0
+# still open, the clock never called, the full dump unchanged.
+SELF_COLLISION_REPLY = _ok(Usage(), None, SELF_COLLISION)
+# A reply cannot repeat a compaction inside itself: the provider's Reply refuses two compactions
+# with one event_id (ProviderDataError). _ok(Usage(), None, TWICE_COMPACTIONS) raises. Ids that
+# differ and collide only after escaping are SELF_COLLISION_REPLY above.
+TWICE_COMPACTIONS = (FINISHED, FINISHED)
+
+# --- U22: charges through close_call, on a running run whose CP-1 attempt 1 has call 0 open. For
+# each STORED_CHARGES row (label, charge, stored text): close_call(call 0, _sent_usage(charge))
+# stores the text as the call's billed_usd, and close_call(call 0, _bare(charge)) stores it as the
+# compaction's. A Reply with NEGATIVE_ZERO as billed_usd raises ProviderDataError.
+
+
+def _bare(charge: Decimal) -> Reply:
+    """An ok reply with no charge of its own, whose one compaction carries the charge."""
+    return _ok(Usage(), None, (Compaction(Usage(), charge, "done", "c-1", None),))
+
+
+def _unstorable(**changes: object) -> Reply:
+    base: dict[str, object] = {
+        "kind": "not_sent",
+        "turn": None,
+        "error_class": "X",
+        "message": None,
+        "usage": None,
+        "billed_usd": None,
+        "raw": None,
+        "started_at": None,
+        "finished_at": None,
+    }
+    base.update(changes)
+    return Reply(**cast(dict[str, Any], base))  # the constructor checks kinds and pairings only
+
+
+# Replies the provider's constructor accepts and the store cannot store (U14, U18, U22): close_call
+# on call 0 is StoreRefused before BEGIN, the clock never called, the full dump unchanged, and call
+# 0 reads back open (OPEN_CALL_COLUMNS, closed_at None). (label, reply)
+UNSTORABLE_REPLIES: tuple[tuple[str, Reply], ...] = (
+    ("error class not text", _unstorable(error_class=5)),
+    ("message not text", _unstorable(message=b"m")),
+    ("raw as text", _unstorable(raw="x")),
+    ("start time not a number", _unstorable(started_at="soon")),
+    ("start time a bool", _unstorable(started_at=True)),
+    ("finish time past year 9999", _unstorable(finished_at=253402300800.0)),
+    ("count too large", _unstorable(kind="sent_usage", usage=Usage(input_tokens=_BIG))),
+    ("charge of 65 digits", _sent_usage(Decimal("1E+64"))),
+    ("charge of 65 characters, small", _sent_usage(Decimal("1E-63"))),
+    ("charge, exponent of a million", _sent_usage(Decimal("9E+999999"))),
+    ("charge smaller than any column", _sent_usage(Decimal("1E-999999"))),
+    ("compaction charge of 65 digits", _bare(Decimal("1E+64"))),
+    (
+        "compaction count too large",
+        _ok(Usage(), None, (Compaction(Usage(input_tokens=_BIG), None, "done", "c-1", None),)),
+    ),
+)
+
+
+@dataclass(frozen=True)
+class _ChildReply(Reply):
+    """A Reply subclass: the constructor's checks run, but the type is not exactly Reply."""
+
+
+CHILD_REPLY = _ChildReply(
+    kind="not_sent",
+    turn=None,
+    error_class="ConnectionError",
+    message=None,
+    usage=None,
+    billed_usd=None,
+    raw=None,
+    started_at=None,
+    finished_at=None,
+)
+
+# --- Refusals of close_call, as REFUSED_ARGUMENTS (StoreRefused before BEGIN, no clock, the dump
+# unchanged), on a running run whose CP-1 attempt 1 has call 0 open. (label, call, arguments other
+# than the claim)
+REFUSED_ARGUMENTS_3B2B: tuple[tuple[str, str, dict[str, object]], ...] = (
+    ("reply not a Reply", "close_call", _close("CP-1", 1, 0, "ok")),
+    ("reply a Reply subclass", "close_call", _close("CP-1", 1, 0, CHILD_REPLY)),
+    ("reply None", "close_call", _close("CP-1", 1, 0, None)),
+    ("call index negative", "close_call", _close("CP-1", 1, -1, NOT_SENT)),
+    ("call index a bool", "close_call", _close("CP-1", 1, True, NOT_SENT)),
+    ("call index too large", "close_call", _close("CP-1", 1, _BIG, NOT_SENT)),
+    ("attempt 0", "close_call", _close("CP-1", 0, 0, NOT_SENT)),
+    ("module id with a space", "close_call", _close("CP 1", 1, 0, NOT_SENT)),
+)
+# A call the run does not have, on the same setup: StoreRefused, nothing written, no clock.
+MISSING_3B2B: tuple[tuple[str, str, dict[str, object]], ...] = (
+    ("close call 1", "close_call", _close("CP-1", 1, 1, NOT_SENT)),
+    ("close a call of attempt 2", "close_call", _close("CP-1", 2, 0, NOT_SENT)),
+    ("close a call of another module", "close_call", _close("CP-9", 1, 0, NOT_SENT)),
+)
+# close_call with Claim(MISSING_RUN_ID, FOREIGN_TOKEN of the runs part), while run A runs with call
+# 0 open: StoreRefused, the clock never called, the full dump unchanged.
+MISSING_RUN_CLOSE = _close("CP-1", 1, 0, NOT_SENT)
+# As NOT_RUNNING_CALLS, with CP-1 attempt 1 and its call 0 (ex-1/0) opened while the run ran, for
+# each NOT_RUNNING status ("created" and "rejected" have no attempt): close_call(call 0, NOT_SENT)
+# is StoreConflict, no clock, the dump unchanged.
+NOT_RUNNING_CLOSE = _close("CP-1", 1, 0, NOT_SENT)
+# An attempt that is not open: none exists before 3c (record_reply, fail_attempt); 3c's key adds
+# close_call on a replied or failed attempt's open call (StoreConflict).
+
+# --- Two runs in one store (lookups, positions and repeats are per run). Runs A (RUN_ID) and B
+# (SECOND_RUN_ID) are each created, started, and given CP-1 attempt 1 with REQUESTS[1] and call 0
+# on ex-1/0 (the exchange pair is per run), A first. Then, each with its run's claim: (call, run,
+# arguments, error class or None).
+Y = Compaction(Usage(), None, "done", "y-1", None)
+TWO_RUNS_CLOSE: tuple[tuple[str, str, dict[str, object], str | None], ...] = (
+    ("close_call", "A", _close("CP-1", 1, 0, _ok(Usage(), None, (X_A,))), None),
+    ("record_compactions", "B", {"compactions": (X_B,)}, None),
+    ("close_call", "B", _close("CP-1", 1, 0, _ok(Usage(), None, (Y,))), None),
+    ("record_compactions", "A", {"compactions": (Y,)}, None),
+    ("close_call", "B", _close("CP-1", 1, 0, NOT_SENT), "StoreConflict"),  # B's call 0 closed
+)
+# Per run, by position: (position, event_id, call key, billed text).
+AFTER_TWO_RUNS_CLOSE: dict[str, tuple[tuple[int, str, CallKey | None, str | None], ...]] = {
+    "A": ((0, "x-1", ("CP-1", 1, 0), "0.1"), (1, "y-1", None, None)),
+    "B": ((0, "x-1", None, "0.2"), (1, "y-1", ("CP-1", 1, 0), None)),
+}

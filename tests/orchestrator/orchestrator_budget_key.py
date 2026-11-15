@@ -310,3 +310,69 @@ BAD_SETS: dict[str, list[Line]] = {
         _k("CP-0/1", "ev-2", "done", "ev-1", "1"),
     ],
 }
+
+
+# ------------------------------------------------------------------ PR 9b: price rows and the first hold
+# Added by the controller for PR 9b (ruling 8, `.superpowers/sdd/3a/9b/rulings.md`), by hand: each
+# hold worked with `bc`: context tokens x the dearest input-side rate, plus held output tokens x the
+# dearest output rate, over 1,000,000; the held output tokens are the larger of the request's output
+# cap and the row's floor.
+# (config id, input-side rates, output rates, context tokens, output floor tokens). Rates are
+# USD per million tokens, as decimal text. In PRICE_A the dearest rate is neither the first nor
+# the last input rate and is the first output rate: a hold that takes a fixed position differs.
+Price = tuple[Any, Any, Any, Any, Any]
+PRICE_A: Price = ("synthetic-medium", ("1.25", "3.75", "0.125"), ("12.25", "9.5"), 400000, 64000)
+PRICE_B: Price = ("synthetic-plain", ("2",), ("8",), 250000, 0)
+# 31 places: 400000 x this rate has 36 digits, more than the default decimal context keeps.
+PRICE_C: Price = ("synthetic-fine", ("0.1234567890123456789012345678901",), ("1",), 400000, 1000)
+MAX_OUTPUT = 32000  # the request's output cap of every launch row below (invented here)
+
+# name -> (price, the request's output cap, the hold); compared with `==` on Decimal(text).
+HOLDS: dict[str, tuple[Price, int, str]] = {
+    # 400000 x 3.75 = 1500000; the floor 64000 is above the cap 32000: 64000 x 12.25 = 784000;
+    # 2284000 / 1000000 = 2.284 (bc)
+    "floor_above_the_request_cap": (PRICE_A, 32000, "2.284"),
+    "floor_equal_to_the_request_cap": (PRICE_A, 64000, "2.284"),
+    # the cap 100000 is above the floor: 100000 x 12.25 = 1225000; 2725000 / 1000000 = 2.725 (bc)
+    "request_cap_above_the_floor": (PRICE_A, 100000, "2.725"),
+    # no floor: 250000 x 2 + 16000 x 8 = 628000; / 1000000 = 0.628 (bc)
+    "no_floor": (PRICE_B, 16000, "0.628"),
+    # an output cap of zero and no floor: the input side alone, 500000 / 1000000 = 0.5
+    "no_output_held": (PRICE_B, 0, "0.5"),
+    # 400000 x 0.1234567890123456789012345678901 = 49382.71560493827156049382715604; + 1000 x 1;
+    # / 1000000 (bc, scale 40). Exact: no digit is rounded away.
+    "exact_past_28_digits": (PRICE_C, 1000, "0.05038271560493827156049382715604"),
+}
+# Ruling 6: where a refusal shows the hold it is `format(hold, "f")`, the digits the arithmetic
+# carries: the finer rate's places plus six. 3.75 and 12.25 carry two places, so eight.
+HOLD_A_TEXT = "2.28400000"
+
+# `call_hold` raises BudgetDataError: name -> (price, the request's output cap).
+HOLDS_REFUSED: dict[str, tuple[Price, int]] = {
+    # 1 x 1E-57 over 1,000,000 has its last digit at 1E-63, outside the store's money bounds
+    # (exponents -62..63): refused, never rounded.
+    "does_not_fit_the_money_bounds": (("synthetic-tiny", ("1E-57",), ("1",), 1, 1), 1),
+    "zero_hold": (("synthetic-free", ("0",), ("0",), 1, 1), 1),  # ruling 5: it bounds nothing
+}
+# Each value, put in the named field of PRICE_A, raises BudgetDataError when the row is built.
+# ("decimal", text) is Decimal(text); every other value is used as written.
+BAD_PRICES: dict[str, tuple[str, Any]] = {
+    "config_empty": ("config_id", ""),
+    "config_not_text": ("config_id", 7),
+    "no_input_rate": ("input_rates", ()),
+    "no_output_rate": ("output_rates", ()),
+    "input_rates_a_list": ("input_rates", [("decimal", "3.75")]),
+    "input_rate_text": ("input_rates", ("3.75",)),
+    "input_rate_float": ("input_rates", (3.75,)),
+    "input_rate_negative": ("input_rates", (("decimal", "-1"),)),
+    "output_rate_nan": ("output_rates", (("decimal", "NaN"),)),
+    "output_rate_int": ("output_rates", (12,)),
+    "context_tokens_zero": ("context_tokens", 0),
+    "context_tokens_negative": ("context_tokens", -1),
+    "context_tokens_bool": ("context_tokens", True),
+    "context_tokens_float": ("context_tokens", 400000.0),
+    "floor_negative": ("output_floor_tokens", -1),
+    "floor_bool": ("output_floor_tokens", False),
+}
+# The request's output cap given to `call_hold` and to `prepare`: each raises BudgetDataError.
+BAD_OUTPUT_CAPS: dict[str, Any] = {"negative": -1, "bool": True, "float": 32000.0, "text": "32000"}
