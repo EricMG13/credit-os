@@ -18,7 +18,8 @@ A case is (want, given); a field left out of `given` takes its default in DEFAUL
           is read when the call's events end, before abort and release; calls are the fake's
           steps for the case's own call (next_event is not one); bounds is step -> the timeout_s
           it was given; system is the text open_session got; absent texts are nowhere in raw or
-          message, whatever their case, and raw is then a JSON list as long as the script.
+          message, whatever their case, and raw is then a JSON list as long as the script;
+          raw None: the call's raw is None (its envelopes cannot be written as JSON).
 A case that opens a session gives it MODEL, the case's effort, its exchange id as session_id,
 and `system`; a sent case sends PROMPT. raw is always written with the parser's separators and,
 where no `absent` is listed, is the JSON of exactly the envelopes the call read. No step is
@@ -132,6 +133,7 @@ _JANE = ("jane", "roe")
 _WIN = "D:\\Profiles\\Jane Roe"
 _MUL = "C:\\Users\\M\u00fcller"
 _ESC = "C:\\\\Users\\\\M\\u00fcller\\\\proj"  # as json.dumps writes _MUL + "\\proj"
+_NOT_JSON = "an event is not an object with an id, a type and data"
 
 CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     # --- a turn; the session is kept, nothing is released
@@ -191,7 +193,7 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     ),
     # --- sending
     "send raises: it may have been sent; an escaped non-ASCII home in its text": (
-        _unknown("AdapterError", "send failed: RuntimeError: cannot open [redacted]\\\\proj"),
+        _unknown("AdapterError", "send failed: RuntimeError: cannot open <home>\\\\proj"),
         {"home": _MUL, "fail": {"send": ("RuntimeError", "cannot open " + _ESC)}},
     ),
     "a failure text after sending is redacted, then cut": (
@@ -232,7 +234,11 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     },
     "no runtime path": (
         _unsent("RuntimeMissing", "COPILOT_CLI_PATH is not set"),
-        {"environ": {"COPILOT_GITHUB_TOKEN": _TOKEN}, "home": ""},
+        {"environ": {"COPILOT_GITHUB_TOKEN": _TOKEN}},
+    ),
+    "a blank runtime path is refused, and no redactor is given it": (
+        _unsent("RuntimeMissing", "COPILOT_CLI_PATH is not set"),
+        {"environ": {"COPILOT_GITHUB_TOKEN": _TOKEN, "COPILOT_CLI_PATH": " \n"}},
     ),
     # --- refused after the client was made: it is stopped
     "the client cannot be made; a long text is cut to 500 characters": (
@@ -275,21 +281,27 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"home": _WIN, **_seen("d:\\profiles\\jane roe\\proj", "D:/PROFILES/JANE ROE/proj")},
     ),
     "a configured Windows path after a POSIX home in one message": (
-        _figures("SessionError", "x: cannot read <home>:[redacted]\\proj", absent=_JANE),
+        _figures("SessionError", "x: cannot read <home>\\proj", absent=_JANE),
         {"home": _WIN, "script": [_USAGE, _error("cannot read /home/build or " + _WIN + "\\proj")]},
+    ),
+    "an envelope that is not JSON gives no raw": (
+        _unknown("UnparsableReply", _NOT_JSON, raw=None),
+        {"script": [event(3, "x", v={1}), _IDLE]},
     ),
     "an escaped non-ASCII home in raw": (_ok(absent=("ller",)), {"home": _MUL, **_seen(_ESC)}),
     "the runtime path in a session error": (
         _figures("SessionError", absent=("acme-runtime",)),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error(_RUNTIME + " died")]},
     ),
-    # A parser message 500 long loses, after redaction, the longest match of a path form: 500 - 43.
-    "a path cut in half by the parser's 500-character cut": (
-        _figures("SessionError", ("x: " + "y" * 482)[:457], absent=("acme", "jane")),
+    # The parser masks before its 500 cut (decision 0012), so the masked text is whole: no trim.
+    "a path the parser's 500-character cut would have halved": (
+        _figures("SessionError", "x: " + "y" * 482 + "<home> died", absent=("acme", "jane")),
         {"environ": _WITH_RUNTIME, "script": [_USAGE, _error("y" * 482 + _RUNTIME + " died")]},
     ),
 }
 
+# A home with no folder name is not a path: the driver refuses it when made (ValueError).
+REFUSED_HOMES = ("", "  ", "/", "C:\\", "\\\\?\\C:\\")
 RAW_PLACEHOLDER = b'"[redacted]"'  # what scrub_raw gives for bytes it cannot decode as JSON
 UNREADABLE_RAW: tuple[bytes, ...] = (b"\xff\xfe", b"{not json", b"")
 # A failed release step is logged once: (case, words the log has, a word it lacks).
