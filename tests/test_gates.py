@@ -88,6 +88,26 @@ def test_web_workflow_still_filters_on_web() -> None:
     assert "  workflow_dispatch:" in text
 
 
+WINDOWS_LEG = (
+    "        os: ${{ fromJSON((github.event_name == 'pull_request' && "
+    "github.event.pull_request.draft) && '[\"ubuntu-latest\"]' || "
+    '\'["ubuntu-latest","windows-latest"]\') }}\n'
+)
+PR_TYPES = "    types: [opened, synchronize, reopened, ready_for_review]\n"
+
+
+@pytest.mark.parametrize("name", ["python.yml", "web.yml"])
+def test_windows_leg_waits_for_a_ready_pull_request(name: str) -> None:
+    text = Path(".github/workflows", name).read_text(encoding="utf-8")
+    assert text.count("  pull_request:\n" + PR_TYPES + "    paths:\n") == 1
+    assert text.count(WINDOWS_LEG) == 1
+    assert "os: [ubuntu-latest, windows-latest]" not in text
+    assert (
+        "group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref"
+        in text
+    )
+
+
 def _marker(*parts: str) -> str:
     return "".join(parts)
 

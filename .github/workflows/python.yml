@@ -6,6 +6,7 @@ name: python
 # review.yml, so it still runs on every pull request.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "**"
       - "!web/**"
@@ -33,7 +34,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # A draft pull request runs Linux only; the expression is a string, and && / || return the
+        # first falsy or last operand, so the draft case yields the one-leg list and the rest both.
+        os: ${{ fromJSON((github.event_name == 'pull_request' && github.event.pull_request.draft) && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
