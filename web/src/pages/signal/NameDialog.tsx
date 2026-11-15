@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Dialog, Modal, ModalOverlay } from "@/components/application/modals/modal";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
+import { useOnGone } from "./parts/focus";
 
 const TITLE_ID = "signal-name-title";
 
@@ -16,20 +17,6 @@ export function initialsOf(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-/** Runs once when the dialog's content goes, after any exit animation, so focus never falls to the page. */
-function useOnGone(then: () => void) {
-  const latest = useRef(then);
-  useEffect(() => {
-    latest.current = then;
-  });
-  useEffect(
-    () => () => {
-      latest.current();
-    },
-    [],
-  );
 }
 
 type Props = {

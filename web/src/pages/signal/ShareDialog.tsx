@@ -1,29 +1,16 @@
 // The Share to group dialog (mock frame "Share to group", behaviour list 2.6; mock departure 18): a
 // form modal, never the warning style. Nothing is written: a successful Share only tells the page it
 // happened, and the page says so as sample data. The mock's Select wins over the predecessor's radios.
-import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { useRef, useState, type SyntheticEvent } from "react";
 import { Share07 } from "@untitledui/icons";
 import { Dialog, Modal, ModalOverlay } from "@/components/application/modals/modal";
 import { Button } from "@/components/base/buttons/button";
 import { CloseButton } from "@/components/base/buttons/close-button";
 import { Select } from "@/components/base/select/select";
+import { useOnGone } from "./parts/focus";
 import { TextArea } from "./parts/TextArea";
 
 const TITLE_ID = "signal-share-title";
-
-/** Runs once when the dialog's content goes, after any exit animation, so focus never falls to the page. */
-function useOnGone(then: () => void) {
-  const latest = useRef(then);
-  useEffect(() => {
-    latest.current = then;
-  });
-  useEffect(
-    () => () => {
-      latest.current();
-    },
-    [],
-  );
-}
 
 type Props = {
   headline: string;
