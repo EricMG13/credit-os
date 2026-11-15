@@ -204,16 +204,30 @@ def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
 def cell(
     text: str,
 ) -> tuple[dict[str, object] | None, tuple[str | None, str | None] | None]:
-    """One table cell as the slice's Cell, and the (unit, currency) of the figure behind `at`."""
+    """One table cell as the slice's Cell, and the (unit, currency) of the figure behind `at`.
+
+    `at` is set only when the text read as written and the text read with dates and period labels
+    masked each hold exactly one figure and it is the same figure; otherwise `at` is None.
+    """
     if not isinstance(text, str):
         raise TypeError("a cell is read from a str")
     if text in ("", _DASH):
         return None, None
     if isinstance(read_value(text), Gap):
         return {"kind": "gap", "reason": text}, None
-    figures = read_figures(text, passage=False)
-    if len(figures) != 1:
+    written = read_figures(text, passage=False)
+    masked = read_figures(text, passage=True)
+    if len(written) != 1 or len(masked) != 1:
         return {"kind": "value", "text": text, "at": None}, None
-    figure = figures[0]
+    figure = written[0]
+    other = masked[0]
+    same = (figure.value, figure.negative, figure.unit, figure.currency) == (
+        other.value,
+        other.negative,
+        other.unit,
+        other.currency,
+    )
+    if not same:
+        return {"kind": "value", "text": text, "at": None}, None
     at: Decimal = figure.value.copy_negate() if figure.negative else figure.value
     return {"kind": "value", "text": text, "at": at}, (figure.unit, figure.currency)
