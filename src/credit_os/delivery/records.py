@@ -204,12 +204,12 @@ def _block(
     section: DataSection, wording: Wording, known: Sequence[str]
 ) -> dict[str, object] | None:
     table = section.table
-    if table is None or not _readable(table):
+    fixed = None if table is None else _kind(table.columns)
+    if table is not None and fixed is None:
+        return None
+    if table is None or fixed is None or not _readable(table):
         reason = wording.fill("records.chart_gap", {})
         return {"kind": "gap", "nav": None, "title": section.name, "reason": reason}
-    fixed = _kind(table.columns)
-    if fixed is None:
-        return None
     return _chart_table(section, table, fixed[0], fixed[1], known)
 
 
