@@ -27,6 +27,7 @@ from credit_os.signal.store import (
     StoreError,
     in_range,
     new_row_id,
+    read_snapshot,
     require_id,
     require_text,
     utc_text,
@@ -312,10 +313,15 @@ def list_groups(db: sqlite3.Connection, user_name: str) -> list[sqlite3.Row]:
 
 
 def members(db: sqlite3.Connection, user_name: str, group_id: int) -> list[str]:
-    """The names in a group the user can see, in the order they joined."""
-    require_visible(db, user_name, group_id)
-    found = db.execute(
-        "SELECT user_name FROM group_members WHERE group_id=? ORDER BY joined_at, rowid",
-        (group_id,),
-    ).fetchall()
+    """The names in a group the user can see, in the order they joined.
+
+    The visibility check and the list are read in one snapshot: the caller gets the list of a
+    state in which it could see the group, or `NotFound`. Call it outside any transaction
+    (`StoreUnusable` inside one, `store.read_snapshot`)."""
+    with read_snapshot(db):
+        require_visible(db, user_name, group_id)
+        found = db.execute(
+            "SELECT user_name FROM group_members WHERE group_id=? ORDER BY joined_at, rowid",
+            (group_id,),
+        ).fetchall()
     return [str(row["user_name"]) for row in found]
