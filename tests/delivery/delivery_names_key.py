@@ -156,6 +156,8 @@ PATHS_ACCEPTED: tuple[str, ...] = (
     "%C3%A9.md",
     "a/b/c.md",
     "...",
+    "a%7Eb",
+    "a%C2%80b",
 )
 PATHS_REFUSED: tuple[str, ...] = (
     "",
@@ -185,4 +187,16 @@ PATHS_REFUSED: tuple[str, ...] = (
     "C:/a",
     "#/library/home",
     "\u00e9.md",
+    "a%01b",
+    "%09",
+    "a%1Fb",
+    "a%1fb",
+    "a%7Fb",
+    "a%7fb",
 )
+
+# W2-A4: among the escapes "a%XXb" for U+0000 to U+007F, exactly these code points are
+# refused: the C0 controls and DEL (the reader's CONTROL, #419
+# web/src/components/path/plain.ts:5) and the separators / and \ (C6). Every other ASCII
+# escape is accepted.
+ESCAPED_ASCII_REFUSED: frozenset[int] = frozenset(range(0x20)) | frozenset({0x2F, 0x5C, 0x7F})
