@@ -88,7 +88,17 @@
   ["100 \u20ac", {"kind": "value", "text": "100 \u20ac", "at": null}, null],
   ["\u20ac100", {"kind": "value", "text": "\u20ac100", "at": "100"}, [null, "EUR"]],
   ["EUR 100", {"kind": "value", "text": "EUR 100", "at": "100"}, [null, "EUR"]],
-  ["1,700 (2025-03-31)", {"kind": "value", "text": "1,700 (2025-03-31)", "at": null}, null]
+  ["1,700 (2025-03-31)", {"kind": "value", "text": "1,700 (2025-03-31)", "at": null}, null],
+  ["\u0661\u0667\u0665", {"kind": "value", "text": "\u0661\u0667\u0665", "at": null}, null],
+  ["\u0661\u0667\u0665 5", {"kind": "value", "text": "\u0661\u0667\u0665 5", "at": null}, null],
+  ["\u0665-10", {"kind": "value", "text": "\u0665-10", "at": null}, null],
+  ["\u0665 5%", {"kind": "value", "text": "\u0665 5%", "at": null}, null],
+  ["5x\u0661", {"kind": "value", "text": "5x\u0661", "at": null}, null],
+  ["\uff15\uff10\uff10", {"kind": "value", "text": "\uff15\uff10\uff10", "at": null}, null],
+  ["175\u00b2", {"kind": "value", "text": "175\u00b2", "at": null}, null],
+  ["1\u00bd", {"kind": "value", "text": "1\u00bd", "at": null}, null],
+  ["\u2460 5", {"kind": "value", "text": "\u2460 5", "at": null}, null],
+  ["\u216b 5", {"kind": "value", "text": "\u216b 5", "at": null}, null]
  ],
  "leaks": [
   ["Leverage is 4.2x.", ["NBG_2025-03-31_annual-report.pdf"], []],
