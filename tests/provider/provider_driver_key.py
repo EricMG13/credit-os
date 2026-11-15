@@ -161,7 +161,8 @@ _TOOL_USAGE = event(1, "assistant.usage", reasoningTokens=2, **_TOOL_STOP, **_NA
 
 def _asks(*ids: str) -> dict[str, Any]:
     requests = [{"toolCallId": i, "name": "read", "arguments": {"path": i}} for i in ids]
-    return said(2, "reading", toolRequests=requests)
+    message = said(2, "reading")
+    return {**message, "data": {**message["data"], "toolRequests": requests}}
 
 
 def _starts(i: str, name: str = "read", **args: Any) -> dict[str, Any]:
