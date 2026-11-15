@@ -17,6 +17,7 @@ gives 400 MiB for ASCII or Latin-1 pages, 464 MiB within the BMP and 592 MiB for
 6.2.2.3) are not refused by any layer; each name still maps to one member.
 """
 
+import codecs
 import posixpath
 import re
 from array import array
@@ -70,9 +71,23 @@ def _plain(text: str) -> str:
     return repr(text) if _CONTROL.search(text) else text
 
 
-def _formula(formula: str) -> str:
-    full = "=" + formula
+def _formula(full: str) -> str:
+    """Return a formula, `=` first, quoted, or its `repr` when it would break a page line."""
     return repr(full) if _CONTROL.search(full) else f"'{full}'"
+
+
+_DECODE = 65536
+_PIECES = 4096  # a text's callbacks are joined into one string each time this many are held
+
+
+def _floor(raw: str, escape: Callable[[str], str]) -> int:
+    """Return a floor of `len(escape(raw))` without building it: the raw length for a text that
+    `escape` writes unescaped (`_plain`, or a formula without a control character), or, for a text
+    written as a `repr`, the sum of its pieces' escaped lengths, which a whole text's `repr` never
+    undercuts."""
+    if escape is not repr and _CONTROL.search(raw) is None:
+        return len(raw)
+    return 2 + sum(len(repr(raw[at : at + _DECODE])) - 2 for at in range(0, len(raw), _DECODE))
 
 
 def _whole(text: str) -> bool:
@@ -138,6 +153,8 @@ class _Reader:
                     f"a cell or string longer than {MAX_CELL_CHARACTERS:,} characters"
                 )
             self.collect.append(data)
+            if len(self.collect) >= _PIECES:
+                self.collect[:] = ["".join(self.collect)]
 
 
 class _Workbook(_Reader):
@@ -231,9 +248,20 @@ class _Strings(_Reader):
     def finish(self) -> None:
         self.data += "".join(self.own + self.runs).encode()
         self.stops.append(len(self.data))
+        self.own.clear()
+        self.runs.clear()
 
     def string(self, index: int) -> str:
-        return self.data[self.stops[index - 1] if index else 0 : self.stops[index]].decode()
+        """Return string `index`, decoded in pieces: one decode of a long astral text peaks at
+        about five times its size."""
+        start = self.stops[index - 1] if index else 0
+        decoder = codecs.getincrementaldecoder("utf-8")()
+        view = memoryview(self.data)
+        pieces = [
+            decoder.decode(view[at : min(at + _DECODE, self.stops[index])])
+            for at in range(start, self.stops[index], _DECODE)
+        ]
+        return "".join(pieces + [decoder.decode(b"", final=True)])
 
 
 class _Styles(_Reader):
@@ -278,12 +306,13 @@ class _Text:
         self.blocks: list[str] = []
         self.small: list[str] = []
 
-    def add(self, piece: str) -> None:
-        self.total += len(piece)
+    def add(self, *pieces: str) -> None:
+        size = sum(map(len, pieces))
+        self.total += size
         if self.total > MAX_TEXT_CHARACTERS:
             raise self.package.refuse(f"page text longer than {MAX_TEXT_CHARACTERS:,} characters")
-        self.small.append(piece)
-        self.held += len(piece)
+        self.small.extend(pieces)
+        self.held += size
         if self.held >= BLOCK_CHARACTERS:
             self.blocks.append("".join(self.small))
             self.small = []
@@ -311,6 +340,7 @@ class _Sheet(_Reader):
         self.in_data = False
         self.row = self.column = 0
         self.row_hidden = self.wrote = self.started = False
+        self.used = 0
         self.parts: dict[str, list[str]] = {}
         row = ("worksheet", "sheetData", "row")
         cell = (*row, "c")
@@ -367,14 +397,35 @@ class _Sheet(_Reader):
     def beyond(self) -> SourceUnreadable:
         return self.refuse(f"a row beyond row {MAX_ROW:,}")
 
-    def write(self, label: str) -> None:
-        """Write one cell's label: the row's line break and mark before its first, ` | ` before the rest."""
+    def write(self, label: list[str], mark: str) -> None:
+        """Write one cell's label, given as pieces: the row's line break and mark before its first,
+        ` | ` before the rest, and `mark` after it. The label is at most `MAX_CELL_CHARACTERS`."""
         if self.started:
             head = " | "
         else:
             head = ("\n" if self.wrote else "") + ("[hidden row] " if self.row_hidden else "")
             self.started = self.wrote = True
-        self.out.add(head + label)
+        self.out.add(head, *label, mark)
+
+    def put(self, label: list[str], piece: str) -> None:
+        """Add one piece to the label, refusing at the piece that takes it over the cap."""
+        self.used += len(piece)
+        if self.used > MAX_CELL_CHARACTERS:
+            raise self.over()
+        label.append(piece)
+
+    def over(self) -> SourceUnreadable:
+        return self.refuse(f"a cell or string longer than {MAX_CELL_CHARACTERS:,} characters")
+
+    def escaped(
+        self, label: list[str], raw: str, escape: Callable[[str], str], *, extra: int = 0
+    ) -> None:
+        """Add `escape(raw)`, refusing first when a floor of its length already takes the label
+        over the cap, so an escape that would be refused is not built. `extra` is what `escape`
+        adds around the text, `=` and quotes."""
+        if self.used + extra + _floor(raw, escape) > MAX_CELL_CHARACTERS:
+            raise self.over()
+        self.put(label, escape(raw))
 
     def start_cell(self, attributes: dict[str, str]) -> None:
         self.size = 0
@@ -429,30 +480,46 @@ class _Sheet(_Reader):
             raise self.refuse(f"cell {self.address}: a style index out of range")
         if "f" in self.parts or text.strip():
             self.state = "text"
+        self.used = 0
         label = self.describe(text, value, style)
         if label is not None:
-            self.write(label + (" [hidden column]" if self.hidden[self.column] else ""))
+            self.write(label, " [hidden column]" if self.hidden[self.column] else "")
 
-    def describe(self, text: str, value: str, style: int) -> str | None:
-        """Return the cell's label, or None when it writes nothing."""
-        address = self.address
+    def describe(self, text: str, value: str, style: int) -> list[str] | None:
+        """Return the cell's label as pieces, each counted against the cap as it is built, or None
+        when it writes nothing."""
+        label: list[str] = []
+        for piece in (self.address, "="):
+            self.put(label, piece)
         if "f" in self.parts:
-            formula = "".join(self.parts["f"]) or _NO_FORMULA
-            cache = text if self.kind == "s" else value
-            return f"{address}={_formula(formula)} cache={_plain(cache) if cache else _ABSENT}"
-        if not text:
+            self.describe_formula(label, text if self.kind == "s" else value)
+        elif not text:
             return None
-        if self.kind in ("s", "inlineStr", "str"):
-            return f"{address}={text!r}"
-        if self.kind == "b":
-            return f"{address}={ {'1': 'TRUE', '0': 'FALSE'}.get(text, _plain(text)) }"
-        label = f"{address}={_plain(text)}"
-        if self.kind == "n" and self.styles.formats:
-            number = self.styles.formats[style]
-            code = self.styles.codes.get(number, "builtin:" + number)
-            if code != "builtin:0":
-                label += f" format={code!r}"
+        elif self.kind in ("s", "inlineStr", "str"):
+            self.escaped(label, text, repr)
+        elif self.kind == "b" and text in ("1", "0"):
+            self.put(label, "TRUE" if text == "1" else "FALSE")
+        else:
+            self.escaped(label, text, _plain)
+            if self.kind == "n" and self.styles.formats:
+                self.describe_format(label, style)
         return label
+
+    def describe_format(self, label: list[str], style: int) -> None:
+        number = self.styles.formats[style]
+        code = self.styles.codes.get(number, "builtin:" + number)
+        if code != "builtin:0":
+            self.put(label, " format=")
+            self.escaped(label, code, repr)
+
+    def describe_formula(self, label: list[str], cache: str) -> None:
+        formula = "".join(self.parts["f"]) or _NO_FORMULA
+        self.escaped(label, formula, lambda text: _formula("=" + text), extra=1)
+        self.put(label, " cache=")
+        if cache:
+            self.escaped(label, cache, _plain)
+        else:
+            self.put(label, _ABSENT)
 
 
 def _target(package: Package, name: str, found: tuple[str | None, bool] | None) -> str:
