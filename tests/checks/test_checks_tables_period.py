@@ -50,13 +50,11 @@ def _findings(case: dict[str, Any]) -> str:
 
 
 def _text(case: dict[str, Any]) -> str:
-    text = (
-        case.get("front", "") + KEY["head"] + _findings(case) + case.get("tail", KEY["tail"])
-    )
+    text = case.get("front", "") + KEY["head"] + _findings(case) + case.get("tail", KEY["tail"])
     for old, new in case.get("replace", []):
         assert text.count(old) == 1, old
         text = text.replace(old, new)
-    return text
+    return str(text)
 
 
 def _build(case: dict[str, Any]) -> tuple[HandoffDocument, CheckContext]:

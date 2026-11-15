@@ -12,6 +12,7 @@ from credit_os.checks import (
     request,
     sources,
     structure,
+    tables,
     text,
 )
 from credit_os.checks.findings import CheckContext, Finding, ordered
@@ -55,6 +56,8 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
                 *request.check_issuer(document, context),
                 *_prose_text(document, context),
                 *_sources(document, context),
+                *tables.check_header(document, context),
+                *tables.check_cell(document, context),
                 *confidence.check_confidence(document, context),
             )
         )
@@ -80,6 +83,9 @@ def check_handoff(document: HandoffDocument, context: CheckContext) -> tuple[Fin
             *passages.check_limitation_repeat(document, context),
             *sources.check_table(document, context),
             *_sources(document, context),
+            *tables.check_absent(document, context),
+            *tables.check_header(document, context),
+            *tables.check_cell(document, context),
             *figures.check_form(document, context),
             *held.check_not_held(document, context),
             *held.check_mismatch(document, context),

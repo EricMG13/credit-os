@@ -17,6 +17,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
+from credit_os.checks.table_specs import SPECS
 from credit_os.handoff.document import HandoffDocument
 from credit_os.handoff.errors import echo
 from credit_os.handoff.scan import Node
@@ -47,6 +48,9 @@ CHECKS = (
     "sources.sha256",
     "sources.sha256-required",
     "sources.type",
+    "table.absent",
+    "table.header",
+    "table.cell",
     "figure.form",
     "figure.not-held",
     "figure.mismatch",
@@ -122,6 +126,15 @@ class CheckContext(Node):
     as_of: date | None = Field(default=None, strict=True)
     issuer_names: tuple[str, ...] = ()
     hashes_required: bool = Field(default=False, strict=True)
+    owed_tables: tuple[str, ...] = ()
+
+    @field_validator("owed_tables")
+    @classmethod
+    def _owed_are_specified(cls, headings: tuple[str, ...]) -> tuple[str, ...]:
+        for heading in headings:
+            if heading not in SPECS:
+                raise ValueError(f"no specification for the table heading {echo(heading)!r}")
+        return headings
 
     @field_validator("issuer_names")
     @classmethod
