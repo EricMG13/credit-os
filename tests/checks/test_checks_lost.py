@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -81,3 +83,44 @@ def test_lost_value_rows() -> None:
 def test_lost_values_add_no_check_id() -> None:
     assert len(CHECKS) == 35
     assert not any("lost" in check for check in CHECKS)
+
+
+_COUNT_SCRIPT = """
+import json, sys
+from credit_os.checks.lost import lost_values
+from credit_os.handoff.document import parse
+
+head = "## Request\\nSYNTHETIC FIXTURE.\\n## Sources\\nNone.\\n## Findings\\n"
+tail = "## Calculations\\nNone.\\n## Gaps\\nNone.\\n## Next module\\nNone.\\n"
+counts = {}
+for n in (250, 500, 1000):
+    body = "; ".join("USD " + str(i) + ".5m" for i in range(n))
+    previous = parse((head + body + "\\n" + tail).encode())
+    new = parse((head + "none\\n" + tail).encode())
+    events = 0
+
+    def profiler(frame, event, arg):
+        global events
+        if event in ("call", "c_call"):
+            events += 1
+
+    sys.setprofile(profiler)
+    result = lost_values(previous, new, ())
+    sys.setprofile(None)
+    counts[str(n)] = [events, len(result)]
+print(json.dumps(counts))
+"""
+
+
+def test_lost_values_work_grows_linearly_with_the_figures_in_one_node() -> None:
+    done = subprocess.run(
+        [sys.executable, "-c", _COUNT_SCRIPT], capture_output=True, text=True, check=True
+    )
+    counts: dict[str, list[int]] = json.loads(done.stdout)
+    assert {size: found for size, (_, found) in counts.items()} == {
+        "250": 250,
+        "500": 500,
+        "1000": 1000,
+    }
+    assert counts["1000"][0] <= 2.2 * counts["500"][0]
+    assert counts["500"][0] <= 2.2 * counts["250"][0]
