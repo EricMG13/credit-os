@@ -133,27 +133,10 @@ def check_fence(document: HandoffDocument, context: CheckContext) -> tuple[Findi
     return tuple(found)
 
 
-def _quoted(
-    registers: tuple[Register, ...],
-    position: int,
-    by_line: dict[int, Section],
-    document: HandoffDocument,
-) -> str:
-    register = registers[position]
+def _quoted(register: Register, by_line: dict[int, Section]) -> str:
     if register.source == "heading":
         return by_line[register.line].title
-    tag = f"table-id: {register.id}"
-    nth = sum(
-        1
-        for other in registers[:position]
-        if other.source == "tag" and other.line == register.line and other.id == register.id
-    )
-    own = [
-        comment.text
-        for comment in document.comments
-        if comment.start == register.line and comment.text == tag
-    ]
-    return own[nth] if nth < len(own) else tag
+    return f"table-id: {register.id}"
 
 
 def _paired_tags(registers: tuple[Register, ...], by_line: dict[int, Section]) -> frozenset[int]:
@@ -164,20 +147,16 @@ def _paired_tags(registers: tuple[Register, ...], by_line: dict[int, Section]) -
     tags on one line are two registers.
     """
     paired: set[int] = set()
-    taken: set[int] = set()
-    for at, tag in enumerate(registers):
-        if tag.source != "tag":
+    open_headings: dict[str, list[int]] = {}
+    for at, register in enumerate(registers):
+        owners = open_headings.setdefault(register.id, [])
+        if register.source == "heading":
+            owners.append(at)
             continue
-        owners = [
-            position
-            for position, heading in enumerate(registers)
-            if heading.source == "heading"
-            and heading.id == tag.id
-            and position not in taken
-            and by_line[heading.line].line <= tag.line <= by_line[heading.line].end
-        ]
+        while owners and by_line[registers[owners[-1]].line].end < register.line:
+            owners.pop()
         if owners:
-            taken.add(max(owners))
+            owners.pop()
             paired.add(at)
     return frozenset(paired)
 
@@ -196,7 +175,7 @@ def check_register_id(document: HandoffDocument, context: CheckContext) -> tuple
                 refusal(
                     "structure.register-id",
                     register.line,
-                    _quoted(registers, position, by_line, document),
+                    _quoted(register, by_line),
                     f"Give this register an id no earlier register uses, "
                     f"not `{echo(register.id)}`.",
                 )
