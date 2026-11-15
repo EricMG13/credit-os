@@ -73,7 +73,11 @@ def _lead_and_rest(texts: list[str], first: object) -> tuple[str, str]:
 
 
 def bottom_line(reader: Reader, names: Sequence[str]) -> dict[str, object]:
-    """The bottom line; refused when the run is blocked or the passage has no usable text."""
+    """The bottom line; refused when the run is blocked or the passage has no usable text.
+
+    A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
+    run out with the reason, as R1 does, and never aborts the whole library.
+    """
     section = reader.bottom_line
     if reader.blocked or section is None:
         raise _refuse("bottom line", "no readable passage")
@@ -88,7 +92,11 @@ def bottom_line(reader: Reader, names: Sequence[str]) -> dict[str, object]:
 
 
 def findings(reader: Reader, names: Sequence[str]) -> tuple[dict[str, object], ...]:
-    """Each paragraph or list item of Key findings, numbered; empty when the section is missing."""
+    """Each paragraph or list item of Key findings, numbered; empty when the section is missing.
+
+    A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
+    run out with the reason, as R1 does, and never aborts the whole library.
+    """
     section = reader.key_findings
     if section is None:
         return ()
@@ -139,7 +147,11 @@ def _sub_part(sub: Section) -> tuple[str, list[str]]:
 def contrary_and_change(
     reader: Reader, names: Sequence[str]
 ) -> tuple[dict[str, object] | None, dict[str, object] | None]:
-    """The contrary evidence and, when a second part exists, the change view; refused over two."""
+    """The contrary evidence and, when a second part exists, the change view; refused over two.
+
+    A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
+    run out with the reason, as R1 does, and never aborts the whole library.
+    """
     section = reader.contrary
     if section is None:
         return None, None
@@ -153,7 +165,11 @@ def contrary_and_change(
 
 
 def limitations(document: HandoffDocument, names: Sequence[str]) -> tuple[dict[str, object], ...]:
-    """The limitation items, deduplicated by normalised text keeping the first, in file order."""
+    """The limitation items, deduplicated by normalised text keeping the first, in file order.
+
+    A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
+    run out with the reason, as R1 does, and never aborts the whole library.
+    """
     seen: set[str] = set()
     out: list[dict[str, object]] = []
     for text in limitation_texts(document):
@@ -167,7 +183,11 @@ def limitations(document: HandoffDocument, names: Sequence[str]) -> tuple[dict[s
 
 
 def blocked_reason(reader: Reader, names: Sequence[str]) -> str:
-    """The reason a blocked run gives; refused when the run is not blocked or the reason is empty."""
+    """The reason a blocked run gives; refused when the run is not blocked or the reason is empty.
+
+    A `DeliveryRefused` from here means the run cannot be written: its caller (PR 7) leaves the
+    run out with the reason, as R1 does, and never aborts the whole library.
+    """
     section = reader.bottom_line
     if reader.blocked is not True or section is None:
         raise _refuse("blocked reason", "run is not blocked")
@@ -195,5 +215,5 @@ def cell(
     if len(figures) != 1:
         return {"kind": "value", "text": text, "at": None}, None
     figure = figures[0]
-    at: Decimal = -figure.value if figure.negative else figure.value
+    at: Decimal = figure.value.copy_negate() if figure.negative else figure.value
     return {"kind": "value", "text": text, "at": at}, (figure.unit, figure.currency)

@@ -1,5 +1,6 @@
 """The passage and cell builders of delivery, compared row by row with the controller's key."""
 
+import decimal
 import json
 from collections.abc import Callable
 from decimal import Decimal
@@ -169,3 +170,22 @@ def test_inserted_name_is_found(before: str, name: str, after: str) -> None:
     found = passages.narrative_leaks(before + name + after, (name,))
     assert name in found
     assert all(item in found for item in [m.group(0) for m in CODE.finditer(before + name + after)])
+
+
+CONTEXTS = {
+    "prec5-up": decimal.Context(prec=5, rounding=decimal.ROUND_UP),
+    "prec3-trap": decimal.Context(prec=3, traps=[decimal.Rounded, decimal.Inexact]),
+    "prec1-small": decimal.Context(prec=1, Emin=-3, Emax=3, traps=[], flags=[]),
+}
+
+
+@pytest.mark.parametrize("name", list(CONTEXTS))
+@pytest.mark.parametrize("row", KEY["cells"], ids=[str(i) for i in range(len(KEY["cells"]))])
+def test_cells_exact_in_any_context(name: str, row: list[object]) -> None:
+    text, want, _scale = row
+    with decimal.localcontext(CONTEXTS[name]):
+        got, _ = passages.cell(cast(str, text))
+    if isinstance(want, dict) and want.get("at") is not None:
+        assert got is not None
+        at = cast(Decimal, got["at"])
+        assert at.as_tuple() == Decimal(cast(str, want["at"])).as_tuple()
