@@ -37,6 +37,21 @@ _CALL_NO_REPLACE = "calls: a call is never replaced"
 _CALL_NUMBERED = "calls: calls are numbered from 0 with no gap"
 _COMPACTION_NO_REPLACE = "compactions: a compaction is never replaced"
 _COMPACTION_NUMBERED = "compactions: compactions are numbered from 0 with no gap"
+# U23: a closed call that is not `ok`, one per such kind, as close_call would write it.
+_NOT_OK_CLOSES: tuple[tuple[str, dict[str, object]], ...] = (
+    ("not_sent", {"kind": "not_sent", "error_class": "x"}),
+    (
+        "sent_usage",
+        {
+            "kind": "sent_usage",
+            "error_class": "RateLimited",
+            "input_tokens": 10,
+            "output_tokens": 0,
+            "billed_usd": "0.000123",
+        },
+    ),
+    ("sent_unknown", {"kind": "sent_unknown", "error_class": "Unknown", "message": "lost"}),
+)
 _REJECT_A1 = (
     "UPDATE attempts SET state = 'rejected', issues = ?, closed_at = ? WHERE " + A1,
     ('[{"code":"x","line":3}]', T2),
@@ -296,6 +311,23 @@ REFUSED_STATEMENTS: tuple[
         f"UPDATE calls SET kind = 'not_sent', error_class = 'X', stop_reason = NULL WHERE {C0}",
         (),
         ("calls: a closed call never changes",),
+    ),
+    *(
+        (
+            f"closed {kind} call's {column} changed",
+            "WITH_CALL",
+            (
+                (
+                    f"UPDATE calls SET closed_at = ?, {', '.join(f'{c} = ?' for c in close)} WHERE {C0}",
+                    (T2, *close.values()),
+                ),
+            ),
+            f"UPDATE calls SET {column} = ? WHERE {C0}",
+            (value,),
+            ("calls: a closed call never changes",),
+        )
+        for kind, close in _NOT_OK_CLOSES
+        for column, value in (("billed_usd", "9"), ("message", "x"))
     ),
     (
         "call of a failed attempt closed",
