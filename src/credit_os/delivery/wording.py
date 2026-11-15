@@ -77,6 +77,13 @@ ENTRY_KEYS = frozenset(
         "evidence.gaps.column.shownAs",
         "evidence.gaps.where.module",
         "evidence.gaps.effect_unstated",
+        "pathway.credit_snapshot",
+        "pathway.lite_credit_assessment",
+        "pathway.earnings_update",
+        "pathway.relative_value",
+        "pathway.covenant_refinancing",
+        "pathway.distressed_restructuring",
+        "pathway.portfolio_decision",
     }
 )
 STATE_WORDS = frozenset(
