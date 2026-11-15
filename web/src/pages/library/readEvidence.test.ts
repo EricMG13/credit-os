@@ -93,7 +93,7 @@ describe("readSlice, evidence", () => {
     const runs = result.data.issuers[0]?.runs ?? [];
     for (const [index, gaps] of [
       [2, "3"],
-      [3, "2"],
+      [3, "3"],
     ] as const) {
       const run = runs[index];
       expect(run?.evidence?.tabs.gaps).toBe(gaps);
@@ -422,7 +422,7 @@ describe("readSlice, trace", () => {
   });
 });
 
-type GapGroups = { rows: Json[] }[];
+type GapGroups = { severity?: unknown; count?: string; rows: Json[] }[];
 const gapGroups = (e: ReturnType<typeof evidenceOf>) => (e["gaps"] as { groups: GapGroups }).groups;
 const gapOf = (e: ReturnType<typeof evidenceOf>, g: number, r: number): Json => {
   const found = gapGroups(e)[g]?.rows[r];
@@ -532,7 +532,7 @@ describe("readSlice, gaps", () => {
       ["High", "Medium", "Low"],
       undefined,
       ["High", "Medium"],
-      ["Medium", "Low"],
+      ["Medium", "Low", null],
     ]);
   });
 
@@ -605,6 +605,116 @@ describe("readSlice, gaps", () => {
     const slice = fresh();
     edit(evidenceOf(slice));
     expect(invalidReason(slice)).toContain(`${at(0)}.${expected}`);
+  });
+
+  describe("a group with no severity", () => {
+    /** A group of one new gap with `severity: null`, its row copied from the run's first gap. */
+    const unranked = (e: ReturnType<typeof evidenceOf>, id = "G-08", severity: unknown = null) => ({
+      severity,
+      count: "1",
+      rows: [{ ...gapOf(e, 0, 0), id }],
+    });
+    /** Brings the tab and the Overview link of run 0 to `total` gaps, as a delivered run would. */
+    const tally = (slice: ReturnType<typeof fresh>, total: number) => {
+      evidenceOf(slice)["tabs"] = { ...(evidenceOf(slice)["tabs"] as Json), gaps: String(total) };
+      const limits = (
+        (slice.issuers[0]?.runs[0] as Json)["overview"] as { limitations: { gapsLink: Json } }
+      ).limitations;
+      limits.gapsLink["label"] = `See the ${String(total)} gaps in Evidence`;
+    };
+
+    it("reads a null group last, as null, with its rows and count", () => {
+      const slice = fresh();
+      const e = evidenceOf(slice);
+      gapGroups(e).push(unranked(e));
+      tally(slice, 8);
+      const result = readSlice(slice);
+      if (result.kind !== "ok") throw new Error(JSON.stringify(result));
+      const groups = result.data.issuers[0]?.runs[0]?.evidence?.gaps.groups;
+      expect(groups?.map((g) => g.severity)).toEqual(["High", "Medium", "Low", null]);
+      expect(groups?.[3]?.rows.map((r) => r.id)).toEqual(["G-08"]);
+    });
+
+    it("reads a table whose only group is the null group", () => {
+      const slice = fresh();
+      const e = evidenceOf(slice, 3);
+      (e["gaps"] as Json)["groups"] = [unranked(e, "G-01")];
+      (e["tabs"] as Json)["gaps"] = "1";
+      const limits = (
+        (slice.issuers[0]?.runs[3] as Json)["overview"] as { limitations: { gapsLink: Json } }
+      ).limitations;
+      limits.gapsLink["label"] = "See the 1 gaps in Evidence";
+      const result = readSlice(slice);
+      if (result.kind !== "ok") throw new Error(JSON.stringify(result));
+      expect(result.data.issuers[0]?.runs[3]?.evidence?.gaps.groups.map((g) => g.severity)).toEqual(
+        [null],
+      );
+    });
+
+    const broken: [string, (e: ReturnType<typeof evidenceOf>) => void, string][] = [
+      [
+        "a null group before a ranked one",
+        (e) => gapGroups(e).unshift(unranked(e)),
+        "gaps.groups[1].severity",
+      ],
+      [
+        "two null groups",
+        (e) => gapGroups(e).push(unranked(e), unranked(e, "G-09")),
+        "gaps.groups[4].severity",
+      ],
+      [
+        "a group with no severity key",
+        (e) => {
+          const group = unranked(e);
+          delete group.severity;
+          gapGroups(e).push(group);
+        },
+        "gaps.groups[3].severity",
+      ],
+      [
+        'a severity of "none"',
+        (e) => gapGroups(e).push(unranked(e, "G-08", "none")),
+        "gaps.groups[3].severity",
+      ],
+      [
+        'a severity of ""',
+        (e) => gapGroups(e).push(unranked(e, "G-08", "")),
+        "gaps.groups[3].severity",
+      ],
+      [
+        'a severity of "Unranked"',
+        (e) => gapGroups(e).push(unranked(e, "G-08", "Unranked")),
+        "gaps.groups[3].severity",
+      ],
+      [
+        "a severity that is a number",
+        (e) => gapGroups(e).push(unranked(e, "G-08", 0)),
+        "gaps.groups[3].severity",
+      ],
+      [
+        "a null group whose count is not its rows",
+        (e) => gapGroups(e).push({ ...unranked(e), count: "2" }),
+        "gaps.groups[3].count",
+      ],
+      [
+        "a gap id repeated between a ranked group and the null group",
+        (e) => gapGroups(e).push(unranked(e, "G-01")),
+        "gaps.groups[3].rows[0].id",
+      ],
+    ];
+    it.each(broken)("is invalid for %s, with its path", (_, edit, expected) => {
+      const slice = fresh();
+      edit(evidenceOf(slice));
+      expect(invalidReason(slice)).toContain(`${at(0)}.${expected}`);
+    });
+  });
+
+  it("names null among the words a refused severity should have been", () => {
+    const slice = fresh();
+    (gapGroups(evidenceOf(slice))[0] as Json)["severity"] = "Critical";
+    expect(invalidReason(slice)).toContain(
+      `${at(0)}.gaps.groups[0].severity: expected null or one of High, Medium, Low`,
+    );
   });
 
   it("is invalid for an Overview link that names another number of gaps, with its path", () => {

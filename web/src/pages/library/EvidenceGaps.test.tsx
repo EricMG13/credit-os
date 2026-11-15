@@ -245,8 +245,42 @@ describe("Evidence, Gaps", () => {
     expect(screen.getByRole("heading", { name: "Gaps 3" })).toBeVisible();
     cleanup();
     renderGaps("2025-09-30");
-    expect(outline()).toEqual(["group Medium1", "G-01", "group Low1", "G-02"]);
+    expect(outline()).toEqual([
+      "group Medium1",
+      "G-01",
+      "group Low1",
+      "G-02",
+      "group Not ranked1",
+      "G-03",
+    ]);
     expect(screen.queryByRole("columnheader", { name: /^High/ })).toBeNull();
+  });
+
+  it("heads a group with no severity with the plain words Not ranked and the count, with no status badge", () => {
+    renderGaps("2025-09-30");
+    const groups = within(table())
+      .getAllByRole("rowheader")
+      .filter((h) => h.getAttribute("scope") === "rowgroup");
+    expect(groups.map((h) => h.textContent)).toEqual(["Medium1", "Low1", "Not ranked1"]);
+    const unranked = groups[2] as HTMLElement;
+    expect(unranked.querySelector("svg")).toBeNull();
+    expect(within(unranked).getByText("1")).toBeVisible();
+    // The wrapper, the words and the count badge; the words draw as the ranked badges' labels do.
+    expect(unranked.querySelectorAll("span")).toHaveLength(3);
+    const words = within(unranked).getByText("Not ranked");
+    expect(words.tagName).toBe("SPAN");
+    expect(words).toHaveClass("text-small", "font-medium", "text-text-secondary");
+    expect(groups[1]?.querySelector("svg")).not.toBeNull();
+  });
+
+  it("filters the group with no severity by module like any other group", () => {
+    renderGaps("2025-09-30");
+    pick("Capital structure");
+    expect(outline()).toEqual(["group Low", "G-02", "group Not ranked", "G-03"]);
+    pick("Recovery");
+    expect(outline()).toEqual(["group Medium", "G-01"]);
+    pick("Peer comparison");
+    expect(screen.getByRole("heading", { name: "No gap sits in Peer comparison" })).toBeVisible();
   });
 
   it("says a run with no gap has none, with no table", () => {
@@ -332,6 +366,16 @@ describe("Evidence, Gaps, at a gap's address", () => {
     expect(row).toHaveFocus();
     expect(scrolled).toHaveBeenCalledOnce();
     expect(rowOf("G-01")).not.toHaveAttribute("aria-current");
+    expect(screen.queryByText("No gap has this address")).toBeNull();
+  });
+
+  it("marks, scrolls to and focuses a gap in the group with no severity", () => {
+    renderItem("2025-09-30", "G-03");
+    const row = rowOf("G-03");
+    expect(row).toHaveAttribute("aria-current", "location");
+    expect(row).toHaveFocus();
+    expect(scrolled).toHaveBeenCalledOnce();
+    expect(rowOf("G-02")).not.toHaveAttribute("aria-current");
     expect(screen.queryByText("No gap has this address")).toBeNull();
   });
 

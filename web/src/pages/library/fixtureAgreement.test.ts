@@ -21,17 +21,17 @@ type Trace = {
   qualification?: string | null;
   evidenceItem: string;
 };
-type Gap = { id: string; moduleId: string };
+type Gap = { id: string; moduleId: string; gap: string; where: { page: string } };
 type Run = {
   id: string;
   loading: boolean;
   traces: Record<string, Trace>;
-  modules: unknown;
+  modules: { id: string; body: { limitations?: { items: { text: string }[] } | null } }[];
   overview: unknown;
   evidence: {
     tabs: { trace: string; gaps: string };
     trace: { rows: TraceRow[]; emptyText?: string };
-    gaps: { groups: { severity: string; count: string; rows: Gap[] }[] };
+    gaps: { groups: { severity: string | null; count: string; rows: Gap[] }[] };
     summary: { counts: { label: string; value: { text: string }; note: string }[] };
     record: { registers: { rows: { name: string; rows: string }[] } };
   };
@@ -121,9 +121,50 @@ describe("the fixture's runs agree with themselves", () => {
 
   it("has a Summary gaps note that names each Gaps group's delivered count and severity word", () => {
     for (const run of loaded) {
-      const groups = run.evidence.gaps.groups.map((g) => `${g.count} ${g.severity.toLowerCase()}`);
+      const groups = run.evidence.gaps.groups.map(
+        (g) => `${g.count} ${(g.severity ?? "Not ranked").toLowerCase()}`,
+      );
       expect(count(run, "Gaps").note, run.id).toBe(groups.join(", "));
     }
+  });
+
+  it("shows each gap whose where is a module page in that module's limitations: the gap's subject word is in one of them", () => {
+    // The rule: the first word of `gap` that is not a generic one, cut to five letters, is a
+    // substring of a limitation item of the named module ("Hedge schedule" ~ "Hedge expiries ...").
+    const generic = new Set([
+      "schedule",
+      "documents",
+      "figures",
+      "the",
+      "of",
+      "for",
+      "on",
+      "share",
+      "average",
+    ]);
+    let checked = 0;
+    for (const run of loaded) {
+      for (const group of run.evidence.gaps.groups) {
+        for (const row of group.rows) {
+          if (row.where.page !== "module") continue;
+          const page = run.modules.find((m) => m.id === row.moduleId);
+          if (page === undefined)
+            throw new RangeError(`${run.id} ${row.id}: no module ${row.moduleId}`);
+          const subject = row.gap
+            .toLowerCase()
+            .split(" ")
+            .find((w) => !generic.has(w));
+          if (subject === undefined) throw new RangeError(`${run.id} ${row.id}: no subject word`);
+          const items = (page.body.limitations?.items ?? []).map((i) => i.text.toLowerCase());
+          expect(
+            items.some((text) => text.includes(subject.slice(0, 5))),
+            `${run.id} ${row.id} ${row.gap}: ${row.moduleId} limitations ${JSON.stringify(items)}`,
+          ).toBe(true);
+          checked += 1;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(5);
   });
 
   it("has a Gap ledger register whose row count equals the run's gap total", () => {
