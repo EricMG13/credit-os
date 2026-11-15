@@ -462,11 +462,13 @@ R47 = [
     ("as a percentage", "7.125", None, "The notes stand at 7.125."),
     ("glued into a facility name", "2027", "TLB2027 was repaid.", "2027 was repaid."),
 ]
-# The 6b2 adversary review's M1: the letter pieces are pinned for small letters too. These rows
-# come after the controls, so the first 77 rows stay as they were.
-R47_SMALL: list[tuple[str, str, str | None, str]] = [
+# The 6b2 adversary review: M1 pins the letter pieces for small letters too; M2 pins the point
+# before a balance, which R47's `%` piece hid in 6b's "after a point" row (`Fixed 7.125%`). These
+# rows come after the controls, so the earlier rows stay as they were.
+R47_REVIEW: list[tuple[str, str, str | None, str]] = [
     ("glued before a small letter", "380", "Drawn 380m.", "Drawn: 380."),
     ("glued after a small letter", "2027", "tlb2027 was repaid.", "2027 was repaid."),
+    ("after a point in a longer number", "380", "Drawn 1.380.", "Drawn: 380."),
 ]
 
 
@@ -515,7 +517,7 @@ def r47_rows() -> list[Doc]:
             "Drawn 1,250.0 %.",
         )
     )
-    pairs(R47_SMALL)
+    pairs(R47_REVIEW)
     return rows
 
 
@@ -527,7 +529,7 @@ def render() -> str:
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 81 and len(accepted) == 25
+    assert len(labels) == len(set(labels)) == 83 and len(accepted) == 26
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
