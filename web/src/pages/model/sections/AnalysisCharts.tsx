@@ -1,7 +1,7 @@
 import { BulletChart } from "@/components/chart/BulletChart";
 import { DumbbellChart } from "@/components/chart/DumbbellChart";
 import type { Headroom, Segments } from "../slice/types";
-import { ChartCard, chartTrace } from "./shared";
+import { ChartCard, cellRows, chartTrace } from "./shared";
 
 /** The section's own focus ring when the index moves focus to it. */
 export const JUMP_TARGET =
@@ -26,10 +26,7 @@ export function HeadroomSection({ id, data }: { id: string; data: Headroom }) {
             axisMax: row.axisMax,
             text: row.text,
           }))}
-          table={{
-            head: data.head,
-            rows: data.rows.map((row) => ({ label: row.label, cells: row.cells })),
-          }}
+          table={{ head: data.head, rows: cellRows(data.rows) }}
         />
       </ChartCard>
     </section>
@@ -55,10 +52,7 @@ export function SegmentsSection({ id, data }: { id: string; data: Segments }) {
             to: row.to,
             text: row.text,
           }))}
-          table={{
-            head: data.head,
-            rows: data.rows.map((row) => ({ label: row.label, cells: row.cells })),
-          }}
+          table={{ head: data.head, rows: cellRows(data.rows) }}
         />
       </ChartCard>
     </section>

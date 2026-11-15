@@ -11,6 +11,7 @@ import {
   distinct,
   fail,
   needCells,
+  nullableRecord,
   num,
   numOrNull,
   object,
@@ -77,16 +78,11 @@ const scatter = object<HoldingsScatter>({
   head: arrayOf(text),
   points: arrayOf(scatterRow),
 });
-const rangeRecord = object<{ low: number; high: number }>({ low: num, high: num });
 /** `null`, or a record with low and high; anything with neither key is not a range. */
-const range: Reader<{ low: number; high: number } | null> = (value, path) => {
-  if (value === null) return null;
-  const isRecord = typeof value === "object" && !Array.isArray(value);
-  if (!isRecord || !("low" in value || "high" in value)) {
-    return fail(path, "expected null or an object with low and high");
-  }
-  return rangeRecord(value, path);
-};
+const range = nullableRecord(
+  ["low", "high"],
+  object<{ low: number; high: number }>({ low: num, high: num }),
+);
 const stripRow = object<StripRow>({
   label: text,
   rangeText: text,

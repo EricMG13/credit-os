@@ -1,32 +1,34 @@
+import type { ComponentProps } from "react";
 import { PathChart } from "@/components/chart/PathChart";
-import { RangeStripChart } from "@/components/chart/RangeStripChart";
 import { WaterfallChart } from "@/components/chart/WaterfallChart";
-import type { Bridge, CaseCard, EbitdaPaths, HoldingsStrips, InterestCover } from "../slice/types";
+import type { Bridge, CaseCard, EbitdaPaths, InterestCover } from "../slice/types";
 import { ChartCard, END_HEADING, chartTrace, rowTrace } from "./shared";
 
-/** Each FY26 assumption against its five-year range, a marker per case; the chosen case stands out. */
-export function DriversCard({ data, chosen }: { data: HoldingsStrips; chosen: number }) {
+type PathChartProps = ComponentProps<typeof PathChart>;
+
+/** A path chart in its card: the title block, periods, divider and table every path chart shares. */
+function PathCard({
+  data,
+  periods,
+  series,
+}: {
+  data: Omit<EbitdaPaths, "series">;
+  periods: string[];
+  series: PathChartProps["series"];
+}) {
   return (
     <ChartCard>
-      <RangeStripChart
+      <PathChart
         title={data.title}
         as="h3"
         subtitle={data.subtitle}
         note={data.note}
         actions={chartTrace(data.trace, data.title)}
-        rangeLabel={data.rangeLabel}
-        emphasised={chosen}
-        rows={data.rows.map((r) => ({
-          label: r.label,
-          rangeText: r.rangeText,
-          range: r.range,
-          markers: r.markers,
-          axis: r.axis,
-        }))}
-        table={{
-          head: data.head,
-          rows: data.rows.map((r) => ({ label: r.label, cells: r.cells })),
-        }}
+        periods={periods}
+        series={series}
+        divider={data.divider}
+        yTicks={data.yTicks}
+        table={{ head: data.head, rows: data.rows }}
       />
     </ChartCard>
   );
@@ -50,41 +52,17 @@ export function CoverCard({
     throw new Error(`no interest cover for case ${String(chosen)}`);
   }
   return (
-    <ChartCard>
-      <PathChart
-        title={data.title}
-        as="h3"
-        subtitle={data.subtitle}
-        note={data.note}
-        actions={chartTrace(data.trace, data.title)}
-        periods={periods}
-        series={[{ name, values: line.values, labels: line.labels }]}
-        divider={data.divider}
-        yTicks={data.yTicks}
-        table={{ head: data.head, rows: data.rows }}
-      />
-    </ChartCard>
+    <PathCard
+      data={data}
+      periods={periods}
+      series={[{ name, values: line.values, labels: line.labels }]}
+    />
   );
 }
 
 /** Both cases, whichever is chosen. */
 export function PathsCard({ data, periods }: { data: EbitdaPaths; periods: string[] }) {
-  return (
-    <ChartCard>
-      <PathChart
-        title={data.title}
-        as="h3"
-        subtitle={data.subtitle}
-        note={data.note}
-        actions={chartTrace(data.trace, data.title)}
-        periods={periods}
-        series={data.series}
-        divider={data.divider}
-        yTicks={data.yTicks}
-        table={{ head: data.head, rows: data.rows }}
-      />
-    </ChartCard>
-  );
+  return <PathCard data={data} periods={periods} series={data.series} />;
 }
 
 const LEGEND = { total: "Total", down: "Cash out (minus)", up: "Cash in (plus)" };
