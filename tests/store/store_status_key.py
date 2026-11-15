@@ -12,6 +12,12 @@ STATE_KINDS = frozenset({"run_created", "writer_replaced", "run_started", "run_e
 END_STATUSES = frozenset({"finished", "stopped", "failed"})
 FINAL_STATUSES = frozenset({"finished", "rejected"})
 
+# PR 3b1 (U8): runs.STATE_KINDS gains the five attempt kinds, so record_event refuses them as well.
+ATTEMPT_KINDS = frozenset(
+    {"attempt_opened", "attempt_replied", "attempt_failed", "attempt_accepted", "attempt_rejected"}
+)
+STATE_KINDS |= ATTEMPT_KINDS
+
 
 def fold(events: list[tuple[str, dict[str, object]]]) -> str | None:
     """The status a run's (kind, detail) events in seq order give; None before `run_created`."""
