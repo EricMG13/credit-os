@@ -285,17 +285,28 @@ def _reasons_of_long_tags() -> set[str]:
 _LONG_REFERENCE = re.compile(rb"&#(?:[0-9]{32}|[xX][0-9a-fA-F]{32})")
 
 
+# 2b-5: a character U+0080 to U+009F in the text read is refused, naming the first one. The legacy
+# keeps such a character. The generator writes one only as a reference the HTML Standard leaves
+# unmapped, never U+0085 (whitespace to both), so the first one in the legacy text is the first the
+# reader meets.
+_C1 = re.compile("[\x80-\x9f]")
+
+
 def _check(raw: bytes, whole: str, size: int, refusals: set[str]) -> None:
     if _LONG_REFERENCE.search(raw):
         with pytest.raises(SourceUnreadable) as caught:
             html_pages("f.html", raw)
         assert str(caught.value) == "f.html: a character reference of 32 or more digits"
         return
+    control = _C1.search(whole)
+    if control is not None:
+        refusals = refusals | {f"control character U+{ord(control.group()):04X}"}
     try:
         result = html_pages("f.html", raw)
     except SourceUnreadable as error:
         assert str(error).removeprefix("f.html: ") in refusals
         return
+    assert control is None
     assert [page.text for page in result.pages] == list(cut_pages(whole, size))
 
 
