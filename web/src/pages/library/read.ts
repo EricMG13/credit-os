@@ -1,3 +1,4 @@
+import { plainSegment } from "@/components/path/plain";
 import { STATUS_SETS } from "@/components/status/sets";
 import type { SliceResult } from "../route-table";
 import type {
@@ -1479,9 +1480,6 @@ function readFile(value: unknown, path: string, held: Held): SourceFile {
   };
 }
 
-/** The characters a delivered file path uses; a `%` only starts a two-digit escape. */
-const SEGMENT = /^(?:[A-Za-z0-9._~@+=,-]|%[0-9A-Fa-f]{2})+$/;
-
 /**
  * An address the page hands to an anchor: a relative path inside the library folder, or `null`.
  * Every segment must be plain (allow-list), and none may be `.` or `..` before or after
@@ -1493,17 +1491,6 @@ function insideLibrary(o: Rec, key: string, path: string): string | null {
     throw new SliceError(child(path, key), "a relative path inside the library folder");
   }
   return href;
-}
-
-function plainSegment(segment: string): boolean {
-  if (!SEGMENT.test(segment)) return false;
-  try {
-    const decoded = decodeURIComponent(segment);
-    return decoded !== "." && decoded !== ".." && !/[/\\]/.test(decoded);
-  } catch (error) {
-    if (!(error instanceof URIError)) throw error;
-    return false; // an escape that is not UTF-8 is refused like any other odd path
-  }
 }
 
 /** An address, or the reason there is none: exactly one of the two. */
