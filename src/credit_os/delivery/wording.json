@@ -69,7 +69,7 @@
     "changes.pending.text": {"placeholders": ["issuer_name"], "text": "An earlier report exists on {issuer_name}; the comparison with it has not been run."},
     "overview.metrics_label": {"placeholders": [], "text": "Headline figures"},
     "overview.modules_summary": {"placeholders": ["delivered", "total"], "text": "{delivered} of {total} delivered"},
-    "overview.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 1, "one": "See the {count} gap in Evidence", "other": "See the {count} gaps in Evidence"},
+    "overview.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 0, "one": "See the {count} gap in Evidence", "other": "See the {count} gaps in Evidence"},
     "records.chart_gap": {"placeholders": [], "text": "The module's table for this chart could not be read."},
     "trace.title": {"placeholders": ["item"], "text": "Sources for {item}"},
     "trace.subtitle": {"placeholders": ["module", "date"], "text": "{module} \u00b7 passage \u00b7 as of {date}"},
@@ -103,6 +103,13 @@
     "module.gaps_link": {"placeholders": ["count"], "count": "count", "count_min": 0, "one": "See this module\u2019s {count} gap in Evidence", "other": "See this module\u2019s {count} gaps in Evidence"},
     "module.blocked_note": {"placeholders": [], "text": "Nothing from this module is shown."},
     "module.failed_reason": {"placeholders": [], "text": "The module did not complete."},
-    "module.not_run_reason": {"placeholders": [], "text": "The run ended before this module started."}
+    "module.not_run_reason": {"placeholders": [], "text": "The run ended before this module started."},
+    "pathway.credit_snapshot": {"placeholders": [], "text": "Full credit assessment"},
+    "pathway.lite_credit_assessment": {"placeholders": [], "text": "Lite credit assessment"},
+    "pathway.earnings_update": {"placeholders": [], "text": "Earnings Update"},
+    "pathway.relative_value": {"placeholders": [], "text": "Relative Value"},
+    "pathway.covenant_refinancing": {"placeholders": [], "text": "Covenant & Refinancing"},
+    "pathway.distressed_restructuring": {"placeholders": [], "text": "Distressed & Restructuring"},
+    "pathway.portfolio_decision": {"placeholders": [], "text": "Portfolio Decision"}
   }
 }
