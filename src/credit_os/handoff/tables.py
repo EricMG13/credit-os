@@ -3,6 +3,10 @@
 A row is its text without leading spaces and trailing whitespace, between two boundary
 pipes; the closing one must not be escaped. Cells split on every `|` not preceded by a
 backslash (backticks do not protect a pipe), are stripped, then `\\|` becomes `|`.
+
+A table's caption is the lines of the paragraph directly before it in the same section (blank
+lines may lie between); `caption_line` is that paragraph's first line. A bold one-line label
+paragraph is both the label (stripped) and the caption (raw line).
 """
 
 import re
@@ -26,6 +30,8 @@ class Table(Node):
     line: int
     label: str | None
     label_line: int | None
+    caption: tuple[str, ...] = ()
+    caption_line: int | None = None
     columns: tuple[str, ...]
     rows: tuple[Row, ...]
 
@@ -42,11 +48,17 @@ def _cells(number: int, text: str) -> tuple[str, ...]:
 
 
 def read_table(
-    lines: Sequence[tuple[int, str]], label: str | None = None, label_line: int | None = None
+    lines: Sequence[tuple[int, str]],
+    label: str | None = None,
+    label_line: int | None = None,
+    caption: tuple[str, ...] = (),
+    caption_line: int | None = None,
 ) -> Table:
     """Read a table; the caller passes only lines for which `is_table_row` is true."""
     if (label is None) != (label_line is None):
         raise ValueError("label and label_line are given together or not at all")
+    if bool(caption) != (caption_line is not None):
+        raise ValueError("caption and caption_line are given together or not at all")
     first, header_text = lines[0]
     header = _cells(first, header_text)
     if len(lines) < 2:
@@ -70,4 +82,12 @@ def read_table(
                 f"the table row has {len(cells)} cells and the header has {len(header)}",
             )
         rows.append(Row(line=number, cells=cells))
-    return Table(line=first, label=label, label_line=label_line, columns=header, rows=tuple(rows))
+    return Table(
+        line=first,
+        label=label,
+        label_line=label_line,
+        caption=caption,
+        caption_line=caption_line,
+        columns=header,
+        rows=tuple(rows),
+    )

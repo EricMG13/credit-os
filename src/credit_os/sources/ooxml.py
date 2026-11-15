@@ -223,7 +223,11 @@ class Package:
         return self.refuse("a damaged zip member", part)
 
     def pieces(self, part: str) -> Iterator[bytes]:
-        """Yield the expanded bytes of a part in pieces of at most `CHUNK_BYTES`."""
+        """Yield the expanded bytes of a part in pieces of at most `CHUNK_BYTES`.
+
+        A generator: its refusals (missing, encrypted, method) are raised at the first `next()`,
+        not at the call.
+        """
         info = self._members.get(part)
         if info is None:
             raise self.refuse("the part is missing", part)

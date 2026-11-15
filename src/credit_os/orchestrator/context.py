@@ -56,6 +56,18 @@ _SLUG = r"[a-z0-9][a-z0-9-]*"
 _DATE = r"\d{4}-\d{2}-\d{2}"
 _CURRENCY = r"[A-Z]{3}"
 _MAX_SCEN, _MAX_Q = 4, 10
+_MAX_DEAL, _MAX_QUOTE, _MAX_RATING, _MAX_PEER, _MAX_PREC = 20, 40, 20, 30, 30
+_DEAL_NUMBERS = (
+    "size_m",
+    "tenor_years",
+    "talk_spread_bps_low",
+    "talk_spread_bps_high",
+    "talk_oid_low",
+    "talk_oid_high",
+    "floor_pct",
+    "coupon_pct",
+    "margin_bps",
+)
 
 
 class ContextRefused(ValueError):
@@ -353,6 +365,7 @@ class Limit:
     req: bool = False
     whole: bool = False
     places: int | None = None
+    signed: bool = False
     low: str | None = None
     low_excl: str | None = None
     high: str | None = None
@@ -372,6 +385,13 @@ ASSUMPTION_LIMITS: dict[str, Limit] = {
     "cp3d.recovery_pct": Limit(req=True, places=2, low="0", high_excl="100"),
     "cp4c.ev_multiple": Limit(req=True, places=2, low_excl="0", high="99.99"),
 }
+
+_NOT_NEGATIVE, _ABOVE_ZERO, _SIGNED = Limit(low="0"), Limit(low_excl="0"), Limit(signed=True)
+_BLANK_MARKET = IssuerMarket(
+    market_cap_m="", net_debt_m="", ev_m="", ebitda_basis="LTM", as_of="", source=""
+)
+_BLANK_MULTIPLE = UserMultiple(value="", basis="LTM", rationale="")
+_USER_MULTIPLE = Limit(req=True, low_excl="0", high="99.99")
 
 
 def _match(pattern: str, value: str) -> bool:
@@ -396,11 +416,11 @@ def _period_key(value: str) -> tuple[str, int, int] | None:
     return m[1][0], 0 if m[1] == "fy" else int(m[1][1]), int(m[2])
 
 
-def _num_message(value: str, signed: bool, limit: Limit) -> str:
+def _num_message(value: str, limit: Limit) -> str:
     """Why `value` is not an allowed number under `limit`, or the empty text; compares as Decimal."""
     if "," in value:
         return "no thousands separators; write 1250, not 1,250."
-    if not _match(_SNUM if signed else _NUM, value):
+    if not _match(_SNUM if limit.signed else _NUM, value):
         return "enter a plain number such as 1250 or 99.5."
     if limit.whole and not _match(_INT, value):
         return "enter a whole number."
@@ -448,7 +468,7 @@ class _Rules:
             if limit.req:
                 self.bad(path, "required.")
             return
-        message = _num_message(value, False, limit)
+        message = _num_message(value, limit)
         if message:
             self.bad(path, message)
 
@@ -481,7 +501,7 @@ class _Rules:
             self.bad(path, "required.")
         if len(items) > 3:
             self.bad(path, "give at most 3 values.")
-        messages = [_num_message(item, False, limit) for item in items]
+        messages = [_num_message(item, limit) for item in items]
         for item, message in zip(items, messages, strict=True):
             if message:
                 self.bad(path, f'"{item}": {message}')
@@ -584,9 +604,111 @@ class _Rules:
         for i, q in enumerate(questions):
             self.text(f"research_questions[{i}].text", q.text, req=True, cell=True)
 
+    def too_many(self, path: str, count: int, limit: int) -> None:
+        if count > limit:
+            self.bad(path, f"give at most {limit} rows.")
+
+    def not_above(self, path: str, low: str, high: str, message: str) -> None:
+        if _match(_NUM, low) and _match(_NUM, high) and Decimal(low) > Decimal(high):
+            self.bad(path, message)
+
+    def deal_section(self) -> None:
+        deals = self.ctx.deal_terms
+        if self.ctx.run.run_type == "primary" and not deals:
+            self.bad("deal_terms", "add at least one facility row.")
+        self.too_many("deal_terms", len(deals), _MAX_DEAL)
+        for i, d in enumerate(deals):
+            p = f"deal_terms[{i}]"
+            self.currency(f"{p}.currency", d.currency)
+            for name in _DEAL_NUMBERS:
+                self.number(f"{p}.{name}", getattr(d, name), _NOT_NEGATIVE)
+            self.date(f"{p}.maturity", d.maturity)
+            self.date(f"{p}.as_of", d.as_of, after=True)
+            low = "low must not exceed high."
+            self.not_above(
+                f"{p}.talk_spread_bps_low", d.talk_spread_bps_low, d.talk_spread_bps_high, low
+            )
+            self.not_above(f"{p}.talk_oid_low", d.talk_oid_low, d.talk_oid_high, low)
+
+    def quote_and_rating_section(self) -> None:
+        self.too_many("quotes", len(self.ctx.quotes), _MAX_QUOTE)
+        for i, q in enumerate(self.ctx.quotes):
+            p = f"quotes[{i}]"
+            for name in ("bid", "ask", "price", "yield_pct", "spread_bps"):
+                self.number(f"{p}.{name}", getattr(q, name), _NOT_NEGATIVE)
+            self.date(f"{p}.as_of", q.as_of, req=True, after=True)
+            self.text(f"{p}.provider", q.provider, req=True)
+            self.not_above(f"{p}.bid", q.bid, q.ask, "bid must not exceed ask.")
+        self.too_many("ratings", len(self.ctx.ratings), _MAX_RATING)
+        for i, r in enumerate(self.ctx.ratings):
+            p = f"ratings[{i}]"
+            self.text(f"{p}.agency", r.agency, req=True)
+            self.text(f"{p}.rating", r.rating, req=True)
+            self.date(f"{p}.as_of", r.as_of, after=True)
+
+    def valuation_section(self) -> None:
+        val = self.ctx.valuation
+        self.peers(val)
+        self.too_many("valuation.precedents", len(val.precedents), _MAX_PREC)
+        if val.basis in ("precedents", "blend"):
+            for i, pr in enumerate(val.precedents):
+                p = f"valuation.precedents[{i}]"
+                self.text(f"{p}.target", pr.target, req=True)
+                self.date(f"{p}.date", pr.date, after=True)
+                self.number(f"{p}.ev_m", pr.ev_m, Limit(req=True, low="0"))
+                self.number(f"{p}.ebitda_m", pr.ebitda_m, Limit(req=True, low_excl="0"))
+                self.text(f"{p}.source", pr.source, req=True)
+        if val.basis not in ("precedents", "blend") and val.precedents:
+            self.bad("valuation.precedents", f"must be empty when basis is {val.basis}.")
+        if val.basis == "issuer_trading":
+            self.issuer_market(val.issuer_market)
+        elif val.issuer_market != _BLANK_MARKET:
+            self.bad("valuation.issuer_market", f"must be blank when basis is {val.basis}.")
+        if val.basis != "user_multiple":
+            if val.user_multiple != _BLANK_MULTIPLE:
+                self.bad("valuation.user_multiple", f"must be blank when basis is {val.basis}.")
+        else:
+            um = val.user_multiple
+            self.number("valuation.user_multiple.value", um.value, _USER_MULTIPLE)
+            self.text("valuation.user_multiple.rationale", um.rationale, req=True)
+
+    def peers(self, val: Valuation) -> None:
+        self.too_many("valuation.peers", len(val.peers), _MAX_PEER)
+        if val.peer_source in ("none", "cp_dr_public"):
+            if val.peers:
+                self.bad("valuation.peers", f"must be empty when peer_source is {val.peer_source}.")
+            return
+        for i, peer in enumerate(val.peers):
+            p = f"valuation.peers[{i}]"
+            self.text(f"{p}.name", peer.name, req=True)
+            if val.peer_source == "user_list":
+                for name in ("ev_m", "ebitda_m", "as_of", "source"):
+                    if getattr(peer, name) != "":
+                        self.bad(f"{p}.{name}", "must be blank when peer_source is user_list.")
+            if val.peer_source == "user_comps":
+                self.number(f"{p}.ev_m", peer.ev_m, Limit(req=True, low="0"))
+                self.number(f"{p}.ebitda_m", peer.ebitda_m, Limit(req=True, low_excl="0"))
+                self.date(f"{p}.as_of", peer.as_of, req=True, after=True)
+                self.text(f"{p}.source", peer.source, req=True)
+
+    def issuer_market(self, im: IssuerMarket) -> None:
+        p = "valuation.issuer_market"
+        if not self.ctx.identity.listed_equity:
+            self.bad("valuation.basis", "issuer_trading needs a listed issuer.")
+        self.number(f"{p}.market_cap_m", im.market_cap_m, _NOT_NEGATIVE)
+        self.number(f"{p}.net_debt_m", im.net_debt_m, _SIGNED)
+        self.number(f"{p}.ev_m", im.ev_m, _ABOVE_ZERO)
+        self.date(f"{p}.as_of", im.as_of, req=True, after=True)
+        self.text(f"{p}.source", im.source, req=True)
+        if not im.ev_m and not (im.market_cap_m and im.net_debt_m):
+            self.bad(f"{p}.ev_m", "give EV, or both market cap and net debt.")
+
     def run(self) -> list[str]:
         self.run_section()
         self.identity_section()
+        self.deal_section()
+        self.quote_and_rating_section()
+        self.valuation_section()
         self.assumptions_section()
         self.questions_section()
         return self.problems
