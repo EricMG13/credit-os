@@ -6,6 +6,7 @@ from __future__ import annotations
 import http.client
 import json
 import socket
+import struct
 import threading
 import time
 from collections.abc import Callable, Iterator
@@ -61,7 +62,7 @@ class Live:
         sent.update(request.get("headers") or {})
         body, raw = request.get("body"), request.get("raw")
         data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
-        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=20)
+        connection = lingering_connection(self.port, 20)
         try:
             connection.request(method, path, body=data, headers=sent)
             response = connection.getresponse()
@@ -72,9 +73,24 @@ class Live:
             connection.close()
 
 
+LINGER_RESET = struct.pack("ii", 1, 0)  # SO_LINGER on, 0 s: close sends a reset, no TIME_WAIT
+
+
+def lingering_connection(port: int, timeout: float) -> http.client.HTTPConnection:
+    """An HTTP connection to 127.0.0.1:``port``, already connected, closing with a reset."""
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
+    connection.connect()
+    assert connection.sock is not None
+    connection.sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, LINGER_RESET)
+    return connection
+
+
 def raw(live: Live, data: bytes) -> socket.socket:
     """A connection to the live server with ``data`` already sent (the caller closes it)."""
-    sock = socket.create_connection(("127.0.0.1", live.port), timeout=10)
+    sock = socket.socket()
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, LINGER_RESET)
+    sock.settimeout(10)
+    sock.connect(("127.0.0.1", live.port))
     sock.sendall(data)
     return sock
 

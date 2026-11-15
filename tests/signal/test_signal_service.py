@@ -160,6 +160,18 @@ def test_other_host_names_and_cross_site_reads_are_refused(svc: Live, cookie: st
     )
 
 
+def test_a_host_name_started_in_upper_case_is_reached_as_the_browser_spells_it(
+    tmp_path: Path,
+) -> None:
+    build_feed_db(tmp_path).close()
+    live = Live(make_server(tmp_path, "LocalHost", 0))
+    try:
+        assert live.call("GET", "/api/me", host=f"localhost:{live.port}")[0] == 200
+        assert live.call("GET", "/api/me", host=f"LOCALHOST:{live.port}")[0] == 403
+    finally:
+        live.close()
+
+
 def test_host_rules_and_fetch_metadata(svc: Live, cookie: str) -> None:
     assert svc.call("GET", "/api/me", host=f"localhost:{svc.port}")[0] == 200
     assert svc.call("GET", "/api/me", host="127.0.0.1")[0] == 403

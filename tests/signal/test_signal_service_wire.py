@@ -7,7 +7,6 @@ Expected values are literals. Nothing here reaches beyond 127.0.0.1.
 
 from __future__ import annotations
 
-import http.client
 import logging
 import socket
 import threading
@@ -16,7 +15,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from service_support import Live, closed_within, raw, read_all, wait_for
+from service_support import Live, closed_within, lingering_connection, raw, read_all, wait_for
 from test_signal_feedview import build_feed_db
 
 from credit_os.signal import identity, service
@@ -86,7 +85,7 @@ def test_a_json_body_that_names_a_field_twice_is_refused_and_sets_no_cookie(
 
 
 def test_a_json_body_needs_content_length(svc: Live) -> None:
-    connection = http.client.HTTPConnection("127.0.0.1", svc.port, timeout=20)
+    connection = lingering_connection(svc.port, 20)
     connection.putrequest("POST", "/api/me", skip_accept_encoding=True)
     connection.putheader("Origin", f"http://127.0.0.1:{svc.port}")
     connection.endheaders()
@@ -128,7 +127,7 @@ def test_an_http_09_request_line_gets_no_500(svc: Live, caplog: pytest.LogCaptur
 
 def test_the_service_serves_no_file_from_the_root(svc: Live) -> None:
     for path in ("/signal/signal.db", "/signal.db", "/static/signal.db", "/..%2fsignal/signal.db"):
-        assert svc.call("GET", path)[0] in (403, 404)
+        assert svc.call("GET", path)[0] == 404
 
 
 def test_a_second_request_on_the_same_connection_gets_no_reply(svc: Live) -> None:
