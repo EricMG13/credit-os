@@ -58,6 +58,33 @@ def _nested(levels: int) -> bytes:
     return (text[:-1] + ', "x": ' + inner + "}").encode()
 
 
+MAX_BYTES = 1048576  # 1 MiB, refused before decoding (ruling on review M1, 2026-11-15)
+MAX_VALUES = 5000  # every object, array, string, number, true, false and null, the root included
+BIG, MANY = ("$: larger than 1048576 bytes.",), ("$: too many values (more than 5000).",)
+
+
+def _values(obj: Any) -> int:  # counted by recursion here, apart from the loader's walk
+    kids = obj.values() if isinstance(obj, dict) else obj if isinstance(obj, list) else ()
+    return 1 + sum(_values(v) for v in kids)
+
+
+def _padded(size: int) -> bytes:  # MINIMAL, its sector padded to make the file `size` bytes
+    return changed(("identity", "sector"), "s" * (size - len(raw(MINIMAL))))
+
+
+def _guarantors(total: int) -> bytes:  # MINIMAL holding exactly `total` values
+    return changed(("identity", "guarantors"), ["g"] * (total - _values(MINIMAL)))
+
+
+def _separators() -> bytes:  # five separator strings over objects and arrays
+    obj = copy.deepcopy(MINIMAL)
+    obj["run"]["reporting_currency"] = "EUR\u2028"
+    obj["identity"]["aliases"] = ["x\u0085", "y", "z\u2029"]
+    obj["identity"]["sector"] = "a\u2028b"
+    obj["research_questions"] = [{"text": "q\u2029", "focus_module": "CP-3"}]
+    return raw(obj)
+
+
 # ------------------------------------------------------------------ guards (refused before shape)
 GUARDS: dict[str, tuple[bytes, tuple[str, ...]]] = {
     "invalid_utf8": (b"\xff" + raw(MINIMAL), ("$: not valid UTF-8 (invalid start byte)",)),
@@ -92,6 +119,16 @@ GUARDS: dict[str, tuple[bytes, tuple[str, ...]]] = {
     "top_level_array": (b"[]", ("$: the top level must be an object.",)),
     "top_level_string": (b'"context/1"', ("$: the top level must be an object.",)),
     "depth_33": (_nested(33), ("$: nested too deeply (more than 32 levels).",)),
+    # Ruling on review M1: a byte cap first, before decoding, and a value cap after the depth guard.
+    "bytes_over_cap": (_padded(MAX_BYTES + 1), BIG),
+    "bytes_over_cap_before_decoding": (b"\xff" * (MAX_BYTES + 1), BIG),
+    "values_over_cap": (_guarantors(MAX_VALUES + 1), MANY),
+    "deep_and_too_many": (
+        _guarantors(MAX_VALUES + 1)[:-1] + b', "x": ' + b"[" * 32 + b"]" * 32 + b"}",
+        ("$: nested too deeply (more than 32 levels).",),
+    ),
+    # The top-level guard comes before the depth guard (review M2).
+    "top_level_array_too_deep": (b"[" * 40 + b"]" * 40, ("$: the top level must be an object.",)),
 }
 
 # ------------------------------------------------------------------ schema, separators, shape
@@ -165,6 +202,17 @@ SHAPE: dict[str, Row] = {
             "assumptions.cp3c.rationale: Field required",
         ),
     ),
+    # Every separator string, objects in the file's key order and arrays in index order (review M2).
+    "separators_in_order": (
+        _separators(),
+        (
+            f"run.reporting_currency: {SEP}",
+            f"identity.aliases[0]: {SEP}",
+            f"identity.aliases[2]: {SEP}",
+            f"identity.sector: {SEP}",
+            f"research_questions[0].text: {SEP}",
+        ),
+    ),
     # The schema problem comes first, then separators, then shape.
     "order_of_problems": (
         changed(
@@ -219,6 +267,9 @@ ACCEPTED: dict[str, tuple[bytes, dict[str, Any]]] = {
             "module_options.cp3_mode": "single_name_rv",
         },
     ),
+    # At both caps exactly, the file loads.
+    "bytes_at_cap": (_padded(MAX_BYTES), {"identity.issuer_id": "ostrel-industries"}),
+    "values_at_cap": (_guarantors(MAX_VALUES), {"identity.guarantors": ("g",) * 4946}),
     # A 64 KB text field loads whole: no cut, no blow-up.
     "long_text": (changed(("identity", "sector"), "s" * 65536), {"identity.sector": "s" * 65536}),
     # Optional facility terms may be left out.
