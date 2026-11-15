@@ -9,16 +9,41 @@
 - `with_negative_cash`: when closing cash is an amount below zero, net debt, net leverage and
   liquidity are `NEGATIVE_CASH` (replacing any reason of their own); everything else is kept (D7).
 
+- `run_cases`: Reference, Upside, Downside and Downside stress, in that order, each through the
+  engine and the overlay. Debt outside the stated facilities pays the case's own rate and is
+  never repaid.
+
 The engine in `forecast.py` is not touched (D17).
 """
 
-from dataclasses import fields, replace
+from dataclasses import dataclass, fields, replace
 from decimal import Decimal
+from enum import StrEnum
 
-from credit_os.model.arithmetic import difference, total
-from credit_os.model.forecast import Drivers, Operands, Triple, Year
+from credit_os.model import facilities
+from credit_os.model.arithmetic import difference, product, total
+from credit_os.model.forecast import Drivers, Operands, Shock, Triple, Year, forecast
 from credit_os.model.inputs import BaseDrivers, CaseDrivers, ForecastInputs, Operand
 from credit_os.model.value import Missing, MissingCode, Value, parse_operand
+
+
+class CaseName(StrEnum):
+    REFERENCE = "reference"
+    UPSIDE = "upside"
+    DOWNSIDE = "downside"
+    DOWNSIDE_STRESS = "downside_stress"
+
+
+class StressBasis(StrEnum):
+    BASE = "base"
+    DOWNSIDE = "downside"
+
+
+@dataclass(frozen=True, slots=True)
+class Case:
+    name: CaseName
+    years: tuple[Year, Year, Year]
+
 
 NEGATIVE_CASH: str = "Not calculable: cash is negative before funding"
 
@@ -70,3 +95,53 @@ def with_negative_cash(year: Year) -> Year:
         return year
     refused = Value(missing=Missing(MissingCode.NEGATIVE_CASH, NEGATIVE_CASH))
     return replace(year, **{name: refused for name in _OVERLAID})
+
+
+Scheduled = tuple[Decimal, Decimal]
+_NO_SHOCK = Shock(Decimal(0), Decimal(0))
+
+
+def _scheduled(
+    inputs: ForecastInputs, drivers: Drivers
+) -> tuple[Scheduled, Scheduled, Scheduled] | None:
+    """Facility totals, plus unallocated debt at the case's own rate (never repaid)."""
+    if inputs.facilities is None:
+        return None
+    first, second, third = facilities.schedule(inputs.facilities).totals()
+    remainder = unallocated(inputs)
+    if remainder is None or remainder.amount is None or remainder.amount <= 0:
+        return first, second, third
+    pairs = []
+    for index, (interest, repaid) in enumerate((first, second, third)):
+        extra = product([remainder, Value(amount=drivers.interest_rate[index])])
+        added = total([Value(amount=interest), extra]).amount
+        if added is None:
+            raise ValueError("a stated interest amount sums to an amount")
+        pairs.append((added, repaid))
+    return pairs[0], pairs[1], pairs[2]
+
+
+def _run(inputs: ForecastInputs, name: CaseName, case: CaseDrivers | None, shock: Shock) -> Case:
+    drivers = case_drivers(inputs.base_drivers, case)
+    one, two, three = forecast(
+        base_operands(inputs),
+        drivers,
+        shock=shock,
+        schedule=_scheduled(inputs, drivers),
+    )
+    return Case(name, (with_negative_cash(one), with_negative_cash(two), with_negative_cash(three)))
+
+
+def run_cases(inputs: ForecastInputs) -> tuple[tuple[Case, ...], StressBasis | None]:
+    cases = [_run(inputs, CaseName.REFERENCE, None, _NO_SHOCK)]
+    if inputs.upside_drivers is not None:
+        cases.append(_run(inputs, CaseName.UPSIDE, inputs.upside_drivers, _NO_SHOCK))
+    if inputs.downside_drivers is not None:
+        cases.append(_run(inputs, CaseName.DOWNSIDE, inputs.downside_drivers, _NO_SHOCK))
+    stated = inputs.downside_shock
+    if stated is None:
+        return tuple(cases), None
+    shock = Shock(Decimal(stated.ebitda_decline), Decimal(stated.rate_increase))
+    cases.append(_run(inputs, CaseName.DOWNSIDE_STRESS, inputs.downside_drivers, shock))
+    basis = StressBasis.BASE if inputs.downside_drivers is None else StressBasis.DOWNSIDE
+    return tuple(cases), basis

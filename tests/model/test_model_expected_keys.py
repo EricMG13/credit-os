@@ -18,6 +18,7 @@ SCRIPTS = (
     "make_pr6a",
     "make_pr6b",
     "make_pr7a1",
+    "make_pr7a2",
     "make_pr7b",
 )  # pr2 to pr7b keys
 
