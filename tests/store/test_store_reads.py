@@ -1,6 +1,7 @@
 import sqlite3
 from collections.abc import Iterator, Mapping, MutableMapping
 from contextlib import closing
+from decimal import Decimal
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -13,7 +14,7 @@ from test_store_close import _close_args, _step3, _with_call
 from test_store_replies import _apply, _replay, _running
 from test_store_status import RUN_ID, Ticker, _create, _outcome
 
-from credit_os.provider.types import Compaction
+from credit_os.provider.types import Compaction, Usage
 from credit_os.store import location
 from credit_os.store.db import Store, StoreReader, open_reader, open_store
 from credit_os.store.records import AttemptRecord, CallRecord, Charges, Claim, CompactionRecord
@@ -239,7 +240,11 @@ def test_reads_are_per_run(tmp_path: Path, store: Store, ticker: Ticker) -> None
     ticker.row = 30
     claim = _running(store, None, key.SECOND_RUN_ID)
     _apply(store, claim, "open with call 0")
+    store.record_compactions(claim, [key.FINISHED])
     for handle in _handles(tmp_path, store):
+        assert [c.compaction for c in handle.charges(key.SECOND_RUN_ID).compactions] == [
+            key.FINISHED
+        ]
         [attempt] = handle.attempts(key.SECOND_RUN_ID)
         assert (attempt.run_id, attempt.module_id, attempt.attempt, attempt.state) == (
             key.SECOND_RUN_ID,
@@ -258,6 +263,7 @@ def test_reads_are_per_run(tmp_path: Path, store: Store, ticker: Ticker) -> None
         assert (handle.attempts(RUN_ID), handle.charges(RUN_ID)) == before
         assert len(before[0]) == 3
         assert len(before[1].calls) == 4
+        assert before[1].compactions == ()
 
 
 @pytest.mark.parametrize(
@@ -301,3 +307,65 @@ def test_a_stored_value_the_reader_refuses_is_corrupt(
     for handle in _handles(tmp_path, store):
         assert _outcome(partial(getattr(handle, refused), RUN_ID)) == "StoreCorrupt"
         getattr(handle, other)(RUN_ID)
+
+
+def test_every_count_and_money_text_reads_back_as_written(tmp_path: Path, store: Store) -> None:
+    claim = _running_run(store)
+    store.open_attempt(claim, **_attempt("CP-1", 1))
+    hold = _call_args("CP-1", 1, "ex-1", 0) | {"hold_usd": Decimal("0.500")}
+    store.open_call(claim, **hold)
+    compaction = Compaction(Usage(6, 7, 8, 9), Decimal("0.0020"), "done", "c-1", None)
+    reply = key._ok(Usage(1, 2, 3, 4, 5), Decimal("0.0030"), (compaction,))
+    store.close_call(claim, **_close_args(reply))
+    for handle in _handles(tmp_path, store):
+        charges = handle.charges(RUN_ID)
+        [call] = charges.calls
+        assert call.usage == Usage(
+            input_tokens=1,
+            cached_read_tokens=2,
+            cache_write_tokens=3,
+            output_tokens=4,
+            reasoning_tokens=5,
+        )
+        assert [str(call.hold_usd), str(call.billed_usd)] == ["0.500", "0.0030"]
+        [record] = charges.compactions
+        assert record.compaction.usage == Usage(
+            input_tokens=6, cached_read_tokens=7, cache_write_tokens=8, output_tokens=9
+        )
+        assert str(record.compaction.billed_usd) == "0.0020"
+
+
+SCHEMA_DRIFT = (
+    (
+        "a compaction the provider refuses",
+        (
+            "INSERT INTO compactions(event_id, run_id, position, input_tokens, outcome)"
+            " VALUES ('c-1', ?1, 0, 5, 'unfinished')"
+        ),
+    ),
+    (
+        "a negative token count on a sent call",
+        (
+            "UPDATE calls SET closed_at = '2026-09-30T12:05:00.000000Z', kind = 'ok',"
+            " input_tokens = -1 WHERE run_id = ?1 AND call_index = 0"
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "sql", [row[1] for row in SCHEMA_DRIFT], ids=[row[0] for row in SCHEMA_DRIFT]
+)
+def test_a_row_the_schema_checks_would_refuse_is_corrupt(
+    tmp_path: Path, store: Store, sql: str
+) -> None:
+    """A file whose CHECKs were bypassed: the provider's own constructors are the last net."""
+    claim = _running_run(store)
+    _apply(store, claim, "open with call 0")
+    with closing(sqlite3.connect(tmp_path / location.STATE_FILE_NAME)) as raw:
+        raw.execute("PRAGMA ignore_check_constraints = ON")
+        raw.execute(sql, (RUN_ID,))
+        raw.commit()
+    for handle in _handles(tmp_path, store):
+        assert _outcome(partial(handle.charges, RUN_ID)) == "StoreCorrupt"
+        assert len(handle.attempts(RUN_ID)) == 1
