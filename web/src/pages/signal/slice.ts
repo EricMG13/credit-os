@@ -688,28 +688,59 @@ function viewIdProblem(view: SignalFeedView, known: Set<string>): IdProblem | nu
   return null;
 }
 
-const feed: Reader<SignalFeed> = (v, path) => {
-  const got = feedBase(v, path);
-  if (!got.ok) return got;
-  const again = repeatAt(got.value.stories.map((s) => s.id));
+/** A story id is used once, a comment count belongs to a story with a thread, and a digest card's id is no story's. */
+function feedIdProblem(value: SignalFeed, path: string): Got<never> | null {
+  const again = repeatAt(value.stories.map((s) => s.id));
   if (again !== -1) {
     return bad(`${path}.stories[${String(again)}].id`, "an id no other story uses");
   }
   // A comment count is a thread's: a story with no thread has nothing for Comment to open.
-  const loose = got.value.stories.findIndex((s) => s.commentCount !== null && s.threadRef === null);
+  const loose = value.stories.findIndex((s) => s.commentCount !== null && s.threadRef === null);
   if (loose !== -1) {
     return bad(
       `${path}.stories[${String(loose)}].commentCount`,
       "null on a story with no thread to open",
     );
   }
-  const known = new Set(got.value.stories.map((s) => s.id));
-  for (const [index, card] of got.value.digests.entries()) {
+  const known = new Set(value.stories.map((s) => s.id));
+  for (const [index, card] of value.digests.entries()) {
     if (known.has(card.id)) {
       return bad(`${path}.digests[${String(index)}].id`, "an id no story or digest already uses");
     }
     known.add(card.id);
   }
+  return null;
+}
+
+/** A loading feed draws a skeleton in place of every list, so an entry would be accepted and never drawn. */
+function loadingViewProblem(views: [string, SignalFeedView][], path: string): Got<never> | null {
+  for (const [where, view] of views) {
+    const held: [string, string[]][] = [
+      ["top", view.top],
+      ["latest", view.latest],
+      ["waiting.ids", view.waiting?.ids ?? []],
+      ["older", view.older],
+    ];
+    const full = held.find(([, ids]) => ids.length > 0);
+    if (full !== undefined) {
+      return bad(`${path}.${where}.${full[0]}[0]`, "no entries while the feed is loading");
+    }
+    if (view.waiting !== null) {
+      return bad(`${path}.${where}.waiting`, "no new-story pill while the feed is loading");
+    }
+  }
+  return null;
+}
+
+const feed: Reader<SignalFeed> = (v, path) => {
+  const got = feedBase(v, path);
+  if (!got.ok) return got;
+  const idProblem = feedIdProblem(got.value, path);
+  if (idProblem !== null) return idProblem;
+  const known = new Set([
+    ...got.value.stories.map((s) => s.id),
+    ...got.value.digests.map((d) => d.id),
+  ]);
   const views: [string, SignalFeedView][] = [
     ...Object.entries(got.value.views).map(([k, w]): [string, SignalFeedView] => [`views.${k}`, w]),
     ...Object.entries(got.value.topics).map(([k, w]): [string, SignalFeedView] => [
@@ -723,24 +754,8 @@ const feed: Reader<SignalFeed> = (v, path) => {
       return bad(`${path}.${where}.${problem.at}`, problem.expected);
     }
   }
-  if (got.value.status === "loading") {
-    // A loading feed draws a skeleton in place of every list, so an entry would be accepted and never drawn.
-    for (const [where, view] of views) {
-      const held: [string, string[]][] = [
-        ["top", view.top],
-        ["latest", view.latest],
-        ["waiting.ids", view.waiting?.ids ?? []],
-        ["older", view.older],
-      ];
-      const full = held.find(([, ids]) => ids.length > 0);
-      if (full !== undefined) {
-        return bad(`${path}.${where}.${full[0]}[0]`, "no entries while the feed is loading");
-      }
-      if (view.waiting !== null) {
-        return bad(`${path}.${where}.waiting`, "no new-story pill while the feed is loading");
-      }
-    }
-  }
+  const loading = got.value.status === "loading" ? loadingViewProblem(views, path) : null;
+  if (loading !== null) return loading;
   for (const [where, view] of views) {
     // The pill's Show reveals these entries: a pill that reveals none is drawn and does nothing.
     if (view.waiting !== null && view.waiting.ids.length === 0) {
@@ -1248,9 +1263,8 @@ function issuesProblem(digest: SignalDigest, path: string): string | null {
   return null;
 }
 
-/** Digests and issues have unique ids; the channel list and the digests name the same ones, in both directions; each feed card names an issue of its digest. */
-function digestProblem(snap: SignalSnapshot, path: string): string | null {
-  const { digests, channels: lists } = snap;
+/** Digests and issues have unique ids. */
+function digestIdProblem(digests: SignalDigest[], path: string): string | null {
   const at = (i: number) => `${path}.digests[${String(i)}]`;
   const twice = repeatAt(digests.map((d) => d.id));
   if (twice !== -1) return `${at(twice)}.id: expected an id no other digest uses`;
@@ -1260,6 +1274,13 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
       return `${at(i)}.issues[${String(again)}].id: expected an id the digest does not already use`;
     }
   }
+  return null;
+}
+
+/** The channel list and the digests name the same ones, in both directions, with the same name and paused state. */
+function digestChannelProblem(snap: SignalSnapshot, path: string): string | null {
+  const { digests, channels: lists } = snap;
+  const at = (i: number) => `${path}.digests[${String(i)}]`;
   const channel = lists.digests.findIndex((c) => !digests.some((d) => d.id === c.id));
   if (channel !== -1) {
     return `${path}.channels.digests[${String(channel)}].id: expected the id of a digest in the snapshot's digests`;
@@ -1279,10 +1300,12 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
       return `${at(i)}.paused: expected null, as the channel list marks the digest not paused`;
     }
   }
-  for (const [i, one] of digests.entries()) {
-    const found = issuesProblem(one, `${at(i)}.issues`);
-    if (found !== null) return found;
-  }
+  return null;
+}
+
+/** Each feed card names an issue of its digest. */
+function digestCardProblem(snap: SignalSnapshot, path: string): string | null {
+  const { digests } = snap;
   for (const [i, card] of snap.feed.digests.entries()) {
     const where = `${path}.feed.digests[${String(i)}]`;
     const named = digests.find((d) => d.id === card.digestId);
@@ -1304,6 +1327,24 @@ function digestProblem(snap: SignalSnapshot, path: string): string | null {
     }
   }
   return null;
+}
+
+/** Digests and issues have unique ids; the channel list and the digests name the same ones, in both directions; each feed card names an issue of its digest. */
+function digestProblem(snap: SignalSnapshot, path: string): string | null {
+  const at = (i: number) => `${path}.digests[${String(i)}]`;
+  const issues = (): string | null => {
+    for (const [i, one] of snap.digests.entries()) {
+      const found = issuesProblem(one, `${at(i)}.issues`);
+      if (found !== null) return found;
+    }
+    return null;
+  };
+  return (
+    digestIdProblem(snap.digests, path) ??
+    digestChannelProblem(snap, path) ??
+    issues() ??
+    digestCardProblem(snap, path)
+  );
 }
 
 /**
@@ -1334,28 +1375,34 @@ function savedProblem(snap: SignalSnapshot, path: string): string | null {
   return null;
 }
 
-/**
- * A delivered count never sits beside a page that says there is nothing, and the reader never counts:
- * a topic's count is null or "0" exactly when its view lists no story (a loading feed lists nothing, so
- * it is skipped), and a group's unread badge is null or "0" when the group holds no thread.
- */
-function countProblem(snap: SignalSnapshot, path: string): string | null {
+/** A topic's count is null or "0" exactly when its view lists no story (a loading feed lists nothing, so it is skipped). */
+function topicCountProblem(snap: SignalSnapshot, path: string): string | null {
   const { channels: lists, feed: items } = snap;
-  if (items.status !== "loading") {
-    for (const [i, topic] of lists.topics.entries()) {
-      const listed = (
-        Object.hasOwn(items.topics, topic.id) ? items.topics[topic.id]?.top : undefined
-      )?.length;
-      const at = `${path}.channels.topics[${String(i)}].count`;
-      const none = topic.count === null || topic.count === "0";
-      if (listed === 0 && !none) {
-        return `${at}: expected null or "0" while the topic's view lists no stories`;
-      }
-      if (listed !== undefined && listed > 0 && topic.count === "0") {
-        return `${at}: expected a count other than "0" while the topic's view lists stories`;
-      }
+  if (items.status === "loading") return null;
+  for (const [i, topic] of lists.topics.entries()) {
+    const listed = (Object.hasOwn(items.topics, topic.id) ? items.topics[topic.id]?.top : undefined)
+      ?.length;
+    const at = `${path}.channels.topics[${String(i)}].count`;
+    const none = topic.count === null || topic.count === "0";
+    if (listed === 0 && !none) {
+      return `${at}: expected null or "0" while the topic's view lists no stories`;
+    }
+    if (listed !== undefined && listed > 0 && topic.count === "0") {
+      return `${at}: expected a count other than "0" while the topic's view lists stories`;
     }
   }
+  return null;
+}
+
+/**
+ * A delivered count never sits beside a page that says there is nothing, and the reader never counts:
+ * a topic's count and its view agree on emptiness, and a group's unread badge is null or "0" when the
+ * group holds no thread.
+ */
+function countProblem(snap: SignalSnapshot, path: string): string | null {
+  const topics = topicCountProblem(snap, path);
+  if (topics !== null) return topics;
+  const lists = snap.channels;
   for (const [i, channel] of lists.groups.entries()) {
     const held = snap.groups.find((g) => g.id === channel.id);
     if (held?.threads.length === 0 && channel.unread !== null && channel.unread !== "0") {
