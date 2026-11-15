@@ -54,7 +54,7 @@ TOKEN_LENGTH = 32  # lowercase hex
 ROUND_TRIPS: tuple[tuple[str, object, object], ...] = (
     ("as_of", None, None),
     ("cap_usd", Decimal(0), Decimal(0)),
-    ("cap_usd", Decimal("0.00"), Decimal("0.00")),
+    ("cap_usd", Decimal("0.00"), Decimal(0)),  # U22: every zero is written, so read, as "0"
     ("cap_usd", Decimal("0.00000000001"), Decimal("0.00000000001")),
     ("cap_usd", Decimal("1E+3"), Decimal(1000)),
     ("issuer_name", "Ex\ud800ample", "Ex\\ud800ample"),
