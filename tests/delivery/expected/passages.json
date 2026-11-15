@@ -51,7 +51,9 @@
   ["2025-03-31", {"kind": "value", "text": "2025-03-31", "at": null}, null],
   ["n/m", {"kind": "value", "text": "n/m", "at": null}, null],
   ["Revenue by segment not supplied", {"kind": "value", "text": "Revenue by segment not supplied", "at": null}, null],
-  ["CP-1", {"kind": "value", "text": "CP-1", "at": null}, null]
+  ["CP-1", {"kind": "value", "text": "CP-1", "at": null}, null],
+  ["(123456789012345678901234567891)", {"kind": "value", "text": "(123456789012345678901234567891)", "at": "-123456789012345678901234567891"}, [null, null]],
+  ["-1,390.25", {"kind": "value", "text": "-1,390.25", "at": "-1390.25"}, [null, null]]
  ],
  "leaks": [
   ["Leverage is 4.2x.", ["NBG_2025-03-31_annual-report.pdf"], []],
