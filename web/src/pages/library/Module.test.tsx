@@ -1650,3 +1650,37 @@ describe("Module, a data module that delivers no findings and no limitations", (
     expect(entries).toEqual(["Bottom line"]);
   });
 });
+
+describe("Module, where the gaps link is drawn", () => {
+  const brevane = () =>
+    renderRoute(PATH, { issuer: "brevane-marine", run: "r-0412", module: "source-readiness" });
+
+  it("draws a data module's only gaps link beside its state when no Limitations section is drawn", () => {
+    brevane();
+    const label = "See this module’s gaps in Evidence";
+    const links = screen.getAllByRole("link", { name: label });
+    expect(links).toHaveLength(1);
+    const link = links[0] as HTMLElement;
+    expect(link.getAttribute("href")).toBe("#/library/brevane-marine/r-0412/evidence/gaps");
+    const row = link.parentElement as HTMLElement;
+    expect(within(row).getByText("Delivered")).toBeVisible();
+    expect(screen.queryByRole("region", { name: /Limitations/ })).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("keeps a prose module's one gaps link inside its Limitations section", () => {
+    renderModule("business-profile");
+    const links = screen.getAllByRole("link", { name: /gaps in Evidence/ });
+    expect(links).toHaveLength(1);
+    expect(region("Limitations")).toContainElement(links[0] as HTMLElement);
+  });
+
+  it("draws a prose module's state badge directly in the heading row, as before", () => {
+    renderModule("business-profile");
+    const row = screen.getByRole("heading", { level: 2, name: "Business profile" })
+      .parentElement as HTMLElement;
+    // At the base the row held the heading and the state badge, with no wrapper between them.
+    expect(row.querySelector(":scope > div.flex.items-center.gap-4")).toBeNull();
+    expect(within(row).getByText("Delivered").closest("div.gap-4")).toBe(row);
+  });
+});
