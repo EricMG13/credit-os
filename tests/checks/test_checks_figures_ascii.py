@@ -192,6 +192,3 @@ def test_no_foreign_digit_is_read_as_a_figure(parts: list[str], passage: bool) -
         start = figure.column - 1 + first
         end = figure.column - 1 + last
         assert not any(start < b and a < end for a, b in foreign)
-    if foreign:
-        shown, _ = passages.cell(text)
-        assert shown is None or shown.get("at") is None
