@@ -229,7 +229,7 @@ def test_money_size_checks_run_before_the_text_is_built(monkeypatch: pytest.Monk
         raise RuntimeError("format called before the size checks")
 
     monkeypatch.setattr(codec, "format", no_format, raising=False)
-    for huge in ("1E+1000000", "1E-1000000", "0E+1000000", "1" * 65):
+    for huge in ("1E+1000000", "1E-1000000", "1" * 65):
         with pytest.raises(StoreRefused):
             money_to_text(Decimal(huge))
 

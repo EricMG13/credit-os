@@ -282,3 +282,98 @@ The coordinator's, under the owner's instruction of 2026-11-14 about 22:20 UTC. 
 - PR 5 (migration 3) also carries the settlement table of decision 0014: append-only, one row per
   open call, refused on a closed call, outside the run gate, read back as an owner-stated line and
   never as `billed_usd`.
+
+## Rulings U4 to U23 (the back-end coordinator, 2026-11-14 and 2026-11-15)
+
+Each is the back-end coordinator's ruling under the owner's instruction of 2026-11-14 22:20 UTC
+("tell coordinators to resolve all descisions"), recorded here as it reached the 2A controller
+(closes #348's whole-branch L1: `schema.py` and `store_schema_key.py` cite U9, U12 and U14). One
+entry each: id, date (UTC) the ruling reached the controller, then `question: ruling`.
+
+- **U4** (2026-11-14) PR 3's cut: 3a (U1, U2, the two docstring lines; migration 2 and its schema
+  key test), 3a-b (migration 2's raw-connection rows), 3b (`open_attempt`, `open_call`, `close_call`
+  with compactions), 3c (reply, verdict, fail an attempt with an open call included, charge lines).
+  The whole PR 3 key before 3a; a letter for any part past 800; each part its own PR from main, in
+  order. `mx-adversary` on 3b, 3c and migration 2's schema, beside the plan's reviewers.
+- **U5** (2026-11-14) 3A's C6: where the provider's call naming lives: On `calls`, not the attempt:
+  `exchange_id` (identifier) and `provider_call_index` (integer ≥ 0), NOT NULL, written by
+  `open_call`, immutable; UNIQUE (run_id, exchange_id, provider_call_index). The store checks shape
+  and uniqueness only, never that indexes are consecutive (3A's job; the docstring says so).
+- **U6** (2026-11-14) The hold (3A D8, 2A D7): `hold_usd` on `calls` in migration 2, written at
+  `open_call`, immutable, NOT NULL: money text ≥ 0 under the same CHECK as the other money columns.
+  A call with no stated hold is `StoreRefused`.
+- **U7** (2026-11-14) PR 5's settle for a crash-left call: Nothing in migration 2. An append-only
+  table in migration 3 (PR 5): one row per open call, refused on a closed call, read back as an
+  owner-stated line, never as `billed_usd`. The coordinator writes decision record 0014 before PR
+  5's brief.
+- **U8** (2026-11-14) P1: attempt events: Each attempt state change (opened, replied, failed,
+  accepted, rejected) appends `attempt_<state>` with module_id and attempt, in the same transaction.
+  These join STATE_KINDS, so a note cannot forge them. Calls append no event.
+- **U9** (2026-11-14) P2: run gate: Inserts and updates of attempts and calls, and inserts of
+  compactions, are refused by trigger unless the run is `running`. Consequence, in the docstrings
+  with one key row each: a crashed run is taken over by `claim_run`; its open attempt (its open call
+  with it) can be failed only while the run is running, so take-over is claim, fail, then `end_run`;
+  on resume it is `start_run`, then fail. PR 5's settle table is outside this gate (it writes on a
+  stopped run), and the migration 2 docstring says so now.
+- **U10** (2026-11-14) P3: attempt numbering: A new attempt is refused while any attempt of the
+  module is open, replied or accepted. Numbered from 1 with no gap, plus the partial unique index
+  for one `accepted`.
+- **U11** (2026-11-14) P4: verdict issues and fail_reason: `issues` is canonical ASCII JSON, an
+  array of objects in detail's grammar, `[]` when none, NOT NULL once accepted or rejected.
+  `fail_reason` is an identifier, a-z0-9_ up to 64 (a name), vocabulary 3A's as with D9.
+- **U12** (2026-11-14) P5: provider text: error_class, message, reported_model, request_id, event_id
+  and supersedes are stored backslashreplace-escaped and uncut; error_class, event_id and supersedes
+  non-empty; no other shape. Stated limit in the docstring: a lone surrogate escaped and a literal
+  `\ud800` collide as one id. A key row shows the collision ends as `StoreConflict` on the second
+  insert, never a silent overwrite or a dropped charge.
+- **U13** (2026-11-14) P6: compaction order: A per-run `position` (0, 1, ... no gap); key (run_id,
+  event_id). A compaction with a call key is refused once that call is closed, so `close_call`
+  inserts its compactions before closing the call, in one transaction.
+- **U14** (2026-11-14) P7: second net: CHECKs on calls and compactions mirror `Reply` and
+  `Compaction`, on condition that a valid `Reply` can never break one: a test builds each `Reply`
+  kind the provider's own constructor accepts (boundary values included) and writes it. Where a
+  `Reply` rule is looser than a CHECK, the CHECK gives way and the coordinator is told.
+- **U15** (2026-11-14) Times: The store's clock for the store's own times (attempts' opened_at,
+  replied_at, closed_at; calls' opened_at, closed_at). A reply's started_at and finished_at from its
+  epoch seconds through the codec, NULL when None, never the store clock as a stand-in. Both
+  `mx-adversary` and `mx-invariants` review the schema before 3a's ready message.
+- **U16** (2026-11-14) Q1: a repeated compaction (plan: no-op when identical, StoreConflict when
+  not) with U12: Identical means the Compaction's own five fields; the call key is ignored and the
+  first row kept. A repeat whose event_id holds a backslash is StoreConflict, never a no-op. Key
+  rows for both, and one showing a conflict leaves the first row unchanged.
+- **U17** (2026-11-14) Q2: `open_attempt` with the same request bytes: Only an open latest attempt
+  with the same bytes is returned: no write, no clock call, no event. A replied or accepted latest
+  attempt is StoreConflict whatever the bytes; an open one with other bytes is StoreConflict.
+- **U18** (2026-11-14) P7 findings: The CHECK `supersedes <> event_id` stays: it refuses a row the
+  read-back Compaction constructor would refuse, so the outcome is an open call and unknown spend,
+  never a wrong figure. The API's StoreRefused cases before BEGIN (non-str text, non-bytes raw, a
+  count above 2**63-1, a time outside 0001-9999, a charge over 64 digits) stand, each with a key row
+  asserting the call is still open and nothing was written. The coordinator tells 3A's brief that a
+  refused close_call leaves spend unknown (D7) and ends the run. G3's take-over order: both orders
+  keyed, no plan change.
+- **U19** (2026-11-14) 3B's run list: where a NULL `as_of` sorts: After every dated run of its
+  issuer, then `created_at`, then run id. Each run carries its own `issuer_name`; the store picks
+  none. The docstring says `created_at` is the store clock, so the order is for display and is no
+  proof of which run came first. (PR 5)
+- **U20** (2026-11-14) 3B's newest delivery: The highest `seq` of the admission event; `admitted_at`
+  is shown and never ordered on. The admitted list gives `admitted_at`, the delivery key and that
+  `seq`. (PR 5; 3B's R10 changed to match)
+- **U21** (2026-11-14) 3B's "first report" (3B R10a): By admission: of an issuer's runs with an
+  admitted delivery, the one whose first admission event has the lowest `seq`. A run with no
+  admitted delivery is never the first report. PR 5's key carries that row and one where the
+  first-created run is admitted second.
+- **U22** (2026-11-15) 3a-b3 review, predates: `money_to_text` refuses `Decimal("0E+64")`, which
+  `Reply` and `Compaction` accept: Not Info: under U14 the store never refuses a charge a valid
+  `Reply` can carry; a codec stricter than the constructors gives way. Fixed in 3b1 or 3b2,
+  whichever first writes a reply's money, test first: key rows for every zero form a `Reply`
+  constructor accepts (0E+64, 0E-64, -0, 0.000) and for the largest and smallest non-zero amounts it
+  accepts; each stored as the same number, or the `Reply` rule that already refuses it shown. A zero
+  is written as "0" whatever its exponent; no amount rounded or clipped to fit; a non-zero amount
+  the column cannot hold exactly is StoreRefused with the call left open (spend unknown), never
+  altered. Added to U18's refusal list wording. mx-adversary sees the rows in 3b's review; the ready
+  message says if the fix touches `store/codec.py` in a way 3B's reuse could notice.
+- **U23** (2026-11-15) 3a-2 adversary I4: `calls_closed_once` unpinned for a closed call that is not
+  `ok`: Medium: rows in 3a-b2's key now, one per non-`ok` closed kind the schema allows: an in-place
+  change of `billed_usd` and of one other closed column refused; the trigger narrowed to `ok` shown
+  killed. No implementer round; a scoped re-review or one mx-precise look. The other 11 sub-clause
+  gaps stay for after the final phase.

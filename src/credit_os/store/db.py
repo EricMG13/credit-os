@@ -13,6 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Self
 
+from credit_os.provider.types import Compaction, Reply
 from credit_os.sources.pins import SourcePin
 from credit_os.store import attempts, codec, location, runs, schema, txn
 from credit_os.store.errors import (
@@ -217,6 +218,42 @@ class Store(_Handle):
             return attempts.open_call(
                 connection, held.run_id, module, number, exchange, index, hold, self._now
             )
+
+    def close_call(
+        self, claim: Claim, *, module_id: str, attempt: int, call_index: int, reply: Reply
+    ) -> None:
+        """Close the attempt's open call with the reply: its compactions at the run's next
+        positions, in order, then the call's columns and `closed_at`, in one transaction. No
+        event. A call or attempt the run lacks is StoreRefused; a closed call, an attempt that is
+        not open and a compaction that conflicts (U16) are StoreConflict, and nothing is written.
+        Consequences: a crashed run is taken over by `claim_run`, and its open attempt is failed
+        only while the run is running: claim, `fail_attempt`, `end_run`; or, when the end came
+        first, `start_run` on resume and then `fail_attempt` (U9; PR 5's settle is outside this
+        gate). Provider text is stored escaped and uncut, and the escape is not one-to-one, so
+        two ids can collide (U12). A `Reply` the codecs cannot store (a non-`str` text,
+        non-`bytes` raw, a count above 2**63 - 1, a time outside years 0001 to 9999, a charge
+        over 64 digits) is StoreRefused before the transaction and the call stays open: spend is
+        unknown, never a wrong figure (U14). A refused `close_call` leaves no trace of the
+        charge, so the caller treats spend as unknown (D7)."""
+        held, module, number, index, columns, rows = attempts.check_close_call(
+            claim, module_id, attempt, call_index, reply
+        )
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.close_call(
+                connection, held.run_id, module, number, index, columns, rows, self._now
+            )
+
+    def record_compactions(self, claim: Claim, compactions: Sequence[Compaction]) -> None:
+        """Record compactions that belong to no call (from `Model.close()`), each at the run's
+        next position, in order. An event id the run already holds is a no-op when the
+        compaction is the same, and StoreConflict when it differs or the stored id holds a
+        backslash (a lone surrogate escaped may meet a literal `\\ud800`, U12); nothing of a
+        refused call is written. No clock call and no event."""
+        held, rows = attempts.check_compactions(claim, compactions)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.insert_compactions(connection, held.run_id, rows, None)
 
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:

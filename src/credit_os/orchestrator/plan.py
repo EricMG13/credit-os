@@ -87,15 +87,16 @@ def _producer_ids(module: Module, selected: set[str], catalogue: Sequence[Module
 def producers(
     requested: Sequence[str], *, catalogue: Sequence[Module] = CATALOGUE
 ) -> dict[str, dict[str, str]]:
-    table = _table(catalogue)
     selected = _selection(requested, catalogue)
     result: dict[str, dict[str, str]] = {}
-    for module_id in selected:
-        module = table[module_id]
-        result[module_id] = {
-            item: edge_rule(module_id, item, catalogue=catalogue)
-            for item in _producer_ids(module, selected, catalogue)
-        }
+    for module in catalogue:  # catalogue order at both levels, whatever the hash seed (W1)
+        if module.id in selected:
+            ids = set(_producer_ids(module, selected, catalogue))
+            result[module.id] = {
+                item.id: edge_rule(module.id, item.id, catalogue=catalogue)
+                for item in catalogue
+                if item.id in ids
+            }
     return result
 
 

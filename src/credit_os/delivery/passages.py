@@ -49,6 +49,9 @@ def narrative_leaks(text: str, names: Sequence[str]) -> tuple[str, ...]:
     return tuple(item[1] for item in found)
 
 
+_ORPHAN_BASIS = "basis line with no item before it"
+
+
 def _refuse(builder: str, rule: str) -> DeliveryRefused:
     return DeliveryRefused(f"{builder}: {rule}")
 
@@ -64,6 +67,15 @@ def _text(block: object, builder: str) -> str:
         raise _refuse(builder, "table or code block in passage")
     basis = read_basis(block)
     return " ".join(block.lines if basis is None else basis.body)
+
+
+def _basis_only(block: Block) -> bool:
+    """A block whose shown text is empty and whose last line is a Basis line (ruling 6-16)."""
+    return (
+        isinstance(block, Paragraph | ListItem)
+        and read_basis(block) is not None
+        and not _text(block, "passage")
+    )
 
 
 def _joined(texts: Sequence[str]) -> str:
@@ -124,7 +136,12 @@ def _part(title: str, texts: Sequence[str], names: Sequence[str]) -> dict[str, o
     return {"title": title, "text": text, "trace": None}
 
 
-def _direct_parts(section: Section) -> list[tuple[str, list[str], list[Block]]]:
+def _direct_parts(
+    section: Section, *, strict: bool = False
+) -> list[tuple[str, list[str], list[Block]]]:
+    """The parts directly under a section. A Basis-only block joins the part before it; with
+    none before it, `strict` (the trace read, ruling 6-16) refuses and the builder skips it.
+    """
     parts: list[tuple[str, list[str], list[Block]]] = []
     for block in section.blocks:
         text = _text(block, "contrary evidence")
@@ -132,7 +149,12 @@ def _direct_parts(section: Section) -> list[tuple[str, list[str], list[Block]]]:
         if lead is not None:
             parts.append((lead.label, [" ".join(lead.rest)], [block]))
         elif not text:
-            continue
+            if not _basis_only(block):
+                continue
+            if parts:
+                parts[-1][2].append(block)
+            elif strict:
+                raise _refuse("contrary evidence", _ORPHAN_BASIS)
         elif parts:
             parts[-1][1].append(text)
             parts[-1][2].append(block)
@@ -290,6 +312,19 @@ def _limitation_blocks(document: HandoffDocument, section: Section | None) -> li
     return kept
 
 
+def _finding_blocks(section: Section | None) -> tuple[tuple[Block, ...], ...]:
+    """The blocks of each finding; a Basis-only block joins the finding before it (6-16)."""
+    groups: list[list[Block]] = []
+    for block in section.blocks if section is not None else ():
+        if _text(block, "findings"):
+            groups.append([block])
+        elif _basis_only(block):
+            if not groups:
+                raise _refuse("findings", _ORPHAN_BASIS)
+            groups[-1].append(block)
+    return tuple(tuple(group) for group in groups)
+
+
 def item_blocks(reader: Reader, document: HandoffDocument) -> ItemBlocks:
     """The blocks of each item `bottom_line`, `findings`, `contrary_and_change` and `limitations`
     return, selected the same way (empty findings skipped, limitations deduplicated), so a
@@ -298,14 +333,10 @@ def item_blocks(reader: Reader, document: HandoffDocument) -> ItemBlocks:
     """
     if reader.blocked or reader.bottom_line is None:
         return ItemBlocks((), (), (), ())
-    found = tuple(
-        (block,)
-        for block in (reader.key_findings.blocks if reader.key_findings is not None else ())
-        if _text(block, "findings")
-    )
+    found = _finding_blocks(reader.key_findings)
     contrary: tuple[tuple[Block, ...], ...] = ()
     if reader.contrary is not None:
-        parts = _direct_parts(reader.contrary) + [
+        parts = _direct_parts(reader.contrary, strict=True) + [
             _sub_part(sub) for sub in reader.contrary.sections
         ]
         contrary = tuple(tuple(blocks) for _, _, blocks in parts)
