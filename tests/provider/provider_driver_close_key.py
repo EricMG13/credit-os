@@ -289,4 +289,54 @@ CASES: dict[str, dict[str, Any]] = {
     "a leftover with no figures and no compaction is dropped and its type logged": _case(
         [{"queued": [said(7, "late")]}], [_ok()], (), log=(("assistant.message",), ("late",))
     ),
+    # --- whole-branch review M1 (set 3): rows the mutants showed missing
+    "a queued usage event that states no figure is spend too": _case(
+        [{"queued": [event(7, "assistant.usage")]}],
+        [_ok()],
+        (CLOSE_UNREAD,),
+        log=(("assistant.usage",), ()),
+    ),
+    "a leftover of another type that holds a count field only is spend too": _case(
+        [{"queued": [event(7, "model.call_failure", inputTokens=3)]}], [_ok()], (CLOSE_UNREAD,)
+    ),
+    "a repeat of a delivered complete, then a new complete in the same read": _case(
+        [
+            {
+                "script": [_start("s1"), _end("c1", **_PAID), *_TURN],
+                "queued": [_end("c1", **_PAID), _end("c9", **_PAID)],
+            }
+        ],
+        [_ok(_done("c1"))],
+        (_done("c9"),),
+    ),
+    "an SDK id that is the driver's release marker is withheld, then the marker": _case(
+        [{"script": [_start("driver:release-unread"), *_FAILED], "queued": "junk"}],
+        [_error("SessionError", _W1, RELEASE_UNREAD)],
+        (),
+    ),
+    "an SDK complete whose id is the driver's close marker is withheld": _case(
+        [{"queued": [_end("driver:close-unread", **_PAID)]}], [_ok()], (_W1,)
+    ),
+    "one withheld and one plain start: a complete supersedes neither": _case(
+        [
+            {
+                "script": [_start("/home/jane/s1"), _start("s2"), *_TURN],
+                "queued": [_end("c1", **_PAID)],
+            }
+        ],
+        [_ok(_W1, _open("s2"))],
+        (_done("c1"),),
+    ),
+    "a leftover type holding the home is logged masked": _case(
+        [{"queued": [event(7, "x./home/jane/late")]}],
+        [_ok()],
+        (),
+        log=(("<home>",), ("jane",)),
+    ),
+    "a spend type holding the token is logged masked": _case(
+        [{"queued": [event(7, f"x.{_TOKEN}", copilotUsage={"totalNanoAiu": 5})]}],
+        [_ok()],
+        (CLOSE_UNREAD,),
+        log=(("[redacted]",), (_TOKEN,)),
+    ),
 }
