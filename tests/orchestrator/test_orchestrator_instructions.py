@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 
 import orchestrator_instructions_key as key
@@ -27,7 +28,7 @@ CONTEXT: RunContext = load_context((HERE / "fixtures" / key.CONTEXT_FIXTURE).rea
 METHOD_REASONS = {"method_empty", "method_size", "method_encoding", "method_marker"}
 
 
-def _ids(rows: dict[str, object]) -> list[str]:
+def _ids(rows: Iterable[str]) -> list[str]:
     return [name.replace(" ", "_") for name in rows]
 
 
@@ -104,6 +105,7 @@ from credit_os.orchestrator.context import load_context
 from credit_os.orchestrator.instructions import first_request
 from credit_os.orchestrator.plan import producers
 import hashlib
+from collections.abc import Iterable
 
 context = load_context(open(sys.argv[2], "rb").read())
 
@@ -134,7 +136,9 @@ def test_w1_the_bytes_do_not_depend_on_the_hash_seed(seed: str) -> None:
     assert tuple(order) == key.FAN_IN
 
 
-@pytest.mark.parametrize("text", list(key.ESCAPES), ids=[f"escape_{i}" for i in range(len(key.ESCAPES))])
+@pytest.mark.parametrize(
+    "text", list(key.ESCAPES), ids=[f"escape_{i}" for i in range(len(key.ESCAPES))]
+)
 def test_s6_a_handoff_text_is_escaped_as_the_key_says(text: str) -> None:
     _, user = _build(key.MODULE, key.METHOD, {"CP-1": text.encode("utf-8")})
     assert '"markdown":"' + key.ESCAPES[text] + '"' in user
@@ -148,7 +152,9 @@ def test_d10_a_request_at_a_bound_is_built(row: str) -> None:
     opening = key.METHOD_OPEN.format(module=module, sha256=hashlib.sha256(method).hexdigest())
     assert system.startswith(key.SYSTEM_RULES + opening)
     assert system.endswith(key.METHOD_CLOSE)
-    assert len(system) == len(key.SYSTEM_RULES + opening) + len(method.decode()) + len(key.METHOD_CLOSE)
+    assert len(system) == len(key.SYSTEM_RULES + opening) + len(method.decode()) + len(
+        key.METHOD_CLOSE
+    )
 
 
 @pytest.mark.parametrize("row", list(key.REFUSALS), ids=_ids(key.REFUSALS))
@@ -189,7 +195,11 @@ def test_s4_any_handoff_text_loads_back_from_one_ascii_line(text: str) -> None:
         "module": key.MODULE,
         "run": key.RUN,
         "handoffs": [
-            {"module": "CP-1", "sha256": hashlib.sha256(text.encode()).hexdigest(), "markdown": text}
+            {
+                "module": "CP-1",
+                "sha256": hashlib.sha256(text.encode()).hexdigest(),
+                "markdown": text,
+            }
         ],
     }
 
