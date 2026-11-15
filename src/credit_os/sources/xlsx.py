@@ -77,13 +77,15 @@ def _formula(full: str) -> str:
 
 
 _DECODE = 65536
+_PIECES = 4096  # a text's callbacks are joined into one string each time this many are held
 
 
 def _floor(raw: str, escape: Callable[[str], str]) -> int:
-    """Return a floor of `len(escape(raw))` without building it: the raw length, or, for a text that
-    `escape` writes as a `repr`, the sum of its pieces' escaped lengths, which a whole text's `repr`
-    never undercuts."""
-    if escape is _plain and _CONTROL.search(raw) is None:
+    """Return a floor of `len(escape(raw))` without building it: the raw length for a text that
+    `escape` writes unescaped (`_plain`, or a formula without a control character), or, for a text
+    written as a `repr`, the sum of its pieces' escaped lengths, which a whole text's `repr` never
+    undercuts."""
+    if escape is not repr and _CONTROL.search(raw) is None:
         return len(raw)
     return 2 + sum(len(repr(raw[at : at + _DECODE])) - 2 for at in range(0, len(raw), _DECODE))
 
@@ -151,6 +153,8 @@ class _Reader:
                     f"a cell or string longer than {MAX_CELL_CHARACTERS:,} characters"
                 )
             self.collect.append(data)
+            if len(self.collect) >= _PIECES:
+                self.collect[:] = ["".join(self.collect)]
 
 
 class _Workbook(_Reader):
@@ -244,6 +248,8 @@ class _Strings(_Reader):
     def finish(self) -> None:
         self.data += "".join(self.own + self.runs).encode()
         self.stops.append(len(self.data))
+        self.own.clear()
+        self.runs.clear()
 
     def string(self, index: int) -> str:
         """Return string `index`, decoded in pieces: one decode of a long astral text peaks at
