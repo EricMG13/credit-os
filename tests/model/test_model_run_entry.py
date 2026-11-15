@@ -87,7 +87,7 @@ def test_the_surface_matches_the_key() -> None:
         ("FORWARD_MODEL", "CP-2G"),
         ("FOUNDATION", "CP-1"),
     ]
-    assert [k.value for k in RefusalKind][-1] == "source"
+    assert [k.value for k in RefusalKind][-2] == "source"
 
 
 def test_the_source_is_the_callers_word_not_read_from_the_text() -> None:
