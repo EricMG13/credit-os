@@ -19,6 +19,7 @@ _OPERAND = re.compile(r"-?[0-9]+(\.[0-9]+)?")
 class MissingCode(StrEnum):
     NOT_SOURCED = "NOT_SOURCED"
     ZERO_OR_NEGATIVE_DENOMINATOR = "ZERO_OR_NEGATIVE_DENOMINATOR"
+    NEGATIVE_CASH = "NEGATIVE_CASH"
 
 
 @dataclass(frozen=True, slots=True)
