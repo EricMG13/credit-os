@@ -36,7 +36,9 @@ _DOLLARS = r"(?:US\$|\$)"
 _AFTER = rf"(?:{_DOLLARS}|[€£])"
 _CAPITAL_M = "(?-i:M)"
 _AMBIGUOUS = rf"(?<![A-Za-z]){_CAPITAL_M}{_DOLLARS}"
-_UNIT_COLUMNS = ("Unit", "Units")
+_UNIT_COLUMNS = ("Unit", "Units", "Reporting unit")
+_STANDS_AFTER = r"(?<![0-9.,A-Za-z])(?<![0-9][-/])"
+_STANDS_BEFORE = r"(?![0-9A-Za-z]|[.,][0-9]|[-/][0-9]| ?%)"
 _ZEROS = r"000s?"
 _WORDS = {
     "thousands": ("thousands?",),
@@ -192,23 +194,29 @@ def foundation_text(document: HandoffDocument) -> tuple[str, ...]:
 def units_named(text: str) -> frozenset[str]:
     """The units (`thousands`, `millions`, `billions`, `ambiguous`) the text names; any number.
 
-    `ambiguous` is a capital `M` glued before `US$` or `$` (`MUS$`, `M$`): thousands in some
-    statements, millions in others, so it is read as neither. A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
+    `ambiguous` is a capital `M`, with no letter before the `M`, glued before `US$` or `$`
+    (`MUS$`, `M$`): thousands in some statements, millions in others, so it is read as neither.
+    A unit is named by its word standing alone (`mm` too), by a currency code or sign and then
     its mark, by its mark and then a sign, or by its mark before a letter code, glued (`kEUR`,
-    `TEUR`, `MUSD`) or after one whitespace (`m EUR`). Capital `T` is a thousands mark where `k`
-    is, before a code or sign. Thousands also by `000` and `000s` after a code or sign and at
-    most one whitespace, `(000)` standing alone, and the apostrophe forms. Letters around a mark
-    hide it and emphasis marks do not. Digits do not hide it either, except directly before a mark
-    in the spaced mark-before-code form (`5m EUR` names nothing). Billions and `ambiguous` are
-    never a block's unit.
+    `TEUR`, `mUSD`) or after one whitespace (`m EUR`). Only `k`, `T` and `m` glue before a
+    letter code; capital `T` is a thousands mark where `k` is, before a code or sign.
+    Thousands also by `000` and `000s` after a code or sign and at most one whitespace, the
+    bare `000s` form (`in 000s`), `(000)` standing alone, and the apostrophe forms. Letters
+    around a mark hide it and emphasis marks do not. Digits do not hide it either, except
+    directly before a mark in the spaced mark-before-code form (`5m EUR` names nothing).
+    Billions and `ambiguous` are never a block's unit.
     """
     return frozenset(name for name, pattern in _UNITS.items() if pattern.search(text))
 
 
 def names_currency(text: str, currency: str) -> bool:
-    """Whether the text names the code, alone, after a glued mark or with a scale suffix, or its sign."""
+    """Whether the text names the code (as text, never a pattern): alone, after a glued mark,
+    with a scale suffix, or by its sign.
+    """
     glued = "|".join(dict.fromkeys(mark for marks in _GLUED.values() for mark in marks))
-    forms = [rf"(?<![A-Za-z])(?i:{glued})?{currency}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"]
+    forms = [
+        rf"(?<![A-Za-z])(?i:{glued})?{re.escape(currency)}(?i:{_SCALE_SUFFIX})?(?![A-Za-z0-9])"
+    ]
     if currency in _SIGNS:
         forms.append(_SIGNS[currency])
     return re.search("|".join(forms), text) is not None
@@ -379,7 +387,7 @@ def check_currency(inputs: ForecastInputs, foundation: HandoffDocument) -> None:
 def _printed(pieces: tuple[str, ...], amount: str) -> bool:
     whole, dot, fraction = amount.removeprefix("-").partition(".")
     forms = (f"{whole}{dot}{fraction}", f"{int(whole):,}{dot}{fraction}")
-    patterns = [rf"(?<![0-9.,]){re.escape(form)}(?![0-9]|[.,][0-9])" for form in forms]
+    patterns = [f"{_STANDS_AFTER}{re.escape(form)}{_STANDS_BEFORE}" for form in forms]
     return any(re.search(pattern, piece) for piece in pieces for pattern in patterns)
 
 
