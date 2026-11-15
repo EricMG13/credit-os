@@ -70,6 +70,7 @@ describe("Run activity, many modules", () => {
     expect(button.getAttribute("type")).toBe("button");
     expect(button).toHaveClass("font-semibold", "text-brand-secondary");
     expect(button.className).toContain("outline-brand");
+    expect(button.className).toContain("focus-visible:outline-2");
     button.focus();
     expect(document.activeElement).toBe(button);
     fireEvent.click(button);
