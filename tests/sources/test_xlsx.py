@@ -3,6 +3,7 @@ expected text is a literal. Rows come from the 1D PR 3 key table and the control
 
 import io
 import zipfile
+from typing import Literal
 
 import pytest
 
@@ -131,7 +132,9 @@ def sheets(*items: tuple[str, str, str], rels: str | None = None) -> bytes:
     return zipped(parts)
 
 
-def one_page(lines: str, state: str = "text", header: str = H) -> tuple[Page, ...]:
+def one_page(
+    lines: str, state: Literal["text", "empty", "unreadable"] = "text", header: str = H
+) -> tuple[Page, ...]:
     return (Page(number=1, text=header + lines, state=state),)
 
 
@@ -301,7 +304,7 @@ DRIVE = zipped(
 
 
 def dotdot() -> bytes:
-    parts = {
+    parts: dict[str, str | bytes] = {
         "xl/workbook.xml": workbook_xml('<sheet name="Annual FY" sheetId="1" r:id="rId1"/>'),
         "xl/_rels/workbook.xml.rels": rels_xml(REL),
         "xl/worksheets/../worksheets/sheet1.xml": sheet_xml(ONE),
