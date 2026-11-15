@@ -277,6 +277,8 @@ def cell(
     masked each hold exactly one figure and it is the same figure; otherwise `at` is None. It is
     also None when the figure's unit or currency is unrecognised, or when text outside the figure
     holds a letter (once its currency code is removed) or a currency symbol the figure did not read.
+    It is also None when the text holds a numeric character other than 0 to 9 (another script's
+    digits, fullwidth digits, superscripts, fractions, circled digits, Roman numerals).
     """
     if not isinstance(text, str):
         raise TypeError("a cell is read from a str")
@@ -284,6 +286,8 @@ def cell(
         return None, None
     if isinstance(read_value(text), Gap):
         return {"kind": "gap", "reason": text}, None
+    if any(c.isnumeric() and c not in "0123456789" for c in text):
+        return {"kind": "value", "text": text, "at": None}, None
     figure = _single_figure(text)
     if figure is None:
         return {"kind": "value", "text": text, "at": None}, None
