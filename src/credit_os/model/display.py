@@ -232,6 +232,33 @@ def axis_max(values: Sequence[Value]) -> Decimal | None:
     return _exact(top) if top else Decimal((0, (1,), 0))
 
 
+def _check_steps(steps: Sequence[tuple[bool, Value]]) -> None:
+    if isinstance(steps, str | bytes) or not isinstance(steps, Sequence):
+        raise TypeError("steps must be a sequence")
+    for step in steps:
+        if type(step) is not tuple or len(step) != 2:
+            raise TypeError("each step is a (bool, Value) pair")
+        if type(step[0]) is not bool or type(step[1]) is not Value:
+            raise TypeError("each step is a (bool, Value) pair")
+    if steps and not steps[0][0]:
+        raise ValueError("the first step must be a total")
+
+
+def _span(
+    is_total: bool, amount: Fraction, running: Fraction | None
+) -> tuple[Fraction, Fraction] | None:
+    """Start and end of one present step; None for a change while the running amount is unknown."""
+    if is_total:
+        span = (Fraction(0), amount)
+    elif running is None:
+        return None
+    else:
+        span = (running, running + amount)
+    if min(span) < 0:
+        raise ValueError("a bridge position is below zero")
+    return span
+
+
 def bridge_positions(
     steps: Sequence[tuple[bool, Value]],
 ) -> tuple[tuple[Decimal, Decimal] | None, ...] | None:
@@ -242,15 +269,7 @@ def bridge_positions(
     until the next total; a present change while it is unknown makes the whole result
     None. The first step not a total, or any position below 0, is ValueError.
     """
-    if isinstance(steps, str | bytes) or not isinstance(steps, Sequence):
-        raise TypeError("steps must be a sequence")
-    for step in steps:
-        if type(step) is not tuple or len(step) != 2:
-            raise TypeError("each step is a (bool, Value) pair")
-        if type(step[0]) is not bool or type(step[1]) is not Value:
-            raise TypeError("each step is a (bool, Value) pair")
-    if steps and not steps[0][0]:
-        raise ValueError("the first step must be a total")
+    _check_steps(steps)
     spans: list[tuple[Decimal, Decimal] | None] = []
     running: Fraction | None = None
     undefined = False
@@ -259,18 +278,11 @@ def bridge_positions(
             spans.append(None)
             running = None
             continue
-        amount = Fraction(value.amount)
-        if is_total:
-            running = amount
-            span = (Fraction(0), amount)
-        elif running is None:
+        span = _span(is_total, Fraction(value.amount), running)
+        if span is None:
             undefined = True
             spans.append(None)
             continue
-        else:
-            span = (running, running + amount)
-            running = span[1]
-        if min(span) < 0:
-            raise ValueError("a bridge position is below zero")
+        running = span[1]
         spans.append((_exact(span[0]), _exact(span[1])))
     return None if undefined else tuple(spans)
