@@ -13,7 +13,7 @@ from dataclasses import replace
 from typing import Any
 
 from credit_os.provider.events import reply_from_events
-from credit_os.provider.redact import Redactor, home_paths
+from credit_os.provider.redact import Redactor
 from credit_os.provider.session import ClientLike, SessionLike
 from credit_os.provider.types import Compaction, Reply, Request, Usage
 
@@ -79,22 +79,14 @@ def scrub_raw(raw: bytes, redact: Callable[[str], str]) -> bytes:
         return b'"[redacted]"'
 
 
-def _path_forms(values: list[str]) -> set[str]:
-    bases = {c.strip().rstrip("/\\") for v in values for c in (v, v.lower(), v.upper())}
-    bases |= {b[2:] for b in bases if re.match(r"[A-Za-z]:", b)}  # a POSIX home may eat "X:"
-    slashes = {s for b in bases for s in (b, b.replace("\\", "/"), b.replace("/", "\\"))}
-    return {f for s in slashes for f in (s, home_paths(s)) if len(f.replace("<home>", "")) > 3}
-
-
 def _has_figures(reply: Reply) -> bool:
     counts = vars(reply.usage).values() if reply.usage else []
     return reply.billed_usd is not None or any(v is not None for v in counts)
 
 
 class CopilotDriver:
-    """A `Model`. One client and one session per exchange. A path seen in mixed case other than
-    the as-given, lower and upper forms (with either slash) is caught only where `home_paths`
-    recognises it."""
+    """A `Model`. One client and one session per exchange. Paths (the home and the runtime
+    path) are masked by the one `Redactor` (decision 0012); the driver keeps no path code."""
 
     def __init__(
         self,
@@ -119,12 +111,9 @@ class CopilotDriver:
         waits = (abort_timeout_s, close_read_timeout_s, disconnect_timeout_s)
         self._bounds = dict(zip(steps, (*waits, stop_timeout_s, force_stop_timeout_s)))
         self.config_id = config_id
-        self._tokens = Redactor.from_environ(environ)
-        forms = _path_forms([home, environ.get("COPILOT_CLI_PATH", "")])
-        once = [json.dumps(f)[1:-1] for f in forms]  # home_paths cuts at an escape's backslash
-        images = {home_paths(e) for e in once + [json.dumps(o)[1:-1] for o in once]}
-        self._paths = Redactor(forms | {i for i in images if len(i.replace("<home>", "")) > 3})
-        self._longest = max((len(json.dumps(json.dumps(f)[1:-1])[1:-1]) for f in forms), default=0)
+        runtime = environ.get("COPILOT_CLI_PATH", "")
+        known = [home, runtime] if runtime.strip() else [home]
+        self._redactor = Redactor.from_environ(environ, known_paths=known)
         self._used: set[str] = set()
         self._kept: list[tuple[ClientLike, SessionLike]] = []
         self._closed = False
@@ -213,7 +202,7 @@ class CopilotDriver:
             self._kept.append((client, session))
         else:
             self._release(client, session, timed_out=bool(problem and problem[2]))
-        message = reply.message and self._text(reply.message, problem is None)[:500]
+        message = reply.message and self._text(reply.message)[:500]
         raw = None if reply.raw is None else scrub_raw(reply.raw, self._text)
         return replace(reply, message=message, raw=raw, started_at=started, finished_at=finished)
 
@@ -232,7 +221,7 @@ class CopilotDriver:
         return "OverallTimeout", _OVERALL_OUT, True
 
     def _reply(self, events: list[Any], problem: _Problem | None) -> Reply:
-        reply = reply_from_events(events, model=self._model, redactor=self._tokens)
+        reply = reply_from_events(events, model=self._model, redactor=self._redactor)
         sub_agent = any(isinstance(e, dict) and e.get("agentId") is not None for e in events)
         if problem is None and reply.kind == "ok" and sub_agent:
             problem = "SubAgentEvent", "an event came from a sub-agent", False
@@ -263,8 +252,5 @@ class CopilotDriver:
             _log.warning("release step %s failed: %s", name, type(exc).__name__)
         return exc is None
 
-    def _text(self, value: str, parsed: bool = False) -> str:
-        text = self._paths.text(home_paths(self._tokens.text(value)))  # as the parser does
-        if parsed and len(value) >= 500:  # the parser's 500 cut may halve a path: drop its length
-            text = text[: max(0, len(text) - self._longest)]
-        return text
+    def _text(self, value: str) -> str:
+        return self._redactor.message(value)
