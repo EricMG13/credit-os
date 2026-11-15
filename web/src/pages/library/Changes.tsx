@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useState, type ComponentProps, type ReactElement } from "react";
 import { ClockRewind, Hourglass01 } from "@untitledui/icons";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
@@ -61,6 +61,38 @@ function Compared({
   );
 }
 
+/** An empty state with a titled message and the way to the Overview. */
+function OverviewPrompt({
+  icon,
+  title,
+  text,
+  issuer,
+  run,
+}: {
+  icon: ComponentProps<typeof EmptyState.FeaturedIcon>["icon"];
+  title: string;
+  text: string;
+  issuer: string;
+  run: string;
+}) {
+  return (
+    <EmptyState>
+      <EmptyState.Header>
+        <EmptyState.FeaturedIcon icon={icon} />
+      </EmptyState.Header>
+      <EmptyState.Content>
+        <EmptyState.Title as={SECTION_HEADING}>{title}</EmptyState.Title>
+        <EmptyState.Description>{text}</EmptyState.Description>
+      </EmptyState.Content>
+      <EmptyState.Footer>
+        <Button href={overviewHref(issuer, run)} color="secondary">
+          Open the Overview
+        </Button>
+      </EmptyState.Footer>
+    </EmptyState>
+  );
+}
+
 /** The first run on an issuer: nothing to compare with, and the way to the Overview. */
 function NoEarlierRun({
   data,
@@ -72,20 +104,13 @@ function NoEarlierRun({
   run: string;
 }) {
   return (
-    <EmptyState>
-      <EmptyState.Header>
-        <EmptyState.FeaturedIcon icon={ClockRewind} />
-      </EmptyState.Header>
-      <EmptyState.Content>
-        <EmptyState.Title as={SECTION_HEADING}>{data.title}</EmptyState.Title>
-        <EmptyState.Description>{data.text}</EmptyState.Description>
-      </EmptyState.Content>
-      <EmptyState.Footer>
-        <Button href={overviewHref(issuer, run)} color="secondary">
-          Open the Overview
-        </Button>
-      </EmptyState.Footer>
-    </EmptyState>
+    <OverviewPrompt
+      icon={ClockRewind}
+      title={data.title}
+      text={data.text}
+      issuer={issuer}
+      run={run}
+    />
   );
 }
 
@@ -100,20 +125,13 @@ function NotYetCompared({
   run: string;
 }) {
   return (
-    <EmptyState>
-      <EmptyState.Header>
-        <EmptyState.FeaturedIcon icon={Hourglass01} />
-      </EmptyState.Header>
-      <EmptyState.Content>
-        <EmptyState.Title as={SECTION_HEADING}>{data.title}</EmptyState.Title>
-        <EmptyState.Description>{data.text}</EmptyState.Description>
-      </EmptyState.Content>
-      <EmptyState.Footer>
-        <Button href={overviewHref(issuer, run)} color="secondary">
-          Open the Overview
-        </Button>
-      </EmptyState.Footer>
-    </EmptyState>
+    <OverviewPrompt
+      icon={Hourglass01}
+      title={data.title}
+      text={data.text}
+      issuer={issuer}
+      run={run}
+    />
   );
 }
 
