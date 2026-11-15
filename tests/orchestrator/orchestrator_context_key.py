@@ -221,6 +221,8 @@ SHAPE: dict[str, Row] = {
             f"identity.aliases[2]: {SEP}",
             f"identity.sector: {SEP}",
             f"research_questions[0].text: {SEP}",
+            # 9a-2a: the value rules run after the separators when the shape passes.
+            "run.reporting_currency: use three uppercase letters, such as USD.",
         ),
     ),
     # The schema problem comes first, then separators, then shape.
