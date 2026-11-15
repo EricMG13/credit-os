@@ -139,6 +139,22 @@ def test_path_refused(href: str) -> None:
         names.check_relative_path(href)
 
 
+@pytest.mark.parametrize("cp", range(0x80), ids=[f"{cp:02X}" for cp in range(0x80)])
+def test_escaped_ascii_code_point(cp: int) -> None:
+    href = f"a%{cp:02X}b"
+    if cp in KEY.ESCAPED_ASCII_REFUSED:
+        with pytest.raises(DeliveryRefused):
+            names.check_relative_path(href)
+    else:
+        assert names.check_relative_path(href) == href
+
+
+def test_control_refusal_message() -> None:
+    with pytest.raises(DeliveryRefused) as raised:
+        names.check_relative_path("a%1Fb")
+    assert str(raised.value) == "path segment 1: decodes to a separator or a control character"
+
+
 def test_path_wrong_type() -> None:
     check: Callable[..., object] = names.check_relative_path
     with pytest.raises(TypeError):
