@@ -205,6 +205,18 @@ CASES: tuple[tuple[str, Reply, dict[str, object], tuple[dict[str, object], ...]]
         (),
     ),
     (
+        "ok, started at the last instant, finished at the first",
+        _ok(Usage(), started=_LAST, finished=_FIRST),
+        {
+            **_NONE,
+            "kind": "ok",
+            "started_at": "9999-12-31T23:59:59.000000Z",
+            "finished_at": "0001-01-01T00:00:00.000000Z",
+            "stop_reason": "end",
+        },
+        (),
+    ),
+    (
         "ok, a charge with trailing zeros kept",
         _ok(Usage(output_tokens=7), billed=Decimal("0.0100")),
         {**_NONE, "kind": "ok", "output_tokens": 7, "billed_usd": "0.0100", "stop_reason": "end"},
