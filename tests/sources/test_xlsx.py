@@ -171,6 +171,24 @@ TEXT_ROWS = [
         ),
         one_page("A1=0 | C1='=A1+1' cache=[absent] | D1='USD millions'"),
     ),
+    # no row or cell references: counted from 1
+    (
+        "a1",
+        book('<row><c><v>1</v></c><c><v>2</v></c></row><row><c t="b"><v>1</v></c></row>'),
+        one_page("A1=1 | B1=2\nA2=TRUE"),
+    ),
+    # a cell without a reference follows the one before it
+    (
+        "a2",
+        cells('<c r="C1"><v>1</v></c><c><v>2</v></c><c r="AA1"><v>3</v></c><c><v>4</v></c>'),
+        one_page("C1=1 | D1=2 | AA1=3 | AB1=4"),
+    ),
+    # a row without a number follows the one before it; an empty row writes no line
+    (
+        "a3",
+        book('<row r="5"><c><v>1</v></c></row><row/><row><c><v>2</v></c></row>'),
+        one_page("A5=1\nA7=2"),
+    ),
     # a hidden row and hidden columns (min to max, 1 and true)
     (
         "h1",
@@ -247,11 +265,23 @@ TEXT_ROWS = [
         ),
         one_page("A1=1"),
     ),
-    # (ruling 6, regenerated) a formula on a shared-string cell: the cache is the string
+    # (ruling 3, regenerated) a formula on a shared-string cell: the cache is the string
     (
         "m3",
         cells('<c r="A1" t="s"><f>B1</f><v>0</v></c>', strings=STRINGS),
         one_page("A1='=B1' cache=Revenue"),
+    ),
+    # (ruling 3a) every row without r, every cell with one
+    (
+        "nr1",
+        book('<row><c r="A1"><v>1</v></c></row><row><c r="B2"><v>2</v></c></row>'),
+        one_page("A1=1\nB2=2"),
+    ),
+    # (ruling 3a) every row with r, every cell without
+    (
+        "nr2",
+        book('<row r="3"><c><v>1</v></c><c><v>2</v></c></row><row r="5"><c><v>3</v></c></row>'),
+        one_page("A3=1 | B3=2\nA5=3"),
     ),
 ]
 
@@ -261,9 +291,56 @@ def test_text_rows(raw: bytes, pages: tuple[Page, ...]) -> None:
     assert xlsx_pages("b.xlsx", raw) == SourcePages(pages=pages, encoding=None)
 
 
+ORDER = SHEET + "sheet 'Annual FY': "
+DRIVE = zipped(
+    {
+        "xl/workbook.xml": workbook_xml('<sheet name="Annual FY" sheetId="1" r:id="rId1"/>'),
+        "xl/_rels/workbook.xml.rels": rels_xml(
+            '<Relationship Id="rId1" Target="C:/xl/worksheets/sheet1.xml"/>'
+        ),
+        "xl/worksheets/sheet1.xml": sheet_xml(ONE),
+    }
+)
+
+
+def dotdot() -> bytes:
+    parts: dict[str, str | bytes] = {
+        "xl/workbook.xml": workbook_xml('<sheet name="Annual FY" sheetId="1" r:id="rId1"/>'),
+        "xl/_rels/workbook.xml.rels": rels_xml(REL),
+        "xl/worksheets/../worksheets/sheet1.xml": sheet_xml(ONE),
+    }
+    return zipped(parts)
+
+
 REFUSALS = [
     # no cell with text in any sheet
     ("r1", book(""), "has no text"),
+    # (ruling 6) a duplicate cell
+    (
+        "r3",
+        cells('<c r="A1"><v>1</v></c><c r="A1"><v>2</v></c>'),
+        ORDER + "cell A1 out of order in row 1",
+    ),
+    # (ruling 6) cells right to left
+    (
+        "r4",
+        cells('<c r="B1"><v>1</v></c><c r="A1"><v>2</v></c>'),
+        ORDER + "cell A1 out of order in row 1",
+    ),
+    # (ruling 6) rows out of order
+    (
+        "r5",
+        book('<row r="2"><c r="A2"><v>1</v></c></row><row r="1"><c r="A1"><v>2</v></c></row>'),
+        ORDER + "row 1 after row 2",
+    ),
+    # (ruling 6) a row number twice
+    ("r6", book('<row r="2"/><row r="2"/>'), ORDER + "row 2 after row 2"),
+    # (ruling 6) row zero
+    ("r7", book('<row r="0"/>'), ORDER + "row 0 after row 0"),
+    # a drive-letter target is resolved under xl/ and looked up by exact name
+    ("dl1", DRIVE, "'xl/C:/xl/worksheets/sheet1.xml': the part is missing"),
+    # a member stored under a name holding .. is never read by a normalised target
+    ("dd1", dotdot(), "'xl/worksheets/sheet1.xml': the part is missing"),
 ]
 
 
