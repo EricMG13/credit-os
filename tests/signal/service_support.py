@@ -8,10 +8,19 @@ import json
 import socket
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from datetime import UTC, datetime
 from http.server import ThreadingHTTPServer
 from typing import Any
 
+from test_signal_feeds import RSS
+
+from credit_os.signal.fetch import Fetched
+from credit_os.signal.service import Loop
+
+NOW = datetime(2026, 11, 13, 10, 0, tzinfo=UTC)
+Call = Callable[..., tuple[int, http.client.HTTPMessage, Any]]  # the shape of ``Live.call``
 SAME = object()  # "the page's own origin", the default for a request that is not a GET
 
 
@@ -95,3 +104,42 @@ def wait_for(check: Callable[[], bool], seconds: float = 2.0) -> bool:
             return False
         time.sleep(0.01)
     return True
+
+
+class RecordedFeed:
+    """Stands for ``fetch.fetch`` in a pass: records each URL; the first call raises (a host that
+    fell over), every later one returns the recorded feed ``RSS``."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def __call__(self, url: str, etag: str | None, modified: str | None) -> Fetched:
+        self.calls.append(url)
+        if len(self.calls) == 1:
+            raise RuntimeError("the feed host fell over")
+        return Fetched(RSS, None, None)
+
+
+@contextmanager
+def pass_in_progress(loop: Loop) -> Iterator[list[str]]:
+    """Hold one pass inside its fetch (a recorded feed behind an Event) while the body runs; the
+    body gets the URLs fetched so far. The wait is 5 s, so a pass that is not held fails the test."""
+    entered, release = threading.Event(), threading.Event()
+    calls: list[str] = []
+
+    def blocked(url: str, etag: str | None, modified: str | None) -> Fetched:
+        calls.append(url)
+        entered.set()
+        assert release.wait(timeout=5)
+        return Fetched(RSS, None, None)
+
+    loop.fetch_fn = blocked
+    worker = threading.Thread(target=loop.run_once, args=(NOW,))
+    worker.start()
+    try:
+        assert entered.wait(timeout=5)
+        yield calls
+    finally:
+        release.set()
+        worker.join(timeout=10)
+    assert not worker.is_alive()
