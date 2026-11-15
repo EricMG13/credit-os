@@ -3,6 +3,112 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-15 Design track: a Gaps group with no severity, phase sweep wave 1 of `web/`
+
+**Merged**, each with gates on Ubuntu and Windows and the review job green on its head, none
+cancelled, and its source diff read by the coordinator (Signal's file splits checked by size and
+taken on the review).
+
+| PR | Head, merge | Content |
+| :--- | :--- | :--- |
+| #370 | `99f1a00`, `85bab4e` | A gap group may carry `severity: null` (delivery may not rank a gap): at most one, last, headed "Not ranked" with no badge; the Halden 2025-09-30 run gains one unranked gap and the matching Capital structure limitation; a fixture test ties each Evidence gap to the module page it names (289 lines) |
+| #354 | `62874a5`, `80402ab` | Run reader refuses blank labels, titles and list items it draws, an empty purpose or confirm group list, and a not-met count that disagrees with its items |
+| #355 | `4de1a5d`, `56d269d` | The kit Chrome check's Tab leg can fail (it records where focus lands) |
+| #356 | `54daa0d`, `e3b2b71` | Run pages use the kit link Button; dead `data-disabled:` classes removed |
+| #357 | `f54765d`, `32a5dd1` | Shared test helpers for the run and Signal groups |
+| #358 | `6fcc8f6`, `0975057` | Signal focus hooks; StoryCard and FeedPage split under the complexity limit |
+| #359 | `1029283`, `c7879df` | Signal reader checks split under the complexity limit |
+| #360 | `713cdd7`, `c171f52` | Ruled defects: a run slice whose first draft is not at the documents step is refused; run fixture costs agree with each run's spend; the AI-off notice reworded; a focus test that kills five surviving mutants |
+
+**Costs reduced** (same command before and after): jscpd on `src/pages/signal` with tests 46
+clones, 493 lines (3.83%) to 16, 131 (1.05%); on `src/pages/run` with tests 12, 110 to 0;
+StoryCard's largest function complexity 28 to 10 or less; FeedPage 17 to 14; three Signal reader
+functions 21, 17, 17 to 10 or less each.
+
+**Deferred: one browser process for the open-from-disk gate (P1-C2).** Measured saving: browser
+starts per run 127 to 8, the step 113 to 177 s to 42 to 43 s. Two fix rounds closed three Highs
+and two Mediums of the security read; one Medium stayed open (a sandboxed child that starts a second
+document from its parent's `onload` was caught 8 times in 10 by the old runner and 0 in 10 by the
+new), so under the coordinator's fallback the change was dropped and the gate is unchanged. The work
+is on three local branches; the register holds a candidate design.
+
+**Reviews.** Gap severity: `mx-precise` task review (one Medium: the new gap pointed at a module
+page that did not show it; fixed test first in one round); whole-branch `mx-architect` adversarial
+pass, High 0, Medium 0, Low 3, Info 4, 13 hand mutants killed. Wave 1: `mx-precise` per task, all
+pass; whole-branch review by `mx-adversary` (Opus 5.5) in place of `mx-architect` (Fable 5.2), whose
+account limit was reached until 18 Nov (ruled by the roadmap coordinator, agreed with the back end):
+pass, no High or Medium.
+
+**Ledger** (wave 1; agent `mx-feature` unless named; fix rounds, gates first pass): T1 0, n; T1b 0,
+y; T1c 0, y; T2 0, y; T3 0, n; T4 0, n; T5 0, y; T5b 0, y; T7 0, y; T7b 0, n/a; T7c 1, n/a; T7d 2,
+n/a (dropped); T8 0, y. Gap severity: task 1 0, n (lint failed
+once on the first run); fix round 1, y.
+
+**Owner rules applied this night** (relayed by the lead coordinator): coordinators resolve all
+decisions (rulings in decision 0013 and the coordinators' rulings files); fast tests per task, full
+gates once per PR (a green CI run on the pushed head stands in, by the back end's slot rule 10);
+heavy runs two at a time with step 2A first; sub-session leads on Opus 5.5 at xhigh; every Low and
+Info finding waits for one batch after the final roadmap phase; throttle to the critical path
+until the 2026-11-18 reset. Sweep wave 2, slice contract 3 and the states 2 build wait for the
+reset. The design track's running list of held Lows and Infos has 23 rows (coordinator's count).
+
+**Rule breaches recorded:** five hand-mutant runs in the sweep ran before the machine-wide slot
+queue covered them; one implementer created and deleted a stray file under `/tmp`; the gap severity
+whole-branch review's first attempt started as a third heavy run before the two-run rule reached
+the coordinator (it was killed by the app quit and rerun under the loosened rule).
+
+Not verified: the gap severity whole-branch review looked at no built page (the task review's
+headless Chrome walk at 1440 and 1024 did); Edge; headed Chrome and screen readers; wave 1's local
+full gates after CI (CI stands in); the merged tree's CI run on `c171f52` (status in the next entry
+if it fails).
+
+## 2026-11-15 Roadmap back end: 3A's budget and calculate tool, 3B's display text, names and cell citations
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #378 | Records | `a5f58fe5` | `c415c58` | the entry below, decision 0012's named limit, 3A D24, 3B R23 |
+| #373 | 3B PR 8a | `9d1e9708` | `56f7769` | `handoff/basis.py`, the cell-citation reader |
+| #363 | 3B PR 3 | `1e715a2b` | `6b342f5` | `delivery/names.py`: the module table, ids, addresses, download names |
+| #350 | 3A PR 2a | `e5cb6b22` | `b055325` | `orchestrator/budget.py`, the run budget |
+| #361 | 3B PR 1a | `e849e000` | `a52dfc9` | `model/display.py`: display text and the JSON number token |
+| #372 | 3A PR 4b | `0c2ef33f` | `c68cb33` | `orchestrator/calculate.py`, the calculate tool |
+
+#370 (a Gaps group with no severity) was merged by the roadmap coordinator and is recorded with
+the design track.
+
+**Reviews.** #373: `mx-precise`, sweep and the whole-branch review pass; no mutation (not
+sensitive code). #363: `mx-precise` (a refusal echoed its value) and `mx-adversary` (absolute
+paths in refusals, High) failed; one fix round, re-review pass; sweep and whole-branch pass;
+mutation on `names.py` 91 of 124 killed at load 2.24, 24 survivors only change a refusal's text
+(held as a Low test gap). #350: `mx-precise` and the `mx-adversary` money review failed on one
+Medium; fixed, scoped `mx-feature` re-review pass; sweep pass; whole-branch on Fable, finished
+before the limit, pass; mutation on `budget.py` 159 of 225 killed at load 3.15, 57 survivors only
+change a message, 5 equivalent, 4 killable and held as Low. #361: `mx-precise` and `mx-adversary`
+failed on two new suppressions; fixed; the whole-branch review on Fable failed on a Medium (the
+rounding quantum read the thread's decimal context); a second round fixed it and `mx-precise`
+passed it; mutation on `display.py` 56 of 73 killed, the 17 survivors equivalent. #372:
+`mx-precise`, `mx-adversary`, sweep and whole-branch pass; mutation 103 of 104 killed at load
+9.65. Whole-branch reviews not marked Fable ran on an Opus 5.5 stand-in.
+
+**Ledger.** 3B-8a `agent=mx-scaffold fix-rounds=0 gates-first-pass=y`. 3B-3 `agent=mx-feature
+fix-rounds=1 gates-first-pass=y`. 3A-2a `agent=mx-feature fix-rounds=1 gates-first-pass=y`. 3B-1a
+`agent=mx-feature fix-rounds=2 gates-first-pass=y`. 3A-4b `agent=mx-feature fix-rounds=0
+gates-first-pass=y`.
+
+**Rulings** (added to the plans; the owner can overturn any). 3A-27: PR 5 caps a draft's size
+because checking a handoff takes time that grows with the square of its size (23 s for 164 KB);
+that cost predates 3A and is on the owner's list. 9a-1's caps: 1 MiB, 5,000 values, 64-character
+keys. 3B W5a: a rejected run reads Rejected whatever its end reason.
+
+**Sessions.** 2B's six PRs are merged; its session is archived and its reports are kept by the
+coordinator outside the repository.
+
+**Not verified:** that the 9a-1 caps and W5a hold as ruled (both PRs are open); a real context
+file near 5,000 values; the 164 KB timing on the work PC.
+
 ## 2026-11-15 Roadmap back end: 3A's catalogue, 1D's XML guards, 3B's lead labels; reviews off Fable
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the

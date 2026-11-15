@@ -498,6 +498,13 @@ yes by the roadmap coordinator, not yet built):
   with `provider_failed` keeps the word Failed (key row 10's failed run is that one). R23a: the history `empty` sentence adds the next action ("Start a new
   run to write the first report."). Later PRs add their own entries. Every sentence is one JSON
   entry the owner can change; PR 5's body lists them.
+- W5a (PR 5, open as #377; whole-branch finding WB5-1): the store gives every rejected run an end
+  reason, any name `[a-z][a-z0-9_]*` up to 64 characters, and no plan closes the set. So
+  `rejected` reads Rejected whatever its reason: its wording row has the end reason `"*"`, and
+  `rejected` with no end reason is refused when the file loads. `*` stands only as a whole end
+  reason (no store name can be `*`) and never beside an exact row of the same status; a state word
+  is the exact pair's, else the status's `*` row. `finished`, `stopped` and `failed` are checked
+  the same way in PR 5, which says per status which reasons are closed and which take `*`.
 
 ## Not verified
 

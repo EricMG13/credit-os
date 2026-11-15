@@ -116,12 +116,12 @@ def units_named(text: str) -> list[str]:
 
 def names_currency(text: str, currency: str) -> bool:
     prefix = "|".join(GLUED.values())
-    forms = [rf"(?<![A-Za-z])(?i:{prefix})?{currency}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
+    forms = [rf"(?<![A-Za-z])(?i:{prefix})?{re.escape(currency)}(?i:{SUFFIX})?(?![A-Za-z0-9])"]
     forms += [SIGNS[currency]] if currency in SIGNS else []
     return re.search("|".join(forms), text) is not None
 
 
-UNIT_COLUMNS = ("Unit", "Units")
+UNIT_COLUMNS = ("Unit", "Units", "Reporting unit")
 
 
 def unit_problem(key: str, operand: Doc, read: list[Any], scale: int, currency: str) -> str | None:
@@ -504,6 +504,8 @@ CURRENCIES: list[Any] = [
     ["MUSDA", "USD", False],
     ["mnEUR", "EUR", False],
     ["bnUSD", "USD", False],
+    # R56b: the code is matched as text, never as a pattern.
+    ["Amounts are in USD m.", "U.D", False],
 ]
 # R46 rows: each form in the unit table of a `Revenue check` row, under the block whose unit it
 # names (accepted) and under the other block (refused); billions is refused under both.
@@ -708,6 +710,44 @@ def r46_rows() -> list[Doc]:
         rows.append(
             {"label": label, "edits": edits, "ops": [[["base", "revenue", "row"], "Revenue check"]]}
         )
+    # R56: `Reporting unit` excuses, case-sensitively, as the model fixtures' own column does.
+    # R56a: an emphasised `**Unit**` header excuses once made plain.
+    liquidity = "| FY2024 | 283 | 175 | US$m | Reported |"
+    noted = "| FY2024 | 283 | 175 | US$m | Reported; before the US$1.2bn disposal |"
+    header = (
+        "| Period | Cash | Undrawn committed facilities | Reporting unit | Basis and limitation |"
+    )
+    undrawn = {
+        "amount": "175",
+        "reason": None,
+        "row": "FY2024",
+        "period": None,
+        "column": "Undrawn committed facilities",
+    }
+    r56 = [
+        ("R56: a `Reporting unit` cell in the block's unit excuses a basis note in billions", []),
+        (
+            "R56: a column headed `Reporting Unit` with a capital U does not excuse",
+            [[header, header.replace("Reporting unit", "Reporting Unit")]],
+        ),
+    ]
+    for label, renamed in r56:
+        rows.append(
+            {
+                "label": label,
+                "edits": [[liquidity, noted], *renamed],
+                "ops": [[["base", "undrawn"], undrawn]],
+            }
+        )
+    starred = "| Line item | FY2024 | **Unit** | Note |\n" + rule4
+    starred += "| Revenue check | 1,456 | USD millions | in thousands |\n"
+    rows.append(
+        {
+            "label": "R56a: an emphasised `**Unit**` header excuses a Note in the other unit",
+            "edits": [[CALC_TEXT, f"{CALC_TEXT}\n{starred}"]],
+            "ops": [[["base", "revenue", "row"], "Revenue check"]],
+        }
+    )
     return rows
 
 
@@ -728,7 +768,7 @@ def render() -> str:
     }
     labels = [row["label"] for row in key["rows"]]
     accepted = [row for row in key["rows"] if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 129 and len(accepted) == 51
+    assert len(labels) == len(set(labels)) == 132 and len(accepted) == 53
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
