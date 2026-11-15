@@ -135,6 +135,7 @@ GUARDS: dict[str, tuple[bytes, tuple[str, ...]]] = {
     # Ruling on review M3: a key over 64 characters, after the value guard.
     "key_too_long": (changed(("k" * 65,), 1), LONG),
     "nested_key_too_long": (changed(("deal_terms",), [{"k" * 65: 1}]), LONG),
+    "key_in_object_too_long": (changed(("run", "k" * 65), 1), LONG),
     # The top-level guard comes before the depth guard (review M2).
     "top_level_array_too_deep": (b"[" * 40 + b"]" * 40, ("$: the top level must be an object.",)),
 }
