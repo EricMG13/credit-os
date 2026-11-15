@@ -1209,9 +1209,7 @@ def test_floor_exact_repr(text: str) -> None:
 
 def test_quote_gap_memory() -> None:
     # (ruling 39 follow-up) a label that will be refused is never built: the peak stays under 12 MiB
-    raw = book(
-        f'<row><c r="A1"><f>{gap_formula("A1")}</f></c></row>', method=zipfile.ZIP_DEFLATED
-    )
+    raw = book(f'<row><c r="A1"><f>{gap_formula("A1")}</f></c></row>', method=zipfile.ZIP_DEFLATED)
     assert len(raw) < 1_048_576
     with pytest.raises(SourceUnreadable):
         xlsx_pages("b.xlsx", raw)
