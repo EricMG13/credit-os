@@ -324,9 +324,9 @@ function unreadableRun(entry: unknown, reason: string): UnreadableRun {
     const { issuer, run: runId } = entry as Record<string, unknown>;
     try {
       return { issuer: text(issuer, "issuer"), run: text(runId, "run"), reason };
-    } catch {
-      // `text` throws only a SliceError (a typeof test and a string method cannot throw), so this
-      // catch holds nothing else; either id failing to read leaves both unnamed.
+    } catch (error) {
+      // The guard keeps a non-SliceError propagating; either id failing to read leaves both unnamed.
+      if (!(error instanceof SliceError)) throw error;
     }
   }
   return { issuer: null, run: null, reason };
