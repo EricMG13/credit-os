@@ -60,6 +60,7 @@ describe("the module routes", () => {
       ["2026-03-31", "forecast"],
       ["2026-06-30", "capital-structure"],
       ["2026-09-30", "no-such-module"],
+      ["r-0412", "source-readiness"],
     ]);
     expect(fixture.params[INDEX]?.map((p) => p["run"])).toEqual(["2026-09-30", "2026-06-30"]);
   });
