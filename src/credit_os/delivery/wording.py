@@ -78,6 +78,19 @@ class _Entry:
     variants: Mapping[str, tuple[str | tuple[str], ...]]
 
 
+def _slot(text: str, start: int, key: str) -> tuple[str, int]:
+    """Read the `{name}` opened at `start`; return the name and the index of its `}`."""
+    end = start + 1
+    while end < len(text) and text[end] not in "{}":
+        end += 1
+    if end >= len(text) or text[end] == "{":
+        _refuse("an unclosed open brace in a template", key)
+    name = text[start + 1 : end]
+    if not _NAME.fullmatch(name):
+        _refuse("a placeholder name outside [a-z][a-z0-9_]*", key)
+    return name, end
+
+
 def _scan(text: str, key: str) -> tuple[str | tuple[str], ...]:
     """One linear pass: `{name}` is a slot; any other brace is a load error."""
     parts: list[str | tuple[str]] = []
@@ -91,14 +104,7 @@ def _scan(text: str, key: str) -> tuple[str | tuple[str], ...]:
             literal.append(ch)
             i += 1
             continue
-        end = i + 1
-        while end < len(text) and text[end] not in "{}":
-            end += 1
-        if end >= len(text) or text[end] == "{":
-            _refuse("an unclosed open brace in a template", key)
-        name = text[i + 1 : end]
-        if not _NAME.fullmatch(name):
-            _refuse("a placeholder name outside [a-z][a-z0-9_]*", key)
+        name, end = _slot(text, i, key)
         if literal:
             parts.append("".join(literal))
             literal = []
@@ -182,32 +188,37 @@ def _bound(value: object, key: str) -> Decimal | None:
     return Decimal(value)
 
 
+def _band(raw: object, seen: list[Band], key: str) -> Band:
+    band = _obj(raw, "a band must be an object", key)
+    if set(band) != {"label", "min", "max"}:
+        _refuse("a band needs label, min and max", key)
+    label = _str(band["label"], "a band label must be a string", key)
+    if any(b.label == label for b in seen):
+        _refuse("a band label repeats within its measure", key)
+    low = _bound(band["min"], key)
+    high = _bound(band["max"], key)
+    if low is not None and high is not None and not low < high:
+        _refuse("a band min must be below its max", key)
+    return Band(label, low, high)
+
+
+def _measure(key: str, raw: object) -> Measure:
+    item = _obj(raw, "a measure must be an object", key)
+    if set(item) != {"name", "bands"}:
+        _refuse("a measure needs name and bands", key)
+    name = _str(item["name"], "a measure name must be a string", key)
+    raw_bands = item["bands"]
+    if not isinstance(raw_bands, list):
+        _refuse("measure bands must be a list", key)
+    bands: list[Band] = []
+    for raw_band in raw_bands:
+        bands.append(_band(raw_band, bands, key))
+    return Measure(name, tuple(bands))
+
+
 def _measures(value: object) -> dict[str, Measure]:
     items = _obj(value, "measures must be an object")
-    out: dict[str, Measure] = {}
-    for key, raw in items.items():
-        item = _obj(raw, "a measure must be an object", key)
-        if set(item) != {"name", "bands"}:
-            _refuse("a measure needs name and bands", key)
-        name = _str(item["name"], "a measure name must be a string", key)
-        raw_bands = item["bands"]
-        if not isinstance(raw_bands, list):
-            _refuse("measure bands must be a list", key)
-        bands: list[Band] = []
-        for raw_band in raw_bands:
-            band = _obj(raw_band, "a band must be an object", key)
-            if set(band) != {"label", "min", "max"}:
-                _refuse("a band needs label, min and max", key)
-            label = _str(band["label"], "a band label must be a string", key)
-            if any(b.label == label for b in bands):
-                _refuse("a band label repeats within its measure", key)
-            low = _bound(band["min"], key)
-            high = _bound(band["max"], key)
-            if low is not None and high is not None and not low < high:
-                _refuse("a band min must be below its max", key)
-            bands.append(Band(label, low, high))
-        out[key] = Measure(name, tuple(bands))
-    return out
+    return {key: _measure(key, raw) for key, raw in items.items()}
 
 
 def _placeholders(value: object, key: str) -> frozenset[str]:
@@ -223,12 +234,11 @@ def _placeholders(value: object, key: str) -> frozenset[str]:
     return frozenset(names)
 
 
-def _entry(key: str, raw: object) -> _Entry:
-    item = _obj(raw, "a template entry must be an object", key)
+def _plural(item: dict[str, object], key: str) -> bool:
+    """Check which variant fields an entry holds; True when it is plural."""
     allowed = {"placeholders", "text", "zero", "one", "other", "count", "count_min"}
     if "placeholders" not in item or not set(item) <= allowed:
         _refuse("a template entry holds unknown or missing fields", key)
-    declared = _placeholders(item["placeholders"], key)
     plural = "one" in item or "other" in item
     if plural and not ("one" in item and "other" in item):
         _refuse("plural variants need one and other", key)
@@ -236,14 +246,28 @@ def _entry(key: str, raw: object) -> _Entry:
         _refuse("zero needs one and other beside it", key)
     if plural == ("text" in item):
         _refuse("an entry has text or plural variants, not both or neither", key)
+    return plural
+
+
+def _count_fields(
+    item: dict[str, object], declared: frozenset[str], plural: bool, key: str
+) -> tuple[str | None, int]:
     count_min = item.get("count_min", 0)
     if not isinstance(count_min, int) or isinstance(count_min, bool) or count_min < 0:
         _refuse("count_min must be an int of 0 or more", key)
     if ("count" in item) != (plural or "count_min" in item):
         _refuse("count is present exactly with plural variants or count_min", key)
-    count = item.get("count")
-    if count is not None and (not isinstance(count, str) or count not in declared):
+    if "count" not in item:
+        return None, count_min
+    count = item["count"]
+    if not isinstance(count, str) or count not in declared:
         _refuse("count must name a declared placeholder", key)
+    return count, count_min
+
+
+def _variants(
+    item: dict[str, object], declared: frozenset[str], key: str
+) -> dict[str, tuple[str | tuple[str], ...]]:
     variants: dict[str, tuple[str | tuple[str], ...]] = {}
     for name in ("text", "zero", "one", "other"):
         if name in item:
@@ -254,7 +278,15 @@ def _entry(key: str, raw: object) -> _Entry:
             if used != declared and not (name == "zero" and used < declared):
                 _refuse("a variant's placeholders differ from the declared set", key)
             variants[name] = parts
-    return _Entry(declared, count, count_min, variants)
+    return variants
+
+
+def _entry(key: str, raw: object) -> _Entry:
+    item = _obj(raw, "a template entry must be an object", key)
+    plural = _plural(item, key)
+    declared = _placeholders(item["placeholders"], key)
+    count, count_min = _count_fields(item, declared, plural, key)
+    return _Entry(declared, count, count_min, _variants(item, declared, key))
 
 
 def _templates(value: object) -> dict[str, _Entry]:
@@ -278,6 +310,25 @@ def _date_parts(iso: str) -> tuple[int, int, str]:
     return int(day), int(month), year
 
 
+def _check_values(spec: _Entry, values: Mapping[str, object], entry: str) -> None:
+    for name, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            _refuse("a value must be a str or an int", entry)
+        if isinstance(value, int) and value < 0:
+            _refuse("an int value must not be negative", entry)
+        if name == spec.count and (not isinstance(value, int) or value < spec.count_min):
+            _refuse("the count must be an int at or above count_min", entry)
+
+
+def _variant(spec: _Entry, values: Mapping[str, object]) -> str:
+    if "text" in spec.variants or spec.count is None:
+        return "text"
+    n = values[spec.count]
+    if n == 0 and "zero" in spec.variants:
+        return "zero"
+    return "one" if n == 1 else "other"
+
+
 @dataclass(frozen=True)
 class Wording:
     """The loaded wording; build it only with `load_wording`."""
@@ -295,22 +346,9 @@ class Wording:
             _refuse("an undeclared template entry", entry)
         if set(values) != spec.placeholders:
             _refuse("values must name exactly the entry's placeholders", entry)
-        for name, value in values.items():
-            if isinstance(value, bool) or not isinstance(value, (str, int)):
-                _refuse("a value must be a str or an int", entry)
-            if isinstance(value, int) and value < 0:
-                _refuse("an int value must not be negative", entry)
-            if name == spec.count and (not isinstance(value, int) or value < spec.count_min):
-                _refuse("the count must be an int at or above count_min", entry)
-        variant = "text"
-        if spec.count is not None and "text" not in spec.variants:
-            n = values[spec.count]
-            if n == 0 and "zero" in spec.variants:
-                variant = "zero"
-            else:
-                variant = "one" if n == 1 else "other"
+        _check_values(spec, values, entry)
         out: list[str] = []
-        for part in spec.variants[variant]:
+        for part in spec.variants[_variant(spec, values)]:
             out.append(str(values[part[0]]) if isinstance(part, tuple) else part)
         return "".join(out)
 
