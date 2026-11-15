@@ -81,4 +81,4 @@ def test_row_under_a_hostile_context(label: str) -> None:
 
 def test_the_facility_refusal_kind_follows_currency() -> None:
     kinds = [kind.value for kind in RefusalKind]
-    assert kinds[-4:] == ["cell", "unit", "currency", "facility"]
+    assert kinds[-6:] == ["cell", "unit", "currency", "facility", "source", "size"]

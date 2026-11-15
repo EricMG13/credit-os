@@ -148,7 +148,7 @@ def test_foundation_tables_hold_a_section_table_before_its_subsection_table() ->
 
 def test_the_new_refusal_kinds_follow_cell() -> None:
     kinds = [kind.value for kind in RefusalKind]
-    assert kinds[-4:] == ["cell", "unit", "currency", "facility"]
+    assert kinds[-6:] == ["cell", "unit", "currency", "facility", "source", "size"]
 
 
 _CALC = "Net debt is Total Debt less Cash & Equivalents.\n"

@@ -101,6 +101,8 @@ def test_key_constants() -> None:
         "unit",
         "currency",
         "facility",
+        "source",
+        "size",
     ]
 
 

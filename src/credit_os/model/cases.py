@@ -9,6 +9,10 @@
 - `with_negative_cash`: when closing cash is an amount below zero, net debt, net leverage and
   liquidity are `NEGATIVE_CASH` (replacing any reason of their own); everything else is kept (D7).
 
+- `_run` turns a `decimal.Inexact` from the engine (Overflow and Underflow are subclasses) into
+  `ForecastRefused(RefusalKind.SIZE, <case name>, ...)`: a documented fail-closed refusal (D9, R61).
+  A figure of more than 38 significant digits is never rounded into a forecast. Nothing else is
+  caught here, and `run_cases`'s signature is unchanged.
 - `run_cases`: Reference, Upside, Downside and Downside stress, in that order, each through the
   engine and the overlay. Debt outside the stated facilities pays the case's own rate and is
   never repaid.
@@ -17,13 +21,14 @@ The engine in `forecast.py` is not touched (D17).
 """
 
 from dataclasses import dataclass, fields, replace
-from decimal import Decimal
+from decimal import Decimal, Inexact
 from enum import StrEnum
 
 from credit_os.model import facilities
 from credit_os.model.arithmetic import difference, product, total
 from credit_os.model.forecast import Drivers, Operands, Shock, Triple, Year, forecast
 from credit_os.model.inputs import BaseDrivers, CaseDrivers, ForecastInputs, Operand
+from credit_os.model.refusals import ForecastRefused, RefusalKind
 from credit_os.model.value import Missing, MissingCode, Value, parse_operand
 
 
@@ -123,12 +128,19 @@ def _scheduled(
 
 def _run(inputs: ForecastInputs, name: CaseName, case: CaseDrivers | None, shock: Shock) -> Case:
     drivers = case_drivers(inputs.base_drivers, case)
-    one, two, three = forecast(
-        base_operands(inputs),
-        drivers,
-        shock=shock,
-        schedule=_scheduled(inputs, drivers),
-    )
+    try:
+        one, two, three = forecast(
+            base_operands(inputs),
+            drivers,
+            shock=shock,
+            schedule=_scheduled(inputs, drivers),
+        )
+    except Inexact as error:
+        text = (
+            f"the {name.value} case needs a figure of more than 38 significant digits; "
+            "no forecast was computed"
+        )
+        raise ForecastRefused(RefusalKind.SIZE, name.value, text) from error
     return Case(name, (with_negative_cash(one), with_negative_cash(two), with_negative_cash(three)))
 
 
