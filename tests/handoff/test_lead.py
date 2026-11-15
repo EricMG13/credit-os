@@ -7,9 +7,10 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from credit_os.handoff.basis import read_basis
-from credit_os.handoff.blocks import ListItem, Paragraph
-from credit_os.handoff.document import Section, parse
+from credit_os.handoff.blocks import ListItem, Paragraph, read_blocks
 from credit_os.handoff.lead import Lead, read_lead
+from credit_os.handoff.lines import split_lines
+from credit_os.handoff.scan import scan
 
 HERE = Path(__file__).resolve().parent
 HANDOFFS = HERE.parent / "fixtures" / "handoffs"
@@ -22,7 +23,9 @@ def _block(case: dict[str, Any]) -> Paragraph | ListItem:
     lines = tuple(case["lines"])
     if case["block"] == "paragraph":
         return Paragraph(line=7, lines=lines)
-    return ListItem(line=7, marker="-", lines=lines)
+    if case["block"] == "list":
+        return ListItem(line=7, marker="-", lines=lines)
+    raise ValueError(case["block"])
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c["id"] for c in CASES])
@@ -36,30 +39,20 @@ def test_key_case(case: dict[str, Any]) -> None:
     assert read_lead(_block(case)) == want
 
 
-def _walk(sections: tuple[Section, ...]) -> list[Section]:
-    out: list[Section] = []
-    for section in sections:
-        out.append(section)
-        out.extend(_walk(section.sections))
-    return out
-
-
 def test_fixture_invariants() -> None:
     seen = 0
     for path in sorted(HANDOFFS.glob("*/*.md")):
-        if path.parent.name == "fragments":
-            continue
-        for section in _walk(parse(path.read_bytes()).sections):
-            for block in section.blocks:
-                if not isinstance(block, Paragraph | ListItem):
-                    continue
-                seen += 1
-                lead = read_lead(block)
-                if lead is None:
-                    continue
-                basis = read_basis(block)
-                lines = basis.body if basis is not None else block.lines
-                assert lines[0].startswith("**" + lead.label + "**")
+        text = path.read_text(encoding="utf-8")
+        for block in read_blocks(scan(split_lines(text))):
+            if not isinstance(block, Paragraph | ListItem):
+                continue
+            seen += 1
+            lead = read_lead(block)
+            if lead is None:
+                continue
+            basis = read_basis(block)
+            lines = basis.body if basis is not None else block.lines
+            assert lines[0].startswith("**" + lead.label + "**")
     assert seen > 0
 
 
