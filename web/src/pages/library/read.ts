@@ -111,11 +111,21 @@ function numOrNull(o: Rec, key: string, path: string): number | null {
   return own(o, key) === null ? null : num(o, key, path);
 }
 
-function oneOf<T extends string>(o: Rec, key: string, path: string, allowed: readonly T[]): T {
+function pick<T extends string>(
+  o: Rec,
+  key: string,
+  path: string,
+  allowed: readonly T[],
+  wanted: string,
+): T {
   const value = own(o, key);
   const found = allowed.find((word) => word === value);
-  if (found === undefined) throw new SliceError(child(path, key), `one of ${allowed.join(", ")}`);
+  if (found === undefined) throw new SliceError(child(path, key), `${wanted}${allowed.join(", ")}`);
   return found;
+}
+
+function oneOf<T extends string>(o: Rec, key: string, path: string, allowed: readonly T[]): T {
+  return pick(o, key, path, allowed, "one of ");
 }
 
 /** A word of the list or null; the refusal names both, at the same path as `oneOf`. */
@@ -125,13 +135,7 @@ function oneOfOrNull<T extends string>(
   path: string,
   allowed: readonly T[],
 ): T | null {
-  const value = own(o, key);
-  if (value === null) return null;
-  const found = allowed.find((word) => word === value);
-  if (found === undefined) {
-    throw new SliceError(child(path, key), `null or one of ${allowed.join(", ")}`);
-  }
-  return found;
+  return own(o, key) === null ? null : pick(o, key, path, allowed, "null or one of ");
 }
 
 function list<T>(
