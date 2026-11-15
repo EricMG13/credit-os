@@ -336,9 +336,11 @@ RECORD_STRINGS_2B = (
     "0.40",
     "5.00",
     "15.00",
+    "4.50",
     "272,000",
     "32,000",
     "project choice",
+    "additive",
 )
 
 
@@ -352,6 +354,7 @@ def test_2b_row_fields() -> None:
         output_rates=outputs,
         context_tokens=key.ROW_2B["context_tokens"],
         output_floor_tokens=key.ROW_2B["output_floor_tokens"],
+        cache_write_rate=Decimal(key.ROW_2B["cache_write_rate"]),
     )
     assert row.config_id == key.ROW_2B["config_id"]
     assert row.input_rates == inputs
@@ -359,6 +362,8 @@ def test_2b_row_fields() -> None:
     assert row.context_tokens == key.ROW_2B["context_tokens"]
     assert row.output_floor_tokens == key.ROW_2B["output_floor_tokens"]
     # as published: "2.00", not "2"
+    assert row.cache_write_rate == Decimal(key.ROW_2B["cache_write_rate"])
+    assert str(row.cache_write_rate) == key.ROW_2B["cache_write_rate"]
     assert tuple(str(rate) for rate in row.input_rates) == key.ROW_2B["input_rates"]
     assert tuple(str(rate) for rate in row.output_rates) == key.ROW_2B["output_rates"]
 
@@ -373,9 +378,37 @@ def test_2b_hold(max_output: int, expected: str) -> None:
     assert hold == Decimal(expected)
 
 
+def _adds_row(cache_write_rate: Any) -> Any:
+    spec = key.ADDS_2B
+    return PriceRow(
+        config_id=spec["config_id"],
+        input_rates=tuple(Decimal(text) for text in spec["input_rates"]),
+        output_rates=tuple(Decimal(text) for text in spec["output_rates"]),
+        context_tokens=spec["context_tokens"],
+        output_floor_tokens=spec["output_floor_tokens"],
+        cache_write_rate=cache_write_rate,
+    )
+
+
+def test_2b_cache_write_adds() -> None:
+    row = _adds_row(Decimal(key.ADDS_2B["cache_write_rate"]))
+    hold = call_hold(row, max_output_tokens=key.ADDS_2B["max_output_tokens"])
+    assert hold == Decimal(key.ADDS_2B["hold"])
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [Decimal(key.BAD_CACHE_WRITE_2B[0]), 2.5],
+    ids=["negative", "float"],
+)
+def test_2b_cache_write_refused(bad: Any) -> None:
+    with pytest.raises(BudgetDataError):
+        _adds_row(bad)
+
+
 def test_2b_no_long_tier() -> None:
     row = budget.COPILOT_SOL_MEDIUM
-    rates = {str(rate) for rate in (*row.input_rates, *row.output_rates)}
+    rates = {str(rate) for rate in (*row.input_rates, *row.output_rates, row.cache_write_rate)}
     assert not rates & set(key.LONG_TIER_2B)
     assert row.context_tokens <= 272000
 

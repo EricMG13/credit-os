@@ -380,17 +380,30 @@ BAD_OUTPUT_CAPS: dict[str, Any] = {"negative": -1, "bool": True, "float": 32000.
 
 # ------------------------------------------------------------------ PR 2b: the gpt-6-sol row, copied from docs/decisions/0016-gpt-6-sol-price-row.md
 # Holds worked with `bc`, not by running production code:
-# (272000*2.50 + 32000*10.00)/1000000 = 1.00; (272000*2.50 + 32001*10.00)/1000000 = 1.00001;
-# (272000*2.50 + 64000*10.00)/1000000 = 1.32.
-# Rates are strings, so the test builds Decimal from them (exactly as published: "2.00").
+# (272000*(2.00+2.50) + 32000*10.00)/1000000 = 1.544; (272000*4.50 + 32001*10.00)/1000000 =
+# 1.54401; (272000*4.50 + 64000*10.00)/1000000 = 1.864; synthetic (1000*(3+2) + 10*7)/1000000
+# = 0.00507. Rates are strings, so the test builds Decimal from them (as published: "2.00").
 ROW_2B: dict[str, Any] = {
     "config_id": "copilot-sol-medium",
-    "input_rates": ("2.00", "0.20", "2.50"),
+    "input_rates": ("2.00", "0.20"),
     "output_rates": ("10.00",),
     "context_tokens": 272000,
     "output_floor_tokens": 32000,
+    "cache_write_rate": "2.50",
 }
 # (max_output_tokens, hold in USD as a decimal string)
-HOLDS_2B = [(32000, "1.00"), (0, "1.00"), (32001, "1.00001"), (64000, "1.32")]
-# The long-context tier: none of these may appear among the row's rates.
+HOLDS_2B = [(32000, "1.544"), (0, "1.544"), (32001, "1.54401"), (64000, "1.864")]
+# The long-context tier: none may appear among the row's rates or its cache-write rate.
 LONG_TIER_2B = ("4.00", "0.40", "5.00", "15.00")
+# Invented, not a price: the cache-write rate is added to the dearest input rate.
+ADDS_2B: dict[str, Any] = {
+    "config_id": "synthetic-cache-write",
+    "input_rates": ("1", "3"),
+    "output_rates": ("7",),
+    "context_tokens": 1000,
+    "output_floor_tokens": 10,
+    "cache_write_rate": "2",
+    "max_output_tokens": 0,
+    "hold": "0.00507",
+}
+BAD_CACHE_WRITE_2B = ["-0.01"]
