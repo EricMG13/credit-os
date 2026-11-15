@@ -83,17 +83,46 @@ def _data(events: list[Any], kind: str) -> list[dict[str, Any]]:
     ]
 
 
+def _word(value: object) -> str | None:
+    """`value` when it is a non-empty string, else None: the only form an event value is used in."""
+    return value if isinstance(value, str) and value else None
+
+
+def _starts(events: list[Any]) -> list[tuple[str, str]]:
+    """(toolCallId, toolName) of the tool starts that have both as non-empty strings."""
+    pairs = [
+        (_word(d.get("toolCallId")), _word(d.get("toolName")))
+        for d in _data(events, "tool.execution_start")
+    ]
+    return [(i, n) for i, n in pairs if i is not None and n is not None]
+
+
+def _invoked_ids(invoked: list[dict[str, Any]]) -> set[str]:
+    return {i for i in (_word(d.get("toolCallId")) for d in invoked) if i is not None}
+
+
+def _unanswerable(invoked: list[dict[str, Any]]) -> bool:
+    """An invocation whose toolCallId, toolName or requestId is not a non-empty string."""
+    return any(
+        _word(d.get(k)) is None for d in invoked for k in ("toolCallId", "toolName", "requestId")
+    )
+
+
 def _ready(events: list[Any], offered: set[str]) -> bool:
     """A call that announces tool calls may end: a usage and a start are read, every announced
     id has a start, and every start of an offered tool has been invoked under the same id."""
-    starts = _data(events, "tool.execution_start")
+    starts = _starts(events)
     lists = [d.get("toolRequests") for d in _data(events, "assistant.message")]
-    announced = [
-        r.get("toolCallId") for t in lists if isinstance(t, list) for r in t if isinstance(r, dict)
-    ]
-    started = {d.get("toolCallId") for d in starts}
-    invoked = {d.get("toolCallId") for d in _data(events, "external_tool.requested")}
-    wanted = {d.get("toolCallId") for d in starts if d.get("toolName") in offered}
+    announced = {
+        i
+        for t in lists
+        if isinstance(t, list)
+        for r in t
+        if isinstance(r, dict) and (i := _word(r.get("toolCallId"))) is not None
+    }
+    started = {i for i, _ in starts}
+    wanted = {i for i, n in starts if n in offered}
+    invoked = _invoked_ids(_data(events, "external_tool.requested"))
     return bool(_data(events, "assistant.usage") and starts) and (
         started.issuperset(announced) and invoked.issuperset(wanted)
     )
@@ -316,7 +345,12 @@ class CopilotDriver:
         kept = _Kept(client, session)
         left: object = []
         if reply.kind == "ok":
-            kept.invoked = {str(d.get("toolCallId")): str(d.get("requestId")) for d in invoked}
+            kept.invoked = {
+                i: r
+                for d in invoked
+                if (i := _word(d.get("toolCallId"))) is not None
+                and (r := _word(d.get("requestId"))) is not None
+            }
             self._kept.append(kept)
         else:
             aborts = bool(problem and problem[2]) or bool(invoked)
@@ -355,12 +389,10 @@ class CopilotDriver:
         invoked = _data(events, "external_tool.requested")
         last = events[-1] if events else None
         idle = isinstance(last, dict) and last.get("type") == "session.idle"
-        started = {
-            d.get("toolCallId")
-            for d in _data(events, "tool.execution_start")
-            if d.get("toolName") in offered
-        }
-        if idle and started - {d.get("toolCallId") for d in invoked}:
+        if _unanswerable(invoked):
+            return "ToolCallMismatch", _NO_MATCH, False
+        started = {i for i, n in _starts(events) if n in offered}
+        if idle and started - _invoked_ids(invoked):
             return "ToolCallLost", _NO_LOST, False
         calls = reply.turn.tool_calls if reply.turn else ()
         ids = [c.call_id for c in calls] + [d.get("toolCallId") for d in invoked]
