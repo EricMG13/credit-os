@@ -126,13 +126,16 @@ def _read(source: PagedSource, arguments: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+_LINE_BREAKS = {ord(c): " " for c in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029"}
+
+
 def _matches(source: PagedSource, query: str) -> Iterator[str]:
     for page in source.pages.pages:
         text = page.text
         at = text.find(query)
         while at != -1:
             stop = at + len(query)
-            snippet = text[max(0, at - _CONTEXT) : stop + _CONTEXT].replace("\n", " ")
+            snippet = text[max(0, at - _CONTEXT) : stop + _CONTEXT].translate(_LINE_BREAKS)
             yield f"page {page.number}: …{_neutralise(snippet)}…"
             at = text.find(query, stop)
 
