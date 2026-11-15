@@ -476,3 +476,22 @@ AFTER_TWO_RUNS_COMPACTIONS: dict[str, tuple[tuple[int, str, str | None], ...]] =
     "A": ((0, "x-1", "0.1"),),
     "B": ((0, "x-1", "0.2"), (1, "d-1", "0.002")),
 }
+
+# --- The gate on record_compactions (U1, U6): run A (RUN_ID) is created and started (claim 1),
+# record_compactions((FINISHED,)) is accepted, then claim_run(RUN_ID) makes claim 2. Each row is
+# then record_compactions with that claim number: (label, claim number, compactions, error class or
+# None). A refused row calls the clock zero times and leaves the full dump unchanged. The gate
+# comes before the repeat lookup, so the old claim's repeat is fenced, not a no-op.
+FENCED_COMPACTIONS: tuple[tuple[str, int, tuple[Compaction, ...], str | None], ...] = (
+    ("the old claim, a new compaction", 1, (UNFINISHED,), "StoreFenced"),
+    ("the old claim, a repeat", 1, (FINISHED,), "StoreFenced"),
+    ("the new claim", 2, (UNFINISHED,), None),
+)
+# After the rows, run A holds, by position: (position, event_id, billed text).
+AFTER_FENCED_COMPACTIONS: tuple[tuple[int, str, str | None], ...] = (
+    (0, "d-1", "0.002"),
+    (1, "u-1", None),
+)
+# While run A runs, record_compactions(MISSING_RUN_COMPACTIONS) with Claim(MISSING_RUN_ID,
+# FOREIGN_TOKEN of the runs part): StoreRefused, the clock never called, the full dump unchanged.
+MISSING_RUN_COMPACTIONS = (FINISHED,)
