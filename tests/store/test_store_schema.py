@@ -71,7 +71,8 @@ def test_schema_matches_the_key(tmp_path: Path) -> None:
         assert tuple(sorted(n for n, strict in tables if strict)) == key.STRICT_TABLES_AT_1
         assert all(strict for _, strict in tables)
         without_rowid = raw_db.execute(
-            f"SELECT name FROM pragma_table_list WHERE schema = 'main' AND wr AND {SYSTEM} ORDER BY name"
+            "SELECT name FROM pragma_table_list"
+            f" WHERE schema = 'main' AND wr AND {SYSTEM} ORDER BY name"
         ).fetchall()
         assert tuple(n for (n,) in without_rowid) == key.WITHOUT_ROWID_TABLES_AT_1
 
@@ -112,7 +113,10 @@ def test_no_statement_reaches_a_hidden_rowid(
 
 @pytest.mark.parametrize("status", list(key.STATUS_UPDATES))
 def test_a_pin_is_added_only_while_its_run_is_created(status: str) -> None:
-    insert = "INSERT INTO run_sources(run_id, position, name, sha256, size_bytes, kind) VALUES (?, ?, ?, ?, ?, ?)"
+    insert = (
+        "INSERT INTO run_sources(run_id, position, name, sha256, size_bytes, kind)"
+        " VALUES (?, ?, ?, ?, ?, ?)"
+    )
     with closing(_raw(True)) as raw_db:
         for statement, values in key.STATUS_UPDATES[status]:
             raw_db.execute(statement, values)

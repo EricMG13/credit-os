@@ -64,6 +64,16 @@ ACCEPTED_ROWS: tuple[tuple[str, str, dict[str, object]], ...] = (
         "runs",
         {"run_id": "run-008", "issuer_name": "\x00Example plc"},
     ),
+    # PR 3a (#297 L1): each clause's upper edge and full character class.
+    (
+        "created_at at the last microsecond of a year",
+        "runs",
+        {"run_id": "run-009", "created_at": "2026-12-31T23:59:59.999999Z"},
+    ),
+    ("issuer id of every class", "runs", {"run_id": "run-010", "issuer_id": "Issuer_7.b"}),
+    ("config id of every class", "runs", {"run_id": "run-011", "config_id": "Config_7.b"}),
+    ("event at the last microsecond of a year", "events", {"at": "2026-12-31T23:59:59.999999Z"}),
+    ("event module id of every class", "events", {"kind": "note", "module_id": "Cp_7.b"}),
 )
 
 # Rows refused on INSERT: (label, table, replaced columns). Each fails with sqlite3.IntegrityError when
@@ -143,6 +153,12 @@ REFUSED_ROWS: tuple[tuple[str, str, dict[str, object]], ...] = (
     ("event attempt zero", "events", {"module_id": "CP-1", "attempt": 0}),
     ("event detail not an object", "events", {"detail": "[]"}),
     ("event detail missing", "events", {"detail": None}),
+    # PR 3a (#297 L1): inside each pattern.
+    ("writer upper case", "runs", {"run_id": "run-x", "writer": WRITER.upper()}),
+    ("pin hash upper case", "run_sources", {"position": 5, "name": "b.pdf", "sha256": "AB" * 32}),
+    ("event kind leading digit", "events", {"kind": "1note"}),
+    ("event detail not closed", "events", {"detail": '{"a":1'}),
+    ("cap leading zeros", "runs", {"run_id": "run-x", "cap_usd": "007"}),
 )
 
 # After the valid RUN, PIN and EVENT rows are in: statements refused by a trigger, with the exact
@@ -251,6 +267,7 @@ _BAD_TIMES: tuple[tuple[str, object], ...] = (
     ("a NUL tail", T1 + "\x00junk"),
     ("no Z", T1[:-1] + "+"),
     ("no point before the fraction", T1[:19] + "x123456Z"),
+    ("a letter in the fraction", T1[:-2] + "xZ"),  # PR 3a (#297 L1)
 )
 
 # Refused on INSERT (sqlite3.IntegrityError), with the valid RUN, PIN and EVENT rows present and the
@@ -322,6 +339,7 @@ REFUSED_ENDS: tuple[tuple[str, dict[str, object]], ...] = (
     ("reason leading underscore", {"status": "stopped", "ended_at": T2, "end_reason": "_cap"}),
     ("reason upper inside", {"status": "stopped", "ended_at": T2, "end_reason": "capReached"}),
     ("reason NUL tail", {"status": "stopped", "ended_at": T2, "end_reason": "cap\x00x"}),
+    ("reason leading digit", {"status": "stopped", "ended_at": T2, "end_reason": "1cap"}),  # PR 3a
     *(
         (f"ended at {label}", {"status": "stopped", "ended_at": t, "end_reason": "cap"})
         for label, t in _BAD_TIMES
@@ -503,3 +521,18 @@ LIVE_STATUSES: tuple[str, ...] = ("running", "stopped", "failed")
 
 # The index events_by_run, from pragma_index_info: (seqno, column name).
 EVENTS_INDEX_COLUMNS: tuple[tuple[int, str], ...] = ((0, "run_id"), (1, "seq"))
+
+# --- Added for PR 3a (controller; #297's whole-branch review L1 and L2) ---------------------------
+
+# On a running run (the valid RUN moved by RUNNING), `UPDATE runs SET started_at = ?` with each of
+# these values is refused with exactly START_FIXED_MESSAGE and the row is unchanged (L1, mutant 106:
+# clearing the start is the same rule as moving it).
+START_FIXED_VALUES: tuple[object, ...] = (T2, None)
+
+# Every index on run_sources, from pragma_index_list joined with pragma_index_info, sorted:
+# (origin, unique, key columns in seqno order). Names are SQLite's own and not part of the key (L2:
+# the UNIQUE (run_id, name) constraint is otherwise pinned by the migration's hash alone).
+RUN_SOURCES_INDEXES: tuple[tuple[str, int, tuple[str, ...]], ...] = (
+    ("pk", 1, ("run_id", "position")),
+    ("u", 1, ("run_id", "name")),
+)

@@ -17,7 +17,7 @@ from hypothesis.stateful import RuleBasedStateMachine, invariant, rule, run_stat
 from credit_os.sources.pins import SourceKind, SourcePin
 from credit_os.store import errors, location
 from credit_os.store.db import Store, open_store
-from credit_os.store.errors import StoreError
+from credit_os.store.errors import StoreCorrupt, StoreError
 from credit_os.store.records import Claim
 
 RUN_ID = "run-001"
@@ -145,6 +145,49 @@ def test_refused_arguments(
     before, ticker.calls = _dump(tmp_path), 0
     assert _outcome(lambda: _call(store, claims, name, 1, args)) == "StoreRefused"
     assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+@pytest.mark.parametrize(
+    ("name", "args"),
+    [row[1:] for row in key.REFUSED_NAME_TYPES],
+    ids=[r[0] for r in key.REFUSED_NAME_TYPES],
+)
+def test_a_name_that_is_not_exactly_str_is_refused(
+    tmp_path: Path, store: Store, ticker: Ticker, name: str, args: Any
+) -> None:
+    claims = _in_state(store, name)
+    before, ticker.calls = _dump(tmp_path), 0
+    assert _outcome(lambda: _call(store, claims, name, 1, args)) == "StoreRefused"
+    assert (ticker.calls, _dump(tmp_path)) == (0, before)
+
+
+def _tables(folder: Path) -> list[list[tuple[Any, ...]]]:
+    """The three tables as bytes, so a damaged text reads back exactly as it was stored."""
+    with closing(sqlite3.connect(folder / location.STATE_FILE_NAME)) as raw:
+        raw.text_factory = bytes
+        return [
+            raw.execute(f"SELECT * FROM {table}").fetchall()  # three fixed table names
+            for table in ("runs", "run_sources", "events")
+        ]
+
+
+@pytest.mark.parametrize("call", key.DAMAGED_WRITER_CALLS)
+@pytest.mark.parametrize(
+    "damage", [row[1] for row in key.DAMAGED_WRITERS], ids=[r[0] for r in key.DAMAGED_WRITERS]
+)
+def test_a_stored_writer_that_is_not_a_token_is_corrupt(
+    tmp_path: Path, store: Store, ticker: Ticker, call: str, damage: str
+) -> None:
+    claims = _in_state(store, call)
+    path = tmp_path / location.STATE_FILE_NAME
+    with closing(sqlite3.connect(path, autocommit=True)) as raw:
+        raw.execute("PRAGMA ignore_check_constraints = ON")
+        raw.execute("UPDATE runs SET writer = ?", (damage,))
+    before, ticker.calls = _tables(tmp_path), 0
+    with pytest.raises(StoreCorrupt) as caught:
+        _call(store, claims, call, 1, ARGS[call])
+    assert str(caught.value) == key.STORED_WRITER_MESSAGE
+    assert (ticker.calls, _tables(tmp_path)) == (0, before)
 
 
 @pytest.mark.parametrize(

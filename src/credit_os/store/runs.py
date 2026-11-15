@@ -64,7 +64,8 @@ def check_identifier(name: str, value: object) -> str:
 
 
 def _checked_pins(pins: object) -> tuple[SourcePin, ...]:
-    """A snapshot of `pins`, each revalidated by the source model; a pin it refuses is StoreRefused."""
+    """A snapshot of `pins`, each revalidated by the source model; a pin it refuses is
+    StoreRefused."""
     if not isinstance(pins, tuple | list) or not all(isinstance(pin, SourcePin) for pin in pins):
         raise StoreRefused("pins must be a tuple or list of SourcePin")
     checked: list[SourcePin] = []
@@ -162,14 +163,16 @@ def insert_event(
 
 
 def check_name(name: str, value: object) -> str:
-    """Return the value when it is a lower-case name of 1 to 64 characters; the message never holds it."""
-    if not isinstance(value, str) or _NAME.fullmatch(value) is None:
+    """Return the value when it is exactly `str` and a lower-case name of 1 to 64 characters; a
+    `str` subclass is refused whatever its text. The message never holds the value."""
+    if type(value) is not str or _NAME.fullmatch(value) is None:
         raise StoreRefused(f"{name} must be a lower-case name of 1 to 64 characters")
     return value
 
 
 def check_claim(claim: object) -> Claim:
-    """Return the claim when it is a `Claim` of a valid run id and a 32-character lower-case hex token."""
+    """Return the claim when it is a `Claim` of a valid run id and a 32-character lower-case hex
+    token."""
     if (
         not isinstance(claim, Claim)
         or not isinstance(claim.token, str)
@@ -224,13 +227,20 @@ def gate(
     connection: sqlite3.Connection, run_id: str, token: str | None, allowed: frozenset[str]
 ) -> str:
     """Inside the write transaction: the run exists (StoreRefused), `token` is its writer unless
-    None (StoreFenced), its status is in `allowed` (StoreConflict). Returns the status."""
+    None (StoreFenced), its status is in `allowed` (StoreConflict). Returns the status.
+
+    A stored writer that is not a token is StoreCorrupt, before any comparison and for
+    `token=None` too, so `claim_run` refuses rather than replacing it. The message holds no stored
+    value. Such a run cannot be claimed or written until the file is repaired, and the store offers
+    no repair."""
     rows = connection.execute(
         "SELECT writer, status FROM runs WHERE run_id = ?", (run_id,)
     ).fetchall()
     if not rows:
         raise StoreRefused("no run has that run_id")
     writer, status = rows[0]
+    if not isinstance(writer, str) or _TOKEN.fullmatch(writer) is None:
+        raise StoreCorrupt("stored writer is not a token")
     if token is not None and not secrets.compare_digest(writer, token):
         raise StoreFenced("the claim is not the run's writer")
     if status not in allowed:

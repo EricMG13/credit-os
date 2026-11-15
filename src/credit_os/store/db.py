@@ -202,7 +202,8 @@ def _check_library() -> None:
 
 
 def _check_busy_seconds(busy_seconds: object) -> None:
-    """A real number above 0 and at most an hour; `nan`, `inf`, a bool, a str and a huge int fail."""
+    """A real number above 0 and at most an hour; `nan`, `inf`, a bool, a str and a huge int
+    fail."""
     if isinstance(busy_seconds, int | float) and not isinstance(busy_seconds, bool):
         try:
             if 0 < float(busy_seconds) <= _MAXIMUM_BUSY_SECONDS:
