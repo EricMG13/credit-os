@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "firebase@firebase": false,
+    "fallow@fallow-skills": false,
+    "flightdeck@claude-flightdeck": false,
+    "questline@questline-mods": false
+  }
+}
