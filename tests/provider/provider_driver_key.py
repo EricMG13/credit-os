@@ -463,6 +463,84 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
             ],
         },
     ),
+    # --- round 1 (task review and audit, High and Medium): the driver never raises after send;
+    # an external_tool.requested whose toolCallId, toolName or requestId is not a non-empty
+    # string is an invocation that cannot be answered: ToolCallMismatch, the call counted as
+    # invoked (abort first). Other ids that are not strings are the parser's to refuse.
+    "a tool start whose id is a list, in a call with no tools": (
+        _figures("UnparsableReply", "toolCallId is not a non-empty string"),
+        {
+            "script": [
+                _USAGE,
+                {**_starts("c1"), "data": {"toolCallId": [1], "toolName": "read"}},
+                _IDLE,
+            ]
+        },
+    ),
+    "a tool start whose name is an object": (
+        _figures("UnparsableReply", "toolName is not a non-empty string"),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                _TOOL_USAGE,
+                {**_starts("c1"), "data": {"toolCallId": "c1", "toolName": {"n": 1}}},
+                _IDLE,
+            ],
+        },
+    ),
+    "an announced id that is an object": (
+        _figures("UnparsableReply", "tool requests and tool starts differ", calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                {
+                    **_asks("c1"),
+                    "data": {**_asks("c1")["data"], "toolRequests": [{"toolCallId": {"x": 1}}]},
+                },
+                _TOOL_USAGE,
+                _starts("c1"),
+                _invoked("c1"),
+                _IDLE,
+            ],
+        },
+    ),
+    "an invocation whose toolCallId is a list": (
+        _figures("ToolCallMismatch", _MISMATCH, calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                *_ONE_CALL[:3],
+                {**_invoked("c1"), "data": {**_invoked("c1")["data"], "toolCallId": ["c1"]}},
+                _IDLE,
+            ],
+        },
+    ),
+    **{
+        f"an invocation whose requestId is {label}": (
+            _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2, calls=_ABORTED),
+            {
+                **_TOOLS_GIVEN,
+                "script": [
+                    *_ONE_CALL[:3],
+                    {**_invoked("c1"), "data": {**_invoked("c1")["data"], "requestId": value}},
+                ],
+            },
+        )
+        for label, value in (("null", None), ("a number", 7), ("empty", ""))
+    },
+    "an invocation with no requestId": (
+        _figures("ToolCallMismatch", _MISMATCH, finished=T0 + 2, calls=_ABORTED),
+        {
+            **_TOOLS_GIVEN,
+            "script": [
+                *_ONE_CALL[:3],
+                {
+                    **_invoked("c1"),
+                    "data": {k: v for k, v in _invoked("c1")["data"].items() if k != "requestId"},
+                },
+            ],
+        },
+    ),
 }
 
 # A home with no folder name is not a path: the driver refuses it when made (ValueError).
