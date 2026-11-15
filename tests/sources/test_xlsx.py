@@ -1143,3 +1143,36 @@ def test_cache_floor_memory() -> None:
         tracemalloc.stop()
     assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
     assert peak < 16 * 1024 * 1024
+
+
+def astral_cache_book(extra: int) -> tuple[bytes, str]:
+    # (ruling 39) the byte floor: a shared-string cache of astral characters is counted at
+    # 4 bytes a character, so a cache at the cap reads and one character more is refused
+    smile = chr(0x1F600)
+    cap = 1_048_576
+    k = 600_000 + extra
+    m = cap - 13 - 600_000
+    raw = book(
+        '<row r="1"><c r="A1" t="s"><f>' + "x" * m + "</f><v>0</v></c></row>",
+        strings="<si><t>" + smile * k + "</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+    assert len(raw) < 1_048_576
+    return raw, "A1=" + "'=" + "x" * m + "'" + " cache=" + smile * k
+
+
+def test_astral_cache_at_cap() -> None:
+    raw, label = astral_cache_book(0)
+    assert len(label) == 1_048_576
+    pages = xlsx_pages("b.xlsx", raw)
+    assert pages.pages[0].text.endswith("\n" + label)
+    assert pages.pages[0].state == "text"
+
+
+def test_astral_cache_over_cap() -> None:
+    raw, _ = astral_cache_book(1)
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", raw)
+    assert str(caught.value) == (
+        "b.xlsx: 'xl/worksheets/sheet1.xml': a cell or string longer than 1,048,576 characters"
+    )
