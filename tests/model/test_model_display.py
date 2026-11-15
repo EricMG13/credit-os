@@ -5,6 +5,7 @@ import json
 import re
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from hypothesis import given
@@ -49,11 +50,11 @@ def test_display_missing(code: str, words: str, places: int) -> None:
 
 
 @pytest.mark.parametrize("row", TEXT["refused"], ids=[f"r{i}" for i in range(len(TEXT["refused"]))])
-def test_display_refused(row: dict[str, object]) -> None:
+def test_display_refused(row: dict[str, Any]) -> None:
     raw = row["value"]
-    value = Value(amount=Decimal("1.5")) if raw == "1.5" else Decimal("1.5")
+    value: Any = Value(amount=Decimal("1.5")) if raw == "1.5" else Decimal("1.5")
     with pytest.raises(ERRORS[str(row["error"])]):
-        display_text(value, row["places"])  # type: ignore[arg-type]
+        display_text(value, row["places"])
 
 
 @pytest.mark.parametrize(
@@ -74,9 +75,9 @@ def test_json_number_refused(row: dict[str, str]) -> None:
 
 
 @pytest.mark.parametrize("bad", [1, 1.5, "1"], ids=["int", "float", "str"])
-def test_json_number_types(bad: object) -> None:
+def test_json_number_types(bad: Any) -> None:
     with pytest.raises(TypeError):
-        json_number(bad)  # type: ignore[arg-type]
+        json_number(bad)
 
 
 bounded = st.decimals(allow_nan=False, allow_infinity=False, places=None).filter(
