@@ -115,6 +115,7 @@ def test_every_table_index_and_trigger_exists_after_open(tmp_path: Path) -> None
         "idx_topic_stories_story_id",
         "idx_stories_link_key",
         "idx_stories_title_key",
+        "idx_stories_title_source_time",
         "idx_threads_group_activity",
         "idx_threads_story_id",
         "idx_comments_thread_id",

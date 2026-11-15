@@ -134,6 +134,27 @@ def test_the_cost_test_can_tell_the_old_function_apart(tmp_path: Path, holder: i
     assert large > 4 * small, (small, large)
 
 
+def _steps_for_a_title_nobody_shares(tmp_path: Path, sources: int) -> int:
+    """VM steps of one match for a title no stored story shares, when every source holds one
+    story under a title of its own."""
+    db = open_db(tmp_path / f"n{sources}")
+    _seed_sources(db, sources)
+    for number in range(1, sources + 1):
+        _put_story(
+            db, number, number, f"e.org/{number}", f"other title {number} words", utc_text(_BASE)
+        )
+    db.commit()
+    steps = _steps(db, lambda: store._earliest_match(db, 1, "e.org/new", _LONG, _BASE))
+    db.close()
+    return steps
+
+
+def test_a_title_no_story_shares_costs_the_same_at_300_sources_as_at_10(tmp_path: Path) -> None:
+    few = _steps_for_a_title_nobody_shares(tmp_path, 10)
+    many = _steps_for_a_title_nobody_shares(tmp_path, 300)
+    assert many <= 2 * few, (few, many)
+
+
 # -- Equality with the oracle on generated stores ---------------------------------------------
 
 _BASE = datetime(2026, 3, 1, 12, 0, 0, tzinfo=UTC)
@@ -241,6 +262,26 @@ def test_a_window_the_calendar_cannot_hold_is_clamped_and_still_matches_the_orac
     assert store._earliest_match(db, 1, "e.org/new", _LONG, published) == want
 
 
+@pytest.mark.parametrize(
+    "published",
+    [
+        datetime(1, 1, 2, 13, 0, tzinfo=timezone(timedelta(hours=-12))),
+        datetime(9999, 12, 30, 10, 0, tzinfo=timezone(timedelta(hours=14))),
+    ],
+    ids=["year 1 at -12:00", "year 9999 at +14:00"],
+)
+def test_a_caller_time_at_an_offset_near_the_calendar_edge_matches_the_oracle(
+    tmp_path: Path, published: datetime
+) -> None:
+    """In its own offset the time's window would leave the calendar; in UTC it does not."""
+    db = open_db(tmp_path)
+    _seed_sources(db, 2)
+    _put_story(db, 1, 2, "e.org/a", _LONG, utc_text(published.astimezone(UTC)))
+    want = earliest_match_oracle(db, 1, "e.org/new", _LONG, published)
+    assert want == 1
+    assert store._earliest_match(db, 1, "e.org/new", _LONG, published) == want
+
+
 def test_a_short_title_does_not_read_the_title_branch(tmp_path: Path) -> None:
     db = open_db(tmp_path)
     _seed_sources(db, 2)
@@ -263,7 +304,33 @@ def test_the_title_branch_seeks_the_new_index_once_per_source(tmp_path: Path) ->
     assert "idx_stories_title_key" not in plan.replace("idx_stories_title_source_time", "")
 
 
+def test_the_guard_statement_is_an_index_search_not_a_scan(tmp_path: Path) -> None:
+    db = open_db(tmp_path)
+    plan = " | ".join(
+        str(row["detail"])
+        for row in db.execute("EXPLAIN QUERY PLAN " + store._TITLE_HELD_SQL, (_LONG, 1, _LONG, 1))
+    )
+    assert plan.count("SEARCH stories USING COVERING INDEX idx_stories_title_source_time") == 2, (
+        plan
+    )
+    assert "SCAN" not in plan, plan
+
+
 # -- Migration 4 ---------------------------------------------------------------------------------
+
+
+def _every_row(db: sqlite3.Connection) -> dict[str, list[tuple[object, ...]]]:
+    names = [
+        str(row[0])
+        for row in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            " AND name NOT LIKE 'stories_fts%' ORDER BY name"
+        )
+    ]
+    return {
+        name: [tuple(row) for row in db.execute(f'SELECT * FROM "{name}" ORDER BY 1, 2')]
+        for name in names
+    }
 
 
 def test_migration_4_adds_the_index_to_a_version_3_database_and_keeps_its_rows(
@@ -273,16 +340,26 @@ def test_migration_4_adds_the_index_to_a_version_3_database_and_keeps_its_rows(
     old = open_db(tmp_path)
     _seed_sources(old, 2)
     _put_story(old, 1, 2, "e.org/a", _LONG, utc_text(_BASE))
+    old.execute(
+        "INSERT INTO story_duplicates(story_id, duplicate_source_id, link, link_key,"
+        " published_at, seen_at) VALUES(1, 1, 'l', 'e.org/dup', ?, 'f')",
+        (utc_text(_BASE),),
+    )
     old.commit()
     assert store.get_meta(old, "schema_version") == "3"
     assert not _index_exists(old)
+    before = _every_row(old)
+    assert before["sources"] and before["stories"] and before["story_duplicates"]
     old.close()
     monkeypatch.undo()
     for _ in range(2):  # the second open changes nothing
         new = open_db(tmp_path)
         assert store.get_meta(new, "schema_version") == "4"
         assert _index_exists(new)
-        assert new.execute("SELECT COUNT(*) FROM stories").fetchone()[0] == 1
+        after = _every_row(new)
+        before["meta"] = [row for row in before["meta"] if row[0] != "schema_version"]
+        after["meta"] = [row for row in after["meta"] if row[0] != "schema_version"]
+        assert after == before
         assert store._earliest_match(new, 1, "e.org/new", _LONG, _BASE) == 1
         new.close()
 

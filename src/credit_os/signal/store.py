@@ -518,6 +518,12 @@ _LINK_MATCH_SQL = (
     " SELECT s.id, s.published_at FROM story_duplicates d"
     " JOIN stories s ON s.id = d.story_id WHERE d.link_key = ? AND s.source_id != ?"
 )
+# Does any other source hold this title key at all: one index seek on each side of the caller's
+# source, so neither the sources nor the caller's own rows with this key add work.
+_TITLE_HELD_SQL = (
+    "SELECT 1 FROM stories WHERE title_key = ? AND source_id < ?"
+    " UNION ALL SELECT 1 FROM stories WHERE title_key = ? AND source_id > ? LIMIT 1"
+)
 # For every other source, one index seek (idx_stories_title_source_time) for its earliest story
 # with this title key inside [low, high]; the rows returned are at most one per source.
 _TITLE_MATCH_SQL = (
@@ -545,10 +551,15 @@ def _earliest_match(
     """Id of the earliest story with this link key (as a story or a folded duplicate), or, from
     another source, this title key within the window. A source never folds into itself by title,
     a title of fewer than MIN_TITLE_WORDS words never matches by title, and the duplicate-link
-    branch skips the caller's own source. Ties on time go to the lower id. Each branch returns at
-    most one row per source, so the work does not grow with the stories sharing a key."""
+    branch skips the caller's own source. Ties on time go to the lower id. The title branch returns
+    at most one row per source and the link branch at most two (one story, one duplicate), so the
+    work does not grow with the stories sharing a key; a title no other source holds costs one
+    index seek."""
     rows = db.execute(_LINK_MATCH_SQL, (lkey, lkey, source_id)).fetchall()
-    if len(tkey.split()) >= MIN_TITLE_WORDS:
+    if (
+        len(tkey.split()) >= MIN_TITLE_WORDS
+        and db.execute(_TITLE_HELD_SQL, (tkey, source_id, tkey, source_id)).fetchone() is not None
+    ):
         low, high = _window_texts(published)
         rows += db.execute(_TITLE_MATCH_SQL, (tkey, low, high, source_id)).fetchall()
     found = [(datetime.fromisoformat(row["published_at"]), row["id"]) for row in rows]
