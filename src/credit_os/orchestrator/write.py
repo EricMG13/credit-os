@@ -19,8 +19,11 @@ from credit_os.sources.pins import SourcePin
 
 MAX_WRITES = 3
 # Four times tests/fixtures/handoffs/tdg-2026-11-09/CP-2E.md (59,740 bytes), the largest real
-# handoff. check_handoff time grows with the square of a draft's register ids and tags (42 s at
-# this size); the fix belongs to later phases, and this cap bounds the damage meanwhile.
+# handoff (ruling 3A-27a). check_handoff time grows with the square of a draft's register ids
+# and tags. One write, measured on macOS at load 1 to 6: the dense shape of the review probe
+# .superpowers/sdd/3a/5/arch-probes/arch_cap_bound.py takes 22 s at 59,740 bytes, 89 s at
+# 119,480 and 347 s at this cap; the shape of .superpowers/sdd/3a/5/probes/ctl_timing_at_cap.py
+# takes 40.40 s at this cap. The one-pass fix in 2B and 1A comes before the first paid run.
 MAX_DRAFT_BYTES = 238960
 _SHOWN = 20
 _MAX_EDITS = 100
