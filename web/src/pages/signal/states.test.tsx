@@ -1,23 +1,12 @@
 // Unknown groups and digests, the unknown-scene link, and the rating-move list's position key.
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
+import { show } from "./test-helpers";
 
 const h1s = () => screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent);
 
 describe("Signal states", () => {
   afterEach(() => {
-    window.location.hash = "";
     vi.restoreAllMocks();
   });
 

@@ -1,19 +1,9 @@
 // The digest page (mock digests frames 1, 3 and 4). Expected wording is the mock's, not the code's.
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { show, page } from "./test-helpers";
 
 type Scene = (typeof fixture.slice.scenes)[number];
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
 
 /** A copy of the fixture whose scene `id` is changed by `change`. */
 function with_(id: string, change: (scene: Scene) => void): unknown {
@@ -44,7 +34,6 @@ function running(change: (digest: Scene["snapshot"]["digests"][number]) => void)
   });
 }
 
-const page = () => within(document.getElementById("signal-content") as HTMLElement);
 const headings = (level: number) =>
   page()
     .getAllByRole("heading", { level })
@@ -57,10 +46,6 @@ const NOTHING_SENTENCE =
   "No rating action reached this digest's sources on 13 November. The next digest is due on Mon 16 Nov.";
 const PAUSED =
   "No new digest is written while AI is off or at its cap. Earlier digests stay readable.";
-
-afterEach(() => {
-  window.location.hash = "";
-});
 
 describe("a digest with its newest issue (frame 1)", () => {
   it("takes the issue's title as the h1, the points as h2 and Earlier digests as an h2 with an h3 row", () => {

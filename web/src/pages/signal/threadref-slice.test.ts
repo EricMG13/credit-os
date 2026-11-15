@@ -1,18 +1,10 @@
 // A story's thread reference: it names a thread of the snapshot that is about this very story.
 import fixture from "../../../fixtures/signal.json";
 import { readSlice } from "./slice";
+import { withMain, type Scene } from "./test-helpers";
 
-type Scene = (typeof fixture.slice.scenes)[number];
 type Story = Scene["snapshot"]["feed"]["stories"][number];
 
-/** A copy of the fixture whose "main" scene (index 0) is changed by `change`. */
-function withMain(change: (scene: Scene) => void): unknown {
-  const copy = structuredClone(fixture.slice);
-  const main = copy.scenes[0];
-  if (main === undefined) throw new Error("the fixture has a first scene");
-  change(main);
-  return copy;
-}
 const story = (scene: Scene, id: string): Story => {
   const one = scene.snapshot.feed.stories.find((s) => s.id === id);
   if (one === undefined) throw new Error(`main has the story ${id}`);

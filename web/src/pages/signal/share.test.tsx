@@ -1,26 +1,7 @@
 // Share to group and Comment on a story in the feed (mock frame "Share to group", behaviour list 2.6).
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
-
-/** Lets the animation frames after a close run, where the dialog library restores focus by itself. */
-const settled = () =>
-  act(async () => {
-    for (let i = 0; i < 5; i += 1) {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  });
+import { show, settled } from "./test-helpers";
 
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
 const TESSALY = "Competition authority opens in-depth review of Tessaly Telecom's tower sale";
@@ -47,10 +28,6 @@ function withoutGroups(): unknown {
 }
 
 describe("Share to group", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("opens from a story as a form dialog with the story quoted, the Group field and the Note", () => {
     show(FEED);
     fireEvent.click(shareButton(CORVANE));
@@ -163,10 +140,6 @@ describe("Share to group", () => {
 });
 
 describe("Comment on a story", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("links to the story's thread when it has one", () => {
     show(FEED);
     const comment = screen.getByRole("link", { name: `Comment 4: ${CORVANE}` });

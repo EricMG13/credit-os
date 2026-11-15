@@ -1,20 +1,9 @@
 // Settings, AI and cost (mock frames 7, 8 and 9). Expected wording and sample values are the frames';
 // the toggles' reason is decision 0006 ruling 21.
-import { render, screen, within } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { show, page } from "./test-helpers";
 
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
-
-const page = () => within(document.getElementById("signal-content") as HTMLElement);
 const switches = () => page().getAllByRole("switch");
 const REASON = "AI parts stay off until the owner sets a cap.";
 const PARTS = ["AI line on stories", "Signal strength", "Digests"];
@@ -27,10 +16,6 @@ function withSpend(id: string, spend: unknown): unknown {
   Object.assign(scene.snapshot.settings.ai, { spend });
   return copy;
 }
-
-afterEach(() => {
-  window.location.hash = "";
-});
 
 describe("AI and cost with AI on (frame 7)", () => {
   it("draws the intro, the spend as a bar with the delivered label, its note and the switches on", () => {

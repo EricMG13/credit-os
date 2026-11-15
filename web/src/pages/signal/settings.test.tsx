@@ -1,19 +1,8 @@
 // The settings page (mock settings frames 1, 2 and 6). Expected wording is the mock's, not the code's.
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { show, page } from "./test-helpers";
 
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
-
-const page = () => within(document.getElementById("signal-content") as HTMLElement);
 const tabs = () => page().getByRole("tablist", { name: "Settings sections" });
 const NAMES = [
   "Groups",
@@ -24,10 +13,6 @@ const NAMES = [
   "Notifications",
   "AI and cost",
 ];
-
-afterEach(() => {
-  window.location.hash = "";
-});
 
 describe("the section list", () => {
   it("lists the seven sections as links for a writer, with the current one marked", () => {

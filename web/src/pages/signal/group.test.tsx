@@ -1,17 +1,7 @@
 // The group view (mock frames "Group view, writer" and "Group view, reader"; behaviour list 2.4, 2.5).
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
-
-function show(hash: string, slice: unknown = fixture.slice) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: slice },
-  };
-  return render(<App result={result} />);
-}
+import { show } from "./test-helpers";
 
 const LEV = "/signal/main/group/leveraged-credit";
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
@@ -47,10 +37,6 @@ function withGroup(
 }
 
 describe("the group view", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("draws the group's name as the one h1, with its member summary and visibility under it", () => {
     show(LEV);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -303,10 +289,6 @@ describe("the group view", () => {
 });
 
 describe("the group view across groups that reuse a thread id", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   function twinnedStories(): unknown {
     const copy = structuredClone(fixture.slice) as unknown as {
       scenes: {

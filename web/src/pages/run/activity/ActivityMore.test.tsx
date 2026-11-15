@@ -1,24 +1,9 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { App } from "../../../App";
-import type { LoadResult } from "../../../data";
+import { fireEvent, screen, within } from "@testing-library/react";
+import { runFixture, show, showFixture } from "../test-helpers";
 
-const fixture = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "../../../../fixtures/run.json"), "utf8"),
-) as {
+const fixture = runFixture() as {
   slice: { current: string | null; runs: { id: string; labels: string[] }[] };
 };
-
-function showWith(hash: string, run: unknown) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = { kind: "ok", data: { schema: "credit-os-data/1", issuers: [], run } };
-  return render(<App result={result} />);
-}
-const show = (hash: string) => showWith(hash, fixture.slice);
-afterEach(() => {
-  window.location.hash = "";
-});
 
 const GROUP =
   "6 more modules queued, each one starting only once the module before it has finished running";
@@ -27,7 +12,7 @@ const list = () => within(screen.getByRole("region", { name: "Modules" })).getBy
 const steps = () => within(list()).getAllByRole("listitem");
 
 describe("Run activity, many modules", () => {
-  beforeEach(() => show("/run/activity/many-modules"));
+  beforeEach(() => showFixture("/run/activity/many-modules"));
 
   it("draws six steps, two of them collapsed groups", () => {
     expect(steps()).toHaveLength(6);
@@ -86,7 +71,7 @@ describe("Run activity, many modules", () => {
 });
 
 describe("Run activity, long text from the fixture", () => {
-  beforeEach(() => show("/run/activity/many-modules"));
+  beforeEach(() => showFixture("/run/activity/many-modules"));
 
   it("draws the long label, module name and group title in full, cut by nothing", () => {
     const label = "Full credit review with every optional module and a late cut-off";
@@ -119,7 +104,7 @@ describe("Run activity, long text from the fixture", () => {
 
 describe("Run activity, No run", () => {
   it("none: title, text and the link to the first draft", () => {
-    show("/run/activity/none");
+    showFixture("/run/activity/none");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Run activity");
     expect(screen.getByText("Runs").tagName).not.toBe("A");
     expect(screen.getByRole("heading", { name: "No run to watch", level: 2 })).toBeTruthy();
@@ -136,13 +121,13 @@ describe("Run activity, No run", () => {
 
   it("without a draft there is no action", () => {
     const slice = { ...fixture.slice, drafts: [] };
-    showWith("/run/activity/none", slice);
+    show("/run/activity/none", slice);
     expect(screen.queryByRole("link", { name: "Start a run" })).toBeNull();
   });
 });
 
 describe("Run activity, cannot be read", () => {
-  beforeEach(() => show("/run/activity/unreadable"));
+  beforeEach(() => showFixture("/run/activity/unreadable"));
 
   it("shows State not known and no run state", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("TransDigm Group");
@@ -193,7 +178,7 @@ describe("Run activity, cannot be read", () => {
 describe("Run activity, the group's home address", () => {
   it("/run/activity draws the record current names", () => {
     expect(fixture.slice.current).toBe("running");
-    show("/run/activity");
+    showFixture("/run/activity");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("TransDigm Group");
     expect(screen.getByText("USD 7.40")).toBeTruthy();
     expect(screen.getByText("5 of 13")).toBeTruthy();
@@ -201,7 +186,7 @@ describe("Run activity, the group's home address", () => {
   });
 
   it("current null draws No run to watch", () => {
-    showWith("/run/activity", { ...fixture.slice, current: null });
+    show("/run/activity", { ...fixture.slice, current: null });
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Run activity");
     expect(screen.getByRole("heading", { name: "No run to watch", level: 2 })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Start a run" }).getAttribute("href")).toBe(
@@ -217,7 +202,7 @@ describe("Run activity, repeated labels", () => {
     const run = slice.runs.find((r) => r.id === "running");
     if (run === undefined) throw new Error("fixture has no running run");
     run.labels = ["Full credit review", "Full credit review"];
-    showWith("/run/activity/running", slice);
+    show("/run/activity/running", slice);
     expect(screen.getAllByText("Full credit review")).toHaveLength(2);
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();

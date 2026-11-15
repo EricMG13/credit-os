@@ -1,19 +1,8 @@
 // One fact, one value (register rows S3, S4, S6): the same fact drawn on two Signal surfaces agrees.
 // Expected values are mock frame 4's keywords, the thread panel's own count, and the empty Saved view.
-import { render, screen, waitFor, within } from "@testing-library/react";
-import fixture from "../../../fixtures/signal.json";
-import { App } from "../../App";
-import type { LoadResult } from "../../data";
+import { screen, waitFor, within } from "@testing-library/react";
+import { show, page as content } from "./test-helpers";
 
-function show(hash: string) {
-  window.location.hash = `#${hash}`;
-  const result: LoadResult = {
-    kind: "ok",
-    data: { schema: "credit-os-data/1", issuers: [], signal: fixture.slice },
-  };
-  return render(<App result={result} />);
-}
-const content = () => within(document.getElementById("signal-content") as HTMLElement);
 const nav = () => within(screen.getByRole("navigation", { name: "Signal" }));
 const CORVANE = "Corvane Packaging to close two plants as volumes fall";
 const TELECOMS = ["towers", "fibre", "spectrum", "Tessaly"];
@@ -21,10 +10,6 @@ const words = (list: HTMLElement | null) =>
   [...(list?.querySelectorAll("li") ?? [])].map((li) => li.textContent);
 
 describe("one fact, one value", () => {
-  afterEach(() => {
-    window.location.hash = "";
-  });
-
   it("S6: the feed's Comment count is the count of the thread it opens", async () => {
     show("/signal/main/feed/for-you");
     const comment = content().getByRole("link", { name: `Comment 4: ${CORVANE}` });
