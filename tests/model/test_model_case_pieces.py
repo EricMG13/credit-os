@@ -4,7 +4,7 @@ import dataclasses
 import decimal
 import importlib.util
 import json
-from decimal import Context, Decimal
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -20,54 +20,32 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from credit_os.model.forecast import Year
-from credit_os.model.inputs import ForecastInputs, parse_inputs
-from credit_os.model.value import Missing, MissingCode, Value, amount_text
+from credit_os.model.inputs import ForecastInputs
+from credit_os.model.value import Missing, MissingCode, Value
 
 EXPECTED = Path(__file__).parent / "expected"
 KEY = json.loads((EXPECTED / "pr7a1.json").read_text("utf-8"))
 FIELDS = KEY["fields"]
-HOSTILE = Context(prec=5, rounding=decimal.ROUND_UP)
 COUNTS = {"operands": 3, "drivers": 5, "unallocated": 6, "overlay": 6}
 
 
-def load_oracle() -> Any:
-    spec = importlib.util.spec_from_file_location("make_pr7a1", EXPECTED / "make_pr7a1.py")
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-ORACLE = load_oracle()
+HELPERS = importlib.util.spec_from_file_location(
+    "case_key_helpers", EXPECTED / "case_key_helpers.py"
+)
+assert HELPERS is not None and HELPERS.loader is not None
+H = importlib.util.module_from_spec(HELPERS)
+HELPERS.loader.exec_module(H)
+ORACLE = H.load_oracle("make_pr7a1")
+HOSTILE, ids = H.HOSTILE, H.ids
 
 
 def inputs_of(edits: list[Any]) -> ForecastInputs:
-    return parse_inputs(ORACLE.edited(edits))[0]
-
-
-def want(item: Any) -> Value | str:
-    """An expected value: the amount text, or the Value that is missing."""
-    if isinstance(item, str):
-        return item
-    missing = item["missing"]
-    if isinstance(missing, str):
-        code, text = KEY["reasons"][missing]
-        return Value(missing=Missing(MissingCode(code), text))
-    return Value(missing=Missing(MissingCode(missing["code"]), missing["text"]))
+    inputs: ForecastInputs = H.inputs_of(ORACLE, edits)
+    return inputs
 
 
 def same_value(got: Value, item: Any, where: str) -> None:
-    expected = want(item)
-    if isinstance(expected, str):
-        assert got.missing is None, where
-        assert got.amount is not None, where
-        assert amount_text(got.amount) == expected, where
-    else:
-        assert got == expected, where
-
-
-def ids(rows: list[dict[str, Any]]) -> list[str]:
-    return [r["name"] for r in rows]
+    H.same_value(KEY["reasons"], got, item, where)
 
 
 def test_row_counts() -> None:
@@ -118,7 +96,7 @@ def test_unallocated(row: dict[str, Any]) -> None:
 
 
 def year_from(shown: dict[str, Any], cash_text: str | None) -> Year:
-    values = {f: want(shown[f]) for f in FIELDS}
+    values = {f: H.want(KEY["reasons"], shown[f]) for f in FIELDS}
     built = {f: Value(amount=Decimal(v)) if isinstance(v, str) else v for f, v in values.items()}
     if cash_text is not None:
         built["closing_cash"] = Value(amount=Decimal(cash_text))
