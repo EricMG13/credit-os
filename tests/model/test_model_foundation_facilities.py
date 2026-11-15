@@ -62,8 +62,8 @@ def _outcome(row: dict[str, Any]) -> list[str] | None:
 
 
 def test_the_key_has_its_rows() -> None:
-    assert len(ROWS) == 77
-    assert sum(row["outcome"] is None for row in ROWS) == 23
+    assert len(ROWS) == 81
+    assert sum(row["outcome"] is None for row in ROWS) == 25
 
 
 @pytest.mark.parametrize("label", LABELS)
