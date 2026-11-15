@@ -1,6 +1,6 @@
 import sqlite3
 from collections.abc import Iterator, Mapping, MutableMapping
-from contextlib import closing
+from contextlib import closing, suppress
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
@@ -17,6 +17,7 @@ from test_store_status import RUN_ID, Ticker, _create, _outcome
 from credit_os.provider.types import Compaction, Usage
 from credit_os.store import location
 from credit_os.store.db import Store, StoreReader, open_reader, open_store
+from credit_os.store.errors import StoreBusy
 from credit_os.store.records import AttemptRecord, CallRecord, Charges, Claim, CompactionRecord
 
 SHA_OF_REPLY = {key.REPLIES[n]: key.REPLY_SHA256[n] for n in key.REPLIES}
@@ -175,16 +176,7 @@ def test_every_reply_kind_reads_back(
     ticker.row = 2
     store.close_call(claim, **_close_args(reply))
     expected_call = CallRecord(
-        RUN_ID,
-        "CP-1",
-        1,
-        0,
-        "ex-1",
-        0,
-        key.HOLD,
-        key.at(1),
-        key.at(2),
-        **_fields(call),
+        RUN_ID, "CP-1", 1, 0, "ex-1", 0, key.HOLD, key.at(1), key.at(2), **_fields(call)
     )
     compactions = tuple(
         CompactionRecord(RUN_ID, cast(int, row["position"]), "CP-1", 1, 0, key.compaction_of(row))
@@ -369,3 +361,21 @@ def test_a_row_the_schema_checks_would_refuse_is_corrupt(
     for handle in _handles(tmp_path, store):
         assert _outcome(partial(handle.charges, RUN_ID)) == "StoreCorrupt"
         assert len(handle.attempts(RUN_ID)) == 1
+
+
+def test_charges_is_one_read_transaction(tmp_path: Path, store: Store) -> None:
+    claim = _with_call(store)
+    reply = key._ok(Usage(output_tokens=3), Decimal("0.75"), (key.FINISHED,))
+    fired: list[bool] = []
+
+    def commit_between_the_selects(sql: str) -> None:
+        if "FROM compactions" in sql and not fired:
+            fired.append(True)
+            with suppress(StoreBusy):  # the read's snapshot may hold the writer off
+                store.close_call(claim, **_close_args(reply))
+
+    with open_reader(tmp_path) as reader:
+        reader._live().set_trace_callback(commit_between_the_selects)
+        got = reader.charges(RUN_ID)
+    assert fired
+    assert (got.calls[0].kind is None) == (got.compactions == ())

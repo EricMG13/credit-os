@@ -50,7 +50,11 @@ class _Handle:
         with self._lock:
             connection = self._live()
             try:
-                yield connection
+                connection.execute("BEGIN")  # one snapshot for every statement of the read
+                try:
+                    yield connection
+                finally:
+                    connection.execute("ROLLBACK")
             except sqlite3.Error as error:
                 raise store_error(error, "read the store") from error
 
