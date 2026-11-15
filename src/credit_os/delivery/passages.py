@@ -16,12 +16,14 @@ Values are plain dicts with the slice's own camelCase keys; `trace` is None here
 import unicodedata
 from collections.abc import Sequence
 from decimal import Decimal
+from typing import NamedTuple
 
 from credit_os.checks.figures import CODE, Figure, read_figures
 from credit_os.checks.passages import limitation_texts, normalise_limitation
+from credit_os.checks.text import section_blocks
 from credit_os.delivery.errors import DeliveryRefused
 from credit_os.handoff.basis import read_basis
-from credit_os.handoff.blocks import ListItem, Paragraph
+from credit_os.handoff.blocks import Block, ListItem, Paragraph
 from credit_os.handoff.data import Gap, read_value
 from credit_os.handoff.document import HandoffDocument, Section
 from credit_os.handoff.errors import HandoffError
@@ -47,6 +49,9 @@ def narrative_leaks(text: str, names: Sequence[str]) -> tuple[str, ...]:
     return tuple(item[1] for item in found)
 
 
+_ORPHAN_BASIS = "basis line with no item before it"
+
+
 def _refuse(builder: str, rule: str) -> DeliveryRefused:
     return DeliveryRefused(f"{builder}: {rule}")
 
@@ -62,6 +67,15 @@ def _text(block: object, builder: str) -> str:
         raise _refuse(builder, "table or code block in passage")
     basis = read_basis(block)
     return " ".join(block.lines if basis is None else basis.body)
+
+
+def _basis_only(block: Block) -> bool:
+    """A block whose shown text is empty and whose last line is a Basis line (ruling 6-16)."""
+    return (
+        isinstance(block, Paragraph | ListItem)
+        and read_basis(block) is not None
+        and not _text(block, "passage")
+    )
 
 
 def _joined(texts: Sequence[str]) -> str:
@@ -122,29 +136,41 @@ def _part(title: str, texts: Sequence[str], names: Sequence[str]) -> dict[str, o
     return {"title": title, "text": text, "trace": None}
 
 
-def _direct_parts(section: Section) -> list[tuple[str, list[str]]]:
-    parts: list[tuple[str, list[str]]] = []
+def _direct_parts(
+    section: Section, *, strict: bool = False
+) -> list[tuple[str, list[str], list[Block]]]:
+    """The parts directly under a section. A Basis-only block joins the part before it; with
+    none before it, `strict` (the trace read, ruling 6-16) refuses and the builder skips it.
+    """
+    parts: list[tuple[str, list[str], list[Block]]] = []
     for block in section.blocks:
         text = _text(block, "contrary evidence")
         lead = read_lead(block) if isinstance(block, Paragraph | ListItem) else None
         if lead is not None:
-            parts.append((lead.label, [" ".join(lead.rest)]))
+            parts.append((lead.label, [" ".join(lead.rest)], [block]))
         elif not text:
-            continue
+            if not _basis_only(block):
+                continue
+            if parts:
+                parts[-1][2].append(block)
+            elif strict:
+                raise _refuse("contrary evidence", _ORPHAN_BASIS)
         elif parts:
             parts[-1][1].append(text)
+            parts[-1][2].append(block)
         else:
-            parts.append((section.title, [text]))
+            parts.append((section.title, [text], [block]))
     return parts
 
 
-def _sub_part(sub: Section) -> tuple[str, list[str]]:
+def _sub_part(sub: Section) -> tuple[str, list[str], list[Block]]:
     if sub.sections:
         raise _refuse("contrary evidence", "deeper heading in sub-section")
     for block in sub.blocks:
         if isinstance(block, Paragraph | ListItem) and read_lead(block) is not None:
             raise _refuse("contrary evidence", "lead mark in sub-section")
-    return sub.title, [_text(block, "contrary evidence") for block in sub.blocks]
+    texts = [_text(block, "contrary evidence") for block in sub.blocks]
+    return sub.title, texts, list(sub.blocks)
 
 
 def contrary_and_change(
@@ -163,7 +189,7 @@ def contrary_and_change(
         return None, None
     if len(parts) > 2:
         raise _refuse("contrary evidence", "more than two parts")
-    built = [_part(title, texts, names) for title, texts in parts]
+    built = [_part(title, texts, names) for title, texts, _ in parts]
     return built[0], built[1] if len(built) == 2 else None
 
 
@@ -242,6 +268,14 @@ def _single_figure(text: str) -> Figure | None:
     return figure if _outside_is_plain(text, figure) else None
 
 
+_MINUS_LIKE = tuple(chr(point) for point in (0x207B, 0x208B, 0x2796, 0x02D7))
+
+
+def _other_minus(c: str) -> bool:
+    """A dash-like sign that the figure reader may not read as a minus: category Pd except '-', or one of four more."""
+    return (unicodedata.category(c) == "Pd" and c != "-") or c in _MINUS_LIKE
+
+
 def cell(
     text: str,
 ) -> tuple[dict[str, object] | None, tuple[str | None, str | None] | None]:
@@ -251,6 +285,10 @@ def cell(
     masked each hold exactly one figure and it is the same figure; otherwise `at` is None. It is
     also None when the figure's unit or currency is unrecognised, or when text outside the figure
     holds a letter (once its currency code is removed) or a currency symbol the figure did not read.
+    It is also None when the text holds a numeric character other than 0 to 9 (another script's
+    digits, fullwidth digits, superscripts, fractions, circled digits, Roman numerals).
+    It is also None when the text holds a dash-like sign other than '-' and U+2212 (a wrong sign is
+    worse than a gap).
     """
     if not isinstance(text, str):
         raise TypeError("a cell is read from a str")
@@ -258,8 +296,75 @@ def cell(
         return None, None
     if isinstance(read_value(text), Gap):
         return {"kind": "gap", "reason": text}, None
+    if any(c.isnumeric() and c not in "0123456789" for c in text):
+        return {"kind": "value", "text": text, "at": None}, None
+    if any(_other_minus(c) for c in text):
+        return {"kind": "value", "text": text, "at": None}, None
     figure = _single_figure(text)
     if figure is None:
         return {"kind": "value", "text": text, "at": None}, None
     at: Decimal = figure.value.copy_negate() if figure.negative else figure.value
     return {"kind": "value", "text": text, "at": at}, (figure.unit, figure.currency)
+
+
+class ItemBlocks(NamedTuple):
+    """The blocks behind each item the builders above show, in the same order and numbering."""
+
+    bottom_line: tuple[Block, ...]
+    findings: tuple[tuple[Block, ...], ...]
+    contrary: tuple[tuple[Block, ...], ...]
+    limitations: tuple[tuple[Block, ...], ...]
+
+
+def _limitation_blocks(document: HandoffDocument, section: Section | None) -> list[Block]:
+    """The blocks `limitation_texts` reads its items from, in its order."""
+    if section is None:
+        return []
+    kept: list[Block] = []
+    for block in section_blocks(document, section):
+        lines = block.lines[:-1] if read_basis(block) is not None else block.lines
+        if lines:
+            kept.append(block)
+    return kept
+
+
+def _finding_blocks(section: Section | None) -> tuple[tuple[Block, ...], ...]:
+    """The blocks of each finding; a Basis-only block joins the finding before it (6-16)."""
+    groups: list[list[Block]] = []
+    for block in section.blocks if section is not None else ():
+        if _text(block, "findings"):
+            groups.append([block])
+        elif _basis_only(block):
+            if not groups:
+                raise _refuse("findings", _ORPHAN_BASIS)
+            groups[-1].append(block)
+    return tuple(tuple(group) for group in groups)
+
+
+def item_blocks(reader: Reader, document: HandoffDocument) -> ItemBlocks:
+    """The blocks of each item `bottom_line`, `findings`, `contrary_and_change` and `limitations`
+    return, selected the same way (empty findings skipped, limitations deduplicated), so a
+    trace reads exactly the items shown. The caller has built those items first, so every
+    refusal of a builder has already been raised; a blocked run holds none.
+    """
+    if reader.blocked or reader.bottom_line is None:
+        return ItemBlocks((), (), (), ())
+    found = _finding_blocks(reader.key_findings)
+    contrary: tuple[tuple[Block, ...], ...] = ()
+    if reader.contrary is not None:
+        parts = _direct_parts(reader.contrary, strict=True) + [
+            _sub_part(sub) for sub in reader.contrary.sections
+        ]
+        contrary = tuple(tuple(blocks) for _, _, blocks in parts)
+    kept = _limitation_blocks(document, reader.limitations)
+    texts = limitation_texts(document)
+    if len(kept) != len(texts):
+        raise _refuse("limitations", "items do not match their blocks")
+    seen: set[str] = set()
+    limits: list[tuple[Block, ...]] = []
+    for block, text in zip(kept, texts, strict=True):
+        key = normalise_limitation(text)
+        if key not in seen:
+            seen.add(key)
+            limits.append((block,))
+    return ItemBlocks(tuple(reader.bottom_line.blocks), found, contrary, tuple(limits))

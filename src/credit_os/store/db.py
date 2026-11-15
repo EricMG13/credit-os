@@ -6,14 +6,14 @@ go: see `errors.StoreError`."""
 import secrets
 import sqlite3
 import threading
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Self
 
-from credit_os.provider.types import Compaction
+from credit_os.provider.types import Compaction, Reply
 from credit_os.sources.pins import SourcePin
 from credit_os.store import attempts, codec, location, runs, schema, txn
 from credit_os.store.errors import (
@@ -219,6 +219,31 @@ class Store(_Handle):
                 connection, held.run_id, module, number, exchange, index, hold, self._now
             )
 
+    def close_call(
+        self, claim: Claim, *, module_id: str, attempt: int, call_index: int, reply: Reply
+    ) -> None:
+        """Close the attempt's open call with the reply: its compactions at the run's next
+        positions, in order, then the call's columns and `closed_at`, in one transaction. No
+        event. A call or attempt the run lacks is StoreRefused; a closed call, an attempt that is
+        not open and a compaction that conflicts (U16) are StoreConflict, and nothing is written.
+        Consequences: a crashed run is taken over by `claim_run`, and its open attempt is failed
+        only while the run is running: claim, `fail_attempt`, `end_run`; or, when the end came
+        first, `start_run` on resume and then `fail_attempt` (U9; PR 5's settle is outside this
+        gate). Provider text is stored escaped and uncut, and the escape is not one-to-one, so
+        two ids can collide (U12). A `Reply` the codecs cannot store (a non-`str` text,
+        non-`bytes` raw, a count above 2**63 - 1, a time outside years 0001 to 9999, a charge
+        over 64 digits) is StoreRefused before the transaction and the call stays open: spend is
+        unknown, never a wrong figure (U14). A refused `close_call` leaves no trace of the
+        charge, so the caller treats spend as unknown (D7)."""
+        held, module, number, index, columns, rows = attempts.check_close_call(
+            claim, module_id, attempt, call_index, reply
+        )
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.close_call(
+                connection, held.run_id, module, number, index, columns, rows, self._now
+            )
+
     def record_compactions(self, claim: Claim, compactions: Sequence[Compaction]) -> None:
         """Record compactions that belong to no call (from `Model.close()`), each at the run's
         next position, in order. An event id the run already holds is a no-op when the
@@ -229,6 +254,50 @@ class Store(_Handle):
         with self._write() as connection:
             runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
             attempts.insert_compactions(connection, held.run_id, rows, None)
+
+    def record_reply(self, claim: Claim, *, module_id: str, attempt: int, reply: bytes) -> str:
+        """Record the reply of an open attempt with no open call, as bytes, and return their
+        SHA-256 (64 lower-case hex). An attempt the run lacks is StoreRefused; one that is not
+        open, or has an open call, is StoreConflict."""
+        held, module, number, data = attempts.check_record_reply(claim, module_id, attempt, reply)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            return attempts.record_reply(connection, held.run_id, module, number, data, self._now)
+
+    def record_verdict(
+        self,
+        claim: Claim,
+        *,
+        module_id: str,
+        attempt: int,
+        reply_sha256: str,
+        accepted: bool,
+        issues: Sequence[Mapping[str, str | int | None]],
+    ) -> None:
+        """Accept or reject a replied attempt whose stored reply hash is `reply_sha256`, storing
+        `issues` as the text "[" + each item's detail text joined by "," + "]". An attempt the
+        run lacks is StoreRefused; one that is not replied, or holds another hash, is
+        StoreConflict."""
+        held, module, number, sha, verdict, text = attempts.check_record_verdict(
+            claim, module_id, attempt, reply_sha256, accepted, issues
+        )
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.record_verdict(
+                connection, held.run_id, module, number, sha, verdict, text, self._now
+            )
+
+    def fail_attempt(self, claim: Claim, *, module_id: str, attempt: int, reason: str) -> None:
+        """Fail an open attempt with a lower-case name `reason`. An attempt the run lacks is
+        StoreRefused; one that is not open is StoreConflict. An open call of the attempt stays
+        open: its spend is unknown until settled (D7; PR 5's settle). A crashed run is taken
+        over by `claim_run`, and its open attempt is failed only while the run is running:
+        claim, `fail_attempt`, `end_run`; or, when the end came first, `start_run` on resume and
+        then `fail_attempt` (U9; PR 5's settle is outside this gate)."""
+        held, module, number, name = attempts.check_fail_attempt(claim, module_id, attempt, reason)
+        with self._write() as connection:
+            runs.gate(connection, held.run_id, held.token, frozenset({"running"}))
+            attempts.fail_attempt(connection, held.run_id, module, number, name, self._now)
 
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:

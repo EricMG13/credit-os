@@ -58,24 +58,81 @@ def _ids(document: HandoffDocument) -> tuple[str, ...]:
     )
 
 
+_RUN = re.compile(r"[\w-]+")
+_EDGE = re.compile(r"[\w-]")
+
+_Shapes = dict[str, tuple[tuple[int, tuple[int, ...]], ...]]
+
+
+def _index(ids: tuple[str, ...]) -> tuple[dict[str, int], _Shapes]:
+    """Rank of each id, and by first run the `(lead, lengths)` the ids with that run have."""
+    rank = {id_: position for position, id_ in enumerate(ids)}
+    grouped: dict[str, dict[int, set[int]]] = {}
+    for id_ in ids:
+        first = next(_RUN.finditer(id_))
+        grouped.setdefault(first.group(), {}).setdefault(first.start(), set()).add(len(id_))
+    shapes = {
+        run: tuple((lead, tuple(sorted(lengths))) for lead, lengths in sorted(leads.items()))
+        for run, leads in grouped.items()
+    }
+    return rank, shapes
+
+
+def _stands(line: str, start: int, end: int) -> bool:
+    return (start == 0 or _EDGE.match(line, start - 1) is None) and (
+        end == len(line) or _EDGE.match(line, end) is None
+    )
+
+
+def _mentions_at(
+    line: str,
+    start: int,
+    lengths: tuple[int, ...],
+    rank: dict[str, int],
+    ends: dict[int, int],
+) -> list[tuple[int, int]]:
+    found: list[tuple[int, int]] = []
+    for length in lengths:
+        end = start + length
+        if end > len(line):
+            break
+        at = rank.get(line[start:end])
+        if at is None or start < ends.get(at, 0) or not _stands(line, start, end):
+            continue
+        ends[at] = end
+        found.append((at, start))
+    return found
+
+
+def _mentions(line: str, rank: dict[str, int], shapes: _Shapes) -> list[tuple[int, int]]:
+    ends: dict[int, int] = {}
+    found: list[tuple[int, int]] = []
+    previous = 0
+    for run in _RUN.finditer(line):
+        for lead, lengths in shapes.get(run.group(), ()):
+            if lead > run.start() - previous:
+                break
+            found.extend(_mentions_at(line, run.start() - lead, lengths, rank, ends))
+        previous = run.end()
+    return sorted(found)
+
+
 def check_register_id(document: HandoffDocument, context: CheckContext) -> tuple[Finding, ...]:
     reader = try_reader(document)
     if reader is None or reader.format != "new":
         return ()
-    patterns = [
-        (id_, re.compile(rf"(?<![\w-]){re.escape(id_)}(?![\w-])")) for id_ in _ids(document)
-    ]
+    ids = _ids(document)
+    rank, shapes = _index(ids)
     return tuple(
         refusal(
             "prose.register-id",
             line.line,
-            id_,
-            f"Remove the register id `{echo(id_)}` from the text; ids belong in the tables.",
-            found.start() + 1,
+            ids[at],
+            f"Remove the register id `{echo(ids[at])}` from the text; ids belong in the tables.",
+            start + 1,
         )
         for line in passage_text(document, reader)
-        for id_, pattern in patterns
-        for found in pattern.finditer(line.text)
+        for at, start in _mentions(line.text, rank, shapes)
     )
 
 
