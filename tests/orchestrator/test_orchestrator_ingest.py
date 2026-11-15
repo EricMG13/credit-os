@@ -152,7 +152,9 @@ def test_d16_the_launch_rule_over_a_count(name: str) -> None:
     assert launch_problems(FolderCount(files=files, total_bytes=total)) == problems
 
 
-@pytest.mark.parametrize("name", list(key.PIN_SETS), ids=list(key.PIN_SETS))
+@pytest.mark.parametrize(
+    "name", [n for n, (_p, found) in key.PIN_SETS.items() if found], ids=lambda n: n
+)
 def test_d16_the_rule_again_over_the_pins_refuses(
     name: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
