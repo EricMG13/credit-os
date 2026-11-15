@@ -122,5 +122,5 @@ def test_lost_values_work_grows_linearly_with_the_figures_in_one_node() -> None:
         "500": 500,
         "1000": 1000,
     }
-    assert counts["1000"][0] <= 2.2 * counts["500"][0]
-    assert counts["500"][0] <= 2.2 * counts["250"][0]
+    assert 10 * counts["1000"][0] <= 22 * counts["500"][0]
+    assert 10 * counts["500"][0] <= 22 * counts["250"][0]
