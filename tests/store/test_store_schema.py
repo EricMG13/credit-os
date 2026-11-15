@@ -238,7 +238,7 @@ def test_a_file_at_version_1_moves_to_version_2(tmp_path: Path) -> None:
             issuer_name="Issuer",
             as_of=None,
             config_id="cfg",
-            cap_usd=Decimal("20"),
+            cap_usd=Decimal(20),
             request=b"r",
             pins=(),
         )

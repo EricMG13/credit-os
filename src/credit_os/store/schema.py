@@ -7,9 +7,9 @@ Migration 2, three consequences:
 
 - Writes to the three tables (inserts and updates of attempts and calls, inserts of compactions)
   are refused by trigger unless the run is `running` (ruling U9). A crashed run is taken over by
-  `claim_run`, so take-over is claim, fail the open attempt (its open call with it), then
-  `end_run`; on resume it is `start_run`, then fail. PR 5's settle table (migration 3) writes on a
-  stopped run and is outside this gate by design.
+  `claim_run`, so take-over is claim, fail the open attempt (an open call of it stays open, D7),
+  then `end_run`; on resume it is `start_run`, then fail. PR 5's settle table (migration 3) writes
+  on a stopped run and is outside this gate by design.
 - Provider text is stored backslashreplace-escaped, so a lone surrogate escaped and a literal
   `\\ud800` are one stored id (U12).
 - Every CHECK on `calls` and `compactions` accepts every `Reply` and `Compaction` the provider's
