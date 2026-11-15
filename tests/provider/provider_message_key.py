@@ -310,6 +310,8 @@ def _near_miss(folders: tuple[str, ...], run: int) -> str:
 _EIGHT = tuple(c * 3 for c in "abcdefgh")
 _DEEP = "C:\\" + "\\".join(_EIGHT)  # an 8-folder known path
 _RT_WIN = "C:\\Users\\jane\\AppData\\Local\\Programs\\copilot\\bin\\copilot.exe"
+# 2h-2 re-review N1: a known path of accented letters written in NFD, its last character wrong
+_ACC = "/\u00e9a/\u00e3b/\u1ec7c/\u00c9d/\u5f20e/\u00fcf/\u00f1g/\u00e5h/\u00f8i/\u00e7j"
 # message() is linear in the text for fixed known paths (coordinator, 2026-11-14): (label, known
 # paths, text), each at most SECONDS. Inputs at most 10^5 characters.
 TIMING_PATHS: tuple[tuple[str, tuple[str, ...], str], ...] = (
@@ -324,6 +326,11 @@ TIMING_PATHS: tuple[tuple[str, tuple[str, ...], str], ...] = (
         "backslashes, UNC and POSIX non-ASCII",
         ("\\\\srv\\\u00e9share\\Users\\bob", "/home/j\u00f6rg"),
         B * 100_000,
+    ),
+    (
+        "NFD near-miss, 10 accented folders, repeated",
+        (_ACC,),
+        ((unicodedata.normalize("NFD", _ACC)[:-1] + "Q ") * 5_000)[:100_000],
     ),
 )
 
