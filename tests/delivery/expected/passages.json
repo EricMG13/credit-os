@@ -202,7 +202,22 @@
   ["USD\u00a0\u22125", {"kind": "value", "text": "USD\u00a0\u22125", "at": "-5"}, [null, "USD"]],
   ["5-10", {"kind": "value", "text": "5-10", "at": null}, null],
   ["Not calculable: EBITDA \u2013 negative", {"kind": "gap", "reason": "Not calculable: EBITDA \u2013 negative"}, null],
-  ["Not calculable: no \u2460 split", {"kind": "gap", "reason": "Not calculable: no \u2460 split"}, null]
+  ["Not calculable: no \u2460 split", {"kind": "gap", "reason": "Not calculable: no \u2460 split"}, null],
+  ["\u202a571", {"kind": "value", "text": "\u202a571", "at": null}, null],
+  ["\u202b571", {"kind": "value", "text": "\u202b571", "at": null}, null],
+  ["\u202c571", {"kind": "value", "text": "\u202c571", "at": null}, null],
+  ["\u202d571", {"kind": "value", "text": "\u202d571", "at": null}, null],
+  ["\u202e571", {"kind": "value", "text": "\u202e571", "at": null}, null],
+  ["\u2066571", {"kind": "value", "text": "\u2066571", "at": null}, null],
+  ["\u2067571", {"kind": "value", "text": "\u2067571", "at": null}, null],
+  ["\u2068571", {"kind": "value", "text": "\u2068571", "at": null}, null],
+  ["\u2069571", {"kind": "value", "text": "\u2069571", "at": null}, null],
+  ["\u200e571", {"kind": "value", "text": "\u200e571", "at": null}, null],
+  ["\u200f571", {"kind": "value", "text": "\u200f571", "at": null}, null],
+  ["\u061c571", {"kind": "value", "text": "\u061c571", "at": null}, null],
+  ["5\u202e71", {"kind": "value", "text": "5\u202e71", "at": null}, null],
+  ["USD \u20665", {"kind": "value", "text": "USD \u20665", "at": null}, null],
+  ["-\u200f5", {"kind": "value", "text": "-\u200f5", "at": null}, null]
  ],
  "leaks": [
   ["Leverage is 4.2x.", ["NBG_2025-03-31_annual-report.pdf"], []],
