@@ -1001,3 +1001,39 @@ def test_page_text_cap_is_met_before_a_later_style_fault(monkeypatch: pytest.Mon
     with pytest.raises(SourceUnreadable) as caught:
         xlsx_pages("b.xlsx", raw)
     assert str(caught.value) == "b.xlsx: page text longer than 65,536 characters"
+
+
+def many_sheets(count: int) -> bytes:
+    entries = "".join(
+        f'<sheet name="S{i}" sheetId="{i}" r:id="rId{i}"/>' for i in range(1, count + 1)
+    )
+    relations = "".join(
+        f'<Relationship Id="rId{i}" Type="{OFFICE}/worksheet" Target="worksheets/sheet{i}.xml"/>'
+        for i in range(1, count + 1)
+    )
+    parts: dict[str, str | bytes] = {
+        "xl/workbook.xml": workbook_xml(entries),
+        "xl/_rels/workbook.xml.rels": rels_xml(relations),
+    }
+    for i in range(1, count + 1):
+        parts[f"xl/worksheets/sheet{i}.xml"] = sheet_xml(ONE)
+    return zipped(parts, zipfile.ZIP_DEFLATED)
+
+
+def test_sheet_cap_is_one_thousand() -> None:
+    assert xlsx.MAX_SHEETS == 1_000
+
+
+def test_sheets_at_cap_read() -> None:
+    raw = many_sheets(1_000)
+    assert len(raw) < 1_048_576
+    result = xlsx_pages("b.xlsx", raw)
+    assert len(result.pages) == 1_000
+
+
+def test_sheets_over_cap_refused() -> None:
+    raw = many_sheets(1_001)
+    assert len(raw) < 1_048_576
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", raw)
+    assert str(caught.value) == "b.xlsx: 'xl/workbook.xml': more than 1,000 sheets"
