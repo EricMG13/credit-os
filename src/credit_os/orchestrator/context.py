@@ -2,6 +2,9 @@
 
 `load_context` is the only way to get a `RunContext`. Numbers stay text in the models; `amount`
 turns one into a `Decimal`, and the empty text is missing, never zero.
+
+Over 1 MiB, over 5,000 JSON values or with a key over 64 characters, a file is refused cheaply;
+a real form at the predecessor's row maxima holds about 1,400 values, a margin of over three.
 """
 
 import json
