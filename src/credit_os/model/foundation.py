@@ -287,14 +287,15 @@ def _sign_clause(key: str, cell: Decimal, amount: Decimal) -> str:
 def _group(table: Table, column: int, line: Row, kind: str) -> list[tuple[str, str, bool]]:
     """The cells of one operand's group as (what, cell, whether it may excuse the others).
 
-    Only the operand's header, the first header cell, a cell under a `Unit` or `Units` column and
-    the table's caption lines may excuse; every cell can still raise an issue.
+    Only the operand's header, the first header cell and a cell under a `Unit`, `Units` or
+    `Reporting unit` column may excuse; a caption line only raises an issue, never excuses.
+    Every cell can raise an issue.
     """
     group = [
         (f"{kind} header", table.columns[column], True),
         ("first header cell", table.columns[0], True),
     ]
-    group.extend(("caption", text, True) for text in table.caption)
+    group.extend(("caption", text, False) for text in table.caption)
     group.extend(
         (_plain(table.columns[index]), cell, _plain(table.columns[index]) in _UNIT_COLUMNS)
         for index, cell in enumerate(line.cells)
