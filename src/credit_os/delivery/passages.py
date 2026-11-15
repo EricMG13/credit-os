@@ -242,16 +242,22 @@ def _identity(figure: Figure) -> tuple[Decimal, bool, str | None, str | None]:
     return figure.value, figure.negative, figure.unit, figure.currency
 
 
+_CURRENCY_SYMBOLS = {"EUR": chr(0x20AC), "GBP": chr(0x00A3), "USD": "$"}
+_MINUS_SIGNS = ("-", chr(0x2212))
+
+
 def _outside_is_plain(text: str, figure: Figure) -> bool:
     start = figure.column - 1
     outside = text[:start] + text[start + len(figure.shown) :]
     if figure.currency is not None:
         outside = outside.replace(figure.currency, "", 1)
-    if any(char.isalpha() for char in outside):
+        symbol = _CURRENCY_SYMBOLS.get(figure.currency)
+        if symbol is not None:
+            outside = outside.replace(symbol, "", 1)
+    allowed = " " + chr(0x00A0) + ("" if figure.negative else "+")
+    if any(char not in allowed for char in outside):
         return False
-    return figure.currency is not None or not any(
-        unicodedata.category(char) == "Sc" for char in outside
-    )
+    return figure.negative or not any(sign in text for sign in _MINUS_SIGNS)
 
 
 def _single_figure(text: str) -> Figure | None:
@@ -283,8 +289,10 @@ def cell(
 
     `at` is set only when the text read as written and the text read with dates and period labels
     masked each hold exactly one figure and it is the same figure; otherwise `at` is None. It is
-    also None when the figure's unit or currency is unrecognised, or when text outside the figure
-    holds a letter (once its currency code is removed) or a currency symbol the figure did not read.
+    also None when the figure's unit or currency is unrecognised, or when the text outside the figure
+    (once its currency code and its own symbol, EUR, GBP or USD, are removed once) holds anything but
+    a space, a no-break space or, for a figure that is not negative, a '+'. It is also None when the
+    figure is not negative and the text holds '-' or U+2212.
     It is also None when the text holds a numeric character other than 0 to 9 (another script's
     digits, fullwidth digits, superscripts, fractions, circled digits, Roman numerals).
     It is also None when the text holds a dash-like sign other than '-' and U+2212 (a wrong sign is
