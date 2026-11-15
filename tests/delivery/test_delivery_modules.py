@@ -26,6 +26,7 @@ ROWS: list[dict[str, Any]] = KEY["rows"]
 BUILT = [r for r in ROWS if "expected" in r]
 REFUSED = [r for r in ROWS if r.get("refused")]
 RAISES = [r for r in ROWS if "raises" in r]
+FACTS_REFUSED: list[dict[str, Any]] = KEY["facts_refused"]
 
 
 def row_ids(rows: list[dict[str, Any]]) -> list[str]:
@@ -112,6 +113,12 @@ def test_refused_names_the_rule_only(row: dict[str, Any]) -> None:
 def test_caller_defect_raises(row: dict[str, Any]) -> None:
     with pytest.raises(cast(type[Exception], {"ValueError": ValueError}[row["raises"]])):
         run_row(row)
+
+
+@pytest.mark.parametrize("row", FACTS_REFUSED, ids=row_ids(FACTS_REFUSED))
+def test_facts_refused(row: dict[str, Any]) -> None:
+    with pytest.raises(ValueError):
+        facts_of(row)
 
 
 def build_facts(modules_: tuple[ModuleFacts, ...]) -> Callable[[], RunFacts]:
