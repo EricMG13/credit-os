@@ -25,7 +25,7 @@ def display_text(value: Value, places: int) -> str | None:
         raise ValueError("places must be 0..6")
     if value.amount is None:
         return None
-    rounded = value.amount.quantize(Decimal(1).scaleb(-places), context=_WIDE)
+    rounded = value.amount.quantize(Decimal((0, (1,), -places)), context=_WIDE)
     digits = amount_text(rounded.copy_abs()).replace(".", "")
     whole = digits[: len(digits) - places] if places else digits
     grouped = f"{int(whole):,}"
