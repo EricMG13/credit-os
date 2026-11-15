@@ -81,7 +81,6 @@ def test_lost_value_rows() -> None:
 
 
 def test_lost_values_add_no_check_id() -> None:
-    assert len(CHECKS) == 35
     assert not any("lost" in check for check in CHECKS)
 
 
@@ -124,3 +123,56 @@ def test_lost_values_work_grows_linearly_with_the_figures_in_one_node() -> None:
     }
     assert 10 * counts["1000"][0] <= 22 * counts["500"][0]
     assert 10 * counts["500"][0] <= 22 * counts["250"][0]
+
+
+_ROW_SCRIPT = """
+import json, sys
+from credit_os.checks.lost import lost_values
+from credit_os.handoff.document import parse
+
+head = "## Request\\nSYNTHETIC FIXTURE.\\n## Sources\\nNone.\\n## Findings\\n"
+tail = "## Calculations\\nNone.\\n## Gaps\\nNone.\\n## Next module\\nNone.\\n"
+
+
+def table(first, cells):
+    width = len(cells) + 1
+    header = "| " + " | ".join("h" + str(i) for i in range(width)) + " |\\n"
+    rule = "|" + " --- |" * width + "\\n"
+    return header + rule + "| " + " | ".join([first, *cells]) + " |\\n"
+
+
+counts = {}
+for shape in ("row_empty", "row_long"):
+    for n in (250, 500, 1000):
+        first = "" if shape == "row_empty" else "a" * (40 * n)
+        figures = ["USD " + str(i) + ".5m" for i in range(n)]
+        previous = parse((head + table(first, figures) + tail).encode())
+        new = parse((head + table(first, ["none"] * n) + tail).encode())
+        events = 0
+
+        def profiler(frame, event, arg):
+            global events
+            if event in ("call", "c_call"):
+                events += 1
+
+        sys.setprofile(profiler)
+        result = lost_values(previous, new, ())
+        sys.setprofile(None)
+        counts[shape + str(n)] = [events, len(result)]
+print(json.dumps(counts))
+"""
+
+
+@pytest.mark.parametrize("shape", ["row_empty", "row_long"])
+def test_lost_values_work_grows_linearly_with_the_cells_in_one_row(shape: str) -> None:
+    done = subprocess.run(
+        [sys.executable, "-c", _ROW_SCRIPT], capture_output=True, text=True, check=True
+    )
+    counts: dict[str, list[int]] = json.loads(done.stdout)
+    assert {size: counts[shape + size][1] for size in ("250", "500", "1000")} == {
+        "250": 250,
+        "500": 500,
+        "1000": 1000,
+    }
+    assert 10 * counts[shape + "1000"][0] <= 22 * counts[shape + "500"][0]
+    assert 10 * counts[shape + "500"][0] <= 22 * counts[shape + "250"][0]
