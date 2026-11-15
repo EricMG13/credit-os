@@ -5,6 +5,7 @@ fails stands for a host that cannot be listened on)."""
 import contextlib
 import io
 import logging
+import re
 import sys
 import threading
 import time
@@ -96,7 +97,9 @@ def test_main_configures_logging_once_at_info_to_stderr(tmp_path: Path) -> None:
         assert isinstance(handler, logging.StreamHandler)
         assert handler.stream is sys.stderr
         record = logging.LogRecord("x", logging.INFO, "f", 1, "one %s", ("line",), None)
-        assert handler.format(record) == "INFO x one line"
+        assert re.fullmatch(
+            r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} INFO x one line", handler.format(record)
+        )
     finally:
         root.handlers[:] = saved
         root.setLevel(level)

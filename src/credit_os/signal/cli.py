@@ -9,8 +9,9 @@ Commands: ``users add``, ``sources propose|approve|pause|list``, ``topics add|li
   or owner role; any typed name can read, save, follow and join an open group without one.
 - ``serve`` holds up to 4 descriptors per stalled request, 64 connections at most: against a
   soft limit of 256 (launchd's default) raise it first with ``ulimit -n``.
-- The browser sends the host name in lower case: start ``serve`` with the host name as clients
-  will spell it.
+- Clients must send the host name in lower case: the service compares the ``Host`` header exactly
+  and keeps the configured name in lower case. A browser lower-cases it; curl and urllib send it
+  as typed and get 403 otherwise. Start serve with the host name in lower case.
 """
 
 from __future__ import annotations
@@ -93,8 +94,9 @@ def _parser() -> argparse.ArgumentParser:
         description="The feed service and its ingest loop, until interrupted. Do not run ingest "
         "beside serve on the same root (two processes on one root are not prevented). Each "
         "stalled request holds 4 descriptors, 64 connections at most: under launchd the soft "
-        "limit is 256, so raise it with `ulimit -n`. The browser sends the host in lower case: "
-        "start serve with the host name as clients will spell it. A users row is created only by "
+        "limit is 256, so raise it with `ulimit -n`. Clients must send the host name in lower "
+        "case (a browser does; curl and urllib send it as typed and get 403 otherwise): start "
+        "serve with the host name in lower case. A users row is created only by "
         "`users add` and is needed only to react or to hold a writer or owner role.",
     )
     serving.add_argument("--host", default=DEFAULT_HOST)
@@ -202,7 +204,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = _parser().parse_args(argv)
     except SystemExit as exit_:
         return exit_.code if isinstance(exit_.code, int) else 2
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     if args.command == "serve":
         return _serve(args)
     try:

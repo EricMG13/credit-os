@@ -235,7 +235,9 @@ def test_the_help_and_the_module_docstring_name_the_limits(
     assert "two processes on one root are not prevented" in helped
     assert "4 descriptors" in helped and "ulimit -n" in helped
     assert "users add and is needed only to react or to hold a writer or owner role" in helped
-    assert "as clients will spell it" in helped
+    assert "clients must send the host name in lower case" in helped
+    assert "curl and urllib send it as typed and get 403" in helped
+    assert "start serve with the host name in lower case" in helped
     doc = _words(cli.__doc__ or "")
     for phrase in (
         "do not run ingest beside serve",
@@ -243,7 +245,9 @@ def test_the_help_and_the_module_docstring_name_the_limits(
         "4 descriptors per stalled request",
         "ulimit -n",
         "created only by users add and is needed only to react or to hold a writer or owner role",
-        "as clients will spell it",
+        "clients must send the host name in lower case",
+        "curl and urllib send it as typed and get 403",
+        "start serve with the host name in lower case",
     ):
         assert phrase in doc
 
