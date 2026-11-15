@@ -339,7 +339,8 @@ class _Sheet(_Reader):
         except (KeyError, ValueError) as error:
             raise self.refuse("a hidden column range without whole numbers") from error
         low, high = max(low, 1), min(high, MAX_COLUMN)
-        self.hidden[low : high + 1] = b"\x01" * max(high - low + 1, 0)
+        if low <= high:
+            self.hidden[low : high + 1] = b"\x01" * (high - low + 1)
 
     def order(self, reason: str) -> SourceUnreadable:
         return self.refuse(self.label + reason)
