@@ -415,3 +415,9 @@ The coordinator's. The first four and the last restate or clarify merged store (
 - Planned (2A PR 5), D7: an open call is settled as decision 0014 says, by an owner-stated line
   in its own table.
 - A confidence outcome is used only for a document `check_handoff` returns no refusal for.
+- D1, departure: the catalogue has no `required_registers` column in PR 1. In the predecessor the
+  list is derived from the method texts at run time; the PR that brings the method text (PR 11, or
+  phase 6) adds the column, derived the same way, with a hand-written key for the ten modules.
+  PR 5 takes the list as a required argument; PRs 6b, 7c and 8 wait for the column.
+- D1: CP-1 is keyed `scored` True, from `docs/legacy/methodology-updates.md` row 1 (read at the
+  predecessor commit that file names); every other catalogue fact is read at `8e3954a`.

@@ -3,6 +3,39 @@
 One record, newest first, written only by the coordinator at merge. Keep it under 1,000
 lines; trim the oldest entries (git history keeps them).
 
+## 2026-11-15 Roadmap back end: Signal's cap, match and members fixes; the store's 3a-1; the owner's rules
+
+**Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
+head:**
+
+| PR | Step | Head | Merge | What |
+| :--- | :--- | :--- | :--- | :--- |
+| #340 | Records | `9973ed9b` | `443ca15` | decision 0014, the 3B prior art, 3A corrections |
+| #341 | Signal S-11 | `22b49c01` | `4764ffb` | one feed stores at most 2,000 new stories a pass |
+| #343 | Signal S-12 | `e8c7a6dd` | `e1989a2` | `groups.members` reads in one snapshot |
+| #345 | Signal S-10 | `56b4c02d` | `c244f5c` | `_earliest_match` bounded; migration 4 (an index) |
+| #344 | 2A PR 3a-1 | `4d3002ef` | `1a4fb6d` | a stored writer that is not a token is corrupt; exact `str` names |
+
+**Reviews.** #341 `mx-precise` pass. #343 `mx-adversary` pass. #345 `mx-precise` and
+`mx-adversary` pass, its batch re-review pass. #344 `mx-precise`, `mx-invariants` and the
+whole-branch `mx-architect` review pass. #340: docs review failed on five Medium (planned store
+behaviour written as built), fixed, re-review pass. Mutation of record: #344 857 of 1,046 killed,
+12 of 12 on its lines, load 14; #341 5 of 5, #343 6 of 6 and #345 10 of 10 hand mutants.
+
+**The owner's rules, relayed by the lead coordinator and read in its transcript.** Fast tests:
+affected tests per task, full gates once per PR, step 2A first for machine time. Every
+sub-session controller on Opus 5.5 at xhigh. Low and Info findings hold nothing and wait for one
+batch after the final phase: `docs/low-findings.md`. Steps 3A and 3B were started by the lead.
+
+**Rulings** (under the 22:20 UTC instruction; on the owner's list). A hand mutant killed by a
+failing test counts at any load. 2A reviews whole-branch once per stacked set. 1D: HTML labels
+the standard maps to windows-1252 read as such, C1 controls refused (PR 2b-5). 1C #338: a third
+round on an `mx-autonomous` plan. 2A U22: no zero a reply can carry is refused by the money
+codec. 3A: no `required_registers` column yet; CP-1 scored. 3B: R17 to R22, in its plan.
+
+**Not verified:** #345's guard query has no mutants of its own at the merged head. The machine
+restarted at about 00:08 UTC; results cut by it were discarded and rerun.
+
 ## 2026-11-14 Roadmap back end: the step 3B plan, decision 0014, plan corrections
 
 **Merged, each read by the coordinator, CI green on Ubuntu, Windows and the review job at the
