@@ -41,6 +41,7 @@ log = logging.getLogger(__name__)
 MIN_INTERVAL = timedelta(seconds=600)
 QUIET_AFTER = timedelta(days=7)
 HEALTH_WEEKS = 6
+MAX_NEW_PER_PASS = 2000
 _WEEK = timedelta(days=7)
 
 FetchFn = Callable[[str, str | None, str | None], Fetched]
@@ -148,11 +149,20 @@ def _check_source(
     if isinstance(entries, _Refused):  # refused as a whole: no entry of the feed is stored
         return Check(now, False, entries.reason, etag, modified, 0)
     counts = {"new": 0, "old": 0, "skipped": 0}
-    for entry in entries:
+    over = 0
+    for position, entry in enumerate(entries):
+        if counts["new"] >= MAX_NEW_PER_PASS:  # the rest is left unexamined for the next pass
+            over = len(entries) - position
+            break
         counts[_store_entry(db, source["id"], entry, now)] += 1
     note = f"{counts['new']} new"
     if counts["skipped"]:
         note += f", {counts['skipped']} skipped"
+    if over:
+        # The answer's validators are not stored: the next pass must fetch the feed again, not
+        # get a 304 for entries this pass did not read (R70 item 4).
+        note += f", {over} over the cap, left for the next pass"
+        return Check(now, True, note, etag, modified, counts["new"])
     return Check(now, True, note, fetched.etag, fetched.modified, counts["new"])
 
 
