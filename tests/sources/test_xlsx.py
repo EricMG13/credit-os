@@ -2,6 +2,7 @@
 expected text is a literal. Rows come from the 1D PR 3 key table and the controller's rulings."""
 
 import io
+import tracemalloc
 import zipfile
 from typing import Literal
 
@@ -1032,6 +1033,22 @@ def test_label_cap_shape() -> None:
     with pytest.raises(SourceUnreadable) as caught:
         xlsx_pages("b.xlsx", label_cap_shape())
     assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
+
+
+def test_label_cap_early() -> None:
+    # (ruling 37) the refusal comes before the next piece of the label is built
+    raw = label_cap_shape()
+    with pytest.raises(SourceUnreadable):
+        xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        with pytest.raises(SourceUnreadable):
+            xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert peak < 24 * 1024 * 1024
 
 
 def test_label_at_cap() -> None:
