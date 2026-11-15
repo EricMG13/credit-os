@@ -278,12 +278,13 @@ class _Text:
         self.blocks: list[str] = []
         self.small: list[str] = []
 
-    def add(self, piece: str) -> None:
-        self.total += len(piece)
+    def add(self, *pieces: str) -> None:
+        size = sum(map(len, pieces))
+        self.total += size
         if self.total > MAX_TEXT_CHARACTERS:
             raise self.package.refuse(f"page text longer than {MAX_TEXT_CHARACTERS:,} characters")
-        self.small.append(piece)
-        self.held += len(piece)
+        self.small.extend(pieces)
+        self.held += size
         if self.held >= BLOCK_CHARACTERS:
             self.blocks.append("".join(self.small))
             self.small = []
@@ -367,14 +368,17 @@ class _Sheet(_Reader):
     def beyond(self) -> SourceUnreadable:
         return self.refuse(f"a row beyond row {MAX_ROW:,}")
 
-    def write(self, label: str) -> None:
-        """Write one cell's label: the row's line break and mark before its first, ` | ` before the rest."""
+    def write(self, label: tuple[str, ...], mark: str) -> None:
+        """Write one cell's label, given as pieces: the row's line break and mark before its first,
+        ` | ` before the rest, and `mark` after it. The label is at most `MAX_CELL_CHARACTERS`."""
+        if sum(map(len, label)) > MAX_CELL_CHARACTERS:
+            raise self.refuse(f"a cell or string longer than {MAX_CELL_CHARACTERS:,} characters")
         if self.started:
             head = " | "
         else:
             head = ("\n" if self.wrote else "") + ("[hidden row] " if self.row_hidden else "")
             self.started = self.wrote = True
-        self.out.add(head + label)
+        self.out.add(head, *label, mark)
 
     def start_cell(self, attributes: dict[str, str]) -> None:
         self.size = 0
@@ -431,27 +435,27 @@ class _Sheet(_Reader):
             self.state = "text"
         label = self.describe(text, value, style)
         if label is not None:
-            self.write(label + (" [hidden column]" if self.hidden[self.column] else ""))
+            self.write(label, " [hidden column]" if self.hidden[self.column] else "")
 
-    def describe(self, text: str, value: str, style: int) -> str | None:
-        """Return the cell's label, or None when it writes nothing."""
+    def describe(self, text: str, value: str, style: int) -> tuple[str, ...] | None:
+        """Return the cell's label as pieces, or None when it writes nothing."""
         address = self.address
         if "f" in self.parts:
             formula = "".join(self.parts["f"]) or _NO_FORMULA
             cache = text if self.kind == "s" else value
-            return f"{address}={_formula(formula)} cache={_plain(cache) if cache else _ABSENT}"
+            return address, "=", _formula(formula), " cache=", _plain(cache) if cache else _ABSENT
         if not text:
             return None
         if self.kind in ("s", "inlineStr", "str"):
-            return f"{address}={text!r}"
+            return address, "=", repr(text)
         if self.kind == "b":
-            return f"{address}={ {'1': 'TRUE', '0': 'FALSE'}.get(text, _plain(text)) }"
-        label = f"{address}={_plain(text)}"
+            return address, "=", {"1": "TRUE", "0": "FALSE"}.get(text, _plain(text))
+        label: tuple[str, ...] = (address, "=", _plain(text))
         if self.kind == "n" and self.styles.formats:
             number = self.styles.formats[style]
             code = self.styles.codes.get(number, "builtin:" + number)
             if code != "builtin:0":
-                label += f" format={code!r}"
+                label += (" format=", repr(code))
         return label
 
 
