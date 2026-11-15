@@ -19,7 +19,9 @@ A case is (want, given); a field left out of `given` takes its default in DEFAUL
           steps for the case's own call (next_event is not one); bounds is step -> the timeout_s
           it was given; system is the text open_session got; absent texts are nowhere in raw or
           message, whatever their case, and raw is then a JSON list as long as the script;
-          raw None: the call's raw is None (its envelopes cannot be written as JSON).
+          compactions are the reply's compaction event_ids, () where not listed (PR 3-2: call
+          events the parser cannot read give `driver:release-unread`); raw None: the call's raw
+          is None (its envelopes cannot be written as JSON).
 A case that opens a session gives it MODEL, the case's effort, its exchange id as session_id,
 and `system`; a sent case sends PROMPT. raw is always written with the parser's separators and,
 where no `absent` is listed, is the JSON of exactly the envelopes the call read. No step is
@@ -77,6 +79,7 @@ _ABORTED = (*_SENT, "abort", *_RELEASE)
 _Y = "y" * 900
 _BOOM = ("RuntimeError", "boom")
 _IDLE_OUT = "no session event within the idle timeout"
+_UNREAD = ("driver:release-unread",)  # the call's own events could not be read (PR 3-2)
 _OVERALL_OUT = "the call passed its overall timeout"
 
 
@@ -152,11 +155,11 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"script": [_USAGE, said(2, "x", agentId="a1"), _ERROR]},
     ),
     "an envelope that is not an object ends the call at once": (
-        _unknown("UnparsableReply"),
+        _unknown("UnparsableReply", compactions=_UNREAD),
         {"script": ["junk", ("tick", 60), _IDLE]},
     ),
     "an untyped event's payload goes to the parser unchanged": (
-        _unknown("UnparsableReply"),
+        _unknown("UnparsableReply", compactions=_UNREAD),
         {"script": [{"id": "e1", "type": "unknown", "data": "text"}, *_TURN_SCRIPT]},
     ),
     "a sub-agent's event keeps the figures and is not ok": (
@@ -285,7 +288,7 @@ CASES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
         {"home": _WIN, "script": [_USAGE, _error("cannot read /home/build or " + _WIN + "\\proj")]},
     ),
     "an envelope that is not JSON gives no raw": (
-        _unknown("UnparsableReply", _NOT_JSON, raw=None),
+        _unknown("UnparsableReply", _NOT_JSON, raw=None, compactions=_UNREAD),
         {"script": [event(3, "x", v={1}), _IDLE]},
     ),
     "an escaped non-ASCII home in raw": (_ok(absent=("ller",)), {"home": _MUL, **_seen(_ESC)}),
