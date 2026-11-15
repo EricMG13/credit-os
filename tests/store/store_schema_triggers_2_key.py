@@ -37,6 +37,10 @@ _CALL_NO_REPLACE = "calls: a call is never replaced"
 _CALL_NUMBERED = "calls: calls are numbered from 0 with no gap"
 _COMPACTION_NO_REPLACE = "compactions: a compaction is never replaced"
 _COMPACTION_NUMBERED = "compactions: compactions are numbered from 0 with no gap"
+_REJECT_A1 = (
+    "UPDATE attempts SET state = 'rejected', issues = ?, closed_at = ? WHERE " + A1,
+    ('[{"code":"x","line":3}]', T2),
+)
 
 # (label, setup, prelude statements, statement, values, accepted messages). The prelude runs first and
 # each of its statements succeeds; the statement is then refused with exactly one of the messages
@@ -178,6 +182,8 @@ REFUSED_STATEMENTS: tuple[
             ("failed", (FAIL_A1,), "closed_at", T1),
             ("accepted", (REPLY_A1, ACCEPT_A1), "issues", '[{"code":"late"}]'),
             ("accepted", (REPLY_A1, ACCEPT_A1), "closed_at", T1),
+            ("rejected", (REPLY_A1, _REJECT_A1), "issues", '[{"code":"late"}]'),
+            ("rejected", (REPLY_A1, _REJECT_A1), "closed_at", T1),
         )
     ),
     (
