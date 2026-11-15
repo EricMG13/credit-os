@@ -131,6 +131,9 @@ _FAILED_DRIVER = Compaction(
     Usage(1, 2, 3, 4), Decimal("0.5"), "failed", "driver:close-unread", None
 )
 _DONE_BARE = Compaction(Usage(), None, "done", "c", None)
+_ZERO_COUNTS = Compaction(Usage(0, 0, 0, 0), Decimal(0), "done", "z", None)
+_BIG_COUNTS = Compaction(Usage(_BIG, _BIG, _BIG, _BIG), Decimal("1E+63"), "done", "b", None)
+_WHOLE_DOLLARS = Compaction(Usage(), Decimal("12.5"), "done", "w", None)
 
 # (label, reply, CALL columns, COMPACTIONS rows in order). A COMPACTIONS row is the compaction's
 # stored columns other than run_id and the call key: event_id, position, four counts, billed_usd,
@@ -355,6 +358,43 @@ CASES: tuple[tuple[str, Reply, dict[str, object], tuple[dict[str, object], ...]]
                 "billed_usd": "0",
                 "outcome": "done",
                 "supersedes": "u-1",
+            },
+        ),
+    ),
+    (
+        "ok with compactions at the count and charge bounds",
+        _ok(Usage(), compactions=(_ZERO_COUNTS, _BIG_COUNTS, _WHOLE_DOLLARS)),
+        {**_NONE, "kind": "ok", "stop_reason": "end"},
+        (
+            {
+                "event_id": "z",
+                "position": 0,
+                "input_tokens": 0,
+                "cached_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "output_tokens": 0,
+                "billed_usd": "0",
+                "outcome": "done",
+                "supersedes": None,
+            },
+            {
+                "event_id": "b",
+                "position": 1,
+                "input_tokens": _BIG,
+                "cached_read_tokens": _BIG,
+                "cache_write_tokens": _BIG,
+                "output_tokens": _BIG,
+                "billed_usd": "1" + "0" * 63,
+                "outcome": "done",
+                "supersedes": None,
+            },
+            {
+                "event_id": "w",
+                "position": 2,
+                **_NO_COUNTS,
+                "billed_usd": "12.5",
+                "outcome": "done",
+                "supersedes": None,
             },
         ),
     ),
