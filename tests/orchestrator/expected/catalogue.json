@@ -1,0 +1,43 @@
+{
+  "_about": "Answer key for step 3A PR 1, written by the controller before the code, by hand from the predecessor's src/deploy_vii/methodology.json, src/deploy_vii/contracts.py (_PRESETS, DEACTIVATED_PATHWAYS), src/deploy_workflow/owners/cpos_launch.py (NOT_ANALYTICAL, METHODS) and prose_checks.py (DATA_MODULES) at 8e3954a, the docs/legacy/ports.md row for orchestrator/. Implementers do not edit it. Offered modules in catalogue order; for each: aliases, kind (data or prose; D1), scored, required and optional producers, and explicit edge rules. scored is keyed per module: at 8e3954a every offered module whose method is a skill is sent the confidence rule; CP-1 (a prompt there) is scored by docs/legacy/methodology-updates.md row 1 (\"CP-1 is a scored module\", read at 0f16bad), the coordinator's ruling of 2026-11-15. No required_registers column (coordinator's ruling of 2026-11-15: it is derived from the method texts and added by the PR that holds them). CP-PARSE is CP-0's alias (D1). Not offered (D2, G6): CP-8 (5A's), CP-L10 (short_snapshot), CP-MEMO, CP-MODEL (G6), CP-OS, with their aliases. Pathways: the seven offered presets without CP-MODEL (G6); short_snapshot is not offered (D2).",
+  "modules": [
+    {"id": "CP-0", "aliases": ["CP-PARSE"], "kind": "data", "scored": true, "required": [], "optional": [], "edge_rules": {}},
+    {"id": "CP-1", "aliases": [], "kind": "data", "scored": true, "required": ["CP-0"], "optional": [], "edge_rules": {}},
+    {"id": "CP-1A", "aliases": ["CP-2C"], "kind": "prose", "scored": true, "required": ["CP-0"], "optional": [], "edge_rules": {}},
+    {"id": "CP-1B", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1"], "optional": [], "edge_rules": {}},
+    {"id": "CP-DR", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1"], "optional": [], "edge_rules": {}},
+    {"id": "CP-1C", "aliases": [], "kind": "data", "scored": true, "required": ["CP-0", "CP-1"], "optional": ["CP-DR"], "edge_rules": {}},
+    {"id": "CP-1D", "aliases": ["CP-1E"], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1"], "optional": ["CP-1B"], "edge_rules": {}},
+    {"id": "CP-2", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-1A"], "optional": ["CP-1B", "CP-1C", "CP-1D", "CP-DR"], "edge_rules": {"CP-1A": "restricted"}},
+    {"id": "CP-2A", "aliases": ["CP-2B"], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1"], "optional": ["CP-1B", "CP-2"], "edge_rules": {}},
+    {"id": "CP-2E", "aliases": ["CP-2F"], "kind": "prose", "scored": true, "required": ["CP-0"], "optional": ["CP-1", "CP-1A", "CP-2"], "edge_rules": {}},
+    {"id": "CP-2G", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2A"], "optional": ["CP-1D", "CP-2D"], "edge_rules": {}},
+    {"id": "CP-2H", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2G"], "optional": ["CP-1D"], "edge_rules": {}},
+    {"id": "CP-3", "aliases": ["CP-3A", "CP-3B"], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2"], "optional": ["CP-1C", "CP-2H", "CP-2G", "CP-1A", "CP-1D", "CP-4", "CP-3D", "CP-3C", "CP-4C", "CP-2D"], "edge_rules": {}},
+    {"id": "CP-4", "aliases": ["CP-4A", "CP-4B", "CP-4D"], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1"], "optional": ["CP-1D", "CP-1A"], "edge_rules": {"CP-1": "restricted"}},
+    {"id": "CP-4C", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2G", "CP-4", "CP-2A"], "optional": ["CP-3C", "CP-1C"], "edge_rules": {}},
+    {"id": "CP-5", "aliases": ["CP-5A"], "kind": "prose", "scored": true, "required": ["CP-0"], "optional": ["CP-1", "CP-1A", "CP-1B", "CP-1C", "CP-2", "CP-2A", "CP-2G", "CP-2E", "CP-2H", "CP-3", "CP-4C", "CP-4", "CP-2D", "CP-3C", "CP-3D"], "edge_rules": {}},
+    {"id": "CP-6", "aliases": ["CP-6A"], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2", "CP-3", "CP-5"], "optional": ["CP-2A", "CP-1A", "CP-2E", "CP-2D", "CP-3C", "CP-3D", "CP-1B", "CP-1C", "CP-4"], "edge_rules": {}},
+    {"id": "CP-2D", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2"], "optional": [], "edge_rules": {}},
+    {"id": "CP-3D", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0"], "optional": ["CP-2H"], "edge_rules": {}},
+    {"id": "CP-3C", "aliases": [], "kind": "prose", "scored": true, "required": ["CP-0", "CP-1", "CP-2D"], "optional": ["CP-1A", "CP-2A", "CP-4", "CP-3D"], "edge_rules": {}}
+  ],
+  "cp5_fan_in_excludes": ["CP-5", "CP-6"],
+  "not_offered": {
+    "CP-8": [],
+    "CP-L10": ["CP-L20", "CP-L23", "CP-L30", "CP-L40"],
+    "CP-MEMO": [],
+    "CP-MODEL": [],
+    "CP-OS": []
+  },
+  "pathways": {
+    "credit_snapshot": ["CP-0", "CP-1", "CP-1A", "CP-DR", "CP-2", "CP-2A", "CP-2E", "CP-2G", "CP-4", "CP-3", "CP-5", "CP-6"],
+    "earnings_update": ["CP-0", "CP-1", "CP-1B", "CP-1D", "CP-DR", "CP-2E", "CP-5"],
+    "relative_value": ["CP-0", "CP-1", "CP-1C", "CP-DR", "CP-2", "CP-2D", "CP-2E", "CP-3", "CP-3C", "CP-3D", "CP-5"],
+    "covenant_refinancing": ["CP-0", "CP-1", "CP-1A", "CP-DR", "CP-2", "CP-2A", "CP-2D", "CP-2E", "CP-2G", "CP-4", "CP-3C", "CP-5"],
+    "distressed_restructuring": ["CP-0", "CP-1", "CP-1A", "CP-1C", "CP-DR", "CP-2", "CP-2A", "CP-2E", "CP-2G", "CP-2H", "CP-4", "CP-4C", "CP-5"],
+    "portfolio_decision": ["CP-0", "CP-1", "CP-DR", "CP-2", "CP-2E", "CP-3", "CP-5", "CP-6"],
+    "lite_credit_assessment": ["CP-0", "CP-1", "CP-1A", "CP-2", "CP-2A"]
+  },
+  "pathways_not_offered": ["short_snapshot"]
+}
