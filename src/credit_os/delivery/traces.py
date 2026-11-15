@@ -283,7 +283,8 @@ def _add_module(
     findings: list[str | None] = []
     limitations: list[str | None] = []
     for passage in _passages(reader, document, wording):
-        basis = _basis(passage.blocks, known)
+        # 6-15: an item with no shown text has nothing to trace, Basis line or not.
+        basis = _basis(passage.blocks, known) if passage.statement else None
         key = (
             None
             if basis is None
