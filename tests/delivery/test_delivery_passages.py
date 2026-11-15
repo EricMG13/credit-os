@@ -234,3 +234,20 @@ def _digits_with_sign(draw: st.DrawFn) -> str:
 @given(_digits_with_sign())
 def test_cell_dash_like_sign_gives_no_at(text: str) -> None:
     assert passages.cell(text) == ({"kind": "value", "text": text, "at": None}, None)
+
+
+_ALLOWED_OUTSIDE = "".join(chr(point) for point in (0x00A0, 0x2212, 0x20AC, 0x00A3, 0x00A5))
+
+
+@given(
+    st.characters(
+        min_codepoint=0x80,
+        max_codepoint=0xFFFF,
+        exclude_categories=["Cs"],
+        exclude_characters=_ALLOWED_OUTSIDE,
+    ),
+    st.sampled_from(["{c}5", "5{c}", "USD {c}5"]),
+)
+def test_cell_with_a_stray_character_outside_the_figure_has_no_at(c: str, shape: str) -> None:
+    text = shape.format(c=c)
+    assert passages.cell(text) == ({"kind": "value", "text": text, "at": None}, None)
