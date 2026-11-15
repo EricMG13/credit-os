@@ -262,6 +262,30 @@ MESSAGE += tuple(
     for t in ("I" + m + "\u0307", composed + "\u0307")
 )
 
+# 2h-2 whole-branch review M1 (test strength, 8 rows): a non-BMP letter as a JSON surrogate pair; a
+# case form that composes only after the case change (t + U+0308 is U+1E97); an escaped NFD or NFC
+# letter straight after a separator token and its backslashes. Every row masks whole.
+MESSAGE += (
+    ((), ("D:\\Profiles\\a\U00010000b",), "x D:\\\\Profiles\\\\a\\ud800\\udc00b y", "x <home> y"),
+    ((), ("D:\\Profiles\\a\U00010000b",), "x Profiles\\\\a\\ud800\\udc00b y", "x <home> y"),
+    ((), ("D:\\Profiles\\T\u0308x",), "x D:\\Profiles\\\u1e97x y", "x <home> y"),
+    ((), ("D:\\Profiles\\T\u0308x",), "x D:\\\\Profiles\\\\\\u1e97x y", "x <home> y"),
+    ((), ("D:\\Profiles\\%5c\u00e9lise",), "x D:\\Profiles\\%5c\\x65\\u0301lise y", "x <home> y"),
+    (
+        (),
+        ("D:\\Profiles\\%5c\u00e9lise",),
+        "x D:\\Profiles\\%5c\\\\u0065\\\\u0301lise y",
+        "x <home> y",
+    ),
+    ((), ("D:\\Profiles\\%5ce\u0301lise",), "x D:\\Profiles\\%5c\\u00e9lise y", "x <home> y"),
+    (
+        (),
+        ("D:\\Profiles\\%5ce\u0301lise",),
+        "x D:\\Profiles\\%5c\\\\\\xc3\\\\\\xa9lise y",
+        "x <home> y",
+    ),
+)
+
 # Known paths with no folder name: Redactor(known_paths=(p,)) raises ValueError.
 REFUSED: tuple[str, ...] = (
     "",
