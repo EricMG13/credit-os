@@ -7,9 +7,13 @@ Over 1 MiB, over 5,000 JSON values or with a key over 64 characters, a file is r
 a real form at the predecessor's row maxima holds about 1,400 values, a margin of over three.
 """
 
+import dataclasses
+import datetime as dt
 import json
 import re
+from collections.abc import Callable
 from decimal import Decimal
+from itertools import pairwise
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -44,6 +48,14 @@ MAX_VALUES = 5000
 MAX_KEY = 64
 _SEPARATORS = ("\u0085", " ", " ")
 _AMOUNT = re.compile(r"-?[0-9]+(\.[0-9]+)?", re.ASCII)
+_NUM = r"\d+(\.\d+)?"
+_SNUM = r"-?\d+(\.\d+)?"
+_INT = r"-?\d+"
+_PERIOD = r"(q[1-4]|h[12]|fy)-(\d{4})"
+_SLUG = r"[a-z0-9][a-z0-9-]*"
+_DATE = r"\d{4}-\d{2}-\d{2}"
+_CURRENCY = r"[A-Z]{3}"
+_MAX_SCEN, _MAX_Q = 4, 10
 
 
 class ContextRefused(ValueError):
@@ -334,6 +346,252 @@ def _separator_problems(root: Any) -> list[str]:
     return found
 
 
+@dataclasses.dataclass(frozen=True)
+class Limit:
+    """One pinned assumption's value limits: the single copy the reader uses."""
+
+    req: bool = False
+    whole: bool = False
+    places: int | None = None
+    low: str | None = None
+    low_excl: str | None = None
+    high: str | None = None
+    high_excl: str | None = None
+
+
+# Keyed "<module>.<field>"; a shock list's limit is the limit of each of its items.
+ASSUMPTION_LIMITS: dict[str, Limit] = {
+    "cp2a.ebitda_decline_pct": Limit(req=True, places=2, low="0", high="100"),
+    "cp2a.interest_increase_pct": Limit(req=True, places=2, low="0", high="100"),
+    "cp2d.horizon_months": Limit(req=True, whole=True, low="1", high="60"),
+    "cp2d.minimum_cash_m": Limit(req=True, low="0"),
+    "cp2e.rate_shocks_bps": Limit(req=True, whole=True, low="1", high="1000"),
+    "cp2e.fx_shocks_pct": Limit(req=True, whole=True, low="1", high="50"),
+    "cp2e.hedge_ratio_pct": Limit(places=2, low="0", high="100"),
+    "cp3c.repricing_bps": Limit(req=True, whole=True, low="0", high="1000"),
+    "cp3d.recovery_pct": Limit(req=True, places=2, low="0", high_excl="100"),
+    "cp4c.ev_multiple": Limit(req=True, places=2, low_excl="0", high="99.99"),
+}
+
+
+def _match(pattern: str, value: str) -> bool:
+    """ASCII-only, whole-string match (no widened `\\d`, no trailing-newline allowance)."""
+    return re.fullmatch(pattern, value, re.ASCII) is not None
+
+
+def _valid_date(value: str) -> bool:
+    if not _match(_DATE, value):
+        return False
+    try:
+        dt.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _period_key(value: str) -> tuple[str, int, int] | None:
+    m = re.fullmatch(_PERIOD, value, re.ASCII)
+    if m is None:
+        return None
+    return m[1][0], 0 if m[1] == "fy" else int(m[1][1]), int(m[2])
+
+
+def _num_message(value: str, signed: bool, limit: Limit) -> str:
+    """Why `value` is not an allowed number under `limit`, or the empty text; compares as Decimal."""
+    if "," in value:
+        return "no thousands separators; write 1250, not 1,250."
+    if not _match(_SNUM if signed else _NUM, value):
+        return "enter a plain number such as 1250 or 99.5."
+    if limit.whole and not _match(_INT, value):
+        return "enter a whole number."
+    if limit.places is not None and len(value.partition(".")[2]) > limit.places:
+        return f"use at most {limit.places} decimal places."
+    x = Decimal(value)
+    checks: tuple[tuple[str | None, Callable[[Decimal, Decimal], bool], str], ...] = (
+        (limit.low, lambda a, b: a < b, "must be {} or more."),
+        (limit.low_excl, lambda a, b: a <= b, "must be above {}."),
+        (limit.high, lambda a, b: a > b, "must be {} or less."),
+        (limit.high_excl, lambda a, b: a >= b, "must be below {}."),
+    )
+    for bound, failed, template in checks:
+        if bound is not None and failed(x, Decimal(bound)):
+            return template.format(bound)
+    return ""
+
+
+class _Rules:
+    """The value rules over a well-shaped context; collects every problem."""
+
+    def __init__(self, ctx: RunContext) -> None:
+        self.ctx = ctx
+        self.problems: list[str] = []
+        self.as_of = ctx.run.as_of
+
+    def bad(self, path: str, message: str) -> None:
+        self.problems.append(f"{path}: {message}")
+
+    def text(self, path: str, value: str, req: bool = False, cell: bool = False) -> None:
+        """`cell`: shown in a dossier table cell (a research question), so refused if it breaks one."""
+        if req and not value.strip():
+            self.bad(path, "required.")
+        if cell and ("|" in value or "\n" in value or "\r" in value):
+            self.bad(
+                path,
+                "contains a pipe character, a line feed or a carriage return, "
+                "which a dossier table cell cannot hold.",
+            )
+        elif cell and "<<<" in value:
+            self.bad(path, "contains <<<, which a dossier block cannot show.")
+
+    def number(self, path: str, value: str, limit: Limit) -> None:
+        if value == "":
+            if limit.req:
+                self.bad(path, "required.")
+            return
+        message = _num_message(value, False, limit)
+        if message:
+            self.bad(path, message)
+
+    def limited(self, path: str, value: str, key: str) -> None:
+        self.number(path, value, ASSUMPTION_LIMITS[key])
+
+    def date(self, path: str, value: str, req: bool = False, after: bool = False) -> None:
+        if value == "":
+            if req:
+                self.bad(path, "required.")
+            return
+        if not _valid_date(value):
+            self.bad(path, "enter a date as YYYY-MM-DD.")
+        elif after and _valid_date(self.as_of) and value > self.as_of:
+            self.bad(
+                path,
+                f"is after the run as-of date ({self.as_of}); sources dated after it are refused.",
+            )
+
+    def currency(self, path: str, value: str, req: bool = False) -> None:
+        if value == "":
+            if req:
+                self.bad(path, "required.")
+        elif not _match(_CURRENCY, value):
+            self.bad(path, "use three uppercase letters, such as USD.")
+
+    def shocks(self, path: str, items: tuple[str, ...], key: str) -> None:
+        limit = ASSUMPTION_LIMITS[key]
+        if not items and limit.req:
+            self.bad(path, "required.")
+        if len(items) > 3:
+            self.bad(path, "give at most 3 values.")
+        messages = [_num_message(item, False, limit) for item in items]
+        for item, message in zip(items, messages, strict=True):
+            if message:
+                self.bad(path, f'"{item}": {message}')
+        if not any(messages) and any(Decimal(a) >= Decimal(b) for a, b in pairwise(items)):
+            self.bad(path, "values must increase.")
+
+    def run_section(self) -> None:
+        run = self.ctx.run
+        self.date("run.as_of", run.as_of, req=True)
+        self.date("run.cutoff", run.cutoff, after=True)
+        earnings = run.run_type == "earnings"
+        for name in ("current_period", "prior_period"):
+            value = getattr(run, name)
+            if value == "":
+                if earnings:
+                    self.bad(f"run.{name}", "required.")
+            elif not _match(_PERIOD, value):
+                self.bad(f"run.{name}", "use q1-2026, h2-2026 or fy-2025 (lowercase).")
+        a, b = _period_key(run.current_period), _period_key(run.prior_period)
+        if earnings:
+            self.earnings_periods(a, b)
+        if a and b and a[0] == b[0] and (b[2] > a[2] or (b[2] == a[2] and b[1] >= a[1])):
+            self.bad("run.prior_period", "must be earlier than the current period.")
+        self.currency("run.reporting_currency", run.reporting_currency, req=True)
+
+    def earnings_periods(
+        self, current: tuple[str, int, int] | None, prior: tuple[str, int, int] | None
+    ) -> None:
+        """Earnings runs compare quarters or fiscal years: no h period, and one kind for both."""
+        halves = False
+        for name, key in (("current_period", current), ("prior_period", prior)):
+            if key is not None and key[0] == "h":
+                halves = True
+                self.bad(f"run.{name}", "earnings runs compare quarters or fiscal years only.")
+        if current and prior and not halves and current[0] != prior[0]:
+            self.bad("run.prior_period", "must be the same kind as the current period.")
+
+    def identity_section(self) -> None:
+        ident = self.ctx.identity
+        self.text("identity.issuer_name", ident.issuer_name, req=True)
+        if ident.issuer_id == "":
+            self.bad("identity.issuer_id", "required.")
+        elif not _match(_SLUG, ident.issuer_id):
+            self.bad(
+                "identity.issuer_id",
+                "use lowercase letters, digits and hyphens only, not starting with a hyphen.",
+            )
+        for name in ("guarantors", "aliases"):
+            for i, item in enumerate(getattr(ident, name)):
+                if not item.strip():
+                    self.bad(f"identity.{name}[{i}]", "list items must not be empty.")
+        if ident.ticker and not ident.listed_equity:
+            self.bad("identity.ticker", "must be empty for an unlisted issuer.")
+
+    def assumptions_section(self) -> None:
+        a = self.ctx.assumptions
+        if a.cp2a is not None:
+            n = len(a.cp2a.scenarios)
+            if not 1 <= n <= _MAX_SCEN:
+                self.bad("assumptions.cp2a.scenarios", "add 1 to 4 scenarios.")
+            for i, s in enumerate(a.cp2a.scenarios):
+                p = f"assumptions.cp2a.scenarios[{i}]"
+                self.limited(
+                    f"{p}.ebitda_decline_pct", s.ebitda_decline_pct, "cp2a.ebitda_decline_pct"
+                )
+                self.limited(
+                    f"{p}.interest_increase_pct",
+                    s.interest_increase_pct,
+                    "cp2a.interest_increase_pct",
+                )
+            self.text("assumptions.cp2a.rationale", a.cp2a.rationale, req=True)
+        if a.cp2d is not None:
+            p = "assumptions.cp2d"
+            self.limited(f"{p}.horizon_months", a.cp2d.horizon_months, "cp2d.horizon_months")
+            self.limited(f"{p}.minimum_cash_m", a.cp2d.minimum_cash_m, "cp2d.minimum_cash_m")
+            self.text(f"{p}.rationale", a.cp2d.rationale, req=True)
+        if a.cp2e is not None:
+            p = "assumptions.cp2e"
+            self.shocks(f"{p}.rate_shocks_bps", a.cp2e.rate_shocks_bps, "cp2e.rate_shocks_bps")
+            self.shocks(f"{p}.fx_shocks_pct", a.cp2e.fx_shocks_pct, "cp2e.fx_shocks_pct")
+            self.limited(f"{p}.hedge_ratio_pct", a.cp2e.hedge_ratio_pct, "cp2e.hedge_ratio_pct")
+            self.text(f"{p}.rationale", a.cp2e.rationale, req=True)
+        if a.cp3c is not None:
+            p = "assumptions.cp3c"
+            self.limited(f"{p}.repricing_bps", a.cp3c.repricing_bps, "cp3c.repricing_bps")
+            self.text(f"{p}.rationale", a.cp3c.rationale, req=True)
+        if a.cp3d is not None:
+            p = "assumptions.cp3d"
+            self.limited(f"{p}.recovery_pct", a.cp3d.recovery_pct, "cp3d.recovery_pct")
+            self.text(f"{p}.rationale", a.cp3d.rationale, req=True)
+        if a.cp4c is not None:
+            p = "assumptions.cp4c"
+            self.limited(f"{p}.ev_multiple", a.cp4c.ev_multiple, "cp4c.ev_multiple")
+            self.text(f"{p}.rationale", a.cp4c.rationale, req=True)
+
+    def questions_section(self) -> None:
+        questions = self.ctx.research_questions
+        if len(questions) > _MAX_Q:
+            self.bad("research_questions", f"give at most {_MAX_Q} rows.")
+        for i, q in enumerate(questions):
+            self.text(f"research_questions[{i}].text", q.text, req=True, cell=True)
+
+    def run(self) -> list[str]:
+        self.run_section()
+        self.identity_section()
+        self.assumptions_section()
+        self.questions_section()
+        return self.problems
+
+
 def load_context(raw: bytes) -> RunContext:
     """Parse and check a context file; raise `ContextRefused` with every problem found."""
     if len(raw) > MAX_BYTES:
@@ -357,6 +615,8 @@ def load_context(raw: bytes) -> RunContext:
         context = RunContext.model_validate_json(json.dumps(obj, ensure_ascii=False))
     except ValidationError as error:
         problems.extend(f"{_join(tuple(e['loc']))}: {e['msg']}" for e in error.errors())
+    if context is not None:
+        problems.extend(_Rules(context).run())
     if problems or context is None:
         raise ContextRefused(tuple(problems))
     return context
