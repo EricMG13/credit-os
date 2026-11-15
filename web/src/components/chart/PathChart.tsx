@@ -12,8 +12,8 @@ import {
   type TooltipContentProps,
   type XAxisTickContentProps,
 } from "recharts";
-import { ChartFrame } from "./ChartFrame";
-import { ChartTable, type TableCell, type TableRowData } from "./ChartTable";
+import { type TableCell, type TableRowData } from "./ChartTable";
+import { ChartWithTable } from "./ChartWithTable";
 import { Mark } from "./marks";
 import { assignSeries } from "./series";
 import { BASELINE, HEIGHT, Legend, TICK, YAxisLabels, type YTick } from "./TrendChart";
@@ -399,26 +399,23 @@ export function PathChart({
 }: PathChartProps) {
   check({ periods, series, divider, table });
   return (
-    <ChartFrame title={title} as={as} note={note} subtitle={subtitle} actions={actions}>
-      {(view) =>
-        view === "chart" ? (
-          <Chart
-            title={title}
-            periods={periods}
-            series={series}
-            divider={divider}
-            yTicks={yTicks}
-            rows={table.rows}
-          />
-        ) : (
-          <ChartTable
-            caption={title}
-            head={table.head}
-            rows={table.rows}
-            endHeading={table.endHeading}
-          />
-        )
+    <ChartWithTable
+      title={title}
+      as={as}
+      note={note}
+      subtitle={subtitle}
+      actions={actions}
+      table={table}
+      chart={
+        <Chart
+          title={title}
+          periods={periods}
+          series={series}
+          divider={divider}
+          yTicks={yTicks}
+          rows={table.rows}
+        />
       }
-    </ChartFrame>
+    />
   );
 }

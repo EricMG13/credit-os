@@ -4,11 +4,7 @@ import { GapPanel } from "@/components/gap/GapPanel";
 import { Collapsible } from "./parts/Collapsible";
 import { RunPage } from "./parts/RunPage";
 import { TraceControl } from "./parts/TraceControl";
-
-/** GapPanel draws its own fixed title; until it takes one, the gap's title leads its reason. */
-function gapReason(title: string, reason: string): string {
-  return `${title}. ${reason}`;
-}
+import { gapReason } from "./sections/shared";
 
 export function LimitationsPage({ params }: { params: Record<string, string> }) {
   return (
@@ -67,7 +63,7 @@ export function LimitationsPage({ params }: { params: Record<string, string> }) 
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
               {limitations.notEstablished.items.map((gap, index) => (
-                <GapPanel key={index} reason={gapReason(gap.title, gap.reason)} />
+                <GapPanel key={index} reason={gapReason(gap)} />
               ))}
             </div>
           </section>

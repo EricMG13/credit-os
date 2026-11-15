@@ -2,6 +2,7 @@
 expected text is a literal. Rows come from the 1D PR 3 key table and the controller's rulings."""
 
 import io
+import tracemalloc
 import zipfile
 from typing import Literal
 
@@ -1001,3 +1002,119 @@ def test_page_text_cap_is_met_before_a_later_style_fault(monkeypatch: pytest.Mon
     with pytest.raises(SourceUnreadable) as caught:
         xlsx_pages("b.xlsx", raw)
     assert str(caught.value) == "b.xlsx: page text longer than 65,536 characters"
+
+
+CAP_REFUSED = SHEET + "a cell or string longer than 1,048,576 characters"
+ASTRAL = chr(0xE0001)  # repr writes it as ten characters
+
+
+def label_book(text: str) -> bytes:
+    # inline-string cell A1: its label is "A1=" + repr(text); deflated so the zip is far under 1 MiB
+    return book(
+        f'<row><c r="A1" t="inlineStr"><is><t>{text}</t></is></c></row>',
+        method=zipfile.ZIP_DEFLATED,
+    )
+
+
+def label_cap_shape() -> bytes:
+    # the 9 KiB reviewer shape (x-shared-formula-hidden), one U+E0001 trimmed from the formula and
+    # from the shared string so each part expands to under 8 MiB: its label is about 21 Mi characters
+    n = 1_048_576
+    return book(
+        '<row hidden="1"><c t="s"><f>' + ASTRAL * (n - 3) + "\n</f><v>0</v></c></row>",
+        before='<cols><col min="1" max="1" hidden="1"/></cols>',
+        strings="<si><t>" + ASTRAL * (n - 2) + "\n</t></si>",
+        method=zipfile.ZIP_DEFLATED,
+    )
+
+
+def test_label_cap_shape() -> None:
+    # (ruling 37) the shared-string cache and the repr count against the cell cap
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", label_cap_shape())
+    assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
+
+
+def test_label_cap_early() -> None:
+    # (ruling 37) the refusal comes before the next piece of the label is built
+    raw = label_cap_shape()
+    with pytest.raises(SourceUnreadable):
+        xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        with pytest.raises(SourceUnreadable):
+            xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert peak < 24 * 1024 * 1024
+
+
+def test_label_at_cap() -> None:
+    # (ruling 37) a label of exactly 1,048,576 characters reads
+    pages = xlsx_pages("b.xlsx", label_book("a" * 1_048_571))
+    assert pages.pages[0].text == H + "A1='" + "a" * 1_048_571 + "'"
+
+
+def test_label_over_cap() -> None:
+    # (ruling 37) one more character is refused
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", label_book("a" * 1_048_572))
+    assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
+
+
+def test_label_at_cap_repr() -> None:
+    # (ruling 37) counted after repr: 104,857 x 10 + 1 + 5 = 1,048,576
+    pages = xlsx_pages("b.xlsx", label_book(ASTRAL * 104_857 + "a"))
+    assert pages.pages[0].text == H + "A1='" + "\\U000e0001" * 104_857 + "a'"
+
+
+def test_label_over_cap_repr() -> None:
+    # (ruling 37) one more character after repr is refused
+    with pytest.raises(SourceUnreadable) as caught:
+        xlsx_pages("b.xlsx", label_book(ASTRAL * 104_857 + "aa"))
+    assert str(caught.value) == "b.xlsx: " + CAP_REFUSED
+
+
+def formula_book(formula: str) -> bytes:
+    return book(f'<row><c r="A1"><f>{formula}</f></c></row>', method=zipfile.ZIP_DEFLATED)
+
+
+@pytest.mark.parametrize(
+    ("formula", "written"),
+    [
+        pytest.param(ASTRAL * 200_000, ASTRAL * 200_000, id="formula-langtag-long"),
+        pytest.param("\\" * 524_288, "\\" * 524_288, id="formula-backslash-long"),
+    ],
+)
+def test_formula_floor_is_the_written_length(formula: str, written: str) -> None:
+    # (ruling 37) a formula written unescaped counts its raw length, not its repr's
+    pages = xlsx_pages("b.xlsx", formula_book(formula))
+    assert pages.pages[0].text == H + "A1='=" + written + "' cache=[absent]"
+
+
+def pieces_book(n: int) -> bytes:
+    # n one-character pieces: a processing instruction flushes the parser's text buffer after each
+    text = (chr(0x100) + "<?a?>") * n
+    return book(
+        f'<row><c r="A1" t="inlineStr"><is><t>{text}</t></is></c></row>',
+        method=zipfile.ZIP_DEFLATED,
+    )
+
+
+def test_pieces_memory() -> None:
+    # (ruling 38) a text of 1,048,571 one-character pieces reads in under 24 MiB
+    raw = pieces_book(1_048_576 - 5)
+    assert len(raw) < 1_048_576
+    xlsx_pages("b.xlsx", raw)
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        pages = xlsx_pages("b.xlsx", raw)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert len(pages.pages) == 1
+    assert pages.pages[0].text == H + "A1='" + chr(0x100) * (1_048_576 - 5) + "'"
+    assert peak < 24 * 1024 * 1024

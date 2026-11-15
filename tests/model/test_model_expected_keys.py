@@ -17,7 +17,9 @@ SCRIPTS = (
     "make_pr5",
     "make_pr6a",
     "make_pr6b",
-)  # pr2 to pr6b keys
+    "make_pr7a1",
+    "make_pr7b",
+)  # pr2 to pr7b keys
 
 
 def load_script(name: str) -> ModuleType:

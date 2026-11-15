@@ -181,9 +181,19 @@ function ModuleView({
       <div ref={content} className="flex min-w-0 flex-col gap-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Heading className="font-display text-h2 text-text-primary">{module.name}</Heading>
-          {body.kind === "delivered" ? (
+          {body.kind !== "delivered" ? null : body.limitations.items.length === 0 ? (
+            <div className="flex items-center gap-4">
+              <StatusBadge set="Module state" state={module.state} />
+              <Link
+                href={gapsHref}
+                className={`${TEXT_LINK} text-small font-semibold text-action underline`}
+              >
+                {body.limitations.gapsLink.label}
+              </Link>
+            </div>
+          ) : (
             <StatusBadge set="Module state" state={module.state} />
-          ) : null}
+          )}
         </div>
         {body.kind === "delivered" ? (
           <Prose body={body} gapsHref={gapsHref} />

@@ -1,26 +1,22 @@
 import { useEffect, useRef } from "react";
-import { SearchLg } from "@untitledui/icons";
 import { Link } from "react-aria-components";
 import { Alert } from "@/components/alert/Alert";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Badge } from "@/components/base/badges/badges";
 import { Missing } from "@/components/gap/Missing";
 import { Withheld } from "@/components/gap/Withheld";
 import { GapBadge, StatusBadge } from "@/components/status/StatusBadge";
 import type { GapForm, GapRow, GapTable, Reader } from "./slice";
 import { NothingForModule } from "./parts/ModuleFilter";
+import { EmptyRegister, RegisterPage } from "./parts/RegisterPage";
 import {
   PlainHead,
   REGISTER_CELL,
-  RegisterCard,
-  RegisterTable,
   SortHead,
   sortRows,
   useSort,
   type SortKey,
 } from "./parts/RegisterTable";
 import { cx } from "@/utils/cx";
-import { SUBSECTION_HEADING } from "./parts/heading";
 import { TEXT_LINK, modulesHref, overviewHref } from "./parts/links";
 
 type Column = "id" | "module";
@@ -91,20 +87,9 @@ export function EvidenceGaps({
     .filter((group) => group.rows.length > 0);
   if (table.groups.length === 0) {
     return (
-      <div className="flex flex-col gap-4">
-        {unknown}
-        <EmptyState>
-          <EmptyState.Header>
-            <EmptyState.FeaturedIcon icon={SearchLg} />
-          </EmptyState.Header>
-          <EmptyState.Content>
-            <EmptyState.Title as={SUBSECTION_HEADING}>This run has no gaps</EmptyState.Title>
-            <EmptyState.Description>
-              Nothing the modules looked for was missing.
-            </EmptyState.Description>
-          </EmptyState.Content>
-        </EmptyState>
-      </div>
+      <EmptyRegister unknown={unknown} title="This run has no gaps">
+        Nothing the modules looked for was missing.
+      </EmptyRegister>
     );
   }
   if (module !== null && groups.length === 0) {
@@ -118,84 +103,78 @@ export function EvidenceGaps({
   }
   const { columns } = table;
   return (
-    <div className="flex flex-col gap-4">
-      {unknown}
-      <RegisterCard
-        title={table.title}
-        count={module === null ? count : null}
-        description={table.description}
-      >
-        <RegisterTable
-          name={table.title}
-          head={
-            <>
-              <SortHead column="id" label={columns.id} sort={sort} onSort={onSort} />
-              <PlainHead>{columns.gap}</PlainHead>
-              <SortHead column="module" label={columns.module} sort={sort} onSort={onSort} />
-              <PlainHead>{columns.reason}</PlainHead>
-              <PlainHead>{columns.shownAs}</PlainHead>
-            </>
-          }
-        >
-          {groups.map((group) => (
-            <tbody key={group.severity ?? "none"}>
-              <tr className="border-b border-border-hairline bg-surface-subtle">
-                <th scope="rowgroup" colSpan={5} className="px-5 py-2 text-left font-semibold">
-                  <span className="flex items-center gap-2">
-                    {group.severity === null ? (
-                      <span className="text-small font-medium text-text-secondary">Not ranked</span>
-                    ) : (
-                      <StatusBadge set="Gap severity" state={group.severity} />
-                    )}
-                    {module === null ? (
-                      <Badge size="sm" color="gray">
-                        {group.count}
-                      </Badge>
-                    ) : null}
-                  </span>
-                </th>
-              </tr>
-              {group.rows.map((row) => (
-                <tr
-                  key={row.id}
-                  ref={row.id === item ? landed : undefined}
-                  tabIndex={row.id === item ? -1 : undefined}
-                  aria-current={row.id === item ? "location" : undefined}
-                  className={cx(
-                    "border-b border-border-hairline outline-focus-ring focus-visible:outline-2 focus-visible:-outline-offset-2",
-                    row.id === item && "bg-surface-subtle",
-                  )}
-                >
-                  <th
-                    scope="row"
-                    className={`${REGISTER_CELL} font-mono text-left font-normal whitespace-nowrap`}
+    <RegisterPage
+      unknown={unknown}
+      title={table.title}
+      count={module === null ? count : null}
+      description={table.description}
+      head={
+        <>
+          <SortHead column="id" label={columns.id} sort={sort} onSort={onSort} />
+          <PlainHead>{columns.gap}</PlainHead>
+          <SortHead column="module" label={columns.module} sort={sort} onSort={onSort} />
+          <PlainHead>{columns.reason}</PlainHead>
+          <PlainHead>{columns.shownAs}</PlainHead>
+        </>
+      }
+    >
+      {groups.map((group) => (
+        <tbody key={group.severity ?? "none"}>
+          <tr className="border-b border-border-hairline bg-surface-subtle">
+            <th scope="rowgroup" colSpan={5} className="px-5 py-2 text-left font-semibold">
+              <span className="flex items-center gap-2">
+                {group.severity === null ? (
+                  <span className="text-small font-medium text-text-secondary">Not ranked</span>
+                ) : (
+                  <StatusBadge set="Gap severity" state={group.severity} />
+                )}
+                {module === null ? (
+                  <Badge size="sm" color="gray">
+                    {group.count}
+                  </Badge>
+                ) : null}
+              </span>
+            </th>
+          </tr>
+          {group.rows.map((row) => (
+            <tr
+              key={row.id}
+              ref={row.id === item ? landed : undefined}
+              tabIndex={row.id === item ? -1 : undefined}
+              aria-current={row.id === item ? "location" : undefined}
+              className={cx(
+                "border-b border-border-hairline outline-focus-ring focus-visible:outline-2 focus-visible:-outline-offset-2",
+                row.id === item && "bg-surface-subtle",
+              )}
+            >
+              <th
+                scope="row"
+                className={`${REGISTER_CELL} font-mono text-left font-normal whitespace-nowrap`}
+              >
+                {row.id}
+              </th>
+              <td className={`${REGISTER_CELL} text-text-primary`}>{row.gap}</td>
+              <td className={REGISTER_CELL}>{row.module}</td>
+              <td className={REGISTER_CELL}>{row.reason}</td>
+              <td className={REGISTER_CELL}>
+                <div className="flex flex-col items-start gap-1.5">
+                  <ShownAs form={row.shownAs} />
+                  <Link
+                    href={
+                      row.where.page === "overview"
+                        ? overviewHref(issuer, run)
+                        : modulesHref(issuer, run, row.moduleId)
+                    }
+                    className={`${TEXT_LINK} text-small text-text-secondary underline`}
                   >
-                    {row.id}
-                  </th>
-                  <td className={`${REGISTER_CELL} text-text-primary`}>{row.gap}</td>
-                  <td className={REGISTER_CELL}>{row.module}</td>
-                  <td className={REGISTER_CELL}>{row.reason}</td>
-                  <td className={REGISTER_CELL}>
-                    <div className="flex flex-col items-start gap-1.5">
-                      <ShownAs form={row.shownAs} />
-                      <Link
-                        href={
-                          row.where.page === "overview"
-                            ? overviewHref(issuer, run)
-                            : modulesHref(issuer, run, row.moduleId)
-                        }
-                        className={`${TEXT_LINK} text-small text-text-secondary underline`}
-                      >
-                        {row.where.label}
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+                    {row.where.label}
+                  </Link>
+                </div>
+              </td>
+            </tr>
           ))}
-        </RegisterTable>
-      </RegisterCard>
-    </div>
+        </tbody>
+      ))}
+    </RegisterPage>
   );
 }

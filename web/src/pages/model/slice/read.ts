@@ -325,6 +325,7 @@ function unreadableRun(entry: unknown, reason: string): UnreadableRun {
     try {
       return { issuer: text(issuer, "issuer"), run: text(runId, "run"), reason };
     } catch (error) {
+      // The guard keeps a non-SliceError propagating; either id failing to read leaves both unnamed.
       if (!(error instanceof SliceError)) throw error;
     }
   }

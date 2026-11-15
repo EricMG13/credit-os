@@ -102,7 +102,7 @@ function RunTabs({ issuer, run, tab }: { issuer: string; run: Run; tab: RunTab }
         href={head.forecastHref}
         current={here("forecast")}
         label="Forecast"
-        hint="Not built yet"
+        hint="No forecast for this run"
       />
       <RunTabLink
         href={evidenceHref(issuer, run.id, "summary")}

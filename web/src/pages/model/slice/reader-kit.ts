@@ -63,6 +63,24 @@ export function oneOf<T extends string>(words: readonly T[]): Reader<T> {
     words.find((word) => word === value) ?? fail(path, `expected one of ${words.join(", ")}`);
 }
 
+/**
+ * `null`, or a record read by `record`; an object with neither of the two keys is refused with a
+ * message naming them, so a stray object is not read as a record with every member missing.
+ */
+export function nullableRecord<T extends object>(
+  keys: readonly [string, string],
+  record: Reader<T>,
+): Reader<T | null> {
+  return (value, path) => {
+    if (value === null) return null;
+    const isRecord = typeof value === "object" && !Array.isArray(value);
+    if (!isRecord || !(keys[0] in value || keys[1] in value)) {
+      return fail(path, `expected null or an object with ${keys[0]} and ${keys[1]}`);
+    }
+    return record(value, path);
+  };
+}
+
 export function arrayOf<T>(item: Reader<T>): Reader<T[]> {
   return (value, path) => {
     if (!Array.isArray(value)) return fail(path, "expected a list");

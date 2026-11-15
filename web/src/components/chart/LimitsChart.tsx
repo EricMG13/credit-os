@@ -93,66 +93,152 @@ const CLASH_BELOW_PX = 14;
 
 const TEXT = "whitespace-nowrap text-xs font-medium leading-4";
 
-function Column({ c, color }: { c: LimitColumn; color: string }) {
+/** Where a column's marks sit, from the delivered positions only. */
+interface Placement {
+  /** The bar's height, as a percent of the track; null with no exposure. */
+  height: number | null;
+  /** The tick's height, as a percent of the track; null with no limit. */
+  at: number | null;
+  /** "limit n.a." stacks with the exposure label instead of standing at its own height. */
+  stacked: boolean;
+  /** The limit label and the exposure label would overlap. */
+  clash: boolean;
+  barIsHigher: boolean;
+  /** The tick is too low for its label to stand above "n.a.". */
+  limitOverNa: boolean;
+}
+
+/** The tick's height above the bar top, in px; null when either mark is missing. */
+function tickGap(c: LimitColumn): number | null {
+  if (c.exposure === null || c.limit === null) return null;
+  return (c.limit - c.exposure) * (TRACK_PX / c.scaleMax);
+}
+
+function place(c: LimitColumn): Placement {
   const height = c.exposure === null ? null : (c.exposure / c.scaleMax) * 100;
   const at = c.limit === null ? null : (c.limit / c.scaleMax) * 100;
-  // The column's top padding is the headroom for the two stacked label lines (2 x 16px and a 4px
-  // gap), so a bar near its scale maximum keeps them inside the plot.
   // "limit n.a." stands at the mock's 86% of the track, as a limit label would, unless the bar's
   // exposure label would reach it (a bar above NO_LIMIT_CLEAR_BELOW); then it stacks with that
   // label above the bar's top, so no two labels overlap. With no exposure it stacks with "n.a.".
-  const missingNote = (
+  const stacked = at === null && (height === null || height > NO_LIMIT_CLEAR_BELOW);
+  // Position arithmetic on the delivered positions: the tick's height above the bar top, in px.
+  const gap = tickGap(c);
+  const clash = gap !== null && gap < CLASH_ABOVE_PX && gap > -CLASH_BELOW_PX;
+  const barIsHigher = gap !== null && gap <= 0;
+  // With no exposure, "n.a." stands on the baseline: a tick under the limit label's height (18px)
+  // would put its label over it, so the label stacks above "n.a." instead.
+  const limitOverNa = height === null && at !== null && at < (CLASH_ABOVE_PX / TRACK_PX) * 100;
+  return { height, at, stacked, clash, barIsHigher, limitOverNa };
+}
+
+function MissingNote() {
+  return (
     <span data-limit-missing="" className={`${TEXT} text-text-secondary`}>
       limit <Missing />
     </span>
   );
-  const stacked = at === null && (height === null || height > NO_LIMIT_CLEAR_BELOW);
-  // Position arithmetic on the delivered positions: the tick's height above the bar top, in px.
-  const gap =
-    c.exposure === null || c.limit === null
-      ? null
-      : (c.limit - c.exposure) * (TRACK_PX / c.scaleMax);
-  const clash = gap !== null && gap < CLASH_ABOVE_PX && gap > -CLASH_BELOW_PX;
-  const barIsHigher = gap !== null && gap <= 0;
-  const limitLabel = (
+}
+
+function LimitLabel({ text }: { text: string | null }) {
+  return (
     <span data-limit-label="" className="text-text-secondary">
-      {c.limitText}
+      {text}
     </span>
   );
-  // With no exposure, "n.a." stands on the baseline: a tick under the limit label's height (18px)
-  // would put its label over it, so the label stacks above "n.a." instead.
-  const limitOverNa = height === null && at !== null && at < (CLASH_ABOVE_PX / TRACK_PX) * 100;
-  const noLimit = stacked ? missingNote : clash && barIsHigher ? limitLabel : null;
+}
+
+/** The bar and its exposure label, or "n.a." where there is no exposure. */
+function ColumnBar({
+  c,
+  p,
+  color,
+  noLimit,
+}: {
+  c: LimitColumn;
+  p: Placement;
+  color: string;
+  noLimit: ReactNode;
+}) {
+  if (p.height === null) {
+    return (
+      <span
+        data-missing=""
+        className={`${TEXT} flex flex-col items-center pb-1 text-text-tertiary`}
+      >
+        {p.limitOverNa ? <LimitLabel text={c.limitText} /> : null}
+        <Missing />
+        {noLimit}
+      </span>
+    );
+  }
+  return (
+    <div
+      data-bar=""
+      data-height={p.height}
+      className="relative min-h-0.5 w-14 max-w-3/5 rounded-t-[6px]"
+      style={{ height: `${String(p.height)}%`, backgroundColor: color }}
+    >
+      {p.clash && !p.barIsHigher ? null : (
+        <span
+          className={`${TEXT} absolute bottom-full left-1/2 flex -translate-x-1/2 flex-col items-center pb-1 text-text-primary`}
+        >
+          {noLimit}
+          <span data-exposure="">{c.exposureText}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The dashed tick at the limit, and its label (stacked with the exposure where they clash). */
+function ColumnTick({ c, p, at }: { c: LimitColumn; p: Placement; at: number }) {
+  return (
+    <div
+      data-tick=""
+      data-at={at}
+      className="absolute inset-x-[14%] border-t-2 border-dashed border-text-primary"
+      style={{ bottom: `${String(at)}%` }}
+    >
+      {p.limitOverNa ? null : <TickLabel c={c} p={p} />}
+    </div>
+  );
+}
+
+function TickLabel({ c, p }: { c: LimitColumn; p: Placement }) {
+  if (!p.clash) {
+    return (
+      <span className={`${TEXT} absolute bottom-0.5 right-0`}>
+        <LimitLabel text={c.limitText} />
+      </span>
+    );
+  }
+  if (p.barIsHigher) return null;
+  return (
+    <span
+      className={`${TEXT} absolute bottom-1 left-1/2 flex -translate-x-1/2 flex-col items-center text-text-primary`}
+    >
+      <LimitLabel text={c.limitText} />
+      <span data-exposure="">{c.exposureText}</span>
+    </span>
+  );
+}
+
+function Column({ c, color }: { c: LimitColumn; color: string }) {
+  // The column's top padding is the headroom for the two stacked label lines (2 x 16px and a 4px
+  // gap), so a bar near its scale maximum keeps them inside the plot.
+  const p = place(c);
+  const { at } = p;
+  const missingNote = <MissingNote />;
+  const noLimit = p.stacked ? (
+    missingNote
+  ) : p.clash && p.barIsHigher ? (
+    <LimitLabel text={c.limitText} />
+  ) : null;
   return (
     <div data-column={c.label} className="relative flex flex-1 flex-col pt-9">
       <div data-track="" className="relative flex flex-1 items-end justify-center">
-        {height === null ? (
-          <span
-            data-missing=""
-            className={`${TEXT} flex flex-col items-center pb-1 text-text-tertiary`}
-          >
-            {limitOverNa ? limitLabel : null}
-            <Missing />
-            {noLimit}
-          </span>
-        ) : (
-          <div
-            data-bar=""
-            data-height={height}
-            className="relative min-h-0.5 w-14 max-w-3/5 rounded-t-[6px]"
-            style={{ height: `${String(height)}%`, backgroundColor: color }}
-          >
-            {clash && !barIsHigher ? null : (
-              <span
-                className={`${TEXT} absolute bottom-full left-1/2 flex -translate-x-1/2 flex-col items-center pb-1 text-text-primary`}
-              >
-                {noLimit}
-                <span data-exposure="">{c.exposureText}</span>
-              </span>
-            )}
-          </div>
-        )}
-        {at === null && !stacked ? (
+        <ColumnBar c={c} p={p} color={color} noLimit={noLimit} />
+        {at === null && !p.stacked ? (
           <div
             data-limit-at={NO_LIMIT_AT}
             className="absolute inset-x-[14%]"
@@ -161,27 +247,7 @@ function Column({ c, color }: { c: LimitColumn; color: string }) {
             <span className="absolute bottom-0.5 right-0">{missingNote}</span>
           </div>
         ) : null}
-        {at === null ? null : (
-          <div
-            data-tick=""
-            data-at={at}
-            className="absolute inset-x-[14%] border-t-2 border-dashed border-text-primary"
-            style={{ bottom: `${String(at)}%` }}
-          >
-            {limitOverNa ? null : clash ? (
-              barIsHigher ? null : (
-                <span
-                  className={`${TEXT} absolute bottom-1 left-1/2 flex -translate-x-1/2 flex-col items-center text-text-primary`}
-                >
-                  {limitLabel}
-                  <span data-exposure="">{c.exposureText}</span>
-                </span>
-              )
-            ) : (
-              <span className={`${TEXT} absolute bottom-0.5 right-0`}>{limitLabel}</span>
-            )}
-          </div>
-        )}
+        {at === null ? null : <ColumnTick c={c} p={p} at={at} />}
       </div>
     </div>
   );

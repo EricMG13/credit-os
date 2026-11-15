@@ -411,16 +411,28 @@ describe("readSlice, run frame", () => {
     expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
   });
 
-  it("reads the model page of the run's own issuer and run, or null", () => {
+  it.each([
+    ["a run id with a space", "halden-aerostructures", "r 50%"],
+    ["a run id of dots", "halden-aerostructures", ".."],
+    ["a run id over 128 characters", "halden-aerostructures", "r".repeat(129)],
+    ["an issuer id with a space", "halden aero", "2026-09-30"],
+    ["an issuer id of one dot", ".", "2026-09-30"],
+  ])("rejects its own Forecast address when %s breaks the id rule", (_name, issuer, run) => {
+    const slice = JSON.parse(
+      JSON.stringify(fresh()).replaceAll("halden-aerostructures", issuer),
+    ) as ReturnType<typeof fresh>;
+    for (const other of [1, 2, 3]) runOf(slice, 0, other).head["forecastHref"] = null;
+    const target = runOf(slice, 0, 0);
+    target["id"] = run;
+    target.head["forecastHref"] = `#/model/${issuer}/${run}/forecast`;
+    expect(invalidReason(slice)).toContain("issuers[0].runs[0].head.forecastHref");
+  });
+
+  it("reads null for every run of the fixture, the model holding none of them", () => {
     const result = readSlice(fixture.slice);
     if (result.kind !== "ok") throw new Error(result.kind);
     const hrefs = result.data.issuers[0]?.runs.map((run) => run.head.forecastHref);
-    expect(hrefs).toEqual([
-      "#/model/halden-aerostructures/2026-09-30/forecast",
-      null,
-      null,
-      "#/model/halden-aerostructures/2025-09-30/forecast",
-    ]);
+    expect(hrefs).toEqual([null, null, null, null]);
   });
 
   it("names the path of a malformed tree node deep in a trace", () => {
@@ -535,6 +547,16 @@ describe("readSlice, overview", () => {
     expect(full.overview.modules.items).toHaveLength(13);
     expect(capped.overview.modules.items[0]?.module).toBeNull();
     expect(full.overview.limitations.count).toBe("4");
+  });
+
+  it("reads an overview with no headline figure, as the delivery writes one with no foundation", () => {
+    const slice = fresh();
+    ovOf(slice).metrics = [];
+    const result = readSlice(slice);
+    if (result.kind !== "ok") throw new Error(result.kind);
+    const run = result.data.issuers[0]?.runs[0];
+    if (run?.loading !== false) throw new Error("the run is loaded");
+    expect(run.overview.metrics).toEqual([]);
   });
 
   it.each([

@@ -3,6 +3,18 @@ import { ShowSources, ShowSourcesSwitch } from "./ShowSources";
 import { TraceControl } from "./TraceControl";
 
 describe("TraceControl", () => {
+  // The Show sources store lives for the session, so each test starts from off through the switch.
+  beforeEach(() => {
+    const { unmount } = render(
+      <ShowSources>
+        <ShowSourcesSwitch />
+      </ShowSources>,
+    );
+    const sw = screen.getByRole("switch", { name: "Show sources" });
+    if ((sw as HTMLInputElement).checked) fireEvent.click(sw);
+    unmount();
+  });
+
   it("is a link to its address, named by the label, reachable by Tab, hidden by opacity", () => {
     render(
       <ShowSources>

@@ -9,8 +9,8 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import { ChartFrame } from "./ChartFrame";
-import { ChartTable, type TableRowData } from "./ChartTable";
+import { type TableRowData } from "./ChartTable";
+import { ChartWithTable } from "./ChartWithTable";
 import { Mark } from "./marks";
 import { assignSeries, type SeriesStyle } from "./series";
 import { BASELINE, HEIGHT, TICK, type YTick } from "./TrendChart";
@@ -291,19 +291,14 @@ export function ScatterPlot({
 }: ScatterPlotProps) {
   check({ x, y, points, table });
   return (
-    <ChartFrame title={title} as={as} note={note} subtitle={subtitle} actions={actions}>
-      {(view) =>
-        view === "chart" ? (
-          <Chart title={title} x={x} y={y} othersName={othersName} points={points} />
-        ) : (
-          <ChartTable
-            caption={title}
-            head={table.head}
-            rows={table.rows}
-            endHeading={table.endHeading}
-          />
-        )
-      }
-    </ChartFrame>
+    <ChartWithTable
+      title={title}
+      as={as}
+      note={note}
+      subtitle={subtitle}
+      actions={actions}
+      table={table}
+      chart={<Chart title={title} x={x} y={y} othersName={othersName} points={points} />}
+    />
   );
 }
