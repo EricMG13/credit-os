@@ -3,8 +3,9 @@
 `xlsx_pages` reads through `ooxml.Package` and nothing else of the zip or XML. Each part is read
 once, piece by piece, by a table of element paths; of a sheet only its text, a flag per column and
 the current row and cell are kept. A workbook is read whole or refused. Comments, drawings and
-every other part are not read. Strict Open XML is refused by name. Rows and cells must rise, which
-the file format's schema requires and which makes a duplicate address detectable with no memory.
+every other part are not read. Strict Open XML is refused by name. Rows and cells must rise (what
+openpyxl 3.1.5 and xlsxwriter 3.3.1 write, checked; not checked against ECMA-376 or Excel), which
+makes a duplicate address detectable with no memory.
 
 The bound, as formula arithmetic and not a measurement: peak traced memory of `1.2 x E + 2 x B + a
 fixed term measured in PR 3e`, E being the expanded bytes (at most 200 MiB) and B the bytes of the
@@ -29,7 +30,7 @@ from credit_os.sources.pages import Page, SourcePages
 # Limits, read at call time. Sheets: the list and a header per page. Cell and number formats: the
 # `xf` list and the format table. Kept characters: a sheet name, relationship id or target and a
 # format code stay for the whole read. Cell characters: one cell or string while it is put together.
-# Column: XFD, which makes the order of cells checkable. Text: all pages. Block: pieces of page text
+# Column: XFD, which makes the order of cells checkable. Row: 1,048,576. Text: all pages. Block: pieces of page text
 # held before they are made one block.
 MAX_SHEETS = 10_000
 MAX_CELL_FORMATS = 65_536
@@ -38,6 +39,7 @@ MAX_KEPT_CHARACTERS = 255
 MAX_ID_DIGITS = 10
 MAX_CELL_CHARACTERS = 1_048_576
 MAX_COLUMN = 16_384
+MAX_ROW = 1_048_576
 MAX_TEXT_CHARACTERS = 33_554_432
 BLOCK_CHARACTERS = 65_536
 
@@ -308,8 +310,7 @@ class _Sheet(_Reader):
         self.hidden = bytearray(MAX_COLUMN + 1)
         self.in_data = False
         self.row = self.column = 0
-        self.row_hidden = self.wrote = False
-        self.lines: list[str] = []
+        self.row_hidden = self.wrote = self.started = False
         self.parts: dict[str, list[str]] = {}
         row = ("worksheet", "sheetData", "row")
         cell = (*row, "c")
@@ -324,7 +325,7 @@ class _Sheet(_Reader):
             (*cell, "is", "t"): lambda _attributes: self.take("t", once=False),
             (*cell, "is", "r", "t"): lambda _attributes: self.take("r", once=False),
         }
-        self.on_end = {row: self.end_row, cell: self.end_cell}
+        self.on_end = {cell: self.end_cell}
 
     def columns(self, _attributes: dict[str, str]) -> None:
         if self.in_data:
@@ -347,21 +348,32 @@ class _Sheet(_Reader):
         number = self.row + 1
         stated = attributes.get("r")
         if stated:
+            long = len(stated) > len(str(MAX_ROW)) and stated.isascii() and stated.isdigit()
+            if long and stated[0] != "0":
+                raise self.beyond()
             if not _whole(stated):
                 raise self.refuse("a row number that is not a whole number")
             number = int(stated)
             if number <= self.row:
                 raise self.order(f"row {number} after row {self.row}")
+        if number > MAX_ROW:
+            raise self.beyond()
         self.row = number
         self.column = 0
         self.row_hidden = attributes.get("hidden") in _YES
+        self.started = False
 
-    def end_row(self) -> None:
-        if self.lines:
-            head = "[hidden row] " if self.row_hidden else ""
-            self.out.add(("\n" if self.wrote else "") + head + " | ".join(self.lines))
-            self.wrote = True
-            self.lines = []
+    def beyond(self) -> SourceUnreadable:
+        return self.refuse(f"a row beyond row {MAX_ROW:,}")
+
+    def write(self, label: str) -> None:
+        """Write one cell's label: the row's line break and mark before its first, ` | ` before the rest."""
+        if self.started:
+            head = " | "
+        else:
+            head = ("\n" if self.wrote else "") + ("[hidden row] " if self.row_hidden else "")
+            self.started = self.wrote = True
+        self.out.add(head + label)
 
     def start_cell(self, attributes: dict[str, str]) -> None:
         self.size = 0
@@ -418,7 +430,7 @@ class _Sheet(_Reader):
             self.state = "text"
         label = self.describe(text, value, style)
         if label is not None:
-            self.lines.append(label + (" [hidden column]" if self.hidden[self.column] else ""))
+            self.write(label + (" [hidden column]" if self.hidden[self.column] else ""))
 
     def describe(self, text: str, value: str, style: int) -> str | None:
         """Return the cell's label, or None when it writes nothing."""
