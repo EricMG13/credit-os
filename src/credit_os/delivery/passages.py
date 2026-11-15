@@ -107,8 +107,6 @@ def findings(reader: Reader, names: Sequence[str]) -> tuple[dict[str, object], .
 
 def _part(title: str, texts: Sequence[str], names: Sequence[str]) -> dict[str, object]:
     text = _joined(texts)
-    if not text:
-        raise _refuse("contrary evidence", "part without text")
     _clean("contrary evidence", names, title, text)
     return {"title": title, "text": text, "trace": None}
 
