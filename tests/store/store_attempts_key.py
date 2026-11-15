@@ -9,6 +9,7 @@ this file or weaken a comparison against it.
 
 import hashlib
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, cast
 
@@ -1220,4 +1221,167 @@ NOT_RUNNING_3C1: tuple[tuple[str, str, dict[str, object]], ...] = (
     ("reply", "record_reply", _reply_of("CP-1", 1, 1)),
     ("verdict", "record_verdict", _verdict("CP-1", 1, REPLY_SHA256[1], True)),
     ("fail", "fail_attempt", _fail("CP-1", 1)),
+)
+
+
+# === Added for PR 3c2: the reads attempts(run_id) and charges(run_id) =======================
+# api-3b-3c.md "Reads": on Store and StoreReader, one read transaction each, equal on both. Attempts
+# ordered by module_id then attempt (binary text order); calls by module_id, attempt, call_index;
+# compactions by position, superseded ones included; nothing summed. A run never created is
+# StoreRefused; stored values the codecs or the provider's constructors refuse are StoreCorrupt.
+# Expected records are derived here from the stored columns with the standard library only.
+
+
+def at(row: int) -> datetime:
+    """The test clock's answer to scripted row n (as SCRIPT_3B1)."""
+    return datetime(2026, 9, 30, 12, 0, row, tzinfo=UTC)
+
+
+def _time(text: object) -> datetime | None:
+    return None if text is None else datetime.fromisoformat(str(text))
+
+
+def call_fields(columns: dict[str, object]) -> dict[str, object]:
+    """A CallRecord's reply fields from a call's stored reply columns (OPEN_CALL_COLUMNS names).
+    usage is None while open and for not_sent and sent_unknown, else a Usage of the five counts
+    (all None is Usage(), never None); money keeps its stored exponent."""
+    names = ("input_tokens", "cached_read_tokens", "cache_write_tokens", "output_tokens")
+    usage = (
+        None
+        if columns["kind"] in (None, "not_sent", "sent_unknown")
+        else Usage(**{n: cast(int | None, columns[n]) for n in (*names, "reasoning_tokens")})
+    )
+    billed = columns["billed_usd"]
+    return {
+        "kind": columns["kind"],
+        "error_class": columns["error_class"],
+        "message": columns["message"],
+        "usage": usage,
+        "billed_usd": None if billed is None else Decimal(str(billed)),
+        "started_at": _time(columns["started_at"]),
+        "finished_at": _time(columns["finished_at"]),
+        "stop_reason": columns["stop_reason"],
+        "reported_model": columns["reported_model"],
+        "request_id": columns["request_id"],
+        "raw": columns["raw"],
+    }
+
+
+def compaction_of(row: dict[str, object]) -> Compaction:
+    """The Compaction a stored compaction row reads back as (store_reply_key COMPACTIONS names)."""
+    names = ("input_tokens", "cached_read_tokens", "cache_write_tokens", "output_tokens")
+    billed = row["billed_usd"]
+    return Compaction(
+        Usage(**{n: cast(int | None, row[n]) for n in names}),
+        None if billed is None else Decimal(str(billed)),
+        cast(Any, row["outcome"]),
+        cast(str, row["event_id"]),
+        cast(str | None, row["supersedes"]),
+    )
+
+
+# After SCRIPT_3C1, attempts(RUN_ID): (module, attempt, request number, state, reply, issues as a
+# tuple of plain dicts or None, fail_reason, opened, replied, closed). request_sha256 is
+# REQUEST_SHA256[n]; reply_sha256 is REPLY_SHA256 of the reply, None without one. Each issue reads
+# back as a read-only mapping equal to its dict.
+READ_3C1_ATTEMPTS: tuple[
+    tuple[
+        str,
+        int,
+        int,
+        str,
+        bytes | None,
+        tuple[dict[str, object], ...] | None,
+        str | None,
+        datetime,
+        datetime | None,
+        datetime | None,
+    ],
+    ...,
+] = (
+    (
+        "CP-1",
+        1,
+        1,
+        "rejected",
+        REPLIES[1],
+        cast(tuple[dict[str, object], ...], ISSUES_1),
+        None,
+        at(3),
+        at(7),
+        at(9),
+    ),
+    ("CP-1", 2, 2, "failed", None, None, "interrupted", at(10), None, at(16)),
+    ("CP-1", 3, 3, "accepted", REPLIES[3], (), None, at(19), at(22), at(23)),
+)
+# After SCRIPT_3C1, charges(RUN_ID).calls follow AFTER_3C1_CALLS in order: each record's run_id,
+# module, attempt, call_index, exchange_id, provider index, opened_at at(opened row), closed_at
+# at(closed row) or None, hold_usd HOLD (str "0.5"), and call_fields(columns). No compactions.
+# After SCRIPT_3B2B (a running run), charges(RUN_ID).calls follow AFTER_3B2B_CALLS the same way and
+# .compactions are, by position: (position, call key or None, the Compaction).
+READ_3B2B_COMPACTIONS: tuple[tuple[int, CallKey | None, Compaction], ...] = (
+    (0, ("CP-1", 1, 1), UNFINISHED),
+    (1, None, FINISHED),
+)
+# Every store_reply_key CASES row, after close_call on its setup (as 3b2b): charges(RUN_ID).calls
+# is one record whose reply fields are call_fields(CALL) and whose closed_at is the clock's answer;
+# .compactions are the COMPACTIONS rows in order, each compaction_of(row) with call key
+# ("CP-1", 1, 0) and the row's position. Escaped texts read back as stored.
+
+# Order: on a running run, open_attempt for these modules in this order (REQUESTS[1] each), then
+# for the second module listed a second attempt after fail_attempt; attempts(RUN_ID) lists
+# READ_ORDER_AFTER as (module, attempt). Binary text order: "B" < "a" < "b".
+READ_ORDER_MODULES = ("m-b", "m-B", "m-a")
+READ_ORDER_AFTER = (("m-B", 1), ("m-B", 2), ("m-a", 1), ("m-b", 1))
+# The same setup with call 0 opened on ("m-b", 1) first, then on ("m-a", 1): charges(RUN_ID).calls
+# lists (module, attempt, call_index) in this order.
+READ_ORDER_CALLS = (("m-a", 1, 0), ("m-b", 1, 0))
+
+# Two runs: SCRIPT_3C1 on RUN_ID, then SECOND_RUN_ID created and started with CP-1 attempt 1 open
+# and call 0 open (ex-1/0): attempts(SECOND_RUN_ID) is one open attempt and charges(SECOND_RUN_ID)
+# one open call; RUN_ID's reads are unchanged.
+
+# Refusals on read, on Store and on StoreReader alike: (label, run_id argument, error class).
+READ_REFUSED: tuple[tuple[str, object, str], ...] = (
+    ("a run never created", MISSING_RUN_ID, "StoreRefused"),
+    ("run id with a space", "run 1", "StoreRefused"),
+    ("run id not text", 1, "StoreRefused"),
+)
+# A created run with no attempt: attempts() is () and charges() is Charges((), ()).
+
+# Stored values the reader must refuse. Setup "replied": a running run (RUN_ID of the status
+# tests) with CP-1 attempt 1 replied with REPLIES[1] through the API; "open call": CP-1 attempt 1
+# with call 0 (ex-1/0) open. Then one raw statement whose parameter ?1 is the run id and ?2, ?3 the
+# parameters given; then the read named is StoreCorrupt, and the other read still succeeds.
+# (label, setup, SQL, parameters after the run id, the refused read)
+_CLOSED = "2026-09-30T12:05:00.000000Z"
+_TO_REJECTED = (
+    "UPDATE attempts SET state = 'rejected', issues = ?2, closed_at = ?3"
+    " WHERE run_id = ?1 AND module_id = 'CP-1' AND attempt = 1"
+)
+READ_CORRUPT: tuple[tuple[str, str, str, tuple[object, ...], str], ...] = (
+    ("issue keys not sorted", "replied", _TO_REJECTED, ('[{"b":1,"a":2}]', _CLOSED), "attempts"),
+    ("issues with a space", "replied", _TO_REJECTED, ('[{"a": 1}]', _CLOSED), "attempts"),
+    ("issue not an object", "replied", _TO_REJECTED, ("[1]", _CLOSED), "attempts"),
+    ("issues not JSON", "replied", _TO_REJECTED, ("[{]", _CLOSED), "attempts"),
+    (
+        "call message not UTF-8",
+        "open call",
+        (
+            "UPDATE calls SET closed_at = ?2, kind = 'not_sent', error_class = 'E',"
+            " message = CAST(x'ff' AS TEXT) WHERE run_id = ?1 AND call_index = 0"
+        ),
+        (_CLOSED,),
+        "charges",
+    ),
+    (
+        "compaction id not UTF-8",
+        "open call",
+        (
+            "INSERT INTO compactions(event_id, run_id, position, outcome)"
+            " VALUES (CAST(x'ff' AS TEXT), ?1, 0, 'done')"
+        ),
+        (),
+        "charges",
+    ),
 )

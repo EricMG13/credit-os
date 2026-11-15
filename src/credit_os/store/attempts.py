@@ -5,16 +5,31 @@ transaction (`StoreRefused`); the run gate runs in `db`; then the attempt, then 
 write's one clock call."""
 
 import hashlib
+import json
 import re
 import sqlite3
 from collections.abc import Callable, Sequence
 from decimal import Decimal
+from types import MappingProxyType
+from typing import Any
 
-from credit_os.provider.types import Compaction, Reply
+from credit_os.provider.types import Compaction, ProviderDataError, Reply, Usage
 from credit_os.store import runs
-from credit_os.store.codec import detail_to_text, money_from_text, money_to_text, time_to_text
-from credit_os.store.errors import StoreConflict, StoreRefused, safe_text
-from credit_os.store.records import Claim
+from credit_os.store.codec import (
+    detail_to_text,
+    money_from_text,
+    money_to_text,
+    time_from_text,
+    time_to_text,
+)
+from credit_os.store.errors import StoreConflict, StoreCorrupt, StoreRefused, safe_text
+from credit_os.store.records import (
+    AttemptRecord,
+    CallRecord,
+    Charges,
+    Claim,
+    CompactionRecord,
+)
 
 _SQLITE_MAX_INTEGER = 2**63 - 1
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -488,4 +503,145 @@ def fail_attempt(
     )
     runs.insert_event(
         connection, run_id, at, "attempt_failed", {"reason": reason}, module_id, attempt
+    )
+
+
+def _issues(stored: object) -> tuple[MappingProxyType[str, str | int | None], ...] | None:
+    """The issues of stored text that is exactly what the writer makes: "[" + the items' canonical
+    texts joined by "," + "]". Anything else is StoreCorrupt."""
+    if stored is None:
+        return None
+    if not isinstance(stored, str):
+        raise StoreCorrupt(f"stored issues are not text ({type(stored).__name__})")
+    try:
+        parsed = json.loads(stored)
+        canonical = isinstance(parsed, list) and (
+            "[" + ",".join(detail_to_text(item) for item in parsed) + "]" == stored
+        )
+    except (StoreRefused, ValueError, RecursionError):
+        canonical = False
+    if not canonical:
+        raise StoreCorrupt("stored issues are not the canonical text of a list of mappings")
+    return tuple(MappingProxyType(item) for item in parsed)
+
+
+def read_attempts(connection: sqlite3.Connection, run_id: object) -> tuple[AttemptRecord, ...]:
+    """The run's attempts by module id then attempt (binary text order)."""
+    checked = runs._require_run(connection, run_id)
+    rows = connection.execute(
+        "SELECT module_id, attempt, request, request_sha256, state, reply, reply_sha256, issues,"
+        " fail_reason, opened_at, replied_at, closed_at FROM attempts"
+        " WHERE run_id = ? ORDER BY module_id, attempt",
+        (checked,),
+    ).fetchall()
+    return tuple(
+        AttemptRecord(
+            run_id=checked,
+            module_id=module_id,
+            attempt=attempt,
+            request=request,
+            request_sha256=request_sha256,
+            state=state,
+            reply=reply,
+            reply_sha256=reply_sha256,
+            issues=_issues(issues),
+            fail_reason=fail_reason,
+            opened_at=runs._stored(time_from_text(opened_at), "attempt opened_at"),
+            replied_at=time_from_text(replied_at),
+            closed_at=time_from_text(closed_at),
+        )
+        for (
+            module_id,
+            attempt,
+            request,
+            request_sha256,
+            state,
+            reply,
+            reply_sha256,
+            issues,
+            fail_reason,
+            opened_at,
+            replied_at,
+            closed_at,
+        ) in rows
+    )
+
+
+def _call(run_id: str, row: tuple[Any, ...]) -> CallRecord:
+    (module_id, attempt, call_index, exchange_id, provider_call_index, hold_usd, opened_at) = row[
+        :7
+    ]
+    (closed_at, kind, error_class, message) = row[7:11]
+    counts = row[11:16]
+    (billed_usd, started_at, finished_at, stop_reason, reported_model, request_id, raw) = row[16:]
+    sent = kind not in (None, "not_sent", "sent_unknown")
+    return CallRecord(
+        run_id=run_id,
+        module_id=module_id,
+        attempt=attempt,
+        call_index=call_index,
+        exchange_id=exchange_id,
+        provider_call_index=provider_call_index,
+        hold_usd=runs._stored(money_from_text(hold_usd), "hold_usd"),
+        opened_at=runs._stored(time_from_text(opened_at), "call opened_at"),
+        closed_at=time_from_text(closed_at),
+        kind=kind,
+        error_class=error_class,
+        message=message,
+        usage=_usage(counts) if sent else None,
+        billed_usd=money_from_text(billed_usd),
+        started_at=time_from_text(started_at),
+        finished_at=time_from_text(finished_at),
+        stop_reason=stop_reason,
+        reported_model=reported_model,
+        request_id=request_id,
+        raw=raw,
+    )
+
+
+def _usage(counts: tuple[Any, ...]) -> Usage:
+    try:
+        return Usage(*counts)
+    except ProviderDataError:
+        raise StoreCorrupt("stored token counts are refused by the provider's Usage") from None
+
+
+def _compaction(run_id: str, row: tuple[Any, ...]) -> CompactionRecord:
+    position, module_id, attempt, call_index, *counts, billed_usd, outcome, event_id, supersedes = (
+        row
+    )
+    try:
+        compaction = Compaction(
+            Usage(*counts),
+            money_from_text(billed_usd),
+            outcome,
+            event_id,
+            supersedes,
+        )
+    except ProviderDataError:
+        raise StoreCorrupt(f"stored compaction {position} is refused by the provider") from None
+    return CompactionRecord(run_id, position, module_id, attempt, call_index, compaction)
+
+
+def read_charges(connection: sqlite3.Connection, run_id: object) -> Charges:
+    """Every call (open ones included) by module id, attempt and call index, and every compaction
+    (superseded ones included) by position. Nothing is summed."""
+    checked = runs._require_run(connection, run_id)
+    call_rows = connection.execute(
+        "SELECT module_id, attempt, call_index, exchange_id, provider_call_index, hold_usd,"
+        " opened_at, closed_at, kind, error_class, message, input_tokens, cached_read_tokens,"
+        " cache_write_tokens, output_tokens, reasoning_tokens, billed_usd, started_at,"
+        " finished_at, stop_reason, reported_model, request_id, raw FROM calls"
+        " WHERE run_id = ? ORDER BY module_id, attempt, call_index",
+        (checked,),
+    ).fetchall()
+    compaction_rows = connection.execute(
+        "SELECT position, module_id, attempt, call_index, input_tokens, cached_read_tokens,"
+        " cache_write_tokens, output_tokens, billed_usd, outcome, event_id, supersedes"
+        " FROM compactions WHERE run_id = ? ORDER BY position",
+        (checked,),
+    ).fetchall()
+    return Charges(
+        calls=tuple(_call(checked, row) for row in call_rows),
+        compactions=tuple(_compaction(checked, row) for row in compaction_rows),
     )

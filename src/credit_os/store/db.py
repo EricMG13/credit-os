@@ -23,7 +23,7 @@ from credit_os.store.errors import (
     safe_text,
     store_error,
 )
-from credit_os.store.records import Claim, EventRecord, RunRecord
+from credit_os.store.records import AttemptRecord, Charges, Claim, EventRecord, RunRecord
 from credit_os.store.txn import Migration
 
 APPLICATION_ID = 1129467731
@@ -50,7 +50,11 @@ class _Handle:
         with self._lock:
             connection = self._live()
             try:
-                yield connection
+                connection.execute("BEGIN")  # one snapshot for every statement of the read
+                try:
+                    yield connection
+                finally:
+                    connection.execute("ROLLBACK")
             except sqlite3.Error as error:
                 raise store_error(error, "read the store") from error
 
@@ -68,6 +72,19 @@ class _Handle:
         """The run's events in seq order; stored text the codecs refuse is StoreCorrupt."""
         with self._reading() as connection:
             return runs.read_events(connection, run_id)
+
+    def attempts(self, run_id: str) -> tuple[AttemptRecord, ...]:
+        """The run's attempts ordered by module id then attempt (binary text order); a run never
+        created is StoreRefused, stored values the codecs refuse are StoreCorrupt."""
+        with self._reading() as connection:
+            return attempts.read_attempts(connection, run_id)
+
+    def charges(self, run_id: str) -> Charges:
+        """Every call (open ones included) ordered by module id, attempt and call index, and every
+        compaction (superseded ones included) ordered by position. Nothing is summed. A run never
+        created is StoreRefused; stored values the codecs or the provider refuse are StoreCorrupt."""
+        with self._reading() as connection:
+            return attempts.read_charges(connection, run_id)
 
     def close(self) -> None:
         with self._lock:
