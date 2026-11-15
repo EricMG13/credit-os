@@ -51,7 +51,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
 
-from credit_os.signal import feedview, groups, identity, ingest, store, topics
+from credit_os.signal import feedview, groups, identity, ingest, store, threads, topics
 
 __all__ = ["DEFAULT_HOST", "DEFAULT_PORT", "Handler", "Loop", "make_server", "serve"]
 
@@ -269,6 +269,199 @@ def _topics(req: _Req) -> _Reply:
     )
 
 
+def _only(body: dict[str, Any], *allowed: str) -> dict[str, Any]:
+    if set(body) - set(allowed):  # a fixed text: a refusal never carries client text
+        raise _refuse(400, "the request has a field this route does not take")
+    return body
+
+
+def _str(body: dict[str, Any], name: str) -> str:
+    value = body.get(name)
+    if not isinstance(value, str):
+        raise _refuse(400, f"{name} must be text")
+    return value
+
+
+def _opt_str(body: dict[str, Any], name: str) -> str | None:
+    return None if body.get(name) is None else _str(body, name)
+
+
+def _whole(value: object, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise _refuse(400, f"{name} must be a whole number")
+    return value
+
+
+def _opt_whole(body: dict[str, Any], name: str) -> int | None:
+    return None if body.get(name) is None else _whole(body[name], name)
+
+
+def _ids(body: dict[str, Any], name: str) -> list[int]:
+    value = body.get(name, [])
+    if not isinstance(value, list):
+        raise _refuse(400, f"{name} must be a list of whole numbers")
+    return [_whole(item, name) for item in value]
+
+
+def _act(req: _Req) -> groups.Act:
+    return groups.Act(req.person, datetime.now(UTC))
+
+
+def _unread_json(unread: threads.Unread) -> dict[str, Any]:
+    return {
+        "replies": unread.replies,
+        "threads": unread.threads,
+        "total": unread.replies + unread.threads,
+        "by_group": {str(group): count for group, count in unread.by_group.items()},
+    }
+
+
+def _group_list(req: _Req) -> _Reply:
+    person = req.person
+    by_group = threads.unread(req.db, person.name).by_group
+    found = [
+        {
+            "id": row["id"],
+            "name": row["name"],
+            "visibility": row["visibility"],
+            "member": bool(row["member"]),
+            "members": row["members"],
+            "threads": row["threads"],
+            "unread": by_group.get(row["id"], 0),
+        }
+        for row in groups.list_groups(req.db, person.name)
+    ]
+    return _Reply(200, {"groups": found, "can_create": groups.may_post(person)})
+
+
+def _group_create(req: _Req) -> _Reply:
+    body = _only(req.body(), "name", "visibility", "topics")
+    name, visibility, topic_ids = _str(body, "name"), _str(body, "visibility"), _ids(body, "topics")
+    return _Reply(200, {"id": groups.create_group(req.db, _act(req), name, visibility, topic_ids)})
+
+
+def _group_get(req: _Req) -> _Reply:
+    person, group_id = req.person, int(req.groups[0])
+    row = groups.require_visible(req.db, person.name, group_id)
+    names = groups.members(req.db, person.name, group_id)
+    return _Reply(
+        200,
+        {
+            "id": row["id"],
+            "name": row["name"],
+            "visibility": row["visibility"],
+            "member": person.name in names,
+            "can_manage": groups.can_manage(req.db, person, group_id),
+            "members": names,
+        },
+    )
+
+
+def _member_add(req: _Req) -> _Reply:
+    body, group_id = _only(req.body(), "name"), int(req.groups[0])
+    if not body:  # {}: the caller joins
+        groups.join(req.db, req.person.name, group_id, datetime.now(UTC))
+    else:
+        groups.add_member(req.db, _act(req), group_id, _str(body, "name"))
+    return _Reply(200, {"members": _visible_members(req, group_id)})
+
+
+def _member_remove(req: _Req) -> _Reply:
+    body, group_id = _only(req.body(), "name"), int(req.groups[0])
+    if not body:  # {}: the caller leaves; a hidden or missing group is a 404 like everywhere else
+        groups.require_visible(req.db, req.person.name, group_id)
+        groups.leave(req.db, req.person.name, group_id)
+    else:
+        groups.remove_member(req.db, req.person, group_id, _str(body, "name"))
+    return _Reply(200, {"members": _visible_members(req, group_id)})
+
+
+def _visible_members(req: _Req, group_id: int) -> list[str]:
+    """The member list for the reply; a person who just left an invited group no longer sees it."""
+    if not groups.can_see(req.db, req.person.name, group_id):
+        return []
+    return groups.members(req.db, req.person.name, group_id)
+
+
+def _thread_page(req: _Req) -> _Reply:
+    page, next_before = threads.thread_list(
+        req.db, req.person.name, int(req.groups[0]), req.params.get("before")
+    )
+    return _Reply(
+        200, {"threads": [dataclasses.asdict(row) for row in page], "next_before": next_before}
+    )
+
+
+def _thread_start(req: _Req) -> _Reply:
+    """A shared story or a note. The text is passed as sent: ``threads`` cleans it, and refuses a
+    bad one before it looks at the group (R55), so no check here depends on what is stored."""
+    body, group_id = req.body(), int(req.groups[0])
+    if "story_id" in body:
+        _only(body, "story_id", "note")
+        story_id, note = _whole(body["story_id"], "story_id"), _opt_str(body, "note")
+        thread_id, joined = threads.share_story(req.db, _act(req), group_id, story_id, note)
+        return _Reply(200, {"thread_id": thread_id, "joined": joined})
+    if "title" in body and "text" in body:
+        _only(body, "title", "text")
+        title, text = _str(body, "title"), _str(body, "text")
+        return _Reply(
+            200,
+            {
+                "thread_id": threads.start_note(req.db, _act(req), group_id, title, text),
+                "joined": False,
+            },
+        )
+    raise _refuse(400, "send either story_id (with note) or title and text")
+
+
+def _thread_get(req: _Req) -> _Reply:
+    view = threads.read_thread(req.db, req.person, int(req.groups[0]), datetime.now(UTC))
+    return _Reply(200, dataclasses.asdict(view))
+
+
+def _thread_read(req: _Req) -> _Reply:
+    _only(req.body())  # {} and nothing else
+    name = req.person.name
+    threads.mark_read(req.db, name, int(req.groups[0]))
+    return _Reply(200, {"unread": _unread_json(threads.unread(req.db, name))})
+
+
+def _comment_add(req: _Req) -> _Reply:
+    body = _only(req.body(), "text", "parent")
+    text, parent = _str(body, "text"), _opt_whole(body, "parent")
+    return _Reply(
+        200, {"id": threads.add_comment(req.db, _act(req), int(req.groups[0]), text, parent)}
+    )
+
+
+def _comment_edit(req: _Req) -> _Reply:
+    text = _str(_only(req.body(), "text"), "text")
+    threads.edit_comment(req.db, _act(req), int(req.groups[0]), text)
+    return _Reply(200, {})
+
+
+def _comment_delete(req: _Req) -> _Reply:
+    threads.delete_comment(req.db, _act(req), int(req.groups[0]))
+    return _Reply(200, {})
+
+
+def _reaction(
+    action: Callable[[sqlite3.Connection, identity.User, int, str], None],
+) -> Callable[[_Req], _Reply]:
+    """A reaction route: the comment, then the key, from the path. ``threads`` decides who may
+    react (a registered user, R54) and which keys exist (R21); the key is at most twelve letters."""
+
+    def run(req: _Req) -> _Reply:
+        action(req.db, req.person, int(req.groups[0]), req.groups[1])
+        return _Reply(200, {})
+
+    return run
+
+
+def _unread_get(req: _Req) -> _Reply:
+    return _Reply(200, _unread_json(threads.unread(req.db, req.person.name)))
+
+
 def _status(req: _Req) -> _Reply:
     """What is known without a name: when a pass last returned (not that every source was visited:
     a pass can stop early), how many sources are approved and failing, the loop's last error."""
@@ -296,6 +489,7 @@ class _Route:
 
 
 _ID = "([0-9]{1,18})"  # ASCII digits only (a str pattern's \d also matches other scripts)
+_KEY = "([a-z]{1,12})"  # a reaction key: lowercase ASCII letters
 _ROUTES = (
     _Route("GET", re.compile("/api/me"), _me, open_to_all=True),
     _Route("POST", re.compile("/api/me"), _set_me, open_to_all=True),
@@ -308,6 +502,23 @@ _ROUTES = (
     _Route("GET", re.compile("/api/topics"), _topics),
     _Route("POST", re.compile(f"/api/topics/{_ID}/follow"), _follow, store_status=404),
     _Route("DELETE", re.compile(f"/api/topics/{_ID}/follow"), _unfollow, store_status=404),
+    _Route("GET", re.compile("/api/groups"), _group_list),
+    _Route("POST", re.compile("/api/groups"), _group_create),
+    _Route("GET", re.compile(f"/api/groups/{_ID}"), _group_get),
+    _Route("POST", re.compile(f"/api/groups/{_ID}/members"), _member_add),
+    _Route("DELETE", re.compile(f"/api/groups/{_ID}/members"), _member_remove),
+    _Route("GET", re.compile(f"/api/groups/{_ID}/threads"), _thread_page),
+    _Route("POST", re.compile(f"/api/groups/{_ID}/threads"), _thread_start),
+    _Route("GET", re.compile(f"/api/threads/{_ID}"), _thread_get),
+    _Route("POST", re.compile(f"/api/threads/{_ID}/read"), _thread_read),
+    _Route("POST", re.compile(f"/api/threads/{_ID}/comments"), _comment_add),
+    _Route("POST", re.compile(f"/api/comments/{_ID}"), _comment_edit),
+    _Route("DELETE", re.compile(f"/api/comments/{_ID}"), _comment_delete),
+    _Route("POST", re.compile(f"/api/comments/{_ID}/reactions/{_KEY}"), _reaction(threads.react)),
+    _Route(
+        "DELETE", re.compile(f"/api/comments/{_ID}/reactions/{_KEY}"), _reaction(threads.unreact)
+    ),
+    _Route("GET", re.compile("/api/unread"), _unread_get),
 )
 
 
