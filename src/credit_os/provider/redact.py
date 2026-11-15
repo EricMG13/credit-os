@@ -306,7 +306,7 @@ def _unit(char: str, lead: str, taken: bool) -> str:
     """One character of a form: its literal, escaped and percent spellings."""
     escaped, plain = _encodings(char)
     body = "(?:" + "|".join(_longest_first(escaped)) + ")"
-    if taken:  # the separator run took some of the escape's backslashes; a literal is not found here
+    if taken:  # the separator run took some backslashes; a literal is not found here
         return r"\\{0,8}+" + body
     return "(?:" + "|".join([lead + body, *_longest_first({re.escape(char), *plain})]) + ")"
 
