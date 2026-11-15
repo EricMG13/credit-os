@@ -14,6 +14,7 @@ class RefusalKind(StrEnum):
     CURRENCY = "currency"
     FACILITY = "facility"
     SOURCE = "source"
+    SIZE = "size"
 
 
 class ForecastRefused(Exception):

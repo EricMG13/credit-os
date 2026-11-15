@@ -15,14 +15,25 @@
   source refusal. Then `check_foundation` runs once, against the foundation.
 
 `ForecastDeclined` and `ForecastRefused` pass through untouched.
+
+`run_forecast` returns a `ForecastResult`: the source, both document hashes (`None` for the
+forward one on layer 1), currency, scale, the three spans, every case, the stress basis, the
+facility detail and the limits. It carries no base figures, no drivers and no shock (D10): the
+inputs stay in the handoff. Its `__post_init__` refuses a result in which a case year has
+negative closing cash but net debt, net leverage or liquidity is not the negative-cash gap (D8).
+A figure too wide for 38 digits is refused as `RefusalKind.SIZE` by `cases.run_cases` (D9).
 """
 
+from dataclasses import dataclass
 from enum import StrEnum
 
 from credit_os.handoff.document import HandoffDocument
+from credit_os.model.cases import NEGATIVE_CASH, Case, StressBasis, run_cases
+from credit_os.model.detail import Detail, facility_detail, facility_limits
 from credit_os.model.foundation import check_foundation
-from credit_os.model.inputs import ForecastInputs, read_inputs
+from credit_os.model.inputs import ForecastInputs, Span, read_inputs
 from credit_os.model.refusals import ForecastRefused, RefusalKind
+from credit_os.model.value import Missing, MissingCode, Value
 
 
 class ForecastSource(StrEnum):
@@ -71,3 +82,79 @@ def read_checked(
         _layer1_restriction(inputs)
     check_foundation(inputs, stated, foundation)
     return inputs, stated
+
+
+LIMIT = (
+    "Every figure is Python's arithmetic over inputs the forward credit model stated; "
+    "the inputs, not the arithmetic, are unreviewed. Not analytical review."
+)
+LAYER1_LIMIT = (
+    "Every figure is Python's arithmetic over run-rate inputs the financial foundation stated, "
+    "from its own figures; no forward credit model, case or shock was run. "
+    "The inputs, not the arithmetic, are unreviewed. Not analytical review."
+)
+
+
+def scale_limit(currency: str) -> str:
+    return (
+        f"The forecast inputs state base amounts, amount drivers and facility amounts in "
+        f"{currency} thousands, as the financial foundation prints them (scale 1000); "
+        f"Python divided each by 1,000 before any calculation. "
+        f"Every figure here is {currency} millions."
+    )
+
+
+_GAP = Value(missing=Missing(MissingCode.NEGATIVE_CASH, NEGATIVE_CASH))
+_OVERLAID = ("net_debt", "net_leverage", "liquidity")
+
+
+@dataclass(frozen=True, slots=True)
+class ForecastResult:
+    source: ForecastSource
+    foundation_sha256: str
+    forward_sha256: str | None
+    currency: str
+    scale: int
+    spans: tuple[Span, Span, Span]
+    cases: tuple[Case, ...]
+    stress_basis: StressBasis | None
+    facilities: Detail | None
+    limits: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        for case in self.cases:
+            for year in case.years:
+                cash = year.closing_cash.amount
+                if cash is None or cash >= 0:
+                    continue
+                if any(getattr(year, name) != _GAP for name in _OVERLAID):
+                    raise ValueError(
+                        "a year with negative closing cash carries the negative-cash gap"
+                    )
+
+
+def run_forecast(
+    foundation: HandoffDocument,
+    source: ForecastSource,
+    forward: HandoffDocument | None = None,
+) -> ForecastResult:
+    inputs, _ = read_checked(foundation, source, forward)
+    cases, basis = run_cases(inputs)
+    forward_source = source is ForecastSource.FORWARD_MODEL
+    limits = [LIMIT if forward_source else LAYER1_LIMIT]
+    if inputs.scale == 1000:
+        limits.append(scale_limit(inputs.currency))
+    limits.extend(inputs.scope_limits)
+    limits.extend(facility_limits(inputs))
+    return ForecastResult(
+        source=source,
+        foundation_sha256=foundation.sha256,
+        forward_sha256=None if forward is None else forward.sha256,
+        currency=inputs.currency,
+        scale=inputs.scale,
+        spans=inputs.years,
+        cases=cases,
+        stress_basis=basis,
+        facilities=facility_detail(inputs),
+        limits=tuple(limits),
+    )
