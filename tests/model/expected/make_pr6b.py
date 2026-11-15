@@ -462,6 +462,12 @@ R47 = [
     ("as a percentage", "7.125", None, "The notes stand at 7.125."),
     ("glued into a facility name", "2027", "TLB2027 was repaid.", "2027 was repaid."),
 ]
+# The 6b2 adversary review's M1: the letter pieces are pinned for small letters too. These rows
+# come after the controls, so the first 77 rows stay as they were.
+R47_SMALL: list[tuple[str, str, str | None, str]] = [
+    ("glued before a small letter", "380", "Drawn 380m.", "Drawn: 380."),
+    ("glued after a small letter", "2027", "tlb2027 was repaid.", "2027 was repaid."),
+]
 
 
 def r47_rows() -> list[Doc]:
@@ -475,17 +481,20 @@ def r47_rows() -> list[Doc]:
         ops = [*base["ops"], [["facilities", 1, "balance"], balance]]
         return {"label": f"R47: {label}", "edits": edits, "ops": ops}
 
-    for where, balance, only, alone in R47:
-        glued = [only] if only else []
-        rows.append(row(f"a balance printed only {where} is not printed", balance, *glued))
-        rows.append(
-            row(
-                f"the same balance on its own beside it is printed ({where})",
-                balance,
-                *glued,
-                alone,
+    def pairs(table: list[tuple[str, str, str | None, str]]) -> None:
+        for where, balance, only, alone in table:
+            glued = [only] if only else []
+            rows.append(row(f"a balance printed only {where} is not printed", balance, *glued))
+            rows.append(
+                row(
+                    f"the same balance on its own beside it is printed ({where})",
+                    balance,
+                    *glued,
+                    alone,
+                )
             )
-        )
+
+    pairs(R47)
     rows.append(
         row("known reading: a number standing alone in a name counts (Senior notes 2029)", "2029")
     )
@@ -506,6 +515,7 @@ def r47_rows() -> list[Doc]:
             "Drawn 1,250.0 %.",
         )
     )
+    pairs(R47_SMALL)
     return rows
 
 
@@ -517,7 +527,7 @@ def render() -> str:
     key: Doc = {"about": __doc__.split("\n\n")[0], "messages": MESSAGES, "rows": rows}
     labels = [row["label"] for row in rows]
     accepted = [row for row in rows if row["outcome"] is None]
-    assert len(labels) == len(set(labels)) == 77 and len(accepted) == 23
+    assert len(labels) == len(set(labels)) == 81 and len(accepted) == 25
     lines = ["{"]
     for name, value in key.items():
         if name == "rows":
