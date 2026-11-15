@@ -127,6 +127,12 @@ GUARDS: dict[str, tuple[bytes, tuple[str, ...]]] = {
         _guarantors(MAX_VALUES + 1)[:-1] + b', "x": ' + b"[" * 32 + b"]" * 32 + b"}",
         ("$: nested too deeply (more than 32 levels).",),
     ),
+    # Ruling on review M3: a key over 64 characters, after the value guard.
+    "key_too_long": (changed(("k" * 65,), 1), ("$: a key is longer than 64 characters.",)),
+    "nested_key_too_long": (
+        changed(("run", "k" * 65), 1),
+        ("$: a key is longer than 64 characters.",),
+    ),
     # The top-level guard comes before the depth guard (review M2).
     "top_level_array_too_deep": (b"[" * 40 + b"]" * 40, ("$: the top level must be an object.",)),
 }
@@ -150,6 +156,7 @@ SHAPE: dict[str, Row] = {
         changed(("research_questions",), [{"text": "Why\u0085now", "focus_module": "CP-3"}]),
         (f"research_questions[0].text: {SEP}",),
     ),
+    "key_at_cap": (changed(("k" * 64,), 1), (f"{'k' * 64}: Extra inputs are not permitted",)),
     "unknown_top_key": (
         changed(("notes",), "free text"),
         ("notes: Extra inputs are not permitted",),
