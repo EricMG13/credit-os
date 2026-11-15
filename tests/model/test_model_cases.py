@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from credit_os.model.cases import CaseName, StressBasis, run_cases
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from credit_os.model import cases as cs
+from credit_os.model.cases import CaseName, StressBasis, run_cases
 from credit_os.model.forecast import Year
 from credit_os.model.inputs import ForecastInputs, parse_inputs
 from credit_os.model.value import Value, amount_text
