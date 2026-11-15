@@ -179,6 +179,8 @@ def _encoding(name: str, raw: bytes) -> tuple[str, str, int]:
         raise _refuse(
             name, "not valid UTF-8 and declares no charset in its first 4,096 bytes"
         ) from utf8_error
+    if found.end(1) == _SNIFF_BYTES:
+        raise _refuse(name, f"declares a charset whose name may be cut at byte {_SNIFF_BYTES:,}")
     declared = found.group(1).decode("ascii")
     codec = _LABELS.get(declared.lower().replace("_", "-"))
     if codec is None:
