@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
 from credit_os.model.cases import (
     NEGATIVE_CASH,
     base_operands,
@@ -16,9 +19,6 @@ from credit_os.model.cases import (
     unallocated,
     with_negative_cash,
 )
-from hypothesis import given, settings
-from hypothesis import strategies as st
-
 from credit_os.model.forecast import Year
 from credit_os.model.inputs import ForecastInputs
 from credit_os.model.value import Missing, MissingCode, Value
